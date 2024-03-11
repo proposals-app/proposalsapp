@@ -1,12 +1,13 @@
 [package]
-name = "votes"
+name = "proposals_consumer"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-seaorm = { path = "../../../libs/rust/seaorm" }
-contracts = { path = "../../../libs/rust/contracts" }
-utils = { path = "../../../libs/rust/utils" }
+seaorm = { path = "../../../../libs/rust/seaorm" }
+contracts = { path = "../../../../libs/rust/contracts" }
+scanners = { path = "../../../../libs/rust/scanners" }
+utils = { path = "../../../../libs/rust/utils" }
 
 #utils
 serde = "=1.0.197"
@@ -18,6 +19,8 @@ reqwest = { version = "=0.11.25", default-features = false, features = [
     "json",
     "rustls-tls",
 ] }
+reqwest-middleware = "=0.2.4"
+reqwest-retry = "=0.4.0"
 regex = "=1.10.3"
 tokio = { version = "=1.36.0", features = ["full"] }
 futures = "=0.3.30"
@@ -30,7 +33,7 @@ redis = { version = "=0.23", features = [
 dotenv = "0.15.0"
 axum = "0.7.4"
 
-#db
+# db
 sea-orm = { version = "=0.12.14", default-features = false, features = [
     "sqlx-mysql",
     "runtime-tokio-rustls",
@@ -53,13 +56,7 @@ tracing-subscriber = { version = "=0.3.18", features = [
 ] }
 num-bigint = "=0.4.4"
 
-[build-dependencies]
-ethers = "=2.0.14"
 
 [[bin]]
-name = "votes_producer"
-path = "votes_producer.rs"
-
-[[bin]]
-name = "votes_consumer"
-path = "votes_consumer.rs"
+name = "proposals_consumer"
+path = "proposals_consumer.rs"

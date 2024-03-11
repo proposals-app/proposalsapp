@@ -3248,7 +3248,37 @@ dependencies = [
 ]
 
 [[package]]
-name = "proposals"
+name = "proposals_consumer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "contracts",
+ "dotenv",
+ "ethers",
+ "futures",
+ "itertools 0.12.1",
+ "num-bigint",
+ "redis 0.23.3",
+ "redis-work-queue",
+ "regex",
+ "reqwest",
+ "reqwest-middleware",
+ "reqwest-retry",
+ "scanners",
+ "sea-orm",
+ "seaorm",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "utils",
+]
+
+[[package]]
+name = "proposals_producer"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -5213,7 +5243,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
-name = "votes"
+name = "votes_consumer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "contracts",
+ "dotenv",
+ "ethers",
+ "futures",
+ "itertools 0.12.1",
+ "num-bigint",
+ "redis 0.23.3",
+ "redis-work-queue",
+ "regex",
+ "reqwest",
+ "sea-orm",
+ "seaorm",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "utils",
+]
+
+[[package]]
+name = "votes_producer"
 version = "0.1.0"
 dependencies = [
  "anyhow",

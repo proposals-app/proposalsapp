@@ -1,7 +1,9 @@
 [workspace]
 members = [
-    "apps/detective/proposals",
-    "apps/detective/votes",
+    "apps/detective/proposals/consumer",
+    "apps/detective/proposals/producer",
+    "apps/detective/votes/consumer",
+    "apps/detective/votes/producer",
     "apps/seed",
     "apps/detective/sanity",
     "libs/rust/scanners",
