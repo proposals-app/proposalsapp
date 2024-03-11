@@ -20,7 +20,7 @@ async fn main() -> Result<()> {
     dotenv().ok();
     setup_telemetry();
 
-    let mut interval = time::interval(std::time::Duration::from_secs(30));
+    let mut interval = time::interval(std::time::Duration::from_secs(60 * 5));
 
     loop {
         interval.tick().await;
