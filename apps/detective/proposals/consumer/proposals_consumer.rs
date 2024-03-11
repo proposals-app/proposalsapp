@@ -56,15 +56,9 @@ async fn main() -> Result<()> {
 
     let work_queue = WorkQueue::new(KeyPrefix::from("proposals"));
 
-    let app = Router::new().route(
-        "/",
-        axum::routing::get(|| async {
-            info!("healthcheck");
-            "ok"
-        }),
-    );
+    let app = Router::new().route("/", axum::routing::get(|| async { "ok" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    tokio::spawn(async { axum::serve(listener, app).await.unwrap() });
 
     loop {
         let job_item = work_queue
