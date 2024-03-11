@@ -8,6 +8,7 @@ use seaorm::sea_orm_active_enums::HandlerType;
 use seaorm::sea_orm_active_enums::ProposalState;
 use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
+use tokio::time;
 use tracing::{info, instrument};
 use utils::telemetry::setup_telemetry;
 
@@ -35,7 +36,13 @@ struct Decoder {
 #[tokio::main]
 async fn main() -> Result<()> {
     setup_telemetry();
-    run().await
+
+    let mut interval = time::interval(std::time::Duration::from_secs(60 * 15));
+
+    loop {
+        interval.tick().await;
+        tokio::spawn(async { run().await });
+    }
 }
 
 async fn run() -> Result<()> {

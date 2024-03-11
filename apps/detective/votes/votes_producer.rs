@@ -10,6 +10,7 @@ use sea_orm::QueryFilter;
 use sea_orm::{Database, DatabaseConnection};
 use seaorm::sea_orm_active_enums::HandlerType;
 use seaorm::{dao_handler, proposal};
+use tokio::time;
 use tracing::info;
 use utils::telemetry::setup_telemetry;
 use utils::types::VotesJob;
@@ -19,9 +20,12 @@ async fn main() -> Result<()> {
     dotenv().ok();
     setup_telemetry();
 
-    let _ = produce_jobs().await;
+    let mut interval = time::interval(std::time::Duration::from_secs(60 * 10));
 
-    Ok(())
+    loop {
+        interval.tick().await;
+        tokio::spawn(async { produce_jobs().await });
+    }
 }
 
 async fn produce_jobs() -> Result<()> {
