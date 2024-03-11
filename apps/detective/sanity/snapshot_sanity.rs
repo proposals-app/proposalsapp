@@ -26,9 +26,6 @@ struct GraphQLProposal {
     id: String,
 }
 
-#[derive(Deserialize)]
-struct LambdaEventType {}
-
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]
 struct Decoder {
@@ -36,14 +33,12 @@ struct Decoder {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), lambda_runtime::Error> {
+async fn main() -> Result<()> {
     setup_telemetry();
-    lambda_runtime::run(lambda_runtime::service_fn(func)).await
+    run().await
 }
 
-async fn func(
-    _e: lambda_runtime::LambdaEvent<LambdaEventType>,
-) -> Result<(), lambda_runtime::Error> {
+async fn run() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
 
     let mut opt = ConnectOptions::new(database_url);

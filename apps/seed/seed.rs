@@ -1,11 +1,10 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use data::seed_data;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::{ColumnTrait, ConnectOptions, EntityTrait, QueryFilter, Set};
 use sea_orm::{Database, DatabaseConnection};
 use seaorm::sea_orm_active_enums::HandlerType;
 use seaorm::{dao, dao_handler, dao_settings};
-use serde_json::{json, Value};
 use utils::telemetry::setup_telemetry;
 
 mod data;
@@ -35,13 +34,12 @@ struct SettingsData {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), lambda_runtime::Error> {
+async fn main() -> Result<()> {
     setup_telemetry();
-    lambda_runtime::run(lambda_runtime::service_fn(func)).await?;
-    Ok(())
+    run().await
 }
 
-async fn func(_event: lambda_runtime::LambdaEvent<Value>) -> Result<Value, lambda_runtime::Error> {
+async fn run() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
 
     let mut opt = ConnectOptions::new(database_url);
@@ -51,13 +49,10 @@ async fn func(_event: lambda_runtime::LambdaEvent<Value>) -> Result<Value, lambd
 
     seed_daos(seed_data(), &db).await?;
 
-    Ok(json!({"seed": "ok"}))
+    Ok(())
 }
 
-async fn seed_daos(
-    seed_data: Vec<DaoSeedData>,
-    db: &DatabaseConnection,
-) -> Result<(), lambda_runtime::Error> {
+async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Result<()> {
     for dao_data in seed_data {
         let dao = match dao::Entity::find()
             .filter(dao::Column::Name.eq(dao_data.name.clone()))
@@ -159,7 +154,5 @@ async fn seed_daos(
         }
     }
 
-    Ok(()).map_err(|e: lambda_runtime::Error| {
-        lambda_runtime::Error::from(format!("Runtime.ExitError\t {}", e))
-    })
+    Ok(())
 }

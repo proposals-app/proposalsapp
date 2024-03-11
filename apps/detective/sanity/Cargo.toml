@@ -7,9 +7,6 @@ edition = "2021"
 seaorm = { path = "../../../libs/rust/seaorm" }
 utils = { path = "../../../libs/rust/utils" }
 
-#aws dependencies
-lambda_runtime = "=0.10.0"
-
 #utils
 serde = "=1.0.197"
 serde_json = "=1.0.114"
