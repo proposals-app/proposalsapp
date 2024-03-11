@@ -1,0 +1,12 @@
+[package]
+name = "contracts"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ethers = "=2.0.14"
+
+[build-dependencies]
+ethers = "=2.0.14"
+
+

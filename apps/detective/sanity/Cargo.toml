@@ -1,0 +1,49 @@
+[package]
+name = "sanity"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+seaorm = { path = "../../../libs/rust/seaorm" }
+utils = { path = "../../../libs/rust/utils" }
+
+#aws dependencies
+lambda_runtime = "=0.10.0"
+
+#utils
+serde = "=1.0.197"
+serde_json = "=1.0.114"
+chrono = "=0.4.35"
+anyhow = { version = "=1.0.80", features = ["backtrace"] }
+itertools = "0.12.1"
+reqwest = { version = "=0.11.25", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
+regex = "=1.10.3"
+tokio = { version = "=1.36.0", features = ["macros"] }
+futures = "=0.3.30"
+
+#db
+sea-orm = { version = "=0.12.14", default-features = false, features = [
+    "sqlx-mysql",
+    "runtime-tokio-rustls",
+    "macros",
+    "with-chrono",
+    "with-json",
+    "with-bigdecimal",
+    "with-uuid",
+] }
+
+#tracing
+tracing = "=0.1.40"
+tracing-subscriber = { version = "=0.3.18", features = [
+    "registry",
+    "env-filter",
+    "json",
+] }
+num-bigint = "=0.4.4"
+
+[[bin]]
+name = "snapshot_sanity"
+path = "snapshot_sanity.rs"

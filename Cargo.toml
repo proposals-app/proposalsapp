@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "apps/detective/proposals",
+    "apps/detective/votes",
+    "apps/seed",
+    "apps/detective/sanity",
+    "libs/rust/scanners",
+    "libs/rust/seaorm",
+    "libs/rust/utils",
+    "libs/rust/contracts",
+]
+
+resolver = "2"
