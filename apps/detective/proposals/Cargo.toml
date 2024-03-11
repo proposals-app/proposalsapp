@@ -30,6 +30,8 @@ redis = { version = "=0.23", features = [
     "async-std-comp",
     "connection-manager",
 ] }
+dotenv = "0.15.0"
+axum = "0.7.4"
 
 # db
 sea-orm = { version = "=0.12.14", default-features = false, features = [
@@ -53,7 +55,6 @@ tracing-subscriber = { version = "=0.3.18", features = [
     "json",
 ] }
 num-bigint = "=0.4.4"
-dotenv = "0.15.0"
 
 
 [[bin]]

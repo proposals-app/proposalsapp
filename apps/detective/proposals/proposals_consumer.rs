@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use axum::Router;
 use dotenv::dotenv;
 use itertools::Itertools;
 use redis_work_queue::{KeyPrefix, WorkQueue};
@@ -54,6 +55,10 @@ async fn main() -> Result<()> {
         .await?;
 
     let work_queue = WorkQueue::new(KeyPrefix::from("proposals"));
+
+    let app = Router::new().route("/", axum::routing::get(|| async { "ok" }));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 
     loop {
         let job_item = work_queue

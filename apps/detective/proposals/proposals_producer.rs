@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use axum::Router;
 use dotenv::dotenv;
 use redis_work_queue::Item;
 use redis_work_queue::KeyPrefix;
@@ -21,6 +22,10 @@ async fn main() -> Result<()> {
     setup_telemetry();
 
     let mut interval = time::interval(std::time::Duration::from_secs(60 * 5));
+
+    let app = Router::new().route("/", axum::routing::get(|| async { "ok" }));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 
     loop {
         interval.tick().await;

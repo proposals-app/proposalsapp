@@ -1,5 +1,6 @@
 use anyhow::{Context, Ok, Result};
 use chrono::{Duration, NaiveDateTime, Utc};
+use dotenv::dotenv;
 use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
@@ -35,6 +36,7 @@ struct Decoder {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
     setup_telemetry();
 
     let mut interval = time::interval(std::time::Duration::from_secs(60 * 15));
@@ -59,7 +61,7 @@ async fn run() -> Result<()> {
 
     info!("DONE");
 
-    Ok(()).map_err(|e| e.into())
+    Ok(())
 }
 
 #[instrument(skip_all)]
