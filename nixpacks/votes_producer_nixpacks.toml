@@ -8,3 +8,6 @@ onlyIncludeFiles = ['./target/release/votes_producer']
 
 [phases.build]
 cmds = ['cargo build --release --package votes_producer']
+
+[phases.setup]
+nixPkgs = ['binutils', 'gcc', '(rust-bin.stable.latest.default)']
