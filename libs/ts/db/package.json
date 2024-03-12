@@ -9,13 +9,12 @@
   "scripts": {
     "db:gen:rust": "sea-orm-cli generate entity -v --lib --expanded-format --with-serde both --date-time-crate chrono -o ../../rust/seaorm/src",
     "db:gen:web": "prisma generate",
-    "db:push:dev": "dotenv -e .env.development -- prisma db push"
+    "db:push:dev": "prisma db push"
   },
   "dependencies": {
-    "@planetscale/database": "1.16.0",
     "@prisma/client": "^5.11.0",
     "kysely": "0.27.3",
-    "kysely-planetscale": "^1.4.0",
+    "mysql2": "^3.9.2",
     "typescript": "^5.4.2"
   },
   "devDependencies": {

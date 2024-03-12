@@ -1,12 +1,14 @@
-import { DeduplicateJoinsPlugin, Kysely } from "kysely";
+import { DeduplicateJoinsPlugin, Kysely, MysqlDialect } from "kysely";
 import type { DB } from "./kysely_db";
-import { PlanetScaleDialect } from "kysely-planetscale";
 import { CamelCasePlugin } from "kysely";
+import { createPool } from "mysql2";
+
+const dialect = new MysqlDialect({
+  pool: createPool(process.env.DATABASE_URL),
+});
 
 const db = new Kysely<DB>({
-  dialect: new PlanetScaleDialect({
-    url: process.env.DATABASE_URL,
-  }),
+  dialect: dialect,
   plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
 });
 
@@ -14,6 +16,5 @@ export default db;
 export * from "./kysely_db";
 export * from "./enums";
 export type { DB } from "./kysely_db";
-export { Kysely, PlanetScaleDialect };
-export { connect } from "@planetscale/database";
+export { Kysely };
 export { jsonArrayFrom } from "kysely/helpers/mysql";

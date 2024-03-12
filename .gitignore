@@ -10,3 +10,4 @@ target
 # local env files
 .env.development
 .env
+.env.*

@@ -4,6 +4,7 @@
   "compilerOptions": {
     "baseUrl": "./src",
     "target": "ESNext",
+    "moduleResolution": "NodeNext",
     "lib": ["esnext"],
     "module": "ES2020",
     "noEmit": false,
