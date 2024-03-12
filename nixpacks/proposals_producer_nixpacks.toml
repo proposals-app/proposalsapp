@@ -2,12 +2,20 @@ providers = ['rust']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [start]
-cmd = './target/release/proposals_producer'
-runImage = 'ubuntu:latest'
-onlyIncludeFiles = ['./target/release/proposals_producer']
+cmd = './bin/proposals_producer'
+runImage = 'ubuntu:jammy'
+onlyIncludeFiles = ['./bin/proposals_producer']
 
 [phases.build]
-cmds = ['cargo build --release --package proposals_producer']
+cmds = [
+    'mkdir -p bin',
+    'cargo build --release --package proposals_producer --target x86_64-unknown-linux-gnu',
+    'cp target/x86_64-unknown-linux-gnu/release/proposals_producer bin',
+]
 
 [phases.setup]
-nixPkgs = ['binutils', 'gcc', '(rust-bin.stable.latest.default)']
+nixPkgs = [
+    'binutils',
+    'gcc',
+    '(rust-bin.stable.latest.default.override { targets = ["x86_64-unknown-linux-gnu"]; })',
+]
