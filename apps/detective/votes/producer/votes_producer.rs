@@ -43,6 +43,11 @@ async fn produce_jobs() -> Result<()> {
 
     let work_queue = WorkQueue::new(KeyPrefix::from("votes"));
 
+    let queue_len = work_queue.queue_len(redis).await.unwrap_or(0);
+    if queue_len > 250 {
+        return Ok(());
+    }
+
     let mut opt = ConnectOptions::new(database_url);
     opt.sqlx_logging(false);
 
