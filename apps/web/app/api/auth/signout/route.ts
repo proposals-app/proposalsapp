@@ -1,3 +1,5 @@
+"use server";
+
 import { lucia, validateRequest } from "../../../../server/auth";
 import { redirect } from "next/navigation";
 

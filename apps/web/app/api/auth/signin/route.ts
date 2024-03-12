@@ -1,3 +1,5 @@
+"use server";
+
 import db from "@proposalsapp/db";
 import { generateEmailVerificationCode, lucia } from "../../../../server/auth";
 import { NextResponse } from "next/server";

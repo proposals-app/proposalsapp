@@ -1,9 +1,7 @@
+"use server";
+
 import db from "@proposalsapp/db";
-import {
-  generateEmailVerificationCode,
-  lucia,
-  verifyVerificationCode,
-} from "../../../../server/auth";
+import { lucia, verifyVerificationCode } from "../../../../server/auth";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { NextURL } from "next/dist/server/web/next-url";
