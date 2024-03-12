@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        @apply bg-black dark:bg-black;
+    }
+}
+
+@font-face {
+    font-family: "Manjari";
+    font-weight: 100;
+    src: url("../public/assets/fonts/Manjari-Thin.woff2") format("woff2"),
+    url("../public/assets/fonts/Manjari-Thin.woff") format("woff");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Manjari";
+    font-weight: 400;
+    src: url("../public/assets/fonts/Manjari-Regular.woff2") format("woff2"),
+    url("../public/assets/fonts/Manjari-Regular.woff") format("woff");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Manjari";
+    font-weight: 700;
+    src: url("../public/assets/fonts/Manjari-Bold.woff2") format("woff2"),
+    url("../public/assets/fonts/Manjari-Bold.woff") format("woff");
+    font-display: swap;
+}
+
+select {
+    line-height: normal;
+    height: 38px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    -ms-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    background: #fff url(/assets/icons/web/chevron-down.svg) no-repeat;
+    background-position: calc(100% - 10px) 50%; /* Adjust this line */
+    color: #000;
+    padding: 8px 30px 7px 10px;
+    margin: 0;
+    -webkit-border-radius: 0px;
+    -moz-border-radius: 0px;
+    border-radius: 0px;
+}
