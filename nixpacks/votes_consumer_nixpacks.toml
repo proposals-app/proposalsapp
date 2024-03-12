@@ -1,0 +1,10 @@
+providers = ['rust']
+buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
+
+[start]
+cmd = './target/release/votes_consumer'
+runImage = 'ubuntu:latest'
+onlyIncludeFiles = ['./target/release/votes_consumer']
+
+[phases.build]
+cmds = ['cargo build --release --package votes_consumer']
