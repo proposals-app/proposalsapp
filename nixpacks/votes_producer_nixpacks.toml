@@ -1,5 +1,7 @@
-providers = ['rust']
-buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
+buildImage = 'ghcr.io/railwayapp/nixpacks:ubuntu-1707782610'
+
+[variables]
+NIXPACKS_METADATA = 'rust'
 
 [start]
 cmd = './bin/votes_producer'
@@ -7,15 +9,21 @@ runImage = 'ubuntu:jammy'
 onlyIncludeFiles = ['./bin/votes_producer']
 
 [phases.build]
+dependsOn = ['setup']
 cmds = [
     'mkdir -p bin',
-    'cargo build --release --package votes_producer --target x86_64-unknown-linux-gnu',
-    'cp target/x86_64-unknown-linux-gnu/release/votes_producer bin',
+    'cargo build --release --package votes_producer --target x86_64-pc-linux-gnu',
+    'cp target/x86_64-pc-linux-gnu/release/votes_producer bin',
 ]
+cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
 
 [phases.setup]
 nixPkgs = [
     'binutils',
     'gcc',
-    '(rust-bin.stable.latest.default.override { targets = ["x86_64-unknown-linux-gnu"]; })',
+    '(rust-bin.stable.latest.default.override { targets = ["x86_64-pc-linux-gnu"]; })',
+    'musl',
+    'musl.dev',
 ]
+nixOverlays = ['https://github.com/oxalica/rust-overlay/archive/master.tar.gz']
+nixpkgsArchive = '5148520bfab61f99fd25fb9ff7bfbb50dad3c9db'
