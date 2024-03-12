@@ -9,7 +9,7 @@
       "dependsOn": ["setup"],
       "cmds": [
         "mkdir -p bin",
-        "cargo build --release --package proposals_consumer --target aarch64-unknown-linux-musl",
+        "cargo build --release --package proposals_consumer --target x86_64-unknown-linux-musl",
         "cp target/aarch64-unknown-linux-musl/release/proposals_consumer bin"
       ],
       "cacheDirectories": ["/root/.cargo/git", "/root/.cargo/registry"]
@@ -18,7 +18,7 @@
       "nixPkgs": [
         "binutils",
         "gcc",
-        "(rust-bin.stable.latest.default.override { targets = [\"aarch64-unknown-linux-musl\"]; })",
+        "(rust-bin.stable.latest.default.override { targets = [\"x86_64-unknown-linux-musl\"]; })",
         "musl",
         "musl.dev"
       ],
