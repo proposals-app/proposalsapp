@@ -1,5 +1,3 @@
-"use server";
-
 import db from "@proposalsapp/db";
 import { lucia, verifyVerificationCode } from "../../../../server/auth";
 import { cookies } from "next/headers";

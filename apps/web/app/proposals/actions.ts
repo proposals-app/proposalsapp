@@ -1,5 +1,4 @@
 "use server";
-import "server-only";
 
 import db, { jsonArrayFrom } from "@proposalsapp/db";
 import { validateRequest } from "../../server/auth";
