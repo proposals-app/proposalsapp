@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use data::seed_data;
+use dotenv::dotenv;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::{ColumnTrait, ConnectOptions, EntityTrait, QueryFilter, Set};
 use sea_orm::{Database, DatabaseConnection};
@@ -36,6 +37,7 @@ struct SettingsData {
 #[tokio::main]
 async fn main() -> Result<()> {
     setup_telemetry();
+    dotenv().ok();
     run().await
 }
 

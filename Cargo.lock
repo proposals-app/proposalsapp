@@ -4025,6 +4025,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "dotenv",
  "futures",
  "itertools 0.12.1",
  "num-bigint",
