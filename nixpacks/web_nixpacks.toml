@@ -1,4 +1,4 @@
-providers = ['node']
+providers = ['...']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [start]
@@ -6,6 +6,3 @@ cmd = 'yarn start-web'
 
 [phases.build]
 cmds = ['yarn build-web']
-
-[phases.setup]
-nixPkgs = ['...', 'python38', 'gcc']
