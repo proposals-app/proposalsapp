@@ -9,19 +9,13 @@
       "dependsOn": ["setup"],
       "cmds": [
         "mkdir -p bin",
-        "cargo build --release --package proposals_consumer --target aarch64-unknown-linux-musl",
+        "cargo build --release --package proposals_consumer",
         "cp target/aarch64-unknown-linux-musl/release/proposals_consumer bin"
       ],
       "cacheDirectories": ["/root/.cargo/git", "/root/.cargo/registry"]
     },
     "setup": {
-      "nixPkgs": [
-        "binutils",
-        "gcc",
-        "(rust-bin.stable.latest.default.override { targets = [\"aarch64-unknown-linux-musl\"]; })",
-        "musl",
-        "musl.dev"
-      ],
+      "nixPkgs": ["binutils", "gcc"],
       "nixOverlays": ["https://github.com/oxalica/rust-overlay/archive/master.tar.gz"],
       "nixpkgsArchive": "5148520bfab61f99fd25fb9ff7bfbb50dad3c9db"
     }
