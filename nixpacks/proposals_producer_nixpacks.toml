@@ -26,5 +26,3 @@ nixPkgs = [
     'musl',
     'musl.dev',
 ]
-nixOverlays = ['https://github.com/oxalica/rust-overlay/archive/master.tar.gz']
-nixpkgsArchive = '5148520bfab61f99fd25fb9ff7bfbb50dad3c9db'
