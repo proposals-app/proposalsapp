@@ -1,4 +1,5 @@
-buildImage = 'ghcr.io/railwayapp/nixpacks:ubuntu-1707782610'
+providers = ['rust']
+buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [variables]
 NIXPACKS_METADATA = 'rust'
