@@ -1,20 +1,16 @@
 import db from "@proposalsapp/db";
 import { Lucia, type User, type Session } from "lucia";
-import { PlanetScaleAdapter } from "@lucia-auth/adapter-mysql";
+import { Mysql2Adapter } from "@lucia-auth/adapter-mysql";
 import { cache } from "react";
 import { TimeSpan, createDate, isWithinExpirationDate } from "oslo";
 import { generateRandomString, alphabet } from "oslo/crypto";
-import { connect } from "@proposalsapp/db";
+import { createPool } from "mysql2/promise";
+
+const pool = createPool(process.env.DATABASE_URL!);
 
 const cookies = require("next/headers").cookies;
 
-const config = {
-  url: process.env.DATABASE_URL,
-};
-
-const conn = connect(config);
-
-const adapter = new PlanetScaleAdapter(conn, {
+const adapter = new Mysql2Adapter(pool, {
   user: "user",
   session: "user_session",
 });
@@ -23,7 +19,7 @@ export const lucia = new Lucia(adapter, {
   sessionExpiresIn: new TimeSpan(2, "w"),
   sessionCookie: {
     attributes: {
-      secure: process.env.NODE_ENV! === "production", // set `Secure` flag in HTTPS
+      secure: process.env.NODE_ENV! === "production",
     },
   },
   getUserAttributes: (attributes) => {

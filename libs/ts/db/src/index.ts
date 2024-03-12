@@ -4,7 +4,7 @@ import { CamelCasePlugin } from "kysely";
 import { createPool } from "mysql2";
 
 const dialect = new MysqlDialect({
-  pool: createPool(process.env.DATABASE_URL),
+  pool: createPool(process.env.DATABASE_URL!),
 });
 
 const db = new Kysely<DB>({
