@@ -17,7 +17,7 @@ import * as React from "react";
 
 import Footer from "../components/footer";
 import Header from "../components/daily/header";
-import * as test_data from "./../bulletin_test_data.json";
+import test_data from "./../bulletin_test_data.json";
 import { baseUrl } from "../const";
 
 export interface DailyBulletinData {

@@ -17,7 +17,7 @@ import {
 import * as React from "react";
 import Footer from "../components/footer";
 import Header from "../components/welcome/header";
-import * as test_data from "../not_voted_test_data.json";
+import test_data from "../not_voted_test_data.json";
 import { baseUrl } from "../const";
 
 export interface NotVotedData {
@@ -61,16 +61,18 @@ export const NotVotedEmail = (data: NotVotedData) => (
                 <Row className="py-4">
                   <Column width={52} height={66}>
                     <Img
-                      src={`${baseUrl}${data.daoLogoUrl ? data.daoLogoUrl : test_data.daoLogoUrl
-                        }`}
+                      src={`${baseUrl}${
+                        data.daoLogoUrl ? data.daoLogoUrl : test_data.daoLogoUrl
+                      }`}
                       width={48}
                       height={48}
                     />
                     <Img
-                      src={`${baseUrl}${data.chainLogoUrl
-                        ? data.chainLogoUrl
-                        : test_data.chainLogoUrl
-                        }`}
+                      src={`${baseUrl}${
+                        data.chainLogoUrl
+                          ? data.chainLogoUrl
+                          : test_data.chainLogoUrl
+                      }`}
                       width={48}
                       height={16}
                     />
@@ -89,17 +91,19 @@ export const NotVotedEmail = (data: NotVotedData) => (
 
               <Column className="font-bold text-end w-[100px] md:w-[200px]">
                 <Img
-                  src={`${data.countdownUrl
-                    ? data.countdownUrl
-                    : test_data.countdownUrl
-                    }`}
+                  src={`${
+                    data.countdownUrl
+                      ? data.countdownUrl
+                      : test_data.countdownUrl
+                  }`}
                   className="hidden md:block"
                 />
                 <Img
-                  src={`${data.countdownUrlSmall
-                    ? data.countdownUrlSmall
-                    : test_data.countdownUrlSmall
-                    }`}
+                  src={`${
+                    data.countdownUrlSmall
+                      ? data.countdownUrlSmall
+                      : test_data.countdownUrlSmall
+                  }`}
                   className="block md:hidden"
                 />
               </Column>

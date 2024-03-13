@@ -13,7 +13,7 @@ import {
 import * as React from "react";
 import Footer from "../components/footer";
 import Header from "../components/welcome/header";
-import * as test_data from "./../auth_code_test_data.json";
+import test_data from "./../auth_code_test_data.json";
 
 export interface AuthCodeData {
   email: string;
