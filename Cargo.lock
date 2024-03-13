@@ -557,6 +557,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
 
 [[package]]
+name = "bb8"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df7c2093d15d6a1d33b1f972e1c5ea3177748742b97a5f392aa83a65262c6780"
+dependencies = [
+ "async-trait",
+ "futures-channel",
+ "futures-util",
+ "parking_lot 0.12.1",
+ "tokio",
+]
+
+[[package]]
 name = "bech32"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2148,7 +2161,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2 0.4.10",
+ "socket2 0.5.6",
  "tokio",
  "tower-service",
  "tracing",
@@ -3261,11 +3274,11 @@ dependencies = [
  "itertools 0.12.1",
  "num-bigint",
  "redis 0.23.3",
- "redis-work-queue",
  "regex",
  "reqwest",
  "reqwest-middleware",
  "reqwest-retry",
+ "rsmq_async",
  "scanners",
  "sea-orm",
  "seaorm",
@@ -3291,11 +3304,11 @@ dependencies = [
  "itertools 0.12.1",
  "num-bigint",
  "redis 0.23.3",
- "redis-work-queue",
  "regex",
  "reqwest",
  "reqwest-middleware",
  "reqwest-retry",
+ "rsmq_async",
  "scanners",
  "sea-orm",
  "seaorm",
@@ -3337,6 +3350,12 @@ name = "radium"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
+
+[[package]]
+name = "radix_fmt"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce082a9940a7ace2ad4a8b7d0b1eac6aa378895f18be598230c5f2284ac05426"
 
 [[package]]
 name = "rand"
@@ -3443,19 +3462,6 @@ dependencies = [
  "tokio-retry",
  "tokio-util",
  "url",
-]
-
-[[package]]
-name = "redis-work-queue"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf912baed64806b519b0b1e2e6879f02727319f6917f150d0440abc6a2ca1042"
-dependencies = [
- "futures",
- "redis 0.23.3",
- "serde",
- "serde_json",
- "uuid 1.7.0",
 ]
 
 [[package]]
@@ -3711,6 +3717,21 @@ dependencies = [
  "spki",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "rsmq_async"
+version = "8.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "167d3e08ed2181260aedbec34513181e3bfac77667a58b3c33806c8eea536acf"
+dependencies = [
+ "async-trait",
+ "bb8",
+ "lazy_static",
+ "radix_fmt",
+ "rand",
+ "redis 0.23.3",
+ "thiserror",
 ]
 
 [[package]]
@@ -5202,21 +5223,7 @@ version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f00cc9702ca12d3c81455259621e676d0f7251cec66a21e98fe2e9a37db93b2a"
 dependencies = [
- "getrandom",
- "rand",
  "serde",
- "uuid-macro-internal",
-]
-
-[[package]]
-name = "uuid-macro-internal"
-version = "1.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7abb14ae1a50dad63eaa768a458ef43d298cd1bd44951677bd10b732a9ba2a2d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.52",
 ]
 
 [[package]]
@@ -5257,9 +5264,9 @@ dependencies = [
  "itertools 0.12.1",
  "num-bigint",
  "redis 0.23.3",
- "redis-work-queue",
  "regex",
  "reqwest",
+ "rsmq_async",
  "sea-orm",
  "seaorm",
  "serde",
@@ -5284,9 +5291,9 @@ dependencies = [
  "itertools 0.12.1",
  "num-bigint",
  "redis 0.23.3",
- "redis-work-queue",
  "regex",
  "reqwest",
+ "rsmq_async",
  "sea-orm",
  "seaorm",
  "serde",

@@ -1,7 +1,7 @@
 "use server";
 
 import db from "@proposalsapp/db";
-// import ogs from "open-graph-scraper";
+import ogs from "open-graph-scraper";
 import { validateRequest } from "../../../server/auth";
 
 export async function getProposalWithDao(proposalId: string) {
@@ -79,21 +79,15 @@ export async function unfurlUrl(url: string) {
     return null;
   }
 
-  return {
-    title: "",
-    description: "",
-    imageSrc: "",
-  };
-
-  // return ogs({ url })
-  //   .then((response) => {
-  //     return {
-  //       title: response.result.ogTitle ?? "",
-  //       description: response.result.ogDescription ?? "",
-  //       imageSrc: response.result.ogImage?.pop()?.url ?? "",
-  //     };
-  //   })
-  //   .catch(() => {
-  //     return null;
-  //   });
+  return ogs({ url })
+    .then((response) => {
+      return {
+        title: response.result.ogTitle ?? "",
+        description: response.result.ogDescription ?? "",
+        imageSrc: response.result.ogImage?.pop()?.url ?? "",
+      };
+    })
+    .catch(() => {
+      return null;
+    });
 }

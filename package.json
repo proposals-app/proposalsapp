@@ -10,6 +10,9 @@
     "build-web": "yarn build-db && yarn workspace @proposalsapp/web build",
     "start-web": "yarn workspace @proposalsapp/web start"
   },
+  "resolutions": {
+    "open-graph-scraper/undici": "6.6.2"
+  },
   "devDependencies": {
     "@tsconfig/node18": "18.2.2",
     "constructs": "10.3.0",

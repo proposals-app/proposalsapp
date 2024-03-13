@@ -1,9 +1,8 @@
 use anyhow::{Context, Result};
 use axum::Router;
 use dotenv::dotenv;
-use redis_work_queue::Item;
-use redis_work_queue::KeyPrefix;
-use redis_work_queue::WorkQueue;
+use rsmq_async::MultiplexedRsmq;
+use rsmq_async::RsmqConnection;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectOptions;
 use sea_orm::EntityTrait;
@@ -11,6 +10,7 @@ use sea_orm::QueryFilter;
 use sea_orm::{Database, DatabaseConnection};
 use seaorm::dao_handler;
 use seaorm::sea_orm_active_enums::HandlerType;
+use serde_json::json;
 use tokio::time;
 use tracing::info;
 use utils::telemetry::setup_telemetry;
@@ -37,13 +37,17 @@ async fn produce_jobs() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
     let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL not set!");
 
-    let redis = &mut redis::Client::open(redis_url)?
+    let redis = redis::Client::open(redis_url)?
         .get_multiplexed_async_connection()
         .await?;
 
-    let work_queue = WorkQueue::new(KeyPrefix::from("proposals"));
+    let mut rsmq = MultiplexedRsmq::new_with_connection(redis, false, None);
 
-    let queue_len = work_queue.queue_len(redis).await.unwrap_or(0);
+    rsmq.create_queue("proposals", None, None, None)
+        .await
+        .expect("failed to create queue");
+
+    let queue_len = rsmq.get_queue_attributes("proposals").await?.msgs;
     if queue_len > 100 {
         return Ok(());
     }
@@ -64,15 +68,12 @@ async fn produce_jobs() -> Result<()> {
         .context("DB error")?;
 
     for dao_handler in dao_handlers.clone() {
-        let job = Item::from_json_data(&ProposalsJob {
+        let job = ProposalsJob {
             dao_handler_id: dao_handler.id.clone(),
-        })
-        .unwrap();
+        };
 
-        work_queue
-            .add_item(redis, &job)
-            .await
-            .expect("failed to add item to work queue");
+        rsmq.send_message("proposals", json!(job).as_str().unwrap(), None)
+            .await?;
     }
 
     info!("Queued {} DAOs cnt", dao_handlers.len());

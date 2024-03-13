@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use axum::Router;
 use dotenv::dotenv;
-use redis_work_queue::{KeyPrefix, WorkQueue};
+use rsmq_async::{MultiplexedRsmq, RsmqConnection};
 use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
@@ -55,31 +55,33 @@ async fn main() -> Result<()> {
 
     let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL not set!");
 
-    let redis = &mut redis::Client::open(redis_url)?
+    let redis = redis::Client::open(redis_url)?
         .get_multiplexed_async_connection()
         .await?;
 
-    let work_queue = WorkQueue::new(KeyPrefix::from("votes"));
+    let mut rsmq = MultiplexedRsmq::new_with_connection(redis, false, None);
 
     let app = Router::new().route("/", axum::routing::get(|| async { "ok" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tokio::spawn(async { axum::serve(listener, app).await.unwrap() });
 
     loop {
-        let job_item = work_queue
-            .lease(redis, None, Duration::from_secs(60 * 2))
-            .await?
-            .unwrap();
+        let job_item = rsmq
+            .receive_message::<String>("votes", Some(Duration::from_secs(60)))
+            .await
+            .expect("cannot receive message");
 
-        let job = job_item.data_json::<VotesJob>()?;
+        if let Some(job_item) = job_item {
+            let job: VotesJob = serde_json::from_str(&job_item.message).unwrap();
 
-        let _ = match run(job.clone()).await {
-            Ok(_) => work_queue.complete(redis, &job_item).await?,
-            Err(_) => {
-                decrease_refresh_speed(job.clone()).await?;
-                false
-            }
-        };
+            let _ = match run(job.clone()).await {
+                Ok(_) => rsmq.delete_message("votes", &job_item.id).await?,
+                Err(_) => {
+                    decrease_refresh_speed(job.clone()).await?;
+                    false
+                }
+            };
+        }
     }
 }
 
@@ -171,6 +173,32 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
         .context("DB error")?
         .context("DAO not found")?;
 
+    let min_refresh_speed = match dao_handler.handler_type {
+        HandlerType::AaveV2Mainnet => 100,
+        HandlerType::AaveV3Mainnet => 100,
+        HandlerType::AaveV3PolygonPos => 100,
+        HandlerType::AaveV3Avalanche => 100,
+        HandlerType::CompoundMainnet => 100,
+        HandlerType::UniswapMainnet => 100,
+        HandlerType::EnsMainnet => 100,
+        HandlerType::GitcoinMainnet => 100,
+        HandlerType::GitcoinV2Mainnet => 100,
+        HandlerType::HopMainnet => 100,
+        HandlerType::DydxMainnet => 100,
+        HandlerType::InterestProtocolMainnet => 100,
+        HandlerType::ZeroxProtocolMainnet => 100,
+        HandlerType::FraxAlphaMainnet => 100,
+        HandlerType::FraxOmegaMainnet => 100,
+        HandlerType::NounsProposalsMainnet => 100,
+        HandlerType::MakerExecutiveMainnet => 100,
+        HandlerType::MakerPollMainnet => 100,
+        HandlerType::MakerPollArbitrum => 100,
+        HandlerType::OpOptimism => 100,
+        HandlerType::ArbCoreArbitrum => 100,
+        HandlerType::ArbTreasuryArbitrum => 100,
+        HandlerType::Snapshot => 1,
+    };
+
     match job.proposal_id.clone() {
         Some(proposal_id) => {
             let proposal = proposal::Entity::find()
@@ -181,32 +209,6 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
                 .context("DAO not found")?;
 
             let mut new_refresh_speed = (proposal.votes_refresh_speed as f32 * 0.5) as i64;
-
-            let min_refresh_speed = match dao_handler.handler_type {
-                HandlerType::AaveV2Mainnet => 100,
-                HandlerType::AaveV3Mainnet => 100,
-                HandlerType::AaveV3PolygonPos => 100,
-                HandlerType::AaveV3Avalanche => 100,
-                HandlerType::CompoundMainnet => 100,
-                HandlerType::UniswapMainnet => 100,
-                HandlerType::EnsMainnet => 100,
-                HandlerType::GitcoinMainnet => 100,
-                HandlerType::GitcoinV2Mainnet => 100,
-                HandlerType::HopMainnet => 100,
-                HandlerType::DydxMainnet => 100,
-                HandlerType::InterestProtocolMainnet => 100,
-                HandlerType::ZeroxProtocolMainnet => 100,
-                HandlerType::FraxAlphaMainnet => 100,
-                HandlerType::FraxOmegaMainnet => 100,
-                HandlerType::NounsProposalsMainnet => 100,
-                HandlerType::MakerExecutiveMainnet => 100,
-                HandlerType::MakerPollMainnet => 100,
-                HandlerType::MakerPollArbitrum => 100,
-                HandlerType::OpOptimism => 100,
-                HandlerType::ArbCoreArbitrum => 100,
-                HandlerType::ArbTreasuryArbitrum => 100,
-                HandlerType::Snapshot => 1,
-            };
 
             if new_refresh_speed < min_refresh_speed {
                 new_refresh_speed = min_refresh_speed;

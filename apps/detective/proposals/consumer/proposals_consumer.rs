@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use axum::Router;
 use dotenv::dotenv;
 use itertools::Itertools;
-use redis_work_queue::{KeyPrefix, WorkQueue};
+use rsmq_async::{MultiplexedRsmq, Rsmq, RsmqConnection};
 use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
@@ -50,31 +50,33 @@ async fn main() -> Result<()> {
 
     let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL not set!");
 
-    let redis = &mut redis::Client::open(redis_url)?
+    let redis = redis::Client::open(redis_url)?
         .get_multiplexed_async_connection()
         .await?;
 
-    let work_queue = WorkQueue::new(KeyPrefix::from("proposals"));
+    let mut rsmq = MultiplexedRsmq::new_with_connection(redis, false, None);
 
     let app = Router::new().route("/", axum::routing::get(|| async { "ok" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tokio::spawn(async { axum::serve(listener, app).await.unwrap() });
 
     loop {
-        let job_item = work_queue
-            .lease(redis, None, Duration::from_secs(60 * 2))
-            .await?
-            .unwrap();
+        let job_item = rsmq
+            .receive_message::<String>("proposals", Some(Duration::from_secs(60)))
+            .await
+            .expect("cannot receive message");
 
-        let job = job_item.data_json::<ProposalsJob>()?;
+        if let Some(job_item) = job_item {
+            let job: ProposalsJob = serde_json::from_str(&job_item.message).unwrap();
 
-        let _ = match run(job.clone()).await {
-            Ok(_) => work_queue.complete(redis, &job_item).await?,
-            Err(_) => {
-                decrease_refresh_speed(job.clone()).await?;
-                false
-            }
-        };
+            let _ = match run(job.clone()).await {
+                Ok(_) => rsmq.delete_message("proposals", &job_item.id).await?,
+                Err(_) => {
+                    decrease_refresh_speed(job.clone()).await?;
+                    false
+                }
+            };
+        }
     }
 }
 
