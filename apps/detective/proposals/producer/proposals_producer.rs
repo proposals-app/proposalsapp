@@ -10,7 +10,6 @@ use sea_orm::QueryFilter;
 use sea_orm::{Database, DatabaseConnection};
 use seaorm::dao_handler;
 use seaorm::sea_orm_active_enums::HandlerType;
-use serde_json::json;
 use tokio::time;
 use tracing::info;
 use utils::telemetry::setup_telemetry;
@@ -43,9 +42,7 @@ async fn produce_jobs() -> Result<()> {
 
     let mut rsmq = MultiplexedRsmq::new_with_connection(redis, false, None);
 
-    rsmq.create_queue("proposals", None, None, None)
-        .await
-        .expect("failed to create queue");
+    rsmq.create_queue("proposals", None, None, None).await.ok();
 
     let queue_len = rsmq.get_queue_attributes("proposals").await?.msgs;
     if queue_len > 100 {
