@@ -203,7 +203,6 @@ const getChartData = (
       vote.blockCreated ? vote.blockCreated : vote.timeCreated!.toUTCString(),
     );
 
-  console.log(datasets);
   return {
     labels,
     datasets,
