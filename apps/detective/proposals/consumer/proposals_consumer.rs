@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
             .expect("cannot receive message");
 
         if let Some(job_item) = job_item {
-            let job: ProposalsJob = serde_json::from_str(&job_item.message).unwrap();
+            let job: ProposalsJob = serde_json::from_str(&job_item.message)?;
 
             let _ = match run(job.clone()).await {
                 Ok(_) => rsmq.delete_message("proposals", &job_item.id).await?,

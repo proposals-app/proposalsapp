@@ -72,7 +72,7 @@ async fn produce_jobs() -> Result<()> {
             dao_handler_id: dao_handler.id.clone(),
         };
 
-        rsmq.send_message("proposals", json!(job).as_str().unwrap(), None)
+        rsmq.send_message("proposals", serde_json::to_string(&job)?, None)
             .await?;
     }
 

@@ -78,7 +78,7 @@ async fn produce_jobs() -> Result<()> {
             proposal_id: None,
         };
 
-        rsmq.send_message("votes", json!(job).as_str().unwrap(), None)
+        rsmq.send_message("votes", serde_json::to_string(&job)?, None)
             .await?;
     }
 
@@ -88,7 +88,7 @@ async fn produce_jobs() -> Result<()> {
             proposal_id: Some(proposal.id.clone()),
         };
 
-        rsmq.send_message("votes", json!(job).as_str().unwrap(), None)
+        rsmq.send_message("votes", serde_json::to_string(&job)?, None)
             .await?;
     }
 
