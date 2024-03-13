@@ -233,11 +233,11 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
             Ok(())
         }
         None => {
-            let new_refresh_speed = if dao_handler.votes_refresh_speed > 5 {
-                (dao_handler.votes_refresh_speed as f32 * 0.5) as i64
-            } else {
-                dao_handler.votes_refresh_speed
-            };
+            let mut new_refresh_speed = (dao_handler.votes_refresh_speed as f32 * 0.5) as i64;
+
+            if new_refresh_speed < min_refresh_speed {
+                new_refresh_speed = min_refresh_speed;
+            }
 
             info!(
                 "Votes refresh speed decreased to {} for DAO {}",

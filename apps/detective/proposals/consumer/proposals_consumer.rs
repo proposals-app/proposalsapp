@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use axum::Router;
 use dotenv::dotenv;
 use itertools::Itertools;
-use rsmq_async::{MultiplexedRsmq, Rsmq, RsmqConnection};
+use rsmq_async::{MultiplexedRsmq, RsmqConnection};
 use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
@@ -136,7 +136,7 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
         .context("DB error")?
         .context("dao_handler error")?;
 
-    let mut new_refresh_speed = (dao_handler.votes_refresh_speed as f32 * 0.5) as i64;
+    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 0.5) as i64;
 
     let min_refresh_speed = match dao_handler.handler_type {
         HandlerType::AaveV2Mainnet => 100,
