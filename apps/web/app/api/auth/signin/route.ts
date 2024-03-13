@@ -2,6 +2,8 @@ import db from "@proposalsapp/db";
 import { generateEmailVerificationCode, lucia } from "../../../../server/auth";
 import { NextResponse } from "next/server";
 import { NextURL } from "next/dist/server/web/next-url";
+import postmark from "postmark";
+import { AuthCodeEmail, render } from "@proposalsapp/emails";
 
 export async function POST(request: Request) {
   const { email } = await request.json();
@@ -38,15 +40,17 @@ export async function POST(request: Request) {
 
   const verificationCode = await generateEmailVerificationCode(user.id, email);
 
-  // await sqs
-  //   .sendMessage({
-  //     QueueUrl: Queue.AuthCodeEmailQueue.queueUrl,
-  //     MessageBody: JSON.stringify({
-  //       email,
-  //       code: verificationCode,
-  //     } as AuthCodeEmailEvent),
-  //   })
-  //   .promise();
+  const emailHtml = render(AuthCodeEmail({ email, code: verificationCode }));
+
+  const options = {
+    From: "new@proposals.app",
+    To: email,
+    Subject: `Your proposals.app verification code is ${verificationCode}`,
+    HtmlBody: emailHtml,
+  };
+
+  const client = new postmark.ServerClient(process.env.POSTMARK_API_KEY ?? "");
+  await client.sendEmail(options);
 
   const session = await lucia.createSession(user.id, {
     email: email,
