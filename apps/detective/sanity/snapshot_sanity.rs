@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
 
     tokio::spawn(async {
         let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
-        let listener = tokio::net::TcpListener::bind("localhost:3000")
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
             .await
             .unwrap();
         axum::serve(listener, app).await.unwrap()
