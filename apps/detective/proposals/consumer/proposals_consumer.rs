@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
 
     rsmq.create_queue("proposals", None, None, None).await.ok();
 
-    let app = Router::new().route("/", axum::routing::get(|| async { "ok" }));
+    let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tokio::spawn(async { axum::serve(listener, app).await.unwrap() });
 
