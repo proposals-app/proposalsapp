@@ -53,13 +53,11 @@ async fn run() -> Result<()> {
     let mut opt = ConnectOptions::new(database_url);
     opt.sqlx_logging(false);
 
-    let db: DatabaseConnection = Database::connect(opt)
-        .await
-        .context("[ERROR] Runtime.ExitError")?;
+    let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
 
     snapshot_sanity_check(&db).await?;
 
-    info!("DONE");
+    info!("Done");
 
     Ok(())
 }
@@ -73,13 +71,12 @@ pub async fn snapshot_sanity_check(db: &DatabaseConnection) -> Result<()> {
         .filter(dao_handler::Column::HandlerType.eq(HandlerType::Snapshot))
         .all(db)
         .await
-        .context("DB error")
-        .context("[ERROR] Runtime.ExitError")?;
+        .context("DB error")?;
 
     for dao_handler in dao_handlers {
         sanitize(&dao_handler, sanitize_from, sanitize_to, db)
             .await
-            .context("[ERROR] Runtime.ExitError")?;
+            .context("sanitize error")?;
     }
 
     Ok(())

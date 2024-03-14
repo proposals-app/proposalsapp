@@ -1,0 +1,28 @@
+providers = ['rust']
+buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
+
+[variables]
+NIXPACKS_METADATA = 'rust'
+
+[start]
+cmd = './bin/sanity'
+runImage = 'ubuntu:jammy'
+onlyIncludeFiles = ['./bin/sanity']
+
+[phases.build]
+dependsOn = ['setup']
+cmds = [
+    'mkdir -p bin',
+    'cargo build --release --package sanity --target x86_64-unknown-linux-musl',
+    'cp target/x86_64-unknown-linux-musl/release/votes_producer bin',
+]
+cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
+
+[phases.setup]
+nixPkgs = [
+    'binutils',
+    'gcc',
+    '(rust-bin.stable.latest.default.override { targets = ["x86_64-unknown-linux-musl"]; })',
+    'musl',
+    'musl.dev',
+]
