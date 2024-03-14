@@ -1,5 +1,5 @@
 [package]
-name = "sanity"
+name = "snapshot_sanity"
 version = "0.1.0"
 edition = "2021"
 
