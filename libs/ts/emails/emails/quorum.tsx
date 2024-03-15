@@ -17,7 +17,7 @@ import {
 import * as React from "react";
 import Footer from "../components/footer";
 import Header from "../components/welcome/header";
-import test_data from "../quorum_test_data.json";
+import test_data from "../test_data/quorum_test_data.json";
 import { baseUrl } from "../const";
 
 export interface QuorumData {
