@@ -3,9 +3,9 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": "./src",
+    "outDir": "dist",
     "jsx": "react",
-    "allowSyntheticDefaultImports": true,
-    "composite": true
+    "allowSyntheticDefaultImports": true
   },
   "exclude": ["**/node_modules", "**/.*/*", "dist"],
   "include": [

@@ -1,2 +1,4 @@
 .react-email
-out
+build
+tsconfig.tsbuildinfo
+dist

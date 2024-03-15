@@ -1,12 +1,8 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-    "paths": {
-      "@proposalsapp/db": ["../../../libs/ts/db/src/index.ts"],
-      "@proposalsapp/emails": ["../../../libs/ts/emails/src/index.ts"]
-    }
+    "baseUrl": "./src",
+    "outDir": "dist"
   },
   "references": [
     { "path": "../../../libs/ts/db" },

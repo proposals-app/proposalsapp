@@ -16,8 +16,7 @@
     "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["esnext"],
-    "incremental": true
+    "lib": ["esnext"]
   },
-  "exclude": ["**/node_modules", "**/.*/"]
+  "exclude": ["node_modules", "dist"]
 }
