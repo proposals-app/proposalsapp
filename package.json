@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/web", "libs/ts/*", "libs/ts/emails/.react-email"],
+  "workspaces": [
+    "apps/web",
+    "apps/emails/*",
+    "libs/ts/*",
+    "libs/ts/emails/.react-email"
+  ],
   "scripts": {
     "build-db": "yarn workspace @proposalsapp/db db:gen:web",
     "build-emails": "yarn workspace @proposalsapp/emails build",

@@ -1,8 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "moduleResolution": "node",
-    "verbatimModuleSyntax": true,
     "strict": true,
     "useUnknownInCatchVariables": true,
     "noImplicitOverride": true,
@@ -13,10 +11,13 @@
     "allowJs": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "noEmit": true,
     "esModuleInterop": true,
-    "incremental": true,
-    "newLine": "lf"
+    "newLine": "lf",
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["esnext"],
+    "incremental": true
   },
   "exclude": ["**/node_modules", "**/.*/"]
 }
