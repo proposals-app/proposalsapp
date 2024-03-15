@@ -9,7 +9,10 @@
   "scripts": {
     "db:gen:rust": "sea-orm-cli generate entity -v --lib --expanded-format --with-serde both --date-time-crate chrono -o ../../rust/seaorm/src",
     "db:gen:web": "prisma generate",
-    "db:push:dev": "prisma db push"
+    "db:gen": "yarn db:gen:rust && yarn db:gen:web",
+    "db:push": "prisma db push",
+    "db:migration": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^5.11.0",

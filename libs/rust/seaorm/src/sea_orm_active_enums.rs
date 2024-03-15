@@ -98,8 +98,10 @@ pub enum ProposalState {
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "type")]
 pub enum Type {
-    #[sea_orm(string_value = "QUORUM_NOT_REACHED_EMAIL")]
-    QuorumNotReachedEmail,
     #[sea_orm(string_value = "BULLETIN_EMAIL")]
     BulletinEmail,
+    #[sea_orm(string_value = "QUORUM_NOT_REACHED_EMAIL")]
+    QuorumNotReachedEmail,
+    #[sea_orm(string_value = "TIMEEND_EMAIL")]
+    TimeendEmail,
 }

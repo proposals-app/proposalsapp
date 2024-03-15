@@ -56,26 +56,9 @@ model user_settings {
     user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
     user_id String @unique
 
-    email_daily_bulletin Boolean @default(false)
-    empty_daily_bulletin Boolean @default(false)
-    email_quorum_warning Boolean @default(true)
-
-    discord_notifications Boolean @default(false)
-    discord_reminders     Boolean @default(true)
-    discord_includevotes  Boolean @default(true)
-    discord_webhook       String  @default("")
-
-    telegram_notifications Boolean @default(false)
-    telegram_reminders     Boolean @default(true)
-    telegram_include_votes Boolean @default(true)
-    telegram_chat_id       String  @default("")
-    telegram_chat_title    String  @default("")
-
-    slack_notifications Boolean @default(false)
-    slack_reminders     Boolean @default(true)
-    slack_includevotes  Boolean @default(true)
-    slack_webhook       String  @default("")
-    slack_channelname   String  @default("")
+    email_daily_bulletin  Boolean @default(true)
+    email_quorum_warning  Boolean @default(true)
+    email_timeend_warning Boolean @default(true)
 }
 
 model voter {
@@ -270,8 +253,9 @@ enum NotificationDispatchedState {
 }
 
 enum NotificationType {
-    QUORUM_NOT_REACHED_EMAIL
     BULLETIN_EMAIL
+    QUORUM_NOT_REACHED_EMAIL
+    TIMEEND_EMAIL
 }
 
 enum DAOHandlerEnum {

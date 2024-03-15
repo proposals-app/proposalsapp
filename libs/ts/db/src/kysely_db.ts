@@ -88,22 +88,8 @@ export type user_settings = {
     id: Generated<string>;
     userId: string;
     emailDailyBulletin: Generated<number>;
-    emptyDailyBulletin: Generated<number>;
     emailQuorumWarning: Generated<number>;
-    discordNotifications: Generated<number>;
-    discordReminders: Generated<number>;
-    discordIncludevotes: Generated<number>;
-    discordWebhook: Generated<string>;
-    telegramNotifications: Generated<number>;
-    telegramReminders: Generated<number>;
-    telegramIncludeVotes: Generated<number>;
-    telegramChatId: Generated<string>;
-    telegramChatTitle: Generated<string>;
-    slackNotifications: Generated<number>;
-    slackReminders: Generated<number>;
-    slackIncludevotes: Generated<number>;
-    slackWebhook: Generated<string>;
-    slackChannelname: Generated<string>;
+    emailTimeendWarning: Generated<number>;
 };
 export type user_to_voter = {
     id: Generated<string>;

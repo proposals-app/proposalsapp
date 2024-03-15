@@ -9,8 +9,9 @@ export const NotificationDispatchedState = {
 } as const;
 export type NotificationDispatchedState = (typeof NotificationDispatchedState)[keyof typeof NotificationDispatchedState];
 export const NotificationType = {
+    BULLETIN_EMAIL: "BULLETIN_EMAIL",
     QUORUM_NOT_REACHED_EMAIL: "QUORUM_NOT_REACHED_EMAIL",
-    BULLETIN_EMAIL: "BULLETIN_EMAIL"
+    TIMEEND_EMAIL: "TIMEEND_EMAIL"
 } as const;
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
 export const DAOHandlerEnum = {
