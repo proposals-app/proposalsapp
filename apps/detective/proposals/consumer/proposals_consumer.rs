@@ -11,7 +11,7 @@ use seaorm::sea_orm_active_enums::{HandlerType, ProposalState};
 use seaorm::{dao_handler, proposal};
 use std::collections::HashSet;
 use std::time::Duration;
-use tracing::{info, instrument};
+use tracing::{info, instrument, warn};
 use utils::telemetry::setup_telemetry;
 use utils::types::{ProposalsJob, ProposalsResponse};
 
@@ -75,7 +75,8 @@ async fn main() -> Result<()> {
 
             let _ = match run(job.clone()).await {
                 Ok(_) => rsmq.delete_message("proposals", &job_item.id).await?,
-                Err(_) => {
+                Err(e) => {
+                    warn!("proposals_consumer error: {:?}", e);
                     decrease_refresh_speed(job.clone()).await?;
                     false
                 }

@@ -13,7 +13,7 @@ use seaorm::{dao_handler, proposal, vote, voter};
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
-use tracing::{info, instrument};
+use tracing::{info, instrument, warn};
 use utils::telemetry::setup_telemetry;
 use utils::types::{VotesJob, VotesResponse};
 
@@ -80,7 +80,8 @@ async fn main() -> Result<()> {
 
             let _ = match run(job.clone()).await {
                 Ok(_) => rsmq.delete_message("votes", &job_item.id).await?,
-                Err(_) => {
+                Err(e) => {
+                    warn!("votes_consumer error: {:?}", e);
                     decrease_refresh_speed(job.clone()).await?;
                     false
                 }
