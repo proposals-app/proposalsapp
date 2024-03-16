@@ -57,12 +57,14 @@ async fn produce_jobs() -> Result<()> {
     let channel = connection.open_channel(None).await.unwrap();
     channel.register_callback(AppChannelCallback).await.unwrap();
 
-    let mut args = FieldTable::new();
-    args.insert("x-message-deduplicatio".try_into().unwrap(), true.into());
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
-        .arguments(args)
+        .passive(true)
         .finish();
-    channel.queue_declare(queue).await.ok();
+    let (_, message_count, _) = channel.queue_declare(queue).await.unwrap().unwrap();
+
+    if message_count > 1000 {
+        return Ok(());
+    }
 
     let mut opt = ConnectOptions::new(database_url);
     opt.sqlx_logging(false);

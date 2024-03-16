@@ -69,12 +69,10 @@ async fn main() -> Result<()> {
     let channel = connection.open_channel(None).await.unwrap();
     channel.register_callback(AppChannelCallback).await.unwrap();
 
-    let mut args = FieldTable::new();
-    args.insert("x-message-deduplicatio".try_into().unwrap(), true.into());
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
-        .arguments(args)
+        .passive(true)
         .finish();
-    channel.queue_declare(queue).await.ok();
+    channel.queue_declare(queue).await?;
 
     tokio::spawn(async {
         let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
