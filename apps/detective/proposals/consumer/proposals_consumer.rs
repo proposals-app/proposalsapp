@@ -118,8 +118,8 @@ impl AsyncConsumer for ProposalsConsumer {
                 channel.basic_ack(args).await.unwrap();
             }
             Err(e) => {
-                let args = BasicNackArguments::new(deliver.delivery_tag(), false, true);
-                channel.basic_nack(args).await.unwrap();
+                let args = BasicRejectArguments::new(deliver.delivery_tag(), true);
+                channel.basic_reject(args).await.unwrap();
                 warn!("proposals_consumer error: {:?}", e);
                 decrease_refresh_speed(job.clone()).await.unwrap();
             }

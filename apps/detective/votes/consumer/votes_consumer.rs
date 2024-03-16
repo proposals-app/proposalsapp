@@ -1,5 +1,6 @@
 use amqprs::channel::{
-    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, Channel, QueueDeclareArguments,
+    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicRejectArguments, Channel,
+    QueueDeclareArguments,
 };
 use amqprs::connection::{Connection, OpenConnectionArguments};
 use amqprs::consumer::AsyncConsumer;
@@ -123,8 +124,8 @@ impl AsyncConsumer for VotesConsumer {
                 channel.basic_ack(args).await.unwrap();
             }
             Err(e) => {
-                let args = BasicNackArguments::new(deliver.delivery_tag(), false, true);
-                channel.basic_nack(args).await.unwrap();
+                let args = BasicRejectArguments::new(deliver.delivery_tag(), true);
+                channel.basic_reject(args).await.unwrap();
                 warn!("votes_consumer error: {:?}", e);
                 decrease_refresh_speed(job.clone()).await.unwrap();
             }
