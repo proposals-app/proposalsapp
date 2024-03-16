@@ -3,7 +3,7 @@ use amqprs::channel::{
 };
 use amqprs::connection::{Connection, OpenConnectionArguments};
 use amqprs::consumer::AsyncConsumer;
-use amqprs::{BasicProperties, Deliver, FieldTable};
+use amqprs::{BasicProperties, Deliver};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use axum::Router;

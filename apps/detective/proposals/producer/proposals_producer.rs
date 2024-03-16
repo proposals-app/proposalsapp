@@ -3,7 +3,6 @@ use amqprs::channel::QueueDeclareArguments;
 use amqprs::connection::Connection;
 use amqprs::connection::OpenConnectionArguments;
 use amqprs::BasicProperties;
-use amqprs::FieldTable;
 use anyhow::{Context, Result};
 use axum::Router;
 use dotenv::dotenv;
@@ -58,7 +57,7 @@ async fn produce_jobs() -> Result<()> {
     channel.register_callback(AppChannelCallback).await.unwrap();
 
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
-        .passive(true)
+        .no_wait(false)
         .finish();
     let (_, message_count, _) = channel.queue_declare(queue).await.unwrap().unwrap();
 
@@ -90,18 +89,8 @@ async fn produce_jobs() -> Result<()> {
 
         let args = BasicPublishArguments::new("", QUEUE_NAME);
 
-        let mut headers = FieldTable::new();
-        headers.insert(
-            "x-deduplication-header".try_into().unwrap(),
-            dao_handler.id.into(),
-        );
-
         channel
-            .basic_publish(
-                BasicProperties::default().with_headers(headers).finish(),
-                content,
-                args,
-            )
+            .basic_publish(BasicProperties::default().finish(), content, args)
             .await
             .unwrap();
     }

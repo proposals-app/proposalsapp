@@ -57,7 +57,7 @@ async fn produce_jobs() -> Result<()> {
     channel.register_callback(AppChannelCallback).await.unwrap();
 
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
-        .passive(true)
+        .no_wait(false)
         .finish();
     let (_, message_count, _) = channel.queue_declare(queue).await.unwrap().unwrap();
 
