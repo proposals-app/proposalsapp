@@ -86,7 +86,7 @@ async fn main() -> Result<()> {
 
     channel
         .basic_consume(
-            VotesConsumer::new(),
+            ProposalsConsumer::new(),
             BasicConsumeArguments::new(QUEUE_NAME, ""),
         )
         .await
