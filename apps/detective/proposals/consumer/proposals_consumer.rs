@@ -1,4 +1,6 @@
-use amqprs::channel::{BasicAckArguments, BasicConsumeArguments, Channel, QueueDeclareArguments};
+use amqprs::channel::{
+    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, Channel, QueueDeclareArguments,
+};
 use amqprs::connection::{Connection, OpenConnectionArguments};
 use amqprs::consumer::AsyncConsumer;
 use amqprs::{BasicProperties, Deliver};
@@ -118,6 +120,8 @@ impl AsyncConsumer for ProposalsConsumer {
                 channel.basic_ack(args).await.unwrap();
             }
             Err(e) => {
+                let args = BasicNackArguments::new(deliver.delivery_tag(), false, true);
+                channel.basic_nack(args).await.unwrap();
                 warn!("proposals_consumer error: {:?}", e);
                 decrease_refresh_speed(job.clone()).await.unwrap();
             }
