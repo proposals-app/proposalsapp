@@ -6,6 +6,7 @@ import { createPool } from "mysql2";
 import { config as dotenv_config } from "dotenv";
 import { DB } from "@proposalsapp/db";
 import { sendBulletin } from "./send_bulletin";
+import express from "express";
 
 const QUEUE_NAME = "email:bulletin";
 
@@ -25,6 +26,16 @@ const dialect = new MysqlDialect({
 const db = new Kysely<DB>({
   dialect: dialect,
   plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
+});
+
+const app = express();
+
+app.get("/", (_req, res) => {
+  res.send("OK");
+});
+
+app.listen(3000, () => {
+  console.log(`Healthcheck is running at http://localhost:3000`);
 });
 
 cron.schedule("0 8 * * *", async () => {
