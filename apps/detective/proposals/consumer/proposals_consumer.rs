@@ -79,8 +79,9 @@ async fn main() -> Result<()> {
         axum::serve(listener, app).await.unwrap()
     });
 
+    // 5 workers
     channel
-        .basic_qos(BasicQosArguments::new(0, 10, false))
+        .basic_qos(BasicQosArguments::new(0, 5, false))
         .await?;
 
     let args = BasicConsumeArguments::new(QUEUE_NAME, "")
