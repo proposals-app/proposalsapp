@@ -3,7 +3,7 @@ use amqprs::channel::{
 };
 use amqprs::connection::{Connection, OpenConnectionArguments};
 use amqprs::consumer::AsyncConsumer;
-use amqprs::{BasicProperties, Deliver};
+use amqprs::{BasicProperties, Deliver, FieldTable};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use axum::Router;
@@ -69,10 +69,12 @@ async fn main() -> Result<()> {
     let channel = connection.open_channel(None).await.unwrap();
     channel.register_callback(AppChannelCallback).await.unwrap();
 
-    channel
-        .queue_declare(QueueDeclareArguments::durable_client_named(QUEUE_NAME))
-        .await
-        .ok();
+    let mut args = FieldTable::new();
+    args.insert("x-message-deduplicatio".try_into().unwrap(), true.into());
+    let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
+        .arguments(args)
+        .finish();
+    channel.queue_declare(queue).await.ok();
 
     tokio::spawn(async {
         let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
@@ -80,7 +82,7 @@ async fn main() -> Result<()> {
         axum::serve(listener, app).await.unwrap()
     });
 
-    let args = BasicConsumeArguments::new(QUEUE_NAME, "proposals_consumer")
+    let args = BasicConsumeArguments::new(QUEUE_NAME, "")
         .manual_ack(true)
         .finish();
 

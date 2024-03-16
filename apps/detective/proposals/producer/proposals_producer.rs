@@ -3,6 +3,7 @@ use amqprs::channel::QueueDeclareArguments;
 use amqprs::connection::Connection;
 use amqprs::connection::OpenConnectionArguments;
 use amqprs::BasicProperties;
+use amqprs::FieldTable;
 use anyhow::{Context, Result};
 use axum::Router;
 use dotenv::dotenv;
@@ -56,10 +57,12 @@ async fn produce_jobs() -> Result<()> {
     let channel = connection.open_channel(None).await.unwrap();
     channel.register_callback(AppChannelCallback).await.unwrap();
 
-    channel
-        .queue_declare(QueueDeclareArguments::durable_client_named(QUEUE_NAME))
-        .await
-        .ok();
+    let mut args = FieldTable::new();
+    args.insert("x-message-deduplicatio".try_into().unwrap(), true.into());
+    let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
+        .arguments(args)
+        .finish();
+    channel.queue_declare(queue).await.ok();
 
     let mut opt = ConnectOptions::new(database_url);
     opt.sqlx_logging(false);
@@ -85,8 +88,18 @@ async fn produce_jobs() -> Result<()> {
 
         let args = BasicPublishArguments::new("", QUEUE_NAME);
 
+        let mut headers = FieldTable::new();
+        headers.insert(
+            "x-deduplication-header".try_into().unwrap(),
+            dao_handler.id.into(),
+        );
+
         channel
-            .basic_publish(BasicProperties::default(), content, args)
+            .basic_publish(
+                BasicProperties::default().with_headers(headers).finish(),
+                content,
+                args,
+            )
             .await
             .unwrap();
     }
