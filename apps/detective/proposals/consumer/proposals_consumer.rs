@@ -1,6 +1,6 @@
 use amqprs::channel::{
-    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicRejectArguments, Channel,
-    QueueDeclareArguments,
+    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments,
+    BasicRejectArguments, Channel, QueueDeclareArguments,
 };
 use amqprs::connection::{Connection, OpenConnectionArguments};
 use amqprs::consumer::AsyncConsumer;
