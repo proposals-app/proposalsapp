@@ -27,7 +27,7 @@ const db = new Kysely<DB>({
   plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
 });
 
-cron.schedule("* * * * * * *", async () => {
+cron.schedule("0 8 * * *", async () => {
   while (!rbmq_conn || !rbmq_ch) {
     rbmq_conn = await amqplib.connect(process.env.RABBITMQ_URL!);
     rbmq_ch = await rbmq_conn.createChannel();
