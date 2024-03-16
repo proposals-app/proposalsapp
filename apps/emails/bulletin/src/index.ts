@@ -1,50 +1,63 @@
-import { createClient } from "redis";
-import { config as dotenv_config } from "dotenv";
 import cron from "node-cron";
-import RedisSMQ from "rsmq";
-import db from "@proposalsapp/db";
-import RSMQWorker from "rsmq-worker";
+import amqplib from "amqplib";
+import { DeduplicateJoinsPlugin, Kysely, MysqlDialect } from "kysely";
+import { CamelCasePlugin } from "kysely";
+import { createPool } from "mysql2";
+import { config as dotenv_config } from "dotenv";
+import { DB } from "@proposalsapp/db";
+import { sendBulletin } from "./send_bulletin";
 
 const QUEUE_NAME = "email:bulletin";
 
-let redis: ReturnType<typeof createClient> | undefined;
-let rsmq: RedisSMQ | undefined;
-let worker: RSMQWorker.Client | undefined;
+type Message = {
+  userId: string;
+};
 
 dotenv_config();
 
-cron.schedule("* * * * *", async () => {
-  if (!redis || !rsmq) {
-    redis = await createClient({ url: process.env.REDIS_URL! })
-      .on("error", (err) => console.log("Redis Client Error", err))
-      .connect();
+let rbmq_conn: amqplib.Connection | undefined;
+let rbmq_ch: amqplib.Channel | undefined;
 
-    rsmq = new RedisSMQ({ client: redis });
-    worker = new RSMQWorker(QUEUE_NAME, { rsmq: rsmq });
+const dialect = new MysqlDialect({
+  pool: createPool(process.env.DATABASE_URL!),
+});
+
+const db = new Kysely<DB>({
+  dialect: dialect,
+  plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
+});
+
+cron.schedule("* * * * * * *", async () => {
+  while (!rbmq_conn || !rbmq_ch) {
+    rbmq_conn = await amqplib.connect(process.env.RABBITMQ_URL!);
+    rbmq_ch = await rbmq_conn.createChannel();
+    await rbmq_ch.assertQueue(QUEUE_NAME);
+
+    rbmq_ch.consume(QUEUE_NAME, async (msg) => {
+      if (msg !== null) {
+        const user = JSON.parse(msg.content.toString()) as Message;
+        await sendBulletin(user.userId)
+          .then(() => rbmq_ch!.ack(msg))
+          .catch(() => rbmq_ch!.nack(msg));
+      }
+    });
   }
-
-  rsmq
-    .createQueueAsync({ qname: QUEUE_NAME })
-    .catch(() => console.log("could not create queue"));
 
   const users = await db
     .selectFrom("user")
     .innerJoin("userSettings", "userSettings.userId", "user.id")
-    .innerJoin("subscription", "subscription.userId", "user.id")
     .where("emailVerified", "=", 1)
     .where("emailDailyBulletin", "=", 1)
     .select("user.id")
     .execute();
 
   for (const user of users) {
-    await rsmq.sendMessageAsync({
-      qname: QUEUE_NAME,
-      message: JSON.stringify({ userId: user.id }),
-    });
-
-    console.log({
-      qname: QUEUE_NAME,
-      message: JSON.stringify({ userId: user.id }),
-    });
+    rbmq_ch.sendToQueue(
+      QUEUE_NAME,
+      Buffer.from(JSON.stringify({ userId: user.id } as Message)),
+      { persistent: true },
+    );
   }
 });
+
+module.exports = {};

@@ -1,7 +1,6 @@
 "use server";
 
 import db from "@proposalsapp/db";
-import "server-only";
 import { validateRequest } from "../../../server/auth";
 import { createPublicClient } from "viem";
 import { http } from "wagmi";

@@ -2,7 +2,9 @@ import { DeduplicateJoinsPlugin, Kysely, MysqlDialect } from "kysely";
 import type { DB } from "./kysely_db";
 import { CamelCasePlugin } from "kysely";
 import { createPool } from "mysql2";
+import { config as dotenv_config } from "dotenv";
 
+dotenv_config();
 const dialect = new MysqlDialect({
   pool: createPool(process.env.DATABASE_URL!),
 });

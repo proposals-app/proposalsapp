@@ -1,20 +1,7 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "./tsconfig.base.json",
+  "extends": "@tsconfig/recommended/tsconfig.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "lib": [
-      "esnext"
-    ],
-    "module": "ES2020",
-    "noEmit": false,
-    "incremental": true,
-    "paths": {}
-  },
-  "include": [
-    "/stacks/proposalsapp.ts",
-    "/stacks/detective/*.ts",
-    "/stacks/email/*.ts",
-    "/stacks/web/*.ts"
-  ]
+    "jsx": "react",
+    "resolveJsonModule": true
+  }
 }

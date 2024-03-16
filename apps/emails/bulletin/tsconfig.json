@@ -1,9 +1,11 @@
 {
-  "extends": "../../../tsconfig.base.json",
+  "extends": "@tsconfig/recommended/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "jsx": "react",
+    "resolveJsonModule": true
   },
+  "include": ["src/**/*"],
   "references": [
     { "path": "../../../libs/ts/db" },
     { "path": "../../../libs/ts/emails" }

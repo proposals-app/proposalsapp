@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@tsconfig/node18": "18.2.2",
+    "@tsconfig/recommended": "^1.0.3",
     "constructs": "10.3.0",
     "dotenv": "16.4.5",
     "prettier": "^3.2.5",

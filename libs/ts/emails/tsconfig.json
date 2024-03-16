@@ -1,22 +1,10 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "../../../tsconfig.base.json",
+  "extends": "@tsconfig/recommended/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./src",
     "outDir": "dist",
     "jsx": "react",
-    "allowSyntheticDefaultImports": true
+    "resolveJsonModule": true,
+    "composite": true
   },
-  "exclude": ["**/node_modules", "**/.*/*", "dist"],
-  "include": [
-    ".eslintrc.*",
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.mts",
-    "**/*.js",
-    "**/*.cjs",
-    "**/*.mjs",
-    "**/*.jsx",
-    "**/*.json"
-  ]
+  "include": ["src/**/*", "components/**/*", "emails/**/*", "test_data/*.json"]
 }

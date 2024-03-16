@@ -16,13 +16,14 @@
   },
   "dependencies": {
     "@prisma/client": "^5.11.0",
+    "dotenv": "^16.4.5",
     "kysely": "0.27.3",
-    "mysql2": "^3.9.2",
-    "typescript": "^5.4.2"
+    "mysql2": "^3.9.2"
   },
   "devDependencies": {
     "prisma": "^5.11.0",
     "prisma-kysely": "1.8.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "@types/dotenv": "^8.2.0"
   }
 }

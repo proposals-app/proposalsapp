@@ -1,6 +1,6 @@
 import { Column, Img, Link, Row, Section, Text } from "@react-email/components";
 import * as React from "react";
-import { baseUrl } from "../const";
+import { baseUrl } from "../src/const";
 
 export const Footer = () => (
   <Section className="bg-black text-center py-4">

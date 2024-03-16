@@ -38,6 +38,8 @@ export async function POST(request: Request) {
       .select(["id", "email", "emailVerified"])
       .where("user.email", "=", email)
       .executeTakeFirstOrThrow();
+
+    await db.insertInto("userSettings").values({ userId: user.id }).execute();
   }
 
   const verificationCode = await generateEmailVerificationCode(user.id, email);
