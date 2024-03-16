@@ -79,6 +79,10 @@ async fn main() -> Result<()> {
         axum::serve(listener, app).await.unwrap()
     });
 
+    channel
+        .basic_qos(BasicQosArguments::new(0, 10, false))
+        .await?;
+
     let args = BasicConsumeArguments::new(QUEUE_NAME, "")
         .manual_ack(true)
         .finish();

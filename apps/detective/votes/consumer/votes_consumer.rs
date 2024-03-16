@@ -1,5 +1,5 @@
 use amqprs::channel::{
-    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicRejectArguments, Channel,
+    BasicAckArguments, BasicConsumeArguments, BasicQosArguments, BasicRejectArguments, Channel,
     QueueDeclareArguments,
 };
 use amqprs::connection::{Connection, OpenConnectionArguments};
@@ -83,6 +83,10 @@ async fn main() -> Result<()> {
         let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
         axum::serve(listener, app).await.unwrap()
     });
+
+    channel
+        .basic_qos(BasicQosArguments::new(0, 10, false))
+        .await?;
 
     let args = BasicConsumeArguments::new(QUEUE_NAME, "")
         .manual_ack(true)
