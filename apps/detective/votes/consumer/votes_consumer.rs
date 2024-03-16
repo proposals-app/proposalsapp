@@ -53,7 +53,7 @@ pub struct ChainVotesResult {
     to_index: Option<i64>,
 }
 
-const QUEUE_NAME: &str = "votes";
+const QUEUE_NAME: &str = "detective:votes";
 
 #[tokio::main]
 async fn main() -> Result<()> {

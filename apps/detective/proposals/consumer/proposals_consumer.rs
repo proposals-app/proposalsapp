@@ -48,7 +48,7 @@ pub struct ChainProposalsResult {
     to_index: Option<i64>,
 }
 
-const QUEUE_NAME: &str = "proposals";
+const QUEUE_NAME: &str = "detective:proposals";
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -20,7 +20,7 @@ use utils::rabbitmq_callbacks::AppConnectionCallback;
 use utils::telemetry::setup_telemetry;
 use utils::types::VotesJob;
 
-const QUEUE_NAME: &str = "votes";
+const QUEUE_NAME: &str = "detective:votes";
 
 #[tokio::main]
 async fn main() -> Result<()> {
