@@ -58,6 +58,7 @@ async fn produce_jobs() -> Result<()> {
 
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
         .passive(true)
+        .no_wait(true)
         .finish();
     let (_, message_count, _) = channel.queue_declare(queue).await.unwrap().unwrap();
 
