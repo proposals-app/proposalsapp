@@ -138,7 +138,6 @@ const Quorum = (props: { enabled: boolean }) => {
       >
         <input
           type="checkbox"
-          checked={props.enabled}
           checked={enabled}
           className="peer sr-only"
           onChange={async (e) => {
