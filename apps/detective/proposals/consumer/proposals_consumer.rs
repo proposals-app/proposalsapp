@@ -84,12 +84,11 @@ async fn main() -> Result<()> {
         .basic_qos(BasicQosArguments::new(0, 5, false))
         .await?;
 
-    let args = BasicConsumeArguments::new(QUEUE_NAME, "")
-        .manual_ack(true)
-        .finish();
-
     channel
-        .basic_consume(ProposalsConsumer::new(), args)
+        .basic_consume(
+            VotesConsumer::new(),
+            BasicConsumeArguments::new(QUEUE_NAME, ""),
+        )
         .await
         .unwrap();
 
