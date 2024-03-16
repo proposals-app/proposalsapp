@@ -74,11 +74,8 @@ async fn main() -> Result<()> {
     let channel = connection.open_channel(None).await.unwrap();
     channel.register_callback(AppChannelCallback).await.unwrap();
 
-    let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
-        .passive(true)
-        .no_wait(false)
-        .finish();
-    channel.queue_declare(queue).await?;
+    let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME).finish();
+    channel.queue_declare(queue).await.ok();
 
     tokio::spawn(async {
         let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
