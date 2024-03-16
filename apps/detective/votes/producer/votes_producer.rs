@@ -1,8 +1,11 @@
+use amqprs::channel::BasicPublishArguments;
+use amqprs::channel::QueueDeclareArguments;
+use amqprs::connection::Connection;
+use amqprs::connection::OpenConnectionArguments;
+use amqprs::BasicProperties;
 use anyhow::{Context, Result};
 use axum::Router;
 use dotenv::dotenv;
-use rsmq_async::MultiplexedRsmq;
-use rsmq_async::RsmqConnection;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectOptions;
 use sea_orm::EntityTrait;
@@ -12,21 +15,25 @@ use seaorm::sea_orm_active_enums::HandlerType;
 use seaorm::{dao_handler, proposal};
 use tokio::time;
 use tracing::info;
+use utils::rabbitmq_callbacks::AppChannelCallback;
+use utils::rabbitmq_callbacks::AppConnectionCallback;
 use utils::telemetry::setup_telemetry;
 use utils::types::VotesJob;
+
+const QUEUE_NAME: &str = "votes";
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_telemetry();
 
-    let mut interval = time::interval(std::time::Duration::from_secs(60 * 10));
-
     tokio::spawn(async {
         let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
         let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
         axum::serve(listener, app).await.unwrap()
     });
+
+    let mut interval = time::interval(std::time::Duration::from_secs(60 * 10));
 
     loop {
         interval.tick().await;
@@ -36,20 +43,23 @@ async fn main() -> Result<()> {
 
 async fn produce_jobs() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
-    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL not set!");
 
-    let redis = redis::Client::open(redis_url)?
-        .get_multiplexed_async_connection()
-        .await?;
+    let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
 
-    let mut rsmq = MultiplexedRsmq::new_with_connection(redis, false, None);
+    let args: OpenConnectionArguments = rabbitmq_url.as_str().try_into().unwrap();
+    let connection = Connection::open(&args).await.unwrap();
+    connection
+        .register_callback(AppConnectionCallback)
+        .await
+        .unwrap();
 
-    rsmq.create_queue("votes", None, None, None).await.ok();
+    let channel = connection.open_channel(None).await.unwrap();
+    channel.register_callback(AppChannelCallback).await.unwrap();
 
-    let queue_len = rsmq.get_queue_attributes("votes").await?.msgs;
-    if queue_len > 250 {
-        return Ok(());
-    }
+    channel
+        .queue_declare(QueueDeclareArguments::durable_client_named(QUEUE_NAME))
+        .await
+        .ok();
 
     let mut opt = ConnectOptions::new(database_url);
     opt.sqlx_logging(false);
@@ -77,8 +87,14 @@ async fn produce_jobs() -> Result<()> {
             proposal_id: None,
         };
 
-        rsmq.send_message("votes", serde_json::to_string(&job)?, None)
-            .await?;
+        let content = serde_json::to_string(&job)?.into_bytes();
+
+        let args = BasicPublishArguments::new("", QUEUE_NAME);
+
+        channel
+            .basic_publish(BasicProperties::default(), content, args)
+            .await
+            .unwrap();
     }
 
     for proposal in proposals.clone() {
@@ -87,8 +103,14 @@ async fn produce_jobs() -> Result<()> {
             proposal_id: Some(proposal.id.clone()),
         };
 
-        rsmq.send_message("votes", serde_json::to_string(&job)?, None)
-            .await?;
+        let content = serde_json::to_string(&job)?.into_bytes();
+
+        let args = BasicPublishArguments::new("", QUEUE_NAME);
+
+        channel
+            .basic_publish(BasicProperties::default(), content, args)
+            .await
+            .unwrap();
     }
 
     info!("Queued {} DAOs cnt", dao_handlers.len());

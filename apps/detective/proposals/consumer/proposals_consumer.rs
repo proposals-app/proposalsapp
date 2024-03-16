@@ -1,8 +1,12 @@
+use amqprs::channel::{BasicAckArguments, BasicConsumeArguments, Channel, QueueDeclareArguments};
+use amqprs::connection::{Connection, OpenConnectionArguments};
+use amqprs::consumer::AsyncConsumer;
+use amqprs::{BasicProperties, Deliver};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use axum::Router;
 use dotenv::dotenv;
 use itertools::Itertools;
-use rsmq_async::{MultiplexedRsmq, RsmqConnection};
 use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
@@ -10,8 +14,9 @@ use sea_orm::{
 use seaorm::sea_orm_active_enums::{HandlerType, ProposalState};
 use seaorm::{dao_handler, proposal};
 use std::collections::HashSet;
-use std::time::Duration;
+use tokio::sync::Notify;
 use tracing::{info, instrument, warn};
+use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
 use utils::telemetry::setup_telemetry;
 use utils::types::{ProposalsJob, ProposalsResponse};
 
@@ -43,20 +48,29 @@ pub struct ChainProposalsResult {
     to_index: Option<i64>,
 }
 
+const QUEUE_NAME: &str = "proposals";
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_telemetry();
 
-    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL not set!");
+    let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
+    let args: OpenConnectionArguments = rabbitmq_url.as_str().try_into().unwrap();
+    let connection = Connection::open(&args).await.unwrap();
 
-    let redis = redis::Client::open(redis_url)?
-        .get_multiplexed_async_connection()
-        .await?;
+    connection
+        .register_callback(AppConnectionCallback)
+        .await
+        .unwrap();
 
-    let mut rsmq = MultiplexedRsmq::new_with_connection(redis, false, None);
+    let channel = connection.open_channel(None).await.unwrap();
+    channel.register_callback(AppChannelCallback).await.unwrap();
 
-    rsmq.create_queue("proposals", None, None, None).await.ok();
+    channel
+        .queue_declare(QueueDeclareArguments::durable_client_named(QUEUE_NAME))
+        .await
+        .ok();
 
     tokio::spawn(async {
         let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
@@ -64,24 +78,50 @@ async fn main() -> Result<()> {
         axum::serve(listener, app).await.unwrap()
     });
 
-    loop {
-        let job_item = rsmq
-            .receive_message::<String>("proposals", Some(Duration::from_secs(60)))
-            .await
-            .expect("cannot receive message");
+    let args = BasicConsumeArguments::new(QUEUE_NAME, "proposals_consumer")
+        .manual_ack(true)
+        .finish();
 
-        if let Some(job_item) = job_item {
-            let job: ProposalsJob = serde_json::from_str(&job_item.message)?;
+    channel
+        .basic_consume(ProposalsConsumer::new(), args)
+        .await
+        .unwrap();
 
-            let _ = match run(job.clone()).await {
-                Ok(_) => rsmq.delete_message("proposals", &job_item.id).await?,
-                Err(e) => {
-                    warn!("proposals_consumer error: {:?}", e);
-                    decrease_refresh_speed(job.clone()).await?;
-                    false
-                }
-            };
-        }
+    // consume forever
+    let guard = Notify::new();
+    guard.notified().await;
+
+    Ok(())
+}
+
+pub struct ProposalsConsumer {}
+impl ProposalsConsumer {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+#[async_trait]
+impl AsyncConsumer for ProposalsConsumer {
+    async fn consume(
+        &mut self,
+        channel: &Channel,
+        deliver: Deliver,
+        _basic_properties: BasicProperties,
+        content: Vec<u8>,
+    ) {
+        let job_str = String::from_utf8(content).ok();
+        let job: ProposalsJob = serde_json::from_str(job_str.unwrap().as_str()).unwrap();
+
+        let _ = match run(job.clone()).await {
+            Ok(_) => {
+                let args = BasicAckArguments::new(deliver.delivery_tag(), false);
+                channel.basic_ack(args).await.unwrap();
+            }
+            Err(e) => {
+                warn!("proposals_consumer error: {:?}", e);
+                decrease_refresh_speed(job.clone()).await.unwrap();
+            }
+        };
     }
 }
 

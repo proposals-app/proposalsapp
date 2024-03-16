@@ -1,7 +1,11 @@
+use amqprs::channel::{BasicAckArguments, BasicConsumeArguments, Channel, QueueDeclareArguments};
+use amqprs::connection::{Connection, OpenConnectionArguments};
+use amqprs::consumer::AsyncConsumer;
+use amqprs::{BasicProperties, Deliver};
 use anyhow::{bail, Context, Result};
+use async_trait::async_trait;
 use axum::Router;
 use dotenv::dotenv;
-use rsmq_async::{MultiplexedRsmq, RsmqConnection};
 use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
@@ -12,8 +16,9 @@ use seaorm::sea_orm_active_enums::ProposalState;
 use seaorm::{dao_handler, proposal, vote, voter};
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
-use std::time::Duration;
+use tokio::sync::Notify;
 use tracing::{info, instrument, warn};
+use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
 use utils::telemetry::setup_telemetry;
 use utils::types::{VotesJob, VotesResponse};
 
@@ -48,20 +53,29 @@ pub struct ChainVotesResult {
     to_index: Option<i64>,
 }
 
+const QUEUE_NAME: &str = "votes";
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_telemetry();
 
-    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL not set!");
+    let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
+    let args: OpenConnectionArguments = rabbitmq_url.as_str().try_into().unwrap();
+    let connection = Connection::open(&args).await.unwrap();
 
-    let redis = redis::Client::open(redis_url)?
-        .get_multiplexed_async_connection()
-        .await?;
+    connection
+        .register_callback(AppConnectionCallback)
+        .await
+        .unwrap();
 
-    let mut rsmq = MultiplexedRsmq::new_with_connection(redis, false, None);
+    let channel = connection.open_channel(None).await.unwrap();
+    channel.register_callback(AppChannelCallback).await.unwrap();
 
-    rsmq.create_queue("votes", None, None, None).await.ok();
+    channel
+        .queue_declare(QueueDeclareArguments::durable_client_named(QUEUE_NAME))
+        .await
+        .ok();
 
     tokio::spawn(async {
         let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
@@ -69,24 +83,50 @@ async fn main() -> Result<()> {
         axum::serve(listener, app).await.unwrap()
     });
 
-    loop {
-        let job_item = rsmq
-            .receive_message::<String>("votes", Some(Duration::from_secs(60)))
-            .await
-            .expect("cannot receive message");
+    let args = BasicConsumeArguments::new(QUEUE_NAME, "votes_consumer")
+        .manual_ack(true)
+        .finish();
 
-        if let Some(job_item) = job_item {
-            let job: VotesJob = serde_json::from_str(&job_item.message)?;
+    channel
+        .basic_consume(VotesConsumer::new(), args)
+        .await
+        .unwrap();
 
-            let _ = match run(job.clone()).await {
-                Ok(_) => rsmq.delete_message("votes", &job_item.id).await?,
-                Err(e) => {
-                    warn!("votes_consumer error: {:?}", e);
-                    decrease_refresh_speed(job.clone()).await?;
-                    false
-                }
-            };
-        }
+    // consume forever
+    let guard = Notify::new();
+    guard.notified().await;
+
+    Ok(())
+}
+
+pub struct VotesConsumer {}
+impl VotesConsumer {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+#[async_trait]
+impl AsyncConsumer for VotesConsumer {
+    async fn consume(
+        &mut self,
+        channel: &Channel,
+        deliver: Deliver,
+        _basic_properties: BasicProperties,
+        content: Vec<u8>,
+    ) {
+        let job_str = String::from_utf8(content).ok();
+        let job: VotesJob = serde_json::from_str(job_str.unwrap().as_str()).unwrap();
+
+        let _ = match run(job.clone()).await {
+            Ok(_) => {
+                let args = BasicAckArguments::new(deliver.delivery_tag(), false);
+                channel.basic_ack(args).await.unwrap();
+            }
+            Err(e) => {
+                warn!("votes_consumer error: {:?}", e);
+                decrease_refresh_speed(job.clone()).await.unwrap();
+            }
+        };
     }
 }
 
