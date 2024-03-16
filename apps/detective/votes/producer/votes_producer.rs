@@ -56,9 +56,7 @@ async fn produce_jobs() -> Result<()> {
     let channel = connection.open_channel(None).await.unwrap();
     channel.register_callback(AppChannelCallback).await.unwrap();
 
-    let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
-        .no_wait(false)
-        .finish();
+    let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME);
     let (_, message_count, _) = channel.queue_declare(queue).await.unwrap().unwrap();
 
     if message_count > 1000 {

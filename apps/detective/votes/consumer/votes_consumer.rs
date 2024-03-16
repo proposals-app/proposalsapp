@@ -74,7 +74,7 @@ async fn main() -> Result<()> {
     let channel = connection.open_channel(None).await.unwrap();
     channel.register_callback(AppChannelCallback).await.unwrap();
 
-    let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME).finish();
+    let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME);
     channel.queue_declare(queue).await.ok();
 
     tokio::spawn(async {
