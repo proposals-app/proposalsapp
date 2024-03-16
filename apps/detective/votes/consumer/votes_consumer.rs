@@ -76,7 +76,7 @@ async fn main() -> Result<()> {
 
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
         .passive(true)
-        .no_wait(true)
+        .no_wait(false)
         .finish();
     channel.queue_declare(queue).await?;
 
