@@ -1,6 +1,6 @@
 "use server";
 
-import db from "@proposalsapp/db";
+import { db } from "@proposalsapp/db";
 import { validateRequest } from "../../../server/auth";
 
 export const updateBulletin = async (enabled: boolean) => {

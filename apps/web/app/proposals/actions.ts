@@ -1,6 +1,6 @@
 "use server";
 
-import db, { jsonArrayFrom } from "@proposalsapp/db";
+import { db, jsonArrayFrom } from "@proposalsapp/db";
 import { validateRequest } from "../../server/auth";
 
 export const getSubscribedDAOs = async () => {

@@ -223,23 +223,22 @@ model subscription {
 }
 
 model notification {
-    id         String  @id @default(cuid())
-    userid     String?
-    proposalid String?
+     id String @id @default(dbgenerated("(uuid())"))
+    user_id     String?
+    proposal_id String?
 
     type           NotificationType
     dispatchstatus NotificationDispatchedState @default(NOT_DISPATCHED)
+    submitted_at    DateTime
 
-    decoder Json @default("{}")
+    user     user?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+    proposal proposal? @relation(fields: [proposal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-    user     user?     @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    proposal proposal? @relation(fields: [proposalid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-    @@unique([userid, proposalid, type])
+    @@unique([user_id, proposal_id, type])
     @@index(fields: [type])
-    @@index(fields: [proposalid])
+    @@index(fields: [proposal_id])
     @@index(fields: [dispatchstatus])
-    @@index(fields: [userid, type, dispatchstatus])
+    @@index(fields: [user_id, type, dispatchstatus])
 }
 
 enum NotificationDispatchedState {

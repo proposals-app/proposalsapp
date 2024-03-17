@@ -1,4 +1,4 @@
-import db from "@proposalsapp/db";
+import { db } from "@proposalsapp/db";
 import { generateEmailVerificationCode, lucia } from "../../../../server/auth";
 import { NextResponse } from "next/server";
 import { NextURL } from "next/dist/server/web/next-url";
