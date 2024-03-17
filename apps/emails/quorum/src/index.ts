@@ -45,10 +45,12 @@ async function setupQueue() {
   });
 }
 
-setupQueue().catch((err) => {
-  console.error("Error setting up RabbitMQ:", err);
-  process.exit(1);
-});
+setupQueue()
+  .then(() => console.log("RabbitMQ set up!"))
+  .catch((err) => {
+    console.error("Error setting up RabbitMQ:", err);
+    process.exit(1);
+  });
 
 const app = express();
 
@@ -63,14 +65,13 @@ app.listen(3000, () => {
 cron.schedule("* * * * *", async () => {
   const proposals = await db
     .selectFrom("proposal")
+    .where("timeEnd", ">", new Date())
     .where("timeEnd", "<", new Date(new Date().getTime() + 1 * 60 * 60 * 1000))
     .selectAll()
     .execute();
 
   const proposalsNoQuorum = proposals.filter((p) => p.quorum > p.scoresTotal);
   const daosNoQuorum = proposals.map((p) => p.daoId);
-
-  if (proposalsNoQuorum.length == 0) return;
 
   const users = await db
     .selectFrom("user")
@@ -79,9 +80,15 @@ cron.schedule("* * * * *", async () => {
     .where("emailVerified", "=", 1)
     .where("emailQuorumWarning", "=", 1)
     .where("subscription.daoId", "in", daosNoQuorum)
-    .distinctOn("user.id")
     .select("user.id")
+    .distinct()
     .execute();
+
+  console.log(
+    `${proposalsNoQuorum.length} noquorum proposals for ${users.length} users`,
+  );
+
+  if (proposalsNoQuorum.length == 0) return;
 
   for (const user of users) {
     for (const proposalNoQuorum of proposalsNoQuorum) {

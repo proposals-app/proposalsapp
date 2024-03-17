@@ -46,10 +46,12 @@ async function setupQueue() {
   });
 }
 
-setupQueue().catch((err) => {
-  console.error("Error setting up RabbitMQ:", err);
-  process.exit(1);
-});
+setupQueue()
+  .then(() => console.log("RabbitMQ set up!"))
+  .catch((err) => {
+    console.error("Error setting up RabbitMQ:", err);
+    process.exit(1);
+  });
 
 app.get("/", (_req, res) => {
   res.send("OK");
@@ -66,8 +68,8 @@ cron.schedule("0 8 * * *", async () => {
     .innerJoin("subscription", "subscription.userId", "user.id")
     .where("emailVerified", "=", 1)
     .where("emailDailyBulletin", "=", 1)
-    .distinctOn("user.id")
     .select("user.id")
+    .distinct()
     .execute();
 
   for (const user of users) {

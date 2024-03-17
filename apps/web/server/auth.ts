@@ -1,4 +1,4 @@
-import db from "@proposalsapp/db";
+import { db } from "@proposalsapp/db";
 import { Lucia, type User, type Session } from "lucia";
 import { Mysql2Adapter } from "@lucia-auth/adapter-mysql";
 import { cache } from "react";

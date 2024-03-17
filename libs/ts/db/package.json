@@ -1,10 +1,7 @@
 {
   "name": "@proposalsapp/db",
-  "version": "0.1.0",
-  "private": true,
-  "keywords": [],
-  "license": "MIT",
-  "author": "",
+  "version": "1.0.0",
+  "type": "module",
   "main": "./src/index.ts",
   "scripts": {
     "db:gen:rust": "sea-orm-cli generate entity -v --lib --expanded-format --with-serde both --date-time-crate chrono -o ../../rust/seaorm/src",

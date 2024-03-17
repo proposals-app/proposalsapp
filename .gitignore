@@ -11,3 +11,6 @@ target
 .env.development
 .env
 .env.*
+
+.idea
+.vscode

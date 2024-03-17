@@ -37,12 +37,12 @@ export type email_verification = {
     expiresAt: Timestamp;
 };
 export type notification = {
-    id: string;
-    userid: string | null;
-    proposalid: string | null;
+    id: Generated<string>;
+    userId: string | null;
+    proposalId: string | null;
     type: NotificationType;
     dispatchstatus: Generated<NotificationDispatchedState>;
-    decoder: Generated<unknown>;
+    submittedAt: Timestamp;
 };
 export type proposal = {
     id: Generated<string>;

@@ -1,6 +1,6 @@
 "use server";
 
-import db from "@proposalsapp/db";
+import { db } from "@proposalsapp/db";
 import ogs from "open-graph-scraper";
 import { validateRequest } from "../../../server/auth";
 

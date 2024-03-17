@@ -1,4 +1,4 @@
-import db from "@proposalsapp/db";
+import { db } from "@proposalsapp/db";
 import { lucia, verifyVerificationCode } from "../../../../server/auth";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
