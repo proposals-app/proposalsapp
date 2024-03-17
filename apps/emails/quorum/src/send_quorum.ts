@@ -100,5 +100,5 @@ export async function sendQuorum(userId: string, proposalId: string) {
     })
     .execute();
 
-  console.log(`send timeend for ${proposalId} to ${userId}`);
+  console.log(`send quorum for ${proposalId} to ${userId}`);
 }
