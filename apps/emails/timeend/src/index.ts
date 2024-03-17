@@ -29,16 +29,6 @@ const db = new Kysely<DB>({
   plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
 });
 
-const app = express();
-
-app.get("/", (_req, res) => {
-  res.send("OK");
-});
-
-app.listen(3000, () => {
-  console.log(`Healthcheck is running at http://localhost:3000`);
-});
-
 async function setupQueue() {
   rbmq_conn = await amqplib.connect(process.env.RABBITMQ_URL!);
   rbmq_ch = await rbmq_conn.createChannel();
@@ -58,6 +48,16 @@ async function setupQueue() {
 setupQueue().catch((err) => {
   console.error("Error setting up RabbitMQ:", err);
   process.exit(1);
+});
+
+const app = express();
+
+app.get("/", (_req, res) => {
+  res.send("OK");
+});
+
+app.listen(3000, () => {
+  console.log(`Healthcheck is running at http://localhost:3000`);
 });
 
 cron.schedule("* * * * *", async () => {

@@ -28,8 +28,6 @@ const db = new Kysely<DB>({
   plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
 });
 
-const app = express();
-
 async function setupQueue() {
   rbmq_conn = await amqplib.connect(process.env.RABBITMQ_URL!);
   rbmq_ch = await rbmq_conn.createChannel();
@@ -51,6 +49,8 @@ setupQueue().catch((err) => {
   process.exit(1);
 });
 
+const app = express();
+
 app.get("/", (_req, res) => {
   res.send("OK");
 });
@@ -59,7 +59,7 @@ app.listen(3000, () => {
   console.log(`Healthcheck is running at http://localhost:3000`);
 });
 
-cron.schedule("0 8 * * *", async () => {
+cron.schedule("* * * * *", async () => {
   const users = await db
     .selectFrom("user")
     .innerJoin("userSettings", "userSettings.userId", "user.id")
@@ -71,13 +71,13 @@ cron.schedule("0 8 * * *", async () => {
     .execute();
 
   for (const user of users) {
-    const message: Message = {
-      userId: user.id,
-    };
+      const message: Message = {
+        userId: user.id,
+      };
 
-    if (rbmq_ch)
-      rbmq_ch.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
-  }
+      if (rbmq_ch)
+        rbmq_ch.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
+    }
 });
 
 module.exports = {};

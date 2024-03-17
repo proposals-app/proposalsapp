@@ -13,4 +13,4 @@ tracing-subscriber = { version = "0.3.18", features = [
     "json",
 ] }
 amqprs = { version = "1.5.3", features = ["tls", "urispec"] }
-async-trait = "0.1.77"
+async-trait = "0.1.78"
