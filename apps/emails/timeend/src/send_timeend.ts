@@ -49,27 +49,25 @@ export async function sendTimeend(userId: string, proposalId: string) {
     .selectAll()
     .executeTakeFirstOrThrow();
 
-  const baseUrl = process.env.WEB_URL!;
-
   let chainLogoUrl = "";
 
   if (daoHandler.handlerType.includes("SNAPSHOT"))
-    chainLogoUrl = "/assets/email/chains/snapshot.png";
+    chainLogoUrl = "assets/email/chains/snapshot.png";
   else if (daoHandler.handlerType.includes("MAINNET"))
-    chainLogoUrl = "/assets/email/chains/ethereum.png";
+    chainLogoUrl = "assets/email/chains/ethereum.png";
   else if (daoHandler.handlerType.includes("ARBITRUM"))
-    chainLogoUrl = "/assets/email/chains/arbitrum.png";
+    chainLogoUrl = "assets/email/chains/arbitrum.png";
   else if (daoHandler.handlerType.includes("OPTIMISM"))
-    chainLogoUrl = "/assets/email/chains/optimism.png";
+    chainLogoUrl = "assets/email/chains/optimism.png";
   else if (daoHandler.handlerType.includes("AVALANCHE"))
-    chainLogoUrl = "/assets/email/chains/avalanche.png";
+    chainLogoUrl = "assets/email/chains/avalanche.png";
   else if (daoHandler.handlerType.includes("POLYGON"))
-    chainLogoUrl = "/assets/email/chains/polygon.png";
+    chainLogoUrl = "assets/email/chains/polygon.png";
 
   const emailData: NotVotedData = {
     daoName: dao.name,
-    daoLogoUrl: `${baseUrl}/${dao.picture}`,
-    chainLogoUrl: `${baseUrl}/${chainLogoUrl}`,
+    daoLogoUrl: `${dao.picture}`,
+    chainLogoUrl: `${chainLogoUrl}`,
     url: proposal.url,
     proposalName: proposal.name,
     countdownUrl: "",
