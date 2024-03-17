@@ -5,13 +5,14 @@ import { CamelCasePlugin } from "kysely";
 import { createPool } from "mysql2";
 import { config as dotenv_config } from "dotenv";
 import { DB } from "@proposalsapp/db";
-import { sendBulletin } from "./send_bulletin";
+import { sendQuorum } from "./send_quorum";
 import express from "express";
 
-const QUEUE_NAME = "email:bulletin";
+const QUEUE_NAME = "email:quorum";
 
 type Message = {
   userId: string;
+  proposalId: string;
 };
 
 dotenv_config();
@@ -28,8 +29,6 @@ const db = new Kysely<DB>({
   plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
 });
 
-const app = express();
-
 async function setupQueue() {
   rbmq_conn = await amqplib.connect(process.env.RABBITMQ_URL!);
   rbmq_ch = await rbmq_conn.createChannel();
@@ -39,7 +38,7 @@ async function setupQueue() {
     if (msg !== null) {
       const message = JSON.parse(msg.content.toString()) as Message;
 
-      await sendBulletin(message.userId)
+      await sendQuorum(message.userId, message.proposalId)
         .then(() => rbmq_ch!.ack(msg))
         .catch(() => rbmq_ch!.nack(msg));
     }
@@ -51,6 +50,8 @@ setupQueue().catch((err) => {
   process.exit(1);
 });
 
+const app = express();
+
 app.get("/", (_req, res) => {
   res.send("OK");
 });
@@ -59,23 +60,59 @@ app.listen(3000, () => {
   console.log(`Healthcheck is running at http://localhost:3000`);
 });
 
-cron.schedule("0 8 * * *", async () => {
+cron.schedule("* * * * *", async () => {
+  const proposals = await db
+    .selectFrom("proposal")
+    .where("timeEnd", "<", new Date(new Date().getTime() + 1 * 60 * 60 * 1000))
+    .selectAll()
+    .execute();
+
+  const proposalsNoQuorum = proposals.filter((p) => p.quorum > p.scoresTotal);
+  const daosNoQuorum = proposals.map((p) => p.daoId);
+
+  if (proposalsNoQuorum.length == 0) return;
+
   const users = await db
     .selectFrom("user")
     .innerJoin("userSettings", "userSettings.userId", "user.id")
     .innerJoin("subscription", "subscription.userId", "user.id")
     .where("emailVerified", "=", 1)
-    .where("emailDailyBulletin", "=", 1)
+    .where("emailQuorumWarning", "=", 1)
+    .where("subscription.daoId", "in", daosNoQuorum)
     .select("user.id")
     .execute();
 
   for (const user of users) {
-    const message: Message = {
-      userId: user.id,
-    };
+    for (const proposalNoQuorum of proposalsNoQuorum) {
+      const voters =
+        (await db
+          .selectFrom("voter")
+          .fullJoin("userToVoter", "voter.id", "userToVoter.voterId")
+          .where("userId", "=", user.id)
+          .select("voter.address")
+          .execute()) ?? [];
 
-    if (rbmq_ch)
-      rbmq_ch.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
+      const vote = await db
+        .selectFrom("vote")
+        .where("vote.proposalId", "=", proposalNoQuorum.id)
+        .where(
+          "vote.voterAddress",
+          "in",
+          voters.map((voter) => (voter.address ? voter.address : "")),
+        )
+        .selectAll()
+        .execute();
+
+      if (vote.length > 0) continue;
+
+      const message: Message = {
+        userId: user.id,
+        proposalId: proposalNoQuorum.id,
+      };
+
+      if (rbmq_ch)
+        rbmq_ch.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
+    }
   }
 });
 

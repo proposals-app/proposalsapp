@@ -17,7 +17,13 @@
     "start-web": "yarn workspace @proposalsapp/web start",
 
     "build-email-bulletin": "yarn build-db && yarn workspace @proposalsapp/email-bulletin build",
-    "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin start"
+    "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin start",
+
+    "build-email-quorum": "yarn build-db && yarn workspace @proposalsapp/email-quorum build",
+    "start-email-quorum": "yarn workspace @proposalsapp/email-quorum start",
+
+    "build-email-timeend": "yarn build-db && yarn workspace @proposalsapp/email-timeend build",
+    "start-email-timeend": "yarn workspace @proposalsapp/email-timeend start"
   },
   "devDependencies": {
     "@tsconfig/node18": "18.2.2",

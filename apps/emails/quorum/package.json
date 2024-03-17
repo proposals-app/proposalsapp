@@ -1,0 +1,30 @@
+{
+  "name": "@proposalsapp/email-quorum",
+  "version": "1.0.0",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --build",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@proposalsapp/db": "*",
+    "amqplib": "^0.10.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "kysely": "^0.27.3",
+    "mysql2": "^3.9.2",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.5",
+    "@types/dotenv": "^8.2.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.28",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.7.1"
+  }
+}
