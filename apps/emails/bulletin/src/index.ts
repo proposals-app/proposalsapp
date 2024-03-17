@@ -63,8 +63,10 @@ cron.schedule("0 8 * * *", async () => {
   const users = await db
     .selectFrom("user")
     .innerJoin("userSettings", "userSettings.userId", "user.id")
+    .innerJoin("subscription", "subscription.userId", "user.id")
     .where("emailVerified", "=", 1)
     .where("emailDailyBulletin", "=", 1)
+    .distinctOn("user.id")
     .select("user.id")
     .execute();
 

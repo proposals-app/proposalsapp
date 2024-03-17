@@ -78,6 +78,7 @@ cron.schedule("* * * * *", async () => {
     .where("emailVerified", "=", 1)
     .where("emailTimeendWarning", "=", 1)
     .where("subscription.daoId", "in", daos)
+    .distinctOn("user.id")
     .select("user.id")
     .execute();
 
