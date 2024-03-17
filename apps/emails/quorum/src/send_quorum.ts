@@ -8,7 +8,7 @@ import { ServerClient } from "postmark";
 
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
 
-export async function sendTimeend(userId: string, proposalId: string) {
+export async function sendQuorum(userId: string, proposalId: string) {
   const existingNotification = await db
     .selectFrom("notification")
     .where("userId", "=", userId)
