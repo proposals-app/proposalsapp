@@ -1,12 +1,9 @@
 import cron from "node-cron";
 import amqplib from "amqplib";
-import { DeduplicateJoinsPlugin, Kysely, MysqlDialect } from "kysely";
-import { CamelCasePlugin } from "kysely";
-import { createPool } from "mysql2";
 import { config as dotenv_config } from "dotenv";
-import { DB } from "@proposalsapp/db";
 import { sendQuorum } from "./send_quorum";
 import express from "express";
+import { db } from "@proposalsapp/db";
 
 const QUEUE_NAME = "email:quorum";
 
@@ -20,19 +17,21 @@ dotenv_config();
 let rbmq_conn: amqplib.Connection | undefined;
 let rbmq_ch: amqplib.Channel | undefined;
 
-const dialect = new MysqlDialect({
-  pool: createPool(process.env.DATABASE_URL!),
+const app = express();
+
+app.get("/", (_req, res) => {
+  res.send("OK");
 });
 
-const db = new Kysely<DB>({
-  dialect: dialect,
-  plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
+app.listen(3000, () => {
+  console.log(`Healthcheck is running at http://localhost:3000`);
 });
 
 async function setupQueue() {
   rbmq_conn = await amqplib.connect(process.env.RABBITMQ_URL!);
   rbmq_ch = await rbmq_conn.createChannel();
   await rbmq_ch.assertQueue(QUEUE_NAME);
+  //rbmq_ch.prefetch(5);
 
   rbmq_ch.consume(QUEUE_NAME, async (msg) => {
     if (msg !== null) {
@@ -40,7 +39,10 @@ async function setupQueue() {
 
       await sendQuorum(message.userId, message.proposalId)
         .then(() => rbmq_ch!.ack(msg))
-        .catch(() => rbmq_ch!.nack(msg));
+        .catch((e) => {
+          rbmq_ch!.nack(msg);
+          console.log(e);
+        });
     }
   });
 }
@@ -52,17 +54,9 @@ setupQueue()
     process.exit(1);
   });
 
-const app = express();
-
-app.get("/", (_req, res) => {
-  res.send("OK");
-});
-
-app.listen(3000, () => {
-  console.log(`Healthcheck is running at http://localhost:3000`);
-});
-
 cron.schedule("* * * * *", async () => {
+  console.log("running cron");
+
   const proposals = await db
     .selectFrom("proposal")
     .where("timeEnd", ">", new Date())
@@ -71,7 +65,7 @@ cron.schedule("* * * * *", async () => {
     .execute();
 
   const proposalsNoQuorum = proposals.filter((p) => p.quorum > p.scoresTotal);
-  const daosNoQuorum = proposals.map((p) => p.daoId);
+  const daos = proposals.map((p) => p.daoId);
 
   const users = await db
     .selectFrom("user")
@@ -79,47 +73,45 @@ cron.schedule("* * * * *", async () => {
     .innerJoin("subscription", "subscription.userId", "user.id")
     .where("emailVerified", "=", 1)
     .where("emailQuorumWarning", "=", 1)
-    .where("subscription.daoId", "in", daosNoQuorum)
+    .where("subscription.daoId", "in", daos)
     .select("user.id")
     .distinct()
     .execute();
 
   console.log(
-    `${proposalsNoQuorum.length} noquorum proposals for ${users.length} users`,
+    `${proposalsNoQuorum.length} timeend proposals for ${users.length} users`,
   );
 
   if (proposalsNoQuorum.length == 0) return;
 
   for (const user of users) {
-    for (const proposalNoQuorum of proposalsNoQuorum) {
-      const voters =
-        (await db
-          .selectFrom("voter")
-          .fullJoin("userToVoter", "voter.id", "userToVoter.voterId")
-          .where("userId", "=", user.id)
-          .select("voter.address")
-          .execute()) ?? [];
+    const voters =
+      (await db
+        .selectFrom("voter")
+        .innerJoin("userToVoter", "voter.id", "userToVoter.voterId")
+        .where("userId", "=", user.id)
+        .select("voter.address")
+        .execute()) ?? [];
 
-      const vote = await db
+    for (const proposal of proposalsNoQuorum) {
+      const votes = await db
         .selectFrom("vote")
-        .where("vote.proposalId", "=", proposalNoQuorum.id)
-        .where(
-          "vote.voterAddress",
-          "in",
-          voters.map((voter) => (voter.address ? voter.address : "")),
-        )
-        .selectAll()
+        .where("vote.proposalId", "=", proposal.id)
+        .where("vote.voterAddress", "in", [
+          ...voters.map((voter) => (voter.address ? voter.address : "")),
+          "",
+        ])
+        .select("vote.id")
         .execute();
 
-      if (vote.length > 0) continue;
+      if (votes.length > 0) continue;
 
       const message: Message = {
         userId: user.id,
-        proposalId: proposalNoQuorum.id,
+        proposalId: proposal.id,
       };
 
-      if (rbmq_ch)
-        rbmq_ch.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
+      rbmq_ch!.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
     }
   }
 });
