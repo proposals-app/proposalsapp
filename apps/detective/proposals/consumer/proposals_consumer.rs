@@ -119,16 +119,19 @@ impl AsyncConsumer for ProposalsConsumer {
 
         let _ = match run(job.clone()).await {
             Ok(_) => {
-                let args = BasicAckArguments::new(deliver.delivery_tag(), false);
-                channel.basic_ack(args).await.unwrap();
+                increase_refresh_speed(job.clone()).await.unwrap();
+                channel
+                    .basic_ack(BasicAckArguments::new(deliver.delivery_tag(), false))
+                    .await
+                    .unwrap();
             }
             Err(e) => {
+                decrease_refresh_speed(job.clone()).await.unwrap();
                 channel
                     .basic_nack(BasicNackArguments::new(deliver.delivery_tag(), false, true))
                     .await
                     .unwrap();
                 warn!("proposals_consumer error: {:?}", e);
-                decrease_refresh_speed(job.clone()).await.unwrap();
             }
         };
     }
@@ -213,7 +216,7 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
         HandlerType::OpOptimism => 100,
         HandlerType::ArbCoreArbitrum => 100,
         HandlerType::ArbTreasuryArbitrum => 100,
-        HandlerType::Snapshot => 1,
+        HandlerType::Snapshot => 10,
     };
 
     if new_refresh_speed < min_refresh_speed {
@@ -224,6 +227,66 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
         "Proposals refresh speed decreased to {} for DAO {}",
         new_refresh_speed, dao_handler.dao_id
     );
+
+    dao_handler::Entity::update(dao_handler::ActiveModel {
+        id: Set(dao_handler.id.clone()),
+        proposals_refresh_speed: Set(new_refresh_speed),
+        ..Default::default()
+    })
+    .exec(&db)
+    .await
+    .context("DB error")
+    .context("Failed to decrease refresh speed")?;
+
+    Ok(())
+}
+
+async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
+
+    let mut opt = ConnectOptions::new(database_url);
+    opt.sqlx_logging(false);
+
+    let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
+
+    let dao_handler = dao_handler::Entity::find()
+        .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
+        .one(&db)
+        .await
+        .context("DB error")?
+        .context("dao_handler error")?;
+
+    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 1.2) as i64;
+
+    let max_refresh_speed = match dao_handler.handler_type {
+        HandlerType::AaveV2Mainnet => 1_000_000,
+        HandlerType::AaveV3Mainnet => 1_000_000,
+        HandlerType::AaveV3PolygonPos => 1_000_000,
+        HandlerType::AaveV3Avalanche => 1_000_000,
+        HandlerType::CompoundMainnet => 1_000_000,
+        HandlerType::UniswapMainnet => 1_000_000,
+        HandlerType::EnsMainnet => 1_000_000,
+        HandlerType::GitcoinMainnet => 1_000_000,
+        HandlerType::GitcoinV2Mainnet => 1_000_000,
+        HandlerType::HopMainnet => 1_000_000,
+        HandlerType::DydxMainnet => 1_000_000,
+        HandlerType::InterestProtocolMainnet => 1_000_000,
+        HandlerType::ZeroxProtocolMainnet => 1_000_000,
+        HandlerType::FraxAlphaMainnet => 1_000_000,
+        HandlerType::FraxOmegaMainnet => 1_000_000,
+        HandlerType::NounsProposalsMainnet => 1_000_000,
+        HandlerType::MakerExecutiveMainnet => 1_000_000,
+        HandlerType::MakerPollMainnet => 1_000_000,
+        HandlerType::MakerPollArbitrum => 1_000_000,
+        HandlerType::OpOptimism => 1_000_000,
+        HandlerType::ArbCoreArbitrum => 1_000_000,
+        HandlerType::ArbTreasuryArbitrum => 1_000_000,
+        HandlerType::Snapshot => 1_000,
+    };
+
+    if new_refresh_speed > max_refresh_speed {
+        new_refresh_speed = max_refresh_speed;
+    }
 
     dao_handler::Entity::update(dao_handler::ActiveModel {
         id: Set(dao_handler.id.clone()),
@@ -263,42 +326,9 @@ async fn update_index(
         }
     }
 
-    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 1.2) as i64;
-
-    let max_refresh_speed = match dao_handler.handler_type {
-        HandlerType::AaveV2Mainnet => 1_000_000,
-        HandlerType::AaveV3Mainnet => 1_000_000,
-        HandlerType::AaveV3PolygonPos => 1_000_000,
-        HandlerType::AaveV3Avalanche => 1_000_000,
-        HandlerType::CompoundMainnet => 1_000_000,
-        HandlerType::UniswapMainnet => 1_000_000,
-        HandlerType::EnsMainnet => 1_000_000,
-        HandlerType::GitcoinMainnet => 1_000_000,
-        HandlerType::GitcoinV2Mainnet => 1_000_000,
-        HandlerType::HopMainnet => 1_000_000,
-        HandlerType::DydxMainnet => 1_000_000,
-        HandlerType::InterestProtocolMainnet => 1_000_000,
-        HandlerType::ZeroxProtocolMainnet => 1_000_000,
-        HandlerType::FraxAlphaMainnet => 1_000_000,
-        HandlerType::FraxOmegaMainnet => 1_000_000,
-        HandlerType::NounsProposalsMainnet => 1_000_000,
-        HandlerType::MakerExecutiveMainnet => 1_000_000,
-        HandlerType::MakerPollMainnet => 1_000_000,
-        HandlerType::MakerPollArbitrum => 1_000_000,
-        HandlerType::OpOptimism => 1_000_000,
-        HandlerType::ArbCoreArbitrum => 1_000_000,
-        HandlerType::ArbTreasuryArbitrum => 1_000_000,
-        HandlerType::Snapshot => 1_000,
-    };
-
-    if new_refresh_speed > max_refresh_speed {
-        new_refresh_speed = max_refresh_speed;
-    }
-
     dao_handler::Entity::update(dao_handler::ActiveModel {
         id: Set(dao_handler.id.clone()),
         proposals_index: Set(new_index),
-        proposals_refresh_speed: Set(new_refresh_speed),
         ..Default::default()
     })
     .exec(db)

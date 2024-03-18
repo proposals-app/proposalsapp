@@ -1,6 +1,6 @@
 use amqprs::channel::{
-    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments,
-    BasicRejectArguments, Channel, QueueDeclareArguments,
+    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments, Channel,
+    QueueDeclareArguments,
 };
 use amqprs::connection::{Connection, OpenConnectionArguments};
 use amqprs::consumer::AsyncConsumer;
@@ -124,16 +124,19 @@ impl AsyncConsumer for VotesConsumer {
 
         let _ = match run(job.clone()).await {
             Ok(_) => {
-                let args = BasicAckArguments::new(deliver.delivery_tag(), false);
-                channel.basic_ack(args).await.unwrap();
+                increase_refresh_speed(job.clone()).await.unwrap();
+                channel
+                    .basic_ack(BasicAckArguments::new(deliver.delivery_tag(), false))
+                    .await
+                    .unwrap();
             }
             Err(e) => {
+                decrease_refresh_speed(job.clone()).await.unwrap();
                 channel
                     .basic_nack(BasicNackArguments::new(deliver.delivery_tag(), false, true))
                     .await
                     .unwrap();
                 warn!("votes_consumer error: {:?}", e);
-                decrease_refresh_speed(job.clone()).await.unwrap();
             }
         };
     }
@@ -173,7 +176,7 @@ async fn run(job: VotesJob) -> Result<()> {
                 updated_votes,
             } = store_proposal_votes(&votes, &db).await?;
 
-            let new_index = update_proposal_index(&votes, &proposal, &dao_handler, &db).await?;
+            let new_index = update_proposal_index(&votes, &proposal, &&db).await?;
 
             let response = VotesResponse {
                 inserted_votes,
@@ -250,7 +253,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
         HandlerType::OpOptimism => 100,
         HandlerType::ArbCoreArbitrum => 100,
         HandlerType::ArbTreasuryArbitrum => 100,
-        HandlerType::Snapshot => 1,
+        HandlerType::Snapshot => 10,
     };
 
     match job.proposal_id.clone() {
@@ -289,6 +292,104 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
 
             if new_refresh_speed < min_refresh_speed {
                 new_refresh_speed = min_refresh_speed;
+            }
+
+            info!(
+                "Votes refresh speed decreased to {} for DAO {}",
+                new_refresh_speed, dao_handler.dao_id
+            );
+
+            dao_handler::Entity::update(dao_handler::ActiveModel {
+                id: Set(dao_handler.id),
+                votes_refresh_speed: Set(new_refresh_speed),
+                ..Default::default()
+            })
+            .exec(&db)
+            .await
+            .context("DB error")?;
+
+            Ok(())
+        }
+    }
+}
+
+async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
+
+    let mut opt = ConnectOptions::new(database_url);
+    opt.sqlx_logging(false);
+
+    let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
+
+    let dao_handler = dao_handler::Entity::find()
+        .filter(dao_handler::Column::Id.eq(job.dao_handler_id.clone()))
+        .one(&db)
+        .await
+        .context("DB error")?
+        .context("DAO not found")?;
+
+    let max_refresh_speed = match dao_handler.handler_type {
+        HandlerType::AaveV2Mainnet => 1_000_000,
+        HandlerType::AaveV3Mainnet => 1_000_000,
+        HandlerType::AaveV3PolygonPos => 1_000_000,
+        HandlerType::AaveV3Avalanche => 1_000_000,
+        HandlerType::CompoundMainnet => 1_000_000,
+        HandlerType::UniswapMainnet => 1_000_000,
+        HandlerType::EnsMainnet => 1_000_000,
+        HandlerType::GitcoinMainnet => 1_000_000,
+        HandlerType::GitcoinV2Mainnet => 1_000_000,
+        HandlerType::HopMainnet => 1_000_000,
+        HandlerType::DydxMainnet => 1_000_000,
+        HandlerType::InterestProtocolMainnet => 1_000_000,
+        HandlerType::ZeroxProtocolMainnet => 1_000_000,
+        HandlerType::FraxAlphaMainnet => 1_000_000,
+        HandlerType::FraxOmegaMainnet => 1_000_000,
+        HandlerType::NounsProposalsMainnet => 1_000_000,
+        HandlerType::MakerExecutiveMainnet => 1_000_000,
+        HandlerType::MakerPollMainnet => 1_000_000,
+        HandlerType::MakerPollArbitrum => 1_000_000,
+        HandlerType::OpOptimism => 1_000_000,
+        HandlerType::ArbCoreArbitrum => 1_000_000,
+        HandlerType::ArbTreasuryArbitrum => 1_000_000,
+        HandlerType::Snapshot => 1_000,
+    };
+
+    match job.proposal_id.clone() {
+        Some(proposal_id) => {
+            let proposal = proposal::Entity::find()
+                .filter(proposal::Column::Id.eq(proposal_id))
+                .one(&db)
+                .await
+                .context("DB error")?
+                .context("DAO not found")?;
+
+            let mut new_refresh_speed = (proposal.votes_refresh_speed as f32 * 1.2) as i64;
+
+            if new_refresh_speed > max_refresh_speed {
+                new_refresh_speed = max_refresh_speed;
+            }
+
+            info!(
+                "Votes refresh speed decreased to {} for proposal {}",
+                new_refresh_speed, proposal.id
+            );
+
+            proposal::Entity::update(proposal::ActiveModel {
+                id: Set(proposal.id.clone()),
+                votes_refresh_speed: Set(new_refresh_speed),
+                ..Default::default()
+            })
+            .exec(&db)
+            .await
+            .context("DB error")?;
+
+            Ok(())
+        }
+        None => {
+            let mut new_refresh_speed = (dao_handler.votes_refresh_speed as f32 * 1.2) as i64;
+
+            if new_refresh_speed > max_refresh_speed {
+                new_refresh_speed = max_refresh_speed;
             }
 
             info!(
@@ -372,38 +473,6 @@ async fn update_dao_index(
         new_index = to_index.unwrap_or(dao_handler.votes_index + dao_handler.votes_refresh_speed);
     }
 
-    let mut new_refresh_speed = (dao_handler.votes_refresh_speed as f32 * 1.2) as i64;
-
-    let max_refresh_speed = match dao_handler.handler_type {
-        HandlerType::AaveV2Mainnet => 1_000_000,
-        HandlerType::AaveV3Mainnet => 1_000_000,
-        HandlerType::AaveV3PolygonPos => 1_000_000,
-        HandlerType::AaveV3Avalanche => 1_000_000,
-        HandlerType::CompoundMainnet => 1_000_000,
-        HandlerType::UniswapMainnet => 1_000_000,
-        HandlerType::EnsMainnet => 1_000_000,
-        HandlerType::GitcoinMainnet => 1_000_000,
-        HandlerType::GitcoinV2Mainnet => 1_000_000,
-        HandlerType::HopMainnet => 1_000_000,
-        HandlerType::DydxMainnet => 1_000_000,
-        HandlerType::InterestProtocolMainnet => 1_000_000,
-        HandlerType::ZeroxProtocolMainnet => 1_000_000,
-        HandlerType::FraxAlphaMainnet => 1_000_000,
-        HandlerType::FraxOmegaMainnet => 1_000_000,
-        HandlerType::NounsProposalsMainnet => 1_000_000,
-        HandlerType::MakerExecutiveMainnet => 1_000_000,
-        HandlerType::MakerPollMainnet => 1_000_000,
-        HandlerType::MakerPollArbitrum => 1_000_000,
-        HandlerType::OpOptimism => 1_000_000,
-        HandlerType::ArbCoreArbitrum => 1_000_000,
-        HandlerType::ArbTreasuryArbitrum => 1_000_000,
-        HandlerType::Snapshot => 1_000,
-    };
-
-    if new_refresh_speed > max_refresh_speed {
-        new_refresh_speed = max_refresh_speed;
-    }
-
     if new_index > dao_handler.proposals_index
         && dao_handler.handler_type != HandlerType::MakerPollArbitrum
         && dao_handler.handler_type != HandlerType::AaveV3PolygonPos
@@ -415,7 +484,6 @@ async fn update_dao_index(
     dao_handler::Entity::update(dao_handler::ActiveModel {
         id: Set(dao_handler.id.clone()),
         votes_index: Set(new_index),
-        votes_refresh_speed: Set(new_refresh_speed),
         ..Default::default()
     })
     .exec(db)
@@ -430,7 +498,6 @@ async fn update_dao_index(
 async fn update_proposal_index(
     parsed_votes: &[vote::ActiveModel],
     proposal: &proposal::Model,
-    dao_handler: &dao_handler::Model,
     db: &DatabaseConnection,
 ) -> Result<i64> {
     let new_index = parsed_votes
@@ -439,38 +506,6 @@ async fn update_proposal_index(
         .max()
         .unwrap_or(&proposal.votes_index);
 
-    let mut new_refresh_speed = (proposal.votes_refresh_speed as f32 * 1.2) as i64;
-
-    let max_refresh_speed = match dao_handler.handler_type {
-        HandlerType::AaveV2Mainnet => 1_000_000,
-        HandlerType::AaveV3Mainnet => 1_000_000,
-        HandlerType::AaveV3PolygonPos => 1_000_000,
-        HandlerType::AaveV3Avalanche => 1_000_000,
-        HandlerType::CompoundMainnet => 1_000_000,
-        HandlerType::UniswapMainnet => 1_000_000,
-        HandlerType::EnsMainnet => 1_000_000,
-        HandlerType::GitcoinMainnet => 1_000_000,
-        HandlerType::GitcoinV2Mainnet => 1_000_000,
-        HandlerType::HopMainnet => 1_000_000,
-        HandlerType::DydxMainnet => 1_000_000,
-        HandlerType::InterestProtocolMainnet => 1_000_000,
-        HandlerType::ZeroxProtocolMainnet => 1_000_000,
-        HandlerType::FraxAlphaMainnet => 1_000_000,
-        HandlerType::FraxOmegaMainnet => 1_000_000,
-        HandlerType::NounsProposalsMainnet => 1_000_000,
-        HandlerType::MakerExecutiveMainnet => 1_000_000,
-        HandlerType::MakerPollMainnet => 1_000_000,
-        HandlerType::MakerPollArbitrum => 1_000_000,
-        HandlerType::OpOptimism => 1_000_000,
-        HandlerType::ArbCoreArbitrum => 1_000_000,
-        HandlerType::ArbTreasuryArbitrum => 1_000_000,
-        HandlerType::Snapshot => 1_000,
-    };
-
-    if new_refresh_speed > max_refresh_speed {
-        new_refresh_speed = max_refresh_speed;
-    }
-
     let fetched_votes = proposal.proposal_state != ProposalState::Active
         && proposal.proposal_state != ProposalState::Pending
         && parsed_votes.is_empty();
@@ -478,7 +513,6 @@ async fn update_proposal_index(
     proposal::Entity::update(proposal::ActiveModel {
         id: Set(proposal.id.clone()),
         votes_index: Set(*new_index),
-        votes_refresh_speed: Set(new_refresh_speed),
         votes_fetched: Set(fetched_votes.into()),
         ..Default::default()
     })
