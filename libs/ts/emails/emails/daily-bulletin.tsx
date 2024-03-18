@@ -156,12 +156,12 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
           <Row>
             <Column width={52} height={66}>
               <Img
-                src={`${baseUrl}${proposal.daoLogoUrl}`}
+                src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
                 width={48}
                 height={48}
               />
               <Img
-                src={`${baseUrl}${proposal.chainLogoUrl}`}
+                src={`${baseUrl}/${proposal.chainLogoUrl}`}
                 width={48}
                 height={16}
               />
@@ -226,12 +226,12 @@ const New = (props: { data: NewProposal[] }) => {
           <Row>
             <Column width={52} height={66}>
               <Img
-                src={`${baseUrl}${proposal.daoLogoUrl}`}
+                src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
                 width={48}
                 height={48}
               />
               <Img
-                src={`${baseUrl}${proposal.chainLogoUrl}`}
+                src={`${baseUrl}/${proposal.chainLogoUrl}`}
                 width={48}
                 height={16}
               />
@@ -296,12 +296,12 @@ const Ended = (props: { data: EndedProposal[] }) => {
           <Row>
             <Column width={52} height={66}>
               <Img
-                src={`${baseUrl}${proposal.daoLogoUrl}`}
+                src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
                 width={48}
                 height={48}
               />
               <Img
-                src={`${baseUrl}${proposal.chainLogoUrl}`}
+                src={`${baseUrl}/${proposal.chainLogoUrl}`}
                 width={48}
                 height={16}
               />

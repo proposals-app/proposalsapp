@@ -62,7 +62,7 @@ export const QuorumEmail = (data: QuorumData) => (
                 <Img
                   src={`${baseUrl}/${
                     data.daoLogoUrl ? data.daoLogoUrl : test_data.daoLogoUrl
-                  }`}
+                  }_medium.png`}
                   width={48}
                   height={48}
                 />
