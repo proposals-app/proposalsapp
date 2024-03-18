@@ -60,14 +60,14 @@ export const QuorumEmail = (data: QuorumData) => (
             <Row className="py-4">
               <Column width={52} height={66}>
                 <Img
-                  src={`${baseUrl}${
+                  src={`${baseUrl}/${
                     data.daoLogoUrl ? data.daoLogoUrl : test_data.daoLogoUrl
                   }`}
                   width={48}
                   height={48}
                 />
                 <Img
-                  src={`${baseUrl}${
+                  src={`${baseUrl}/${
                     data.chainLogoUrl
                       ? data.chainLogoUrl
                       : test_data.chainLogoUrl
