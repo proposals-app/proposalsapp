@@ -6,6 +6,12 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 import type { NotificationDispatchedState, NotificationType, DAOHandlerEnum, ProposalStateEnum } from "./enums";
 
+export type countdown_cache = {
+    id: Generated<string>;
+    time: Timestamp;
+    largeUrl: string;
+    smallUrl: string;
+};
 export type dao = {
     id: Generated<string>;
     name: string;
@@ -117,6 +123,7 @@ export type voter = {
     ens: string | null;
 };
 export type DB = {
+    countdownCache: countdown_cache;
     dao: dao;
     daoHandler: dao_handler;
     daoSettings: dao_settings;

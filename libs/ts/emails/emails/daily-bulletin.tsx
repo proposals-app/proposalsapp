@@ -190,7 +190,7 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
             </Column>
 
             <Column className="font-bold text-center" width={82}>
-              <Img src={`${baseUrl}${proposal.voteIconUrl}`} width={82} />
+              <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
               <Text className="hidden">{proposal.voteStatus}</Text>
             </Column>
           </Row>
@@ -260,7 +260,7 @@ const New = (props: { data: NewProposal[] }) => {
             </Column>
 
             <Column className="font-bold text-center" width={82}>
-              <Img src={`${baseUrl}${proposal.voteIconUrl}`} width={82} />
+              <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
               <Text className="hidden">{proposal.voteStatus}</Text>
             </Column>
           </Row>
@@ -440,7 +440,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
             </Column>
 
             <Column className="font-bold text-center" width={82}>
-              <Img src={`${baseUrl}${proposal.voteIconUrl}`} width={82} />
+              <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
               <Text className="hidden">{proposal.voteStatus}</Text>
             </Column>
           </Row>

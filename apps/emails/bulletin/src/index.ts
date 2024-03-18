@@ -39,7 +39,10 @@ async function setupQueue() {
 
       await sendBulletin(message.userId)
         .then(() => rbmq_ch!.ack(msg))
-        .catch(() => rbmq_ch!.nack(msg));
+        .catch((e) => {
+          console.log(e);
+          rbmq_ch!.nack(msg);
+        });
     }
   });
 }
@@ -61,7 +64,7 @@ app.listen(3000, () => {
   console.log(`Healthcheck is running at http://localhost:3000`);
 });
 
-cron.schedule("* * * * *", async () => {
+cron.schedule("0 8 * * *", async () => {
   const users = await db
     .selectFrom("user")
     .innerJoin("userSettings", "userSettings.userId", "user.id")
@@ -73,13 +76,13 @@ cron.schedule("* * * * *", async () => {
     .execute();
 
   for (const user of users) {
-      const message: Message = {
-        userId: user.id,
-      };
+    const message: Message = {
+      userId: user.id,
+    };
 
-      if (rbmq_ch)
-        rbmq_ch.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
-    }
+    if (rbmq_ch)
+      rbmq_ch.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
+  }
 });
 
 module.exports = {};

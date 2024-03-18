@@ -79,27 +79,25 @@ cron.schedule("* * * * *", async () => {
     .execute();
 
   console.log(
-    `${proposalsNoQuorum.length} timeend proposals for ${users.length} users`,
+    `${proposalsNoQuorum.length} quorum proposals for ${users.length} users`,
   );
 
   if (proposalsNoQuorum.length == 0) return;
 
   for (const user of users) {
-    const voters =
-      (await db
-        .selectFrom("voter")
-        .innerJoin("userToVoter", "voter.id", "userToVoter.voterId")
-        .where("userId", "=", user.id)
-        .select("voter.address")
-        .execute()) ?? [];
+    const voters = (await db
+      .selectFrom("voter")
+      .innerJoin("userToVoter", "voter.id", "userToVoter.voterId")
+      .where("userId", "=", user.id)
+      .select("voter.address")
+      .execute()) ?? [{ address: "" }];
 
     for (const proposal of proposalsNoQuorum) {
       const votes = await db
         .selectFrom("vote")
         .where("vote.proposalId", "=", proposal.id)
         .where("vote.voterAddress", "in", [
-          ...voters.map((voter) => (voter.address ? voter.address : "")),
-          "",
+          ...voters.map((voter) => voter.address),
         ])
         .select("vote.id")
         .execute();

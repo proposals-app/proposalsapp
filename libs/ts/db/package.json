@@ -12,6 +12,7 @@
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
+    "@proposalsapp/db": "*",
     "@prisma/client": "^5.11.0",
     "dotenv": "^16.4.5",
     "kysely": "0.27.3",

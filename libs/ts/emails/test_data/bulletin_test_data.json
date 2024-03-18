@@ -2,144 +2,144 @@
   "todaysDate": "Friday, June 2, 2023",
   "endingSoonProposals": [
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/snapshot.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum with a very long name lalallalalalalala here is a very long proposal name im out of ideas omg what am i gonna write here im bored lol that's enough",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "short proposal",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/snapshot.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Not voted yet",
-      "voteIconUrl": "/assets/email/not-voted-yet.png"
+      "voteIconUrl": "assets/email/not-voted-yet.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Not voted yet",
-      "voteIconUrl": "/assets/email/not-voted-yet.png"
+      "voteIconUrl": "assets/email/not-voted-yet.png"
     }
   ],
   "newProposals": [
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/snapshot.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum with a very long name lalallalalalalala here is a very long proposal name im out of ideas omg what am i gonna write here im bored lol that's enough",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "short proposal",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/snapshot.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Not voted yet",
-      "voteIconUrl": "/assets/email/not-voted-yet.png"
+      "voteIconUrl": "assets/email/not-voted-yet.png"
     },
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
       "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
       "countdownString": "on Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Not voted yet",
-      "voteIconUrl": "/assets/email/not-voted-yet.png"
+      "voteIconUrl": "assets/email/not-voted-yet.png"
     }
   ],
   "endedProposals": [
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/snapshot.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
       "quorumReached": true,
@@ -151,12 +151,12 @@
       },
       "countdownString": "Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Did not vote",
-      "voteIconUrl": "/assets/email/did-not-vote.png"
+      "voteIconUrl": "assets/email/did-not-vote.png"
     },
 
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/snapshot.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot without quorum",
       "quorumReached": false,
@@ -168,12 +168,12 @@
       },
       "countdownString": "Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Did not vote",
-      "voteIconUrl": "/assets/email/did-not-vote.png"
+      "voteIconUrl": "assets/email/did-not-vote.png"
     },
 
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/snapshot.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot with hidden result",
       "quorumReached": true,
@@ -185,12 +185,12 @@
       },
       "countdownString": "Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Did not vote",
-      "voteIconUrl": "/assets/email/did-not-vote.png"
+      "voteIconUrl": "assets/email/did-not-vote.png"
     },
 
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
       "quorumReached": true,
@@ -202,12 +202,12 @@
       },
       "countdownString": "Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
 
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "short proposal",
       "quorumReached": true,
@@ -219,12 +219,12 @@
       },
       "countdownString": "Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
 
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum with long choice name",
       "quorumReached": true,
@@ -236,12 +236,12 @@
       },
       "countdownString": "Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
 
     {
-      "daoLogoUrl": "/assets/project-logos/aave_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum with long choice name",
       "quorumReached": true,
@@ -253,12 +253,12 @@
       },
       "countdownString": "Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
 
     {
-      "daoLogoUrl": "/assets/project-logos/makerdao_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/makerdao",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is a Maker proposal on Ethereum ",
       "quorumReached": true,
@@ -270,12 +270,12 @@
       },
       "countdownString": "Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Voted",
-      "voteIconUrl": "/assets/email/voted.png"
+      "voteIconUrl": "assets/email/voted.png"
     },
 
     {
-      "daoLogoUrl": "/assets/project-logos/makerdao_medium.png",
-      "chainLogoUrl": "/assets/email/chains/ethereum.png",
+      "daoLogoUrl": "assets/project-logos/makerdao",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is a Maker proposal on with a long name",
       "quorumReached": true,
@@ -287,7 +287,7 @@
       },
       "countdownString": "Jun 5, 2023 at 02:00 UTC",
       "voteStatus": "Did not vote",
-      "voteIconUrl": "/assets/email/did-not-vote.png"
+      "voteIconUrl": "assets/email/did-not-vote.png"
     }
   ]
 }

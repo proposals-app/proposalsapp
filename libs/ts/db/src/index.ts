@@ -16,5 +16,6 @@ const db = new Kysely<DB>({
 export { db };
 export * from "./kysely_db";
 export * from "./enums";
+export * from "./countdown";
 export { Kysely };
 export { jsonArrayFrom } from "kysely/helpers/mysql";
