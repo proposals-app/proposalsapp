@@ -2,6 +2,7 @@ import {
   NotificationDispatchedState,
   NotificationType,
   db,
+  getCountdown,
 } from "@proposalsapp/db";
 import { QuorumData, QuorumEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
@@ -64,14 +65,16 @@ export async function sendQuorum(userId: string, proposalId: string) {
   else if (daoHandler.handlerType.includes("POLYGON"))
     chainLogoUrl = "assets/email/chains/polygon.png";
 
+  let { countdownSmall, countdownLarge } = await getCountdown(proposal.timeEnd);
+
   const emailData: QuorumData = {
     daoName: dao.name,
     daoLogoUrl: `${dao.picture}`,
     chainLogoUrl: `${chainLogoUrl}`,
     url: proposal.url,
     proposalName: proposal.name,
-    countdownUrl: "",
-    countdownUrlSmall: "",
+    countdownUrl: countdownLarge,
+    countdownUrlSmall: countdownSmall,
     scoresTotal: proposal.scoresTotal,
     quorum: proposal.quorum,
   };
