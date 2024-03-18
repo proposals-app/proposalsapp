@@ -5,8 +5,9 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import React, { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-export default async function AuthButton() {
+export default function AuthButton() {
   const { user } = useSession();
   const router = useRouter();
 
@@ -47,6 +48,7 @@ const SignIn = () => {
     CODE,
   }
 
+  const [termsAgreed, setTermsAgreed] = useState(false);
   const router = useRouter();
   const [page, setPage] = useState(Page.EMAIL);
   const signIn = async (email: string) => {
@@ -88,7 +90,7 @@ const SignIn = () => {
         {page == Page.EMAIL && (
           <Dialog.Portal>
             <Dialog.Overlay className="bg-[#1E1B20] bg-opacity-75 data-[state=open]:animate-overlayShow fixed inset-0" />
-            <Dialog.Content className="data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] bg-black p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none">
+            <Dialog.Content className="data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[100vw] max-w-[480px] translate-x-[-50%] translate-y-[-50%] bg-black p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none">
               <Dialog.Title className="text-white m-0 text-[17px] font-medium">
                 Welcome to proposals.app
               </Dialog.Title>
@@ -115,14 +117,30 @@ const SignIn = () => {
                   />
                 </fieldset>
 
-                <div className="mt-[25px] flex justify-center">
+                <div className="mt-[25px] mb-[25px] flex justify-center">
                   <button
-                    className="bg-white text-black h-[35px] px-[10px]"
+                    className="bg-white text-black h-[35px] px-[10px] disabled:bg-zinc-500"
                     type="submit"
+                    disabled={!termsAgreed}
                   >
                     Continue
                   </button>
                 </div>
+                <label className="text-white">
+                  <input
+                    type="checkbox"
+                    onChange={() => setTermsAgreed(!termsAgreed)}
+                  />{" "}
+                  I agree to the{" "}
+                  <Link href="/tc" className="underline">
+                    Terms and Conditions
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/pp" className="underline">
+                    Privacy Policy
+                  </Link>
+                  .
+                </label>
               </form>
               <Dialog.Close asChild>
                 <button
@@ -138,7 +156,7 @@ const SignIn = () => {
         {page == Page.CODE && (
           <Dialog.Portal>
             <Dialog.Overlay className="bg-[#1E1B20] bg-opacity-75 data-[state=open]:animate-overlayShow fixed inset-0" />
-            <Dialog.Content className="data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] bg-black p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none">
+            <Dialog.Content className="data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[480px] translate-x-[-50%] translate-y-[-50%] bg-black p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none">
               <Dialog.Title className="text-white m-0 text-[17px] font-medium">
                 Let&apos;s verify your email
               </Dialog.Title>
