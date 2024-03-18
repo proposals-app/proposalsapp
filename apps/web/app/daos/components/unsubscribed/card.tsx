@@ -13,17 +13,9 @@ export const UnsubscribedDAO = (props: {
 }) => {
   const [imgSrc, setImgSrc] = useState(
     props.daoPicture
-      ? props.daoPicture + "_medium.png"
-      : "/assets/Project_Icons/placeholder_medium.png",
+      ? `/${props.daoPicture}_medium.png`
+      : "assets/Project_Icons/placeholder_medium.png",
   );
-
-  useEffect(() => {
-    setImgSrc(
-      props.daoPicture
-        ? props.daoPicture + "_medium.png"
-        : "/assets/Project_Icons/placeholder_medium.png",
-    );
-  }, [props.daoPicture]);
 
   const [, startTransition] = useTransition();
   const [loading, setLoading] = useState(false);

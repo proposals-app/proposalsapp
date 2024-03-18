@@ -43,7 +43,7 @@ export default function Title({
           priority={true}
           width={48}
           height={48}
-          src={`${daoImage}.svg`}
+          src={`/${daoImage}.svg`}
           alt={title ?? "Unknown"}
         />
       </div>

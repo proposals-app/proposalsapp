@@ -15,17 +15,9 @@ export const SubscribedDAO = (props: {
 }) => {
   const [imgSrc, setImgSrc] = useState(
     props.daoPicture
-      ? props.daoPicture + "_medium.png"
-      : '/assets/project-logos/placeholder_medium.png',
+      ? `/${props.daoPicture}_medium.png`
+      : "/assets/project-logos/placeholder_medium.png",
   );
-
-  useEffect(() => {
-    setImgSrc(
-      props.daoPicture
-        ? props.daoPicture + "_medium.png"
-        : '/assets/project-logos/placeholder_medium.png',
-    );
-  }, [props.daoPicture]);
 
   const [showMenu, setShowMenu] = useState(false);
 
@@ -36,7 +28,7 @@ export const SubscribedDAO = (props: {
     <li
       data-testid={props.daoName}
       className={`h-[320px] w-[240px] ${
-        loading ? 'pointer-events-none animate-pulse opacity-25' : 'opacity-100'
+        loading ? "pointer-events-none animate-pulse opacity-25" : "opacity-100"
       }`}
     >
       {showMenu ? (

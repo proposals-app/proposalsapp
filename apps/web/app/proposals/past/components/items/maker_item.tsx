@@ -24,7 +24,7 @@ export default function MakerItem(props: {
                 priority={true}
                 width={64}
                 height={64}
-                src={`${props.item.daoPicture}.svg`}
+                src={`/${props.item.daoPicture}.svg`}
                 alt={props.item.daoName ?? "Unknown"}
               />
             </div>
@@ -161,7 +161,7 @@ export default function MakerItem(props: {
                   priority={true}
                   width={68}
                   height={68}
-                  src={`${props.item.daoPicture}.svg`}
+                  src={`/${props.item.daoPicture}.svg`}
                   alt={props.item.daoName ?? "Unknown"}
                 />
               </div>
