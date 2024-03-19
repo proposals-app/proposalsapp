@@ -4,24 +4,24 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
+    "db:deploy": "prisma migrate deploy",
+    "db:gen": "yarn db:gen:rust && yarn db:gen:web",
     "db:gen:rust": "sea-orm-cli generate entity -v --lib --expanded-format --with-serde both --date-time-crate chrono -o ../../rust/seaorm/src",
     "db:gen:web": "prisma generate",
-    "db:gen": "yarn db:gen:rust && yarn db:gen:web",
-    "db:push": "prisma db push",
     "db:migration": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy"
+    "db:push": "prisma db push"
   },
   "dependencies": {
-    "@proposalsapp/db": "*",
     "@prisma/client": "^5.11.0",
+    "@proposalsapp/db": "*",
     "dotenv": "^16.4.5",
     "kysely": "0.27.3",
     "mysql2": "^3.9.2"
   },
   "devDependencies": {
+    "@types/dotenv": "^8.2.0",
     "prisma": "^5.11.0",
     "prisma-kysely": "1.8.0",
-    "typescript": "^5.4.2",
-    "@types/dotenv": "^8.2.0"
+    "typescript": "^5.4.2"
   }
 }

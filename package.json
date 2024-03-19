@@ -11,19 +11,18 @@
   ],
   "scripts": {
     "build-db": "yarn workspace @proposalsapp/db db:gen:web",
-    "build-emails": "yarn workspace @proposalsapp/emails build",
-
-    "build-web": "yarn build-db && yarn workspace @proposalsapp/web build",
-    "start-web": "yarn workspace @proposalsapp/web start",
-
     "build-email-bulletin": "yarn build-db && yarn workspace @proposalsapp/email-bulletin build",
-    "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin start",
-
     "build-email-quorum": "yarn build-db && yarn workspace @proposalsapp/email-quorum build",
-    "start-email-quorum": "yarn workspace @proposalsapp/email-quorum start",
-
     "build-email-timeend": "yarn build-db && yarn workspace @proposalsapp/email-timeend build",
-    "start-email-timeend": "yarn workspace @proposalsapp/email-timeend start"
+    "build-emails": "yarn workspace @proposalsapp/emails build",
+    "build-web": "yarn build-db && yarn workspace @proposalsapp/web build",
+    "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin start",
+    "start-email-quorum": "yarn workspace @proposalsapp/email-quorum start",
+    "start-email-timeend": "yarn workspace @proposalsapp/email-timeend start",
+    "start-web": "yarn workspace @proposalsapp/web start"
+  },
+  "resolutions": {
+    "undici": "6.6.2"
   },
   "devDependencies": {
     "@tsconfig/node18": "18.2.2",
@@ -32,9 +31,6 @@
     "dotenv": "16.4.5",
     "prettier": "^3.2.5",
     "typescript": "5.4.2"
-  },
-  "resolutions": {
-    "undici": "6.6.2"
   },
   "engines": {
     "node": "20"
