@@ -132,6 +132,14 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
 };
 
 const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
+  if (props.data.length == 0) {
+    return (
+      <Text className="text-zinc-200 bg-black py-4 align-middle text-center">
+        There are no proposals ending soon.
+      </Text>
+    );
+  }
+
   return (
     <Section>
       <Row>
@@ -169,7 +177,7 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
 
             <Column>
               <Link href={`${proposal.url}`}>
-                <Text className="min-w-[50%] font-light md:font-normal text-start m-0 text-zinc-800">
+                <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
                   {proposal.proposalName}
                 </Text>
               </Link>
@@ -202,6 +210,14 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
 };
 
 const New = (props: { data: NewProposal[] }) => {
+  if (props.data.length == 0) {
+    return (
+      <Text className="text-zinc-200 bg-black py-4 align-middle text-center">
+        There are no new proposals.
+      </Text>
+    );
+  }
+
   return (
     <Section>
       <Row>
@@ -239,7 +255,7 @@ const New = (props: { data: NewProposal[] }) => {
 
             <Column>
               <Link href={`${proposal.url}`}>
-                <Text className="min-w-[50%] font-light md:font-normal text-start m-0 text-zinc-800">
+                <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
                   {proposal.proposalName}
                 </Text>
               </Link>
@@ -272,6 +288,14 @@ const New = (props: { data: NewProposal[] }) => {
 };
 
 const Ended = (props: { data: EndedProposal[] }) => {
+  if (props.data.length == 0) {
+    return (
+      <Text className="text-zinc-200 bg-black py-4 align-middle text-center">
+        There are no proposals which ended recently.
+      </Text>
+    );
+  }
+
   return (
     <Section>
       <Row>
@@ -309,7 +333,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
 
             <Column>
               <Link href={`${proposal.url}`}>
-                <Text className="min-w-[50%] font-light md:font-normal text-start m-0 text-zinc-800">
+                <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
                   {proposal.proposalName}
                 </Text>
               </Link>
