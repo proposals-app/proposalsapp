@@ -4,13 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde = "1.0.197"
-serde_json = "1.0.114"
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = [
-    "registry",
-    "env-filter",
-    "json",
-] }
-amqprs = { version = "1.5.3", features = ["tls", "urispec"] }
-async-trait = "0.1.78"
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["registry", "env-filter", "json"] }
+amqprs = { workspace = true, features = ["tls", "urispec"] }
+async-trait = { workspace = true }

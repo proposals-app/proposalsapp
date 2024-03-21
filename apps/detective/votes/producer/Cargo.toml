@@ -7,27 +7,20 @@ edition = "2021"
 seaorm = { path = "../../../../libs/rust/seaorm" }
 contracts = { path = "../../../../libs/rust/contracts" }
 utils = { path = "../../../../libs/rust/utils" }
-
-#utils
-serde = "1.0.197"
-serde_json = "1.0.114"
-chrono = "0.4.35"
-anyhow = { version = "1.0.81", features = ["backtrace"] }
-itertools = "0.12.1"
-reqwest = { version = "0.11.27", default-features = false, features = [
-    "json",
-    "rustls-tls",
-] }
-regex = "1.10.3"
-tokio = { version = "1.36.0", features = ["full"] }
-futures = "0.3.30"
-amqprs = { version = "1.5.3", features = ["tls", "urispec"] }
-async-trait = "0.1.78"
-dotenv = "0.15.0"
-axum = "0.7.4"
-
-#db
-sea-orm = { version = "0.12.15", default-features = false, features = [
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true, features = ["backtrace"] }
+itertools = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+regex = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+futures = { workspace = true }
+amqprs = { workspace = true, features = ["tls", "urispec"] }
+async-trait = { workspace = true }
+dotenv = { workspace = true }
+axum = { workspace = true }
+sea-orm = { workspace = true, features = [
     "sqlx-mysql",
     "runtime-tokio-rustls",
     "macros",
@@ -36,21 +29,17 @@ sea-orm = { version = "0.12.15", default-features = false, features = [
     "with-bigdecimal",
     "with-uuid",
 ] }
-
-#ethers
-ethers = "2.0.14"
-
-#tracing
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = [
+ethers = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = [
     "registry",
     "env-filter",
     "json",
 ] }
-num-bigint = "0.4.4"
+num-bigint = { workspace = true }
 
 [build-dependencies]
-ethers = "2.0.14"
+ethers = { workspace = true }
 
 [[bin]]
 name = "votes_producer"

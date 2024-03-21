@@ -4,16 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-chrono = "0.4.35"
-ethers = "2.0.14"
-anyhow = { version = "1.0.81", features = ["backtrace"] }
-reqwest = { version = "0.11.27", default-features = false, features = [
-    "json",
-    "rustls-tls",
-] }
-reqwest-middleware = "0.2.5"
-reqwest-retry = "0.4.0"
-serde = "1.0.197"
-serde_json = "1.0.114"
-tokio = { version = "1.36.0", features = ["macros"] }
-tracing = "0.1.40"
+chrono = { workspace = true }
+ethers = { workspace = true }
+anyhow = { workspace = true, features = ["backtrace"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+reqwest-middleware = { workspace = true }
+reqwest-retry = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["macros"] }
+tracing = { workspace = true }
