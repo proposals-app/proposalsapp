@@ -128,7 +128,7 @@ const getUserProposals = async (
     ])
     .where("proposal.flagged", "=", 0);
 
-  if (from == "any") {
+  if (from == "all") {
     const userSubscriptions = await db
       .selectFrom("subscription")
       .select("subscription.daoId")
@@ -150,9 +150,13 @@ const getUserProposals = async (
       .selectFrom("dao")
       .select("dao.id")
       .where(({ eb }) =>
-        eb(eb.fn("upper", ["dao.name"]), "=", from.toUpperCase()),
+        eb(
+          eb.fn("upper", ["dao.name"]),
+          "=",
+          from.replaceAll("_", " ").toUpperCase(),
+        ),
       )
-      .where("dao.name", "like", from)
+      .where("dao.name", "like", from.replaceAll("_", " "))
       .executeTakeFirstOrThrow();
 
     query = query.where("proposal.daoId", "=", fromDaoId.id);
@@ -248,7 +252,7 @@ const getGuestProposals = async (
       "HIDDEN",
     ]);
 
-  if (from == "any")
+  if (from == "all")
     query = query.where(
       "proposal.daoId",
       "in",
@@ -259,9 +263,13 @@ const getGuestProposals = async (
       .selectFrom("dao")
       .select("dao.id")
       .where(({ eb }) =>
-        eb(eb.fn("upper", ["dao.name"]), "=", from.toUpperCase()),
+        eb(
+          eb.fn("upper", ["dao.name"]),
+          "=",
+          from.replaceAll("_", " ").toUpperCase(),
+        ),
       )
-      .where("dao.name", "like", from)
+      .where("dao.name", "like", from.replaceAll("_", " "))
       .executeTakeFirstOrThrow();
 
     query = query.where("proposal.daoId", "=", fromDaoId.id);

@@ -5,14 +5,16 @@ import Item from "./item";
 import { LoadMore } from "./load-more";
 
 type ItemsProps = {
-  searchParams?: { from: string; voted: string; proxy: string };
+  from: string;
+  voted: string;
+  proxy: string;
 };
 
-export default async function ItemsTable({ searchParams }: ItemsProps) {
+export default async function ItemsTable(searchParams: ItemsProps) {
   let { proposals } = await fetchItems(
     false,
     0,
-    searchParams?.from ?? "any",
+    searchParams?.from ?? "all",
     searchParams?.voted ?? "any",
     searchParams?.proxy ?? "any",
   );

@@ -1,18 +1,18 @@
 "use client";
 
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 const tabs: { id: number; name: string; link: string }[] = [
   {
     id: 0,
     name: "Active Proposals",
-    link: "/proposals/active",
+    link: "/proposals/active/all",
   },
   {
     id: 1,
     name: "Past Proposals",
-    link: "/proposals/past",
+    link: "/proposals/past/all",
   },
 ];
 

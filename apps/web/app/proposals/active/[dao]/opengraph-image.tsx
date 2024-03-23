@@ -2,12 +2,8 @@ import { ImageResponse } from "next/og";
 
 export const dynamic = "force-dynamic";
 
-export default function Image({
-  searchParams,
-}: {
-  searchParams: { from: string; voted: string; proxy: string };
-}) {
-  if (searchParams && searchParams.from)
+export default async function Image({ params }: { params: { dao: string } }) {
+  if (params && params.dao)
     return new ImageResponse(
       (
         <div
@@ -21,7 +17,7 @@ export default function Image({
             justifyContent: "center",
           }}
         >
-          ${searchParams.from}
+          {params.dao} active
         </div>
       ),
     );

@@ -18,9 +18,6 @@ export const metadata: Metadata = {
       url: "https://andreiv.com",
     },
   ],
-  openGraph: {
-    images: [`${process.env.WEB_URL}/api/og/home`],
-  },
 };
 
 export const viewport: Viewport = {

@@ -2,7 +2,6 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { useEnsName } from "wagmi";
 import { LoadingFilters } from "../../components/filters-loading";
 import type { getProxiesType } from "../../actions";
 
@@ -22,13 +21,14 @@ const voteOptions: { id: string; name: string }[] = [
 ];
 
 export const Filters = (props: {
+  selectedFrom: string;
   isConnected: boolean;
   subscriptions: { id: string; name: string }[];
   proxies: getProxiesType;
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [from, setFrom] = useState(String(searchParams?.get("from") ?? "any"));
+  const [from, setFrom] = useState(props.selectedFrom ?? "all");
   const [voted, setVoted] = useState(
     String(searchParams?.get("voted") ?? "any"),
   );
@@ -39,15 +39,15 @@ export const Filters = (props: {
   useEffect(() => {
     if (router && searchParams)
       if (
-        searchParams.get("from") != from ||
+        props.selectedFrom != from ||
         searchParams.get("voted") != voted ||
         searchParams.get("proxy") != proxy
       )
         router.push(
-          `/proposals/past?from=${from}&voted=${voted}&proxy=${proxy}`,
+          `/proposals/past/${from.replaceAll(" ", "_")}?&voted=${voted}&proxy=${proxy}`,
         );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from, voted, proxy]);
+  }, [props, from, voted, proxy]);
 
   return (
     <Suspense fallback={<LoadingFilters />}>
@@ -70,13 +70,13 @@ export const Filters = (props: {
             >
               {props.isConnected && props.subscriptions.length > 0 ? (
                 <>
-                  <option key="any" value="any">
+                  <option key="all" value="all">
                     All Subscribed Organisations
                   </option>
                 </>
               ) : (
                 <>
-                  <option key="any" value="any">
+                  <option key="all" value="all">
                     All Organisations
                   </option>
                 </>
