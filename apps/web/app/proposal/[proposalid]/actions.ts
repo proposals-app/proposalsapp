@@ -4,6 +4,28 @@ import { db } from "@proposalsapp/db";
 import ogs from "open-graph-scraper";
 import { validateRequest } from "../../../server/auth";
 
+export const getProposalOd = async (proposalId: string) => {
+  const proposal = await db
+    .selectFrom("proposal")
+    .where("id", "=", proposalId)
+    .select(["daoId", "name"])
+    .executeTakeFirstOrThrow();
+
+  const dao = await db
+    .selectFrom("dao")
+    .where("dao.id", "=", proposal.daoId)
+    .selectAll()
+    .executeTakeFirstOrThrow();
+
+  const settings = await db
+    .selectFrom("daoSettings")
+    .where("daoSettings.daoId", "=", dao.id)
+    .selectAll()
+    .executeTakeFirstOrThrow();
+
+  return { name: proposal.name, dao, settings };
+};
+
 export async function getProposalWithDao(proposalId: string) {
   return await db
     .selectFrom("proposal")
