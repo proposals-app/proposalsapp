@@ -19,10 +19,7 @@ export const metadata: Metadata = {
     },
   ],
   openGraph: {
-    images: [
-      "https://staging.proposals.app/api/og/home/rect",
-      "https://staging.proposals.app/api/og/home/square",
-    ],
+    images: [`${process.env.WEB_URL}/api/og/home`],
   },
 };
 
