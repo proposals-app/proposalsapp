@@ -58,16 +58,21 @@ export default async function Image({
             </p>
           </div>
 
-          <p
-            style={{
-              fontFamily: "Manjari",
-              fontSize: "72px",
-              fontWeight: "100",
-              lineHeight: "92px",
-            }}
-          >
-            {ogData.name}
-          </p>
+          <div tw="flex flex-col justify-center h-[375px]">
+            <p
+              style={{
+                fontFamily: "Manjari",
+                fontSize: "72px",
+                fontWeight: "100",
+                lineHeight: "92px",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {ogData.name.length < 107
+                ? ogData.name
+                : ogData.name.slice(0, 105) + "..."}
+            </p>
+          </div>
         </div>
         <div tw="flex flex-row justify-end mt-auto">
           <img
