@@ -1,10 +1,10 @@
 import { getOwnVotes, getProposalWithDao } from "./actions";
-import LinkPreview from "./components/discussion";
+import Discussion from "./components/discussion";
 import Body from "./components/body";
 import Title from "./components/title";
 import { Suspense } from "react";
 import Vote from "./components/vote";
-import { VotesWrapper } from "./votes/page";
+import { VotesWrapper } from "./components/votes_wrapper";
 import GovernancePortal from "./components/governance-portal";
 
 export default async function Page({
@@ -52,7 +52,7 @@ export default async function Page({
               <GovernancePortal url={proposal.url} />
             </div>
           </div>
-          <LinkPreview url={proposal.discussionUrl} />
+          <Discussion url={proposal.discussionUrl} />
         </div>
       </div>
     </div>
