@@ -168,7 +168,7 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
     .where(
       "timeCreated",
       ">",
-      new Date(new Date().getTime() + 1 * 24 * 60 * 60 * 1000),
+      new Date(new Date().getTime() - 1 * 24 * 60 * 60 * 1000),
     )
     .where("proposal.daoId", "in", [
       ...subscriptions.map((sub) => sub.daoId),
@@ -257,17 +257,17 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
   let proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
+    .where("timeEnd", "<", new Date())
     .where(
       "timeEnd",
       ">",
       new Date(new Date().getTime() - 1 * 24 * 60 * 60 * 1000),
     )
-    .where("timeEnd", "<", new Date())
     .where("proposal.daoId", "in", [
       ...subscriptions.map((sub) => sub.daoId),
       "",
     ])
-    .where("proposalState", "=", ProposalStateEnum.ACTIVE)
+    .where("proposalState", "!=", ProposalStateEnum.CANCELED)
     .where("flagged", "=", 0)
     .leftJoin("dao", "proposal.daoId", "dao.id")
     .select("dao.name as daoName")
