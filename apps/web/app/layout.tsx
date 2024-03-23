@@ -4,7 +4,6 @@ import type { Metadata, Viewport } from "next";
 import { validateRequest } from "../server/auth";
 import { SessionProvider } from "./session-provider";
 
-// Metadata for the app
 export const metadata: Metadata = {
   title: "proposals.app",
   description:

@@ -2,6 +2,13 @@ import { getProxies, getSubscribedDAOs } from "../actions";
 import { Filters } from "./components/filters";
 import { validateRequest } from "../../../server/auth";
 import ItemsTable from "../active/components/items-table";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  openGraph: {
+    images: [`${process.env.WEB_URL}/og/proposals?from=`],
+  },
+};
 
 export default async function Home({
   searchParams,
