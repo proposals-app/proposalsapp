@@ -18,6 +18,12 @@ export const metadata: Metadata = {
       url: "https://andreiv.com",
     },
   ],
+  openGraph: {
+    images: [
+      "https://staging.proposals.app/api/og/home/rect",
+      "https://staging.proposals.app/api/og/home/square",
+    ],
+  },
 };
 
 export const viewport: Viewport = {
