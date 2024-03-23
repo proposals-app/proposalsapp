@@ -20,7 +20,7 @@ export async function GET() {
           alignItems: "center",
         }}
       >
-        👋 Hello
+        700x700
       </div>
     ),
     {
