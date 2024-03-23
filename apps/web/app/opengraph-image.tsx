@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og";
 
+export const dynamic = "force-dynamic";
+
 export default function Image() {
   return new ImageResponse(
     (

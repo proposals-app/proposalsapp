@@ -5,6 +5,7 @@ import { validateRequest } from "../server/auth";
 import { SessionProvider } from "./session-provider";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.WEB_URL ?? "https://proposals.app"),
   title: "proposals.app",
   description:
     "The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.",
