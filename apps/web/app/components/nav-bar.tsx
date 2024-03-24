@@ -95,17 +95,17 @@ export const NavBar: React.FC = () => {
           activeIcon="/assets/icons/nav/proposals-active.svg"
           inactiveIcon="/assets/icons/nav/proposals-inactive.svg"
           label="Proposals"
-          onClick={() => handleNavClick("/proposals/active")}
+          onClick={() => handleNavClick("/proposals/active/all")}
         />
 
-        {/* <NavItem
+        <NavItem
           path={`/daos`}
           isActive={activePath?.includes("daos")}
           activeIcon="/assets/icons/nav/daos-active.svg"
           inactiveIcon="/assets/icons/nav/daos-inactive.svg"
           label="DAOs"
           onClick={() => handleNavClick("/daos")}
-        /> */}
+        />
 
         <NavItem
           path={`/settings/account`}
