@@ -32,6 +32,7 @@ struct HandlerData {
 struct SettingsData {
     picture: String,
     background_color: String,
+    hot: bool,
 }
 
 #[tokio::main]
@@ -137,6 +138,7 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
                     background_color: Set(dao_data.settings.background_color),
                     quorum_warning_email_support: Set(s.quorum_warning_email_support),
                     twitter_account: NotSet,
+                    hot: NotSet,
                 })
                 .exec(db)
                 .await

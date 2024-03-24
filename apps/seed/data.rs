@@ -9,6 +9,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/aave".to_string(),
                 background_color: "#a5a9c6".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -76,6 +77,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/compound".to_string(),
                 background_color: "#00573e".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -103,6 +105,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/dYdX".to_string(),
                 background_color: "#51515a".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -130,6 +133,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/ens".to_string(),
                 background_color: "#6daef6".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -157,6 +161,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/gitcoin".to_string(),
                 background_color: "#05d4a2".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -193,6 +198,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/hop-protocol".to_string(),
                 background_color: "#d27ecc".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -220,6 +226,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/interest".to_string(),
                 background_color: "#c3d1bc".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::InterestProtocolMainnet,
@@ -236,6 +243,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/uniswap".to_string(),
                 background_color: "#ffd5f5".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -263,6 +271,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/0x-protocol".to_string(),
                 background_color: "#636364".to_string(),
+                hot: false,
             },
             handlers: vec![
                 HandlerData {
@@ -290,6 +299,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/optimism".to_string(),
                 background_color: "#ff444b".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -317,6 +327,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/arbitrum".to_string(),
                 background_color: "#55677b".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -353,6 +364,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/frax".to_string(),
                 background_color: "#484848".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -389,6 +401,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/nouns".to_string(),
                 background_color: "#904757".to_string(),
+                hot: true,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::NounsProposalsMainnet,
@@ -405,6 +418,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/makerdao".to_string(),
                 background_color: "#68baaa".to_string(),
+                hot: true,
             },
             handlers: vec![
                 HandlerData {
@@ -441,6 +455,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/balancer".to_string(),
                 background_color: "#747474".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -457,6 +472,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/element-dao".to_string(),
                 background_color: "#6f7d83".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -473,6 +489,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/1inch".to_string(),
                 background_color: "#646573".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -489,6 +506,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/safedao".to_string(),
                 background_color: "#737375".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -505,6 +523,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/synthetix".to_string(),
                 background_color: "#0d506b".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -521,6 +540,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/friends-with-benefits".to_string(),
                 background_color: "#5a5a5a".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -537,6 +557,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/gnosis".to_string(),
                 background_color: "#7b837f".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -553,6 +574,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/index-coop".to_string(),
                 background_color: "#797979".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -569,6 +591,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/paladin".to_string(),
                 background_color: "#86411c".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -585,6 +608,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/sushiswap".to_string(),
                 background_color: "#7e6c7c".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -601,6 +625,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/instadapp".to_string(),
                 background_color: "#8fa6ff".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -617,6 +642,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/gearbox".to_string(),
                 background_color: "#735462".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -633,6 +659,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/euler".to_string(),
                 background_color: "#4d4641".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -649,6 +676,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/aura-finance".to_string(),
                 background_color: "#9166ef".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -665,6 +693,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/developer-dao".to_string(),
                 background_color: "#484848".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -681,6 +710,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/apwine".to_string(),
                 background_color: "#d5d9fa".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -697,6 +727,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/morpho".to_string(),
                 background_color: "#546275".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -713,6 +744,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/lido".to_string(),
                 background_color: "#f8afa3".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -729,6 +761,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/starknet".to_string(),
                 background_color: "#635672".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -745,6 +778,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/dOrg".to_string(),
                 background_color: "#382b22".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -761,6 +795,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/solace-dao".to_string(),
                 background_color: "#3a3632".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,
@@ -777,6 +812,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
             settings: SettingsData {
                 picture: "assets/project-logos/rocket-pool".to_string(),
                 background_color: "#382b2f790702".to_string(),
+                hot: false,
             },
             handlers: vec![HandlerData {
                 handler_type: HandlerType::Snapshot,

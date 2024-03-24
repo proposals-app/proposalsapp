@@ -30,6 +30,7 @@ export type dao_handler = {
 export type dao_settings = {
     id: Generated<string>;
     daoId: string;
+    hot: Generated<number>;
     picture: string;
     backgroundColor: Generated<string>;
     quorumWarningEmailSupport: Generated<number>;
