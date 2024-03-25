@@ -1,5 +1,6 @@
 import moment from "moment";
 import Image from "next/image";
+import Link from "next/link";
 
 type ProposalProps = {
   id: string;
@@ -10,7 +11,10 @@ type ProposalProps = {
 
 export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
   return (
-    <div className="w-full flex flex-row">
+    <Link
+      className="w-full flex flex-row items-center p-2 hover:bg-accent"
+      href={`/proposal/${proposal.id}`}
+    >
       <div className="w-16">
         <Image
           width={42}
@@ -23,6 +27,6 @@ export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
       <div className="min-w-32 text-end">
         {moment(proposal.timeEnd).fromNow()}
       </div>
-    </div>
+    </Link>
   );
 };

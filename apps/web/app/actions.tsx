@@ -48,7 +48,6 @@ export const getGuestProposals = async (
 
   if (active == StateFilterEnum.ALL) {
     proposals_query = proposals_query.where("proposal.proposalState", "in", [
-      "ACTIVE",
       "QUEUED",
       "DEFEATED",
       "EXECUTED",
@@ -56,6 +55,7 @@ export const getGuestProposals = async (
       "SUCCEEDED",
       "CANCELED",
       "HIDDEN",
+      "ACTIVE",
     ]);
     proposals_query = proposals_query.orderBy("proposal.timeEnd", "desc");
   }

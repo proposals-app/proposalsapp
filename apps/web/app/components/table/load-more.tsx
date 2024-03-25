@@ -42,18 +42,22 @@ export function LoadMore({ searchParams }: ItemsProps) {
   }, [inView]);
 
   return (
-    <>
-      {proposals.map((proposal) => (
-        <div key={proposal.id}>
-          <ProposalItem proposal={proposal} />
-        </div>
-      ))}
+    <div>
+      <div className="divide-y">
+        {proposals.map((proposal) => (
+          <div key={proposal.id}>
+            <ProposalItem proposal={proposal} />
+          </div>
+        ))}
+      </div>
 
-      {hasMore ? (
-        <div ref={ref}>Loading more</div>
-      ) : (
-        <div ref={ref}>You reached the end</div>
-      )}
-    </>
+      <div className="w-full flex justify-center p-4">
+        {hasMore ? (
+          <div ref={ref}>Loading more</div>
+        ) : (
+          <div ref={ref}>You reached the end</div>
+        )}
+      </div>
+    </div>
   );
 }
