@@ -55,6 +55,8 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
           }}
           onMouseEnter={() => setHoveredDao(dao.slug)}
           onMouseLeave={() => setHoveredDao(null)}
+          onTouchStart={() => setHoveredDao(dao.slug)}
+          onTouchEnd={() => setHoveredDao(null)}
         >
           <Image
             className={`${selectedDaos.includes(dao.slug) ? "bg-primary" : "bg-white"} rounded`}
