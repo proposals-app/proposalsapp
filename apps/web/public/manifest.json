@@ -4,7 +4,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/",
-  "start_url": "/proposals/active",
+  "start_url": "/",
   "name": "proposals.app",
   "short_name": "proposals.app",
   "description": "The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.",

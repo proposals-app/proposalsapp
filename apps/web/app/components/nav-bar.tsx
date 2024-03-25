@@ -1,7 +1,13 @@
-import { Button } from "@/shadcn/ui/button";
+"use client";
+
 import Image from "next/image";
+import { SignInButton } from "./auth/sign-in";
+import { useSession } from "./session-provider";
+import { Profile } from "./auth/profile";
 
 export const NavBar = () => {
+  const { user } = useSession();
+
   return (
     <div className="w-full flex flex-row justify-between items-center">
       <div className="w-fit animate-logo-rotate">
@@ -14,7 +20,8 @@ export const NavBar = () => {
         />
       </div>
 
-      <Button className="self-start">Sign In</Button>
+      {!user && <SignInButton />}
+      {user && <Profile />}
     </div>
   );
 };
