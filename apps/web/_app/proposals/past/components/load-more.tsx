@@ -10,7 +10,7 @@ type ItemsProps = {
 };
 
 export function LoadMore({ searchParams }: ItemsProps) {
-  const [proposals, setProposals] = useState<fetchItemsType["proposals"]>([]);
+  const [items, setItems] = useState<fetchItemsType["proposals"]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -44,7 +44,7 @@ export function LoadMore({ searchParams }: ItemsProps) {
   return (
     <>
       <ul>
-        {proposals.map((proposal) => (
+        {items.map((proposal) => (
           <li className="pb-1" key={proposal.id}>
             <Item item={proposal} />
           </li>
