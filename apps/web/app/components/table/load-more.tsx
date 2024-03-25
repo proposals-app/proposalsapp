@@ -43,13 +43,11 @@ export function LoadMore({ searchParams }: ItemsProps) {
 
   return (
     <>
-      <ul>
-        {proposals.map((proposal) => (
-          <li key={proposal.id}>
-            <ProposalItem proposal={proposal} />
-          </li>
-        ))}
-      </ul>
+      {proposals.map((proposal) => (
+        <div key={proposal.id}>
+          <ProposalItem proposal={proposal} />
+        </div>
+      ))}
 
       {hasMore ? (
         <div ref={ref}>Loading more</div>

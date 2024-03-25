@@ -24,7 +24,7 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
       params.delete("dao");
       router.push("?" + params.toString());
     }
-  }, [hotDaos, selectedDaos]);
+  }, []);
 
   const toggleDaoQuery = useCallback(
     (name: string, value: string) => {

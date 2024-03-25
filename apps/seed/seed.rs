@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use data::seed_data;
 use dotenv::dotenv;
 use sea_orm::ActiveValue::NotSet;
