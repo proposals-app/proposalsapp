@@ -48,31 +48,5 @@ export const StateFilter = () => {
         past proposals
       </Button>
     </div>
-
-    // <Tabs
-    //   defaultValue={queryState ?? "active"}
-    //   className="w-full h-[60px] rounded-md"
-    // >
-    //   <TabsList className="grid w-full grid-cols-2 h-[60px] p-0">
-    //     <TabsTrigger
-    //       onClick={() => {
-    //         router.push("?" + setQuery("state", "active"));
-    //       }}
-    //       value="active"
-    //       className="h-[60px] rounded-none shadow-none text-xl"
-    //     >
-    //       active proposals
-    //     </TabsTrigger>
-    //     <TabsTrigger
-    //       onClick={() => {
-    //         router.push("?" + setQuery("state", "past"));
-    //       }}
-    //       value="past"
-    //       className="h-[60px] rounded-none shadow-none text-xl"
-    //     >
-    //       past proposals
-    //     </TabsTrigger>
-    //   </TabsList>
-    // </Tabs>
   );
 };

@@ -46,9 +46,9 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
   );
 
   return (
-    <ul className="flex flex-row gap-[18px]">
+    <div className="grid grid-flow-col grid-rows-2 lg:grid-rows-1 gap-[18px]">
       {hotDaos.map((dao) => (
-        <li
+        <div
           key={dao.id}
           onClick={() => {
             router.push("?" + toggleDaoQuery("dao", dao.slug));
@@ -69,8 +69,8 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
             }
             alt={dao.name}
           />
-        </li>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 };
