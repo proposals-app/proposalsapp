@@ -35,7 +35,7 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <div className="h-full min-h-screen w-full">
-          <div className="w-full flex flex-col items-center p-4">
+          <div className="w-full flex flex-col items-center p-4 gap-2">
             <NavBar />
             {children}
           </div>
