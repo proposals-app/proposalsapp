@@ -11,7 +11,7 @@ type ItemsProps = {
 };
 
 export function LoadMore({ searchParams }: ItemsProps) {
-  const [items, setItems] = useState<getGuestProposalsType>([]);
+  const [proposals, setProposals] = useState<getGuestProposalsType>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -31,7 +31,7 @@ export function LoadMore({ searchParams }: ItemsProps) {
     );
 
     if (proposals.length == 0) setHasMore(false);
-    setItems((prevProducts) => [...prevProducts, ...proposals]);
+    setProposals((prevProposals) => [...prevProposals, ...proposals]);
     setPage(nextPage);
   };
 
@@ -44,9 +44,9 @@ export function LoadMore({ searchParams }: ItemsProps) {
   return (
     <>
       <ul>
-        {items.map((item, index) => (
-          <li className="pb-1" key={index}>
-            <ProposalItem proposal={item} />
+        {proposals.map((proposal) => (
+          <li key={proposal.id}>
+            <ProposalItem proposal={proposal} />
           </li>
         ))}
       </ul>
