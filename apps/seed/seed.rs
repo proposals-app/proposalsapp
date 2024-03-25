@@ -13,7 +13,7 @@ mod data;
 #[derive(Debug, Clone)]
 struct DaoSeedData {
     name: String,
-    slug: Option<String>,
+    slug: String,
     hot: i8,
     handlers: Vec<HandlerData>,
     settings: SettingsData,

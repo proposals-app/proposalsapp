@@ -4,15 +4,21 @@ import { Button } from "@/shadcn/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect } from "react";
 
+export enum StateFilterEnum {
+  ALL = "all",
+  ACTIVE = "active",
+  PAST = "past",
+}
+
 export const StateFilter = () => {
   const searchParams = useSearchParams();
   const queryState = searchParams.get("state");
   const router = useRouter();
 
   const setQuery = useCallback(
-    (name: string, value: string) => {
+    (name: string, value: StateFilterEnum) => {
       const params = new URLSearchParams(searchParams.toString());
-      params.set(name, value);
+      params.set(name, value.toString());
 
       return params.toString();
     },
@@ -20,17 +26,24 @@ export const StateFilter = () => {
   );
 
   useEffect(() => {
-    if (!queryState && router) router.push("?" + setQuery("state", "all"));
+    if (!queryState && router)
+      router.push("?" + setQuery("state", StateFilterEnum.ALL));
   }, [queryState, router]);
 
   return (
     <div className="w-full h-[60px] rounded flex flex-row gap-2">
       <Button
         className="w-full"
-        variant={queryState == "active" ? "default" : "secondary"}
+        variant={queryState == StateFilterEnum.ACTIVE ? "default" : "secondary"}
         onClick={() => {
           router.push(
-            "?" + setQuery("state", queryState == "active" ? "all" : "active"),
+            "?" +
+              setQuery(
+                "state",
+                queryState == StateFilterEnum.ACTIVE
+                  ? StateFilterEnum.ALL
+                  : StateFilterEnum.ACTIVE,
+              ),
           );
         }}
       >
@@ -38,10 +51,16 @@ export const StateFilter = () => {
       </Button>
       <Button
         className="w-full"
-        variant={queryState == "past" ? "default" : "secondary"}
+        variant={queryState == StateFilterEnum.PAST ? "default" : "secondary"}
         onClick={() => {
           router.push(
-            "?" + setQuery("state", queryState == "past" ? "all" : "past"),
+            "?" +
+              setQuery(
+                "state",
+                queryState == StateFilterEnum.PAST
+                  ? StateFilterEnum.ALL
+                  : StateFilterEnum.PAST,
+              ),
           );
         }}
       >

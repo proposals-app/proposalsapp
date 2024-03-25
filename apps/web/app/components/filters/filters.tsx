@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { getHotDaos } from "../../actions";
 import { DaosFilter } from "./daos-filter";
-import { DatePickerWithRange } from "./datepicker-filter";
 import { StateFilter } from "./state-filter";
 
 export const Filters = async () => {
