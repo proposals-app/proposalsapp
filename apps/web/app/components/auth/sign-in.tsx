@@ -62,6 +62,7 @@ export const SignInButton = () => {
 
   const signIn = async (data: z.infer<typeof EmailFormSchema>) => {
     try {
+      setPage(Page.CODE);
       await fetch("/api/auth/signin", {
         method: "POST",
         headers: {
@@ -69,7 +70,6 @@ export const SignInButton = () => {
         },
         body: JSON.stringify(data),
       });
-      setPage(Page.CODE);
     } catch (error) {
       console.error("Error signing in:", error);
     }
