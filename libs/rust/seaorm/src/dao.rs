@@ -16,12 +16,16 @@ impl EntityName for Entity {
 pub struct Model {
     pub id: String,
     pub name: String,
+    pub slug: String,
+    pub hot: i8,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
     Name,
+    Slug,
+    Hot,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -51,6 +55,8 @@ impl ColumnTrait for Column {
         match self {
             Self::Id => ColumnType::String(Some(191u32)).def(),
             Self::Name => ColumnType::String(Some(191u32)).def().unique(),
+            Self::Slug => ColumnType::String(Some(191u32)).def().unique(),
+            Self::Hot => ColumnType::TinyInteger.def(),
         }
     }
 }

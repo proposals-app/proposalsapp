@@ -1,8 +1,6 @@
 import "../styles/globals.css";
-import { NavBar } from "./components/nav-bar";
 import type { Metadata, Viewport } from "next";
-import { validateRequest } from "../server/auth";
-import { SessionProvider } from "./session-provider";
+import { NavBar } from "./components/nav-bar";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? "https://proposals.app"),
@@ -21,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "dark",
+  themeColor: "light",
   minimumScale: 1,
   initialScale: 1,
   width: "device-width",
@@ -33,21 +31,15 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await validateRequest();
-
   return (
-    <html lang="en" className="bg-[#000000]">
+    <html lang="en">
       <body>
-        <SessionProvider value={session}>
-          <div className="h-full min-h-screen w-full">
-            <div className="flex h-full min-h-screen w-full flex-row">
-              <div className="hidden lg:flex">
-                <NavBar />
-              </div>
-              <div className="w-full">{children}</div>
-            </div>
+        <div className="h-full min-h-screen w-full">
+          <div className="w-full flex flex-col items-center">
+            <NavBar />
+            {children}
           </div>
-        </SessionProvider>
+        </div>
       </body>
     </html>
   );

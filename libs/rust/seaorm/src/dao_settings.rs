@@ -20,7 +20,6 @@ pub struct Model {
     pub background_color: String,
     pub quorum_warning_email_support: i8,
     pub twitter_account: Option<Json>,
-    pub hot: i8,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -31,7 +30,6 @@ pub enum Column {
     BackgroundColor,
     QuorumWarningEmailSupport,
     TwitterAccount,
-    Hot,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -61,7 +59,6 @@ impl ColumnTrait for Column {
             Self::BackgroundColor => ColumnType::String(Some(191u32)).def(),
             Self::QuorumWarningEmailSupport => ColumnType::TinyInteger.def(),
             Self::TwitterAccount => ColumnType::Json.def().null(),
-            Self::Hot => ColumnType::TinyInteger.def(),
         }
     }
 }

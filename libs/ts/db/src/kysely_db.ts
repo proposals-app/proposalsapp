@@ -15,6 +15,8 @@ export type countdown_cache = {
 export type dao = {
     id: Generated<string>;
     name: string;
+    slug: string;
+    hot: Generated<number>;
 };
 export type dao_handler = {
     id: Generated<string>;
@@ -30,7 +32,6 @@ export type dao_handler = {
 export type dao_settings = {
     id: Generated<string>;
     daoId: string;
-    hot: Generated<number>;
     picture: string;
     backgroundColor: Generated<string>;
     quorumWarningEmailSupport: Generated<number>;

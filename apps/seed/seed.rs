@@ -13,6 +13,8 @@ mod data;
 #[derive(Debug, Clone)]
 struct DaoSeedData {
     name: String,
+    slug: Option<String>,
+    hot: i8,
     handlers: Vec<HandlerData>,
     settings: SettingsData,
 }
@@ -32,7 +34,6 @@ struct HandlerData {
 struct SettingsData {
     picture: String,
     background_color: String,
-    hot: bool,
 }
 
 #[tokio::main]
@@ -60,21 +61,31 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
         let dao = match dao::Entity::find()
             .filter(dao::Column::Name.eq(dao_data.name.clone()))
             .one(db)
-            .await
-            .context("[ERROR] Runtime.ExitError")?
+            .await?
         {
-            Some(d) => d,
+            Some(d) => {
+                dao::Entity::update(dao::ActiveModel {
+                    id: Set(d.clone().id),
+                    name: Set(dao_data.name.clone()),
+                    slug: Set(dao_data.slug.clone()),
+                    hot: Set(dao_data.hot.clone()),
+                })
+                .exec(db)
+                .await?;
+                d
+            }
             None => {
                 let dao = dao::ActiveModel {
                     name: Set(dao_data.name.clone()),
+                    slug: Set(dao_data.slug.clone()),
+                    hot: Set(dao_data.hot.clone()),
                     ..Default::default()
                 };
                 dao::Entity::insert(dao).exec(db).await?;
                 dao::Entity::find()
                     .filter(dao::Column::Name.eq(dao_data.name.clone()))
                     .one(db)
-                    .await
-                    .context("[ERROR] Runtime.ExitError")?
+                    .await?
                     .unwrap()
             }
         };
@@ -84,8 +95,7 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
                 .filter(dao_handler::Column::DaoId.eq(dao.id.clone()))
                 .filter(dao_handler::Column::HandlerType.eq(handler_data.handler_type.clone()))
                 .one(db)
-                .await
-                .context("[ERROR] Runtime.ExitError")?;
+                .await?;
 
             match existing_handler {
                 Some(h) => {
@@ -101,8 +111,7 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
                         votes_refresh_speed: Set(h.votes_refresh_speed),
                     })
                     .exec(db)
-                    .await
-                    .context("[ERROR] Runtime.ExitError")?;
+                    .await?;
                 }
                 None => {
                     dao_handler::Entity::insert(dao_handler::ActiveModel {
@@ -117,8 +126,7 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
                         ..Default::default()
                     })
                     .exec(db)
-                    .await
-                    .context("[ERROR] Runtime.ExitError")?;
+                    .await?;
                 }
             }
         }
@@ -126,8 +134,7 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
         let existing_settings = dao_settings::Entity::find()
             .filter(dao_settings::Column::DaoId.eq(dao.id.clone()))
             .one(db)
-            .await
-            .context("[ERROR] Runtime.ExitError")?;
+            .await?;
 
         match existing_settings {
             Some(s) => {
@@ -138,11 +145,9 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
                     background_color: Set(dao_data.settings.background_color),
                     quorum_warning_email_support: Set(s.quorum_warning_email_support),
                     twitter_account: NotSet,
-                    hot: NotSet,
                 })
                 .exec(db)
-                .await
-                .context("[ERROR] Runtime.ExitError")?;
+                .await?;
             }
             None => {
                 dao_settings::Entity::insert(dao_settings::ActiveModel {
@@ -152,8 +157,7 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
                     ..Default::default()
                 })
                 .exec(db)
-                .await
-                .context("[ERROR] Runtime.ExitError")?;
+                .await?;
             }
         }
     }
