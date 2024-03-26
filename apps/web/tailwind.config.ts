@@ -64,7 +64,7 @@ const config = {
         },
         "logo-rotation-keyframes": {
           "0%, 50%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(-5deg)" },
+          "100%": { transform: "rotate(-3deg)" },
         },
       },
       animation: {

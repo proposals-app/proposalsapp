@@ -39,8 +39,8 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <SessionProvider value={session}>
-          <div className="h-full min-h-screen w-full">
-            <div className="w-full flex flex-col items-center p-4 gap-2">
+          <div className="h-full min-h-screen w-full flex flex-col items-center">
+            <div className="w-full max-w-4xl flex flex-col p-4 gap-12">
               <NavBar />
               {children}
             </div>

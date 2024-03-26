@@ -1,6 +1,6 @@
 use amqprs::channel::{
-    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments,
-    Channel, QueueDeclareArguments,
+    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments, Channel,
+    QueueDeclareArguments,
 };
 use amqprs::connection::{Connection, OpenConnectionArguments};
 use amqprs::consumer::AsyncConsumer;
@@ -224,7 +224,7 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
     }
 
     info!(
-        "Proposals refresh speed decreased to {} for DAO {}",
+        "Refresh speed decreased to {} for DAO {}",
         new_refresh_speed, dao_handler.dao_id
     );
 
@@ -296,7 +296,7 @@ async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
     .exec(&db)
     .await
     .context("DB error")
-    .context("Failed to decrease refresh speed")?;
+    .context("Failed to increase refresh speed")?;
 
     Ok(())
 }

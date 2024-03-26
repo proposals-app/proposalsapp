@@ -12,10 +12,10 @@ export const NavBar = () => {
     <div className="w-full flex flex-row justify-between items-center">
       <div className="w-fit animate-logo-rotate">
         <Image
-          className="w-20 h-20 border-4 border-white rounded-xl bg-foreground"
-          width={64}
-          height={64}
-          src="/assets/icons/web/logo.svg"
+          className="border-4 border-white rounded-xl bg-foreground"
+          width={285}
+          height={60}
+          src="/assets/icons/web/logo-lettering.svg"
           alt={"proposals.app"}
         />
       </div>

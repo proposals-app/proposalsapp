@@ -272,7 +272,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
             }
 
             info!(
-                "Votes refresh speed decreased to {} for proposal {}",
+                "Refresh speed decreased to {} for proposal {}",
                 new_refresh_speed, proposal.id
             );
 
@@ -283,7 +283,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
             })
             .exec(&db)
             .await
-            .context("DB error")?;
+            .context("Failed to increase refresh speed")?;
 
             Ok(())
         }
@@ -295,7 +295,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
             }
 
             info!(
-                "Votes refresh speed decreased to {} for DAO {}",
+                "Refresh speed decreased to {} for DAO {}",
                 new_refresh_speed, dao_handler.dao_id
             );
 
@@ -306,7 +306,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
             })
             .exec(&db)
             .await
-            .context("DB error")?;
+            .context("Failed to increase refresh speed")?;
 
             Ok(())
         }
@@ -369,11 +369,6 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
                 new_refresh_speed = max_refresh_speed;
             }
 
-            info!(
-                "Votes refresh speed decreased to {} for proposal {}",
-                new_refresh_speed, proposal.id
-            );
-
             proposal::Entity::update(proposal::ActiveModel {
                 id: Set(proposal.id.clone()),
                 votes_refresh_speed: Set(new_refresh_speed),
@@ -381,7 +376,7 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
             })
             .exec(&db)
             .await
-            .context("DB error")?;
+            .context("Failed to increase refresh speed")?;
 
             Ok(())
         }
@@ -392,11 +387,6 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
                 new_refresh_speed = max_refresh_speed;
             }
 
-            info!(
-                "Votes refresh speed decreased to {} for DAO {}",
-                new_refresh_speed, dao_handler.dao_id
-            );
-
             dao_handler::Entity::update(dao_handler::ActiveModel {
                 id: Set(dao_handler.id),
                 votes_refresh_speed: Set(new_refresh_speed),
@@ -404,7 +394,7 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
             })
             .exec(&db)
             .await
-            .context("DB error")?;
+            .context("Failed to increase refresh speed")?;
 
             Ok(())
         }

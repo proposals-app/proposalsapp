@@ -12,10 +12,10 @@ type ProposalProps = {
 export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
   return (
     <Link
-      className="w-full flex flex-row items-center p-2 hover:bg-accent"
+      className="w-full flex flex-row items-center py-1 hover:bg-accent"
       href={`/proposal/${proposal.id}`}
     >
-      <div className="w-16">
+      <div className="w-24 place-self-start justify-self-start pl-4">
         <Image
           width={42}
           height={42}
@@ -24,7 +24,7 @@ export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
         />
       </div>
       <div className="w-full">{proposal.name}</div>
-      <div className="min-w-32 text-end">
+      <div className="min-w-32 text-end pr-4">
         {moment(proposal.timeEnd).fromNow()}
       </div>
     </Link>
