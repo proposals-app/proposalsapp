@@ -16,7 +16,6 @@ regex = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 futures = { workspace = true }
 dotenv = { workspace = true }
-axum = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
     "runtime-tokio-rustls",

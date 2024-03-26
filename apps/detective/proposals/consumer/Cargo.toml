@@ -17,7 +17,6 @@ reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware = { workspace = true }
 reqwest-retry = { workspace = true }
 regex = { workspace = true }
-rocket = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 futures = { workspace = true }
 amqprs = { workspace = true, features = ["tls", "urispec"] }

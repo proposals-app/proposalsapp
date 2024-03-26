@@ -7,7 +7,6 @@ use amqprs::consumer::AsyncConsumer;
 use amqprs::{BasicProperties, Deliver};
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
-use axum::Router;
 use dotenv::dotenv;
 use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::{
@@ -77,12 +76,6 @@ async fn main() -> Result<()> {
 
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME);
     channel.queue_declare(queue).await.ok();
-
-    tokio::spawn(async {
-        let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-        axum::serve(listener, app).await.unwrap()
-    });
 
     // 5 workers
     channel

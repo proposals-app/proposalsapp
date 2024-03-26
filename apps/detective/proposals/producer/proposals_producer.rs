@@ -5,10 +5,6 @@ use amqprs::connection::OpenConnectionArguments;
 use amqprs::BasicProperties;
 use anyhow::{Context, Result};
 use dotenv::dotenv;
-use rocket::get;
-use rocket::routes;
-use rocket::Build;
-use rocket::Rocket;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectOptions;
 use sea_orm::EntityTrait;
@@ -25,23 +21,12 @@ use utils::types::ProposalsJob;
 
 const QUEUE_NAME: &str = "detective:proposals";
 
-#[get("/")]
-fn health() -> &'static str {
-    "ok"
-}
-
-fn rocket() -> Rocket<Build> {
-    rocket::build().mount("/", routes![health])
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_telemetry();
 
     let mut interval = time::interval(std::time::Duration::from_secs(5 * 60));
-
-    let _ = rocket().launch().await;
 
     loop {
         interval.tick().await;

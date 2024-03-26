@@ -19,7 +19,6 @@ futures = { workspace = true }
 amqprs = { workspace = true, features = ["tls", "urispec"] }
 async-trait = { workspace = true }
 dotenv = { workspace = true }
-axum = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
     "runtime-tokio-rustls",

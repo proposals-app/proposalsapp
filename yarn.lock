@@ -4785,10 +4785,10 @@
     "@types/scheduler" "*"
     csstype "^3.0.2"
 
-"@types/react@18.2.70":
-  version "18.2.70"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.70.tgz#89a37f9e0a6a4931f4259c598f40fd44dd6abf71"
-  integrity sha512-hjlM2hho2vqklPhopNkXkdkeq6Lv8WSZTpr7956zY+3WS5cfYUewtCzsJLsbW5dEv3lfSeQ4W14ZFeKC437JRQ==
+"@types/react@18.2.71":
+  version "18.2.71"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.2.71.tgz#77c3b97b02014bf351b21b684f80273a3a343f96"
+  integrity sha512-PxEsB9OjmQeYGffoWnYAd/r5FiJuUw2niFQHPc2v2idwh8wGPkkYzOHuinNJJY6NZqfoTCiOIizDOz38gYNsyw==
   dependencies:
     "@types/prop-types" "*"
     "@types/scheduler" "*"
@@ -8094,10 +8094,10 @@ execa@^8.0.1:
     signal-exit "^4.1.0"
     strip-final-newline "^3.0.0"
 
-express@^4.19.1:
-  version "4.19.1"
-  resolved "https://registry.npmjs.org/express/-/express-4.19.1.tgz"
-  integrity sha512-K4w1/Bp7y8iSiVObmCrtq8Cs79XjJc/RU2YYkZQ7wpUu5ZyZ7MtPHkqoMz4pf+mgXfNvo2qft8D9OnrH2ABk9w==
+express@^4.19.2:
+  version "4.19.2"
+  resolved "https://registry.yarnpkg.com/express/-/express-4.19.2.tgz#e25437827a3aa7f2a827bc8171bbbb664a356465"
+  integrity sha512-5T6nhjsT+EOMzuck8JjBHARTHfMht0POzlA60WV2pMD3gyXw2LZnZ+ueGdNxG+0calOJcWKbpFcuzLZ91YWq9Q==
   dependencies:
     accepts "~1.3.8"
     array-flatten "1.1.1"
@@ -10115,10 +10115,10 @@ multiformats@^9.4.2:
   resolved "https://registry.npmjs.org/multiformats/-/multiformats-9.9.0.tgz"
   integrity sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==
 
-mysql2@^3.9.2:
-  version "3.9.2"
-  resolved "https://registry.npmjs.org/mysql2/-/mysql2-3.9.2.tgz"
-  integrity sha512-3Cwg/UuRkAv/wm6RhtPE5L7JlPB877vwSF6gfLAS68H+zhH+u5oa3AieqEd0D0/kC3W7qIhYbH419f7O9i/5nw==
+mysql2@^3.9.3:
+  version "3.9.3"
+  resolved "https://registry.yarnpkg.com/mysql2/-/mysql2-3.9.3.tgz#72a5e0c90d78ec2d8f9846e83727067c0cc8c25e"
+  integrity sha512-+ZaoF0llESUy7BffccHG+urErHcWPZ/WuzYAA9TEeLaDYyke3/3D+VQDzK9xzRnXpd0eMtRf0WNOeo4Q1Baung==
   dependencies:
     denque "^2.1.0"
     generate-function "^2.3.1"
@@ -13185,10 +13185,10 @@ vaul@^0.9.0:
   dependencies:
     "@radix-ui/react-dialog" "^1.0.4"
 
-viem@2.9.0:
-  version "2.9.0"
-  resolved "https://registry.yarnpkg.com/viem/-/viem-2.9.0.tgz#f59cd9b44d07ceaeacfd33477f116274860fd35d"
-  integrity sha512-7jNrY9GY4aLGU2qX4/TCXpA9qR4PDx5ctQyJpxoh8jDmlV0Rh2FLlnJsgJs9sAB8cKbNafkRTYQtuMA3OOn0JA==
+viem@2.9.2:
+  version "2.9.2"
+  resolved "https://registry.yarnpkg.com/viem/-/viem-2.9.2.tgz#29bd2425222be136bf969a90dd3a8d6032221904"
+  integrity sha512-GRakUTNiYE9W+vL+Be9JkQfzWnkczerHtSpEe2JR/jEGTYZAs4shrA4WLgiaVCI9JxpnduZhQfRWNvy2dlyP2g==
   dependencies:
     "@adraffy/ens-normalize" "1.10.0"
     "@noble/curves" "1.2.0"
