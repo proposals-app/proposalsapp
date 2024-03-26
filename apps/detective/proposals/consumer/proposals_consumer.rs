@@ -7,9 +7,9 @@ use amqprs::consumer::AsyncConsumer;
 use amqprs::{BasicProperties, Deliver};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use axum::Router;
 use dotenv::dotenv;
 use itertools::Itertools;
+use rocket::{get, routes, Build, Rocket};
 use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
@@ -53,6 +53,15 @@ pub struct ChainProposalsResult {
 
 const QUEUE_NAME: &str = "detective:proposals";
 
+#[get("/")]
+fn health() -> &'static str {
+    "ok"
+}
+
+fn rocket() -> Rocket<Build> {
+    rocket::build().mount("/", routes![health])
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
@@ -73,12 +82,6 @@ async fn main() -> Result<()> {
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME);
     channel.queue_declare(queue).await.ok();
 
-    tokio::spawn(async {
-        let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-        axum::serve(listener, app).await.unwrap()
-    });
-
     // 5 workers
     channel
         .basic_qos(BasicQosArguments::new(0, 5, false))
@@ -91,6 +94,8 @@ async fn main() -> Result<()> {
         )
         .await
         .unwrap();
+
+    let _ = rocket().launch().await;
 
     // consume forever
     let guard = Notify::new();
