@@ -143,6 +143,7 @@ impl AsyncConsumer for VotesConsumer {
 }
 
 async fn run(job: VotesJob) -> Result<()> {
+    info!("{:?}", job);
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
 
     let mut opt = ConnectOptions::new(database_url);

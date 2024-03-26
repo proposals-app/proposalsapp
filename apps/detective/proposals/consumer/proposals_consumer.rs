@@ -138,6 +138,7 @@ impl AsyncConsumer for ProposalsConsumer {
 }
 
 async fn run(job: ProposalsJob) -> Result<()> {
+    info!("{:?}", job);
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
 
     let mut opt = ConnectOptions::new(database_url);
