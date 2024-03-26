@@ -4,13 +4,14 @@ import Image from "next/image";
 import { SignInButton } from "./auth/sign-in";
 import { useSession } from "./session-provider";
 import { Profile } from "./auth/profile";
+import Link from "next/link";
 
 export const NavBar = () => {
   const { user } = useSession();
 
   return (
     <div className="w-full flex flex-row justify-between items-center">
-      <div className="w-fit animate-logo-rotate">
+      <Link href="/" className="w-fit animate-logo-rotate">
         <Image
           className="border-4 border-white rounded-xl bg-foreground"
           width={285}
@@ -18,7 +19,7 @@ export const NavBar = () => {
           src="/assets/icons/web/logo-lettering.svg"
           alt={"proposals.app"}
         />
-      </div>
+      </Link>
 
       {!user && <SignInButton />}
       {user && <Profile />}
