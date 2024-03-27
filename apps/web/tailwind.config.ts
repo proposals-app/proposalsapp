@@ -14,6 +14,11 @@ const config = {
     },
     extend: {
       colors: {
+        luna: "#F1EBE7",
+        gold: "#C2AEA2",
+        dark: "#2C2927",
+        bgdark: "#161413",
+
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

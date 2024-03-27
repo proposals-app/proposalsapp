@@ -46,7 +46,7 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
   );
 
   return (
-    <div className="grid grid-flow-col grid-rows-2 lg:grid-rows-1 gap-[18px]">
+    <div className="grid grid-flow-col grid-rows-2 lg:grid-rows-1 gap-4">
       {hotDaos.map((dao) => (
         <div
           key={dao.id}
@@ -59,7 +59,7 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
           onTouchEnd={() => setHoveredDao(null)}
         >
           <Image
-            className={`${selectedDaos.includes(dao.slug) ? "bg-primary" : "bg-white"} rounded`}
+            className={`${selectedDaos.includes(dao.slug) ? "bg-dark" : "bg-luna"} rounded w-12 h-12`}
             height={72}
             width={72}
             src={

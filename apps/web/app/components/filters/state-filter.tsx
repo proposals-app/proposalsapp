@@ -33,8 +33,7 @@ export const StateFilter = () => {
   return (
     <div className="w-full h-[60px] rounded flex flex-row gap-2">
       <Button
-        className="w-full"
-        variant={queryState == StateFilterEnum.OPEN ? "default" : "secondary"}
+        className={`w-full ${queryState == StateFilterEnum.OPEN ? "bg-dark" : "bg-luna border border-gold text-gold"}`}
         onClick={() => {
           router.push(
             "?" +
@@ -50,8 +49,7 @@ export const StateFilter = () => {
         open proposals
       </Button>
       <Button
-        className="w-full"
-        variant={queryState == StateFilterEnum.CLOSED ? "default" : "secondary"}
+        className={`w-full ${queryState == StateFilterEnum.CLOSED ? "bg-dark" : "bg-luna border border-gold text-gold"}`}
         onClick={() => {
           router.push(
             "?" +
