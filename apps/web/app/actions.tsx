@@ -96,6 +96,7 @@ export const getHotDaos = async () => {
     .selectFrom("dao")
     .where("dao.hot", "=", 1)
     .innerJoin("daoSettings", "dao.id", "daoSettings.daoId")
+    .orderBy("dao.name", "asc")
     .selectAll()
     .execute();
 
