@@ -6,8 +6,8 @@ import { useCallback, useEffect } from "react";
 
 export enum StateFilterEnum {
   ALL = "all",
-  ACTIVE = "active",
-  PAST = "past",
+  OPEN = "open",
+  CLOSED = "closed",
 }
 
 export const StateFilter = () => {
@@ -27,44 +27,44 @@ export const StateFilter = () => {
 
   useEffect(() => {
     if (!queryState && router)
-      router.push("?" + setQuery("state", StateFilterEnum.ALL));
+      router.push("?" + setQuery("state", StateFilterEnum.OPEN));
   }, [queryState, router]);
 
   return (
     <div className="w-full h-[60px] rounded flex flex-row gap-2">
       <Button
         className="w-full"
-        variant={queryState == StateFilterEnum.ACTIVE ? "default" : "secondary"}
+        variant={queryState == StateFilterEnum.OPEN ? "default" : "secondary"}
         onClick={() => {
           router.push(
             "?" +
               setQuery(
                 "state",
-                queryState == StateFilterEnum.ACTIVE
+                queryState == StateFilterEnum.OPEN
                   ? StateFilterEnum.ALL
-                  : StateFilterEnum.ACTIVE,
+                  : StateFilterEnum.OPEN,
               ),
           );
         }}
       >
-        active proposals
+        open proposals
       </Button>
       <Button
         className="w-full"
-        variant={queryState == StateFilterEnum.PAST ? "default" : "secondary"}
+        variant={queryState == StateFilterEnum.CLOSED ? "default" : "secondary"}
         onClick={() => {
           router.push(
             "?" +
               setQuery(
                 "state",
-                queryState == StateFilterEnum.PAST
+                queryState == StateFilterEnum.CLOSED
                   ? StateFilterEnum.ALL
-                  : StateFilterEnum.PAST,
+                  : StateFilterEnum.CLOSED,
               ),
           );
         }}
       >
-        past proposals
+        closed proposals
       </Button>
     </div>
   );

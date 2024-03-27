@@ -5,8 +5,8 @@ import { db } from "@proposalsapp/db";
 
 enum StateFilterEnum {
   ALL = "all",
-  ACTIVE = "active",
-  PAST = "past",
+  OPEN = "open",
+  CLOSED = "closed",
 }
 
 export const getGuestProposals = async (
@@ -60,7 +60,7 @@ export const getGuestProposals = async (
     proposals_query = proposals_query.orderBy("proposal.timeEnd", "desc");
   }
 
-  if (active == StateFilterEnum.ACTIVE) {
+  if (active == StateFilterEnum.OPEN) {
     proposals_query = proposals_query.where(
       "proposal.proposalState",
       "=",
@@ -69,7 +69,7 @@ export const getGuestProposals = async (
     proposals_query = proposals_query.orderBy("timeEnd", "asc");
   }
 
-  if (active == StateFilterEnum.PAST) {
+  if (active == StateFilterEnum.CLOSED) {
     proposals_query = proposals_query.where("proposal.proposalState", "in", [
       "QUEUED",
       "DEFEATED",
