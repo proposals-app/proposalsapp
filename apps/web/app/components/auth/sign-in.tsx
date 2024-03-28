@@ -94,10 +94,10 @@ export const SignInButton = () => {
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button>Sign In</Button>
+          <Button className="bg-dark">Sign in</Button>
         </DialogTrigger>
         {page == Page.EMAIL && (
-          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%]">
+          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna">
             <Form {...emailForm}>
               <form onSubmit={emailForm.handleSubmit(signIn)}>
                 <FormField
@@ -113,7 +113,11 @@ export const SignInButton = () => {
                       </div>
 
                       <FormControl>
-                        <Input placeholder="delegatoooor@defi.com" {...field} />
+                        <Input
+                          className="bg-luna"
+                          placeholder="delegatoooor@defi.com"
+                          {...field}
+                        />
                       </FormControl>
 
                       <div className="items-top flex space-x-2">
@@ -142,7 +146,7 @@ export const SignInButton = () => {
 
                 <div className="pt-8">
                   <Button
-                    className="w-full"
+                    className="w-full bg-dark"
                     type="submit"
                     disabled={!termsAgreed}
                   >
@@ -154,7 +158,7 @@ export const SignInButton = () => {
           </DialogContent>
         )}
         {page == Page.CODE && (
-          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%]">
+          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna">
             <Form {...otpForm}>
               <form onSubmit={otpForm.handleSubmit(verify)}>
                 <FormField
@@ -188,7 +192,7 @@ export const SignInButton = () => {
                 />
 
                 <div className="pt-8">
-                  <Button className="w-full" type="submit">
+                  <Button className="w-full bg-dark" type="submit">
                     Verify
                   </Button>
                 </div>

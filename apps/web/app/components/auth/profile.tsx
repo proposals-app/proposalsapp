@@ -32,7 +32,7 @@ export const Profile = () => {
           </AvatarFallback>
         </Avatar>
       </PopoverTrigger>
-      <PopoverContent className="w-80">
+      <PopoverContent className="w-80 bg-luna">
         <div className="w-full flex flex-row justify-end">
           <Button
             onClick={() => {
