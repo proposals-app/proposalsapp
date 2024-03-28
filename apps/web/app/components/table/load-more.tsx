@@ -10,10 +10,28 @@ type ItemsProps = {
   searchParams: { state: string; dao: string | string[] };
 };
 
+const loadingMessages = [
+  "Loading more",
+  "Just a moment, fetching more data...",
+  "Hang tight, more content is on its way!",
+  "Loading... It'll be worth the wait!",
+  "Fetching the next batch of items, please wait...",
+];
+
+const endMessages = [
+  "That's all folks!",
+  "Congratulations! You've seen it all.",
+  "And that concludes our journey.",
+  "The end of the road has been reached.",
+  "No more left to explore, you've arrived at the finish line.",
+];
+
 export function LoadMore({ searchParams }: ItemsProps) {
   const [proposals, setProposals] = useState<getGuestProposalsType>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [endMessage, setEndMessage] = useState<string | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
 
   const { ref, inView } = useInView();
 
@@ -21,6 +39,9 @@ export function LoadMore({ searchParams }: ItemsProps) {
     new Promise((resolve) => setTimeout(resolve, ms));
 
   const loadMoreItems = async () => {
+    const randomIndex = Math.floor(Math.random() * loadingMessages.length);
+    setLoadingMessage(loadingMessages[randomIndex]);
+
     await delay(1000);
     const nextPage = page + 1;
 
@@ -30,7 +51,10 @@ export function LoadMore({ searchParams }: ItemsProps) {
       nextPage,
     );
 
-    if (proposals.length == 0) setHasMore(false);
+    if (proposals.length == 0) {
+      setHasMore(false);
+      setEndMessage(endMessages[randomIndex]);
+    }
     setProposals((prevProposals) => [...prevProposals, ...proposals]);
     setPage(nextPage);
   };
@@ -53,9 +77,9 @@ export function LoadMore({ searchParams }: ItemsProps) {
 
       <div className="w-full flex justify-center p-4">
         {hasMore ? (
-          <div ref={ref}>Loading more</div>
+          <div ref={ref}>{loadingMessage}</div>
         ) : (
-          <div ref={ref}>You reached the end</div>
+          <div ref={ref}>{endMessage}</div>
         )}
       </div>
     </div>

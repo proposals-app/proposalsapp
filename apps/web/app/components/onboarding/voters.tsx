@@ -66,7 +66,7 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
 
   return (
     <Dialog open={open}>
-      <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-lg p-16 rounded-xl">
+      <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-fit p-16 rounded-xl">
         <Form {...voterForm}>
           <form action={addVoter}>
             <FormField

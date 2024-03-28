@@ -126,7 +126,7 @@ export const SignInButton = () => {
           </Button>
         </DialogTrigger>
         {page == Page.EMAIL && (
-          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-lg p-16 rounded-xl">
+          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-fit p-16 rounded-xl">
             <Form {...emailForm}>
               <form onSubmit={emailForm.handleSubmit(signIn)}>
                 <FormField
@@ -192,7 +192,7 @@ export const SignInButton = () => {
           </DialogContent>
         )}
         {page == Page.CODE && (
-          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-lg p-16 rounded-xl">
+          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-fit p-16 rounded-xl">
             <Form {...otpForm}>
               <form onSubmit={otpForm.handleSubmit(verify)}>
                 <FormField
