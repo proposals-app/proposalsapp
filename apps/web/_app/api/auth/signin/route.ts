@@ -55,15 +55,15 @@ export async function POST(request: Request) {
 
   await client.sendEmail(options);
 
-  const session = await lucia.createSession(user.id, {
-    email: email,
-  });
-  const sessionCookie = lucia.createSessionCookie(session.id);
+  // const session = await lucia.createSession(user.id, {
+  //   email: email,
+  // });
+  // const sessionCookie = lucia.createSessionCookie(session.id);
 
   let response = NextResponse.redirect(new NextURL("/", request.url));
 
-  response.cookies.set(sessionCookie.name, sessionCookie.value);
-  response.cookies.set("SameSite", "Lax");
+  // response.cookies.set(sessionCookie.name, sessionCookie.value);
+  // response.cookies.set("SameSite", "Lax");
 
   return response;
 }

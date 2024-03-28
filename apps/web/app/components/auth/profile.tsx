@@ -1,5 +1,5 @@
-import { Input } from "@/shadcn/ui/input";
-import { Label } from "@/shadcn/ui/label";
+"use client";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/shadcn/ui/popover";
 import { useSession } from "../session-provider";
 import { Avatar, AvatarFallback } from "@/shadcn/ui/avatar";

@@ -1,8 +1,8 @@
 import "../styles/globals.css";
 import type { Metadata, Viewport } from "next";
-import { NavBar } from "./components/nav-bar";
 import { validateRequest } from "@/lib/auth";
 import { SessionProvider } from "./components/session-provider";
+import NavBar from "./components/nav-bar";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? "https://proposals.app"),

@@ -1,13 +1,16 @@
-"use client";
-
 import Image from "next/image";
 import { SignInButton } from "./auth/sign-in";
-import { useSession } from "./session-provider";
 import { Profile } from "./auth/profile";
 import Link from "next/link";
+import { OnboardingVoterModal } from "./onboarding/voters";
+import { getSubscripions, getVoters } from "../actions";
+import { validateRequest } from "@/lib/auth";
+import { OnboardingSubscriptionModal } from "./onboarding/subscriptions";
 
-export const NavBar = () => {
-  const { user } = useSession();
+export default async function NavBar() {
+  let { user } = await validateRequest();
+  const userVoters = await getVoters();
+  const userSubscriptions = await getSubscripions();
 
   return (
     <div className="w-full flex flex-col gap-8 lg:flex-row lg:gap-0 justify-between items-center">
@@ -25,8 +28,14 @@ export const NavBar = () => {
 
       <div className="w-full flex justify-end">
         {!user && <SignInButton />}
-        {user && <Profile />}
+        {user && user.email_verified && <Profile />}
+        {user && user.email_verified && userVoters && (
+          <OnboardingVoterModal open={!userVoters.length} />
+        )}
+        {user && user.email_verified && userSubscriptions && (
+          <OnboardingSubscriptionModal open={!userSubscriptions.length} />
+        )}
       </div>
     </div>
   );
-};
+}

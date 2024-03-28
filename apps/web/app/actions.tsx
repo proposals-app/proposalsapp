@@ -1,13 +1,124 @@
 "use server";
 
+import { validateRequest } from "@/lib/auth";
 import { AsyncReturnType } from "@/lib/utils";
 import { db } from "@proposalsapp/db";
+import { revalidateTag } from "next/cache";
+import { createPublicClient, http } from "viem";
+import { mainnet } from "viem/chains";
+import { normalize } from "viem/ens";
+import { z } from "zod";
 
 enum StateFilterEnum {
   ALL = "all",
   OPEN = "open",
   CLOSED = "closed",
 }
+
+export const getVoters = async () => {
+  let { user } = await validateRequest();
+  if (!user) return;
+
+  const voters = await db
+    .selectFrom("userToVoter")
+    .where("userToVoter.userId", "=", user.id)
+    .selectAll()
+    .execute();
+
+  return voters;
+};
+
+export const getSubscripions = async () => {
+  let { user } = await validateRequest();
+  if (!user) return;
+
+  const subscriptions = await db
+    .selectFrom("subscription")
+    .where("subscription.userId", "=", user.id)
+    .selectAll()
+    .execute();
+
+  return subscriptions;
+};
+
+const ethereumAddressRegex = /^(0x)?[0-9a-fA-F]{40}$/;
+const ensDomainRegex = /^(?=.{3,255}$)([a-zA-Z0-9-]+\.)+eth$/;
+
+const voterFormSchema = z.object({
+  address: z
+    .string()
+    .refine(
+      (value) => ethereumAddressRegex.test(value) || ensDomainRegex.test(value),
+      {
+        message: "Must be a valid Ethereum address or ENS domain name",
+      },
+    ),
+});
+
+export const addVoter = async (formData: FormData) => {
+  const { address } = voterFormSchema.parse({
+    address: formData.get("address"),
+  });
+
+  let { user } = await validateRequest();
+  if (!user) return;
+
+  const publicClient = createPublicClient({
+    chain: mainnet,
+    transport: http(),
+  });
+
+  let voterAddress = address;
+  if (address.includes(".eth")) {
+    const ensAddress = await publicClient.getEnsAddress({
+      name: normalize(address),
+    });
+    if (!ensAddress) return;
+    else voterAddress = ensAddress;
+  }
+
+  const ensName = await publicClient.getEnsName({
+    address: voterAddress as `0x${string}`,
+  });
+
+  let voter = await db
+    .selectFrom("voter")
+    .select(["voter.id", "voter.ens"])
+    .where("voter.address", "=", voterAddress)
+    .executeTakeFirst();
+
+  if (!voter) {
+    await db
+      .insertInto("voter")
+      .values({ address: voterAddress, ens: ensName })
+      .execute();
+
+    let newVoter = await db
+      .selectFrom("voter")
+      .select(["voter.id", "voter.ens"])
+      .where("voter.address", "=", voterAddress)
+      .executeTakeFirstOrThrow();
+
+    await db
+      .insertInto("userToVoter")
+      .values({ userId: user.id, voterId: newVoter.id })
+      .executeTakeFirst();
+  } else {
+    if (ensName && voter.ens != ensName)
+      await db
+        .updateTable("voter")
+        .set({ ens: ensName })
+        .where("voter.id", "=", voter.id)
+        .execute();
+
+    await db
+      .insertInto("userToVoter")
+      .values({ userId: user.id, voterId: voter.id })
+      .executeTakeFirst();
+  }
+
+  revalidateTag("voters");
+};
 
 export const getGuestProposals = async (
   active: StateFilterEnum,
