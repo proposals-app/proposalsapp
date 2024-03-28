@@ -13,6 +13,9 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        poppins: ["Poppins"],
+      },
       colors: {
         luna: "#F1EBE7",
         gold: "#C2AEA2",

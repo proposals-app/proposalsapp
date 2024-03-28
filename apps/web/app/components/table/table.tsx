@@ -19,13 +19,7 @@ export const ProposalsTable = async ({
 
   return (
     <div className="w-full">
-      <div className="w-full h-8 flex flex-row border-b-2">
-        <div className="w-24 font-semibold pl-4">DAO</div>
-        <div className="w-full font-semibold">Proposal Title</div>
-        <div className="min-w-32 font-semibold text-end pr-4">Deadline</div>
-      </div>
-
-      <div className="divide-y">
+      <div className="flex flex-col gap-6 divide-y">
         {proposals.map((proposal) => (
           <ProposalItem key={proposal.id} proposal={proposal} />
         ))}

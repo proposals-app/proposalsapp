@@ -1,6 +1,7 @@
 import moment from "moment";
 import Image from "next/image";
 import Link from "next/link";
+import { Poppins } from "next/font/google";
 
 type ProposalProps = {
   id: string;
@@ -8,6 +9,16 @@ type ProposalProps = {
   timeEnd: Date;
   daoPicture: string | null;
 };
+
+const poppins = Poppins({
+  weight: "300",
+  subsets: ["latin"],
+});
+
+const poppinsBold = Poppins({
+  weight: "600",
+  subsets: ["latin"],
+});
 
 moment.updateLocale("en", {
   relativeTime: {
@@ -35,30 +46,30 @@ const MAX_NAME_LENGTH = 120;
 export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
   return (
     <Link
-      className="h-24 w-full flex flex-row items-center hover:bg-accent bg-white rounded-lg p-2 my-2"
+      className="h-24 w-full flex flex-row items-center hover:bg-accent bg-white rounded-lg p-2 gap-4"
       href={`/proposal/${proposal.id}`}
     >
-      <div className="w-24 place-self-start justify-self-start">
+      <div className="min-h-20 min-w-20">
         <Image
           className="rounded-md"
-          height={72}
-          width={72}
+          height={80}
+          width={80}
           src={`/${proposal.daoPicture}.svg`}
           alt={""}
         />
       </div>
-      <div className="w-full text-ellipsis">
+      <div className={`w-full text-ellipsis text-lg ${poppins.className}`}>
         {proposal.name.length < MAX_NAME_LENGTH
           ? proposal.name
           : proposal.name.slice(0, MAX_NAME_LENGTH - 3) + "..."}
       </div>
       <div className="min-w-32 text-center">
-        <div className="font-thin">
+        <div className={`${poppins.className}`}>
           {proposal.timeEnd.getTime() > new Date().getTime()
             ? "open for"
             : "closed"}
         </div>
-        <div className="font-semibold">
+        <div className={`${poppinsBold.className}`}>
           {moment(proposal.timeEnd).fromNow(true)}
           {proposal.timeEnd.getTime() > new Date().getTime() ? "" : " ago"}
         </div>

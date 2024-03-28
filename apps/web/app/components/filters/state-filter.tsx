@@ -46,7 +46,7 @@ export const StateFilter = () => {
           );
         }}
       >
-        open proposals
+        open for voting
       </Button>
       <Button
         className={`w-full ${queryState == StateFilterEnum.CLOSED ? "bg-dark" : "bg-luna border border-gold text-gold"}`}
@@ -62,7 +62,7 @@ export const StateFilter = () => {
           );
         }}
       >
-        closed proposals
+        closed votes
       </Button>
     </div>
   );
