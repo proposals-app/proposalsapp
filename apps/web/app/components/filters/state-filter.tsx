@@ -53,7 +53,7 @@ export const StateFilter = () => {
           );
         }}
       >
-        <p className="text-4xl leading-[3.5rem]">open for voting</p>
+        <p className="text-4xl leading-[3.25rem]">open for voting</p>
       </Button>
       <Button
         className={`block w-full min-h-14 ${manjari.className} text-4xl ${queryState == StateFilterEnum.CLOSED ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
@@ -69,7 +69,7 @@ export const StateFilter = () => {
           );
         }}
       >
-        <p className="text-4xl leading-[3.5rem]">closed votes</p>
+        <p className="text-4xl leading-[3.25rem]">closed votes</p>
       </Button>
     </div>
   );

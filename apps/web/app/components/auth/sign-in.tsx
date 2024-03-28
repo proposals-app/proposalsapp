@@ -107,7 +107,7 @@ export const SignInButton = () => {
                 "linear-gradient(0.25turn, #F87171, #FACC15, #4ADE80)",
             }}
           >
-            <p className="text-4xl leading-[3.5rem]">sign in</p>
+            <p className="text-4xl leading-[3.25rem]">sign in</p>
           </Button>
         </DialogTrigger>
         {page == Page.EMAIL && (

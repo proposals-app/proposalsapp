@@ -53,7 +53,6 @@ export const getGuestProposals = async (
       "EXECUTED",
       "EXPIRED",
       "SUCCEEDED",
-      "CANCELED",
       "HIDDEN",
       "ACTIVE",
     ]);
@@ -76,7 +75,6 @@ export const getGuestProposals = async (
       "EXECUTED",
       "EXPIRED",
       "SUCCEEDED",
-      "CANCELED",
       "HIDDEN",
     ]);
     proposals_query = proposals_query.orderBy("timeEnd", "desc");
