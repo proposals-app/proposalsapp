@@ -46,7 +46,7 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
   );
 
   return (
-    <div className="grid grid-flow-col grid-rows-2 lg:grid-rows-1 gap-2">
+    <div className="grid grid-flow-col grid-rows-2 lg:grid-rows-1 gap-4">
       {hotDaos.map((dao) => (
         <div
           className="min-w-20 min-h-20"

@@ -11,9 +11,9 @@ export const NavBar = () => {
 
   return (
     <div className="w-full flex flex-row justify-between items-center">
-      <Link href="/" className="max-w-[50%] animate-logo-rotate">
+      <Link href="/" className="animate-logo-rotate">
         <Image
-          className="border-4 border-white rounded-xl bg-foreground"
+          className="rounded-xl bg-dark h-14"
           width={285}
           height={60}
           src="/assets/icons/web/logo-lettering.svg"

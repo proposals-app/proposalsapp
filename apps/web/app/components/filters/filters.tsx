@@ -8,7 +8,7 @@ export const Filters = async () => {
 
   return (
     <div>
-      <div className="flex flex-col gap-[18px] px-2">
+      <div className="flex flex-col gap-[18px] px-2 py-14">
         <Suspense>
           <StateFilter />
           <DaosFilter hotDaos={hotDaos} />

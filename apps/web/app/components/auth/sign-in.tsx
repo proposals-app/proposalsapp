@@ -101,13 +101,13 @@ export const SignInButton = () => {
       <Dialog>
         <DialogTrigger asChild>
           <Button
-            className={`min-h-14 min-w-48 text-4xl ${manjari.className} py-2 text-dark`}
+            className={`block min-h-14 min-w-48 text-4xl ${manjari.className} py-2 text-dark`}
             style={{
               background:
                 "linear-gradient(0.25turn, #F87171, #FACC15, #4ADE80)",
             }}
           >
-            sign in
+            <p className="text-4xl leading-[3.5rem]">sign in</p>
           </Button>
         </DialogTrigger>
         {page == Page.EMAIL && (

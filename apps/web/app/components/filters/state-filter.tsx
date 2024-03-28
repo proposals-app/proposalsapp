@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/shadcn/ui/button";
 import { Manjari } from "next/font/google";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -37,9 +38,9 @@ export const StateFilter = () => {
   }, [queryState, router]);
 
   return (
-    <div className="w-full rounded flex flex-row gap-2">
+    <div className={"w-full rounded flex flex-row gap-4"}>
       <Button
-        className={`w-full min-h-16 ${manjari.className} text-4xl leading-none ${queryState == StateFilterEnum.OPEN ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
+        className={`block w-full min-h-14 ${manjari.className}  ${queryState == StateFilterEnum.OPEN ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
         onClick={() => {
           router.push(
             "?" +
@@ -52,10 +53,10 @@ export const StateFilter = () => {
           );
         }}
       >
-        open for voting
+        <p className="text-4xl leading-[3.5rem]">open for voting</p>
       </Button>
       <Button
-        className={`w-full min-h-16 ${manjari.className} text-4xl ${queryState == StateFilterEnum.CLOSED ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
+        className={`block w-full min-h-14 ${manjari.className} text-4xl ${queryState == StateFilterEnum.CLOSED ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
         onClick={() => {
           router.push(
             "?" +
@@ -68,7 +69,7 @@ export const StateFilter = () => {
           );
         }}
       >
-        closed votes
+        <p className="text-4xl leading-[3.5rem]">closed votes</p>
       </Button>
     </div>
   );
