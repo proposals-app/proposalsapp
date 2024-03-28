@@ -16,11 +16,15 @@ const config = {
       },
     },
     extend: {
+      backgroundImage: {
+        rainbow: "linear-gradient(0.25turn, #F87171, #FACC15, #4ADE80)",
+      },
       colors: {
         luna: "#F1EBE7",
         gold: "#C2AEA2",
         dark: "#2C2927",
         bgdark: "#161413",
+        rainbow: "linear-gradient(90deg, #FF0000, #00FF00, #0000FF)",
 
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -70,15 +74,20 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "logo-rotation-keyframes": {
+        "logo-skew-keyframes": {
           "0%, 50%": { transform: "rotate(0deg)" },
           "100%": { transform: "rotate(-2deg)" },
+        },
+        "logo-straight-keyframes": {
+          "0%, 50%": { transform: "rotate(-2deg)" },
+          "100%": { transform: "rotate(0deg)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "logo-rotate": "logo-rotation-keyframes 0.5s ease forwards",
+        "logo-skew": "logo-skew-keyframes 0.5s ease forwards",
+        "logo-straight": "logo-straight-keyframes 0.5s ease forwards",
       },
     },
   },

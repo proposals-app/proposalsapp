@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/shadcn/ui/dialog";
 import { Manjari, Poppins } from "next/font/google";
-import { hotDaosType } from "@/app/actions";
+import { hotDaosType, subscribe } from "@/app/actions";
 import Image from "next/image";
 import { useState } from "react";
 import { CheckIcon } from "@radix-ui/react-icons";

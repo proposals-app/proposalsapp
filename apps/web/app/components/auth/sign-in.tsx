@@ -116,13 +116,9 @@ export const SignInButton = () => {
       <Dialog>
         <DialogTrigger asChild>
           <Button
-            className={`block min-h-14 min-w-48 text-4xl ${manjari.className} py-2 text-dark`}
-            style={{
-              background:
-                "linear-gradient(0.25turn, #F87171, #FACC15, #4ADE80)",
-            }}
+            className={`${manjari.className} block min-h-14 rounded-lg hover:bg-rainbow hover:text-dark hover:border-0 hover:px-[18px] text-4xl bg-luna border-2 border-gold text-gold`}
           >
-            <p className="text-4xl leading-[3.25rem]">sign in</p>
+            <p className="text-4xl leading-[3rem]">sign in</p>
           </Button>
         </DialogTrigger>
         {page == Page.EMAIL && (

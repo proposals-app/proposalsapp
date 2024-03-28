@@ -38,9 +38,9 @@ export const StateFilter = () => {
   }, [queryState, router]);
 
   return (
-    <div className={"w-full rounded flex flex-row gap-4"}>
+    <div className={"w-full flex flex-row gap-4"}>
       <Button
-        className={`block w-full min-h-14 ${manjari.className}  ${queryState == StateFilterEnum.OPEN ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
+        className={`block w-full min-h-14 rounded-lg hover:bg-gold hover:text-luna ${manjari.className}  ${queryState == StateFilterEnum.OPEN ? "bg-dark text-luna" : "bg-luna border-2 border-gold text-gold"}`}
         onClick={() => {
           router.push(
             "?" +
@@ -56,7 +56,7 @@ export const StateFilter = () => {
         <p className="text-4xl leading-[3.25rem]">open for voting</p>
       </Button>
       <Button
-        className={`block w-full min-h-14 ${manjari.className} text-4xl ${queryState == StateFilterEnum.CLOSED ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
+        className={`block w-full min-h-14 rounded-lg hover:bg-gold hover:text-luna ${manjari.className} text-4xl ${queryState == StateFilterEnum.CLOSED ? "bg-dark text-luna" : "bg-luna border-2 border-gold text-gold"}`}
         onClick={() => {
           router.push(
             "?" +

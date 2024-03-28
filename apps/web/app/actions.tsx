@@ -15,7 +15,7 @@ enum StateFilterEnum {
   CLOSED = "closed",
 }
 
-export async function subscribe(daoId: string) {
+export async function subscribe(daoSlugs: string[]) {
   let { user } = await validateRequest();
   if (!user) return;
 
@@ -25,19 +25,21 @@ export async function subscribe(daoId: string) {
     .where("user.id", "=", user.id)
     .executeTakeFirstOrThrow();
 
-  const d = await db
-    .selectFrom("dao")
-    .selectAll()
-    .where("dao.id", "=", daoId)
-    .executeTakeFirstOrThrow();
+  for (const slug of daoSlugs) {
+    const d = await db
+      .selectFrom("dao")
+      .selectAll()
+      .where("slug", "=", slug)
+      .executeTakeFirstOrThrow();
 
-  await db
-    .insertInto("subscription")
-    .values({
-      userId: u.id,
-      daoId: d.id,
-    })
-    .execute();
+    await db
+      .insertInto("subscription")
+      .values({
+        userId: u.id,
+        daoId: d.id,
+      })
+      .execute();
+  }
 
   revalidateTag("subscriptions");
 }

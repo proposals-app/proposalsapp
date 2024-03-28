@@ -61,7 +61,7 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
           onTouchMove={() => setHoveredDao(null)}
         >
           <Image
-            className={`${selectedDaos.includes(dao.slug) ? "bg-dark" : "bg-luna border-2 border-gold hover:border-0"} rounded`}
+            className={`${selectedDaos.includes(dao.slug) ? "bg-dark" : "bg-luna border-2 border-gold hover:border-0"} rounded-lg`}
             height={80}
             width={80}
             src={

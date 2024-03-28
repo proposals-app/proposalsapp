@@ -8,6 +8,7 @@ type ProposalProps = {
   name: string;
   timeEnd: Date;
   daoPicture: string | null;
+  url: string;
 };
 
 const poppins = Poppins({
@@ -46,10 +47,11 @@ const MAX_NAME_LENGTH = 120;
 export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
   return (
     <Link
-      className="h-24 w-full flex flex-row items-center hover:bg-accent bg-white rounded-lg p-2 gap-4"
-      href={`/proposal/${proposal.id}`}
+      className="h-24 w-full flex flex-row items-center shadow-sm hover:shadow-md bg-white rounded-2xl p-2 gap-4 transition-all duration-200"
+      href={proposal.url}
+      target="_blank"
     >
-      <div className="min-h-20 min-w-20">
+      <div className="min-h-20 min-w-20 rounded-lg">
         <Image
           className="rounded-md"
           height={80}
@@ -58,21 +60,32 @@ export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
           alt={""}
         />
       </div>
-      <div className={`w-full text-ellipsis text-lg ${poppins.className}`}>
+      <div className={`w-full text-ellipsis text-2xl ${poppins.className} `}>
         {proposal.name.length < MAX_NAME_LENGTH
           ? proposal.name
           : proposal.name.slice(0, MAX_NAME_LENGTH - 3) + "..."}
       </div>
-      <div className="min-w-32 text-center">
-        <div className={`${poppins.className}`}>
-          {proposal.timeEnd.getTime() > new Date().getTime()
-            ? "open for"
-            : "closed"}
-        </div>
-        <div className={`${poppinsBold.className}`}>
-          {moment(proposal.timeEnd).fromNow(true)}
-          {proposal.timeEnd.getTime() > new Date().getTime() ? "" : " ago"}
-        </div>
+      <div className="min-w-40 text-center">
+        {proposal.timeEnd.getTime() > new Date().getTime() ? (
+          <div className={`${poppins.className} text - dark text - xl`}>
+            open for
+          </div>
+        ) : (
+          <div className={`${poppins.className} text - gold text - xl`}>
+            closed
+          </div>
+        )}
+
+        {proposal.timeEnd.getTime() > new Date().getTime() ? (
+          <div className={`${poppinsBold.className} text - dark text - xl`}>
+            {moment(proposal.timeEnd).fromNow(true)}
+          </div>
+        ) : (
+          <div className={`${poppinsBold.className} text - gold text - xl`}>
+            {moment(proposal.timeEnd).fromNow(true)}
+            {" ago"}
+          </div>
+        )}
       </div>
     </Link>
   );
