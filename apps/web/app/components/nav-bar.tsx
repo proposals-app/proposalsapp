@@ -10,10 +10,12 @@ export const NavBar = () => {
   const { user } = useSession();
 
   return (
-    <div className="w-full flex flex-row justify-between items-center">
-      <Link href="/" className="animate-logo-rotate">
+    <div className="w-full flex flex-col gap-8 lg:flex-row lg:gap-0 justify-between items-center">
+      <Link
+        href="/"
+        className="animate-logo-rotate flex flex-row items-center justify-center rounded-xl bg-dark h-full lg:h-14"
+      >
         <Image
-          className="rounded-xl bg-dark h-14"
           width={285}
           height={60}
           src="/assets/icons/web/logo-lettering.svg"
@@ -21,8 +23,10 @@ export const NavBar = () => {
         />
       </Link>
 
-      {!user && <SignInButton />}
-      {user && <Profile />}
+      <div className="w-full flex justify-end">
+        {!user && <SignInButton />}
+        {user && <Profile />}
+      </div>
     </div>
   );
 };
