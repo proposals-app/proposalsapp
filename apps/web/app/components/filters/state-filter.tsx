@@ -1,8 +1,14 @@
 "use client";
 
 import { Button } from "@/shadcn/ui/button";
+import { Manjari } from "next/font/google";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect } from "react";
+
+const manjari = Manjari({
+  weight: "700",
+  subsets: ["latin"],
+});
 
 export enum StateFilterEnum {
   ALL = "all",
@@ -31,9 +37,9 @@ export const StateFilter = () => {
   }, [queryState, router]);
 
   return (
-    <div className="w-full h-[60px] rounded flex flex-row gap-2">
+    <div className="w-full rounded flex flex-row gap-2">
       <Button
-        className={`w-full ${queryState == StateFilterEnum.OPEN ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
+        className={`w-full min-h-16 leading-snug ${manjari.className} text-4xl ${queryState == StateFilterEnum.OPEN ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
         onClick={() => {
           router.push(
             "?" +
@@ -49,7 +55,7 @@ export const StateFilter = () => {
         open for voting
       </Button>
       <Button
-        className={`w-full ${queryState == StateFilterEnum.CLOSED ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
+        className={`w-full min-h-16 ${manjari.className} text-4xl ${queryState == StateFilterEnum.CLOSED ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
         onClick={() => {
           router.push(
             "?" +
