@@ -39,7 +39,7 @@ export const StateFilter = () => {
   return (
     <div className="w-full rounded flex flex-row gap-2">
       <Button
-        className={`w-full min-h-16 leading-snug ${manjari.className} text-4xl ${queryState == StateFilterEnum.OPEN ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
+        className={`w-full min-h-16 ${manjari.className} text-4xl leading-none ${queryState == StateFilterEnum.OPEN ? "bg-dark" : "bg-luna border-2 border-gold text-gold"}`}
         onClick={() => {
           router.push(
             "?" +

@@ -21,8 +21,8 @@ export const NavBar = () => {
         />
       </Link>
 
-      {/* {!user && <SignInButton />}
-      {user && <Profile />} */}
+      {!user && <SignInButton />}
+      {user && <Profile />}
     </div>
   );
 };
