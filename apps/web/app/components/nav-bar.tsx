@@ -11,7 +11,7 @@ export const NavBar = () => {
 
   return (
     <div className="w-full flex flex-row justify-between items-center">
-      <Link href="/" className="w-fit animate-logo-rotate">
+      <Link href="/" className="max-w-[50%] animate-logo-rotate">
         <Image
           className="border-4 border-white rounded-xl bg-foreground"
           width={285}

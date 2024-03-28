@@ -73,4 +73,14 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  html {
+    font-size: 10px;
+    @media screen(lg) {
+      font-size: 12px;
+    }
+    @media screen(2xl) {
+      font-size: 16px;
+    }
+  }
 }

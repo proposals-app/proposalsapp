@@ -1,6 +1,9 @@
 import type { Config } from "tailwindcss";
 
 const config = {
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   darkMode: ["class"],
   content: ["./shadcn/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}"],
   prefix: "",
@@ -13,9 +16,6 @@ const config = {
       },
     },
     extend: {
-      fontFamily: {
-        poppins: ["Poppins"],
-      },
       colors: {
         luna: "#F1EBE7",
         gold: "#C2AEA2",

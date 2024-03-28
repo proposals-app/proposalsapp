@@ -52,10 +52,13 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
           className="min-w-20 min-h-20"
           key={dao.id}
           onClick={() => {
+            setHoveredDao(null);
             router.push("?" + toggleDaoQuery("dao", dao.slug));
           }}
           onMouseEnter={() => setHoveredDao(dao.slug)}
+          onTouchStart={() => setHoveredDao(dao.slug)}
           onMouseLeave={() => setHoveredDao(null)}
+          onTouchMove={() => setHoveredDao(null)}
         >
           <Image
             className={`${selectedDaos.includes(dao.slug) ? "bg-dark" : "bg-luna border-2 border-gold hover:border-0"} rounded`}

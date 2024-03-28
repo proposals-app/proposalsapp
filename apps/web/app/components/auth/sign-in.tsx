@@ -23,6 +23,12 @@ import {
   FormMessage,
 } from "@/shadcn/ui/form";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/shadcn/ui/input-otp";
+import { Manjari } from "next/font/google";
+
+const manjari = Manjari({
+  weight: "700",
+  subsets: ["latin"],
+});
 
 export const SignInButton = () => {
   const EmailFormSchema = z.object({
@@ -94,7 +100,15 @@ export const SignInButton = () => {
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button className="bg-dark">Sign in</Button>
+          <Button
+            className={`min-h-14 min-w-48 text-4xl ${manjari.className} py-2 text-dark`}
+            style={{
+              background:
+                "linear-gradient(0.25turn, #F87171, #FACC15, #4ADE80)",
+            }}
+          >
+            sign in
+          </Button>
         </DialogTrigger>
         {page == Page.EMAIL && (
           <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna">
