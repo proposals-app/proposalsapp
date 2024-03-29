@@ -5,6 +5,12 @@ import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { StateFilterEnum } from "../filters/state-filter";
 import { ProposalItem } from "./item";
+import { Manjari } from "next/font/google";
+
+const manjari = Manjari({
+  weight: "400",
+  subsets: ["latin"],
+});
 
 type ItemsProps = {
   searchParams: { state: string; dao: string | string[] };
@@ -81,7 +87,9 @@ export function LoadMore({ searchParams }: ItemsProps) {
         ))}
       </div>
 
-      <div className="w-full flex justify-center p-4 text-gold text-2xl">
+      <div
+        className={`${manjari.className} w-full flex justify-center p-4 text-gold text-2xl`}
+      >
         {hasMore ? (
           <div ref={ref}>{loadingMessage}</div>
         ) : (
