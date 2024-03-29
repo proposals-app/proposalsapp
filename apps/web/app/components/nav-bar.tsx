@@ -18,7 +18,7 @@ export default async function NavBar() {
     <div className="w-full flex flex-col gap-8 lg:flex-row lg:gap-0 justify-between items-center px-2">
       <Link
         href="/"
-        className="hover:animate-logo-straight animate-logo-skew flex flex-row items-center justify-center rounded-lg bg-dark h-full lg:h-14 lg:p-5"
+        className="hover:animate-logo-straight animate-logo-skew flex flex-row items-center justify-center rounded-lg bg-dark h-[56px] px-[18px] py-auto lg:h-14 lg:p-5"
       >
         <Image
           className="pointer-events-none"
@@ -29,7 +29,7 @@ export default async function NavBar() {
         />
       </Link>
 
-      <div className="w-full flex justify-end">
+      <div className="w-full flex justify-center lg:justify-end">
         <Suspense>
           {!user && <SignInButton />}
           {user && user.email_verified && <SignOutButton />}

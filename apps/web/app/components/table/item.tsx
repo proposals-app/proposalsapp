@@ -42,12 +42,12 @@ moment.updateLocale("en", {
   },
 });
 
-const MAX_NAME_LENGTH = 120;
+const MAX_NAME_LENGTH = 100;
 
 export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
   return (
     <Link
-      className="h-24 w-full flex flex-row items-center shadow-sm hover:shadow-md bg-white rounded-2xl p-2 gap-4 transition-all duration-200"
+      className="h-36 lg:h-24 w-full flex flex-row items-center shadow-sm hover:shadow-md bg-white rounded-2xl p-2 gap-4 transition-all duration-200"
       href={proposal.url}
       target="_blank"
     >
