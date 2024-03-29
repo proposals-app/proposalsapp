@@ -55,7 +55,7 @@ export const OnboardingSubscriptionModal = ({
           </DialogDescription>
         </div>
 
-        <div className="grid grid-rows-2 grid-flow-col gap-4">
+        <div className="grid grid-cols-6 grid-flow-row gap-4">
           {hotDaos.map((dao) => (
             <div
               className="min-w-20 min-h-20 relative"
