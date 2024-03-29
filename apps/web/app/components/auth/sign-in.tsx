@@ -146,7 +146,7 @@ export const SignInButton = () => {
 
                       <FormControl>
                         <Input
-                          className="bg-luna border-gold"
+                          className="bg-luna border-gold lowercase"
                           placeholder="delegatoooor@defi.com"
                           {...field}
                         />
