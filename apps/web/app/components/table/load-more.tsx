@@ -60,6 +60,12 @@ export function LoadMore({ searchParams }: ItemsProps) {
   };
 
   useEffect(() => {
+    setHasMore(true);
+    setProposals([]);
+    setPage(1);
+  }, [searchParams]);
+
+  useEffect(() => {
     if (inView) {
       loadMoreItems();
     }
