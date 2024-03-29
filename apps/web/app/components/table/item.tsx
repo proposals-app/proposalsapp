@@ -67,21 +67,19 @@ export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
       </div>
       <div className="min-w-40 text-center">
         {proposal.timeEnd.getTime() > new Date().getTime() ? (
-          <div className={`${poppins.className} text - dark text - xl`}>
+          <div className={`${poppins.className} text-dark text-xl`}>
             open for
           </div>
         ) : (
-          <div className={`${poppins.className} text - gold text - xl`}>
-            closed
-          </div>
+          <div className={`${poppins.className} text-gold text-xl`}>closed</div>
         )}
 
         {proposal.timeEnd.getTime() > new Date().getTime() ? (
-          <div className={`${poppinsBold.className} text - dark text - xl`}>
+          <div className={`${poppinsBold.className} text-dark text-xl`}>
             {moment(proposal.timeEnd).fromNow(true)}
           </div>
         ) : (
-          <div className={`${poppinsBold.className} text - gold text - xl`}>
+          <div className={`${poppinsBold.className} text-gold text-xl`}>
             {moment(proposal.timeEnd).fromNow(true)}
             {" ago"}
           </div>

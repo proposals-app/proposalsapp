@@ -34,7 +34,7 @@ export const StateFilter = () => {
 
   useEffect(() => {
     if (!queryState && router)
-      router.push("?" + setQuery("state", StateFilterEnum.OPEN));
+      router.push("?" + setQuery("state", StateFilterEnum.ALL));
   }, [queryState, router]);
 
   return (

@@ -75,7 +75,7 @@ export function LoadMore({ searchParams }: ItemsProps) {
         ))}
       </div>
 
-      <div className="w-full flex justify-center p-4">
+      <div className="w-full flex justify-center p-4 text-gold text-2xl">
         {hasMore ? (
           <div ref={ref}>{loadingMessage}</div>
         ) : (
