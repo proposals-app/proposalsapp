@@ -155,7 +155,9 @@ export const SignInButton = () => {
                       <div className="items-top flex space-x-2">
                         <Checkbox
                           id="terms1"
-                          onCheckedChange={() => setTermsAgreed(!termsAgreed)}
+                          onCheckedChange={(e) =>
+                            setTermsAgreed(typeof e === "boolean" ? e : false)
+                          }
                         />
                         <div className="grid gap-1.5 leading-none">
                           <label
