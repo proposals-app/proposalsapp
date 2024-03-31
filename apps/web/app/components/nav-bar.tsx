@@ -33,20 +33,6 @@ export default async function NavBar() {
         <Suspense>
           {!user && <SignInButton />}
           {user && user.email_verified && <SignOutButton />}
-          {user && user.email_verified && userVoters && (
-            <OnboardingVoterModal open={!userVoters.length} />
-          )}
-          {user &&
-            user.email_verified &&
-            userVoters &&
-            userVoters.length &&
-            subscriptions &&
-            hotDaos && (
-              <OnboardingSubscriptionModal
-                open={!subscriptions.length}
-                hotDaos={hotDaos}
-              />
-            )}
         </Suspense>
       </div>
     </div>

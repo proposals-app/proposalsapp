@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { validateRequest } from "@/lib/auth";
 import { SessionProvider } from "./components/session-provider";
 import NavBar from "./components/nav-bar";
+import OnboardingFlow from "./components/onboarding/onboarding";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? "https://proposals.app"),
@@ -43,6 +44,7 @@ export default async function RootLayout({
             <div className="w-full px-4 md:px-0 max-w-6xl flex flex-col pt-14 pb-40 gap-12">
               <NavBar />
               {children}
+              <OnboardingFlow />
             </div>
           </div>
         </SessionProvider>

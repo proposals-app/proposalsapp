@@ -3,7 +3,6 @@
 import { Button } from "@/shadcn/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogTitle,
@@ -28,11 +27,6 @@ const manjari = Manjari({
 });
 
 const poppins300 = Poppins({
-  weight: "300",
-  subsets: ["latin"],
-});
-
-const poppins400 = Poppins({
   weight: "300",
   subsets: ["latin"],
 });
