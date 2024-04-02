@@ -15,7 +15,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-amqprs = "1.5.3"
+amqprs = "1.5.4"
 anyhow = "1.0.81"
 async-trait = "0.1.79"
 chrono = "0.4.37"
