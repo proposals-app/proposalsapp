@@ -5,6 +5,7 @@
   "type": "module",
   "workspaces": [
     "apps/web",
+    "apps/ai_playground",
     "apps/emails/*",
     "libs/ts/*",
     "libs/ts/emails/.react-email"
@@ -26,11 +27,11 @@
   },
   "devDependencies": {
     "@tsconfig/node18": "18.2.4",
-    "@tsconfig/recommended": "^1.0.5",
+    "@tsconfig/recommended": "^1.0.6",
     "constructs": "10.3.0",
     "dotenv": "16.4.5",
     "prettier": "^3.2.5",
-    "typescript": "5.4.3"
+    "typescript": "5.4.4"
   },
   "engines": {
     "node": "20"
