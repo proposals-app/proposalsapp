@@ -23,6 +23,14 @@ export async function sendBulletin(userId: string) {
 
   let bulletin_data: DailyBulletinData = await getBulletinData(user.id);
 
+  if (
+    bulletin_data.endedProposals.length == 0 &&
+    bulletin_data.endingSoonProposals.length == 0 &&
+    bulletin_data.newProposals.length == 0
+  ) {
+    console.log(`skipped empty bulletin for ${userId}`);
+    return;
+  }
   const emailHtml = render(DailyBulletinEmail(bulletin_data));
 
   const options = {

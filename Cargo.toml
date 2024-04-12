@@ -16,8 +16,8 @@ resolver = "2"
 
 [workspace.dependencies]
 amqprs = "1.5.4"
-anyhow = "1.0.81"
-async-trait = "0.1.79"
+anyhow = "1.0.82"
+async-trait = "0.1.80"
 chrono = "0.4.37"
 dotenv = "0.15.0"
 ethers = "2.0.14"

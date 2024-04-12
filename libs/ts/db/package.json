@@ -16,12 +16,12 @@
     "@proposalsapp/db": "*",
     "dotenv": "^16.4.5",
     "kysely": "0.27.3",
-    "mysql2": "^3.9.3"
+    "mysql2": "^3.9.4"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
     "prisma": "^5.12.1",
     "prisma-kysely": "1.8.0",
-    "typescript": "^5.4.4"
+    "typescript": "^5.4.5"
   }
 }
