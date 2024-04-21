@@ -108,8 +108,10 @@ async fn data_for_proposal(
         .context("bad block")?
         .time()?
         .naive_utc()
+        .and_utc()
         .timestamp();
 
+    #[allow(deprecated)]
     let created_block_time = NaiveDateTime::from_timestamp_millis(created_block_timestamp * 1000)
         .context("bad timestamp")?;
 
@@ -131,12 +133,14 @@ async fn data_for_proposal(
 
     let voting_starts_timestamp = epochs_start + onchain_proposal.2.as_u64() * epoch_duration;
 
+    #[allow(deprecated)]
     let voting_starts_time =
         NaiveDateTime::from_timestamp_millis((voting_starts_timestamp * 1000).try_into().unwrap())
             .context("bad timestamp")?;
 
     let voting_ends_timestamp = epochs_start + (onchain_proposal.2.as_u64() + 1) * epoch_duration;
 
+    #[allow(deprecated)]
     let voting_ends_time =
         NaiveDateTime::from_timestamp_millis((voting_ends_timestamp * 1000).try_into().unwrap())
             .context("bad timestamp")?;

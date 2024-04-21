@@ -19,7 +19,7 @@ use seaorm::{dao_handler, proposal, vote, voter};
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use tokio::sync::Notify;
-use tracing::{info, instrument, warn};
+use tracing::{info, warn};
 use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
 use utils::telemetry::setup_telemetry;
 use utils::types::{VotesJob, VotesResponse};
@@ -98,6 +98,12 @@ async fn main() -> Result<()> {
 }
 
 pub struct VotesConsumer {}
+impl Default for VotesConsumer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VotesConsumer {
     pub fn new() -> Self {
         Self {}
@@ -170,7 +176,7 @@ async fn run(job: VotesJob) -> Result<()> {
                 updated_votes,
             } = store_proposal_votes(&votes, &db).await?;
 
-            let new_index = update_proposal_index(&votes, &proposal, &&db).await?;
+            let new_index = update_proposal_index(&votes, &proposal, &db).await?;
 
             let response = VotesResponse {
                 inserted_votes,
@@ -395,7 +401,6 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
     }
 }
 
-#[instrument(skip_all)]
 async fn store_voters(parsed_votes: &[vote::ActiveModel], db: &DatabaseConnection) -> Result<()> {
     let voters = parsed_votes
         .iter()
@@ -440,7 +445,6 @@ async fn store_voters(parsed_votes: &[vote::ActiveModel], db: &DatabaseConnectio
     Ok(())
 }
 
-#[instrument(skip_all)]
 async fn update_dao_index(
     parsed_votes: &[vote::ActiveModel],
     dao_handler: &dao_handler::Model,
@@ -478,7 +482,6 @@ async fn update_dao_index(
     Ok(new_index)
 }
 
-#[instrument(skip_all)]
 async fn update_proposal_index(
     parsed_votes: &[vote::ActiveModel],
     proposal: &proposal::Model,
@@ -513,7 +516,6 @@ struct StoredVotes {
     updated_votes: u32,
 }
 
-#[instrument(skip_all)]
 async fn store_dao_votes(
     parsed_votes: &[vote::ActiveModel],
     dao_handler: &dao_handler::Model,
@@ -677,7 +679,6 @@ async fn store_dao_votes(
     })
 }
 
-#[instrument(skip_all)]
 async fn store_proposal_votes(
     parsed_votes: &[vote::ActiveModel],
     db: &DatabaseConnection,
@@ -729,7 +730,6 @@ async fn store_proposal_votes(
     })
 }
 
-#[instrument(skip_all)]
 async fn get_dao_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesResult> {
     let votes = match dao_handler.handler_type {
         HandlerType::Snapshot => todo!(),
@@ -820,7 +820,6 @@ async fn get_dao_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesRes
     Ok(votes)
 }
 
-#[instrument(skip_all)]
 async fn get_proposal_votes(
     dao_handler: &dao_handler::Model,
     proposal: &proposal::Model,

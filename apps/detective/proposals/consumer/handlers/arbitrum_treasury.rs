@@ -12,7 +12,7 @@ use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
-use tracing::{info, instrument, warn};
+use tracing::{info, warn};
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
@@ -21,7 +21,6 @@ struct Decoder {
     proposalUrl: String,
 }
 
-#[instrument(skip_all)]
 pub async fn arbitrum_treasury_proposals(
     dao_handler: &dao_handler::Model,
 ) -> Result<ChainProposalsResult> {
@@ -80,7 +79,6 @@ pub async fn arbitrum_treasury_proposals(
     })
 }
 
-#[instrument(skip_all)]
 async fn data_for_proposal(
     p: (
         contracts::gen::arbitrum_treasury_gov::ProposalCreatedFilter,
@@ -106,8 +104,9 @@ async fn data_for_proposal(
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
+            #[allow(deprecated)]
             let fallback = NaiveDateTime::from_timestamp_millis(
-                (created_block_timestamp.timestamp() * 1000)
+                (created_block_timestamp.and_utc().timestamp() * 1000)
                     + (voting_start_block_number as i64 - created_block_number as i64) * 250,
             )
             .context("bad timestamp")?;
@@ -123,8 +122,9 @@ async fn data_for_proposal(
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
         Err(_) => {
+            #[allow(deprecated)]
             let fallback = NaiveDateTime::from_timestamp_millis(
-                created_block_timestamp.timestamp() * 1000
+                created_block_timestamp.and_utc().timestamp() * 1000
                     + (voting_end_block_number - created_block_number) as i64 * 250,
             )
             .context("bad timestamp")?;

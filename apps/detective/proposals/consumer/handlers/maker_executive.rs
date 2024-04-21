@@ -17,7 +17,6 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
-use tracing::instrument;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
@@ -31,7 +30,6 @@ const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
 const VOTE_SINGLE_ACTION_TOPIC: &str =
     "0xa69beaba00000000000000000000000000000000000000000000000000000000";
 
-#[instrument(skip_all)]
 pub async fn maker_executive_proposals(
     dao_handler: &dao_handler::Model,
 ) -> Result<ChainProposalsResult> {
@@ -148,7 +146,7 @@ async fn data_for_proposal(
         .unwrap() as f64
         / (10.0f64.powi(18));
 
-    let block_created = estimate_block(created_timestamp.timestamp() as u64).await?;
+    let block_created = estimate_block(created_timestamp.and_utc().timestamp() as u64).await?;
 
     let state = if proposal_data.spellData.hasBeenCast {
         ProposalState::Executed

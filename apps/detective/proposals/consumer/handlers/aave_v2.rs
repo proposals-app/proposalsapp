@@ -17,7 +17,6 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::instrument;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
@@ -26,7 +25,6 @@ struct Decoder {
     proposalUrl: String,
 }
 
-#[instrument(skip_all)]
 pub async fn aave_v2_proposals(dao_handler: &dao_handler::Model) -> Result<ChainProposalsResult> {
     let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
     let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
@@ -83,7 +81,6 @@ pub async fn aave_v2_proposals(dao_handler: &dao_handler::Model) -> Result<Chain
     })
 }
 
-#[instrument(skip_all)]
 async fn data_for_proposal(
     p: (contracts::gen::aave_v_2_gov::ProposalCreatedFilter, LogMeta),
     rpc: &Arc<Provider<Http>>,
@@ -105,8 +102,9 @@ async fn data_for_proposal(
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            (created_block_timestamp.timestamp() * 1000)
+            (created_block_timestamp.and_utc().timestamp() * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 12 * 1000,
         )
         .context("bad timestamp")?,
@@ -114,8 +112,9 @@ async fn data_for_proposal(
 
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            created_block_timestamp.timestamp() * 1000
+            created_block_timestamp.and_utc().timestamp() * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 12 * 1000,
         )
         .context("bad timestamp")?,

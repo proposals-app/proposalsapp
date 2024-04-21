@@ -6,7 +6,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
     vec![
         DaoSeedData {
             name: "Aave".to_string(),
-            slug: "aave".to_string().into(),
+            slug: "aave".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/aave".to_string(),
@@ -75,7 +75,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "Compound".to_string(),
-            slug: "compound".to_string().into(),
+            slug: "compound".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/compound".to_string(),
@@ -104,7 +104,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "dYdX".to_string(),
-            slug: "dydx".to_string().into(),
+            slug: "dydx".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/dYdX".to_string(),
@@ -133,7 +133,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "ENS".to_string(),
-            slug: "ens".to_string().into(),
+            slug: "ens".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/ens".to_string(),
@@ -162,7 +162,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "Gitcoin".to_string(),
-            slug: "gitcoin".to_string().into(),
+            slug: "gitcoin".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/gitcoin".to_string(),
@@ -200,7 +200,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "Hop Protocol".to_string(),
-            slug: "hop_protocol".to_string().into(),
+            slug: "hop_protocol".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/hop-protocol".to_string(),
@@ -229,7 +229,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "Uniswap".to_string(),
-            slug: "uniswap".to_string().into(),
+            slug: "uniswap".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/uniswap".to_string(),
@@ -258,7 +258,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "Optimism".to_string(),
-            slug: "optimism".to_string().into(),
+            slug: "optimism".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/optimism".to_string(),
@@ -287,7 +287,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "Arbitrum DAO".to_string(),
-            slug: "arbitrum_dao".to_string().into(),
+            slug: "arbitrum_dao".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/arbitrum".to_string(),
@@ -325,7 +325,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "Frax".to_string(),
-            slug: "frax".to_string().into(),
+            slug: "frax".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/frax".to_string(),
@@ -363,7 +363,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "Nouns".to_string(),
-            slug: "nouns".to_string().into(),
+            slug: "nouns".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/nouns".to_string(),
@@ -381,7 +381,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
         },
         DaoSeedData {
             name: "MakerDAO".to_string(),
-            slug: "makerdao".to_string().into(),
+            slug: "makerdao".to_string(),
             hot: 1,
             settings: SettingsData {
                 picture: "assets/project-logos/makerdao".to_string(),

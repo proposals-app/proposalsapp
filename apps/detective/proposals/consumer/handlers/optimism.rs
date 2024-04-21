@@ -17,7 +17,6 @@ use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
-use tracing::instrument;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
@@ -26,7 +25,6 @@ struct Decoder {
     proposalUrl: String,
 }
 
-#[instrument(skip_all)]
 pub async fn optimism_proposals(dao_handler: &dao_handler::Model) -> Result<ChainProposalsResult> {
     let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
     let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
@@ -149,7 +147,6 @@ pub async fn optimism_proposals(dao_handler: &dao_handler::Model) -> Result<Chai
     })
 }
 
-#[instrument(skip_all)]
 async fn data_for_proposal_one(
     p: (
         contracts::gen::optimism_gov_v_6::ProposalCreated1Filter,
@@ -185,8 +182,9 @@ async fn data_for_proposal_one(
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            (created_block_timestamp.timestamp() * 1000)
+            (created_block_timestamp.and_utc().timestamp() * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
         )
         .context("bad timestamp")?,
@@ -194,8 +192,9 @@ async fn data_for_proposal_one(
 
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            created_block_timestamp.timestamp() * 1000
+            created_block_timestamp.and_utc().timestamp() * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
         )
         .context("bad timestamp")?,
@@ -291,7 +290,6 @@ async fn data_for_proposal_one(
     })
 }
 
-#[instrument(skip_all)]
 async fn data_for_proposal_two(
     p: (
         contracts::gen::optimism_gov_v_6::ProposalCreated2Filter,
@@ -316,8 +314,9 @@ async fn data_for_proposal_two(
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            (created_block_timestamp.timestamp() * 1000)
+            (created_block_timestamp.and_utc().timestamp() * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 12 * 1000,
         )
         .context("bad timestamp")?,
@@ -325,8 +324,9 @@ async fn data_for_proposal_two(
 
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            created_block_timestamp.timestamp() * 1000
+            created_block_timestamp.and_utc().timestamp() * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 12 * 1000,
         )
         .context("bad timestamp")?,
@@ -434,7 +434,6 @@ async fn data_for_proposal_two(
     })
 }
 
-#[instrument(skip_all)]
 async fn data_for_proposal_three(
     p: (
         contracts::gen::optimism_gov_v_6::ProposalCreated3Filter,
@@ -470,8 +469,9 @@ async fn data_for_proposal_three(
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            (created_block_timestamp.timestamp() * 1000)
+            (created_block_timestamp.and_utc().timestamp() * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
         )
         .context("bad timestamp")?,
@@ -479,8 +479,9 @@ async fn data_for_proposal_three(
 
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            created_block_timestamp.timestamp() * 1000
+            created_block_timestamp.and_utc().timestamp() * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
         )
         .context("bad timestamp")?,
@@ -590,7 +591,6 @@ async fn data_for_proposal_three(
     })
 }
 
-#[instrument(skip_all)]
 async fn data_for_proposal_four(
     p: (
         contracts::gen::optimism_gov_v_6::ProposalCreated4Filter,
@@ -626,8 +626,9 @@ async fn data_for_proposal_four(
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            (created_block_timestamp.timestamp() * 1000)
+            (created_block_timestamp.and_utc().timestamp() * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
         )
         .context("bad timestamp")?,
@@ -635,8 +636,9 @@ async fn data_for_proposal_four(
 
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            created_block_timestamp.timestamp() * 1000
+            created_block_timestamp.and_utc().timestamp() * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
         )
         .context("bad timestamp")?,

@@ -13,7 +13,6 @@ use sea_orm::Set;
 use seaorm::{dao_handler, vote};
 use serde::Deserialize;
 use std::sync::Arc;
-use tracing::instrument;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
@@ -21,7 +20,6 @@ struct Decoder {
     address: String,
 }
 
-#[instrument(skip_all)]
 pub async fn compound_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesResult> {
     let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
     let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
@@ -65,7 +63,6 @@ pub async fn compound_votes(dao_handler: &dao_handler::Model) -> Result<ChainVot
     })
 }
 
-#[instrument(skip_all)]
 fn get_votes(
     logs: Vec<(VoteCastFilter, LogMeta)>,
     dao_handler: &dao_handler::Model,

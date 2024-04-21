@@ -15,7 +15,6 @@ use seaorm::{dao_handler, vote};
 use serde::Deserialize;
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::instrument;
 
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]
@@ -23,7 +22,6 @@ struct Decoder {
     address_vote: String,
 }
 
-#[instrument(skip_all)]
 pub async fn maker_poll_arbitrum_votes(
     dao_handler: &dao_handler::Model,
 ) -> Result<ChainVotesResult> {
@@ -74,7 +72,6 @@ pub async fn maker_poll_arbitrum_votes(
     })
 }
 
-#[instrument(skip_all)]
 async fn get_votes(
     logs: Vec<(VotedFilter, LogMeta)>,
     dao_handler: &dao_handler::Model,

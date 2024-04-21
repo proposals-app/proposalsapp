@@ -17,7 +17,7 @@ use seaorm::sea_orm_active_enums::{HandlerType, ProposalState};
 use seaorm::{dao_handler, proposal};
 use std::collections::HashSet;
 use tokio::sync::Notify;
-use tracing::{info, instrument, warn};
+use tracing::{info, warn};
 use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
 use utils::telemetry::setup_telemetry;
 use utils::types::{ProposalsJob, ProposalsResponse};
@@ -93,6 +93,12 @@ async fn main() -> Result<()> {
 }
 
 pub struct ProposalsConsumer {}
+impl Default for ProposalsConsumer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProposalsConsumer {
     pub fn new() -> Self {
         Self {}
@@ -295,7 +301,6 @@ async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip_all)]
 async fn update_index(
     parsed_proposals: &[proposal::ActiveModel],
     dao_handler: &dao_handler::Model,
@@ -337,7 +342,6 @@ struct StoredProposals {
     updated_proposals: u32,
 }
 
-#[instrument(skip_all)]
 async fn store_proposals(
     parsed_proposals: &[proposal::ActiveModel],
     db: &DatabaseConnection,
@@ -390,7 +394,6 @@ async fn store_proposals(
     })
 }
 
-#[instrument(skip_all)]
 async fn get_proposals(dao_handler: &dao_handler::Model) -> Result<ChainProposalsResult> {
     let proposals = match dao_handler.handler_type {
         HandlerType::Snapshot => handlers::snapshot::snapshot_proposals(dao_handler)

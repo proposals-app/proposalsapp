@@ -13,7 +13,6 @@ use sea_orm::Set;
 use seaorm::{dao_handler, vote};
 use serde::Deserialize;
 use std::sync::Arc;
-use tracing::instrument;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
@@ -21,7 +20,6 @@ struct Decoder {
     address: String,
 }
 
-#[instrument(skip_all)]
 pub async fn optimism_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesResult> {
     let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
     let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
@@ -78,7 +76,6 @@ pub async fn optimism_votes(dao_handler: &dao_handler::Model) -> Result<ChainVot
     })
 }
 
-#[instrument(skip_all)]
 fn get_votes(
     logs: Vec<(VoteCastFilter, LogMeta)>,
     dao_handler: &dao_handler::Model,
@@ -107,7 +104,6 @@ fn get_votes(
     Ok(votes)
 }
 
-#[instrument(skip_all)]
 fn get_votes_with_params(
     logs: Vec<(VoteCastWithParamsFilter, LogMeta)>,
     dao_handler: &dao_handler::Model,

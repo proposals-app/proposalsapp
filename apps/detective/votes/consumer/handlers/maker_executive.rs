@@ -14,7 +14,6 @@ use sea_orm::Set;
 use seaorm::{dao_handler, vote};
 use serde::Deserialize;
 use std::sync::Arc;
-use tracing::instrument;
 
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]
@@ -27,7 +26,6 @@ const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
 const VOTE_SINGLE_ACTION_TOPIC: &str =
     "0xa69beaba00000000000000000000000000000000000000000000000000000000";
 
-#[instrument(skip_all)]
 pub async fn maker_executive_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesResult> {
     let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
     let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());

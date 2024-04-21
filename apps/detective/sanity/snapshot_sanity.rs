@@ -10,7 +10,7 @@ use seaorm::sea_orm_active_enums::ProposalState;
 use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use tokio::time;
-use tracing::{info, instrument};
+use tracing::info;
 use utils::telemetry::setup_telemetry;
 
 #[derive(Debug, Deserialize)]
@@ -62,7 +62,6 @@ async fn run() -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip_all)]
 pub async fn snapshot_sanity_check(db: &DatabaseConnection) -> Result<()> {
     let sanitize_from: NaiveDateTime = (Utc::now() - Duration::days(90)).naive_utc();
     let sanitize_to: NaiveDateTime = (Utc::now() - Duration::minutes(5)).naive_utc();
@@ -82,7 +81,6 @@ pub async fn snapshot_sanity_check(db: &DatabaseConnection) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip_all)]
 async fn sanitize(
     dao_handler: &dao_handler::Model,
     sanitize_from: chrono::NaiveDateTime,
@@ -120,8 +118,8 @@ async fn sanitize(
         }}
     "#,
         decoder.snapshot_space,
-        sanitize_from.timestamp(),
-        sanitize_to.timestamp()
+        sanitize_from.and_utc().timestamp(),
+        sanitize_to.and_utc().timestamp()
     );
 
     let graphql_response = reqwest::Client::new()

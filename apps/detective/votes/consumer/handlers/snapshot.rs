@@ -51,7 +51,7 @@ pub async fn snapshot_votes(
                     space: "{}",
                     created_gt: {}
                 }}
-            ) 
+            )
             {{
                 voter
                 reason
@@ -111,6 +111,7 @@ async fn parse_votes(
             voting_power: Set(graphql_vote.vp),
             vp_state: Set(graphql_vote.vp_state.into()),
             block_created: NotSet,
+            #[allow(deprecated)]
             time_created: Set(
                 NaiveDateTime::from_timestamp_millis(graphql_vote.created * 1000)
                     .expect("can not create timestart")

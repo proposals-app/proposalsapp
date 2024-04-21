@@ -133,16 +133,19 @@ async fn parse_proposals(
             scores_total: Set(graphql_proposal.scores_total),
             quorum: Set(graphql_proposal.quorum),
             block_created: NotSet,
+            #[allow(deprecated)]
             time_created: Set(Some(
                 NaiveDateTime::from_timestamp_millis(graphql_proposal.created * 1000)
                     .context("can not create timestart")
                     .unwrap(),
             )),
+            #[allow(deprecated)]
             time_start: Set(
                 NaiveDateTime::from_timestamp_millis(graphql_proposal.start * 1000)
                     .context("can not create timestart")
                     .unwrap(),
             ),
+            #[allow(deprecated)]
             time_end: Set(
                 NaiveDateTime::from_timestamp_millis(graphql_proposal.end * 1000)
                     .context("can not create timeend")

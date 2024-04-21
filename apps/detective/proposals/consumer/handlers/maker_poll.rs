@@ -15,7 +15,6 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
-use tracing::instrument;
 
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]
@@ -24,7 +23,6 @@ struct Decoder {
     proposalUrl: String,
 }
 
-#[instrument(skip_all)]
 pub async fn maker_poll_proposals(
     dao_handler: &dao_handler::Model,
 ) -> Result<ChainProposalsResult> {
@@ -80,7 +78,6 @@ pub async fn maker_poll_proposals(
     })
 }
 
-#[instrument(skip_all)]
 async fn data_for_proposal(
     p: (
         contracts::gen::maker_poll_create::PollCreatedFilter,
@@ -99,10 +96,12 @@ async fn data_for_proposal(
         .context("rpc.get_block")?;
     let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
 
+    #[allow(deprecated)]
     let mut voting_starts_timestamp =
         NaiveDateTime::from_timestamp_millis((log.start_date.as_u64() * 1000).try_into().unwrap())
             .context("voting_starts_timestamp")?;
 
+    #[allow(deprecated)]
     let mut voting_ends_timestamp =
         NaiveDateTime::from_timestamp_millis((log.end_date.as_u64() * 1000).try_into().unwrap())
             .context("voting_ends_timestamp")?;
@@ -153,7 +152,7 @@ async fn data_for_proposal(
         scores_total += res.mkrSupport.as_str().unwrap().parse::<f64>()? / (10.0f64.powi(18));
     }
 
-    let state = if voting_ends_timestamp.timestamp() < Utc::now().timestamp() {
+    let state = if voting_ends_timestamp.and_utc().timestamp() < Utc::now().timestamp() {
         ProposalState::Executed
     } else {
         ProposalState::Active

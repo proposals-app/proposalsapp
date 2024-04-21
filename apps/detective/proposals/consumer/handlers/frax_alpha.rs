@@ -11,7 +11,6 @@ use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
-use tracing::instrument;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
@@ -20,7 +19,6 @@ struct Decoder {
     proposalUrl: String,
 }
 
-#[instrument(skip_all)]
 pub async fn frax_alpha_proposals(
     dao_handler: &dao_handler::Model,
 ) -> Result<ChainProposalsResult> {
@@ -79,7 +77,6 @@ pub async fn frax_alpha_proposals(
     })
 }
 
-#[instrument(skip_all)]
 async fn data_for_proposal(
     p: (
         contracts::gen::frax_alpha_gov::ProposalCreatedFilter,
@@ -99,10 +96,12 @@ async fn data_for_proposal(
         .context("rpc.get_block")?;
     let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
 
+    #[allow(deprecated)]
     let voting_starts_timestamp =
         NaiveDateTime::from_timestamp_millis((log.vote_start.as_u64() * 1000).try_into().unwrap())
             .unwrap();
 
+    #[allow(deprecated)]
     let voting_ends_timestamp =
         NaiveDateTime::from_timestamp_millis((log.vote_end.as_u64() * 1000).try_into().unwrap())
             .unwrap();

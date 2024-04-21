@@ -68,7 +68,7 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
                     id: Set(d.clone().id),
                     name: Set(dao_data.name.clone()),
                     slug: Set(dao_data.slug.clone()),
-                    hot: Set(dao_data.hot.clone()),
+                    hot: Set(dao_data.hot),
                 })
                 .exec(db)
                 .await?;
@@ -78,7 +78,7 @@ async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Resu
                 let dao = dao::ActiveModel {
                     name: Set(dao_data.name.clone()),
                     slug: Set(dao_data.slug.clone()),
-                    hot: Set(dao_data.hot.clone()),
+                    hot: Set(dao_data.hot),
                     ..Default::default()
                 };
                 dao::Entity::insert(dao).exec(db).await?;

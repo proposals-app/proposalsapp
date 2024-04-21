@@ -96,8 +96,9 @@ async fn data_for_proposal(
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            (created_block_timestamp.timestamp() * 1000)
+            (created_block_timestamp.and_utc().timestamp() * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 12 * 1000,
         )
         .context("bad timestamp")?,
@@ -105,8 +106,9 @@ async fn data_for_proposal(
 
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
+        #[allow(deprecated)]
         Err(_) => NaiveDateTime::from_timestamp_millis(
-            created_block_timestamp.timestamp() * 1000
+            created_block_timestamp.and_utc().timestamp() * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 12 * 1000,
         )
         .context("bad timestamp")?,

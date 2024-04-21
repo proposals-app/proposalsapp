@@ -35,6 +35,7 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
     if block_number < current_block.as_u64() {
         let block = provider.get_block(block_number).await?;
 
+        #[allow(deprecated)]
         let result: NaiveDateTime =
             NaiveDateTime::from_timestamp_millis(block.unwrap().timestamp.as_u64() as i64 * 1000)
                 .context("bad timestamp")?;
@@ -63,6 +64,7 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
             Ok(res) => {
                 let contents = res.text().await?;
                 let data = match serde_json::from_str::<EstimateTimestamp>(&contents) {
+                    #[allow(deprecated)]
                     Ok(d) => NaiveDateTime::from_timestamp_millis(
                         Utc::now().timestamp() * 1000
                             + d.result.EstimateTimeInSec.parse::<f64>()? as i64 * 1000,
@@ -81,6 +83,7 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                 tokio::time::sleep(backoff_duration).await;
             }
             _ => {
+                #[allow(deprecated)]
                 return NaiveDateTime::from_timestamp_millis(Utc::now().timestamp() * 1000)
                     .context("bad timestamp");
             }
