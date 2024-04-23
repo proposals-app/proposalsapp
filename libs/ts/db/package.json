@@ -12,15 +12,15 @@
     "db:push": "prisma db push"
   },
   "dependencies": {
-    "@prisma/client": "^5.12.1",
+    "@prisma/client": "^5.13.0",
     "@proposalsapp/db": "*",
     "dotenv": "^16.4.5",
     "kysely": "0.27.3",
-    "mysql2": "^3.9.6"
+    "mysql2": "^3.9.7"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
-    "prisma": "^5.12.1",
+    "prisma": "^5.13.0",
     "prisma-kysely": "1.8.0",
     "typescript": "^5.4.5"
   }
