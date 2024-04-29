@@ -2,14 +2,14 @@
 members = [
     "apps/detective/proposals/consumer",
     "apps/detective/proposals/producer",
+    "apps/detective/sanity",
     "apps/detective/votes/consumer",
     "apps/detective/votes/producer",
     "apps/seed",
-    "apps/detective/sanity",
+    "libs/rust/contracts",
     "libs/rust/scanners",
     "libs/rust/seaorm",
     "libs/rust/utils",
-    "libs/rust/contracts",
 ]
 
 resolver = "2"

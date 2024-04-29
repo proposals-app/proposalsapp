@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = { workspace = true, features = ["backtrace"] }
 chrono = { workspace = true }
 ethers = { workspace = true }
-anyhow = { workspace = true, features = ["backtrace"] }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware = { workspace = true }
 reqwest-retry = { workspace = true }
