@@ -28,14 +28,10 @@ async fn main() -> Result<()> {
 
     let mut interval = time::interval(std::time::Duration::from_secs(5 * 60));
 
-    tokio::spawn(async move {
-        loop {
-            interval.tick().await;
-            produce_jobs().await.unwrap();
-        }
-    });
-
-    Ok(())
+    loop {
+        interval.tick().await;
+        produce_jobs().await.unwrap();
+    }
 }
 
 async fn produce_jobs() -> Result<()> {
