@@ -40,7 +40,6 @@ async fn main() -> Result<()> {
 
 async fn produce_jobs() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
-
     let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
 
     let args: OpenConnectionArguments = rabbitmq_url.as_str().try_into().unwrap();
@@ -58,7 +57,7 @@ async fn produce_jobs() -> Result<()> {
         .finish();
     let (_, message_count, _) = channel.queue_declare(queue).await.unwrap().unwrap();
 
-    if message_count > 1000 {
+    if (message_count > 1000) {
         return Ok(());
     }
 
