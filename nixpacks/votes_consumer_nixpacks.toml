@@ -6,10 +6,7 @@ buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 NIXPACKS_METADATA = 'rust'
 
 [start]
-cmds = [
-    'apt-get update && apt-get install -y curl wget',
-    './bin/votes_consumer',
-]
+cmd = './bin/votes_consumer'
 runImage = 'ubuntu:jammy'
 onlyIncludeFiles = ['./bin/votes_consumer']
 
@@ -22,6 +19,9 @@ cmds = [
     'cp target/x86_64-unknown-linux-musl/release/votes_consumer bin',
 ]
 cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
+
+[phases.setup]
+cmds = ['apt-get update && apt-get install -y curl wget']
 
 nixPkgs = [
     'binutils',
