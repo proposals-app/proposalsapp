@@ -1,4 +1,3 @@
-use actix_web::{get, App, HttpServer, Responder};
 use amqprs::channel::BasicPublishArguments;
 use amqprs::channel::QueueDeclareArguments;
 use amqprs::connection::Connection;
@@ -35,11 +34,6 @@ async fn main() -> Result<()> {
             produce_jobs().await.unwrap();
         }
     });
-
-    HttpServer::new(|| App::new().service(health_check))
-        .bind(("0.0.0.0", 80))?
-        .run()
-        .await?;
 
     Ok(())
 }
@@ -109,9 +103,4 @@ async fn produce_jobs() -> Result<()> {
     );
 
     Ok(())
-}
-
-#[get("/")]
-async fn health_check() -> impl Responder {
-    "OK"
 }

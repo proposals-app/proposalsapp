@@ -1,4 +1,3 @@
-use actix_web::{get, App, HttpServer, Responder};
 use amqprs::channel::{
     BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments, Channel,
     QueueDeclareArguments,
@@ -86,25 +85,11 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
-    tokio::spawn(async {
-        HttpServer::new(|| App::new().service(health_check))
-            .bind(("0.0.0.0", 80))
-            .expect("Cannot bind to port 80")
-            .run()
-            .await
-            .expect("Server failed");
-    });
-
     // consume forever
     let guard = Notify::new();
     guard.notified().await;
 
     Ok(())
-}
-
-#[get("/")]
-async fn health_check() -> impl Responder {
-    "OK"
 }
 
 pub struct ProposalsConsumer {}

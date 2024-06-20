@@ -1,4 +1,3 @@
-use actix_web::{get, App, HttpServer, Responder};
 use anyhow::{Context, Result};
 use chrono::{Duration, NaiveDateTime, Utc};
 use dotenv::dotenv;
@@ -48,11 +47,6 @@ async fn main() -> Result<()> {
             run().await.unwrap();
         }
     });
-
-    HttpServer::new(|| App::new().service(health_check))
-        .bind(("0.0.0.0", 80))?
-        .run()
-        .await?;
 
     Ok(())
 }
@@ -169,9 +163,4 @@ async fn sanitize(
     }
 
     Ok(())
-}
-
-#[get("/")]
-async fn health_check() -> impl Responder {
-    "OK"
 }
