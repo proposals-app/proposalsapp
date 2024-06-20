@@ -1,5 +1,4 @@
 providers = ['rust']
-
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [variables]
@@ -20,8 +19,6 @@ cmds = [
 cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
 
 [phases.setup]
-cmds = ['apt-get update && apt-get install -y curl wget']
-
 nixPkgs = [
     'binutils',
     'gcc',
