@@ -6,7 +6,10 @@ buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 NIXPACKS_METADATA = 'rust'
 
 [start]
-cmd = './bin/proposals_producer'
+cmds = [
+    'apt-get update && apt-get install -y curl wget',
+    './bin/proposals_producer',
+]
 runImage = 'ubuntu:jammy'
 onlyIncludeFiles = ['./bin/proposals_producer']
 

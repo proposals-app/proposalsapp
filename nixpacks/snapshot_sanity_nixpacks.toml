@@ -6,7 +6,10 @@ buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 NIXPACKS_METADATA = 'rust'
 
 [start]
-cmd = './bin/snapshot_sanity'
+cmds = [
+    'apt-get update && apt-get install -y curl wget',
+    './bin/snapshot_sanity',
+]
 runImage = 'ubuntu:jammy'
 onlyIncludeFiles = ['./bin/snapshot_sanity']
 
