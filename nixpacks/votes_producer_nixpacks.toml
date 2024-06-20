@@ -1,8 +1,9 @@
-providers = ['rust']
+[providers]
+rust = "default"
+
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [variables]
-NIXPACKS_METADATA = 'rust'
 
 [start]
 cmd = './bin/votes_producer'
@@ -18,7 +19,6 @@ cmds = [
 ]
 cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
 
-[phases.setup]
 nixPkgs = [
     'binutils',
     'gcc',
@@ -28,7 +28,3 @@ nixPkgs = [
     'wget',
     'curl',
 ]
-
-
-[phases.runtime]
-nixPkgs = ['curl', 'wget']
