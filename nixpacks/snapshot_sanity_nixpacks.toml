@@ -26,4 +26,9 @@ nixPkgs = [
     'musl',
     'musl.dev',
     'wget',
+    'curl',
 ]
+
+
+[phases.runtime]
+nixPkgs = ['curl', 'wget']
