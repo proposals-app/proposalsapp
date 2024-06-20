@@ -79,7 +79,7 @@
     "ua-parser-js": "^1.0.38",
     "vaul": "^0.9.1",
     "viem": "2.15.1",
-    "wagmi": "2.10.2",
+    "wagmi": "2.10.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
