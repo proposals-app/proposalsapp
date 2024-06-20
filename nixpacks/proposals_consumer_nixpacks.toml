@@ -1,5 +1,4 @@
-[providers]
-rust = "default"
+providers = ['rust']
 
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
