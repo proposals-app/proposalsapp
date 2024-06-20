@@ -1,308 +1,309 @@
 datasource db {
-    provider = "mysql"
-    url      = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 generator kysely_web {
-    provider     = "prisma-kysely"
-    output       = "src/"
-    fileName     = "kysely_db.ts"
-    enumFileName = "enums.ts"
-    camelCase    = true
+  provider     = "prisma-kysely"
+  output       = "src/"
+  fileName     = "kysely_db.ts"
+  enumFileName = "enums.ts"
+  camelCase    = true
 }
 
 model user {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    email          String  @unique
-    email_verified Boolean @default(false)
+  email          String  @unique
+  email_verified Boolean @default(false)
 
-    user_settings      user_settings?
-    email_verification email_verification?
-    user_session       user_session[]
+  user_settings      user_settings?
+  email_verification email_verification?
+  user_session       user_session[]
 
-    subscriptions subscription[]
-    voters        user_to_voter[]
-    notifications notification[]
+  subscriptions subscription[]
+  voters        user_to_voter[]
+  notifications notification[]
 }
 
 model user_session {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    user    user   @relation(fields: [user_id], references: [id])
-    user_id String
-    email   String
+  user    user   @relation(fields: [user_id], references: [id])
+  user_id String
+  email   String
 
-    expires_at DateTime
+  expires_at DateTime
 
-    @@index([user_id])
+  @@index([user_id])
 }
 
 model email_verification {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    user_id String @unique
+  user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_id String @unique
 
-    code String @default("")
+  code String @default("")
 
-    email      String
-    expires_at DateTime
+  email      String
+  expires_at DateTime
 }
 
 model user_settings {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    user_id String @unique
+  user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_id String @unique
 
-    email_daily_bulletin  Boolean @default(true)
-    email_quorum_warning  Boolean @default(true)
-    email_timeend_warning Boolean @default(true)
+  email_daily_bulletin  Boolean @default(true)
+  email_quorum_warning  Boolean @default(true)
+  email_timeend_warning Boolean @default(true)
 }
 
 model voter {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    address String          @unique
-    ens     String?
-    votes   vote[]
-    users   user_to_voter[]
+  address String          @unique
+  ens     String?
+  votes   vote[]
+  users   user_to_voter[]
 }
 
 model user_to_voter {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    user     user   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    user_id  String
-    voter    voter  @relation(fields: [voter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    voter_id String
+  user     user   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_id  String
+  voter    voter  @relation(fields: [voter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  voter_id String
 
-    @@unique([user_id, voter_id])
-    @@index([voter_id])
+  @@unique([user_id, voter_id])
+  @@index([voter_id])
 }
 
 model dao {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    name String  @unique
-    slug String  @unique
-    hot  Boolean @default(false)
+  name String  @unique
+  slug String  @unique
+  hot  Boolean @default(false)
 
-    settings dao_settings?
-    handlers dao_handler[]
+  settings dao_settings?
+  handlers dao_handler[]
 
-    proposals     proposal[]
-    subscriptions subscription[]
-    votes         vote[]
+  proposals     proposal[]
+  subscriptions subscription[]
+  votes         vote[]
 }
 
 model dao_settings {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    dao_id String @unique
-    dao    dao    @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dao_id String @unique
+  dao    dao    @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-    picture          String
-    background_color String @default("#5A5A5A")
+  picture          String
+  background_color String @default("#5A5A5A")
 
-    quorum_warning_email_support Boolean @default(false)
+  quorum_warning_email_support Boolean @default(false)
 
-    twitter_account Json?
+  twitter_account Json?
 }
 
 model dao_handler {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    handler_type DAOHandlerEnum
+  handler_type DAOHandlerEnum
 
-    decoder           Json   @default("{}")
-    governance_portal String @default("")
+  decoder           Json   @default("{}")
+  governance_portal String @default("")
 
-    proposals_refresh_speed BigInt @default(1000)
-    votes_refresh_speed     BigInt @default(1000)
+  refresh_enabled         Boolean @default(true)
+  proposals_refresh_speed BigInt  @default(1000)
+  votes_refresh_speed     BigInt  @default(1000)
 
-    proposals_index BigInt @default(0)
-    votes_index     BigInt @default(0)
+  proposals_index BigInt @default(0)
+  votes_index     BigInt @default(0)
 
-    dao_id    String
-    dao       dao        @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    proposals proposal[]
-    votes     vote[]
+  dao_id    String
+  dao       dao        @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  proposals proposal[]
+  votes     vote[]
 
-    @@unique([dao_id, handler_type])
+  @@unique([dao_id, handler_type])
 }
 
 model proposal {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    index_created BigInt @default(0)
+  index_created BigInt @default(0)
 
-    votes_fetched Boolean @default(false)
+  votes_fetched Boolean @default(false)
 
-    votes_refresh_speed BigInt @default(1000)
-    votes_index         BigInt @default(0)
+  votes_refresh_speed BigInt @default(1000)
+  votes_index         BigInt @default(0)
 
-    external_id String
+  external_id String
 
-    name           String @db.LongText
-    body           String @db.LongText
-    url            String @db.LongText
-    discussion_url String @db.LongText
+  name           String @db.LongText
+  body           String @db.LongText
+  url            String @db.LongText
+  discussion_url String @db.LongText
 
-    choices      Json  @default("[]")
-    scores       Json  @default("[]")
-    scores_total Float @db.Double
-    quorum       Float @db.Double
+  choices      Json  @default("[]")
+  scores       Json  @default("[]")
+  scores_total Float @db.Double
+  quorum       Float @db.Double
 
-    proposal_state ProposalStateEnum
-    flagged        Boolean           @default(false)
+  proposal_state ProposalStateEnum
+  flagged        Boolean           @default(false)
 
-    block_created BigInt?
-    time_created  DateTime?
-    time_start    DateTime
-    time_end      DateTime
+  block_created BigInt?
+  time_created  DateTime?
+  time_start    DateTime
+  time_end      DateTime
 
-    dao_handler_id String
-    dao_id         String
-    dao_handler    dao_handler    @relation(fields: [dao_handler_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    dao            dao            @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    votes          vote[]
-    notifications  notification[]
+  dao_handler_id String
+  dao_id         String
+  dao_handler    dao_handler    @relation(fields: [dao_handler_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dao            dao            @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  votes          vote[]
+  notifications  notification[]
 
-    @@unique([external_id, dao_handler_id])
-    @@index([dao_handler_id])
-    @@index([dao_id])
-    //performance indexes
-    @@index([proposal_state, dao_id])
-    @@index([time_end, name(length: 10)])
+  @@unique([external_id, dao_handler_id])
+  @@index([dao_handler_id])
+  @@index([dao_id])
+  //performance indexes
+  @@index([proposal_state, dao_id])
+  @@index([time_end, name(length: 10)])
 }
 
 model vote {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    index_created BigInt @default(0)
+  index_created BigInt @default(0)
 
-    voter_address String
-    choice        Json    @default("[]")
-    voting_power  Float   @db.Double
-    reason        String? @db.LongText
+  voter_address String
+  choice        Json    @default("[]")
+  voting_power  Float   @db.Double
+  reason        String? @db.LongText
 
-    proposal_external_id String
+  proposal_external_id String
 
-    block_created BigInt?
-    time_created  DateTime?
+  block_created BigInt?
+  time_created  DateTime?
 
-    vp_state String?
+  vp_state String?
 
-    proposal_id    String
-    dao_id         String
-    dao_handler_id String
-    voter          voter       @relation(fields: [voter_address], references: [address], onDelete: Cascade, onUpdate: NoAction)
-    proposal       proposal    @relation(fields: [proposal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    dao            dao         @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    dao_handler    dao_handler @relation(fields: [dao_handler_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  proposal_id    String
+  dao_id         String
+  dao_handler_id String
+  voter          voter       @relation(fields: [voter_address], references: [address], onDelete: Cascade, onUpdate: NoAction)
+  proposal       proposal    @relation(fields: [proposal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dao            dao         @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dao_handler    dao_handler @relation(fields: [dao_handler_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-    @@unique([proposal_id, voter_address])
-    @@index([dao_handler_id])
-    @@index([dao_id])
-    //performance indexes
-    @@index([voter_address])
-    @@index([time_created])
-    @@index([block_created])
+  @@unique([proposal_id, voter_address])
+  @@index([dao_handler_id])
+  @@index([dao_id])
+  //performance indexes
+  @@index([voter_address])
+  @@index([time_created])
+  @@index([block_created])
 }
 
 model subscription {
-    id String @id @default(dbgenerated("(uuid())"))
+  id String @id @default(dbgenerated("(uuid())"))
 
-    user_id String
-    dao_id  String
-    user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    dao     dao    @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_id String
+  dao_id  String
+  user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dao     dao    @relation(fields: [dao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-    @@unique([user_id, dao_id])
-    @@index([dao_id])
+  @@unique([user_id, dao_id])
+  @@index([dao_id])
 }
 
 model notification {
-    id          String  @id @default(dbgenerated("(uuid())"))
-    user_id     String?
-    proposal_id String?
+  id          String  @id @default(dbgenerated("(uuid())"))
+  user_id     String?
+  proposal_id String?
 
-    type           NotificationType
-    dispatchstatus NotificationDispatchedState @default(NOT_DISPATCHED)
-    submitted_at   DateTime
+  type           NotificationType
+  dispatchstatus NotificationDispatchedState @default(NOT_DISPATCHED)
+  submitted_at   DateTime
 
-    user     user?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    proposal proposal? @relation(fields: [proposal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user     user?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  proposal proposal? @relation(fields: [proposal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-    @@unique([user_id, proposal_id, type])
-    @@index(fields: [type])
-    @@index(fields: [proposal_id])
-    @@index(fields: [dispatchstatus])
-    @@index(fields: [user_id, type, dispatchstatus])
+  @@unique([user_id, proposal_id, type])
+  @@index(fields: [type])
+  @@index(fields: [proposal_id])
+  @@index(fields: [dispatchstatus])
+  @@index(fields: [user_id, type, dispatchstatus])
 }
 
 model countdown_cache {
-    id        String   @id @default(dbgenerated("(uuid())"))
-    time      DateTime
-    large_url String
-    small_url String
+  id        String   @id @default(dbgenerated("(uuid())"))
+  time      DateTime
+  large_url String
+  small_url String
 
-    @@index(fields: [time])
+  @@index(fields: [time])
 }
 
 enum NotificationDispatchedState {
-    NOT_DISPATCHED
-    FIRST_RETRY
-    SECOND_RETRY
-    THIRD_RETRY
-    DISPATCHED
-    DELETED
-    FAILED
+  NOT_DISPATCHED
+  FIRST_RETRY
+  SECOND_RETRY
+  THIRD_RETRY
+  DISPATCHED
+  DELETED
+  FAILED
 }
 
 enum NotificationType {
-    BULLETIN_EMAIL
-    QUORUM_NOT_REACHED_EMAIL
-    TIMEEND_EMAIL
+  BULLETIN_EMAIL
+  QUORUM_NOT_REACHED_EMAIL
+  TIMEEND_EMAIL
 }
 
 enum DAOHandlerEnum {
-    AAVE_V2_MAINNET
-    COMPOUND_MAINNET
-    UNISWAP_MAINNET
-    ENS_MAINNET
-    GITCOIN_MAINNET
-    GITCOIN_V2_MAINNET
-    HOP_MAINNET
-    DYDX_MAINNET
-    INTEREST_PROTOCOL_MAINNET
-    ZEROX_PROTOCOL_MAINNET
-    FRAX_ALPHA_MAINNET
-    FRAX_OMEGA_MAINNET
-    NOUNS_PROPOSALS_MAINNET
-    OP_OPTIMISM
-    ARB_CORE_ARBITRUM
-    ARB_TREASURY_ARBITRUM
-    MAKER_EXECUTIVE_MAINNET
-    MAKER_POLL_MAINNET
-    MAKER_POLL_ARBITRUM
-    AAVE_V3_MAINNET
-    AAVE_V3_POLYGON_POS
-    AAVE_V3_AVALANCHE
-    SNAPSHOT
+  AAVE_V2_MAINNET
+  COMPOUND_MAINNET
+  UNISWAP_MAINNET
+  ENS_MAINNET
+  GITCOIN_MAINNET
+  GITCOIN_V2_MAINNET
+  HOP_MAINNET
+  DYDX_MAINNET
+  INTEREST_PROTOCOL_MAINNET
+  ZEROX_PROTOCOL_MAINNET
+  FRAX_ALPHA_MAINNET
+  FRAX_OMEGA_MAINNET
+  NOUNS_PROPOSALS_MAINNET
+  OP_OPTIMISM
+  ARB_CORE_ARBITRUM
+  ARB_TREASURY_ARBITRUM
+  MAKER_EXECUTIVE_MAINNET
+  MAKER_POLL_MAINNET
+  MAKER_POLL_ARBITRUM
+  AAVE_V3_MAINNET
+  AAVE_V3_POLYGON_POS
+  AAVE_V3_AVALANCHE
+  SNAPSHOT
 }
 
 enum ProposalStateEnum {
-    PENDING
-    ACTIVE
-    CANCELED
-    DEFEATED
-    SUCCEEDED
-    QUEUED
-    EXPIRED
-    EXECUTED
-    HIDDEN
-    UNKNOWN
+  PENDING
+  ACTIVE
+  CANCELED
+  DEFEATED
+  SUCCEEDED
+  QUEUED
+  EXPIRED
+  EXECUTED
+  HIDDEN
+  UNKNOWN
 }

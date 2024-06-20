@@ -17,20 +17,20 @@ impl EntityName for Entity {
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
     pub id: String,
+    pub user_id: Option<String>,
+    pub proposal_id: Option<String>,
     pub r#type: Type,
     pub dispatchstatus: Dispatchstatus,
-    pub proposal_id: Option<String>,
-    pub user_id: Option<String>,
     pub submitted_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
+    UserId,
+    ProposalId,
     Type,
     Dispatchstatus,
-    ProposalId,
-    UserId,
     SubmittedAt,
 }
 
@@ -57,10 +57,10 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::String(Some(191u32)).def(),
+            Self::UserId => ColumnType::String(Some(191u32)).def().null(),
+            Self::ProposalId => ColumnType::String(Some(191u32)).def().null(),
             Self::Type => Type::db_type().def(),
             Self::Dispatchstatus => Dispatchstatus::db_type().def(),
-            Self::ProposalId => ColumnType::String(Some(191u32)).def().null(),
-            Self::UserId => ColumnType::String(Some(191u32)).def().null(),
             Self::SubmittedAt => ColumnType::DateTime.def(),
         }
     }

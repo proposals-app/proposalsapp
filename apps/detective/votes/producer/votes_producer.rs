@@ -65,6 +65,7 @@ async fn produce_jobs() -> Result<()> {
 
     let dao_handlers = dao_handler::Entity::find()
         .filter(dao_handler::Column::HandlerType.ne(HandlerType::Snapshot))
+        .filter(dao_handler::Column::RefreshEnabled.eq(1))
         .all(&db)
         .await
         .context("DB error")?;

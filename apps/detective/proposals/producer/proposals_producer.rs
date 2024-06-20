@@ -69,6 +69,7 @@ async fn produce_jobs() -> Result<()> {
             HandlerType::AaveV3PolygonPos,
             HandlerType::AaveV3Avalanche,
         ]))
+        .filter(dao_handler::Column::RefreshEnabled.eq(1))
         .all(&db)
         .await
         .context("DB error")?;

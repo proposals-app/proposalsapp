@@ -23,6 +23,7 @@ export type dao_handler = {
     handlerType: DAOHandlerEnum;
     decoder: Generated<unknown>;
     governancePortal: Generated<string>;
+    refreshEnabled: Generated<number>;
     proposalsRefreshSpeed: Generated<number>;
     votesRefreshSpeed: Generated<number>;
     proposalsIndex: Generated<number>;
