@@ -13,6 +13,7 @@ onlyIncludeFiles = ['./bin/proposals_producer']
 [phases.build]
 dependsOn = ['setup']
 cmds = [
+    'apt-get update && apt-get install -y curl wget',
     'mkdir -p bin',
     'cargo build --release --package proposals_producer --target x86_64-unknown-linux-musl',
     'cp target/x86_64-unknown-linux-musl/release/proposals_producer bin',

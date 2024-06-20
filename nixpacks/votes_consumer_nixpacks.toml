@@ -13,6 +13,7 @@ onlyIncludeFiles = ['./bin/votes_consumer']
 [phases.build]
 dependsOn = ['setup']
 cmds = [
+    'apt-get update && apt-get install -y curl wget',
     'mkdir -p bin',
     'cargo build --release --package votes_consumer --target x86_64-unknown-linux-musl',
     'cp target/x86_64-unknown-linux-musl/release/votes_consumer bin',
