@@ -15,6 +15,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
+actix-web = "4.8"
 amqprs = "1.6.2"
 anyhow = "1.0.86"
 async-trait = "0.1.80"

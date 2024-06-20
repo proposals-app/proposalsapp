@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+actix-web = { workspace = true }
 amqprs = { workspace = true, features = ["tls", "urispec"] }
 anyhow = { workspace = true, features = ["backtrace"] }
 async-trait = { workspace = true }

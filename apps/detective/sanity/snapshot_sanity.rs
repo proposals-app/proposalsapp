@@ -1,4 +1,5 @@
-use anyhow::{Context, Ok, Result};
+use actix_web::{get, App, HttpServer, Responder};
+use anyhow::{Context, Result};
 use chrono::{Duration, NaiveDateTime, Utc};
 use dotenv::dotenv;
 use sea_orm::{
@@ -41,10 +42,19 @@ async fn main() -> Result<()> {
 
     let mut interval = time::interval(std::time::Duration::from_secs(60 * 15));
 
-    loop {
-        interval.tick().await;
-        tokio::spawn(async { run().await });
-    }
+    tokio::spawn(async move {
+        loop {
+            interval.tick().await;
+            run().await.unwrap();
+        }
+    });
+
+    HttpServer::new(|| App::new().service(health_check))
+        .bind(("0.0.0.0", 80))?
+        .run()
+        .await?;
+
+    Ok(())
 }
 
 async fn run() -> Result<()> {
@@ -159,4 +169,9 @@ async fn sanitize(
     }
 
     Ok(())
+}
+
+#[get("/")]
+async fn health_check() -> impl Responder {
+    "OK"
 }
