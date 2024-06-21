@@ -22,6 +22,6 @@
     "@types/dotenv": "^8.2.0",
     "prisma": "^5.15.1",
     "prisma-kysely": "1.8.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.5.2"
   }
 }

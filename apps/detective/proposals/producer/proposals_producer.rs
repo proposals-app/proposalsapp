@@ -53,7 +53,7 @@ async fn produce_jobs() -> Result<()> {
         .finish();
     let (_, message_count, _) = channel.queue_declare(queue).await.unwrap().unwrap();
 
-    if (message_count > 1000) {
+    if message_count > 1000 {
         return Ok(());
     }
 
