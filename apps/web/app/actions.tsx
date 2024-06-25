@@ -143,7 +143,7 @@ export const addVoter = async (formData: FormData) => {
     await db
       .insertInto("userToVoter")
       .values({ userId: user.id, voterId: voter.id })
-      .executeTakeFirst();
+      .execute();
   }
 
   revalidateTag("voters");
