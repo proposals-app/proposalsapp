@@ -12,7 +12,7 @@ export default async function OnboardingFlow() {
 
   return (
     <Suspense>
-      {user && user.email_verified && userVoters && (
+      {user && user.email_verified && !userVoters && (
         <OnboardingVoterModal open={true} />
       )}
       {user &&
@@ -20,8 +20,9 @@ export default async function OnboardingFlow() {
         userVoters &&
         userVoters.length &&
         subscriptions &&
+        !subscriptions.length &&
         hotDaos && (
-          <OnboardingSubscriptionModal open={false} hotDaos={hotDaos} />
+          <OnboardingSubscriptionModal open={true} hotDaos={hotDaos} />
         )}
     </Suspense>
   );

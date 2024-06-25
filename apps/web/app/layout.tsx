@@ -40,11 +40,11 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <SessionProvider value={session}>
+          <OnboardingFlow />
           <div className="h-full min-h-screen w-full flex flex-col items-center bg-luna">
             <div className="w-full px-4 md:px-0 max-w-6xl flex flex-col pt-14 pb-40 gap-12">
               <NavBar />
               {children}
-              <OnboardingFlow />
             </div>
           </div>
         </SessionProvider>

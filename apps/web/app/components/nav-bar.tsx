@@ -2,17 +2,11 @@ import Image from "next/image";
 import { SignInButton } from "./auth/sign-in";
 import { SignOutButton } from "./auth/sign-out";
 import Link from "next/link";
-import { OnboardingVoterModal } from "./onboarding/voters";
-import { getHotDaos, getSubscripions, getVoters } from "../actions";
 import { validateRequest } from "@/lib/auth";
-import { OnboardingSubscriptionModal } from "./onboarding/subscriptions";
 import { Suspense } from "react";
 
 export default async function NavBar() {
   let { user } = await validateRequest();
-  const userVoters = await getVoters();
-  const subscriptions = await getSubscripions();
-  const hotDaos = await getHotDaos();
 
   return (
     <div className="w-full flex flex-col gap-8 lg:flex-row lg:gap-0 justify-between items-center px-2">

@@ -83,13 +83,12 @@ const voterFormSchema = z.object({
       },
     ),
 });
-
 export const addVoter = async (formData: FormData) => {
   const { address } = voterFormSchema.parse({
     address: formData.get("address"),
   });
 
-  let { user } = await validateRequest();
+  const { user } = await validateRequest();
   if (!user) return;
 
   const publicClient = createPublicClient({
@@ -97,49 +96,52 @@ export const addVoter = async (formData: FormData) => {
     transport: http(),
   });
 
-  let voterAddress = address;
-  if (address.includes(".eth")) {
-    const ensAddress = await publicClient.getEnsAddress({
-      name: normalize(address),
-    });
-    if (!ensAddress) return;
-    else voterAddress = ensAddress;
-  }
+  // Resolve ENS addresses
+  let voterAddress = address.includes(".eth")
+    ? await publicClient.getEnsAddress({ name: normalize(address) })
+    : address;
+  if (!voterAddress) return;
 
-  const ensName = await publicClient.getEnsName({
-    address: voterAddress as `0x${string}`,
-  });
+  // Optionally fetch ENS name for normal addresses
+  const ensName = address.includes(".eth")
+    ? await publicClient.getEnsName({ address: voterAddress as `0x${string}` })
+    : null;
 
+  // Check for existing voter or create new one
   let voter = await db
     .selectFrom("voter")
-    .select(["voter.id", "voter.ens"])
-    .where("voter.address", "=", voterAddress)
+    .select(["id", "ens"])
+    .where("address", "=", voterAddress)
     .executeTakeFirst();
 
   if (!voter) {
-    await db
+    // Insert new voter if not found
+    const [{ id: voterId }] = await db
       .insertInto("voter")
       .values({ address: voterAddress, ens: ensName })
+      .returning(["id"])
       .execute();
 
-    let newVoter = await db
-      .selectFrom("voter")
-      .select(["voter.id", "voter.ens"])
-      .where("voter.address", "=", voterAddress)
-      .executeTakeFirstOrThrow();
-
+    voter = { id: voterId, ens: ensName };
+  } else if (ensName && voter.ens !== ensName) {
+    // Update ENS name if different
     await db
-      .insertInto("userToVoter")
-      .values({ userId: user.id, voterId: newVoter.id })
-      .executeTakeFirst();
-  } else {
-    if (ensName && voter.ens != ensName)
-      await db
-        .updateTable("voter")
-        .set({ ens: ensName })
-        .where("voter.id", "=", voter.id)
-        .execute();
+      .updateTable("voter")
+      .set({ ens: ensName })
+      .where("id", "=", voter.id)
+      .execute();
+  }
 
+  // Check if there's already a link between the user and the voter
+  const existingLink = await db
+    .selectFrom("userToVoter")
+    .select("id")
+    .where("userId", "=", user.id)
+    .where("voterId", "=", voter.id)
+    .executeTakeFirst();
+
+  if (!existingLink) {
+    // Create a link if it doesn't exist
     await db
       .insertInto("userToVoter")
       .values({ userId: user.id, voterId: voter.id })
