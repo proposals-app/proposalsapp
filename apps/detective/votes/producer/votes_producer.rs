@@ -82,7 +82,7 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
 async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::Model>> {
     dao_handler::Entity::find()
         .filter(dao_handler::Column::HandlerType.ne(DaoHandlerEnum::Snapshot))
-        .filter(dao_handler::Column::RefreshEnabled.eq(1))
+        .filter(dao_handler::Column::RefreshEnabled.eq(true))
         .all(db)
         .await
         .context("DB error")

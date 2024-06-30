@@ -86,7 +86,7 @@ async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::
             DaoHandlerEnum::AaveV3PolygonPos,
             DaoHandlerEnum::AaveV3Avalanche,
         ]))
-        .filter(dao_handler::Column::RefreshEnabled.eq(1))
+        .filter(dao_handler::Column::RefreshEnabled.eq(true))
         .all(db)
         .await
         .context("DB error")
