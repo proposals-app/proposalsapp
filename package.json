@@ -11,7 +11,7 @@
     "libs/ts/emails/.react-email"
   ],
   "scripts": {
-    "build-db": "yarn workspace @proposalsapp/db db:gen:web",
+    "build-db": "yarn workspace @proposalsapp/db db:gen:ts",
     "build-email-bulletin": "yarn build-db && yarn workspace @proposalsapp/email-bulletin build",
     "build-email-quorum": "yarn build-db && yarn workspace @proposalsapp/email-quorum build",
     "build-email-timeend": "yarn build-db && yarn workspace @proposalsapp/email-timeend build",
