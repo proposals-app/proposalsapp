@@ -8,10 +8,11 @@ import {
   DialogTitle,
 } from "@/shadcn/ui/dialog";
 import { Manjari, Poppins } from "next/font/google";
-import { hotDaosType, onboardingSubscribeDaos } from "@/app/actions";
 import Image from "next/image";
 import { useState } from "react";
 import { CheckIcon } from "@radix-ui/react-icons";
+import { onboardingSubscribeDaos } from "./actions";
+import { hotDaosType } from "@/app/actions";
 
 const manjari = Manjari({
   weight: "700",

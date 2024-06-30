@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/shadcn/ui/button";
 import { Manjari } from "next/font/google";
 import { useRouter, useSearchParams } from "next/navigation";

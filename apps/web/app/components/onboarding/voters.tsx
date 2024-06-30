@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from "@/shadcn/ui/form";
 import { Manjari, Poppins } from "next/font/google";
-import { onboardingAddVoter } from "@/app/actions";
+import { onboardingAddVoter } from "./actions";
 
 const manjari = Manjari({
   weight: "700",
