@@ -3,21 +3,18 @@ import { cache } from "react";
 import { TimeSpan, createDate, isWithinExpirationDate } from "oslo";
 import { generateRandomString, alphabet } from "oslo/crypto";
 import { Lucia } from "lucia";
-import { Pool } from "pg";
 import { Kysely, PostgresDialect } from "kysely";
-import { DB } from "@proposalsapp/db";
+import { DB, db_pool } from "@proposalsapp/db";
 import { NodePostgresAdapter } from "@lucia-auth/adapter-postgresql";
 import { cookies } from "next/headers";
 
-const pool = new Pool();
-
 const db = new Kysely<DB>({
   dialect: new PostgresDialect({
-    pool,
+    pool: db_pool,
   }),
 });
 
-const adapter = new NodePostgresAdapter(pool, {
+const adapter = new NodePostgresAdapter(db_pool, {
   user: "user",
   session: "user_session",
 });
