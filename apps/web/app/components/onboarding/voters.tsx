@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from "@/shadcn/ui/form";
 import { Manjari, Poppins } from "next/font/google";
-import { addVoter } from "@/app/actions";
+import { onboardingAddVoter } from "@/app/actions";
 
 const manjari = Manjari({
   weight: "700",
@@ -62,7 +62,7 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
     <Dialog open={open}>
       <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-fit p-16 rounded-xl">
         <Form {...voterForm}>
-          <form action={addVoter}>
+          <form action={onboardingAddVoter}>
             <FormField
               control={voterForm.control}
               name="address"

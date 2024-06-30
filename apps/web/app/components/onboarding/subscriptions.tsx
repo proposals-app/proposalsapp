@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/shadcn/ui/dialog";
 import { Manjari, Poppins } from "next/font/google";
-import { hotDaosType, subscribe } from "@/app/actions";
+import { hotDaosType, onboardingSubscribeDaos } from "@/app/actions";
 import Image from "next/image";
 import { useState } from "react";
 import { CheckIcon } from "@radix-ui/react-icons";
@@ -92,7 +92,7 @@ export const OnboardingSubscriptionModal = ({
             className={`w-full text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
             disabled={selectedDaos.length == 0}
             onClick={() => {
-              subscribe(selectedDaos);
+              onboardingSubscribeDaos(selectedDaos);
             }}
           >
             Continue

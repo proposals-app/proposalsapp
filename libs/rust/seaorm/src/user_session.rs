@@ -14,7 +14,7 @@ impl EntityName for Entity {
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: Uuid,
+    pub id: String,
     pub user_id: Uuid,
     pub email: String,
     pub expires_at: DateTime,
@@ -34,7 +34,7 @@ pub enum PrimaryKey {
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = Uuid;
+    type ValueType = String;
     fn auto_increment() -> bool {
         false
     }
@@ -49,7 +49,7 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::Uuid.def(),
+            Self::Id => ColumnType::Text.def(),
             Self::UserId => ColumnType::Uuid.def(),
             Self::Email => ColumnType::Text.def(),
             Self::ExpiresAt => ColumnType::DateTime.def(),

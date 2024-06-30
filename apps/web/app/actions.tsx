@@ -15,7 +15,7 @@ enum StateFilterEnum {
   CLOSED = "closed",
 }
 
-export async function subscribe(daoSlugs: string[]) {
+export async function onboardingSubscribeDaos(daoSlugs: string[]) {
   let { user } = await validateRequest();
   if (!user) return;
 
@@ -41,8 +41,27 @@ export async function subscribe(daoSlugs: string[]) {
       .execute();
   }
 
+  await db
+    .updateTable("user")
+    .where("user.id", "=", user.id)
+    .set({ onboardingStep: 2 })
+    .execute();
+
   revalidateTag("subscriptions");
 }
+
+export const getOnboardingStep = async () => {
+  let { user } = await validateRequest();
+  if (!user) return;
+
+  let onboardingStep = await db
+    .selectFrom("user")
+    .where("user.id", "=", user.id)
+    .select("onboardingStep")
+    .executeTakeFirstOrThrow();
+
+  return onboardingStep;
+};
 
 export const getVoters = async () => {
   let { user } = await validateRequest();
@@ -83,7 +102,8 @@ const voterFormSchema = z.object({
       },
     ),
 });
-export const addVoter = async (formData: FormData) => {
+
+export const onboardingAddVoter = async (formData: FormData) => {
   const { address } = voterFormSchema.parse({
     address: formData.get("address"),
   });
@@ -147,6 +167,12 @@ export const addVoter = async (formData: FormData) => {
       .values({ userId: user.id, voterId: voter.id })
       .execute();
   }
+
+  await db
+    .updateTable("user")
+    .where("user.id", "=", user.id)
+    .set({ onboardingStep: 1 })
+    .execute();
 
   revalidateTag("voters");
 };

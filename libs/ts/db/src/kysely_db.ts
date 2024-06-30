@@ -161,12 +161,13 @@ export interface User {
   email: string;
   emailVerified: Generated<boolean>;
   id: Generated<string>;
+  onboardingStep: Generated<number>;
 }
 
 export interface UserSession {
   email: string;
   expiresAt: Timestamp;
-  id: Generated<string>;
+  id: string;
   userId: string;
 }
 

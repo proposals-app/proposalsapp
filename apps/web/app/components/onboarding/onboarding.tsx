@@ -1,29 +1,22 @@
-import { Suspense } from "react";
+import { getHotDaos, getOnboardingStep } from "@/app/actions";
 import { validateRequest } from "@/lib/auth";
-import { getHotDaos, getSubscripions, getVoters } from "@/app/actions";
-import { OnboardingVoterModal } from "./voters";
+import { Suspense } from "react";
 import { OnboardingSubscriptionModal } from "./subscriptions";
+import { OnboardingVoterModal } from "./voters";
 
 export default async function OnboardingFlow() {
   let { user } = await validateRequest();
-  const userVoters = await getVoters();
-  const subscriptions = await getSubscripions();
+  const step = await getOnboardingStep();
   const hotDaos = await getHotDaos();
 
   return (
     <Suspense>
-      {user && user.email_verified && !userVoters && (
+      {user && step && step?.onboardingStep == 0 && (
         <OnboardingVoterModal open={true} />
       )}
-      {user &&
-        user.email_verified &&
-        userVoters &&
-        userVoters.length &&
-        subscriptions &&
-        !subscriptions.length &&
-        hotDaos && (
-          <OnboardingSubscriptionModal open={true} hotDaos={hotDaos} />
-        )}
+      {user && step && step?.onboardingStep == 1 && (
+        <OnboardingSubscriptionModal open={true} hotDaos={hotDaos} />
+      )}
     </Suspense>
   );
 }
