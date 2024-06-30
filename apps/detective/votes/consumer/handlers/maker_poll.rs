@@ -66,7 +66,7 @@ pub async fn maker_poll_votes(dao_handler: &dao_handler::Model) -> Result<ChainV
 
     Ok(ChainVotesResult {
         votes,
-        to_index: Some(to_block as i64),
+        to_index: Some(to_block as i32),
     })
 }
 
@@ -83,10 +83,10 @@ async fn get_votes(
 
         votes.push(vote::ActiveModel {
             id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i64),
+            index_created: Set(meta.block_number.as_u64() as i32),
             voter_address: Set(to_checksum(&log.voter, None)),
             voting_power: Set(0.into()),
-            block_created: Set(Some(meta.block_number.as_u64() as i64)),
+            block_created: Set(Some(meta.block_number.as_u64() as i32)),
             choice: Set(options.into()),
             proposal_id: NotSet,
             proposal_external_id: Set(log.poll_id.to_string()),

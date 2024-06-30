@@ -12,7 +12,7 @@ use ethers::utils::to_checksum;
 use scanners::optimistic_scan::estimate_timestamp;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::Set;
-use seaorm::sea_orm_active_enums::ProposalState;
+use seaorm::sea_orm_active_enums::ProposalStateEnum;
 use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use serde_json::json;
@@ -143,7 +143,7 @@ pub async fn optimism_proposals(dao_handler: &dao_handler::Model) -> Result<Chai
 
     Ok(ChainProposalsResult {
         proposals: result,
-        to_index: Some(to_block as i64),
+        to_index: Some(to_block as i32),
     })
 }
 
@@ -251,15 +251,15 @@ async fn data_for_proposal_one(
         / (10.0f64.powi(18));
 
     let state = match proposal_state {
-        0 => ProposalState::Pending,
-        1 => ProposalState::Active,
-        2 => ProposalState::Canceled,
-        3 => ProposalState::Defeated,
-        4 => ProposalState::Succeeded,
-        5 => ProposalState::Queued,
-        6 => ProposalState::Expired,
-        7 => ProposalState::Executed,
-        _ => ProposalState::Unknown,
+        0 => ProposalStateEnum::Pending,
+        1 => ProposalStateEnum::Active,
+        2 => ProposalStateEnum::Canceled,
+        3 => ProposalStateEnum::Defeated,
+        4 => ProposalStateEnum::Succeeded,
+        5 => ProposalStateEnum::Queued,
+        6 => ProposalStateEnum::Expired,
+        7 => ProposalStateEnum::Executed,
+        _ => ProposalStateEnum::Unknown,
     };
 
     let discussionurl = String::from("");
@@ -277,13 +277,13 @@ async fn data_for_proposal_one(
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
-        block_created: Set(Some(created_block_number as i64)),
+        block_created: Set(Some(created_block_number as i32)),
         time_created: Set(Some(created_block_timestamp)),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_handler_id: Set(dao_handler.clone().id),
         dao_id: Set(dao_handler.clone().dao_id),
-        index_created: Set(created_block_number as i64),
+        index_created: Set(created_block_number as i32),
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
@@ -395,15 +395,15 @@ async fn data_for_proposal_two(
         / (10.0f64.powi(18));
 
     let state = match proposal_state {
-        0 => ProposalState::Pending,
-        1 => ProposalState::Active,
-        2 => ProposalState::Canceled,
-        3 => ProposalState::Defeated,
-        4 => ProposalState::Succeeded,
-        5 => ProposalState::Queued,
-        6 => ProposalState::Expired,
-        7 => ProposalState::Executed,
-        _ => ProposalState::Unknown,
+        0 => ProposalStateEnum::Pending,
+        1 => ProposalStateEnum::Active,
+        2 => ProposalStateEnum::Canceled,
+        3 => ProposalStateEnum::Defeated,
+        4 => ProposalStateEnum::Succeeded,
+        5 => ProposalStateEnum::Queued,
+        6 => ProposalStateEnum::Expired,
+        7 => ProposalStateEnum::Executed,
+        _ => ProposalStateEnum::Unknown,
     };
 
     let discussionurl = String::from("");
@@ -421,13 +421,13 @@ async fn data_for_proposal_two(
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
-        block_created: Set(Some(created_block_number as i64)),
+        block_created: Set(Some(created_block_number as i32)),
         time_created: Set(Some(created_block_timestamp)),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_handler_id: Set(dao_handler.clone().id),
         dao_id: Set(dao_handler.clone().dao_id),
-        index_created: Set(created_block_number as i64),
+        index_created: Set(created_block_number as i32),
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
@@ -552,15 +552,15 @@ async fn data_for_proposal_three(
         / (10.0f64.powi(18));
 
     let state = match proposal_state {
-        0 => ProposalState::Pending,
-        1 => ProposalState::Active,
-        2 => ProposalState::Canceled,
-        3 => ProposalState::Defeated,
-        4 => ProposalState::Succeeded,
-        5 => ProposalState::Queued,
-        6 => ProposalState::Expired,
-        7 => ProposalState::Executed,
-        _ => ProposalState::Unknown,
+        0 => ProposalStateEnum::Pending,
+        1 => ProposalStateEnum::Active,
+        2 => ProposalStateEnum::Canceled,
+        3 => ProposalStateEnum::Defeated,
+        4 => ProposalStateEnum::Succeeded,
+        5 => ProposalStateEnum::Queued,
+        6 => ProposalStateEnum::Expired,
+        7 => ProposalStateEnum::Executed,
+        _ => ProposalStateEnum::Unknown,
     };
 
     let discussionurl = String::from("");
@@ -578,13 +578,13 @@ async fn data_for_proposal_three(
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
-        block_created: Set(Some(created_block_number as i64)),
+        block_created: Set(Some(created_block_number as i32)),
         time_created: Set(Some(created_block_timestamp)),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_handler_id: Set(dao_handler.clone().id),
         dao_id: Set(dao_handler.clone().dao_id),
-        index_created: Set(created_block_number as i64),
+        index_created: Set(created_block_number as i32),
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
@@ -695,15 +695,15 @@ async fn data_for_proposal_four(
         / (10.0f64.powi(18));
 
     let state = match proposal_state {
-        0 => ProposalState::Pending,
-        1 => ProposalState::Active,
-        2 => ProposalState::Canceled,
-        3 => ProposalState::Defeated,
-        4 => ProposalState::Succeeded,
-        5 => ProposalState::Queued,
-        6 => ProposalState::Expired,
-        7 => ProposalState::Executed,
-        _ => ProposalState::Unknown,
+        0 => ProposalStateEnum::Pending,
+        1 => ProposalStateEnum::Active,
+        2 => ProposalStateEnum::Canceled,
+        3 => ProposalStateEnum::Defeated,
+        4 => ProposalStateEnum::Succeeded,
+        5 => ProposalStateEnum::Queued,
+        6 => ProposalStateEnum::Expired,
+        7 => ProposalStateEnum::Executed,
+        _ => ProposalStateEnum::Unknown,
     };
 
     let discussionurl = String::from("");
@@ -721,13 +721,13 @@ async fn data_for_proposal_four(
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
-        block_created: Set(Some(created_block_number as i64)),
+        block_created: Set(Some(created_block_number as i32)),
         time_created: Set(Some(created_block_timestamp)),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_handler_id: Set(dao_handler.clone().id),
         dao_id: Set(dao_handler.clone().dao_id),
-        index_created: Set(created_block_number as i64),
+        index_created: Set(created_block_number as i32),
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,

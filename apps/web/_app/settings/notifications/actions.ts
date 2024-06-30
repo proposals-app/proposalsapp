@@ -11,7 +11,7 @@ export const updateBulletin = async (enabled: boolean) => {
   await db
     .updateTable("userSettings")
     .where("userId", "=", user.id)
-    .set({ emailDailyBulletin: enabled ? 1 : 0 })
+    .set({ emailDailyBulletin: enabled })
     .execute();
 };
 
@@ -23,7 +23,7 @@ export const updateQuorum = async (enabled: boolean) => {
   await db
     .updateTable("userSettings")
     .where("userId", "=", user.id)
-    .set({ emailQuorumWarning: enabled ? 1 : 0 })
+    .set({ emailQuorumWarning: enabled })
     .execute();
 };
 
@@ -35,7 +35,7 @@ export const updateTimeEnd = async (enabled: boolean) => {
   await db
     .updateTable("userSettings")
     .where("userId", "=", user.id)
-    .set({ emailTimeendWarning: enabled ? 1 : 0 })
+    .set({ emailTimeendWarning: enabled })
     .execute();
 };
 
@@ -59,8 +59,8 @@ export const getUserSettings = async () => {
     .executeTakeFirstOrThrow();
 
   return {
-    bulletinEnabled: u?.emailDailyBulletin == 1,
-    quorumEnabled: u?.emailQuorumWarning == 1,
-    timeEndEnabled: u?.emailTimeendWarning == 1,
+    bulletinEnabled: u?.emailDailyBulletin == true,
+    quorumEnabled: u?.emailQuorumWarning == true,
+    timeEndEnabled: u?.emailTimeendWarning == true,
   };
 };

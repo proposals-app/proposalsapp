@@ -1,16 +1,23 @@
-import { db } from "@proposalsapp/db";
-import { Lucia, type User, type Session } from "lucia";
-import { Mysql2Adapter } from "@lucia-auth/adapter-mysql";
+import { type User, type Session } from "lucia";
 import { cache } from "react";
 import { TimeSpan, createDate, isWithinExpirationDate } from "oslo";
 import { generateRandomString, alphabet } from "oslo/crypto";
-import { createPool } from "mysql2/promise";
+import { Lucia } from "lucia";
+import { Pool } from "pg";
+import { Kysely, PostgresDialect } from "kysely";
+import { DB } from "@proposalsapp/db";
+import { NodePostgresAdapter } from "@lucia-auth/adapter-postgresql";
+import { cookies } from "next/headers";
 
-const pool = createPool(process.env.DATABASE_URL!);
+const pool = new Pool();
 
-const cookies = require("next/headers").cookies;
+const db = new Kysely<DB>({
+  dialect: new PostgresDialect({
+    pool,
+  }),
+});
 
-const adapter = new Mysql2Adapter(pool, {
+const adapter = new NodePostgresAdapter(pool, {
   user: "user",
   session: "user_session",
 });

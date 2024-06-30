@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   await db
     .updateTable("user")
     .where("user.id", "=", user.id)
-    .set({ emailVerified: 1 })
+    .set({ emailVerified: true })
     .execute();
 
   const session = await lucia.createSession(user.id, {

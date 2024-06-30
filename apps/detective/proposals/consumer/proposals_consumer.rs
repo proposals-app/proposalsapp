@@ -13,7 +13,7 @@ use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
 };
-use seaorm::sea_orm_active_enums::{HandlerType, ProposalState};
+use seaorm::sea_orm_active_enums::{DaoHandlerEnum, ProposalStateEnum};
 use seaorm::{dao_handler, proposal};
 use std::collections::HashSet;
 use tokio::sync::Notify;
@@ -47,7 +47,7 @@ mod handlers {
 
 pub struct ChainProposalsResult {
     proposals: Vec<proposal::ActiveModel>,
-    to_index: Option<i64>,
+    to_index: Option<i32>,
 }
 
 const QUEUE_NAME: &str = "detective:proposals";
@@ -168,7 +168,7 @@ async fn run(job: ProposalsJob) -> Result<()> {
         inserted_proposals,
         updated_proposals,
         new_index,
-        dao_handler_id: dao_handler.id,
+        dao_handler_id: dao_handler.id.into(),
     };
 
     info!("{:?}", response);
@@ -191,32 +191,32 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
         .context("DB error")?
         .context("dao_handler error")?;
 
-    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 0.5) as i64;
+    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 0.5) as i32;
 
     let min_refresh_speed = match dao_handler.handler_type {
-        HandlerType::AaveV2Mainnet => 100,
-        HandlerType::AaveV3Mainnet => 100,
-        HandlerType::AaveV3PolygonPos => 100,
-        HandlerType::AaveV3Avalanche => 100,
-        HandlerType::CompoundMainnet => 100,
-        HandlerType::UniswapMainnet => 100,
-        HandlerType::EnsMainnet => 100,
-        HandlerType::GitcoinMainnet => 100,
-        HandlerType::GitcoinV2Mainnet => 100,
-        HandlerType::HopMainnet => 100,
-        HandlerType::DydxMainnet => 100,
-        HandlerType::InterestProtocolMainnet => 100,
-        HandlerType::ZeroxProtocolMainnet => 100,
-        HandlerType::FraxAlphaMainnet => 100,
-        HandlerType::FraxOmegaMainnet => 100,
-        HandlerType::NounsProposalsMainnet => 100,
-        HandlerType::MakerExecutiveMainnet => 100,
-        HandlerType::MakerPollMainnet => 100,
-        HandlerType::MakerPollArbitrum => 100,
-        HandlerType::OpOptimism => 100,
-        HandlerType::ArbCoreArbitrum => 100,
-        HandlerType::ArbTreasuryArbitrum => 100,
-        HandlerType::Snapshot => 10,
+        DaoHandlerEnum::AaveV2Mainnet => 100,
+        DaoHandlerEnum::AaveV3Mainnet => 100,
+        DaoHandlerEnum::AaveV3PolygonPos => 100,
+        DaoHandlerEnum::AaveV3Avalanche => 100,
+        DaoHandlerEnum::CompoundMainnet => 100,
+        DaoHandlerEnum::UniswapMainnet => 100,
+        DaoHandlerEnum::EnsMainnet => 100,
+        DaoHandlerEnum::GitcoinMainnet => 100,
+        DaoHandlerEnum::GitcoinV2Mainnet => 100,
+        DaoHandlerEnum::HopMainnet => 100,
+        DaoHandlerEnum::DydxMainnet => 100,
+        DaoHandlerEnum::InterestProtocolMainnet => 100,
+        DaoHandlerEnum::ZeroxProtocolMainnet => 100,
+        DaoHandlerEnum::FraxAlphaMainnet => 100,
+        DaoHandlerEnum::FraxOmegaMainnet => 100,
+        DaoHandlerEnum::NounsProposalsMainnet => 100,
+        DaoHandlerEnum::MakerExecutiveMainnet => 100,
+        DaoHandlerEnum::MakerPollMainnet => 100,
+        DaoHandlerEnum::MakerPollArbitrum => 100,
+        DaoHandlerEnum::OpOptimism => 100,
+        DaoHandlerEnum::ArbCoreArbitrum => 100,
+        DaoHandlerEnum::ArbTreasuryArbitrum => 100,
+        DaoHandlerEnum::Snapshot => 10,
     };
 
     if new_refresh_speed < min_refresh_speed {
@@ -256,32 +256,32 @@ async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
         .context("DB error")?
         .context("dao_handler error")?;
 
-    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 1.2) as i64;
+    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 1.2) as i32;
 
     let max_refresh_speed = match dao_handler.handler_type {
-        HandlerType::AaveV2Mainnet => 1_000_000,
-        HandlerType::AaveV3Mainnet => 1_000_000,
-        HandlerType::AaveV3PolygonPos => 1_000_000,
-        HandlerType::AaveV3Avalanche => 1_000_000,
-        HandlerType::CompoundMainnet => 1_000_000,
-        HandlerType::UniswapMainnet => 1_000_000,
-        HandlerType::EnsMainnet => 1_000_000,
-        HandlerType::GitcoinMainnet => 1_000_000,
-        HandlerType::GitcoinV2Mainnet => 1_000_000,
-        HandlerType::HopMainnet => 1_000_000,
-        HandlerType::DydxMainnet => 1_000_000,
-        HandlerType::InterestProtocolMainnet => 1_000_000,
-        HandlerType::ZeroxProtocolMainnet => 1_000_000,
-        HandlerType::FraxAlphaMainnet => 1_000_000,
-        HandlerType::FraxOmegaMainnet => 1_000_000,
-        HandlerType::NounsProposalsMainnet => 1_000_000,
-        HandlerType::MakerExecutiveMainnet => 1_000_000,
-        HandlerType::MakerPollMainnet => 1_000_000,
-        HandlerType::MakerPollArbitrum => 1_000_000,
-        HandlerType::OpOptimism => 1_000_000,
-        HandlerType::ArbCoreArbitrum => 1_000_000,
-        HandlerType::ArbTreasuryArbitrum => 1_000_000,
-        HandlerType::Snapshot => 1_000,
+        DaoHandlerEnum::AaveV2Mainnet => 1_000_000,
+        DaoHandlerEnum::AaveV3Mainnet => 1_000_000,
+        DaoHandlerEnum::AaveV3PolygonPos => 1_000_000,
+        DaoHandlerEnum::AaveV3Avalanche => 1_000_000,
+        DaoHandlerEnum::CompoundMainnet => 1_000_000,
+        DaoHandlerEnum::UniswapMainnet => 1_000_000,
+        DaoHandlerEnum::EnsMainnet => 1_000_000,
+        DaoHandlerEnum::GitcoinMainnet => 1_000_000,
+        DaoHandlerEnum::GitcoinV2Mainnet => 1_000_000,
+        DaoHandlerEnum::HopMainnet => 1_000_000,
+        DaoHandlerEnum::DydxMainnet => 1_000_000,
+        DaoHandlerEnum::InterestProtocolMainnet => 1_000_000,
+        DaoHandlerEnum::ZeroxProtocolMainnet => 1_000_000,
+        DaoHandlerEnum::FraxAlphaMainnet => 1_000_000,
+        DaoHandlerEnum::FraxOmegaMainnet => 1_000_000,
+        DaoHandlerEnum::NounsProposalsMainnet => 1_000_000,
+        DaoHandlerEnum::MakerExecutiveMainnet => 1_000_000,
+        DaoHandlerEnum::MakerPollMainnet => 1_000_000,
+        DaoHandlerEnum::MakerPollArbitrum => 1_000_000,
+        DaoHandlerEnum::OpOptimism => 1_000_000,
+        DaoHandlerEnum::ArbCoreArbitrum => 1_000_000,
+        DaoHandlerEnum::ArbTreasuryArbitrum => 1_000_000,
+        DaoHandlerEnum::Snapshot => 1_000,
     };
 
     if new_refresh_speed > max_refresh_speed {
@@ -304,9 +304,9 @@ async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
 async fn update_index(
     parsed_proposals: &[proposal::ActiveModel],
     dao_handler: &dao_handler::Model,
-    to_index: Option<i64>,
+    to_index: Option<i32>,
     db: &DatabaseConnection,
-) -> Result<i64> {
+) -> Result<i32> {
     let mut new_index =
         to_index.unwrap_or(dao_handler.proposals_index + dao_handler.proposals_refresh_speed);
 
@@ -316,7 +316,7 @@ async fn update_index(
         .collect_vec();
 
     for proposal in sorted_proposals.iter() {
-        if proposal.proposal_state.as_ref() == &ProposalState::Active
+        if proposal.proposal_state.as_ref() == &ProposalStateEnum::Active
             && proposal.index_created.is_set()
             && proposal.index_created.clone().unwrap() < new_index
         {
@@ -396,77 +396,77 @@ async fn store_proposals(
 
 async fn get_proposals(dao_handler: &dao_handler::Model) -> Result<ChainProposalsResult> {
     let proposals = match dao_handler.handler_type {
-        HandlerType::Snapshot => handlers::snapshot::snapshot_proposals(dao_handler)
+        DaoHandlerEnum::Snapshot => handlers::snapshot::snapshot_proposals(dao_handler)
             .await
             .context("snapshot_proposals error")?,
-        HandlerType::AaveV2Mainnet => handlers::aave_v2::aave_v2_proposals(dao_handler)
+        DaoHandlerEnum::AaveV2Mainnet => handlers::aave_v2::aave_v2_proposals(dao_handler)
             .await
             .context("aave_v2_proposals error")?,
-        HandlerType::AaveV3Mainnet => handlers::aave_v3::aave_v3_proposals(dao_handler)
+        DaoHandlerEnum::AaveV3Mainnet => handlers::aave_v3::aave_v3_proposals(dao_handler)
             .await
             .context("aave_v3_proposals error")?,
-        HandlerType::AaveV3PolygonPos => todo!(),
-        HandlerType::AaveV3Avalanche => todo!(),
-        HandlerType::CompoundMainnet => handlers::compound::compound_proposals(dao_handler)
+        DaoHandlerEnum::AaveV3PolygonPos => todo!(),
+        DaoHandlerEnum::AaveV3Avalanche => todo!(),
+        DaoHandlerEnum::CompoundMainnet => handlers::compound::compound_proposals(dao_handler)
             .await
             .context("compound_proposals error")?,
-        HandlerType::UniswapMainnet => handlers::uniswap::uniswap_proposals(dao_handler)
+        DaoHandlerEnum::UniswapMainnet => handlers::uniswap::uniswap_proposals(dao_handler)
             .await
             .context("uniswap_proposals error")?,
-        HandlerType::EnsMainnet => handlers::ens::ens_proposals(dao_handler)
+        DaoHandlerEnum::EnsMainnet => handlers::ens::ens_proposals(dao_handler)
             .await
             .context("ens_proposals error")?,
-        HandlerType::GitcoinMainnet => handlers::gitcoin_v1::gitcoin_v1_proposals(dao_handler)
+        DaoHandlerEnum::GitcoinMainnet => handlers::gitcoin_v1::gitcoin_v1_proposals(dao_handler)
             .await
             .context("gitcoin_v1_proposals error")?,
-        HandlerType::GitcoinV2Mainnet => handlers::gitcoin_v2::gitcoin_v2_proposals(dao_handler)
+        DaoHandlerEnum::GitcoinV2Mainnet => handlers::gitcoin_v2::gitcoin_v2_proposals(dao_handler)
             .await
             .context("gitcoin_v2_proposals error")?,
-        HandlerType::HopMainnet => handlers::hop::hop_proposals(dao_handler)
+        DaoHandlerEnum::HopMainnet => handlers::hop::hop_proposals(dao_handler)
             .await
             .context("hop_proposals error")?,
-        HandlerType::DydxMainnet => handlers::dydx::dydx_proposals(dao_handler)
+        DaoHandlerEnum::DydxMainnet => handlers::dydx::dydx_proposals(dao_handler)
             .await
             .context("dydx_proposals error")?,
-        HandlerType::InterestProtocolMainnet => {
+        DaoHandlerEnum::InterestProtocolMainnet => {
             handlers::interest_protocol::interest_protocol_proposals(dao_handler)
                 .await
                 .context("interest_protocol_proposals error")?
         }
-        HandlerType::ZeroxProtocolMainnet => {
+        DaoHandlerEnum::ZeroxProtocolMainnet => {
             handlers::zerox_treasury::zerox_treasury_proposals(dao_handler)
                 .await
                 .context("zerox_treasury_proposals error")?
         }
-        HandlerType::FraxAlphaMainnet => handlers::frax_alpha::frax_alpha_proposals(dao_handler)
+        DaoHandlerEnum::FraxAlphaMainnet => handlers::frax_alpha::frax_alpha_proposals(dao_handler)
             .await
             .context("frax_alpha_proposals error")?,
-        HandlerType::FraxOmegaMainnet => handlers::frax_omega::frax_omega_proposals(dao_handler)
+        DaoHandlerEnum::FraxOmegaMainnet => handlers::frax_omega::frax_omega_proposals(dao_handler)
             .await
             .context("frax_omega_proposals error")?,
-        HandlerType::NounsProposalsMainnet => {
+        DaoHandlerEnum::NounsProposalsMainnet => {
             handlers::nouns_proposal::nouns_proposal_proposals(dao_handler)
                 .await
                 .context("nouns_proposal_proposals error")?
         }
-        HandlerType::MakerExecutiveMainnet => {
+        DaoHandlerEnum::MakerExecutiveMainnet => {
             handlers::maker_executive::maker_executive_proposals(dao_handler)
                 .await
                 .context("maker_executive_proposals error")?
         }
-        HandlerType::MakerPollMainnet => handlers::maker_poll::maker_poll_proposals(dao_handler)
+        DaoHandlerEnum::MakerPollMainnet => handlers::maker_poll::maker_poll_proposals(dao_handler)
             .await
             .context("maker_poll_proposals error")?,
-        HandlerType::MakerPollArbitrum => todo!(),
-        HandlerType::OpOptimism => handlers::optimism::optimism_proposals(dao_handler)
+        DaoHandlerEnum::MakerPollArbitrum => todo!(),
+        DaoHandlerEnum::OpOptimism => handlers::optimism::optimism_proposals(dao_handler)
             .await
             .context("optimism_proposals error")?,
-        HandlerType::ArbCoreArbitrum => {
+        DaoHandlerEnum::ArbCoreArbitrum => {
             handlers::arbitrum_core::arbitrum_core_proposals(dao_handler)
                 .await
                 .context("arbitrum_core_proposals error")?
         }
-        HandlerType::ArbTreasuryArbitrum => {
+        DaoHandlerEnum::ArbTreasuryArbitrum => {
             handlers::arbitrum_treasury::arbitrum_treasury_proposals(dao_handler)
                 .await
                 .context("arbitrum_treasury_proposals error")?

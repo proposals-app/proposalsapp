@@ -14,9 +14,9 @@ impl EntityName for Entity {
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: String,
+    pub id: Uuid,
     pub email: String,
-    pub email_verified: i8,
+    pub email_verified: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -32,7 +32,7 @@ pub enum PrimaryKey {
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = String;
+    type ValueType = Uuid;
     fn auto_increment() -> bool {
         false
     }
@@ -52,9 +52,9 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::String(Some(191u32)).def(),
-            Self::Email => ColumnType::String(Some(191u32)).def().unique(),
-            Self::EmailVerified => ColumnType::TinyInteger.def(),
+            Self::Id => ColumnType::Uuid.def(),
+            Self::Email => ColumnType::Text.def().unique(),
+            Self::EmailVerified => ColumnType::Boolean.def(),
         }
     }
 }

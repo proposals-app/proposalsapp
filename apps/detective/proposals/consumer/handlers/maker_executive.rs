@@ -9,7 +9,7 @@ use itertools::Itertools;
 use scanners::etherscan::estimate_block;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::Set;
-use seaorm::sea_orm_active_enums::ProposalState;
+use seaorm::sea_orm_active_enums::ProposalStateEnum;
 use seaorm::{dao_handler, proposal};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -100,7 +100,7 @@ pub async fn maker_executive_proposals(
 
     Ok(ChainProposalsResult {
         proposals: result,
-        to_index: Some(to_block as i64),
+        to_index: Some(to_block as i32),
     })
 }
 
@@ -149,21 +149,21 @@ async fn data_for_proposal(
     let block_created = estimate_block(created_timestamp.and_utc().timestamp() as u64).await?;
 
     let state = if proposal_data.spellData.hasBeenCast {
-        ProposalState::Executed
+        ProposalStateEnum::Executed
     } else if proposal_data.active {
-        ProposalState::Active
+        ProposalStateEnum::Active
     } else if proposal_data.spellData.hasBeenScheduled {
-        ProposalState::Queued
+        ProposalStateEnum::Queued
     } else if DateTime::parse_from_rfc3339(proposal_data.clone().spellData.expiration.as_str())?
         .with_timezone(&Utc)
         < Utc::now()
     {
-        ProposalState::Expired
+        ProposalStateEnum::Expired
     } else {
-        ProposalState::Unknown
+        ProposalStateEnum::Unknown
     };
 
-    if state == ProposalState::Executed {
+    if state == ProposalStateEnum::Executed {
         voting_ends_timestamp =
             DateTime::parse_from_rfc3339(proposal_data.clone().spellData.dateExecuted.as_str())?
                 .with_timezone(&Utc)
@@ -183,13 +183,13 @@ async fn data_for_proposal(
         quorum: Set(0.0f64),
         proposal_state: Set(state),
         flagged: NotSet,
-        block_created: Set(Some(block_created as i64)),
+        block_created: Set(Some(block_created as i32)),
         time_created: Set(Some(created_timestamp)),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_handler_id: Set(dao_handler.clone().id),
         dao_id: Set(dao_handler.clone().dao_id),
-        index_created: Set(block_created as i64),
+        index_created: Set(block_created as i32),
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,

@@ -5,8 +5,8 @@ use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
 };
-use seaorm::sea_orm_active_enums::HandlerType;
-use seaorm::sea_orm_active_enums::ProposalState;
+use seaorm::sea_orm_active_enums::DaoHandlerEnum;
+use seaorm::sea_orm_active_enums::ProposalStateEnum;
 use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use tokio::time;
@@ -71,7 +71,7 @@ pub async fn snapshot_sanity_check(db: &DatabaseConnection) -> Result<()> {
     let sanitize_to: NaiveDateTime = (Utc::now() - Duration::minutes(5)).naive_utc();
 
     let dao_handlers = dao_handler::Entity::find()
-        .filter(dao_handler::Column::HandlerType.eq(HandlerType::Snapshot))
+        .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnum::Snapshot))
         .all(db)
         .await
         .context("DB error")?;
@@ -152,8 +152,8 @@ async fn sanitize(
     for proposal in proposals_to_delete {
         let mut updated_proposal: proposal::ActiveModel = proposal.clone().into();
 
-        updated_proposal.flagged = Set(1);
-        updated_proposal.proposal_state = Set(ProposalState::Canceled);
+        updated_proposal.flagged = Set(true);
+        updated_proposal.proposal_state = Set(ProposalStateEnum::Canceled);
         updated_proposal.time_end = Set(now);
 
         proposal::Entity::update(updated_proposal.clone())

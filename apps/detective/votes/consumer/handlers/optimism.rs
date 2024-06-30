@@ -72,7 +72,7 @@ pub async fn optimism_votes(dao_handler: &dao_handler::Model) -> Result<ChainVot
 
     Ok(ChainVotesResult {
         votes: all_votes,
-        to_index: Some(to_block as i64),
+        to_index: Some(to_block as i32),
     })
 }
 
@@ -87,10 +87,10 @@ fn get_votes(
     for (log, meta) in voter_logs {
         votes.push(vote::ActiveModel {
             id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i64),
+            index_created: Set(meta.block_number.as_u64() as i32),
             voter_address: Set(to_checksum(&log.voter, None)),
             voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
-            block_created: Set(Some(meta.block_number.as_u64() as i64)),
+            block_created: Set(Some(meta.block_number.as_u64() as i32)),
             choice: Set(log.support.into()),
             proposal_id: NotSet,
             proposal_external_id: Set(log.proposal_id.to_string()),
@@ -115,10 +115,10 @@ fn get_votes_with_params(
     for (log, meta) in voter_logs {
         votes.push(vote::ActiveModel {
             id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i64),
+            index_created: Set(meta.block_number.as_u64() as i32),
             voter_address: Set(to_checksum(&log.voter, None)),
             voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
-            block_created: Set(Some(meta.block_number.as_u64() as i64)),
+            block_created: Set(Some(meta.block_number.as_u64() as i32)),
             choice: Set(log.support.into()),
             proposal_id: NotSet,
             proposal_external_id: Set(log.proposal_id.to_string()),

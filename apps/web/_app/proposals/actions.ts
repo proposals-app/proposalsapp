@@ -1,6 +1,6 @@
 "use server";
 
-import { db, jsonArrayFrom } from "@proposalsapp/db";
+import { db, jsonArrayFrom, ProposalStateEnum } from "@proposalsapp/db";
 import { validateRequest } from "@/lib/auth";
 
 export const getSubscribedDAOs = async () => {
@@ -126,7 +126,7 @@ const getUserProposals = async (
           ),
       ).as("vote"),
     ])
-    .where("proposal.flagged", "=", 0);
+    .where("proposal.flagged", "=", false);
 
   if (from == "all") {
     const userSubscriptions = await db
@@ -162,16 +162,21 @@ const getUserProposals = async (
     query = query.where("proposal.daoId", "=", fromDaoId.id);
   }
 
-  if (active) query = query.where("proposal.proposalState", "in", ["ACTIVE"]);
+  if (active)
+    query = query.where(
+      "proposal.proposalState",
+      "=",
+      ProposalStateEnum.ACTIVE,
+    );
   else
     query = query.where("proposal.proposalState", "in", [
-      "QUEUED",
-      "DEFEATED",
-      "EXECUTED",
-      "EXPIRED",
-      "SUCCEEDED",
-      "HIDDEN",
-      "CANCELED",
+      ProposalStateEnum.QUEUED,
+      ProposalStateEnum.DEFEATED,
+      ProposalStateEnum.EXECUTED,
+      ProposalStateEnum.EXPIRED,
+      ProposalStateEnum.SUCCEEDED,
+      ProposalStateEnum.HIDDEN,
+      ProposalStateEnum.CANCELED,
     ]);
 
   if (voted == "yes") {
@@ -238,18 +243,23 @@ const getGuestProposals = async (
           .where("vote.voterAddress", "in", ["deadbeef"]),
       ).as("vote"),
     ])
-    .where("proposal.flagged", "=", 0);
+    .where("proposal.flagged", "=", false);
 
-  if (active) query = query.where("proposal.proposalState", "=", "ACTIVE");
+  if (active)
+    query = query.where(
+      "proposal.proposalState",
+      "=",
+      ProposalStateEnum.ACTIVE,
+    );
   else
     query = query.where("proposal.proposalState", "in", [
-      "QUEUED",
-      "DEFEATED",
-      "EXECUTED",
-      "EXPIRED",
-      "SUCCEEDED",
-      "CANCELED",
-      "HIDDEN",
+      ProposalStateEnum.QUEUED,
+      ProposalStateEnum.DEFEATED,
+      ProposalStateEnum.EXECUTED,
+      ProposalStateEnum.EXPIRED,
+      ProposalStateEnum.SUCCEEDED,
+      ProposalStateEnum.CANCELED,
+      ProposalStateEnum.HIDDEN,
     ]);
 
   if (from == "all")

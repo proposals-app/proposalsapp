@@ -4,6 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sea-orm = { workspace = true, features = ["sqlx-mysql", "runtime-tokio-rustls", "macros", "with-chrono", "with-json", "with-bigdecimal", "with-uuid"] }
+sea-orm = { workspace = true, features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+    "macros",
+    "with-chrono",
+    "with-json",
+    "with-bigdecimal",
+    "with-uuid",
+] }
 serde = { workspace = true }
 serde_json = { workspace = true }

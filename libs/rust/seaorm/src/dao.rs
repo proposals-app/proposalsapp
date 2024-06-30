@@ -14,10 +14,10 @@ impl EntityName for Entity {
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     pub slug: String,
-    pub hot: i8,
+    pub hot: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -34,7 +34,7 @@ pub enum PrimaryKey {
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = String;
+    type ValueType = Uuid;
     fn auto_increment() -> bool {
         false
     }
@@ -53,10 +53,10 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::String(Some(191u32)).def(),
-            Self::Name => ColumnType::String(Some(191u32)).def().unique(),
-            Self::Slug => ColumnType::String(Some(191u32)).def().unique(),
-            Self::Hot => ColumnType::TinyInteger.def(),
+            Self::Id => ColumnType::Uuid.def(),
+            Self::Name => ColumnType::Text.def().unique(),
+            Self::Slug => ColumnType::Text.def().unique(),
+            Self::Hot => ColumnType::Boolean.def(),
         }
     }
 }

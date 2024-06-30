@@ -8,7 +8,7 @@ use regex::Regex;
 use reqwest::StatusCode;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::Set;
-use seaorm::sea_orm_active_enums::ProposalState;
+use seaorm::sea_orm_active_enums::ProposalStateEnum;
 use seaorm::{dao_handler, proposal};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -74,7 +74,7 @@ pub async fn maker_poll_proposals(
 
     Ok(ChainProposalsResult {
         proposals: result,
-        to_index: Some(to_block as i64),
+        to_index: Some(to_block as i32),
     })
 }
 
@@ -153,9 +153,9 @@ async fn data_for_proposal(
     }
 
     let state = if voting_ends_timestamp.and_utc().timestamp() < Utc::now().timestamp() {
-        ProposalState::Executed
+        ProposalStateEnum::Executed
     } else {
-        ProposalState::Active
+        ProposalStateEnum::Active
     };
 
     Ok(proposal::ActiveModel {
@@ -171,13 +171,13 @@ async fn data_for_proposal(
         quorum: Set(0.0f64),
         proposal_state: Set(state),
         flagged: NotSet,
-        block_created: Set(Some(created_block_number as i64)),
+        block_created: Set(Some(created_block_number as i32)),
         time_created: Set(Some(created_block_timestamp)),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_handler_id: Set(dao_handler.clone().id),
         dao_id: Set(dao_handler.clone().dao_id),
-        index_created: Set(created_block_number as i64),
+        index_created: Set(created_block_number as i32),
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,

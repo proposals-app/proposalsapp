@@ -6,9 +6,10 @@ use amqprs::{
 use anyhow::{Context, Result};
 use dotenv::dotenv;
 use sea_orm::{
-    ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
+    prelude::Uuid, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
+    QueryFilter,
 };
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::HandlerType};
+use seaorm::{dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnum};
 use tokio::time;
 use tracing::info;
 use utils::{
@@ -80,7 +81,7 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
 
 async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::Model>> {
     dao_handler::Entity::find()
-        .filter(dao_handler::Column::HandlerType.ne(HandlerType::Snapshot))
+        .filter(dao_handler::Column::HandlerType.ne(DaoHandlerEnum::Snapshot))
         .filter(dao_handler::Column::RefreshEnabled.eq(1))
         .all(db)
         .await
@@ -114,7 +115,7 @@ async fn queue_jobs(
         dao_handlers
             .iter()
             .map(|d| d.id.clone())
-            .collect::<Vec<String>>()
+            .collect::<Vec<Uuid>>()
     );
     info!("Queued {} proposals", proposals.len());
     info!(
@@ -122,7 +123,7 @@ async fn queue_jobs(
         proposals
             .iter()
             .map(|p| p.id.clone())
-            .collect::<Vec<String>>()
+            .collect::<Vec<Uuid>>()
     );
 
     Ok(())
@@ -134,7 +135,7 @@ async fn queue_dao_jobs(
 ) -> Result<()> {
     for dao_handler in dao_handlers {
         let job = VotesJob {
-            dao_handler_id: dao_handler.id.clone(),
+            dao_handler_id: dao_handler.id,
             proposal_id: None,
         };
         let content = serde_json::to_string(&job)?.into_bytes();
@@ -152,8 +153,8 @@ async fn queue_proposal_jobs(
 ) -> Result<()> {
     for proposal in proposals {
         let job = VotesJob {
-            dao_handler_id: proposal.dao_handler_id.clone(),
-            proposal_id: Some(proposal.id.clone()),
+            dao_handler_id: proposal.dao_handler_id,
+            proposal_id: Some(proposal.id),
         };
         let content = serde_json::to_string(&job)?.into_bytes();
         let args = BasicPublishArguments::new("", QUEUE_NAME);

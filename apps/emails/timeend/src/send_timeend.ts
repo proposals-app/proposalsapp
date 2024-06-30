@@ -1,8 +1,7 @@
 import {
-  NotificationDispatchedState,
-  NotificationType,
   db,
-  getCountdown,
+  NotificationDispatchedStateEnum,
+  NotificationTypeEnum,
 } from "@proposalsapp/db";
 import { NotVotedData, NotVotedEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
@@ -14,11 +13,11 @@ export async function sendTimeend(userId: string, proposalId: string) {
     .selectFrom("notification")
     .where("userId", "=", userId)
     .where("proposalId", "=", proposalId)
-    .where("notification.type", "=", NotificationType.TIMEEND_EMAIL)
+    .where("notification.type", "=", NotificationTypeEnum.TIMEENDEMAIL)
     .where(
       "notification.dispatchstatus",
       "=",
-      NotificationDispatchedState.DISPATCHED,
+      NotificationDispatchedStateEnum.DISPATCHED,
     )
     .selectAll()
     .executeTakeFirst();
@@ -65,7 +64,10 @@ export async function sendTimeend(userId: string, proposalId: string) {
   else if (daoHandler.handlerType.includes("POLYGON"))
     chainLogoUrl = "assets/email/chains/polygon.png";
 
-  let { countdownSmall, countdownLarge } = await getCountdown(proposal.timeEnd);
+  let { countdownSmall, countdownLarge } = {
+    countdownSmall: "",
+    countdownLarge: "",
+  }; // await getCountdown(proposal.timeEnd);
 
   const emailData: NotVotedData = {
     daoName: dao.name,
@@ -95,8 +97,8 @@ export async function sendTimeend(userId: string, proposalId: string) {
     .values({
       userId: userId,
       proposalId: proposalId,
-      type: NotificationType.TIMEEND_EMAIL,
-      dispatchstatus: NotificationDispatchedState.DISPATCHED,
+      type: NotificationTypeEnum.TIMEENDEMAIL,
+      dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
       submittedAt: new Date(res.SubmittedAt),
     })
     .execute();

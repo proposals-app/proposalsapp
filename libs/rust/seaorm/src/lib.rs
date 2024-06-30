@@ -7,6 +7,8 @@ pub mod dao;
 pub mod dao_handler;
 pub mod dao_settings;
 pub mod email_verification;
+pub mod kysely_migration;
+pub mod kysely_migration_lock;
 pub mod notification;
 pub mod proposal;
 pub mod sea_orm_active_enums;

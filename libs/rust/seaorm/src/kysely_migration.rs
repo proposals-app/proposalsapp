@@ -8,33 +8,29 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "countdown_cache"
+        "kysely_migration"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: Uuid,
-    pub time: DateTime,
-    pub large_url: String,
-    pub small_url: String,
+    pub name: String,
+    pub timestamp: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
-    Id,
-    Time,
-    LargeUrl,
-    SmallUrl,
+    Name,
+    Timestamp,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
 pub enum PrimaryKey {
-    Id,
+    Name,
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = Uuid;
+    type ValueType = String;
     fn auto_increment() -> bool {
         false
     }
@@ -47,10 +43,8 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::Uuid.def(),
-            Self::Time => ColumnType::DateTime.def(),
-            Self::LargeUrl => ColumnType::Text.def(),
-            Self::SmallUrl => ColumnType::Text.def(),
+            Self::Name => ColumnType::String(Some(255u32)).def(),
+            Self::Timestamp => ColumnType::String(Some(255u32)).def(),
         }
     }
 }

@@ -69,8 +69,8 @@ cron.schedule("0 8 * * *", async () => {
     .selectFrom("user")
     .innerJoin("userSettings", "userSettings.userId", "user.id")
     .innerJoin("subscription", "subscription.userId", "user.id")
-    .where("emailVerified", "=", 1)
-    .where("emailDailyBulletin", "=", 1)
+    .where("emailVerified", "=", true)
+    .where("emailDailyBulletin", "=", true)
     .select("user.id")
     .distinct()
     .execute();

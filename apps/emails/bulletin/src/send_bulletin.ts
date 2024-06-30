@@ -1,9 +1,4 @@
-import {
-  ProposalStateEnum,
-  db,
-  getCountdown,
-  jsonArrayFrom,
-} from "@proposalsapp/db";
+import { ProposalStateEnum, db, jsonArrayFrom } from "@proposalsapp/db";
 import { DailyBulletinData, render } from "@proposalsapp/emails";
 import DailyBulletinEmail, {
   EndedProposal,
@@ -91,7 +86,7 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
       "",
     ])
     .where("proposalState", "!=", ProposalStateEnum.CANCELED)
-    .where("flagged", "=", 0)
+    .where("flagged", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
     .select("dao.name as daoName")
     .leftJoin("daoSettings", "proposal.daoId", "daoSettings.daoId")
@@ -134,7 +129,10 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
 
     let voted = p.vote.length > 0 ? true : false;
 
-    let { countdownSmall, countdownLarge } = await getCountdown(p.timeEnd);
+    let { countdownSmall, countdownLarge } = {
+      countdownSmall: "",
+      countdownLarge: "",
+    }; //await getCountdown(p.timeEnd);
 
     processedProposals.push({
       daoLogoUrl: p.daoPicture!,
@@ -183,7 +181,7 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
       "",
     ])
     .where("proposalState", "=", ProposalStateEnum.ACTIVE)
-    .where("flagged", "=", 0)
+    .where("flagged", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
     .select("dao.name as daoName")
     .leftJoin("daoSettings", "proposal.daoId", "daoSettings.daoId")
@@ -226,7 +224,10 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
 
     let voted = p.vote.length > 0 ? true : false;
 
-    let { countdownSmall, countdownLarge } = await getCountdown(p.timeEnd);
+    let { countdownSmall, countdownLarge } = {
+      countdownSmall: "",
+      countdownLarge: "",
+    }; //await getCountdown(p.timeEnd);
 
     processedProposals.push({
       daoLogoUrl: p.daoPicture!,
@@ -276,7 +277,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
       "",
     ])
     .where("proposalState", "!=", ProposalStateEnum.CANCELED)
-    .where("flagged", "=", 0)
+    .where("flagged", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
     .select("dao.name as daoName")
     .leftJoin("daoSettings", "proposal.daoId", "daoSettings.daoId")
@@ -319,7 +320,10 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
 
     let voted = p.vote.length > 0 ? true : false;
 
-    let { countdownSmall, countdownLarge } = await getCountdown(p.timeEnd);
+    let { countdownSmall, countdownLarge } = {
+      countdownSmall: "",
+      countdownLarge: "",
+    }; //await getCountdown(p.timeEnd);
 
     processedProposals.push({
       daoLogoUrl: p.daoPicture!,

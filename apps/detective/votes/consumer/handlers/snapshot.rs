@@ -23,7 +23,7 @@ struct GraphQLVote {
     choice: Value,
     vp: f64,
     vp_state: String,
-    created: i64,
+    created: i32,
 }
 
 #[allow(non_snake_case)]
@@ -112,11 +112,11 @@ async fn parse_votes(
             vp_state: Set(graphql_vote.vp_state.into()),
             block_created: NotSet,
             #[allow(deprecated)]
-            time_created: Set(
-                NaiveDateTime::from_timestamp_millis(graphql_vote.created * 1000)
-                    .expect("can not create timestart")
-                    .into(),
-            ),
+            time_created: Set(NaiveDateTime::from_timestamp_millis(
+                graphql_vote.created as i64 * 1000,
+            )
+            .expect("can not create timestart")
+            .into()),
             proposal_id: Set(proposal.id.clone()),
             proposal_external_id: Set(proposal.external_id.clone()),
             dao_handler_id: Set(proposal.dao_handler_id.clone()),

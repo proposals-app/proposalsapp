@@ -5,6 +5,8 @@ pub use super::dao::Entity as Dao;
 pub use super::dao_handler::Entity as DaoHandler;
 pub use super::dao_settings::Entity as DaoSettings;
 pub use super::email_verification::Entity as EmailVerification;
+pub use super::kysely_migration::Entity as KyselyMigration;
+pub use super::kysely_migration_lock::Entity as KyselyMigrationLock;
 pub use super::notification::Entity as Notification;
 pub use super::proposal::Entity as Proposal;
 pub use super::subscription::Entity as Subscription;

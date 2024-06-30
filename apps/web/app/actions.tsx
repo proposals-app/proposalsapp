@@ -2,7 +2,7 @@
 
 import { validateRequest } from "@/lib/auth";
 import { AsyncReturnType } from "@/lib/utils";
-import { db } from "@proposalsapp/db";
+import { db, ProposalStateEnum } from "@proposalsapp/db";
 import { revalidateTag } from "next/cache";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
@@ -175,7 +175,7 @@ export const getGuestProposals = async (
       "proposal.url",
       "proposal.timeEnd",
     ])
-    .where("proposal.flagged", "=", 0)
+    .where("proposal.flagged", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
     .select("dao.name as daoName")
     .leftJoin("daoSettings", "proposal.daoId", "daoSettings.daoId")
@@ -190,13 +190,13 @@ export const getGuestProposals = async (
 
   if (active == StateFilterEnum.ALL) {
     proposals_query = proposals_query.where("proposal.proposalState", "in", [
-      "QUEUED",
-      "DEFEATED",
-      "EXECUTED",
-      "EXPIRED",
-      "SUCCEEDED",
-      "HIDDEN",
-      "ACTIVE",
+      ProposalStateEnum.QUEUED,
+      ProposalStateEnum.DEFEATED,
+      ProposalStateEnum.EXECUTED,
+      ProposalStateEnum.EXPIRED,
+      ProposalStateEnum.SUCCEEDED,
+      ProposalStateEnum.HIDDEN,
+      ProposalStateEnum.ACTIVE,
     ]);
     proposals_query = proposals_query.orderBy("proposal.timeEnd", "desc");
   }
@@ -205,19 +205,19 @@ export const getGuestProposals = async (
     proposals_query = proposals_query.where(
       "proposal.proposalState",
       "=",
-      "ACTIVE",
+      ProposalStateEnum.ACTIVE,
     );
     proposals_query = proposals_query.orderBy("timeEnd", "asc");
   }
 
   if (active == StateFilterEnum.CLOSED) {
     proposals_query = proposals_query.where("proposal.proposalState", "in", [
-      "QUEUED",
-      "DEFEATED",
-      "EXECUTED",
-      "EXPIRED",
-      "SUCCEEDED",
-      "HIDDEN",
+      ProposalStateEnum.QUEUED,
+      ProposalStateEnum.DEFEATED,
+      ProposalStateEnum.EXECUTED,
+      ProposalStateEnum.EXPIRED,
+      ProposalStateEnum.SUCCEEDED,
+      ProposalStateEnum.HIDDEN,
     ]);
     proposals_query = proposals_query.orderBy("timeEnd", "desc");
   }
@@ -234,7 +234,7 @@ export type getGuestProposalsType = AsyncReturnType<typeof getGuestProposals>;
 export const getHotDaos = async () => {
   const daosList = await db
     .selectFrom("dao")
-    .where("dao.hot", "=", 1)
+    .where("dao.hot", "=", true)
     .innerJoin("daoSettings", "dao.id", "daoSettings.daoId")
     .orderBy("dao.name", "asc")
     .selectAll()

@@ -2,7 +2,7 @@ use crate::ChainProposalsResult;
 use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use sea_orm::{NotSet, Set};
-use seaorm::sea_orm_active_enums::ProposalState;
+use seaorm::sea_orm_active_enums::ProposalStateEnum;
 use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 
@@ -26,7 +26,7 @@ struct GraphQLProposal {
     scores: Vec<f64>,
     scores_total: f64,
     scores_state: String,
-    created: i64,
+    created: i32,
     start: i64,
     end: i64,
     quorum: f64,
@@ -107,16 +107,16 @@ async fn parse_proposals(
 
     for graphql_proposal in graphql_proposals {
         let state = match graphql_proposal.state.as_str() {
-            "active" => ProposalState::Active,
-            "pending" => ProposalState::Pending,
+            "active" => ProposalStateEnum::Active,
+            "pending" => ProposalStateEnum::Pending,
             "closed" => {
                 if graphql_proposal.scores_state == "final" {
-                    ProposalState::Executed
+                    ProposalStateEnum::Executed
                 } else {
-                    ProposalState::Hidden
+                    ProposalStateEnum::Hidden
                 }
             }
-            _ => ProposalState::Unknown,
+            _ => ProposalStateEnum::Unknown,
         };
 
         let proposal = proposal::ActiveModel {
@@ -135,7 +135,7 @@ async fn parse_proposals(
             block_created: NotSet,
             #[allow(deprecated)]
             time_created: Set(Some(
-                NaiveDateTime::from_timestamp_millis(graphql_proposal.created * 1000)
+                NaiveDateTime::from_timestamp_millis(graphql_proposal.created as i64 * 1000)
                     .context("can not create timestart")
                     .unwrap(),
             )),
@@ -152,9 +152,9 @@ async fn parse_proposals(
                     .unwrap(),
             ),
             flagged: Set(if graphql_proposal.flagged.is_some_and(|f| f) {
-                1
+                true
             } else {
-                0
+                false
             }),
             dao_handler_id: Set(dao_handler.id.to_owned()),
             dao_id: Set(dao_handler.dao_id.to_owned()),

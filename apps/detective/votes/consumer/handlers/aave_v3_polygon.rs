@@ -62,7 +62,7 @@ pub async fn aave_v3_polygon_votes(dao_handler: &dao_handler::Model) -> Result<C
 
     Ok(ChainVotesResult {
         votes,
-        to_index: Some(to_block as i64),
+        to_index: Some(to_block as i32),
     })
 }
 
@@ -77,10 +77,10 @@ fn get_votes(
     for (log, meta) in voter_logs {
         votes.push(vote::ActiveModel {
             id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i64),
+            index_created: Set(meta.block_number.as_u64() as i32),
             voter_address: Set(to_checksum(&log.voter, None)),
             voting_power: Set((log.voting_power.as_u128() as f64) / (10.0f64.powi(18))),
-            block_created: Set(Some(meta.block_number.as_u64() as i64)),
+            block_created: Set(Some(meta.block_number.as_u64() as i32)),
             choice: Set(match log.support {
                 true => 0.into(),
                 false => 1.into(),

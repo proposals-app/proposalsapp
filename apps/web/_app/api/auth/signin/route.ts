@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       .insertInto("user")
       .values({
         email,
-        emailVerified: 0,
+        emailVerified: false,
       })
       .execute();
 

@@ -7,7 +7,7 @@ use contracts::gen::zerox_treasury::ProposalCreatedFilter;
 use ethers::prelude::*;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::Set;
-use seaorm::sea_orm_active_enums::ProposalState;
+use seaorm::sea_orm_active_enums::ProposalStateEnum;
 use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use serde_json::json;
@@ -82,7 +82,7 @@ pub async fn zerox_treasury_proposals(
 
     Ok(ChainProposalsResult {
         proposals: result,
-        to_index: Some(to_block as i64),
+        to_index: Some(to_block as i32),
     })
 }
 
@@ -188,16 +188,16 @@ async fn data_for_proposal(
     let proposal_state = onchain_proposal.5;
 
     let state = if voting_starts_time > Utc::now().naive_utc() {
-        ProposalState::Pending
+        ProposalStateEnum::Pending
     } else if voting_ends_time > Utc::now().naive_utc() {
         match proposal_state {
-            false => ProposalState::Active,
-            true => ProposalState::Executed,
+            false => ProposalStateEnum::Active,
+            true => ProposalStateEnum::Executed,
         }
     } else {
         match proposal_state {
-            false => ProposalState::Defeated,
-            true => ProposalState::Executed,
+            false => ProposalStateEnum::Defeated,
+            true => ProposalStateEnum::Executed,
         }
     };
 
@@ -216,13 +216,13 @@ async fn data_for_proposal(
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
-        block_created: Set(Some(created_block_number as i64)),
+        block_created: Set(Some(created_block_number as i32)),
         time_created: Set(Some(created_block_time)),
         time_start: Set(voting_starts_time),
         time_end: Set(voting_ends_time),
         dao_handler_id: Set(dao_handler.clone().id),
         dao_id: Set(dao_handler.clone().dao_id),
-        index_created: Set(created_block_number as i64),
+        index_created: Set(created_block_number as i32),
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,

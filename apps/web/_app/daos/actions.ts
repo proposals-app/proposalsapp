@@ -2,6 +2,7 @@
 
 import { validateRequest } from "@/lib/auth";
 import { db, jsonArrayFrom } from "@proposalsapp/db";
+import { ProposalStateEnum } from "@proposalsapp/db/src/kysely_db";
 
 export const getSubscriptions = async () => {
   const subscribed = await getSubscribedDAOs();
@@ -40,7 +41,7 @@ const getSubscribedDAOs = async () => {
       subQuery
         .selectFrom("proposal")
         .whereRef("proposal.daoId", "=", "dao.id")
-        .where("proposal.proposalState", "=", "ACTIVE")
+        .where("proposal.proposalState", "=", ProposalStateEnum.ACTIVE)
         .select((sub) => sub.fn.count("id").as("activeProposalsCount"))
         .as("activeProposalsCount"),
     )

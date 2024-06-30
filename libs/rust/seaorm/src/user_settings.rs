@@ -14,11 +14,11 @@ impl EntityName for Entity {
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: String,
-    pub user_id: String,
-    pub email_daily_bulletin: i8,
-    pub email_quorum_warning: i8,
-    pub email_timeend_warning: i8,
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub email_daily_bulletin: bool,
+    pub email_quorum_warning: bool,
+    pub email_timeend_warning: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -36,7 +36,7 @@ pub enum PrimaryKey {
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = String;
+    type ValueType = Uuid;
     fn auto_increment() -> bool {
         false
     }
@@ -51,11 +51,11 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::String(Some(191u32)).def(),
-            Self::UserId => ColumnType::String(Some(191u32)).def().unique(),
-            Self::EmailDailyBulletin => ColumnType::TinyInteger.def(),
-            Self::EmailQuorumWarning => ColumnType::TinyInteger.def(),
-            Self::EmailTimeendWarning => ColumnType::TinyInteger.def(),
+            Self::Id => ColumnType::Uuid.def(),
+            Self::UserId => ColumnType::Uuid.def().unique(),
+            Self::EmailDailyBulletin => ColumnType::Boolean.def(),
+            Self::EmailQuorumWarning => ColumnType::Boolean.def(),
+            Self::EmailTimeendWarning => ColumnType::Boolean.def(),
         }
     }
 }

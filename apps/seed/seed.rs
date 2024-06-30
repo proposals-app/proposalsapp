@@ -4,7 +4,7 @@ use dotenv::dotenv;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::{ColumnTrait, ConnectOptions, EntityTrait, QueryFilter, Set};
 use sea_orm::{Database, DatabaseConnection};
-use seaorm::sea_orm_active_enums::HandlerType;
+use seaorm::sea_orm_active_enums::DaoHandlerEnum;
 use seaorm::{dao, dao_handler, dao_settings};
 use utils::telemetry::setup_telemetry;
 
@@ -14,21 +14,21 @@ mod data;
 struct DaoSeedData {
     name: String,
     slug: String,
-    hot: i8,
+    hot: bool,
     handlers: Vec<HandlerData>,
     settings: SettingsData,
 }
 
 #[derive(Debug, Clone)]
 struct HandlerData {
-    handler_type: HandlerType,
+    handler_type: DaoHandlerEnum,
     governance_portal: String,
     decoder: serde_json::Value,
-    refresh_enabled: i8,
-    proposals_refresh_speed: i64,
-    votes_refresh_speed: i64,
-    proposals_index: i64,
-    votes_index: i64,
+    refresh_enabled: bool,
+    proposals_refresh_speed: i32,
+    votes_refresh_speed: i32,
+    proposals_index: i32,
+    votes_index: i32,
 }
 
 #[derive(Debug, Clone)]

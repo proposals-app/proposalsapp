@@ -14,11 +14,11 @@ impl EntityName for Entity {
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: String,
-    pub dao_id: String,
+    pub id: Uuid,
+    pub dao_id: Uuid,
     pub picture: String,
     pub background_color: String,
-    pub quorum_warning_email_support: i8,
+    pub quorum_warning_email_support: bool,
     pub twitter_account: Option<Json>,
 }
 
@@ -38,7 +38,7 @@ pub enum PrimaryKey {
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = String;
+    type ValueType = Uuid;
     fn auto_increment() -> bool {
         false
     }
@@ -53,11 +53,11 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::String(Some(191u32)).def(),
-            Self::DaoId => ColumnType::String(Some(191u32)).def().unique(),
-            Self::Picture => ColumnType::String(Some(191u32)).def(),
-            Self::BackgroundColor => ColumnType::String(Some(191u32)).def(),
-            Self::QuorumWarningEmailSupport => ColumnType::TinyInteger.def(),
+            Self::Id => ColumnType::Uuid.def(),
+            Self::DaoId => ColumnType::Uuid.def().unique(),
+            Self::Picture => ColumnType::Text.def(),
+            Self::BackgroundColor => ColumnType::Text.def(),
+            Self::QuorumWarningEmailSupport => ColumnType::Boolean.def(),
             Self::TwitterAccount => ColumnType::Json.def().null(),
         }
     }

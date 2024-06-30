@@ -14,19 +14,19 @@ impl EntityName for Entity {
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Serialize, Deserialize)]
 pub struct Model {
-    pub id: String,
-    pub index_created: i64,
+    pub id: Uuid,
+    pub index_created: i32,
     pub voter_address: String,
     pub choice: Json,
     pub voting_power: f64,
     pub reason: Option<String>,
     pub proposal_external_id: String,
-    pub block_created: Option<i64>,
+    pub block_created: Option<i32>,
     pub time_created: Option<DateTime>,
     pub vp_state: Option<String>,
-    pub proposal_id: String,
-    pub dao_id: String,
-    pub dao_handler_id: String,
+    pub proposal_id: Uuid,
+    pub dao_id: Uuid,
+    pub dao_handler_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -52,7 +52,7 @@ pub enum PrimaryKey {
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = String;
+    type ValueType = Uuid;
     fn auto_increment() -> bool {
         false
     }
@@ -70,19 +70,19 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::String(Some(191u32)).def(),
-            Self::IndexCreated => ColumnType::BigInteger.def(),
-            Self::VoterAddress => ColumnType::String(Some(191u32)).def(),
+            Self::Id => ColumnType::Uuid.def(),
+            Self::IndexCreated => ColumnType::Integer.def(),
+            Self::VoterAddress => ColumnType::Text.def(),
             Self::Choice => ColumnType::Json.def(),
             Self::VotingPower => ColumnType::Double.def(),
-            Self::Reason => ColumnType::custom("LONGTEXT").def().null(),
-            Self::ProposalExternalId => ColumnType::String(Some(191u32)).def(),
-            Self::BlockCreated => ColumnType::BigInteger.def().null(),
+            Self::Reason => ColumnType::Text.def().null(),
+            Self::ProposalExternalId => ColumnType::Text.def(),
+            Self::BlockCreated => ColumnType::Integer.def().null(),
             Self::TimeCreated => ColumnType::DateTime.def().null(),
-            Self::VpState => ColumnType::String(Some(191u32)).def().null(),
-            Self::ProposalId => ColumnType::String(Some(191u32)).def(),
-            Self::DaoId => ColumnType::String(Some(191u32)).def(),
-            Self::DaoHandlerId => ColumnType::String(Some(191u32)).def(),
+            Self::VpState => ColumnType::Text.def().null(),
+            Self::ProposalId => ColumnType::Uuid.def(),
+            Self::DaoId => ColumnType::Uuid.def(),
+            Self::DaoHandlerId => ColumnType::Uuid.def(),
         }
     }
 }

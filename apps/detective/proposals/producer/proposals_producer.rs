@@ -8,7 +8,7 @@ use dotenv::dotenv;
 use sea_orm::{
     ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
 };
-use seaorm::{dao_handler, sea_orm_active_enums::HandlerType};
+use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnum};
 use tokio::time;
 use tracing::info;
 use utils::{
@@ -82,9 +82,9 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
 async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::Model>> {
     dao_handler::Entity::find()
         .filter(dao_handler::Column::HandlerType.is_not_in(vec![
-            HandlerType::MakerPollArbitrum,
-            HandlerType::AaveV3PolygonPos,
-            HandlerType::AaveV3Avalanche,
+            DaoHandlerEnum::MakerPollArbitrum,
+            DaoHandlerEnum::AaveV3PolygonPos,
+            DaoHandlerEnum::AaveV3Avalanche,
         ]))
         .filter(dao_handler::Column::RefreshEnabled.eq(1))
         .all(db)
@@ -112,7 +112,7 @@ async fn queue_dao_jobs(
         "Queued {:?} DAOs",
         dao_handlers
             .iter()
-            .map(|d| d.id.clone())
+            .map(|d| d.id.clone().into())
             .collect::<Vec<String>>()
     );
 

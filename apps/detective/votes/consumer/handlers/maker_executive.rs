@@ -101,7 +101,7 @@ pub async fn maker_executive_votes(dao_handler: &dao_handler::Model) -> Result<C
 
     Ok(ChainVotesResult {
         votes,
-        to_index: Some(to_block as i64),
+        to_index: Some(to_block as i32),
     })
 }
 
