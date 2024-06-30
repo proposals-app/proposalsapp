@@ -5,8 +5,8 @@
   "main": "./src/index.ts",
   "scripts": {
     "db:gen": "yarn db:gen:rust && yarn db:gen:ts",
-    "db:gen:rust": "sea-orm-cli generate entity -v --lib --expanded-format --with-uuid --with-serde both --date-time-crate chrono -o ../../rust/seaorm/src",
-    "db:gen:ts": "kysely-codegen --camel-case  --runtime-enums --out-file ./src/kysely_db.ts",
+    "db:gen:rust": "sea-orm-cli generate entity -v --lib --expanded-format --with-serde both --date-time-crate chrono -o ../../rust/seaorm/src",
+    "db:gen:ts": "kysely-codegen --camel-case --runtime-enums --out-file ./src/kysely_db.ts",
     "db:migrate:latest": "kysely migrate latest"
   },
   "dependencies": {

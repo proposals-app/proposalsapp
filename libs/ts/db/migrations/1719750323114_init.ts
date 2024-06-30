@@ -78,9 +78,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
 
   await db.schema
     .createTable("user_session")
-    .addColumn("id", "uuid", (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
-    )
+    .addColumn("id", "text", (col) => col.primaryKey())
     .addColumn("user_id", "uuid", (col) => col.notNull())
     .addColumn("email", "text", (col) => col.notNull())
     .addColumn("expires_at", "timestamp", (col) => col.notNull())
