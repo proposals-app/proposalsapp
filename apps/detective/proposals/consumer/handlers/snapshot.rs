@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponse {
-    data: GraphQLResponseInner,
+    data: Option<GraphQLResponseInner>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -85,18 +85,25 @@ pub async fn snapshot_proposals(dao_handler: &dao_handler::Model) -> Result<Chai
         .json::<GraphQLResponse>()
         .await?;
 
-    let parsed_proposals = parse_proposals(graphql_response.data.proposals, dao_handler).await;
+    if let Some(data) = graphql_response.data {
+        let parsed_proposals = parse_proposals(data.proposals, dao_handler).await;
 
-    let highest_index_created = parsed_proposals
-        .iter()
-        .map(|proposal| proposal.index_created.clone().take())
-        .max()
-        .unwrap_or_default();
+        let highest_index_created = parsed_proposals
+            .iter()
+            .map(|proposal| proposal.index_created.clone().take())
+            .max()
+            .unwrap_or_default();
 
-    Ok(ChainProposalsResult {
-        proposals: parsed_proposals,
-        to_index: highest_index_created,
-    })
+        Ok(ChainProposalsResult {
+            proposals: parsed_proposals,
+            to_index: highest_index_created,
+        })
+    } else {
+        Ok(ChainProposalsResult {
+            proposals: vec![],
+            to_index: None,
+        })
+    }
 }
 
 async fn parse_proposals(

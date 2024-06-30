@@ -8,7 +8,7 @@ use serde_json::Value;
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponse {
-    data: GraphQLResponseInner,
+    data: Option<GraphQLResponseInner>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -75,20 +75,29 @@ pub async fn snapshot_votes(
         .json::<GraphQLResponse>()
         .await?;
 
-    let parsed_votes = parse_votes(graphql_response.data.votes, proposal).await;
+    if let Some(data) = graphql_response.data {
+        let parsed_votes = parse_votes(data.votes, proposal).await;
 
-    let highest_index_created = parsed_votes
-        .iter()
-        .map(|vote| vote.index_created.clone().take())
-        .max()
-        .unwrap_or_default();
+        let highest_index_created = parsed_votes
+            .iter()
+            .map(|vote| vote.index_created.clone().take())
+            .max()
+            .unwrap_or_default();
 
-    Ok({
-        ChainVotesResult {
-            votes: parsed_votes,
-            to_index: highest_index_created,
-        }
-    })
+        Ok({
+            ChainVotesResult {
+                votes: parsed_votes,
+                to_index: highest_index_created,
+            }
+        })
+    } else {
+        Ok({
+            ChainVotesResult {
+                votes: vec![],
+                to_index: None,
+            }
+        })
+    }
 }
 
 async fn parse_votes(
