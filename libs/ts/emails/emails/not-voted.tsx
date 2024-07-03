@@ -6,6 +6,7 @@ import {
   Font,
   Head,
   Heading,
+  Hr,
   Html,
   Img,
   Link,
@@ -53,9 +54,11 @@ export const NotVotedEmail = (data: NotVotedData) => (
             <Text>
               Please go ahead and vote before the proposal’s end date.
             </Text>
+          </Section>
 
-            <hr className="opacity-50" />
+          <Hr />
 
+          <Section className="py-4">
             <Row className="p-4 bg-black">
               <Column>
                 <Row className="py-4">
@@ -109,7 +112,7 @@ export const NotVotedEmail = (data: NotVotedData) => (
               </Column>
             </Row>
 
-            <Row className="py-8">
+            <Row className="pt-8">
               <Column align="center">
                 <Button
                   href={data.url ? data.url : test_data.url}
@@ -119,11 +122,14 @@ export const NotVotedEmail = (data: NotVotedData) => (
                 </Button>
               </Column>
             </Row>
+          </Section>
 
-            <hr className="opacity-50" />
+          <Hr />
 
+          <Section>
             <Text>Thank you for your contribution!</Text>
           </Section>
+
           <Footer />
         </Container>
       </Body>

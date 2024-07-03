@@ -6,6 +6,7 @@ import {
   Font,
   Head,
   Heading,
+  Hr,
   Html,
   Img,
   Link,
@@ -54,10 +55,12 @@ export const QuorumEmail = (data: QuorumData) => (
             <Text>
               Please go ahead and vote before the proposal’s end date.
             </Text>
+          </Section>
 
-            <hr className="opacity-50" />
+          <Hr />
 
-            <Row className="py-4">
+          <Section className="py-4">
+            <Row className="pb-4">
               <Column width={52} height={66}>
                 <Img
                   src={`${baseUrl}/${
@@ -142,9 +145,11 @@ export const QuorumEmail = (data: QuorumData) => (
                 </Button>
               </Column>
             </Row>
+          </Section>
 
-            <hr className="opacity-50" />
+          <Hr />
 
+          <Section>
             <Text>Thank you for your contribution!</Text>
           </Section>
           <Footer />
