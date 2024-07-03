@@ -47,39 +47,40 @@ const MAX_NAME_LENGTH = 100;
 export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
   return (
     <Link
-      className="h-36 lg:h-24 w-full flex flex-row items-center shadow-sm hover:shadow-md bg-white rounded-2xl p-2 gap-4 transition-all duration-200"
+      className="flex w-full flex-row items-center gap-2 rounded-2xl bg-white p-2 shadow-sm transition-all duration-200 hover:shadow-md"
       href={proposal.url}
       target="_blank"
     >
-      <div className="min-h-20 min-w-20 rounded-lg">
-        <Image
-          className="rounded-md"
-          height={80}
-          width={80}
-          src={`/${proposal.daoPicture}.svg`}
-          alt={""}
-        />
-      </div>
-      <div className={`w-full text-ellipsis text-2xl ${poppins.className} `}>
+      <Image
+        className="h-[56px] w-[56px] rounded-md"
+        height={56}
+        width={56}
+        src={`/${proposal.daoPicture}.svg`}
+        alt={""}
+      />
+
+      <div
+        className={`w-full text-ellipsis text-[18px] leading-[24px] ${poppins.className}`}
+      >
         {proposal.name.length < MAX_NAME_LENGTH
           ? proposal.name
           : proposal.name.slice(0, MAX_NAME_LENGTH - 3) + "..."}
       </div>
-      <div className="min-w-40 text-center">
+      <div className="min-w-[100px] text-center">
         {proposal.timeEnd.getTime() > new Date().getTime() ? (
-          <div className={`${poppins.className} text-dark text-xl`}>
+          <div className={`${poppins.className} text-xl text-dark`}>
             open for
           </div>
         ) : (
-          <div className={`${poppins.className} text-gold text-xl`}>closed</div>
+          <div className={`${poppins.className} text-xl text-gold`}>closed</div>
         )}
 
         {proposal.timeEnd.getTime() > new Date().getTime() ? (
-          <div className={`${poppinsBold.className} text-dark text-xl`}>
+          <div className={`${poppinsBold.className} text-xl text-dark`}>
             {moment(proposal.timeEnd).fromNow(true)}
           </div>
         ) : (
-          <div className={`${poppinsBold.className} text-gold text-xl`}>
+          <div className={`${poppinsBold.className} text-xl text-gold`}>
             {moment(proposal.timeEnd).fromNow(true)}
             {" ago"}
           </div>

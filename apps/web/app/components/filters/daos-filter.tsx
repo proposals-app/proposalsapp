@@ -46,10 +46,10 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
   );
 
   return (
-    <div className="grid grid-flow-row grid-cols-6 lg:grid-cols-12 gap-4">
+    <div className="grid max-w-fit grid-cols-6 items-center justify-center gap-3">
       {hotDaos.map((dao) => (
         <div
-          className="min-w-20 min-h-20"
+          className="h-[56px] w-[56px]"
           key={dao.id}
           onClick={() => {
             setHoveredDao(null);
@@ -61,9 +61,9 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
           onTouchMove={() => setHoveredDao(null)}
         >
           <Image
-            className={`${selectedDaos.includes(dao.slug) ? "bg-dark" : "bg-luna border-2 border-gold hover:border-0"} rounded-lg`}
-            height={80}
-            width={80}
+            className={`${selectedDaos.includes(dao.slug) ? "bg-dark" : "border-2 border-gold bg-luna"} h-[56px] w-[56px] rounded-lg`}
+            height={24}
+            width={24}
             src={
               hoveredDao === dao.slug
                 ? `/assets/project-logos/hot/${dao.slug}_hover.svg`

@@ -11,7 +11,7 @@ export default async function NavBar() {
     <div className="flex w-full flex-col items-center justify-between gap-8 px-2">
       <Link
         href="/"
-        className="py-auto flex h-[56px] animate-logo-skew flex-row items-center justify-center rounded-lg bg-dark px-[18px] hover:animate-logo-straight"
+        className="py-auto flex h-[56px] flex-row items-center justify-center rounded-lg bg-dark px-[18px]"
       >
         <Image
           className="pointer-events-none"

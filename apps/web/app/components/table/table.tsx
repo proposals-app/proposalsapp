@@ -19,7 +19,7 @@ export const ProposalsTable = async ({
 
   return (
     <div className="w-full">
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {proposals.map((proposal) => (
           <ProposalItem key={proposal.id} proposal={proposal} />
         ))}
