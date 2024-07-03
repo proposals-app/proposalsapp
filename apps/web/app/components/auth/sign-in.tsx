@@ -3,13 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shadcn/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from "@/shadcn/ui/dialog";
 import { Input } from "@/shadcn/ui/input";
 import { Checkbox } from "@/shadcn/ui/checkbox";
 import { z } from "zod";
@@ -25,6 +18,17 @@ import {
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/shadcn/ui/input-otp";
 import { Manjari, Poppins } from "next/font/google";
 import Link from "next/link";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+} from "@/shadcn/ui/alert-dialog";
+import { AlertDialogCancel } from "@/shadcn/ui/alert-dialog";
 
 const manjari = Manjari({
   weight: "700",
@@ -112,162 +116,187 @@ export const SignInButton = () => {
   };
 
   return (
-    <>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button
-            className={`${manjari.className} block min-h-14 rounded-lg hover:bg-rainbow hover:text-dark hover:border-0 hover:px-[18px] text-4xl bg-luna border-2 border-gold text-gold`}
-          >
-            <p className="text-4xl leading-[3rem]">sign in</p>
-          </Button>
-        </DialogTrigger>
-        {page == Page.EMAIL && (
-          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-fit p-16 rounded-xl">
-            <Form {...emailForm}>
-              <form onSubmit={emailForm.handleSubmit(signIn)}>
-                <FormField
-                  control={emailForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col gap-4">
-                      <div className="flex flex-col justify-center">
-                        <DialogTitle
-                          className={`text-center text-4xl leading-[72px] ${manjari.className}`}
-                        >
-                          Sign in to get notification emails
-                        </DialogTitle>
-                        <DialogDescription
-                          className={`text-center text-2xl leading-8 ${poppins300.className}`}
-                        >
-                          and you will get an email every single day there are
-                          proposals for you to vote on
-                        </DialogDescription>
-                      </div>
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          className={`${manjari.className} block min-h-14 rounded-lg hover:bg-rainbow hover:text-dark hover:border-0 hover:px-[18px] text-4xl bg-luna border-2 border-gold text-gold`}
+        >
+          <p className="text-4xl leading-[3rem]">sign in</p>
+        </Button>
+      </AlertDialogTrigger>
+      {page == Page.EMAIL && (
+        <AlertDialogContent
+          className={cn(
+            `bg-luna w-full lg:max-w-[40%] p-16 rounded-3xl sm:rounded-3xl`,
+          )}
+        >
+          <AlertDialogCancel asChild>
+            <Image
+              className="absolute m-2 w-8 h-8 sm:w-12 sm:h-12"
+              src="/assets/icons/web/new/close-button.svg"
+              width={48}
+              height={48}
+              alt="close button"
+            />
+          </AlertDialogCancel>
 
-                      <FormControl>
-                        <Input
-                          className="bg-luna border-gold lowercase"
-                          placeholder="delegatoooor@defi.com"
-                          {...field}
-                        />
-                      </FormControl>
-
-                      <div className="items-top flex space-x-2">
-                        <Checkbox
-                          id="terms1"
-                          onCheckedChange={(e) =>
-                            setTermsAgreed(typeof e === "boolean" ? e : false)
-                          }
-                        />
-                        <div className="grid gap-1.5 leading-none">
-                          <label
-                            htmlFor="terms1"
-                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            I accept the{" "}
-                            <Link href="/ts">Terms of Service</Link> and{" "}
-                            <Link href="/pp">Privacy Policy</Link>.
-                          </label>
-                        </div>
-                      </div>
-
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="pt-8">
-                  <Button
-                    className={`w-full text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
-                    type="submit"
-                    disabled={!termsAgreed}
-                  >
-                    Go!
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        )}
-        {page == Page.CODE && (
-          <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-fit p-16 rounded-xl">
-            <Form {...otpForm}>
-              <form onSubmit={otpForm.handleSubmit(verify)}>
-                <FormField
-                  control={otpForm.control}
-                  name="otp"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col gap-4">
-                      <div className="flex flex-col justify-center">
-                        <DialogTitle
-                          className={`text-center text-4xl leading-[72px] ${manjari.className}`}
-                        >
-                          Verify your email
-                        </DialogTitle>
-                        <DialogDescription
-                          className={`text-center text-2xl leading-8 ${poppins300.className}`}
-                        >
-                          please enter the code we just sent to the email
-                          address you’ve provided
-                        </DialogDescription>
-                      </div>
-
-                      <FormControl>
-                        <InputOTP maxLength={6} {...field}>
-                          <InputOTPGroup className="w-full flex flex-row items-center justify-center">
-                            <InputOTPSlot
-                              index={0}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
-                            />
-                            <InputOTPSlot
-                              index={1}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
-                            />
-                            <InputOTPSlot
-                              index={2}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
-                            />
-                            <InputOTPSlot
-                              index={3}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
-                            />
-                            <InputOTPSlot
-                              index={4}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
-                            />
-                            <InputOTPSlot
-                              index={5}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
-                            />
-                          </InputOTPGroup>
-                        </InputOTP>
-                      </FormControl>
-
-                      <DialogDescription
-                        className={`text-center leading-8 text-dark ${poppins300.className}`}
+          <Form {...emailForm}>
+            <form onSubmit={emailForm.handleSubmit(signIn)}>
+              <FormField
+                control={emailForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col gap-4">
+                    <div className="flex flex-col justify-center">
+                      <AlertDialogTitle
+                        className={`py-4 text-center text-4xl ${manjari.className}`}
                       >
-                        it should be a 6 digit PIN
-                      </DialogDescription>
+                        Subscribe to get email notifications
+                      </AlertDialogTitle>
+                      <AlertDialogDescription
+                        className={`py-4 text-center text-2xl leading-8 ${poppins300.className}`}
+                      >
+                        and you will get an email every single day there are
+                        proposals for you to vote on
+                      </AlertDialogDescription>
+                    </div>
 
-                      <FormMessage />
+                    <FormControl>
+                      <Input
+                        className="bg-luna border-gold lowercase"
+                        placeholder="delegatoooor@defi.com"
+                        {...field}
+                      />
+                    </FormControl>
 
-                      <div className="pt-8">
-                        <Button
-                          className={`w-full text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
-                          type="submit"
-                          disabled={field.value.length != 6}
+                    <div className="items-top flex space-x-2">
+                      <Checkbox
+                        id="terms1"
+                        onCheckedChange={(e) =>
+                          setTermsAgreed(typeof e === "boolean" ? e : false)
+                        }
+                      />
+                      <div className="grid gap-1.5 leading-none">
+                        <label
+                          htmlFor="terms1"
+                          className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                          Go!
-                        </Button>
+                          I accept the <Link href="/ts">Terms of Service</Link>{" "}
+                          and <Link href="/pp">Privacy Policy</Link>.
+                        </label>
                       </div>
-                    </FormItem>
-                  )}
-                />
-              </form>
-            </Form>
-          </DialogContent>
-        )}
-      </Dialog>
-    </>
+                    </div>
+
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="pt-8">
+                <Button
+                  className={`w-full text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
+                  type="submit"
+                  disabled={!termsAgreed}
+                >
+                  Go!
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </AlertDialogContent>
+      )}
+      {page == Page.CODE && (
+        <AlertDialogContent
+          className={cn(
+            `bg-luna w-full lg:max-w-[40%] p-16 rounded-3xl sm:rounded-3xl`,
+          )}
+        >
+          <AlertDialogCancel asChild>
+            <Image
+              className="absolute m-2 w-8 h-8 sm:w-12 sm:h-12"
+              src="/assets/icons/web/new/back-button.svg"
+              width={48}
+              height={48}
+              alt="back button"
+            />
+          </AlertDialogCancel>
+
+          <Form {...otpForm}>
+            <form onSubmit={otpForm.handleSubmit(verify)}>
+              <FormField
+                control={otpForm.control}
+                name="otp"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col gap-4">
+                    <div className="flex flex-col justify-center">
+                      <AlertDialogTitle
+                        className={`py-4 text-center text-4xl ${manjari.className}`}
+                      >
+                        Verify your email address
+                      </AlertDialogTitle>
+                      <AlertDialogDescription
+                        className={`text-center text-2xl leading-8 ${poppins300.className}`}
+                      >
+                        please enter the code we just sent to{" "}
+                        {emailForm.getValues().email}
+                      </AlertDialogDescription>
+                    </div>
+
+                    <FormControl>
+                      <InputOTP maxLength={6} {...field}>
+                        <InputOTPGroup className="w-full flex flex-row items-center justify-center">
+                          <InputOTPSlot
+                            index={0}
+                            className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                          />
+                          <InputOTPSlot
+                            index={1}
+                            className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                          />
+                          <InputOTPSlot
+                            index={2}
+                            className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                          />
+                          <InputOTPSlot
+                            index={3}
+                            className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                          />
+                          <InputOTPSlot
+                            index={4}
+                            className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                          />
+                          <InputOTPSlot
+                            index={5}
+                            className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                          />
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </FormControl>
+
+                    <AlertDialogDescription
+                      className={`text-center leading-8 text-dark ${poppins300.className}`}
+                    >
+                      it should be a 6 digit PIN
+                    </AlertDialogDescription>
+
+                    <FormMessage />
+
+                    <div className="pt-8">
+                      <Button
+                        className={`w-full text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
+                        type="submit"
+                        disabled={field.value.length != 6}
+                      >
+                        Go!
+                      </Button>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </AlertDialogContent>
+      )}
+    </AlertDialog>
   );
 };
