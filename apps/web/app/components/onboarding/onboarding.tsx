@@ -13,10 +13,10 @@ export default async function OnboardingFlow() {
   return (
     <Suspense>
       {user && step && step?.onboardingStep == 0 && (
-        <OnboardingVoterModal open={true} />
+        <OnboardingSubscriptionModal open={true} hotDaos={hotDaos} />
       )}
       {user && step && step?.onboardingStep == 1 && (
-        <OnboardingSubscriptionModal open={true} hotDaos={hotDaos} />
+        <OnboardingVoterModal open={true} />
       )}
     </Suspense>
   );

@@ -2,11 +2,12 @@
 
 import { Button } from "@/shadcn/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/shadcn/ui/dialog";
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/shadcn/ui/alert-dialog";
 import { Input } from "@/shadcn/ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -20,6 +21,9 @@ import {
 } from "@/shadcn/ui/form";
 import { Manjari, Poppins } from "next/font/google";
 import { onboardingAddVoter } from "./actions";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const manjari = Manjari({
   weight: "700",
@@ -58,9 +62,42 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
     },
   });
 
+  const router = useRouter();
+
+  const signOut = async () => {
+    try {
+      await fetch("/api/auth/signout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   return (
-    <Dialog open={open}>
-      <DialogContent className="translate-y-[-90%] lg:translate-y-[-50%] bg-luna min-w-fit p-16 rounded-xl">
+    <AlertDialog open={open}>
+      <AlertDialogContent
+        className={cn(
+          `bg-luna w-full lg:max-w-[40%] px-16 py-12 rounded-3xl sm:rounded-3xl`,
+        )}
+      >
+        <AlertDialogCancel
+          asChild
+          onClick={() => {
+            signOut().then(() => router.refresh());
+          }}
+        >
+          <Image
+            className="absolute m-2 w-8 h-8 sm:w-12 sm:h-12"
+            src="/assets/icons/web/new/close-button.svg"
+            alt="close button"
+            width={48}
+            height={48}
+          />
+        </AlertDialogCancel>
         <Form {...voterForm}>
           <form action={onboardingAddVoter}>
             <FormField
@@ -69,17 +106,17 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
               render={({ field }) => (
                 <FormItem className="flex flex-col gap-4">
                   <div className="flex flex-col justify-center">
-                    <DialogTitle
-                      className={`text-center text-4xl leading-[72px] ${manjari.className}`}
+                    <AlertDialogTitle
+                      className={`text-center text-4xl ${manjari.className}`}
                     >
                       Add your voting wallet address
-                    </DialogTitle>
-                    <DialogDescription
-                      className={`text-center text-2xl leading-8 ${poppins300.className}`}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription
+                      className={`text-center text-2xl ${poppins300.className}`}
                     >
                       so you can get email notifications showing if you’ve
                       already voted or not
-                    </DialogDescription>
+                    </AlertDialogDescription>
                   </div>
 
                   <FormControl>
@@ -90,28 +127,26 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
                     />
                   </FormControl>
 
-                  <DialogDescription
+                  <AlertDialogDescription
                     className={`text-center leading-8 text-dark ${poppins300.className}`}
                   >
                     You can paste a wallet address or an ENS name
-                  </DialogDescription>
+                  </AlertDialogDescription>
 
                   <FormMessage />
 
-                  <div className="pt-8">
-                    <Button
-                      className={`w-full text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
-                      type="submit"
-                    >
-                      Continue
-                    </Button>
-                  </div>
+                  <Button
+                    className={`w-full p-6 text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
+                    type="submit"
+                  >
+                    Continue
+                  </Button>
                 </FormItem>
               )}
             />
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

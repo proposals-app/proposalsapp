@@ -70,7 +70,7 @@ export const SignInButton = () => {
 
   const [termsAgreed, setTermsAgreed] = useState(false);
   const router = useRouter();
-  const [page, setPage] = useState(Page.CODE);
+  const [page, setPage] = useState(Page.EMAIL);
 
   const emailForm = useForm<z.infer<typeof EmailFormSchema>>({
     resolver: zodResolver(EmailFormSchema),

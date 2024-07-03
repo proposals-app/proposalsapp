@@ -38,19 +38,26 @@ export async function onboardingSubscribeDaos(daoSlugs: string[]) {
       .where("slug", "=", slug)
       .executeTakeFirstOrThrow();
 
-    await db
-      .insertInto("subscription")
-      .values({
-        userId: u.id,
-        daoId: d.id,
-      })
-      .execute();
+    const existingSubscription = await db
+      .selectFrom("subscription")
+      .where("userId", "=", u.id)
+      .where("daoId", "=", d.id)
+      .executeTakeFirst();
+
+    if (!existingSubscription)
+      await db
+        .insertInto("subscription")
+        .values({
+          userId: u.id,
+          daoId: d.id,
+        })
+        .execute();
   }
 
   await db
     .updateTable("user")
     .where("user.id", "=", user.id)
-    .set({ onboardingStep: 2 })
+    .set({ onboardingStep: 1 })
     .execute();
 
   revalidateTag("subscriptions");
@@ -138,7 +145,7 @@ export const onboardingAddVoter = async (formData: FormData) => {
   await db
     .updateTable("user")
     .where("user.id", "=", user.id)
-    .set({ onboardingStep: 1 })
+    .set({ onboardingStep: 2 })
     .execute();
 
   revalidateTag("voters");
