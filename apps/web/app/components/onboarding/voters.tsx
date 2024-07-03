@@ -79,25 +79,17 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
 
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent
-        className={cn(
-          `bg-luna w-full lg:max-w-[40%] px-16 py-12 rounded-3xl sm:rounded-3xl`,
-        )}
-      >
-        <AlertDialogCancel
-          asChild
-          onClick={() => {
-            signOut().then(() => router.refresh());
-          }}
-        >
+      <AlertDialogContent className={cn(`h-screen w-full bg-luna px-4 py-32`)}>
+        <AlertDialogCancel asChild>
           <Image
-            className="absolute m-2 w-8 h-8 sm:w-12 sm:h-12"
+            className="absolute ml-4 mt-12 h-[48px] w-[48px]"
             src="/assets/icons/web/new/close-button.svg"
             alt="close button"
             width={48}
             height={48}
           />
         </AlertDialogCancel>
+
         <Form {...voterForm}>
           <form action={onboardingAddVoter}>
             <FormField
@@ -107,12 +99,12 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
                 <FormItem className="flex flex-col gap-4">
                   <div className="flex flex-col justify-center">
                     <AlertDialogTitle
-                      className={`text-center text-4xl ${manjari.className}`}
+                      className={`text-center text-[36px] leading-[48px] ${manjari.className}`}
                     >
                       Add your voting wallet address
                     </AlertDialogTitle>
                     <AlertDialogDescription
-                      className={`text-center text-2xl ${poppins300.className}`}
+                      className={`text-center text-[18px] leading-[26px] text-dark ${poppins300.className}`}
                     >
                       so you can get email notifications showing if you’ve
                       already voted or not
@@ -121,14 +113,16 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
 
                   <FormControl>
                     <Input
-                      className="bg-luna border-gold"
+                      className={cn(
+                        "h-[60px] border-gold bg-luna text-[18px] lowercase leading-[24px] focus:border-0 focus:bg-white",
+                      )}
                       placeholder="0x... or proposalsapp.eth"
                       {...field}
                     />
                   </FormControl>
 
                   <AlertDialogDescription
-                    className={`text-center leading-8 text-dark ${poppins300.className}`}
+                    className={`text-center text-[18px] leading-[26px] text-dark ${poppins300.className}`}
                   >
                     You can paste a wallet address or an ENS name
                   </AlertDialogDescription>
@@ -136,10 +130,10 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
                   <FormMessage />
 
                   <Button
-                    className={`w-full p-6 text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
+                    className={`h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold ${poppins700.className}`}
                     type="submit"
                   >
-                    Continue
+                    Success!
                   </Button>
                 </FormItem>
               )}

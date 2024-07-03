@@ -130,7 +130,7 @@ export const SubscribeButton = () => {
         >
           <AlertDialogCancel asChild>
             <Image
-              className="absolute ml-4 mt-12 h-12 w-12"
+              className="absolute ml-4 mt-12 h-[48px] w-[48px]"
               src="/assets/icons/web/new/close-button.svg"
               alt="close button"
               width={48}
@@ -162,7 +162,7 @@ export const SubscribeButton = () => {
                     <FormControl>
                       <Input
                         className={cn(
-                          "h-[60px] border-gold bg-luna text-[18px] lowercase leading-[24px]",
+                          "h-[60px] border-gold bg-luna text-[18px] lowercase leading-[24px] focus:border-0 focus:bg-white",
                         )}
                         placeholder="delegatoooor@defi.com"
                         {...field}
@@ -219,7 +219,7 @@ export const SubscribeButton = () => {
         >
           <AlertDialogCancel asChild>
             <Image
-              className="absolute ml-4 mt-12 h-12 w-12"
+              className="absolute ml-4 mt-12 h-[48px] w-[48px]"
               src="/assets/icons/web/new/back-button.svg"
               alt="back button"
               width={48}
