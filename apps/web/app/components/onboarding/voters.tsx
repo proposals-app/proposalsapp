@@ -43,7 +43,7 @@ const poppins700 = Poppins({
 const ethereumAddressRegex = /^(0x)?[0-9a-fA-F]{40}$/;
 const ensDomainRegex = /^(?=.{3,255}$)([a-zA-Z0-9-]+\.)+eth$/;
 
-const voterFormSchema = z.object({
+const VoterFormSchema = z.object({
   address: z
     .string()
     .refine(
@@ -55,8 +55,8 @@ const voterFormSchema = z.object({
 });
 
 export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
-  const voterForm = useForm<z.infer<typeof voterFormSchema>>({
-    resolver: zodResolver(voterFormSchema),
+  const voterForm = useForm<z.infer<typeof VoterFormSchema>>({
+    resolver: zodResolver(VoterFormSchema),
     defaultValues: {
       address: "",
     },
