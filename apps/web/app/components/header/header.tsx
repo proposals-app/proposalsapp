@@ -1,8 +1,9 @@
 import Image from "next/image";
-import { SubscribeButton } from "./auth/subscribe";
 import Link from "next/link";
 import { validateRequest } from "@/lib/auth";
 import { Suspense } from "react";
+import { SettingsButton } from "./settings-button";
+import { SubscribeButton } from "./subscribe";
 
 export default async function NavBar() {
   let { user } = await validateRequest();
@@ -22,7 +23,10 @@ export default async function NavBar() {
       </Link>
 
       <div className="flex w-full justify-center lg:w-fit">
-        <Suspense>{!user && <SubscribeButton />}</Suspense>
+        <Suspense>
+          {!user && <SubscribeButton />}
+          {user && <SettingsButton />}
+        </Suspense>
       </div>
     </div>
   );

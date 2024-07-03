@@ -29,7 +29,7 @@ export const SignOutButton = () => {
     <Button
       className={`${manjari.className} block h-[42px] w-fit rounded-lg border-2 border-gold bg-luna text-center text-gold lg:h-[56px]`}
       onClick={() => {
-        signOut().then(() => router.refresh());
+        signOut().then(() => router.replace("/"));
       }}
     >
       <p className="text-[24px] leading-[32px] lg:leading-[46px]">sign out</p>

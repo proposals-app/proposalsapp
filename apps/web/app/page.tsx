@@ -1,6 +1,6 @@
 import { Filters } from "./components/filters/filters";
 import { ProposalsTable } from "./components/table/table";
-import NavBar from "./components/nav-bar";
+import NavBar from "./components/header/header";
 
 export default async function Home({
   searchParams,
