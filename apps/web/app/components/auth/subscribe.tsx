@@ -119,9 +119,11 @@ export const SubscribeButton = () => {
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
-          className={`${manjari.className} block h-[42px] w-[160px] rounded-lg border-2 border-gold bg-luna text-gold`}
+          className={`${manjari.className} block h-[42px] w-[160px] rounded-lg border-2 border-gold bg-luna text-center text-gold lg:h-[56px]`}
         >
-          <p className="text-[24px] leading-[36px]">subscribe</p>
+          <p className="text-[24px] leading-[32px] lg:leading-[46px]">
+            subscribe
+          </p>
         </Button>
       </AlertDialogTrigger>
       {page == Page.EMAIL && (

@@ -51,13 +51,15 @@ export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
       href={proposal.url}
       target="_blank"
     >
-      <Image
-        className="h-[56px] w-[56px] rounded-md"
-        height={56}
-        width={56}
-        src={`/${proposal.daoPicture}.svg`}
-        alt={""}
-      />
+      <div className="relative aspect-square max-h-[56px] w-full max-w-[56px] lg:max-h-[86px] lg:max-w-[86px]">
+        <Image
+          className="rounded-lg"
+          layout="fill"
+          objectFit="contain"
+          src={`/${proposal.daoPicture}.svg`}
+          alt={""}
+        />
+      </div>
 
       <div
         className={`w-full text-ellipsis text-[18px] leading-[24px] ${poppins.className}`}

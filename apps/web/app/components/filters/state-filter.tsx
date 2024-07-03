@@ -59,7 +59,7 @@ export const StateFilter = () => {
           );
         }}
       >
-        <p className="text-[24px] leading-[36px]">open for voting</p>
+        <p className="text-[24px] leading-[32px]">open for voting</p>
       </Button>
       <Button
         className={buttonClasses(StateFilterEnum.CLOSED)}
@@ -75,7 +75,7 @@ export const StateFilter = () => {
           );
         }}
       >
-        <p className="text-[24px] leading-[36px]">closed votes</p>
+        <p className="text-[24px] leading-[32px]">closed votes</p>
       </Button>
     </div>
   );

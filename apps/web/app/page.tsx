@@ -1,5 +1,6 @@
 import { Filters } from "./components/filters/filters";
 import { ProposalsTable } from "./components/table/table";
+import NavBar from "./components/nav-bar";
 
 export default async function Home({
   searchParams,
@@ -11,7 +12,10 @@ export default async function Home({
 }) {
   return (
     <div className="flex w-full flex-col items-center gap-8">
-      <Filters />
+      <NavBar />
+      <div className="flex w-full flex-col items-center lg:px-2">
+        <Filters />
+      </div>
       <ProposalsTable searchParams={searchParams} />
     </div>
   );
