@@ -1,6 +1,5 @@
 import Image from "next/image";
-import { SignInButton } from "./auth/sign-in";
-import { SignOutButton } from "./auth/sign-out";
+import { SubscribeButton } from "./auth/subscribe";
 import Link from "next/link";
 import { validateRequest } from "@/lib/auth";
 import { Suspense } from "react";
@@ -9,10 +8,10 @@ export default async function NavBar() {
   let { user } = await validateRequest();
 
   return (
-    <div className="w-full flex flex-col gap-8 lg:flex-row lg:gap-0 justify-between items-center px-2">
+    <div className="flex w-full flex-col items-center justify-between gap-8 px-2">
       <Link
         href="/"
-        className="hover:animate-logo-straight animate-logo-skew flex flex-row items-center justify-center rounded-lg bg-dark h-[56px] px-[18px] py-auto lg:h-14 lg:p-5"
+        className="py-auto flex h-[56px] animate-logo-skew flex-row items-center justify-center rounded-lg bg-dark px-[18px] hover:animate-logo-straight"
       >
         <Image
           className="pointer-events-none"
@@ -23,11 +22,8 @@ export default async function NavBar() {
         />
       </Link>
 
-      <div className="w-full flex justify-center lg:justify-end">
-        <Suspense>
-          {!user && <SignInButton />}
-          {user && user.email_verified && <SignOutButton />}
-        </Suspense>
+      <div className="flex w-full justify-center">
+        <Suspense>{!user && <SubscribeButton />}</Suspense>
       </div>
     </div>
   );

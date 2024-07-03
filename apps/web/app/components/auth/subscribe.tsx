@@ -62,7 +62,7 @@ const OtpFormSchema = z.object({
   }),
 });
 
-export const SignInButton = () => {
+export const SubscribeButton = () => {
   enum Page {
     EMAIL,
     CODE,
@@ -119,20 +119,18 @@ export const SignInButton = () => {
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
-          className={`${manjari.className} block min-h-14 rounded-lg hover:bg-rainbow hover:text-dark hover:border-0 hover:px-[18px] text-4xl bg-luna border-2 border-gold text-gold`}
+          className={`${manjari.className} block min-h-14 rounded-lg border-2 border-gold bg-luna text-4xl text-gold hover:border-0 hover:bg-rainbow hover:px-[18px] hover:text-dark`}
         >
-          <p className="text-4xl leading-[3rem]">sign in</p>
+          <p className="text-4xl leading-[3rem]">subscribe</p>
         </Button>
       </AlertDialogTrigger>
       {page == Page.EMAIL && (
         <AlertDialogContent
-          className={cn(
-            `bg-luna w-full lg:max-w-[40%] px-16 py-12 rounded-3xl sm:rounded-3xl`,
-          )}
+          className={cn(`h-screen w-full bg-luna px-4 py-32`)}
         >
           <AlertDialogCancel asChild>
             <Image
-              className="absolute m-2 w-8 h-8 sm:w-12 sm:h-12"
+              className="absolute ml-4 mt-12 h-12 w-12"
               src="/assets/icons/web/new/close-button.svg"
               alt="close button"
               width={48}
@@ -147,14 +145,14 @@ export const SignInButton = () => {
                 name="email"
                 render={({ field }) => (
                   <FormItem className="flex flex-col gap-4">
-                    <div className="flex flex-col justify-center">
+                    <div className="flex flex-col justify-center gap-4">
                       <AlertDialogTitle
-                        className={`py-4 text-center text-4xl font-bold ${manjari.className}`}
+                        className={`text-center text-[36px] font-bold leading-[48px] ${manjari.className}`}
                       >
                         Subscribe to get email notifications
                       </AlertDialogTitle>
                       <AlertDialogDescription
-                        className={`py-4 text-center text-2xl leading-8 font-light ${poppins300.className}`}
+                        className={`text-center text-[18px] font-light leading-[26px] ${poppins300.className}`}
                       >
                         and you will get an email every single day there are
                         proposals for you to vote on
@@ -164,7 +162,7 @@ export const SignInButton = () => {
                     <FormControl>
                       <Input
                         className={cn(
-                          "bg-luna border-gold lowercase text-lg leading-[4rem]",
+                          "h-[60px] border-gold bg-luna text-[18px] lowercase leading-[24px]",
                         )}
                         placeholder="delegatoooor@defi.com"
                         {...field}
@@ -174,6 +172,7 @@ export const SignInButton = () => {
                     <div className="items-top flex space-x-2">
                       <Checkbox
                         id="terms1"
+                        className="h-[32px] w-[32px]"
                         onCheckedChange={(e) =>
                           setTermsAgreed(typeof e === "boolean" ? e : false)
                         }
@@ -181,10 +180,17 @@ export const SignInButton = () => {
                       <div className="grid gap-1.5 leading-none">
                         <label
                           htmlFor="terms1"
-                          className={`font-light ${poppins300.className} peer-disabled:cursor-not-allowed peer-disabled:opacity-70`}
+                          className={`text-[18px] font-light leading-[26px] ${poppins300.className}`}
                         >
-                          I accept the <Link href="/ts">Terms of Service</Link>{" "}
-                          and <Link href="/pp">Privacy Policy</Link>.
+                          I accept the{" "}
+                          <Link href="/ts" className="underline">
+                            Terms of Service
+                          </Link>{" "}
+                          and{" "}
+                          <Link href="/pp" className="underline">
+                            Privacy Policy
+                          </Link>
+                          .
                         </label>
                       </div>
                     </div>
@@ -196,7 +202,7 @@ export const SignInButton = () => {
 
               <div className="pt-8">
                 <Button
-                  className={`w-full p-6 text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
+                  className={`h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold ${poppins700.className}`}
                   type="submit"
                   disabled={!termsAgreed}
                 >
@@ -209,25 +215,17 @@ export const SignInButton = () => {
       )}
       {page == Page.CODE && (
         <AlertDialogContent
-          className={cn(
-            `bg-luna w-full lg:max-w-[40%] px-16 py-12 rounded-3xl sm:rounded-3xl`,
-          )}
+          className={cn(`h-screen w-full bg-luna px-4 py-32`)}
         >
-          <AlertDialogAction
-            asChild
-            onClick={(e) => {
-              setPage(Page.EMAIL);
-              e.preventDefault();
-            }}
-          >
+          <AlertDialogCancel asChild>
             <Image
-              className="absolute m-2 w-8 h-8 sm:w-12 sm:h-12"
+              className="absolute ml-4 mt-12 h-12 w-12"
               src="/assets/icons/web/new/back-button.svg"
               alt="back button"
               width={48}
               height={48}
             />
-          </AlertDialogAction>
+          </AlertDialogCancel>
 
           <Form {...otpForm}>
             <form onSubmit={otpForm.handleSubmit(verify)}>
@@ -238,46 +236,46 @@ export const SignInButton = () => {
                   <FormItem className="flex flex-col gap-4">
                     <div className="flex flex-col justify-center">
                       <AlertDialogTitle
-                        className={`py-4 text-center text-4xl font-bold ${manjari.className}`}
+                        className={`text-center text-[36px] font-bold leading-[48px] ${manjari.className}`}
                       >
                         Verify your email address
                       </AlertDialogTitle>
 
                       <AlertDialogDescription
-                        className={`py-4 text-center text-2xl leading-8 font-light ${poppins300.className}`}
+                        className={`text-center text-[18px] font-light leading-[26px] ${poppins300.className}`}
                       >
                         please enter the code we just sent to{" "}
                         {emailForm.getValues().email}
                       </AlertDialogDescription>
                     </div>
 
-                    <div className="w-full flex items-center justify-center">
+                    <div className="flex w-full items-center justify-center">
                       <FormControl>
                         <InputOTP maxLength={6} {...field}>
                           <InputOTPGroup>
                             <InputOTPSlot
                               index={0}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                              className={`h-[60px] w-[60px] border-gold bg-white text-2xl ring-gold ${poppins400.className}`}
                             />
                             <InputOTPSlot
                               index={1}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                              className={`h-[60px] w-[60px] border-gold bg-white text-2xl ring-gold ${poppins400.className}`}
                             />
                             <InputOTPSlot
                               index={2}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                              className={`h-[60px] w-[60px] border-gold bg-white text-2xl ring-gold ${poppins400.className}`}
                             />
                             <InputOTPSlot
                               index={3}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                              className={`h-[60px] w-[60px] border-gold bg-white text-2xl ring-gold ${poppins400.className}`}
                             />
                             <InputOTPSlot
                               index={4}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                              className={`h-[60px] w-[60px] border-gold bg-white text-2xl ring-gold ${poppins400.className}`}
                             />
                             <InputOTPSlot
                               index={5}
-                              className={`border-gold bg-white ring-gold text-2xl ${poppins400.className}`}
+                              className={`h-[60px] w-[60px] border-gold bg-white text-2xl ring-gold ${poppins400.className}`}
                             />
                           </InputOTPGroup>
                         </InputOTP>
@@ -285,7 +283,7 @@ export const SignInButton = () => {
                     </div>
 
                     <AlertDialogDescription
-                      className={`text-center text-lg leading-8 font-light ${poppins300.className}`}
+                      className={`text-center text-[18px] font-light leading-[26px] ${poppins300.className}`}
                     >
                       it should be a 6 digit PIN
                     </AlertDialogDescription>
@@ -294,7 +292,7 @@ export const SignInButton = () => {
 
                     <div className="pt-8">
                       <Button
-                        className={`w-full p-6 text-3xl disabled:bg-gold bg-dark ${poppins700.className}`}
+                        className={`h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold ${poppins700.className}`}
                         type="submit"
                         disabled={field.value.length != 6}
                       >
