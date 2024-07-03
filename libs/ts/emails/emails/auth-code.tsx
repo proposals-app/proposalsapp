@@ -48,7 +48,7 @@ export const AuthCodeEmail = (data: AuthCodeData) => (
             <Text>
               Thanks,
               <br />
-              Proposals App Team
+              proposals.app Team
               <br />
               <Link href="mailto:support@proposals.app">
                 support@proposals.app
