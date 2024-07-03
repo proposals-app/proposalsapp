@@ -25,27 +25,34 @@ export const StateFilter = () => {
     (name: string, value: StateFilterEnum) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set(name, value.toString());
-
       return params.toString();
     },
     [searchParams],
   );
 
   useEffect(() => {
-    if (!queryState && router)
+    if (!queryState && router) {
       router.push("?" + setQuery("state", StateFilterEnum.ALL));
-  }, [queryState, router]);
+    }
+  }, [queryState, router, setQuery]);
+
+  const buttonClasses = (state: StateFilterEnum) =>
+    `block h-[42px] w-full rounded-lg ${manjari.className} text-[24px] leading-[24px] ${
+      queryState === state
+        ? "bg-dark text-luna"
+        : "border-2 border-gold bg-luna text-gold"
+    }`;
 
   return (
-    <div className={"grid w-full grid-cols-2 gap-3"}>
+    <div className="grid w-full max-w-[400px] grid-cols-1 gap-3 md:grid-cols-2 lg:max-w-full">
       <Button
-        className={`block h-[42px] w-full rounded-lg ${manjari.className} text-[24px] leading-[24px] ${queryState == StateFilterEnum.OPEN ? "bg-dark text-luna" : "border-2 border-gold bg-luna text-gold"}`}
+        className={buttonClasses(StateFilterEnum.OPEN)}
         onClick={() => {
           router.push(
             "?" +
               setQuery(
                 "state",
-                queryState == StateFilterEnum.OPEN
+                queryState === StateFilterEnum.OPEN
                   ? StateFilterEnum.ALL
                   : StateFilterEnum.OPEN,
               ),
@@ -55,13 +62,13 @@ export const StateFilter = () => {
         <p className="text-[24px] leading-[36px]">open for voting</p>
       </Button>
       <Button
-        className={`block h-[42px] w-full rounded-lg ${manjari.className} text-[24px] leading-[24px] ${queryState == StateFilterEnum.CLOSED ? "bg-dark text-luna" : "border-2 border-gold bg-luna text-gold"}`}
+        className={buttonClasses(StateFilterEnum.CLOSED)}
         onClick={() => {
           router.push(
             "?" +
               setQuery(
                 "state",
-                queryState == StateFilterEnum.CLOSED
+                queryState === StateFilterEnum.CLOSED
                   ? StateFilterEnum.ALL
                   : StateFilterEnum.CLOSED,
               ),

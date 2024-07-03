@@ -8,9 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const selectedDaos = new URLSearchParams(searchParams.toString()).getAll(
-    "dao",
-  );
+  const selectedDaos = searchParams.getAll("dao");
   const [hoveredDao, setHoveredDao] = useState<string | null>(null);
 
   useEffect(() => {
@@ -18,13 +16,12 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
       selectedDaos.includes(dao.slug),
     );
 
-    const params = new URLSearchParams(searchParams.toString());
-
     if (allHotDaosSelected) {
+      const params = new URLSearchParams(searchParams.toString());
       params.delete("dao");
       router.push("?" + params.toString());
     }
-  }, []);
+  }, [hotDaos, selectedDaos, searchParams, router]);
 
   const toggleDaoQuery = useCallback(
     (name: string, value: string) => {
@@ -46,35 +43,41 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
   );
 
   return (
-    <div className="grid max-w-fit grid-cols-6 items-center justify-center gap-3">
-      {hotDaos.map((dao) => (
-        <div
-          className="h-[56px] w-[56px]"
-          key={dao.id}
-          onClick={() => {
-            setHoveredDao(null);
-            router.push("?" + toggleDaoQuery("dao", dao.slug));
-          }}
-          onMouseEnter={() => setHoveredDao(dao.slug)}
-          onTouchStart={() => setHoveredDao(dao.slug)}
-          onMouseLeave={() => setHoveredDao(null)}
-          onTouchMove={() => setHoveredDao(null)}
-        >
-          <Image
-            className={`${selectedDaos.includes(dao.slug) ? "bg-dark" : "border-2 border-gold bg-luna"} h-[56px] w-[56px] rounded-lg`}
-            height={24}
-            width={24}
-            src={
-              hoveredDao === dao.slug
-                ? `/assets/project-logos/hot/${dao.slug}_hover.svg`
-                : selectedDaos.includes(dao.slug)
-                  ? `/assets/project-logos/hot/${dao.slug}_active.svg`
-                  : `/assets/project-logos/hot/${dao.slug}_inactive.svg`
-            }
-            alt={dao.name}
-          />
-        </div>
-      ))}
+    <div className="grid w-full grid-cols-6 items-center justify-center gap-3 lg:grid-cols-12">
+      {hotDaos.map((dao) => {
+        const isSelected = selectedDaos.includes(dao.slug);
+        const isHovered = hoveredDao === dao.slug;
+        const imgSrc = isHovered
+          ? `/assets/project-logos/hot/${dao.slug}_hover.svg`
+          : isSelected
+            ? `/assets/project-logos/hot/${dao.slug}_active.svg`
+            : `/assets/project-logos/hot/${dao.slug}_inactive.svg`;
+
+        return (
+          <div
+            className="relative aspect-square max-h-[56px] w-full max-w-[56px] lg:max-h-[86px] lg:max-w-[86px]"
+            key={dao.id}
+            onClick={() => {
+              setHoveredDao(null);
+              router.push("?" + toggleDaoQuery("dao", dao.slug));
+            }}
+            onMouseEnter={() => setHoveredDao(dao.slug)}
+            onTouchStart={() => setHoveredDao(dao.slug)}
+            onMouseLeave={() => setHoveredDao(null)}
+            onTouchMove={() => setHoveredDao(null)}
+          >
+            <Image
+              className={`rounded-lg ${
+                isSelected ? "bg-dark" : "border-2 border-gold bg-luna"
+              }`}
+              src={imgSrc}
+              alt={dao.name}
+              layout="fill"
+              objectFit="contain"
+            />
+          </div>
+        );
+      })}
     </div>
   );
 };

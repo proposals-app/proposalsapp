@@ -18,7 +18,7 @@ export const ProposalsTable = async ({
   );
 
   return (
-    <div className="w-full">
+    <div className="w-full xl:max-w-[1200px]">
       <div className="flex flex-col gap-4">
         {proposals.map((proposal) => (
           <ProposalItem key={proposal.id} proposal={proposal} />

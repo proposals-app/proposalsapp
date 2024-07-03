@@ -79,14 +79,21 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
 
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent className={cn(`h-screen w-full bg-luna px-4 py-32`)}>
+      <AlertDialogContent
+        className={cn(
+          `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:max-w-fit lg:rounded-3xl lg:p-12`,
+        )}
+      >
         <AlertDialogCancel asChild>
           <Image
-            className="absolute ml-4 mt-12 h-[48px] w-[48px]"
+            className="absolute ml-4 mt-12 h-[48px] w-[48px] cursor-pointer lg:ml-2 lg:mt-2"
             src="/assets/icons/web/new/close-button.svg"
             alt="close button"
             width={48}
             height={48}
+            onClick={() => {
+              signOut().then(() => router.refresh());
+            }}
           />
         </AlertDialogCancel>
 

@@ -70,7 +70,7 @@ export const SubscribeButton = () => {
 
   const [termsAgreed, setTermsAgreed] = useState(false);
   const router = useRouter();
-  const [page, setPage] = useState(Page.EMAIL);
+  const [page, setPage] = useState(Page.CODE);
 
   const emailForm = useForm<z.infer<typeof EmailFormSchema>>({
     resolver: zodResolver(EmailFormSchema),
@@ -126,11 +126,13 @@ export const SubscribeButton = () => {
       </AlertDialogTrigger>
       {page == Page.EMAIL && (
         <AlertDialogContent
-          className={cn(`h-screen w-full bg-luna px-4 py-32`)}
+          className={cn(
+            `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:rounded-3xl lg:p-12`,
+          )}
         >
           <AlertDialogCancel asChild>
             <Image
-              className="absolute ml-4 mt-12 h-[48px] w-[48px]"
+              className="absolute ml-4 mt-12 h-[48px] w-[48px] cursor-pointer lg:ml-2 lg:mt-2"
               src="/assets/icons/web/new/close-button.svg"
               alt="close button"
               width={48}
@@ -215,11 +217,13 @@ export const SubscribeButton = () => {
       )}
       {page == Page.CODE && (
         <AlertDialogContent
-          className={cn(`h-screen w-full bg-luna px-4 py-32`)}
+          className={cn(
+            `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:rounded-3xl lg:p-12`,
+          )}
         >
           <AlertDialogCancel asChild>
             <Image
-              className="absolute ml-4 mt-12 h-[48px] w-[48px]"
+              className="absolute ml-4 mt-12 h-[48px] w-[48px] cursor-pointer lg:ml-2 lg:mt-2"
               src="/assets/icons/web/new/back-button.svg"
               alt="back button"
               width={48}

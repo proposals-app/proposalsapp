@@ -7,15 +7,11 @@ export const Filters = async () => {
   const hotDaos = await getHotDaos();
 
   return (
-    <div className="flex w-full flex-col items-center">
-      <div className="flex flex-col items-center gap-3">
-        <Suspense>
-          <StateFilter />
-          <DaosFilter hotDaos={hotDaos} />
-        </Suspense>
-
-        {/* <DatePickerWithRange className="justify-end" /> */}
-      </div>
+    <div className="flex w-full max-w-[400px] flex-col items-center gap-3 lg:max-w-full">
+      <Suspense>
+        <StateFilter />
+        <DaosFilter hotDaos={hotDaos} />
+      </Suspense>
     </div>
   );
 };

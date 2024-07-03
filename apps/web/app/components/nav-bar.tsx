@@ -8,13 +8,12 @@ export default async function NavBar() {
   let { user } = await validateRequest();
 
   return (
-    <div className="flex w-full flex-col items-center justify-between gap-8 px-2">
+    <div className="flex w-full flex-col items-center justify-between gap-8 px-2 lg:flex-row lg:px-0">
       <Link
         href="/"
         className="py-auto flex h-[56px] flex-row items-center justify-center rounded-lg bg-dark px-[18px]"
       >
         <Image
-          className="pointer-events-none"
           width={285}
           height={60}
           src="/assets/icons/web/logo-lettering.svg"
@@ -22,7 +21,7 @@ export default async function NavBar() {
         />
       </Link>
 
-      <div className="flex w-full justify-center">
+      <div className="flex w-full justify-center lg:w-fit">
         <Suspense>{!user && <SubscribeButton />}</Suspense>
       </div>
     </div>

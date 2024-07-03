@@ -10,7 +10,7 @@ export default async function Home({
   };
 }) {
   return (
-    <div className="w-full flex flex-col gap-4">
+    <div className="flex w-full flex-col items-center gap-8">
       <Filters />
       <ProposalsTable searchParams={searchParams} />
     </div>
