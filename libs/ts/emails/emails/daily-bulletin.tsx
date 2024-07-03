@@ -5,6 +5,7 @@ import {
   Font,
   Head,
   Heading,
+  Hr,
   Html,
   Img,
   Link,
@@ -160,50 +161,45 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
       <hr className="opacity-50" />
 
       {props.data.map((proposal) => (
-        <>
-          <Row>
-            <Column width={52} height={66}>
-              <Img
-                src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
-                width={48}
-                height={48}
-              />
-              <Img
-                src={`${baseUrl}/${proposal.chainLogoUrl}`}
-                width={48}
-                height={16}
-              />
-            </Column>
+        <Row key={proposal.url}>
+          <Column width={52} height={66}>
+            <Img
+              src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
+              width={48}
+              height={48}
+            />
+            <Img
+              src={`${baseUrl}/${proposal.chainLogoUrl}`}
+              width={48}
+              height={16}
+            />
+          </Column>
 
-            <Column>
-              <Link href={`${proposal.url}`}>
-                <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
-                  {proposal.proposalName}
-                </Text>
-              </Link>
-            </Column>
-
-            <Column className="font-bold text-end w-[100px] md:w-[200px]">
-              <Img
-                src={`${proposal.countdownUrl}`}
-                className="hidden md:block"
-              />
-              <Img
-                src={`${proposal.countdownUrlSmall}`}
-                className="block md:hidden"
-              />
-              <Text className="hidden md:block text-center font-light text-xs text-zinc-500 m-0">
-                {proposal.countdownString}
+          <Column>
+            <Link href={`${proposal.url}`}>
+              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
+                {proposal.proposalName}
               </Text>
-            </Column>
+            </Link>
+          </Column>
 
-            <Column className="font-bold text-center" width={82}>
-              <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
-              <Text className="hidden">{proposal.voteStatus}</Text>
-            </Column>
-          </Row>
-          <hr className="opacity-25" />
-        </>
+          <Column className="font-bold text-end w-[100px] md:w-[200px]">
+            <Img src={`${proposal.countdownUrl}`} className="hidden md:block" />
+            <Img
+              src={`${proposal.countdownUrlSmall}`}
+              className="block md:hidden"
+            />
+            <Text className="hidden md:block text-center font-light text-xs text-zinc-500 m-0">
+              {proposal.countdownString}
+            </Text>
+          </Column>
+
+          <Column className="font-bold text-center" width={82}>
+            <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
+            <Text className="hidden">{proposal.voteStatus}</Text>
+          </Column>
+          <Hr />
+        </Row>
       ))}
     </Section>
   );
@@ -238,50 +234,45 @@ const New = (props: { data: NewProposal[] }) => {
       <hr className="opacity-50" />
 
       {props.data.map((proposal) => (
-        <>
-          <Row>
-            <Column width={52} height={66}>
-              <Img
-                src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
-                width={48}
-                height={48}
-              />
-              <Img
-                src={`${baseUrl}/${proposal.chainLogoUrl}`}
-                width={48}
-                height={16}
-              />
-            </Column>
+        <Row key={proposal.url}>
+          <Column width={52} height={66}>
+            <Img
+              src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
+              width={48}
+              height={48}
+            />
+            <Img
+              src={`${baseUrl}/${proposal.chainLogoUrl}`}
+              width={48}
+              height={16}
+            />
+          </Column>
 
-            <Column>
-              <Link href={`${proposal.url}`}>
-                <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
-                  {proposal.proposalName}
-                </Text>
-              </Link>
-            </Column>
-
-            <Column className="font-bold text-center w-[100px] md:w-[200px]">
-              <Img
-                src={`${proposal.countdownUrl}`}
-                className="hidden md:block"
-              />
-              <Img
-                src={`${proposal.countdownUrlSmall}`}
-                className="block md:hidden"
-              />
-              <Text className="hidden md:block text-center font-light text-xs text-zinc-500 m-0">
-                {proposal.countdownString}
+          <Column>
+            <Link href={`${proposal.url}`}>
+              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
+                {proposal.proposalName}
               </Text>
-            </Column>
+            </Link>
+          </Column>
 
-            <Column className="font-bold text-center" width={82}>
-              <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
-              <Text className="hidden">{proposal.voteStatus}</Text>
-            </Column>
-          </Row>
-          <hr className="opacity-25" />
-        </>
+          <Column className="font-bold text-center w-[100px] md:w-[200px]">
+            <Img src={`${proposal.countdownUrl}`} className="hidden md:block" />
+            <Img
+              src={`${proposal.countdownUrlSmall}`}
+              className="block md:hidden"
+            />
+            <Text className="hidden md:block text-center font-light text-xs text-zinc-500 m-0">
+              {proposal.countdownString}
+            </Text>
+          </Column>
+
+          <Column className="font-bold text-center" width={82}>
+            <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
+            <Text className="hidden">{proposal.voteStatus}</Text>
+          </Column>
+          <Hr />
+        </Row>
       ))}
     </Section>
   );
@@ -316,34 +307,87 @@ const Ended = (props: { data: EndedProposal[] }) => {
       <hr className="opacity-50" />
 
       {props.data.map((proposal) => (
-        <>
-          <Row>
-            <Column width={52} height={66}>
-              <Img
-                src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
-                width={48}
-                height={48}
-              />
-              <Img
-                src={`${baseUrl}/${proposal.chainLogoUrl}`}
-                width={48}
-                height={16}
-              />
-            </Column>
+        <Row key={proposal.url}>
+          <Column width={52} height={66}>
+            <Img
+              src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
+              width={48}
+              height={48}
+            />
+            <Img
+              src={`${baseUrl}/${proposal.chainLogoUrl}`}
+              width={48}
+              height={16}
+            />
+          </Column>
 
-            <Column>
-              <Link href={`${proposal.url}`}>
-                <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
-                  {proposal.proposalName}
-                </Text>
-              </Link>
-            </Column>
+          <Column>
+            <Link href={`${proposal.url}`}>
+              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
+                {proposal.proposalName}
+              </Text>
+            </Link>
+          </Column>
 
+          {
+            //Hidden result
+          }
+          <Column className="font-bold text-center w-[100px] md:w-[200px]">
+            {proposal.hiddenResult && (
+              <>
+                <Row className="pb-2 max-w-[180px] min-w-[80px]">
+                  <div className="flex justify-start gap-2 items-start">
+                    <Img
+                      className="bg-[#EDEDED]"
+                      width={24}
+                      height={24}
+                      src={`${baseUrl}/assets/email/hidden.png`}
+                    />
+                    <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
+                      Hidden Result
+                    </Text>
+                  </div>
+                </Row>
+                <Row className="pb-2 max-w-[180px] min-w-[80px] m-0">
+                  <Column>
+                    <div className="bg-gray-200 w-full h-[20px] relative">
+                      <div className="bg-black w-full h-full">
+                        <div className="text-white absolute text-sm font-thin pl-2">
+                          ??
+                        </div>
+                      </div>
+                    </div>
+                  </Column>
+                </Row>
+              </>
+            )}
             {
-              //Hidden result
+              //No quorum
             }
-            <Column className="font-bold text-center w-[100px] md:w-[200px]">
-              {proposal.hiddenResult && (
+            {!proposal.quorumReached && (
+              <>
+                <Row className="pb-2 max-w-[180px] min-w-[80px]">
+                  <div className="flex justify-start gap-2 items-start">
+                    <Img
+                      className="bg-[#EDEDED]"
+                      width={24}
+                      height={24}
+                      src={`${baseUrl}/assets/email/cross.png`}
+                    />
+                    <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
+                      No Quorum
+                    </Text>
+                  </div>
+                </Row>
+              </>
+            )}
+            {
+              //Normal proposal
+            }
+            {!proposal.hiddenResult &&
+              proposal.quorumReached &&
+              proposal.result?.choiceName &&
+              proposal.result.choicePercentage && (
                 <>
                   <Row className="pb-2 max-w-[180px] min-w-[80px]">
                     <div className="flex justify-start gap-2 items-start">
@@ -351,19 +395,21 @@ const Ended = (props: { data: EndedProposal[] }) => {
                         className="bg-[#EDEDED]"
                         width={24}
                         height={24}
-                        src={`${baseUrl}/assets/email/hidden.png`}
+                        src={`${baseUrl}/assets/email/check.png`}
                       />
                       <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
-                        Hidden Result
+                        {proposal.result?.choiceName}
                       </Text>
                     </div>
                   </Row>
                   <Row className="pb-2 max-w-[180px] min-w-[80px] m-0">
                     <Column>
-                      <div className="bg-gray-200 w-full h-[20px] relative">
-                        <div className="bg-black w-full h-full">
+                      <div className="bg-gray-200 w-full h-[20px] relative m-0">
+                        <div
+                          className={`bg-black w-[${proposal.result?.choicePercentage}%] h-full`}
+                        >
                           <div className="text-white absolute text-sm font-thin pl-2">
-                            ??
+                            {proposal.result?.choicePercentage}%
                           </div>
                         </div>
                       </div>
@@ -371,10 +417,13 @@ const Ended = (props: { data: EndedProposal[] }) => {
                   </Row>
                 </>
               )}
-              {
-                //No quorum
-              }
-              {!proposal.quorumReached && (
+            {
+              //Maker
+            }
+            {!proposal.hiddenResult &&
+              proposal.quorumReached &&
+              proposal.makerResult?.choiceName &&
+              proposal.makerResult?.mkrSupporting && (
                 <>
                   <Row className="pb-2 max-w-[180px] min-w-[80px]">
                     <div className="flex justify-start gap-2 items-start">
@@ -382,94 +431,34 @@ const Ended = (props: { data: EndedProposal[] }) => {
                         className="bg-[#EDEDED]"
                         width={24}
                         height={24}
-                        src={`${baseUrl}/assets/email/cross.png`}
+                        src={`${baseUrl}/assets/email/check.png`}
                       />
                       <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
-                        No Quorum
+                        {proposal.makerResult?.choiceName}
+                      </Text>
+                    </div>
+                  </Row>
+
+                  <Row className="pb-2 max-w-[180px] min-w-[80px]">
+                    <div className="flex justify-start gap-2">
+                      <Text className="font-bold m-0">
+                        with {proposal.makerResult?.mkrSupporting} MKR
                       </Text>
                     </div>
                   </Row>
                 </>
               )}
-              {
-                //Normal proposal
-              }
-              {!proposal.hiddenResult &&
-                proposal.quorumReached &&
-                proposal.result?.choiceName &&
-                proposal.result.choicePercentage && (
-                  <>
-                    <Row className="pb-2 max-w-[180px] min-w-[80px]">
-                      <div className="flex justify-start gap-2 items-start">
-                        <Img
-                          className="bg-[#EDEDED]"
-                          width={24}
-                          height={24}
-                          src={`${baseUrl}/assets/email/check.png`}
-                        />
-                        <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
-                          {proposal.result?.choiceName}
-                        </Text>
-                      </div>
-                    </Row>
-                    <Row className="pb-2 max-w-[180px] min-w-[80px] m-0">
-                      <Column>
-                        <div className="bg-gray-200 w-full h-[20px] relative m-0">
-                          <div
-                            className={`bg-black w-[${proposal.result?.choicePercentage}%] h-full`}
-                          >
-                            <div className="text-white absolute text-sm font-thin pl-2">
-                              {proposal.result?.choicePercentage}%
-                            </div>
-                          </div>
-                        </div>
-                      </Column>
-                    </Row>
-                  </>
-                )}
-              {
-                //Maker
-              }
-              {!proposal.hiddenResult &&
-                proposal.quorumReached &&
-                proposal.makerResult?.choiceName &&
-                proposal.makerResult?.mkrSupporting && (
-                  <>
-                    <Row className="pb-2 max-w-[180px] min-w-[80px]">
-                      <div className="flex justify-start gap-2 items-start">
-                        <Img
-                          className="bg-[#EDEDED]"
-                          width={24}
-                          height={24}
-                          src={`${baseUrl}/assets/email/check.png`}
-                        />
-                        <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
-                          {proposal.makerResult?.choiceName}
-                        </Text>
-                      </div>
-                    </Row>
+            <Text className="hidden md:block text-center font-light text-xs text-slate-800 m-0">
+              {proposal.countdownString}
+            </Text>
+          </Column>
 
-                    <Row className="pb-2 max-w-[180px] min-w-[80px]">
-                      <div className="flex justify-start gap-2">
-                        <Text className="font-bold m-0">
-                          with {proposal.makerResult?.mkrSupporting} MKR
-                        </Text>
-                      </div>
-                    </Row>
-                  </>
-                )}
-              <Text className="hidden md:block text-center font-light text-xs text-slate-800 m-0">
-                {proposal.countdownString}
-              </Text>
-            </Column>
-
-            <Column className="font-bold text-center" width={82}>
-              <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
-              <Text className="hidden">{proposal.voteStatus}</Text>
-            </Column>
-          </Row>
-          <hr className="opacity-25" />
-        </>
+          <Column className="font-bold text-center" width={82}>
+            <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
+            <Text className="hidden">{proposal.voteStatus}</Text>
+          </Column>
+          <Hr />
+        </Row>
       ))}
     </Section>
   );
