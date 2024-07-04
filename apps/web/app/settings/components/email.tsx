@@ -18,11 +18,18 @@ const EmailFormSchema = z.object({
     message: "Email is not valid!",
   }),
 });
-export const EmailSettings = () => {
+
+export const EmailSettings = ({
+  currentEmail,
+  setEmail,
+}: {
+  currentEmail: string;
+  setEmail: (email: string) => void;
+}) => {
   const emailForm = useForm<z.infer<typeof EmailFormSchema>>({
     resolver: zodResolver(EmailFormSchema),
     defaultValues: {
-      email: "",
+      email: currentEmail,
     },
   });
 
@@ -42,9 +49,13 @@ export const EmailSettings = () => {
                   )}
                   placeholder="delegatoooor@defi.com"
                   {...field}
+                  value={field.value}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    setEmail(e.target.value);
+                  }}
                 />
               </FormControl>
-
               <FormMessage />
             </FormItem>
           )}

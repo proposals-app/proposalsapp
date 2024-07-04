@@ -4,6 +4,7 @@ import { validateRequest } from "@/lib/auth";
 import { Suspense } from "react";
 import { SettingsButton } from "./settings-button";
 import { SubscribeButton } from "./subscribe";
+import { VerificationModal } from "../verification-modal";
 
 export default async function NavBar() {
   let { user } = await validateRequest();
@@ -26,6 +27,9 @@ export default async function NavBar() {
         <Suspense>
           {!user && <SubscribeButton />}
           {user && <SettingsButton />}
+          {user && user.email_verified == false && (
+            <VerificationModal email={user.email} />
+          )}
         </Suspense>
       </div>
     </div>

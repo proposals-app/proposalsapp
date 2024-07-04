@@ -27,11 +27,17 @@ const VoterFormSchema = z.object({
     ),
 });
 
-export const VoterSeettings = () => {
+export const VoterSettings = ({
+  currentVoterAddress,
+  setVoterAddress,
+}: {
+  currentVoterAddress: string;
+  setVoterAddress: (address: string) => void;
+}) => {
   const voterForm = useForm<z.infer<typeof VoterFormSchema>>({
     resolver: zodResolver(VoterFormSchema),
     defaultValues: {
-      address: "",
+      address: currentVoterAddress,
     },
   });
 
@@ -51,9 +57,13 @@ export const VoterSeettings = () => {
                   )}
                   placeholder="0x... or proposalsapp.eth"
                   {...field}
+                  value={field.value}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    setVoterAddress(e.target.value);
+                  }}
                 />
               </FormControl>
-
               <FormMessage />
             </FormItem>
           )}

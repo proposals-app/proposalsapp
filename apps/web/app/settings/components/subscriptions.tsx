@@ -3,16 +3,23 @@
 import { hotDaosType } from "@/app/actions";
 import { CheckIcon } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export const SubscriptionsSettings = ({
   hotDaos,
+  currentSubscriptions,
+  setSelectedDaos,
 }: {
   hotDaos: hotDaosType;
+  currentSubscriptions: string[];
+  setSelectedDaos: (selected: string[]) => void;
 }) => {
-  const [selectedDaos, setSelectedDaos] = useState([
-    ...hotDaos.map((d) => d.slug),
-  ]);
+  const [selectedDaos, setSelectedDaosState] =
+    useState<string[]>(currentSubscriptions);
+
+  useEffect(() => {
+    setSelectedDaos(selectedDaos);
+  }, [selectedDaos]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -24,10 +31,10 @@ export const SubscriptionsSettings = ({
             key={dao.id}
             onClick={() => {
               if (selectedDaos.includes(dao.slug)) {
-                let filtered = selectedDaos.filter((d) => d != dao.slug);
-                setSelectedDaos([...filtered]);
+                const filtered = selectedDaos.filter((d) => d !== dao.slug);
+                setSelectedDaosState(filtered);
               } else {
-                setSelectedDaos([...selectedDaos, dao.slug]);
+                setSelectedDaosState([...selectedDaos, dao.slug]);
               }
             }}
           >
@@ -35,7 +42,11 @@ export const SubscriptionsSettings = ({
               <CheckIcon className="absolute -right-[8px] -top-[8px] h-[32px] w-[32px] rounded-full bg-green-500 text-white" />
             )}
             <Image
-              className={`${selectedDaos.includes(dao.slug) ? "bg-dark" : "border-2 border-gold bg-luna"} rounded`}
+              className={`${
+                selectedDaos.includes(dao.slug)
+                  ? "bg-dark"
+                  : "border-2 border-gold bg-luna"
+              } rounded`}
               height={80}
               width={80}
               alt={dao.name}
