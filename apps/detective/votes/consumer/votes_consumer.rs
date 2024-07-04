@@ -20,7 +20,7 @@ use seaorm::{dao_handler, proposal, vote, voter};
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use tokio::sync::Notify;
-use tracing::{info, warn};
+use tracing::{error, info, warn}; // Added error for better logging
 use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
 use utils::telemetry::setup_telemetry;
 use utils::types::{VotesJob, VotesResponse};
@@ -120,22 +120,36 @@ impl AsyncConsumer for VotesConsumer {
         content: Vec<u8>,
     ) {
         let job_str = String::from_utf8(content).ok();
-        let job: VotesJob = serde_json::from_str(job_str.unwrap().as_str()).unwrap();
+        let job: VotesJob = match serde_json::from_str(job_str.unwrap().as_str()) {
+            Ok(job) => job,
+            Err(e) => {
+                error!("Failed to parse job: {:?}", e);
+                return;
+            }
+        };
 
         let _ = match run(job.clone()).await {
             Ok(_) => {
-                increase_refresh_speed(job.clone()).await.unwrap();
-                channel
+                if let Err(e) = increase_refresh_speed(job.clone()).await {
+                    error!("Failed to increase refresh speed: {:?}", e);
+                }
+                if let Err(e) = channel
                     .basic_ack(BasicAckArguments::new(deliver.delivery_tag(), false))
                     .await
-                    .unwrap();
+                {
+                    error!("Failed to acknowledge message: {:?}", e);
+                }
             }
             Err(e) => {
-                decrease_refresh_speed(job.clone()).await.unwrap();
-                channel
+                if let Err(err) = decrease_refresh_speed(job.clone()).await {
+                    error!("Failed to decrease refresh speed: {:?}", err);
+                }
+                if let Err(err) = channel
                     .basic_nack(BasicNackArguments::new(deliver.delivery_tag(), false, true))
                     .await
-                    .unwrap();
+                {
+                    error!("Failed to nack message: {:?}", err);
+                }
                 warn!("votes_consumer error: {:?}", e);
             }
         };
@@ -264,7 +278,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
                 .one(&db)
                 .await
                 .context("DB error")?
-                .context("DAO not found")?;
+                .context("Proposal not found")?;
 
             let mut new_refresh_speed = (proposal.votes_refresh_speed as f32 * 0.5) as i32;
 
@@ -284,7 +298,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
             })
             .exec(&db)
             .await
-            .context("Failed to increase refresh speed")?;
+            .context("Failed to decrease refresh speed")?;
 
             Ok(())
         }
@@ -307,7 +321,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
             })
             .exec(&db)
             .await
-            .context("Failed to increase refresh speed")?;
+            .context("Failed to decrease refresh speed")?;
 
             Ok(())
         }
@@ -362,7 +376,7 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
                 .one(&db)
                 .await
                 .context("DB error")?
-                .context("DAO not found")?;
+                .context("Proposal not found")?;
 
             let mut new_refresh_speed = (proposal.votes_refresh_speed as f32 * 1.2) as i32;
 
@@ -408,7 +422,10 @@ async fn store_voters(parsed_votes: &[vote::ActiveModel], db: &DatabaseConnectio
         .map(|v| v.voter_address.clone().take().unwrap())
         .collect::<HashSet<String>>();
 
-    let txn = db.begin().await?;
+    let txn = db
+        .begin()
+        .await
+        .context("DB error: Failed to begin transaction for store_voters")?;
 
     let existing_voters = voter::Entity::find()
         .filter(voter::Column::Address.is_in(voters.clone()))
@@ -441,7 +458,9 @@ async fn store_voters(parsed_votes: &[vote::ActiveModel], db: &DatabaseConnectio
         .context("DB error")
         .context("store_voters")?;
 
-    txn.commit().await?;
+    txn.commit()
+        .await
+        .context("DB error: Failed to commit transaction for store_voters")?;
 
     Ok(())
 }
@@ -657,8 +676,11 @@ async fn store_dao_votes(
             vote::Entity::update(updated_vote.clone())
                 .exec(db)
                 .await
-                .context("DB error")
-                .context("store_dao_votes 4")?;
+                .context(format!(
+                    "DB error: Failed to update vote for proposal_id: {}, voter_address: {}",
+                    updated_vote.proposal_id.clone().unwrap(),
+                    updated_vote.voter_address.clone().unwrap()
+                ))?;
 
             updated_votes += 1;
         } else {
@@ -708,8 +730,11 @@ async fn store_proposal_votes(
             vote::Entity::update(updated_vote.clone())
                 .exec(db)
                 .await
-                .context("DB error")
-                .context("store_proposal_votes 2")?;
+                .context(format!(
+                    "DB error: Failed to update vote for proposal_id: {}, voter_address: {}",
+                    updated_vote.proposal_id.clone().unwrap(),
+                    updated_vote.voter_address.clone().unwrap()
+                ))?;
 
             updated_votes += 1;
         } else {
