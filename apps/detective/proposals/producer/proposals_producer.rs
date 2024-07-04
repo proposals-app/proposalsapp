@@ -10,7 +10,7 @@ use sea_orm::{
 };
 use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnum};
 use tokio::time;
-use tracing::info;
+use tracing::{error, info}; // Added error for better logging
 use utils::{
     rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
     telemetry::setup_telemetry,
@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
     loop {
         interval.tick().await;
         if let Err(e) = produce_jobs().await {
-            info!("Error producing jobs: {:?}", e);
+            error!("Error producing jobs: {:?}", e);
         }
     }
 }
@@ -59,15 +59,28 @@ async fn produce_jobs() -> Result<()> {
 }
 
 async fn setup_rabbitmq_connection(rabbitmq_url: &str) -> Result<Connection> {
-    let args: OpenConnectionArguments = rabbitmq_url.try_into()?;
-    let connection = Connection::open(&args).await?;
-    connection.register_callback(AppConnectionCallback).await?;
+    let args: OpenConnectionArguments = rabbitmq_url
+        .try_into()
+        .context("Failed to parse RabbitMQ URL")?;
+    let connection = Connection::open(&args)
+        .await
+        .context("Failed to open RabbitMQ connection")?;
+    connection
+        .register_callback(AppConnectionCallback)
+        .await
+        .context("Failed to register RabbitMQ connection callback")?;
     Ok(connection)
 }
 
 async fn setup_rabbitmq_channel(connection: &Connection) -> Result<amqprs::channel::Channel> {
-    let channel = connection.open_channel(None).await?;
-    channel.register_callback(AppChannelCallback).await?;
+    let channel = connection
+        .open_channel(None)
+        .await
+        .context("Failed to open RabbitMQ channel")?;
+    channel
+        .register_callback(AppChannelCallback)
+        .await
+        .context("Failed to register RabbitMQ channel callback")?;
     Ok(channel)
 }
 
@@ -89,7 +102,7 @@ async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::
         .filter(dao_handler::Column::RefreshEnabled.eq(true))
         .all(db)
         .await
-        .context("DB error")
+        .context("Failed to fetch DAO handlers from database")
 }
 
 async fn queue_dao_jobs(
@@ -104,7 +117,11 @@ async fn queue_dao_jobs(
         let args = BasicPublishArguments::new("", QUEUE_NAME);
         channel
             .basic_publish(BasicProperties::default().finish(), content, args)
-            .await?;
+            .await
+            .context(format!(
+                "Failed to publish job for DAO handler ID: {:?}",
+                dao_handler.id
+            ))?;
     }
 
     info!("Queued {} DAOs", dao_handlers.len());

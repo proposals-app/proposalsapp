@@ -17,7 +17,7 @@ use seaorm::sea_orm_active_enums::{DaoHandlerEnum, ProposalStateEnum};
 use seaorm::{dao_handler, proposal};
 use std::collections::HashSet;
 use tokio::sync::Notify;
-use tracing::{info, warn};
+use tracing::{error, info, warn}; // Added error for better logging
 use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
 use utils::telemetry::setup_telemetry;
 use utils::types::{ProposalsJob, ProposalsResponse};
@@ -59,23 +59,35 @@ async fn main() -> Result<()> {
 
     let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
     let args: OpenConnectionArguments = rabbitmq_url.as_str().try_into().unwrap();
-    let connection = Connection::open(&args).await.unwrap();
+    let connection = Connection::open(&args)
+        .await
+        .context("Failed to open RabbitMQ connection")?;
 
     connection
         .register_callback(AppConnectionCallback)
         .await
-        .unwrap();
+        .context("Failed to register RabbitMQ connection callback")?;
 
-    let channel = connection.open_channel(None).await.unwrap();
-    channel.register_callback(AppChannelCallback).await.unwrap();
+    let channel = connection
+        .open_channel(None)
+        .await
+        .context("Failed to open RabbitMQ channel")?;
+    channel
+        .register_callback(AppChannelCallback)
+        .await
+        .context("Failed to register RabbitMQ channel callback")?;
 
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME);
-    channel.queue_declare(queue).await.ok();
+    channel
+        .queue_declare(queue)
+        .await
+        .context("Failed to declare RabbitMQ queue")?;
 
     // 5 workers
     channel
         .basic_qos(BasicQosArguments::new(0, 5, false))
-        .await?;
+        .await
+        .context("Failed to set RabbitMQ QoS")?;
 
     channel
         .basic_consume(
@@ -83,7 +95,7 @@ async fn main() -> Result<()> {
             BasicConsumeArguments::new(QUEUE_NAME, ""),
         )
         .await
-        .unwrap();
+        .context("Failed to start RabbitMQ consumer")?;
 
     // consume forever
     let guard = Notify::new();
@@ -118,18 +130,26 @@ impl AsyncConsumer for ProposalsConsumer {
 
         let _ = match run(job.clone()).await {
             Ok(_) => {
-                increase_refresh_speed(job.clone()).await.unwrap();
-                channel
+                if let Err(e) = increase_refresh_speed(job.clone()).await {
+                    error!("Failed to increase refresh speed: {:?}", e);
+                }
+                if let Err(e) = channel
                     .basic_ack(BasicAckArguments::new(deliver.delivery_tag(), false))
                     .await
-                    .unwrap();
+                {
+                    error!("Failed to acknowledge message: {:?}", e);
+                }
             }
             Err(e) => {
-                decrease_refresh_speed(job.clone()).await.unwrap();
-                channel
+                if let Err(err) = decrease_refresh_speed(job.clone()).await {
+                    error!("Failed to decrease refresh speed: {:?}", err);
+                }
+                if let Err(err) = channel
                     .basic_nack(BasicNackArguments::new(deliver.delivery_tag(), false, true))
                     .await
-                    .unwrap();
+                {
+                    error!("Failed to nack message: {:?}", err);
+                }
                 warn!("proposals_consumer error: {:?}", e);
             }
         };
@@ -149,8 +169,8 @@ async fn run(job: ProposalsJob) -> Result<()> {
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(&db)
         .await
-        .context("DB error")?
-        .context("dao_handler error")?;
+        .context("DB error while fetching DAO handler")?
+        .context("DAO handler not found")?;
 
     let ChainProposalsResult {
         proposals,
@@ -188,8 +208,8 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(&db)
         .await
-        .context("DB error")?
-        .context("dao_handler error")?;
+        .context("DB error while fetching DAO handler")?
+        .context("DAO handler not found")?;
 
     let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 0.5) as i32;
 
@@ -235,8 +255,7 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
     })
     .exec(&db)
     .await
-    .context("DB error")
-    .context("Failed to decrease refresh speed")?;
+    .context("DB error while updating DAO handler to decrease refresh speed")?;
 
     Ok(())
 }
@@ -253,8 +272,8 @@ async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(&db)
         .await
-        .context("DB error")?
-        .context("dao_handler error")?;
+        .context("DB error while fetching DAO handler")?
+        .context("DAO handler not found")?;
 
     let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 1.2) as i32;
 
@@ -295,8 +314,7 @@ async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
     })
     .exec(&db)
     .await
-    .context("DB error")
-    .context("Failed to increase refresh speed")?;
+    .context("DB error while updating DAO handler to increase refresh speed")?;
 
     Ok(())
 }
@@ -332,7 +350,7 @@ async fn update_index(
     })
     .exec(db)
     .await
-    .context("DB error")?;
+    .context("DB error while updating proposals index")?;
 
     Ok(new_index)
 }

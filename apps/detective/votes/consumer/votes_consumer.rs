@@ -569,6 +569,12 @@ async fn store_dao_votes(
         .map(|v| v.proposal_external_id.clone().unwrap())
         .collect::<HashSet<String>>();
 
+    // Log the number of unique proposal_external_ids
+    info!(
+        "Number of unique proposal_external_ids: {}",
+        proposal_external_ids.len()
+    );
+
     // the proposal might be on different chain
     // ex: aave mainnet proposal with aave polygon votes
     let proposal_handler_id = match dao_handler.handler_type {
@@ -621,6 +627,9 @@ async fn store_dao_votes(
         }
     };
 
+    // Log before fetching proposals
+    info!("Fetching proposals for handler_id: {}", proposal_handler_id);
+
     let proposals = proposal::Entity::find()
         .filter(
             Condition::all()
@@ -631,6 +640,9 @@ async fn store_dao_votes(
         .await
         .context("DB error")
         .context("store_dao_votes 2")?;
+
+    // Log the number of proposals fetched
+    info!("Number of proposals fetched: {}", proposals.len());
 
     if proposals.len() != proposal_external_ids.len() {
         bail!(
@@ -656,6 +668,9 @@ async fn store_dao_votes(
     }
 
     let mut votes_to_insert = vec![];
+
+    // Log before processing votes
+    info!("Processing {} votes", votes_to_process.len());
 
     for vote in votes_to_process.clone() {
         let existing_vote = vote::Entity::find()
