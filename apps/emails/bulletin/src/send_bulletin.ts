@@ -10,6 +10,11 @@ import { ServerClient } from "postmark";
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
 
 export async function sendBulletin(userId: string) {
+  if (!userId || userId.trim() === "") {
+    console.log("Invalid userId:", userId);
+    return;
+  }
+
   const user = await db
     .selectFrom("user")
     .where("user.id", "=", userId)
@@ -59,6 +64,11 @@ async function getBulletinData(userId: string): Promise<DailyBulletinData> {
 }
 
 async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
+  if (!userId || userId.trim() === "") {
+    console.log("Invalid userId in getEndingSoon:", userId);
+    return [];
+  }
+
   const subscriptions = await db
     .selectFrom("subscription")
     .where("userId", "=", userId)
@@ -155,6 +165,11 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
 }
 
 async function getNew(userId: string): Promise<EndingSoonProposal[]> {
+  if (!userId || userId.trim() === "") {
+    console.log("Invalid userId in getEndingSoon:", userId);
+    return [];
+  }
+
   const subscriptions = await db
     .selectFrom("subscription")
     .where("userId", "=", userId)
@@ -250,6 +265,11 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
 }
 
 async function getEnded(userId: string): Promise<EndedProposal[]> {
+  if (!userId || userId.trim() === "") {
+    console.log("Invalid userId in getEndingSoon:", userId);
+    return [];
+  }
+
   const subscriptions = await db
     .selectFrom("subscription")
     .where("userId", "=", userId)
