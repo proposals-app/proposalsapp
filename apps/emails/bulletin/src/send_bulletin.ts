@@ -11,38 +11,43 @@ const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
 
 export async function sendBulletin(userId: string) {
   if (!userId || userId.trim() === "") {
-    console.log("Invalid userId:", userId);
+    console.error("Invalid userId:", userId);
     return;
   }
 
-  const user = await db
-    .selectFrom("user")
-    .where("user.id", "=", userId)
-    .selectAll()
-    .executeTakeFirstOrThrow();
+  try {
+    const user = await db
+      .selectFrom("user")
+      .where("user.id", "=", userId)
+      .selectAll()
+      .executeTakeFirstOrThrow();
 
-  let bulletin_data: DailyBulletinData = await getBulletinData(user.id);
+    let bulletin_data: DailyBulletinData = await getBulletinData(user.id);
 
-  if (
-    bulletin_data.endedProposals.length == 0 &&
-    bulletin_data.endingSoonProposals.length == 0 &&
-    bulletin_data.newProposals.length == 0
-  ) {
-    console.log(`skipped empty bulletin for ${userId}`);
-    return;
+    if (
+      bulletin_data.endedProposals.length == 0 &&
+      bulletin_data.endingSoonProposals.length == 0 &&
+      bulletin_data.newProposals.length == 0
+    ) {
+      console.log(`Skipped empty bulletin for ${userId}`);
+      return;
+    }
+    const emailHtml = render(DailyBulletinEmail(bulletin_data));
+
+    const options = {
+      From: "new@proposals.app",
+      To: user.email,
+      Subject: `Proposals Daily Bulletin`,
+      HtmlBody: emailHtml,
+    };
+
+    await client.sendEmail(options);
+
+    console.log(`Sent bulletin to ${userId}`);
+  } catch (error) {
+    console.log(userId);
+    console.error("Error in sendBulletin:", error);
   }
-  const emailHtml = render(DailyBulletinEmail(bulletin_data));
-
-  const options = {
-    From: "new@proposals.app",
-    To: user.email,
-    Subject: `Proposals Daily Bulletin`,
-    HtmlBody: emailHtml,
-  };
-
-  await client.sendEmail(options);
-
-  console.log(`send bulletin to ${userId}`);
 }
 
 async function getBulletinData(userId: string): Promise<DailyBulletinData> {
