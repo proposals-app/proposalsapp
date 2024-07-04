@@ -6,6 +6,9 @@ const config = {
     "./emails/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    screens: {
+      lg: "800px",
+    },
     extend: {
       colors: {
         luna: "#F1EBE7",

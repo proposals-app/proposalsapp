@@ -25,7 +25,7 @@ export const AuthCodeEmail = (data: AuthCodeData) => (
     <Font fontFamily="Helvetica Neue" fallbackFontFamily={"Verdana"} />
     <Tailwind>
       <Head />
-      <Body className="bg-[#F1EBE7] m-0 p-4 text-zinc-800">
+      <Body className="bg-[#F1EBE7]">
         <Container>
           <Header />
           <Section>
