@@ -451,12 +451,16 @@ async fn store_voters(parsed_votes: &[vote::ActiveModel], db: &DatabaseConnectio
         })
         .collect::<Vec<voter::ActiveModel>>();
 
-    let _ = voter::Entity::insert_many(voters_to_insert)
-        .on_empty_do_nothing()
-        .exec(&txn)
-        .await
-        .context("DB error")
-        .context("store_voters")?;
+    // Insert voters in batches to avoid exceeding parameter limit
+    const BATCH_SIZE: usize = 1000;
+    for chunk in voters_to_insert.chunks(BATCH_SIZE) {
+        voter::Entity::insert_many(chunk.to_vec())
+            .on_empty_do_nothing()
+            .exec(&txn)
+            .await
+            .context("DB error")
+            .context("store_voters")?;
+    }
 
     txn.commit()
         .await
@@ -704,12 +708,16 @@ async fn store_dao_votes(
         }
     }
 
-    vote::Entity::insert_many(votes_to_insert)
-        .on_empty_do_nothing()
-        .exec(db)
-        .await
-        .context("DB error")
-        .context("store_dao_votes 5")?;
+    // Insert votes in batches to avoid exceeding parameter limit
+    const BATCH_SIZE: usize = 1000;
+    for chunk in votes_to_insert.chunks(BATCH_SIZE) {
+        vote::Entity::insert_many(chunk.to_vec())
+            .on_empty_do_nothing()
+            .exec(db)
+            .await
+            .context("DB error")
+            .context("store_dao_votes 5")?;
+    }
 
     Ok(StoredVotes {
         inserted_votes,
@@ -758,12 +766,16 @@ async fn store_proposal_votes(
         }
     }
 
-    vote::Entity::insert_many(votes_to_insert)
-        .on_empty_do_nothing()
-        .exec(db)
-        .await
-        .context("DB error")
-        .context("store_proposal_votes 3")?;
+    // Insert votes in batches to avoid exceeding parameter limit
+    const BATCH_SIZE: usize = 1000;
+    for chunk in votes_to_insert.chunks(BATCH_SIZE) {
+        vote::Entity::insert_many(chunk.to_vec())
+            .on_empty_do_nothing()
+            .exec(db)
+            .await
+            .context("DB error")
+            .context("store_proposal_votes 3")?;
+    }
 
     Ok(StoredVotes {
         inserted_votes,
