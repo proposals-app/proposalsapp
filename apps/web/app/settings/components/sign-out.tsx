@@ -19,7 +19,7 @@ export const SignOutButton = () => {
         headers: {
           "Content-Type": "application/json",
         },
-      });
+      }).then(() => router.refresh());
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -29,7 +29,7 @@ export const SignOutButton = () => {
     <Button
       className={`${manjari.className} block h-[42px] w-fit rounded-lg border-2 border-gold bg-luna text-center text-gold lg:h-[56px]`}
       onClick={() => {
-        signOut().then(() => router.replace("/"));
+        signOut();
       }}
     >
       <p className="text-[24px] leading-[32px] lg:leading-[46px]">sign out</p>
