@@ -26,7 +26,7 @@ export const AuthCodeEmail = (data: AuthCodeData) => (
     <Tailwind>
       <Head />
       <Body className="bg-[#F1EBE7]">
-        <Container>
+        <Container className="w-[360px] lg:w-[800px]">
           <Header />
           <Section>
             <Heading as="h3">
@@ -42,7 +42,7 @@ export const AuthCodeEmail = (data: AuthCodeData) => (
             </Text>
 
             <Section className="w-min" align="left">
-              <Text className="bg-black text-white text-4xl font-bold font-mono py-2 px-4 text-center rounded-xl">
+              <Text className="rounded-xl bg-black px-4 py-2 text-center font-mono text-4xl font-bold text-white">
                 {data.code ? data.code : test_data.code}
               </Text>
             </Section>
