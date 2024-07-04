@@ -44,9 +44,14 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         loop {
             interval.tick().await;
-            run().await.unwrap();
+            if let Err(e) = run().await {
+                tracing::error!("Error running scheduled task: {:?}", e);
+            }
         }
     });
+
+    let guard = tokio::sync::Notify::new();
+    guard.notified().await;
 
     Ok(())
 }
