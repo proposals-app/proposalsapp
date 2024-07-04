@@ -1,20 +1,23 @@
-import { Column, Img, Link, Row, Section, Text } from "@react-email/components";
+import { Hr, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
-import { baseUrl } from "../src/const";
 
 export const Footer = () => (
-  <Section className="bg-black text-center py-4">
-    <Text className="text-zinc-200 text-xs text-light">
-      You are receiving this email because you subscribed to proposals.app.
+  <Section className="text-center py-4">
+    <Hr className="border-[#C2AEA2]" />
+    <Text className="text-[#C2AEA2] text-xs text-light">
+      You are receiving this email because you subscribed to{" "}
+      <Link href="https://proposals.app" className="text-[#C2AEA2]">
+        proposals.app
+      </Link>
     </Text>
-    <Text className="text-zinc-200 text-xs text-light">
-      If you wish to stop receiving these emails, you can{" "}
-      <Link href="https://proposals.app" className="text-zinc-200">
-        unsubcribe here
+    <Text className="text-[#C2AEA2] text-xs text-light">
+      If you wish to stop receiving these emails, please{" "}
+      <Link href="https://proposals.app" className="text-[#C2AEA2]">
+        unsubcribe
       </Link>
       .
     </Text>
-    <Row className="max-w-min gap-4">
+    {/* <Row className="max-w-min gap-4">
       <Column>
         <Img
           src={`${baseUrl}/assets/email/twitter.png`}
@@ -36,7 +39,7 @@ export const Footer = () => (
           height="24"
         />
       </Column>
-    </Row>
+    </Row> */}
   </Section>
 );
 

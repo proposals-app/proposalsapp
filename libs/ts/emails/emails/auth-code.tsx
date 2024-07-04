@@ -22,10 +22,10 @@ export interface AuthCodeData {
 
 export const AuthCodeEmail = (data: AuthCodeData) => (
   <Html>
-    <Font fontFamily="Roboto" fallbackFontFamily={"Verdana"} />
+    <Font fontFamily="Helvetica Neue" fallbackFontFamily={"Verdana"} />
     <Tailwind>
       <Head />
-      <Body className="bg-white m-0 p-0 text-zinc-800">
+      <Body className="bg-[#F1EBE7] m-0 p-0 text-zinc-800">
         <Container>
           <Header />
           <Section className="p-2">
@@ -34,26 +34,34 @@ export const AuthCodeEmail = (data: AuthCodeData) => (
             </Heading>
             <Text>
               We noticed someone just tried to log in to your{" "}
-              <Link href="proposals.app">proposals.app</Link> account. If this
-              was you, please use the following code to confirm it:
+              <Link href="proposals.app" className="text-black underline">
+                proposals.app
+              </Link>{" "}
+              account. If this was you, please use the following code to confirm
+              it:
             </Text>
 
-            <Section className="w-min">
-              <Text className="bg-black text-white text-4xl font-mono p-4 text-center">
+            <Section className="w-min" align="left">
+              <Text className="bg-black text-white text-4xl font-mono p-4 text-center rounded-lg">
                 {data.code ? data.code : test_data.code}
               </Text>
             </Section>
 
-            <Text>This code is valid for 5 minutes.</Text>
-            <Text>
-              Thanks,
-              <br />
-              proposals.app Team
-              <br />
-              <Link href="mailto:support@proposals.app">
-                support@proposals.app
-              </Link>
-            </Text>
+            <Section>
+              <Text>This code is valid for 5 minutes.</Text>
+              <Text>
+                Thanks,
+                <br />
+                proposals.app Team
+                <br />
+                <Link
+                  href="mailto:support@proposals.app"
+                  className="text-black underline"
+                >
+                  support@proposals.app
+                </Link>
+              </Text>
+            </Section>
           </Section>
           <Footer />
         </Container>
