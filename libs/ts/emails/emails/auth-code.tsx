@@ -25,10 +25,10 @@ export const AuthCodeEmail = (data: AuthCodeData) => (
     <Font fontFamily="Helvetica Neue" fallbackFontFamily={"Verdana"} />
     <Tailwind>
       <Head />
-      <Body className="bg-[#F1EBE7] m-0 p-0 text-zinc-800">
+      <Body className="bg-[#F1EBE7] m-0 p-4 text-zinc-800">
         <Container>
           <Header />
-          <Section className="p-2">
+          <Section>
             <Heading as="h3">
               Hi, {data.email ? data.email : test_data.email}!
             </Heading>
@@ -42,7 +42,7 @@ export const AuthCodeEmail = (data: AuthCodeData) => (
             </Text>
 
             <Section className="w-min" align="left">
-              <Text className="bg-black text-white text-4xl font-bold font-mono py-2 px-4 text-center rounded-lg">
+              <Text className="bg-black text-white text-4xl font-bold font-mono py-2 px-4 text-center rounded-xl">
                 {data.code ? data.code : test_data.code}
               </Text>
             </Section>
