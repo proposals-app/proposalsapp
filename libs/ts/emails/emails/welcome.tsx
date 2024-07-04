@@ -12,7 +12,7 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 import Footer from "../components/footer";
-import Header from "../components/welcome/header";
+import Header from "../components/header";
 
 export const WelcomeEmail = () => (
   <Html>

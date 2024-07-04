@@ -78,7 +78,7 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
       <Tailwind>
         <Head />
         <Body className="bg-[#F1EBE7] m-0 p-0 text-black">
-          <Container className="p-2">
+          <Container className="p-2" width={800}>
             <Header />
 
             <Section className="py-2">
@@ -95,7 +95,7 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
             <Section className="py-8">
               <Heading as="h3">Proposals Ending Soon</Heading>
 
-              <Text className="text-sm font-extralight">
+              <Text className="font-extralight">
                 The voting on these proposals is going to end in the next 72
                 hours. You might want to act on them soon.
               </Text>
@@ -112,7 +112,7 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
             <Section className="py-8">
               <Heading as="h3">New Proposals</Heading>
 
-              <Text className="text-sm font-extralight">
+              <Text className="font-extralight">
                 These are the proposals that were created in the last 24 hours.
                 You might want to check them out.
               </Text>
@@ -127,7 +127,7 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
             <Section className="py-8">
               <Heading as="h3">Past Proposals</Heading>
 
-              <Text className="text-sm font-extralight">
+              <Text className="font-extralight">
                 These are the proposals that were created in the last 24 hours.
                 You might want to check them out.
               </Text>
@@ -160,8 +160,8 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
   return (
     <Section>
       {props.data.map((proposal) => (
-        <Row key={proposal.url} className="bg-white rounded-xl p-2">
-          <Column width={52} height={66}>
+        <Row key={proposal.url} className="bg-white rounded-xl px-2">
+          <Column width={48} height={48}>
             <Img
               className="rounded-xl"
               src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
@@ -172,7 +172,7 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
 
           <Column>
             <Link href={`${proposal.url}`}>
-              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-2 text-[#2C2927]">
+              <Text className="min-w-[50%] font-light md:font-normal text-start m-2 text-[#2C2927]">
                 {proposal.proposalName}
               </Text>
             </Link>
@@ -211,8 +211,8 @@ const New = (props: { data: NewProposal[] }) => {
   return (
     <Section>
       {props.data.map((proposal) => (
-        <Row key={proposal.url} className="bg-white rounded-xl p-2">
-          <Column width={52} height={66}>
+        <Row key={proposal.url} className="bg-white rounded-xl px-2">
+          <Column width={48} height={48}>
             <Img
               className="rounded-xl"
               src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
@@ -223,7 +223,7 @@ const New = (props: { data: NewProposal[] }) => {
 
           <Column>
             <Link href={`${proposal.url}`}>
-              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-2 text-[#2C2927]">
+              <Text className="min-w-[50%] font-light md:font-normal text-start m-2 text-[#2C2927]">
                 {proposal.proposalName}
               </Text>
             </Link>
@@ -263,8 +263,8 @@ const Ended = (props: { data: EndedProposal[] }) => {
   return (
     <Section>
       {props.data.map((proposal) => (
-        <Row key={proposal.url} className="bg-white rounded-xl p-2">
-          <Column width={52} height={66}>
+        <Row key={proposal.url} className="bg-white rounded-xl px-2">
+          <Column width={48} height={48}>
             <Img
               className="rounded-xl"
               src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
@@ -275,7 +275,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
 
           <Column>
             <Link href={`${proposal.url}`}>
-              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-2 text-[#2C2927]">
+              <Text className="min-w-[50%] font-light md:font-normal text-start m-2 text-[#2C2927]">
                 {proposal.proposalName}
               </Text>
             </Link>
@@ -284,7 +284,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
           {
             //Hidden result
           }
-          <Column className="font-bold text-center w-[100px] md:w-[200px]">
+          <Column className="font-bold text-center w-[100px] md:w-[200px] py-1">
             {proposal.hiddenResult && (
               <>
                 <Row className="pb-2 max-w-[180px] min-w-[80px]">
@@ -302,11 +302,11 @@ const Ended = (props: { data: EndedProposal[] }) => {
                 </Row>
                 <Row className="pb-2 max-w-[180px] min-w-[80px] m-0">
                   <Column>
-                    <div className="bg-gray-200 w-full h-[20px] relative">
+                    <div className="bg-gray-200 w-full h-[10px] relative">
                       <div className="bg-black w-full h-full">
-                        <div className="text-white absolute text-sm font-thin pl-2">
+                        {/* <div className="text-white absolute text-xs font-thin pl-2">
                           ??
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                   </Column>
@@ -318,7 +318,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
             }
             {!proposal.quorumReached && (
               <>
-                <Row className="pb-2 max-w-[180px] min-w-[80px]">
+                <Row className="pb-1 max-w-[180px] min-w-[80px]">
                   <div className="flex justify-start gap-2 items-start">
                     <Img
                       className="bg-[#EDEDED]"
@@ -341,7 +341,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
               proposal.result?.choiceName &&
               proposal.result.choicePercentage && (
                 <>
-                  <Row className="pb-2 max-w-[180px] min-w-[80px]">
+                  <Row className="pb-1 max-w-[180px] min-w-[80px]">
                     <div className="flex justify-start gap-2 items-start">
                       <Img
                         className="bg-[#EDEDED]"
@@ -354,15 +354,15 @@ const Ended = (props: { data: EndedProposal[] }) => {
                       </Text>
                     </div>
                   </Row>
-                  <Row className="pb-2 max-w-[180px] min-w-[80px] m-0">
+                  <Row className="pb-1 max-w-[180px] min-w-[80px] m-0">
                     <Column>
-                      <div className="bg-gray-200 w-full h-[20px] relative m-0">
+                      <div className="bg-gray-200 w-full h-[10px] relative m-0">
                         <div
                           className={`bg-black w-[${proposal.result?.choicePercentage}%] h-full`}
                         >
-                          <div className="text-white absolute text-sm font-thin pl-2">
+                          {/* <div className="text-white absolute text-sm font-thin pl-2">
                             {proposal.result?.choicePercentage}%
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </Column>
@@ -377,7 +377,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
               proposal.makerResult?.choiceName &&
               proposal.makerResult?.mkrSupporting && (
                 <>
-                  <Row className="pb-2 max-w-[180px] min-w-[80px]">
+                  <Row className="pb-1 max-w-[180px] min-w-[80px]">
                     <div className="flex justify-start gap-2 items-start">
                       <Img
                         className="bg-[#EDEDED]"
@@ -391,7 +391,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
                     </div>
                   </Row>
 
-                  <Row className="pb-2 max-w-[180px] min-w-[80px]">
+                  <Row className="pb-1 max-w-[180px] min-w-[80px]">
                     <div className="flex justify-start gap-2">
                       <Text className="font-bold m-0">
                         with {proposal.makerResult?.mkrSupporting} MKR
