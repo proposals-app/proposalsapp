@@ -1,4 +1,9 @@
-import { DeduplicateJoinsPlugin, Kysely, PostgresDialect } from "kysely";
+import {
+  DeduplicateJoinsPlugin,
+  Kysely,
+  ParseJSONResultsPlugin,
+  PostgresDialect,
+} from "kysely";
 import { CamelCasePlugin } from "kysely";
 import { config as dotenv_config } from "dotenv";
 import { DB } from "./kysely_db";
@@ -16,7 +21,11 @@ const db = new Kysely<DB>({
   dialect: new PostgresDialect({
     pool: db_pool,
   }),
-  plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
+  plugins: [
+    new CamelCasePlugin(),
+    new DeduplicateJoinsPlugin(),
+    new ParseJSONResultsPlugin(),
+  ],
 });
 
 export { db_pool };

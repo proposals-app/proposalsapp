@@ -20,7 +20,25 @@ import Footer from "../components/footer";
 import test_data from "./../test_data/bulletin_test_data.json";
 import { baseUrl } from "../src/const";
 import Header from "../components/header";
-
+import moment from "moment";
+moment.updateLocale("en", {
+  relativeTime: {
+    future: "%s left",
+    past: "%s ago",
+    s: "a few seconds",
+    ss: "%d seconds",
+    m: "a minute",
+    mm: "%d minutes",
+    h: "an hour",
+    hh: "%d hours",
+    d: "a day",
+    dd: "%d days",
+    M: "a month",
+    MM: "%d months",
+    y: "a year",
+    yy: "%d years",
+  },
+});
 export interface DailyBulletinData {
   endingSoonProposals: EndingSoonProposal[];
   newProposals: NewProposal[];
@@ -32,9 +50,7 @@ export interface EndingSoonProposal {
   chainLogoUrl: string;
   url: string;
   proposalName: string;
-  countdownUrl: string;
-  countdownUrlSmall: string;
-  countdownString: string;
+  timeEnd: number;
   voteIconUrl: string;
   voteStatus: string;
 }
@@ -44,9 +60,7 @@ export interface NewProposal {
   chainLogoUrl: string;
   url: string;
   proposalName: string;
-  countdownUrl: string;
-  countdownUrlSmall: string;
-  countdownString: string;
+  timeEnd: number;
   voteIconUrl: string;
   voteStatus: string;
 }
@@ -66,7 +80,7 @@ export interface EndedProposal {
     choiceName: String;
     choicePercentage: number;
   };
-  countdownString: string;
+  timeEnd: number;
   voteIconUrl: string;
   voteStatus: string;
 }
@@ -78,7 +92,7 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
       <Tailwind>
         <Head />
         <Body className="bg-[#F1EBE7]">
-          <Container>
+          <Container className="w-[360px] lg:w-[800px]">
             <Header />
             <Section className="lg:pt-8">
               <Heading as="h3">
@@ -181,12 +195,16 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
               </Link>
             </Column>
 
-            <Column className="table-cell lg:hidden" />
-            <Column className="hidden w-[70px] text-end font-bold lg:table-cell lg:p-2">
-              <Img src={`${proposal.countdownUrl}`} />
+            <Column className="hidden w-[160px] text-end font-bold lg:table-cell lg:p-2">
+              <Text className="m-1 text-center text-xl font-semibold text-[#2C2927]">
+                {moment.unix(proposal.timeEnd).utc().fromNow()}
+              </Text>
 
-              <Text className="text-center text-xs font-light text-[#2C2927]">
-                ends {proposal.countdownString}
+              <Text className="m-1 text-center text-xs font-light text-[#2C2927]">
+                {moment
+                  .unix(proposal.timeEnd)
+                  .utc()
+                  .format("[ends on] MMM D [at] HH:mm [UTC]")}
               </Text>
             </Column>
 
@@ -210,10 +228,15 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
           </Row>
           <Row className="rounded-b-xl bg-white px-2 lg:hidden">
             <Column className="w-full font-bold" align="center">
-              <Img src={`${proposal.countdownUrlSmall}`} />
+              <Text className="m-1 text-center text-xl font-semibold text-[#2C2927]">
+                {moment.unix(proposal.timeEnd).utc().fromNow()}
+              </Text>
 
               <Text className="m-1 text-center text-xs font-light text-[#2C2927]">
-                ends {proposal.countdownString}
+                {moment
+                  .unix(proposal.timeEnd)
+                  .utc()
+                  .format("[ends on] MMM D [at] HH:mm [UTC]")}
               </Text>
             </Column>
           </Row>
@@ -257,12 +280,16 @@ const New = (props: { data: NewProposal[] }) => {
               </Link>
             </Column>
 
-            <Column className="table-cell lg:hidden" />
-            <Column className="hidden w-[70px] text-end font-bold lg:table-cell lg:p-2">
-              <Img src={`${proposal.countdownUrl}`} />
+            <Column className="hidden w-[160px] text-end font-bold lg:table-cell lg:p-2">
+              <Text className="m-1 text-center text-xl font-semibold text-[#2C2927]">
+                {moment.unix(proposal.timeEnd).utc().fromNow()}
+              </Text>
 
-              <Text className="text-center text-xs font-light text-[#2C2927]">
-                ends {proposal.countdownString}
+              <Text className="m-1 text-center text-xs font-light text-[#2C2927]">
+                {moment
+                  .unix(proposal.timeEnd)
+                  .utc()
+                  .format("[ends on] MMM D [at] HH:mm [UTC]")}
               </Text>
             </Column>
 
@@ -286,10 +313,15 @@ const New = (props: { data: NewProposal[] }) => {
           </Row>
           <Row className="rounded-b-xl bg-white px-2 lg:hidden">
             <Column className="w-full font-bold" align="center">
-              <Img src={`${proposal.countdownUrlSmall}`} />
+              <Text className="m-1 text-center text-xl font-semibold text-[#2C2927]">
+                {moment.unix(proposal.timeEnd).utc().fromNow()}
+              </Text>
 
               <Text className="m-1 text-center text-xs font-light text-[#2C2927]">
-                ends {proposal.countdownString}
+                {moment
+                  .unix(proposal.timeEnd)
+                  .utc()
+                  .format("[ends on] MMM D [at] HH:mm [UTC]")}
               </Text>
             </Column>
           </Row>
@@ -336,7 +368,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
             {
               //Hidden result
             }
-            <Column className="md:w-[200px] hidden w-[100px] py-1 text-center font-bold lg:table-cell">
+            <Column className="hidden w-[100px] py-1 text-center font-bold lg:table-cell lg:w-[200px]">
               {proposal.hiddenResult && (
                 <>
                   <Row className="min-w-[80px] max-w-[180px] pb-2">
@@ -453,7 +485,10 @@ const Ended = (props: { data: EndedProposal[] }) => {
                   </>
                 )}
               <Text className="m-0 text-center text-xs font-light text-[#2C2927]">
-                {proposal.countdownString}
+                {moment
+                  .unix(proposal.timeEnd)
+                  .utc()
+                  .format("[ended on] MMM D [at] HH:mm [UTC]")}
               </Text>
             </Column>
 
@@ -582,7 +617,10 @@ const Ended = (props: { data: EndedProposal[] }) => {
                   </>
                 )}
               <Text className="m-0 text-center text-xs font-light text-[#2C2927]">
-                {proposal.countdownString}
+                {moment
+                  .unix(proposal.timeEnd)
+                  .utc()
+                  .format("[ended on] MMM D [at] HH:mm [UTC]")}
               </Text>
             </Column>
           </Row>

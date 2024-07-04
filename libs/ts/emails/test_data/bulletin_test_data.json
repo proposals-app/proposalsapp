@@ -6,9 +6,7 @@
       "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1920119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -17,9 +15,7 @@
       "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -28,9 +24,7 @@
       "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum with a very long name lalallalalalalala here is a very long proposal name im out of ideas omg what am i gonna write here im bored lol that's enough",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1920119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -39,9 +33,7 @@
       "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "short proposal",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -50,9 +42,7 @@
       "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Not voted yet",
       "voteIconUrl": "assets/email/not-voted-yet.png"
     },
@@ -61,9 +51,7 @@
       "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Not voted yet",
       "voteIconUrl": "assets/email/not-voted-yet.png"
     }
@@ -74,9 +62,7 @@
       "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -85,9 +71,7 @@
       "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -96,9 +80,7 @@
       "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum with a very long name lalallalalalalala here is a very long proposal name im out of ideas omg what am i gonna write here im bored lol that's enough",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -107,9 +89,7 @@
       "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "short proposal",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -118,9 +98,7 @@
       "chainLogoUrl": "assets/email/chains/snapshot.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Not voted yet",
       "voteIconUrl": "assets/email/not-voted-yet.png"
     },
@@ -129,9 +107,7 @@
       "chainLogoUrl": "assets/email/chains/ethereum.png",
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
-      "countdownUrl": "https://i.countdownmail.com/32oluz.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownUrlSmall": "https://i.countdownmail.com/32omst.gif?end_date_time=2025-01-28T17:12:13+00:00",
-      "countdownString": "on Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Not voted yet",
       "voteIconUrl": "assets/email/not-voted-yet.png"
     }
@@ -149,7 +125,7 @@
         "choiceName": "Choice name",
         "choicePercentage": 23
       },
-      "countdownString": "Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Did not vote",
       "voteIconUrl": "assets/email/did-not-vote.png"
     },
@@ -165,7 +141,7 @@
         "choiceName": "Choice name",
         "choicePercentage": 65
       },
-      "countdownString": "Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Did not vote",
       "voteIconUrl": "assets/email/did-not-vote.png"
     },
@@ -181,7 +157,7 @@
         "choiceName": "Choice name",
         "choicePercentage": 23
       },
-      "countdownString": "Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Did not vote",
       "voteIconUrl": "assets/email/did-not-vote.png"
     },
@@ -197,7 +173,7 @@
         "choiceName": "Choice name",
         "choicePercentage": 65
       },
-      "countdownString": "Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -213,7 +189,7 @@
         "choiceName": "Choice name",
         "choicePercentage": 65
       },
-      "countdownString": "Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -229,7 +205,7 @@
         "choiceName": "Let's do this and that and then do a bit of the other thing and then we're done and it works hopefully",
         "choicePercentage": 23
       },
-      "countdownString": "Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -245,7 +221,7 @@
         "choiceName": "aaaaadfsdijfhsdifhodshfosdjfoijadsoifjasoijfoiasjfoiajsoifhasofbaisbdfiasbduabsidbasidbnasibdiasbdiasubdiubsaidubasiudbasiu",
         "choicePercentage": 23
       },
-      "countdownString": "Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -261,7 +237,7 @@
         "choiceName": "Choice name",
         "mkrSupporting": 12314
       },
-      "countdownString": "Jun 5 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -277,7 +253,7 @@
         "choiceName": "very very long name again i don't know what to write here lol let's gooooooo dsafisud hf98sdhf9w8hdf9sd nf9us",
         "mkrSupporting": 12314
       },
-      "countdownString": "Jun 5, 2023 at 02:00 UTC",
+      "timeEnd": 1720119543,
       "voteStatus": "Did not vote",
       "voteIconUrl": "assets/email/did-not-vote.png"
     }
