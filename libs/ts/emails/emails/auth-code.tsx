@@ -42,7 +42,7 @@ export const AuthCodeEmail = (data: AuthCodeData) => (
             </Text>
 
             <Section className="w-min" align="left">
-              <Text className="bg-black text-white text-4xl font-mono p-4 text-center rounded-lg">
+              <Text className="bg-black text-white text-4xl font-bold font-mono py-2 px-4 text-center rounded-lg">
                 {data.code ? data.code : test_data.code}
               </Text>
             </Section>
