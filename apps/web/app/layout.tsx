@@ -37,7 +37,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body>
+      <body className="bg-[#F1EBE7]">
         <SessionProvider value={session}>
           <OnboardingFlow />
           <div className="flex h-full min-h-screen w-full flex-col items-center bg-luna">
