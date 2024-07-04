@@ -17,9 +17,9 @@ import {
 import * as React from "react";
 
 import Footer from "../components/footer";
-import Header from "../components/daily/header";
 import test_data from "./../test_data/bulletin_test_data.json";
 import { baseUrl } from "../src/const";
+import Header from "../components/header";
 
 export interface DailyBulletinData {
   endingSoonProposals: EndingSoonProposal[];
@@ -77,13 +77,25 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
       <Font fontFamily="Roboto" fallbackFontFamily={"Verdana"} />
       <Tailwind>
         <Head />
-        <Body className="bg-white m-0 p-0 text-zinc-800">
-          <Container>
+        <Body className="bg-[#F1EBE7] m-0 p-0 text-black">
+          <Container className="p-2">
             <Header />
-            <Section className="p-2">
+
+            <Section className="py-2">
+              <Heading as="h3">
+                Daily Bulletin for{" "}
+                {new Intl.DateTimeFormat("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }).format(new Date())}
+              </Heading>
+            </Section>
+
+            <Section className="py-8">
               <Heading as="h3">Proposals Ending Soon</Heading>
 
-              <Text className="text-zinc-400 text-sm font-extralight">
+              <Text className="text-sm font-extralight">
                 The voting on these proposals is going to end in the next 72
                 hours. You might want to act on them soon.
               </Text>
@@ -95,10 +107,12 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
                     : test_data.endingSoonProposals
                 }
               />
+            </Section>
 
+            <Section className="py-8">
               <Heading as="h3">New Proposals</Heading>
 
-              <Text className="text-zinc-400 text-sm font-extralight">
+              <Text className="text-sm font-extralight">
                 These are the proposals that were created in the last 24 hours.
                 You might want to check them out.
               </Text>
@@ -108,12 +122,14 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
                   data.newProposals ? data.newProposals : test_data.newProposals
                 }
               />
+            </Section>
 
+            <Section className="py-8">
               <Heading as="h3">Past Proposals</Heading>
 
-              <Text className="text-zinc-400 text-sm font-extralight">
-                These are the proposals that ended in the last 24 hours. You
-                might want to check them out.
+              <Text className="text-sm font-extralight">
+                These are the proposals that were created in the last 24 hours.
+                You might want to check them out.
               </Text>
 
               <Ended
@@ -135,7 +151,7 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
 const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
   if (props.data.length == 0) {
     return (
-      <Text className="text-zinc-200 bg-black py-4 align-middle text-center">
+      <Text className="text-[#2C2927] bg-white py-4 align-middle text-center rounded-xl">
         There are no proposals ending soon.
       </Text>
     );
@@ -143,41 +159,20 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
 
   return (
     <Section>
-      <Row>
-        <Column className="font-bold text-center" width={52}>
-          <Text className="m-0">DAO</Text>
-        </Column>
-        <Column className="font-bold text-start">
-          <Text className="m-0">Proposal</Text>
-        </Column>
-        <Column className="font-bold text-center w-[100px] md:w-[200px]">
-          <Text className="m-0">Ending in</Text>
-        </Column>
-        <Column className="font-bold text-center" width={82}>
-          <Text className="m-0">Vote Status</Text>
-        </Column>
-      </Row>
-
-      <hr className="opacity-50" />
-
       {props.data.map((proposal) => (
-        <Row key={proposal.url}>
+        <Row key={proposal.url} className="bg-white rounded-xl p-2">
           <Column width={52} height={66}>
             <Img
+              className="rounded-xl"
               src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
               width={48}
               height={48}
-            />
-            <Img
-              src={`${baseUrl}/${proposal.chainLogoUrl}`}
-              width={48}
-              height={16}
             />
           </Column>
 
           <Column>
             <Link href={`${proposal.url}`}>
-              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
+              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-2 text-[#2C2927]">
                 {proposal.proposalName}
               </Text>
             </Link>
@@ -189,14 +184,13 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
               src={`${proposal.countdownUrlSmall}`}
               className="block md:hidden"
             />
-            <Text className="hidden md:block text-center font-light text-xs text-zinc-500 m-0">
-              {proposal.countdownString}
+            <Text className="hidden md:block text-center font-light text-xs text-[#2C2927] m-0">
+              ends {proposal.countdownString}
             </Text>
           </Column>
 
           <Column className="font-bold text-center" width={82}>
             <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
-            <Text className="hidden">{proposal.voteStatus}</Text>
           </Column>
           <Hr />
         </Row>
@@ -208,7 +202,7 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
 const New = (props: { data: NewProposal[] }) => {
   if (props.data.length == 0) {
     return (
-      <Text className="text-zinc-200 bg-black py-4 align-middle text-center">
+      <Text className="text-[#2C2927] bg-white py-4 align-middle text-center rounded-xl">
         There are no new proposals.
       </Text>
     );
@@ -216,41 +210,20 @@ const New = (props: { data: NewProposal[] }) => {
 
   return (
     <Section>
-      <Row>
-        <Column className="font-bold text-center" width={52}>
-          <Text className="m-0">DAO</Text>
-        </Column>
-        <Column className="font-bold text-start">
-          <Text className="m-0">Proposal</Text>
-        </Column>
-        <Column className="font-bold text-center w-[100px] md:w-[200px]">
-          <Text className="m-0">Ending in</Text>
-        </Column>
-        <Column className="font-bold text-center" width={82}>
-          <Text className="m-0">Vote Status</Text>
-        </Column>
-      </Row>
-
-      <hr className="opacity-50" />
-
       {props.data.map((proposal) => (
-        <Row key={proposal.url}>
+        <Row key={proposal.url} className="bg-white rounded-xl p-2">
           <Column width={52} height={66}>
             <Img
+              className="rounded-xl"
               src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
               width={48}
               height={48}
-            />
-            <Img
-              src={`${baseUrl}/${proposal.chainLogoUrl}`}
-              width={48}
-              height={16}
             />
           </Column>
 
           <Column>
             <Link href={`${proposal.url}`}>
-              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
+              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-2 text-[#2C2927]">
                 {proposal.proposalName}
               </Text>
             </Link>
@@ -262,7 +235,7 @@ const New = (props: { data: NewProposal[] }) => {
               src={`${proposal.countdownUrlSmall}`}
               className="block md:hidden"
             />
-            <Text className="hidden md:block text-center font-light text-xs text-zinc-500 m-0">
+            <Text className="hidden md:block text-center font-light text-xs text-[#2C2927] m-0">
               {proposal.countdownString}
             </Text>
           </Column>
@@ -281,7 +254,7 @@ const New = (props: { data: NewProposal[] }) => {
 const Ended = (props: { data: EndedProposal[] }) => {
   if (props.data.length == 0) {
     return (
-      <Text className="text-zinc-200 bg-black py-4 align-middle text-center">
+      <Text className="text-[#2C2927] bg-white py-4 align-middle text-center rounded-xl">
         There are no proposals which ended recently.
       </Text>
     );
@@ -289,41 +262,20 @@ const Ended = (props: { data: EndedProposal[] }) => {
 
   return (
     <Section>
-      <Row>
-        <Column className="font-bold text-center" width={52}>
-          <Text className="m-0">DAO</Text>
-        </Column>
-        <Column className="font-bold text-start">
-          <Text className="m-0">Proposal</Text>
-        </Column>
-        <Column className="font-bold text-center w-[100px] md:w-[200px]">
-          <Text className="m-0">Ended on</Text>
-        </Column>
-        <Column className="font-bold text-center" width={82}>
-          <Text className="m-0">Vote Status</Text>
-        </Column>
-      </Row>
-
-      <hr className="opacity-50" />
-
       {props.data.map((proposal) => (
-        <Row key={proposal.url}>
+        <Row key={proposal.url} className="bg-white rounded-xl p-2">
           <Column width={52} height={66}>
             <Img
+              className="rounded-xl"
               src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
               width={48}
               height={48}
-            />
-            <Img
-              src={`${baseUrl}/${proposal.chainLogoUrl}`}
-              width={48}
-              height={16}
             />
           </Column>
 
           <Column>
             <Link href={`${proposal.url}`}>
-              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-0 text-zinc-800">
+              <Text className="min-w-[50%] text-xs md:text-sm font-light md:font-normal text-start m-2 text-[#2C2927]">
                 {proposal.proposalName}
               </Text>
             </Link>
@@ -343,7 +295,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
                       height={24}
                       src={`${baseUrl}/assets/email/hidden.png`}
                     />
-                    <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
+                    <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[120px] min-w-[120px] w-[120px]">
                       Hidden Result
                     </Text>
                   </div>
@@ -374,7 +326,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
                       height={24}
                       src={`${baseUrl}/assets/email/cross.png`}
                     />
-                    <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
+                    <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[120px] min-w-[120px] w-[120px]">
                       No Quorum
                     </Text>
                   </div>
@@ -397,7 +349,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
                         height={24}
                         src={`${baseUrl}/assets/email/check.png`}
                       />
-                      <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
+                      <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[120px] min-w-[120px] w-[120px]">
                         {proposal.result?.choiceName}
                       </Text>
                     </div>
@@ -433,7 +385,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
                         height={24}
                         src={`${baseUrl}/assets/email/check.png`}
                       />
-                      <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[90px] min-w-[90px] w-[90px]">
+                      <Text className="text-start font-bold m-0 text-ellipsis overflow-hidden max-w-[120px] min-w-[120px] w-[120px]">
                         {proposal.makerResult?.choiceName}
                       </Text>
                     </div>
@@ -448,7 +400,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
                   </Row>
                 </>
               )}
-            <Text className="hidden md:block text-center font-light text-xs text-slate-800 m-0">
+            <Text className="hidden md:block text-center font-light text-xs text-[#2C2927] m-0">
               {proposal.countdownString}
             </Text>
           </Column>

@@ -1,6 +1,6 @@
 import { Img, Section } from "@react-email/components";
 import * as React from "react";
-import { baseUrl } from "../../src/const";
+import { baseUrl } from "../src/const";
 
 const Header = () => (
   <Section className="w-full py-12">
