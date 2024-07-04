@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import amqplib from "amqplib";
-import { config as dotenv_config } from "dotenv";
+import { config as dotenvConfig } from "dotenv";
 import { sendBulletin } from "./send_bulletin";
 import express from "express";
 import { db } from "@proposalsapp/db";
@@ -11,36 +11,39 @@ type Message = {
   userId: string;
 };
 
-dotenv_config();
+dotenvConfig();
 
-let rbmq_conn: amqplib.Connection | undefined;
-let rbmq_ch: amqplib.Channel | undefined;
+let rbmqConn: amqplib.Connection | undefined;
+let rbmqCh: amqplib.Channel | undefined;
 
 async function setupQueue() {
-  rbmq_conn = await amqplib.connect(process.env.RABBITMQ_URL!);
-  rbmq_ch = await rbmq_conn.createChannel();
-  await rbmq_ch.assertQueue(QUEUE_NAME);
+  try {
+    rbmqConn = await amqplib.connect(process.env.RABBITMQ_URL!);
+    rbmqCh = await rbmqConn.createChannel();
+    await rbmqCh.assertQueue(QUEUE_NAME);
 
-  rbmq_ch.consume(QUEUE_NAME, async (msg) => {
-    if (msg !== null) {
-      const message = JSON.parse(msg.content.toString()) as Message;
+    rbmqCh.consume(QUEUE_NAME, async (msg) => {
+      if (msg !== null) {
+        const message = JSON.parse(msg.content.toString()) as Message;
 
-      await sendBulletin(message.userId)
-        .then(() => rbmq_ch!.ack(msg))
-        .catch((e) => {
+        try {
+          await sendBulletin(message.userId);
+          rbmqCh!.ack(msg);
+        } catch (e) {
           console.log(e);
-          rbmq_ch!.nack(msg);
-        });
-    }
-  });
-}
+          rbmqCh!.nack(msg);
+        }
+      }
+    });
 
-setupQueue()
-  .then(() => console.log("RabbitMQ set up!"))
-  .catch((err) => {
+    console.log("RabbitMQ set up!");
+  } catch (err) {
     console.error("Error setting up RabbitMQ:", err);
     process.exit(1);
-  });
+  }
+}
+
+setupQueue();
 
 const app = express();
 
@@ -53,24 +56,24 @@ app.listen(3000, () => {
 });
 
 cron.schedule("0 8 * * *", async () => {
-  const users = await db
-    .selectFrom("user")
-    .innerJoin("userSettings", "userSettings.userId", "user.id")
-    .innerJoin("subscription", "subscription.userId", "user.id")
-    .where("emailVerified", "=", true)
-    .where("emailDailyBulletin", "=", true)
-    .select("user.id")
-    .distinct()
-    .execute();
+  try {
+    const users = await db
+      .selectFrom("user")
+      .innerJoin("userSettings", "userSettings.userId", "user.id")
+      .innerJoin("subscription", "subscription.userId", "user.id")
+      .where("emailVerified", "=", true)
+      .where("emailDailyBulletin", "=", true)
+      .select("user.id")
+      .distinct()
+      .execute();
 
-  for (const user of users) {
-    const message: Message = {
-      userId: user.id,
-    };
-
-    if (rbmq_ch)
-      rbmq_ch.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
+    users.forEach((user) => {
+      const message: Message = { userId: user.id };
+      rbmqCh?.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
+    });
+  } catch (err) {
+    console.error("Error in scheduled task:", err);
   }
 });
 
-module.exports = {};
+export {};

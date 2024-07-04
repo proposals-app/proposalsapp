@@ -10,62 +10,46 @@ import { ServerClient } from "postmark";
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
 
 export async function sendBulletin(userId: string) {
-  if (!userId || userId.trim() === "") {
-    console.error("Invalid userId:", userId);
+  const user = await db
+    .selectFrom("user")
+    .where("user.id", "=", userId)
+    .selectAll()
+    .executeTakeFirstOrThrow();
+
+  const bulletinData: DailyBulletinData = await getBulletinData(user.id);
+
+  if (
+    bulletinData.endedProposals.length === 0 &&
+    bulletinData.endingSoonProposals.length === 0 &&
+    bulletinData.newProposals.length === 0
+  ) {
+    console.log(`Skipped empty bulletin for ${userId}`);
     return;
   }
 
-  try {
-    const user = await db
-      .selectFrom("user")
-      .where("user.id", "=", userId)
-      .selectAll()
-      .executeTakeFirstOrThrow();
+  const emailHtml = render(DailyBulletinEmail(bulletinData));
+  const options = {
+    From: "new@proposals.app",
+    To: user.email,
+    Subject: "Proposals Daily Bulletin",
+    HtmlBody: emailHtml,
+  };
 
-    let bulletin_data: DailyBulletinData = await getBulletinData(user.id);
-
-    if (
-      bulletin_data.endedProposals.length == 0 &&
-      bulletin_data.endingSoonProposals.length == 0 &&
-      bulletin_data.newProposals.length == 0
-    ) {
-      console.log(`Skipped empty bulletin for ${userId}`);
-      return;
-    }
-    const emailHtml = render(DailyBulletinEmail(bulletin_data));
-
-    const options = {
-      From: "new@proposals.app",
-      To: user.email,
-      Subject: `Proposals Daily Bulletin`,
-      HtmlBody: emailHtml,
-    };
-
-    await client.sendEmail(options);
-
-    console.log(`Sent bulletin to ${userId}`);
-  } catch (error) {
-    console.log(userId);
-    console.error("Error in sendBulletin:", error);
-  }
+  await client.sendEmail(options);
+  console.log(`Sent bulletin to ${userId}`);
 }
 
 async function getBulletinData(userId: string): Promise<DailyBulletinData> {
   console.log("getBulletinData");
-  let endingSoonProposals: EndingSoonProposal[] = await getEndingSoon(userId);
-  console.log("getEndingSoon");
-  let newProposals: EndingSoonProposal[] = await getNew(userId);
-  console.log("getNew");
-  let endedProposals: EndedProposal[] = await getEnded(userId);
-  console.log("getEnded");
+  const endingSoonProposals = await getEndingSoon(userId);
+  const newProposals = await getNew(userId);
+  const endedProposals = await getEnded(userId);
 
-  let data: DailyBulletinData = {
-    endingSoonProposals: endingSoonProposals,
-    newProposals: newProposals,
-    endedProposals: endedProposals,
+  return {
+    endingSoonProposals,
+    newProposals,
+    endedProposals,
   };
-
-  return data;
 }
 
 async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
@@ -87,19 +71,16 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
     .select("voter.address")
     .execute()) ?? [{ address: "" }];
 
-  let proposals = await db
+  const proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
-    .where(
-      "timeEnd",
-      "<",
-      new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000),
-    )
+    .where("timeEnd", "<", new Date(Date.now() + 3 * 24 * 60 * 60 * 1000))
     .where("timeEnd", ">", new Date())
-    .where("proposal.daoId", "in", [
-      ...subscriptions.map((sub) => sub.daoId),
-      "",
-    ])
+    .where(
+      "proposal.daoId",
+      "in",
+      subscriptions.map((sub) => sub.daoId),
+    )
     .where("proposalState", "!=", ProposalStateEnum.CANCELED)
     .where("flagged", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
@@ -121,57 +102,34 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
           ),
       ).as("vote"),
     ])
-    .orderBy("proposal.timeEnd asc")
+    .orderBy("proposal.timeEnd", "asc")
     .execute();
 
-  const processedProposals = [];
+  return proposals.map((p) => {
+    const chainLogoUrl = getChainLogoUrl(p.daoHandlerType!);
+    const voted = p.vote.length > 0;
 
-  for (const p of proposals) {
-    let chainLogoUrl = "";
-
-    if (p.daoHandlerType!.includes("SNAPSHOT"))
-      chainLogoUrl = "assets/email/chains/snapshot.png";
-    else if (p.daoHandlerType!.includes("MAINNET"))
-      chainLogoUrl = "assets/email/chains/ethereum.png";
-    else if (p.daoHandlerType!.includes("ARBITRUM"))
-      chainLogoUrl = "assets/email/chains/arbitrum.png";
-    else if (p.daoHandlerType!.includes("OPTIMISM"))
-      chainLogoUrl = "assets/email/chains/optimism.png";
-    else if (p.daoHandlerType!.includes("AVALANCHE"))
-      chainLogoUrl = "assets/email/chains/avalanche.png";
-    else if (p.daoHandlerType!.includes("POLYGON"))
-      chainLogoUrl = "assets/email/chains/polygon.png";
-
-    let voted = p.vote.length > 0 ? true : false;
-
-    let { countdownSmall, countdownLarge } = {
-      countdownSmall: "",
-      countdownLarge: "",
-    }; //await getCountdown(p.timeEnd);
-
-    processedProposals.push({
+    return {
       daoLogoUrl: p.daoPicture!,
-      chainLogoUrl: chainLogoUrl,
+      chainLogoUrl,
       url: p.url,
       proposalName: p.name,
-      countdownUrl: countdownLarge,
-      countdownUrlSmall: countdownSmall,
+      countdownUrl: "", // Add appropriate value
+      countdownUrlSmall: "", // Add appropriate value
       countdownString: moment
-        .utc(new Date(p.timeEnd))
+        .utc(p.timeEnd)
         .format("on MMMM Do [at] h:mm:ss a"),
       voteIconUrl: voted
         ? "assets/email/voted.png"
         : "assets/email/not-voted-yet.png",
       voteStatus: voted ? "Voted" : "Not voted yet",
-    });
-  }
-
-  return processedProposals;
+    };
+  });
 }
 
 async function getNew(userId: string): Promise<EndingSoonProposal[]> {
   if (!userId || userId.trim() === "") {
-    console.log("Invalid userId in getEndingSoon:", userId);
+    console.log("Invalid userId in getNew:", userId);
     return [];
   }
 
@@ -188,18 +146,15 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
     .select("voter.address")
     .execute()) ?? [{ address: "" }];
 
-  let proposals = await db
+  const proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
+    .where("timeCreated", ">", new Date(Date.now() - 24 * 60 * 60 * 1000))
     .where(
-      "timeCreated",
-      ">",
-      new Date(new Date().getTime() - 1 * 24 * 60 * 60 * 1000),
+      "proposal.daoId",
+      "in",
+      subscriptions.map((sub) => sub.daoId),
     )
-    .where("proposal.daoId", "in", [
-      ...subscriptions.map((sub) => sub.daoId),
-      "",
-    ])
     .where("proposalState", "=", ProposalStateEnum.ACTIVE)
     .where("flagged", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
@@ -221,57 +176,34 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
           ),
       ).as("vote"),
     ])
-    .orderBy("proposal.timeEnd asc")
+    .orderBy("proposal.timeEnd", "asc")
     .execute();
 
-  const processedProposals = [];
+  return proposals.map((p) => {
+    const chainLogoUrl = getChainLogoUrl(p.daoHandlerType!);
+    const voted = p.vote.length > 0;
 
-  for (const p of proposals) {
-    let chainLogoUrl = "";
-
-    if (p.daoHandlerType!.includes("SNAPSHOT"))
-      chainLogoUrl = "assets/email/chains/snapshot.png";
-    else if (p.daoHandlerType!.includes("MAINNET"))
-      chainLogoUrl = "assets/email/chains/ethereum.png";
-    else if (p.daoHandlerType!.includes("ARBITRUM"))
-      chainLogoUrl = "assets/email/chains/arbitrum.png";
-    else if (p.daoHandlerType!.includes("OPTIMISM"))
-      chainLogoUrl = "assets/email/chains/optimism.png";
-    else if (p.daoHandlerType!.includes("AVALANCHE"))
-      chainLogoUrl = "assets/email/chains/avalanche.png";
-    else if (p.daoHandlerType!.includes("POLYGON"))
-      chainLogoUrl = "assets/email/chains/polygon.png";
-
-    let voted = p.vote.length > 0 ? true : false;
-
-    let { countdownSmall, countdownLarge } = {
-      countdownSmall: "",
-      countdownLarge: "",
-    }; //await getCountdown(p.timeEnd);
-
-    processedProposals.push({
+    return {
       daoLogoUrl: p.daoPicture!,
-      chainLogoUrl: chainLogoUrl,
+      chainLogoUrl,
       url: p.url,
       proposalName: p.name,
-      countdownUrl: countdownLarge,
-      countdownUrlSmall: countdownSmall,
+      countdownUrl: "", // Add appropriate value
+      countdownUrlSmall: "", // Add appropriate value
       countdownString: moment
-        .utc(new Date(p.timeEnd))
+        .utc(p.timeEnd)
         .format("on MMMM Do [at] h:mm:ss a"),
       voteIconUrl: voted
         ? "assets/email/voted.png"
         : "assets/email/not-voted-yet.png",
       voteStatus: voted ? "Voted" : "Not voted yet",
-    });
-  }
-
-  return processedProposals;
+    };
+  });
 }
 
 async function getEnded(userId: string): Promise<EndedProposal[]> {
   if (!userId || userId.trim() === "") {
-    console.log("Invalid userId in getEndingSoon:", userId);
+    console.log("Invalid userId in getEnded:", userId);
     return [];
   }
 
@@ -288,19 +220,16 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
     .select("voter.address")
     .execute()) ?? [{ address: "" }];
 
-  let proposals = await db
+  const proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
     .where("timeEnd", "<", new Date())
+    .where("timeEnd", ">", new Date(Date.now() - 24 * 60 * 60 * 1000))
     .where(
-      "timeEnd",
-      ">",
-      new Date(new Date().getTime() - 1 * 24 * 60 * 60 * 1000),
+      "proposal.daoId",
+      "in",
+      subscriptions.map((sub) => sub.daoId),
     )
-    .where("proposal.daoId", "in", [
-      ...subscriptions.map((sub) => sub.daoId),
-      "",
-    ])
     .where("proposalState", "!=", ProposalStateEnum.CANCELED)
     .where("flagged", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
@@ -322,52 +251,44 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
           ),
       ).as("vote"),
     ])
-    .orderBy("proposal.timeEnd desc")
+    .orderBy("proposal.timeEnd", "desc")
     .execute();
 
-  const processedProposals = [];
+  return proposals.map((p) => {
+    const chainLogoUrl = getChainLogoUrl(p.daoHandlerType!);
+    const voted = p.vote.length > 0;
 
-  for (const p of proposals) {
-    let chainLogoUrl = "";
-
-    if (p.daoHandlerType!.includes("SNAPSHOT"))
-      chainLogoUrl = "assets/email/chains/snapshot.png";
-    else if (p.daoHandlerType!.includes("MAINNET"))
-      chainLogoUrl = "assets/email/chains/ethereum.png";
-    else if (p.daoHandlerType!.includes("ARBITRUM"))
-      chainLogoUrl = "assets/email/chains/arbitrum.png";
-    else if (p.daoHandlerType!.includes("OPTIMISM"))
-      chainLogoUrl = "assets/email/chains/optimism.png";
-    else if (p.daoHandlerType!.includes("AVALANCHE"))
-      chainLogoUrl = "assets/email/chains/avalanche.png";
-    else if (p.daoHandlerType!.includes("POLYGON"))
-      chainLogoUrl = "assets/email/chains/polygon.png";
-
-    let voted = p.vote.length > 0 ? true : false;
-
-    let { countdownSmall, countdownLarge } = {
-      countdownSmall: "",
-      countdownLarge: "",
-    }; //await getCountdown(p.timeEnd);
-
-    processedProposals.push({
+    return {
       daoLogoUrl: p.daoPicture!,
-      chainLogoUrl: chainLogoUrl,
+      chainLogoUrl,
       url: p.url,
       proposalName: p.name,
-      countdownUrl: countdownLarge,
-      countdownUrlSmall: countdownSmall,
+      countdownUrl: "", // Add appropriate value
+      countdownUrlSmall: "", // Add appropriate value
       countdownString: moment
-        .utc(new Date(p.timeEnd))
+        .utc(p.timeEnd)
         .format("on MMMM Do [at] h:mm:ss a"),
       voteIconUrl: voted
         ? "assets/email/voted.png"
         : "assets/email/did-not-vote.png",
       voteStatus: voted ? "Voted" : "Did not vote",
       quorumReached: p.scoresTotal > p.quorum,
-      hiddenResult: p.proposalState == ProposalStateEnum.HIDDEN,
-    });
-  }
+      hiddenResult: p.proposalState === ProposalStateEnum.HIDDEN,
+    };
+  });
+}
 
-  return processedProposals;
+function getChainLogoUrl(handlerType: string): string {
+  if (handlerType.includes("SNAPSHOT"))
+    return "assets/email/chains/snapshot.png";
+  if (handlerType.includes("MAINNET"))
+    return "assets/email/chains/ethereum.png";
+  if (handlerType.includes("ARBITRUM"))
+    return "assets/email/chains/arbitrum.png";
+  if (handlerType.includes("OPTIMISM"))
+    return "assets/email/chains/optimism.png";
+  if (handlerType.includes("AVALANCHE"))
+    return "assets/email/chains/avalanche.png";
+  if (handlerType.includes("POLYGON")) return "assets/email/chains/polygon.png";
+  return "";
 }
