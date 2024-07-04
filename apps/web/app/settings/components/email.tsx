@@ -22,9 +22,11 @@ const EmailFormSchema = z.object({
 export const EmailSettings = ({
   currentEmail,
   setEmail,
+  setEmailValid,
 }: {
   currentEmail: string;
   setEmail: (email: string) => void;
+  setEmailValid: (isValid: boolean) => void;
 }) => {
   const emailForm = useForm<z.infer<typeof EmailFormSchema>>({
     resolver: zodResolver(EmailFormSchema),
@@ -32,6 +34,13 @@ export const EmailSettings = ({
       email: currentEmail,
     },
   });
+
+  const handleEmailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    emailForm.setValue("email", e.target.value);
+    setEmail(e.target.value);
+    const isValid = await emailForm.trigger("email");
+    setEmailValid(isValid);
+  };
 
   return (
     <Form {...emailForm}>
@@ -50,10 +59,7 @@ export const EmailSettings = ({
                   placeholder="delegatoooor@defi.com"
                   {...field}
                   value={field.value}
-                  onChange={(e) => {
-                    field.onChange(e);
-                    setEmail(e.target.value);
-                  }}
+                  onChange={handleEmailChange}
                 />
               </FormControl>
               <FormMessage />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { hotDaosType } from "../actions";
 import { EmailSettings } from "./components/email";
 import { SubscriptionsSettings } from "./components/subscriptions";
@@ -17,12 +17,15 @@ export const Settings = ({
   hotDaos: hotDaosType;
   currentSettings: currentSettingsType;
 }) => {
-  const [saveButtonEnabled, setSaveButtonEnabled] = useState(true);
+  const [saveButtonEnabled, setSaveButtonEnabled] = useState(false);
   const [email, setEmail] = useState(currentSettings.email);
   const [daoSlugs, setDaoSlugs] = useState(currentSettings.daoSlugs);
   const [voterAddress, setVoterAddress] = useState(
     currentSettings.voterAddress,
   );
+
+  const [isEmailValid, setEmailValid] = useState(true);
+  const [isVoterAddressValid, setVoterAddressValid] = useState(true);
 
   const handleSave = async () => {
     try {
@@ -34,6 +37,10 @@ export const Settings = ({
     }
   };
 
+  useEffect(() => {
+    setSaveButtonEnabled(isEmailValid && isVoterAddressValid);
+  }, [isEmailValid, isVoterAddressValid]);
+
   return (
     <div className="flex w-full flex-col gap-8">
       <div className="flex w-full justify-between">
@@ -44,7 +51,11 @@ export const Settings = ({
         your account settings
       </p>
 
-      <EmailSettings currentEmail={email} setEmail={setEmail} />
+      <EmailSettings
+        currentEmail={email}
+        setEmail={setEmail}
+        setEmailValid={setEmailValid}
+      />
       <SubscriptionsSettings
         hotDaos={hotDaos}
         currentSubscriptions={daoSlugs}
@@ -53,6 +64,7 @@ export const Settings = ({
       <VoterSettings
         currentVoterAddress={voterAddress}
         setVoterAddress={setVoterAddress}
+        setVoterAddressValid={setVoterAddressValid}
       />
       <SignOutButton />
     </div>

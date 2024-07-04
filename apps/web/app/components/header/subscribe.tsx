@@ -129,7 +129,7 @@ export const SubscribeButton = () => {
       {page == Page.EMAIL && (
         <AlertDialogContent
           className={cn(
-            `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:rounded-3xl lg:p-12`,
+            `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:rounded-3xl lg:p-12`,
           )}
         >
           <AlertDialogCancel asChild>
@@ -220,7 +220,7 @@ export const SubscribeButton = () => {
       {page == Page.CODE && (
         <AlertDialogContent
           className={cn(
-            `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:rounded-3xl lg:p-12`,
+            `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:rounded-3xl lg:p-12`,
           )}
         >
           <AlertDialogCancel asChild>

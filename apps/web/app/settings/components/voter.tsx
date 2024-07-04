@@ -30,9 +30,11 @@ const VoterFormSchema = z.object({
 export const VoterSettings = ({
   currentVoterAddress,
   setVoterAddress,
+  setVoterAddressValid,
 }: {
   currentVoterAddress: string;
   setVoterAddress: (address: string) => void;
+  setVoterAddressValid: (isValid: boolean) => void;
 }) => {
   const voterForm = useForm<z.infer<typeof VoterFormSchema>>({
     resolver: zodResolver(VoterFormSchema),
@@ -40,6 +42,15 @@ export const VoterSettings = ({
       address: currentVoterAddress,
     },
   });
+
+  const handleVoterAddressChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    voterForm.setValue("address", e.target.value);
+    setVoterAddress(e.target.value);
+    const isValid = await voterForm.trigger("address");
+    setVoterAddressValid(isValid);
+  };
 
   return (
     <Form {...voterForm}>
@@ -58,10 +69,7 @@ export const VoterSettings = ({
                   placeholder="0x... or proposalsapp.eth"
                   {...field}
                   value={field.value}
-                  onChange={(e) => {
-                    field.onChange(e);
-                    setVoterAddress(e.target.value);
-                  }}
+                  onChange={handleVoterAddressChange}
                 />
               </FormControl>
               <FormMessage />
