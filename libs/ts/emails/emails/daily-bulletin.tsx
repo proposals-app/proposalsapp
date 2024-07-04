@@ -91,8 +91,8 @@ export const DailyBulletinEmail = (data: DailyBulletinData) => {
       <Font fontFamily="Helvetica Neue" fallbackFontFamily={"Verdana"} />
       <Tailwind>
         <Head />
-        <Body className="bg-[#F1EBE7]">
-          <Container className="w-[360px] lg:w-[800px]">
+        <Body className="m-0 bg-[#F1EBE7]">
+          <Container className="w-[360px] p-2 lg:w-[800px]">
             <Header />
             <Section className="lg:pt-8">
               <Heading as="h3">
@@ -492,10 +492,22 @@ const Ended = (props: { data: EndedProposal[] }) => {
               </Text>
             </Column>
 
-            <Column className="text-center font-bold" width={82}>
-              <Img src={`${baseUrl}/${proposal.voteIconUrl}`} width={82} />
-              <Text className="hidden">{proposal.voteStatus}</Text>
+            <Column className="table-cell h-[64px] w-[64px] lg:hidden">
+              <Img
+                src={`${baseUrl}/${proposal.voteIconUrl}`}
+                width={64}
+                className="m-0"
+              />
             </Column>
+
+            <Column className="hidden h-[82px] w-[82px] lg:table-cell">
+              <Img
+                src={`${baseUrl}/${proposal.voteIconUrl}`}
+                width={82}
+                className="m-0"
+              />
+            </Column>
+
             <Hr />
           </Row>
 
