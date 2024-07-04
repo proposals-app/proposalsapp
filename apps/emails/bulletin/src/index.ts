@@ -1,12 +1,9 @@
 import cron from "node-cron";
 import amqplib from "amqplib";
-import { DeduplicateJoinsPlugin, Kysely, MysqlDialect } from "kysely";
-import { CamelCasePlugin } from "kysely";
-import { createPool } from "mysql2";
 import { config as dotenv_config } from "dotenv";
-import { DB } from "@proposalsapp/db";
 import { sendBulletin } from "./send_bulletin";
 import express from "express";
+import { db } from "@proposalsapp/db";
 
 const QUEUE_NAME = "email:bulletin";
 
@@ -18,15 +15,6 @@ dotenv_config();
 
 let rbmq_conn: amqplib.Connection | undefined;
 let rbmq_ch: amqplib.Channel | undefined;
-
-const dialect = new MysqlDialect({
-  pool: createPool(process.env.DATABASE_URL!),
-});
-
-const db = new Kysely<DB>({
-  dialect: dialect,
-  plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
-});
 
 async function setupQueue() {
   rbmq_conn = await amqplib.connect(process.env.RABBITMQ_URL!);

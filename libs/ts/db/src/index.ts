@@ -2,9 +2,11 @@ import { DeduplicateJoinsPlugin, Kysely, PostgresDialect } from "kysely";
 import { CamelCasePlugin } from "kysely";
 import { config as dotenv_config } from "dotenv";
 import { DB } from "./kysely_db";
-import { Pool } from "pg";
+import pg from "pg";
 
 dotenv_config();
+
+const { Pool } = pg;
 
 const db_pool = new Pool({
   connectionString: process.env.DATABASE_URL!,
