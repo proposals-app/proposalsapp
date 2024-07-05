@@ -43,9 +43,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <PHProvider>
-        <SessionProvider value={session}>
-          <body className="bg-[#F1EBE7]">
+      <body className="bg-[#F1EBE7]">
+        <PHProvider>
+          <SessionProvider value={session}>
             <PostHogPageView />
             <OnboardingFlow />
             <div className="flex h-full min-h-screen w-full flex-col items-center bg-luna">
@@ -53,9 +53,9 @@ export default async function RootLayout({
                 {children}
               </div>
             </div>
-          </body>{" "}
-        </SessionProvider>{" "}
-      </PHProvider>
+          </SessionProvider>
+        </PHProvider>
+      </body>
     </html>
   );
 }
