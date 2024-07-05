@@ -3,6 +3,7 @@
 import { Button } from "@/shadcn/ui/button";
 import { useRouter } from "next/navigation";
 import { Manjari } from "next/font/google";
+import { usePostHog } from "posthog-js/react";
 
 const manjari = Manjari({
   weight: "700",
@@ -11,9 +12,11 @@ const manjari = Manjari({
 
 export const SignOutButton = () => {
   const router = useRouter();
+  const posthog = usePostHog();
 
   const signOut = async () => {
     try {
+      posthog.reset();
       await fetch("/api/auth/signout", {
         method: "POST",
         headers: {

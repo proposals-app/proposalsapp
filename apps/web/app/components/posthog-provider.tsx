@@ -7,12 +7,12 @@ if (typeof window !== "undefined") {
     api_host: "/ingest",
     ui_host: "https://eu.posthog.com",
     person_profiles: "always",
-    capture_pageview: true,
+    capture_pageview: false,
     capture_pageleave: true,
-    secure_cookie: true,
     capture_performance: true,
   });
 }
-export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
+
+export function PHProvider({ children }: { children: React.ReactNode }) {
   return <PostHogProvider client={posthog}>{children}</PostHogProvider>;
 }
