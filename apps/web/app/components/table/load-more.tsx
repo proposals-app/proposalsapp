@@ -17,19 +17,19 @@ type ItemsProps = {
 };
 
 const loadingMessages = [
-  "Loading more",
-  "Just a moment, fetching more data...",
-  "Hang tight, more content is on its way!",
-  "Loading... It'll be worth the wait!",
-  "Fetching the next batch of items, please wait...",
+  "Loading more... DAO-vengers assemble!",
+  "Fetching data... checking consensus!",
+  "Hang tight... voting in progress!",
+  "Loading... DAO proposals coming up!",
+  "Fetching... querying the blockchain!",
 ];
 
 const endMessages = [
-  "That's all folks!",
-  "Congratulations! You've seen it all.",
-  "And that concludes our journey.",
-  "The end of the road has been reached.",
-  "No more left to explore, you've arrived at the finish line.",
+  "That's all folks! DAO has spoken.",
+  "Congrats! You've seen it all.",
+  "Journey ends. DAO decisions in!",
+  "End of the road. No more proposals!",
+  "Finished! All votes tallied.",
 ];
 
 export function LoadMore({ searchParams }: ItemsProps) {
@@ -88,7 +88,7 @@ export function LoadMore({ searchParams }: ItemsProps) {
       </div>
 
       <div
-        className={`${manjari.className} w-full flex justify-center p-4 text-gold text-2xl`}
+        className={`${manjari.className} flex w-full justify-center pt-20 text-2xl text-gold`}
       >
         {hasMore ? (
           <div ref={ref}>{loadingMessage}</div>
