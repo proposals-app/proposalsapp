@@ -7,6 +7,7 @@ if (typeof window !== "undefined") {
     api_host: "/ingest",
     ui_host: "https://eu.posthog.com",
     person_profiles: "always",
+    capture_pageview: true,
     capture_pageleave: true,
   });
 }
