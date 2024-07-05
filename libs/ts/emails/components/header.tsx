@@ -5,22 +5,22 @@ import { baseUrl } from "../src/const";
 const Header = () => (
   <Section className="w-full py-4">
     <Section
-      className="py-3 px-4 w-fit hidden lg:block bg-[#2C2927] rounded-lg"
+      className="hidden w-fit rounded-lg bg-[#2C2927] px-4 py-3 lg:block"
       align="left"
     >
       <Img
-        src={`${baseUrl}/assets/icons/web/logo-lettering.svg`}
+        src={`${baseUrl}/assets/icons/web/logo-lettering.png`}
         width="200"
         alt="proposals.app"
       />
     </Section>
 
     <Section
-      className="py-3 px-4 w-fit block lg:hidden bg-[#2C2927] rounded-lg"
+      className="block w-fit rounded-lg bg-[#2C2927] px-4 py-3 lg:hidden"
       align="center"
     >
       <Img
-        src={`${baseUrl}/assets/icons/web/logo-lettering.svg`}
+        src={`${baseUrl}/assets/icons/web/logo-lettering.png`}
         width="200"
         alt="proposals.app"
       />

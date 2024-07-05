@@ -3984,7 +3984,7 @@ __metadata:
     "@radix-ui/react-toggle": "npm:^1.1.0"
     "@radix-ui/react-toggle-group": "npm:^1.1.0"
     "@radix-ui/react-tooltip": "npm:^1.1.2"
-    "@tanstack/react-query": "npm:5.49.2"
+    "@tanstack/react-query": "npm:5.50.1"
     "@types/node": "npm:20.14.9"
     "@types/react": "npm:18.3.3"
     "@types/react-day-picker": "npm:^5.3.0"
@@ -4035,7 +4035,7 @@ __metadata:
     typescript: "npm:5.5.3"
     ua-parser-js: "npm:^1.0.38"
     vaul: "npm:^0.9.1"
-    viem: "npm:2.17.0"
+    viem: "npm:2.17.1"
     wagmi: "npm:2.10.9"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -6344,21 +6344,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.49.1":
-  version: 5.49.1
-  resolution: "@tanstack/query-core@npm:5.49.1"
-  checksum: 10c0/96cd7a22f16f9014083d60b136d430714b84cb06cbd8de863a787ca4e3bd58d3ddfa06fa6390e78fabf62878fdf593e342b9c0210ab443c329e5460134dfa90b
+"@tanstack/query-core@npm:5.50.1":
+  version: 5.50.1
+  resolution: "@tanstack/query-core@npm:5.50.1"
+  checksum: 10c0/4690750e70638fbfbcb686262f129c45e06314126bc651701f9cd57a77bd05cb9dad30b68cad960c35c790982750c294c9c340d25cb8a9a0916576d2e27569c0
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:5.49.2":
-  version: 5.49.2
-  resolution: "@tanstack/react-query@npm:5.49.2"
+"@tanstack/react-query@npm:5.50.1":
+  version: 5.50.1
+  resolution: "@tanstack/react-query@npm:5.50.1"
   dependencies:
-    "@tanstack/query-core": "npm:5.49.1"
+    "@tanstack/query-core": "npm:5.50.1"
   peerDependencies:
     react: ^18.0.0
-  checksum: 10c0/c69702487e5e1c0a9758b96c21a7ce3bace1336a61c01f260d7927724a441f01c7d8074d89d317c8001480ac65e7b5762327ff3b3c9fe6d568186488f0dad430
+  checksum: 10c0/ccf33245bc4f83c20b93a629e64edd9976a4d397ee51ee442326955a387345ff2b2a3813955faef6d08fde732eebb40557944df8335d50838094b703e79f35f9
   languageName: node
   linkType: hard
 
@@ -18321,9 +18321,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.17.0":
-  version: 2.17.0
-  resolution: "viem@npm:2.17.0"
+"viem@npm:2.17.1":
+  version: 2.17.1
+  resolution: "viem@npm:2.17.1"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.10.0"
     "@noble/curves": "npm:1.4.0"
@@ -18338,7 +18338,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/c4830eb204b654eb54bafd9c229137871642c40bbd40562bf40eda914a31073bd0f662eb39721e8e6fb8791920f3e463b968b29cc9a5c12e2ed342415f6ff33b
+  checksum: 10c0/f2c39b06e05ff41cb1363812bcaae2840d4e0c7abfee7ce82355451b292b9012b43d28f681646e1b7eff1ec3b1283e4ce2fa9c2e6b8bfc004f529a49275e29ee
   languageName: node
   linkType: hard
 
