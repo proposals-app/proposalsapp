@@ -1,4 +1,4 @@
-import Image from "next/legacy/image";
+import Image from "next/image";
 import Link from "next/link";
 import { validateRequest } from "@/lib/auth";
 import { Suspense } from "react";
@@ -20,7 +20,10 @@ export default async function NavBar() {
           height={60}
           src="/assets/icons/web/logo-lettering.svg"
           alt={"proposals.app"}
-        />
+          style={{
+            maxWidth: "100%",
+            height: "auto"
+          }} />
       </Link>
 
       <div className="flex w-full justify-center lg:w-fit">

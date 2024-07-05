@@ -2,7 +2,7 @@
 
 import { hotDaosType } from "@/app/actions";
 import { CheckIcon } from "lucide-react";
-import Image from "next/legacy/image";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 
 export const SubscriptionsSettings = ({
@@ -55,7 +55,10 @@ export const SubscriptionsSettings = ({
                   ? `/assets/project-logos/hot/${dao.slug}_active.svg`
                   : `/assets/project-logos/hot/${dao.slug}_inactive.svg`
               }
-            />
+              style={{
+                maxWidth: "100%",
+                height: "auto"
+              }} />
           </div>
         ))}
       </div>

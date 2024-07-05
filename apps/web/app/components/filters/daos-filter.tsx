@@ -1,7 +1,7 @@
 "use client";
 
 import { hotDaosType } from "@/app/actions";
-import Image from "next/legacy/image";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -72,9 +72,11 @@ export const DaosFilter = ({ hotDaos }: { hotDaos: hotDaosType }) => {
               }`}
               src={imgSrc}
               alt={dao.name}
-              layout="fill"
-              objectFit="contain"
-            />
+              fill
+              sizes="100vw"
+              style={{
+                objectFit: "contain"
+              }} />
           </div>
         );
       })}

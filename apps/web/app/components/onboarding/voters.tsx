@@ -22,7 +22,7 @@ import {
 import { Manjari, Poppins } from "next/font/google";
 import { onboardingAddVoter } from "./actions";
 import { cn } from "@/lib/utils";
-import Image from "next/legacy/image";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 const manjari = Manjari({
@@ -94,7 +94,10 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
             onClick={() => {
               signOut().then(() => router.refresh());
             }}
-          />
+            style={{
+              maxWidth: "100%",
+              height: "auto"
+            }} />
         </AlertDialogCancel>
 
         <Form {...voterForm}>

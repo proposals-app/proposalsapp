@@ -14,7 +14,7 @@ import {
 } from "@/shadcn/ui/form";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/shadcn/ui/input-otp";
 import { Manjari, Poppins } from "next/font/google";
-import Image from "next/legacy/image";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -88,7 +88,10 @@ export const VerificationModal = ({ email }: { email: string }) => {
             alt="close button"
             width={48}
             height={48}
-          />
+            style={{
+              maxWidth: "100%",
+              height: "auto"
+            }} />
         </AlertDialogCancel>
 
         <Form {...otpForm}>

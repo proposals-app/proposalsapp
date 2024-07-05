@@ -1,5 +1,5 @@
 import moment from "moment";
-import Image from "next/legacy/image";
+import Image from "next/image";
 import Link from "next/link";
 import { Poppins } from "next/font/google";
 
@@ -54,11 +54,13 @@ export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
       <div className="relative aspect-square max-h-[56px] w-full max-w-[56px] lg:max-h-[86px] lg:max-w-[86px]">
         <Image
           className="rounded-lg"
-          layout="fill"
-          objectFit="contain"
           src={`/${proposal.daoPicture}.svg`}
           alt={""}
-        />
+          fill
+          sizes="100vw"
+          style={{
+            objectFit: "contain"
+          }} />
       </div>
 
       <div

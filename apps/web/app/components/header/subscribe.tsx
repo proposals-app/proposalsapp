@@ -18,7 +18,7 @@ import {
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/shadcn/ui/input-otp";
 import { Manjari, Poppins } from "next/font/google";
 import Link from "next/link";
-import Image from "next/legacy/image";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -139,7 +139,10 @@ export const SubscribeButton = () => {
               alt="close button"
               width={48}
               height={48}
-            />
+              style={{
+                maxWidth: "100%",
+                height: "auto"
+              }} />
           </AlertDialogCancel>
 
           <Form {...emailForm}>
@@ -238,7 +241,10 @@ export const SubscribeButton = () => {
               alt="back button"
               width={48}
               height={48}
-            />
+              style={{
+                maxWidth: "100%",
+                height: "auto"
+              }} />
           </AlertDialogCancel>
 
           <Form {...otpForm}>

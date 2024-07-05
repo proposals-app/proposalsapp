@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/shadcn/ui/alert-dialog";
 import { Manjari, Poppins } from "next/font/google";
-import Image from "next/legacy/image";
+import Image from "next/image";
 import { useState } from "react";
 import { CheckIcon } from "@radix-ui/react-icons";
 import { onboardingSubscribeDaos } from "./actions";
@@ -75,7 +75,10 @@ export const OnboardingSubscriptionModal = ({
             onClick={() => {
               signOut().then(() => router.refresh());
             }}
-          />
+            style={{
+              maxWidth: "100%",
+              height: "auto"
+            }} />
         </AlertDialogCancel>
 
         <div className="flex flex-col justify-center">
@@ -118,7 +121,10 @@ export const OnboardingSubscriptionModal = ({
                     ? `/assets/project-logos/hot/${dao.slug}_active.svg`
                     : `/assets/project-logos/hot/${dao.slug}_inactive.svg`
                 }
-              />
+                style={{
+                  maxWidth: "100%",
+                  height: "auto"
+                }} />
             </div>
           ))}
         </div>
