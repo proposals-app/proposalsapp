@@ -79,7 +79,7 @@ export function LoadMore({ searchParams }: ItemsProps) {
 
   return (
     <div>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {proposals.map((proposal) => (
           <div key={proposal.id}>
             <ProposalItem proposal={proposal} />
