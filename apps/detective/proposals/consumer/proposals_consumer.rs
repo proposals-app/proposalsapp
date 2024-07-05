@@ -345,7 +345,7 @@ async fn update_index(
 
     dao_handler::Entity::update(dao_handler::ActiveModel {
         id: Set(dao_handler.id.clone()),
-        proposals_index: Set(new_index),
+        proposals_index: Set(new_index - 3600),
         ..Default::default()
     })
     .exec(db)

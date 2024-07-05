@@ -495,7 +495,7 @@ async fn update_dao_index(
 
     dao_handler::Entity::update(dao_handler::ActiveModel {
         id: Set(dao_handler.id.clone()),
-        votes_index: Set(new_index),
+        votes_index: Set(new_index - 3600),
         ..Default::default()
     })
     .exec(db)
@@ -523,7 +523,7 @@ async fn update_proposal_index(
 
     proposal::Entity::update(proposal::ActiveModel {
         id: Set(proposal.id.clone()),
-        votes_index: Set(*new_index),
+        votes_index: Set(*new_index - 3600),
         votes_fetched: Set(fetched_votes.into()),
         ..Default::default()
     })
