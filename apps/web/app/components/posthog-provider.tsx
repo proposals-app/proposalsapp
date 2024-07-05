@@ -9,6 +9,8 @@ if (typeof window !== "undefined") {
     person_profiles: "always",
     capture_pageview: true,
     capture_pageleave: true,
+    secure_cookie: true,
+    capture_performance: true,
   });
 }
 export function CSPostHogProvider({ children }: { children: React.ReactNode }) {

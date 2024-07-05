@@ -63,8 +63,11 @@ export async function POST(request: Request) {
 
   let response = NextResponse.redirect(new NextURL("/", request.url));
 
-  response.cookies.set(sessionCookie.name, sessionCookie.value);
-  response.cookies.set("SameSite", "Lax");
+  response.cookies.set(
+    sessionCookie.name,
+    sessionCookie.value,
+    sessionCookie.attributes,
+  );
 
   return response;
 }
