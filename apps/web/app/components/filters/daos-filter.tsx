@@ -1,7 +1,7 @@
 "use client";
 
 import { hotDaosType } from "@/app/actions";
-import Image from "next/image";
+import Image from "next/legacy/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 

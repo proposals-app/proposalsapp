@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/shadcn/ui/alert-dialog";
 import { Manjari, Poppins } from "next/font/google";
-import Image from "next/image";
+import Image from "next/legacy/image";
 import { useState } from "react";
 import { CheckIcon } from "@radix-ui/react-icons";
 import { onboardingSubscribeDaos } from "./actions";

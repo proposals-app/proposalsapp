@@ -18,7 +18,7 @@ import {
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/shadcn/ui/input-otp";
 import { Manjari, Poppins } from "next/font/google";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "next/legacy/image";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,

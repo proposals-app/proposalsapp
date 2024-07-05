@@ -2,7 +2,7 @@
 
 import { hotDaosType } from "@/app/actions";
 import { CheckIcon } from "lucide-react";
-import Image from "next/image";
+import Image from "next/legacy/image";
 import { useState, useEffect } from "react";
 
 export const SubscriptionsSettings = ({
