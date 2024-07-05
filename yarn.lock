@@ -2166,12 +2166,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^3.7.0":
-  version: 3.7.0
-  resolution: "@hookform/resolvers@npm:3.7.0"
+"@hookform/resolvers@npm:^3.8.0":
+  version: 3.8.0
+  resolution: "@hookform/resolvers@npm:3.8.0"
   peerDependencies:
     react-hook-form: ^7.0.0
-  checksum: 10c0/0f64d5d9fedc5b0b7126f88185a1768cf3f80dafa351150dc3ba78b818e49c1f18df16b15628cf391849149c0f911c4130195987668e0337b8ab07224a718167
+  checksum: 10c0/915b5357f380209155eb9795749d155b1d274243f5795d353976bc4fdea228276f2f7e1eaa7e574526bfbbb1ba2f55c8a625d68040f43912838a559547e9d97f
   languageName: node
   linkType: hard
 
@@ -3952,7 +3952,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/web@workspace:apps/web"
   dependencies:
-    "@hookform/resolvers": "npm:^3.7.0"
+    "@hookform/resolvers": "npm:^3.8.0"
     "@lucia-auth/adapter-postgresql": "npm:^3.1.2"
     "@proposalsapp/db": "npm:*"
     "@proposalsapp/emails": "npm:*"

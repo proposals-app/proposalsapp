@@ -9,7 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.7.0",
+    "@hookform/resolvers": "^3.8.0",
     "@lucia-auth/adapter-postgresql": "^3.1.2",
     "@proposalsapp/db": "*",
     "@proposalsapp/emails": "*",
