@@ -70,18 +70,23 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
     .select("subscription.daoId")
     .execute();
 
-  const voters = (await db
+  if (subscriptions.length == 0) return [];
+
+  const voters = await db
     .selectFrom("voter")
     .innerJoin("userToVoter", "voter.id", "userToVoter.voterId")
     .where("userId", "=", userId)
     .select("voter.address")
-    .execute()) ?? [{ address: "" }];
+    .execute();
+
+  const now = new Date();
+  const threeDaysLater = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
   const proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
-    .where("timeEnd", "<", new Date(Date.now() + 3 * 24 * 60 * 60 * 1000))
-    .where("timeEnd", ">", new Date())
+    .where("timeEnd", "<", threeDaysLater)
+    .where("timeEnd", ">", now)
     .where(
       "proposal.daoId",
       "in",
@@ -104,7 +109,7 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
           .where(
             "vote.voterAddress",
             "in",
-            voters.map((p) => p.address),
+            voters.length > 0 ? voters.map((p) => p.address) : [""],
           ),
       ).as("vote"),
     ])
@@ -141,6 +146,8 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
     .select("subscription.daoId")
     .execute();
 
+  if (subscriptions.length == 0) return [];
+
   const voters = (await db
     .selectFrom("voter")
     .innerJoin("userToVoter", "voter.id", "userToVoter.voterId")
@@ -148,10 +155,12 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
     .select("voter.address")
     .execute()) ?? [{ address: "" }];
 
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
   const proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
-    .where("timeCreated", ">", new Date(Date.now() - 24 * 60 * 60 * 1000))
+    .where("timeCreated", ">", oneDayAgo)
     .where(
       "proposal.daoId",
       "in",
@@ -174,7 +183,7 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
           .where(
             "vote.voterAddress",
             "in",
-            voters.map((p) => p.address),
+            voters.length > 0 ? voters.map((p) => p.address) : [""],
           ),
       ).as("vote"),
     ])
@@ -211,6 +220,8 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
     .select("subscription.daoId")
     .execute();
 
+  if (subscriptions.length == 0) return [];
+
   const voters = (await db
     .selectFrom("voter")
     .innerJoin("userToVoter", "voter.id", "userToVoter.voterId")
@@ -218,11 +229,14 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
     .select("voter.address")
     .execute()) ?? [{ address: "" }];
 
+  const now = new Date();
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
   const proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
-    .where("timeEnd", "<", new Date())
-    .where("timeEnd", ">", new Date(Date.now() - 24 * 60 * 60 * 1000))
+    .where("timeEnd", "<", now)
+    .where("timeEnd", ">", oneDayAgo)
     .where(
       "proposal.daoId",
       "in",
@@ -245,7 +259,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
           .where(
             "vote.voterAddress",
             "in",
-            voters.map((p) => p.address),
+            voters.length > 0 ? voters.map((p) => p.address) : [""],
           ),
       ).as("vote"),
     ])

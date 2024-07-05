@@ -173,7 +173,7 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
   return (
     <Section>
       {props.data.map((proposal) => (
-        <>
+        <div key={proposal.url}>
           <Row
             key={proposal.url}
             className="rounded-t-xl bg-white px-2 lg:rounded-xl"
@@ -240,7 +240,7 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
               </Text>
             </Column>
           </Row>
-        </>
+        </div>
       ))}
     </Section>
   );
@@ -258,7 +258,7 @@ const New = (props: { data: NewProposal[] }) => {
   return (
     <Section>
       {props.data.map((proposal) => (
-        <>
+        <div key={proposal.url}>
           <Row
             key={proposal.url}
             className="rounded-t-xl bg-white px-2 lg:rounded-xl"
@@ -325,7 +325,7 @@ const New = (props: { data: NewProposal[] }) => {
               </Text>
             </Column>
           </Row>
-        </>
+        </div>
       ))}
     </Section>
   );
@@ -343,7 +343,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
   return (
     <Section>
       {props.data.map((proposal) => (
-        <>
+        <div key={proposal.url}>
           <Row
             key={proposal.url}
             className="rounded-t-xl bg-white px-2 lg:rounded-xl"
@@ -636,7 +636,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
               </Text>
             </Column>
           </Row>
-        </>
+        </div>
       ))}
     </Section>
   );
