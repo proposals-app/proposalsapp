@@ -187,11 +187,19 @@ export const SubscribeButton = () => {
                           className={`text-[18px] font-light leading-[26px] ${poppins300.className}`}
                         >
                           I accept the{" "}
-                          <Link href="/ts" className="underline">
+                          <Link
+                            href="https://proposalsapp.notion.site/Terms-of-Service-f49f7c78c4e343f39a78cfaeba5dcba6?pvs=4"
+                            target="_blank"
+                            className="underline"
+                          >
                             Terms of Service
                           </Link>{" "}
                           and{" "}
-                          <Link href="/pp" className="underline">
+                          <Link
+                            href="https://proposalsapp.notion.site/Privacy-Policy-412871ef78904cb8848d91dd6d743e97?pvs=4"
+                            target="_blank"
+                            className="underline"
+                          >
                             Privacy Policy
                           </Link>
                           .
