@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "../styles/globals.css";
 import OnboardingFlow from "./components/onboarding/onboarding";
 import { SessionProvider } from "./components/session-provider";
+import { CSPostHogProvider } from "./components/posthog-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? "https://proposals.app"),
@@ -38,14 +39,16 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#F1EBE7]">
-        <SessionProvider value={session}>
-          <OnboardingFlow />
-          <div className="flex h-full min-h-screen w-full flex-col items-center bg-luna">
-            <div className="flex w-full flex-col gap-12 px-4 pb-40 pt-14 lg:max-w-[1200px]">
-              {children}
+        <CSPostHogProvider>
+          <SessionProvider value={session}>
+            <OnboardingFlow />
+            <div className="flex h-full min-h-screen w-full flex-col items-center bg-luna">
+              <div className="flex w-full flex-col gap-12 px-4 pb-40 pt-14 lg:max-w-[1200px]">
+                {children}
+              </div>
             </div>
-          </div>
-        </SessionProvider>
+          </SessionProvider>
+        </CSPostHogProvider>
       </body>
     </html>
   );
