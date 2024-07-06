@@ -61,11 +61,8 @@ export default function SendNotification() {
     event.preventDefault();
     const sub = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: base64ToUint8Array(
-        process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY,
-      ),
+      applicationServerKey: process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY,
     });
-    // TODO: you should call your API to save subscription data on the server in order to send web push notification from the server
     setSubscription(sub);
     setIsSubscribed(true);
     alert("Web push subscribed!");
@@ -81,7 +78,6 @@ export default function SendNotification() {
     }
     event.preventDefault();
     await subscription.unsubscribe();
-    // TODO: you should call your API to delete or invalidate subscription data on the server
     setSubscription(null);
     setIsSubscribed(false);
     console.log("Web push unsubscribed!");
@@ -98,7 +94,7 @@ export default function SendNotification() {
     }
 
     try {
-      await fetch("/notification", {
+      await fetch("/api/notification", {
         method: "POST",
         headers: {
           "Content-type": "application/json",
