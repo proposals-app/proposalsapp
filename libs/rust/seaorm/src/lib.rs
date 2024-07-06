@@ -14,6 +14,7 @@ pub mod proposal;
 pub mod sea_orm_active_enums;
 pub mod subscription;
 pub mod user;
+pub mod user_push_notification_subscription;
 pub mod user_session;
 pub mod user_settings;
 pub mod user_to_voter;

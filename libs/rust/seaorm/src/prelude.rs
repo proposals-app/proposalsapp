@@ -11,6 +11,7 @@ pub use super::notification::Entity as Notification;
 pub use super::proposal::Entity as Proposal;
 pub use super::subscription::Entity as Subscription;
 pub use super::user::Entity as User;
+pub use super::user_push_notification_subscription::Entity as UserPushNotificationSubscription;
 pub use super::user_session::Entity as UserSession;
 pub use super::user_settings::Entity as UserSettings;
 pub use super::user_to_voter::Entity as UserToVoter;

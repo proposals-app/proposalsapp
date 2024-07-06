@@ -2599,14 +2599,14 @@ __metadata:
     "@types/amqplib": "npm:^0.10.5"
     "@types/dotenv": "npm:^8.2.0"
     "@types/express": "npm:^4.17.21"
-    "@types/node": "npm:^20.14.9"
+    "@types/node": "npm:^20.14.10"
     "@types/node-cron": "npm:^3.0.11"
     amqplib: "npm:^0.10.4"
     chromadb: "npm:^1.8.1"
     chromadb-default-embed: "npm:^2.13.2"
     dotenv: "npm:^16.4.5"
     express: "npm:^4.19.2"
-    kysely: "npm:^0.27.3"
+    kysely: "npm:^0.27.4"
     langchain: "npm:^0.2.8"
     moment: "npm:^2.30.1"
     mysql2: "npm:^3.10.2"
@@ -2624,7 +2624,7 @@ __metadata:
     "@types/dotenv": "npm:^8.2.0"
     "@types/pg": "npm:^8"
     dotenv: "npm:^16.4.5"
-    kysely: "npm:^0.27.3"
+    kysely: "npm:^0.27.4"
     kysely-codegen: "npm:^0.15.0"
     kysely-ctl: "npm:^0.8.9"
     pg: "npm:^8.12.0"
@@ -2641,12 +2641,12 @@ __metadata:
     "@types/amqplib": "npm:^0.10.5"
     "@types/dotenv": "npm:^8.2.0"
     "@types/express": "npm:^4.17.21"
-    "@types/node": "npm:^20.14.9"
+    "@types/node": "npm:^20.14.10"
     "@types/node-cron": "npm:^3.0.11"
     amqplib: "npm:^0.10.4"
     dotenv: "npm:^16.4.5"
     express: "npm:^4.19.2"
-    kysely: "npm:^0.27.3"
+    kysely: "npm:^0.27.4"
     moment: "npm:^2.30.1"
     node-cron: "npm:^3.0.3"
     pg: "npm:^8.12.0"
@@ -2665,12 +2665,12 @@ __metadata:
     "@types/amqplib": "npm:^0.10.5"
     "@types/dotenv": "npm:^8.2.0"
     "@types/express": "npm:^4.17.21"
-    "@types/node": "npm:^20.14.9"
+    "@types/node": "npm:^20.14.10"
     "@types/node-cron": "npm:^3.0.11"
     amqplib: "npm:^0.10.4"
     dotenv: "npm:^16.4.5"
     express: "npm:^4.19.2"
-    kysely: "npm:^0.27.3"
+    kysely: "npm:^0.27.4"
     node-cron: "npm:^3.0.3"
     pg: "npm:^8.12.0"
     postmark: "npm:^4.0.4"
@@ -2688,12 +2688,12 @@ __metadata:
     "@types/amqplib": "npm:^0.10.5"
     "@types/dotenv": "npm:^8.2.0"
     "@types/express": "npm:^4.17.21"
-    "@types/node": "npm:^20.14.9"
+    "@types/node": "npm:^20.14.10"
     "@types/node-cron": "npm:^3.0.11"
     amqplib: "npm:^0.10.4"
     dotenv: "npm:^16.4.5"
     express: "npm:^4.19.2"
-    kysely: "npm:^0.27.3"
+    kysely: "npm:^0.27.4"
     node-cron: "npm:^3.0.3"
     pg: "npm:^8.12.0"
     postmark: "npm:^4.0.4"
@@ -5500,7 +5500,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:20.14.10":
+"@types/node@npm:20.14.10, @types/node@npm:^20.14.10":
   version: 20.14.10
   resolution: "@types/node@npm:20.14.10"
   dependencies:
@@ -5524,15 +5524,6 @@ __metadata:
   dependencies:
     undici-types: "npm:~5.26.4"
   checksum: 10c0/71b6f7c728463310296a6f7b6959226c7dee2e3901060d18a9f8445bc4efbd6671d5c5d440031057bb2261b3ced44826ca38ed683adc3d7397a75a567dc65222
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:^20.14.9":
-  version: 20.14.9
-  resolution: "@types/node@npm:20.14.9"
-  dependencies:
-    undici-types: "npm:~5.26.4"
-  checksum: 10c0/911ffa444dc032897f4a23ed580c67903bd38ea1c5ec99b1d00fa10b83537a3adddef8e1f29710cbdd8e556a61407ed008e06537d834e48caf449ce59f87d387
   languageName: node
   linkType: hard
 
@@ -11289,10 +11280,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely@npm:^0.27.3":
-  version: 0.27.3
-  resolution: "kysely@npm:0.27.3"
-  checksum: 10c0/73c730404090744e7b89b1ca6870f1256fc9c0f2d5bcf739238ba293eaed4991d8228f5618e8e27e0f63681e0f3583b8e712919687e815956270ac319786a866
+"kysely@npm:^0.27.4":
+  version: 0.27.4
+  resolution: "kysely@npm:0.27.4"
+  checksum: 10c0/05d223dca3f69778e28511d30cfff485e8e035a43fb01b24f1624b87f850cd6f87e33dcc04e752f7454ac8aed2743d982dabe3be6bc402c63568d020d5b0dd1d
   languageName: node
   linkType: hard
 
