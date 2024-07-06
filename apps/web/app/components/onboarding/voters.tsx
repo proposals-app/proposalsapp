@@ -24,6 +24,7 @@ import { onboardingAddVoter } from "./actions";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const manjari = Manjari({
   weight: "700",
@@ -55,6 +56,7 @@ const VoterFormSchema = z.object({
 });
 
 export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
+  const [isValid, setIsValid] = useState(false);
   const voterForm = useForm<z.infer<typeof VoterFormSchema>>({
     resolver: zodResolver(VoterFormSchema),
     defaultValues: {
@@ -77,16 +79,24 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
     }
   };
 
+  const handleVoterAddressChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    voterForm.setValue("address", e.target.value);
+    const isValid = await voterForm.trigger("address");
+    setIsValid(isValid);
+  };
+
   return (
     <AlertDialog open={open}>
       <AlertDialogContent
         className={cn(
-          `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:max-w-fit lg:rounded-3xl lg:p-12`,
+          `flex h-screen w-full flex-col items-center bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:min-h-[400px] lg:max-w-2xl lg:rounded-3xl lg:p-12`,
         )}
       >
         <AlertDialogCancel asChild>
           <Image
-            className="absolute ml-4 mt-12 h-[48px] w-[48px] cursor-pointer lg:ml-2 lg:mt-2"
+            className="absolute left-4 top-12 h-[48px] w-[48px] cursor-pointer lg:left-2 lg:top-2"
             src="/assets/icons/web/new/close-button.svg"
             alt="close button"
             width={48}
@@ -96,31 +106,32 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
             }}
             style={{
               maxWidth: "100%",
-              height: "auto"
-            }} />
+              height: "auto",
+            }}
+          />
         </AlertDialogCancel>
 
+        <div className="flex flex-col justify-start">
+          <AlertDialogTitle
+            className={`text-center text-[36px] leading-[48px] ${manjari.className}`}
+          >
+            Add your voting wallet address
+          </AlertDialogTitle>
+          <AlertDialogDescription
+            className={`text-center text-[18px] leading-[26px] text-dark ${poppins300.className}`}
+          >
+            so you can get email notifications showing if you’ve already voted
+            or not
+          </AlertDialogDescription>
+        </div>
+
         <Form {...voterForm}>
-          <form action={onboardingAddVoter}>
+          <form action={onboardingAddVoter} className="flex h-full flex-col">
             <FormField
               control={voterForm.control}
               name="address"
               render={({ field }) => (
-                <FormItem className="flex flex-col gap-4">
-                  <div className="flex flex-col justify-center">
-                    <AlertDialogTitle
-                      className={`text-center text-[36px] leading-[48px] ${manjari.className}`}
-                    >
-                      Add your voting wallet address
-                    </AlertDialogTitle>
-                    <AlertDialogDescription
-                      className={`text-center text-[18px] leading-[26px] text-dark ${poppins300.className}`}
-                    >
-                      so you can get email notifications showing if you’ve
-                      already voted or not
-                    </AlertDialogDescription>
-                  </div>
-
+                <FormItem className="my-8 flex h-full flex-col justify-start gap-4">
                   <FormControl>
                     <Input
                       className={cn(
@@ -128,6 +139,8 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
                       )}
                       placeholder="0x... or proposalsapp.eth"
                       {...field}
+                      value={field.value}
+                      onChange={handleVoterAddressChange}
                     />
                   </FormControl>
 
@@ -138,16 +151,16 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
                   </AlertDialogDescription>
 
                   <FormMessage />
-
-                  <Button
-                    className={`h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold ${poppins700.className}`}
-                    type="submit"
-                  >
-                    Success!
-                  </Button>
                 </FormItem>
               )}
             />
+            <Button
+              className={`mt-auto min-h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold ${poppins700.className}`}
+              type="submit"
+              disabled={!isValid}
+            >
+              Success!
+            </Button>
           </form>
         </Form>
       </AlertDialogContent>
