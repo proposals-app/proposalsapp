@@ -4,7 +4,7 @@ const revision = crypto.randomUUID();
 
 const withSerwist = withSerwistInit({
   cacheOnNavigation: true,
-  swSrc: "./app/sw.ts",
+  swSrc: "/app/sw.ts",
   swDest: "./public/sw.js",
   additionalPrecacheEntries: [{ url: "/~offline", revision }],
   maximumFileSizeToCacheInBytes: 25000000,
