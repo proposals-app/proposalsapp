@@ -36,10 +36,12 @@ export enum NotificationDispatchedStateEnum {
   THIRDRETRY = "THIRD_RETRY",
 }
 
-export enum NotificationTypeEnum {
-  BULLETINEMAIL = "BULLETIN_EMAIL",
-  QUORUMNOTREACHEDEMAIL = "QUORUM_NOT_REACHED_EMAIL",
-  TIMEENDEMAIL = "TIMEEND_EMAIL",
+export enum NotificationTypeEnumV2 {
+  EMAILBULLETIN = "EMAIL_BULLETIN",
+  EMAILQUORUMNOTREACHED = "EMAIL_QUORUM_NOT_REACHED",
+  EMAILTIMEEND = "EMAIL_TIMEEND",
+  PUSHQUORUMNOTREACHED = "PUSH_QUORUM_NOT_REACHED",
+  PUSHTIMEEND = "PUSH_TIMEEND",
 }
 
 export enum ProposalStateEnum {
@@ -122,7 +124,7 @@ export interface Notification {
   id: Generated<string>;
   proposalId: string | null;
   submittedAt: Timestamp;
-  type: NotificationTypeEnum;
+  type: NotificationTypeEnumV2 | null;
   userId: string | null;
 }
 
@@ -164,6 +166,14 @@ export interface User {
   onboardingStep: Generated<number>;
 }
 
+export interface UserPushNotificationSubscription {
+  auth: string;
+  endpoint: string;
+  id: Generated<string>;
+  p256dh: string;
+  userId: string;
+}
+
 export interface UserSession {
   email: string;
   expiresAt: Timestamp;
@@ -176,6 +186,7 @@ export interface UserSettings {
   emailQuorumWarning: Generated<boolean>;
   emailTimeendWarning: Generated<boolean>;
   id: Generated<string>;
+  pushNotifications: Generated<boolean>;
   userId: string;
 }
 
@@ -217,6 +228,7 @@ export interface DB {
   proposal: Proposal;
   subscription: Subscription;
   user: User;
+  userPushNotificationSubscription: UserPushNotificationSubscription;
   userSession: UserSession;
   userSettings: UserSettings;
   userToVoter: UserToVoter;

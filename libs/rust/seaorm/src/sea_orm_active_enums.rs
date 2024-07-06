@@ -79,15 +79,19 @@ pub enum NotificationDispatchedStateEnum {
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
-    enum_name = "notification_type_enum"
+    enum_name = "notification_type_enum_v2"
 )]
-pub enum NotificationTypeEnum {
-    #[sea_orm(string_value = "BULLETIN_EMAIL")]
-    BulletinEmail,
-    #[sea_orm(string_value = "QUORUM_NOT_REACHED_EMAIL")]
-    QuorumNotReachedEmail,
-    #[sea_orm(string_value = "TIMEEND_EMAIL")]
-    TimeendEmail,
+pub enum NotificationTypeEnumV2 {
+    #[sea_orm(string_value = "EMAIL_BULLETIN")]
+    EmailBulletin,
+    #[sea_orm(string_value = "EMAIL_QUORUM_NOT_REACHED")]
+    EmailQuorumNotReached,
+    #[sea_orm(string_value = "EMAIL_TIMEEND")]
+    EmailTimeend,
+    #[sea_orm(string_value = "PUSH_QUORUM_NOT_REACHED")]
+    PushQuorumNotReached,
+    #[sea_orm(string_value = "PUSH_TIMEEND")]
+    PushTimeend,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(

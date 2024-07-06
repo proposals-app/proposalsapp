@@ -19,6 +19,7 @@ pub struct Model {
     pub email_daily_bulletin: bool,
     pub email_quorum_warning: bool,
     pub email_timeend_warning: bool,
+    pub push_notifications: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -28,6 +29,7 @@ pub enum Column {
     EmailDailyBulletin,
     EmailQuorumWarning,
     EmailTimeendWarning,
+    PushNotifications,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -56,6 +58,7 @@ impl ColumnTrait for Column {
             Self::EmailDailyBulletin => ColumnType::Boolean.def(),
             Self::EmailQuorumWarning => ColumnType::Boolean.def(),
             Self::EmailTimeendWarning => ColumnType::Boolean.def(),
+            Self::PushNotifications => ColumnType::Boolean.def(),
         }
     }
 }

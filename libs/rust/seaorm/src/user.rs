@@ -45,6 +45,7 @@ pub enum Relation {
     EmailVerification,
     Notification,
     Subscription,
+    UserPushNotificationSubscription,
     UserSession,
     UserSettings,
     UserToVoter,
@@ -68,6 +69,9 @@ impl RelationTrait for Relation {
             Self::EmailVerification => Entity::has_one(super::email_verification::Entity).into(),
             Self::Notification => Entity::has_many(super::notification::Entity).into(),
             Self::Subscription => Entity::has_many(super::subscription::Entity).into(),
+            Self::UserPushNotificationSubscription => {
+                Entity::has_many(super::user_push_notification_subscription::Entity).into()
+            }
             Self::UserSession => Entity::has_many(super::user_session::Entity).into(),
             Self::UserSettings => Entity::has_one(super::user_settings::Entity).into(),
             Self::UserToVoter => Entity::has_many(super::user_to_voter::Entity).into(),
@@ -90,6 +94,12 @@ impl Related<super::notification::Entity> for Entity {
 impl Related<super::subscription::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Subscription.def()
+    }
+}
+
+impl Related<super::user_push_notification_subscription::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserPushNotificationSubscription.def()
     }
 }
 

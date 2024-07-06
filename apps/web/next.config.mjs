@@ -1,13 +1,17 @@
-const withPWA = require("next-pwa")({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-  register: true,
-  skipWaiting: true,
+import withSerwistInit from "@serwist/next";
+
+const revision = crypto.randomUUID();
+
+const withSerwist = withSerwistInit({
+  cacheOnNavigation: true,
+  swSrc: "/app/sw.ts",
+  swDest: "./public/sw.js",
+  additionalPrecacheEntries: [{ url: "/~offline", revision }],
   maximumFileSizeToCacheInBytes: 25000000,
 });
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   async rewrites() {
     return [
       {
@@ -35,10 +39,15 @@ const nextConfig = {
     ],
   },
   webpack: (config) => {
-    config.externals.push("pino-pretty", "lokijs", "encoding");
+    config.externals = [
+      ...(config.externals || []),
+      "pino-pretty",
+      "lokijs",
+      "encoding",
+    ];
     return config;
   },
   transpilePackages: ["@proposalsapp/db"],
 };
 
-module.exports = withPWA(nextConfig);
+export default withSerwist(nextConfig);
