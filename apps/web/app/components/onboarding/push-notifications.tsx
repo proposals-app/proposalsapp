@@ -76,6 +76,12 @@ export const OnboardingPushNotificationsModal = () => {
         >
           Yes!
         </Button>
+
+        <Button
+          className={`auto min-h-[60px] w-full bg-gold text-[32px] font-bold leading-[36px] disabled:bg-gold ${poppins700.className}`}
+        >
+          No
+        </Button>
       </AlertDialogContent>
     </AlertDialog>
   );
