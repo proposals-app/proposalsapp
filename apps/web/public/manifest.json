@@ -1,12 +1,11 @@
 {
-  "theme_color": "#F1EBE7",
-  "background_color": "#F1EBE7",
-  "display": "standalone",
-  "orientation": "portrait",
-  "scope": "/",
-  "start_url": "/",
   "name": "proposals.app",
   "short_name": "proposals.app",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#F1EBE7",
+  "background_color": "#F1EBE7",
+  "start_url": "/",
   "description": "The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.",
   "icons": [
     {
