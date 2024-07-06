@@ -22,7 +22,8 @@
     "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin start",
     "start-email-quorum": "yarn workspace @proposalsapp/email-quorum start",
     "start-email-timeend": "yarn workspace @proposalsapp/email-timeend start",
-    "start-web": "yarn workspace @proposalsapp/arbitrum start",
+    "start-web": "yarn workspace @proposalsapp/web start",
+    "start-arbitrum": "yarn workspace @proposalsapp/arbitrum start",
     "update-deps": "./update-deps.sh"
   },
   "resolutions": {
