@@ -190,14 +190,14 @@ export const PushNotificationsModal = () => {
         </div>
         {isSubscribed ? (
           <Button
-            className={`mb-20 mt-auto min-h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold lg:mb-0 ${poppins700.className}`}
+            className={`mb-20 mt-auto min-h-[60px] w-full bg-luna text-[24px] font-bold leading-[36px] text-dark underline disabled:bg-gold lg:mb-0 ${poppins700.className}`}
             onClick={(e) => {
               e.preventDefault();
               unsubscribeButtonOnClick();
             }}
             disabled={!registration}
           >
-            Disable notifications
+            disable notifications
           </Button>
         ) : (
           <Button
