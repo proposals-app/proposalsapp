@@ -9,6 +9,7 @@ import { mainnet } from "viem/chains";
 import { normalize } from "path";
 import { AuthCodeEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
+import webPush from "web-push";
 
 export const getCurrentSettings = async () => {
   let { user } = await validateRequest();
@@ -167,4 +168,61 @@ export const saveSettings = async (newSettings: currentSettingsType) => {
       .values({ userId: user.id, voterId: voter.id })
       .execute();
   }
+};
+
+export const setPushNotifications = async (subscriptionData: string) => {
+  const { subscription } = JSON.parse(subscriptionData) as {
+    subscription: webPush.PushSubscription;
+  };
+
+  console.log(subscription);
+
+  const { user } = await validateRequest();
+  if (!user) throw new Error("Unauthorized");
+
+  await db
+    .updateTable("userSettings")
+    .set({ pushNotifications: true })
+    .execute();
+
+  await db
+    .insertInto("userPushNotificationSubscription")
+    .values({
+      userId: user.id,
+      endpoint: subscription.endpoint,
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+    })
+    .execute();
+
+  webPush.setVapidDetails(
+    `mailto:${process.env.WEB_PUSH_EMAIL}`,
+    process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY!,
+    process.env.WEB_PUSH_PRIVATE_KEY!,
+  );
+
+  await webPush.sendNotification(
+    subscription,
+    JSON.stringify({
+      title: "Hello",
+      message:
+        "Your push notifications are now active! Never miss a vote again 🕺",
+    }),
+  );
+};
+
+export const removePushNotifications = async (subscriptionEndpoint: string) => {
+  const { user } = await validateRequest();
+  if (!user) throw new Error("Unauthorized");
+
+  await db
+    .updateTable("userSettings")
+    .set({ pushNotifications: false })
+    .execute();
+
+  await db
+    .deleteFrom("userPushNotificationSubscription")
+    .where("userId", "=", user.id)
+    //.where("endpoint", "=", subscriptionEndpoint)
+    .execute();
 };

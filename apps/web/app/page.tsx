@@ -20,7 +20,6 @@ export default async function Home({
         <Filters />
       </div>
 
-      {/* <SendNotification /> */}
       <ProposalsTable searchParams={searchParams} />
     </div>
   );

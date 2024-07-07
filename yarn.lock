@@ -2816,6 +2816,54 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@proposalsapp/push-quorum@workspace:apps/push/quorum":
+  version: 0.0.0-use.local
+  resolution: "@proposalsapp/push-quorum@workspace:apps/push/quorum"
+  dependencies:
+    "@proposalsapp/db": "npm:*"
+    "@proposalsapp/emails": "npm:*"
+    "@types/amqplib": "npm:^0.10.5"
+    "@types/dotenv": "npm:^8.2.0"
+    "@types/express": "npm:^4.17.21"
+    "@types/node": "npm:^20.14.10"
+    "@types/node-cron": "npm:^3.0.11"
+    "@types/web-push": "npm:3.6.3"
+    amqplib: "npm:^0.10.4"
+    dotenv: "npm:^16.4.5"
+    express: "npm:^4.19.2"
+    kysely: "npm:^0.27.4"
+    node-cron: "npm:^3.0.3"
+    pg: "npm:^8.12.0"
+    tsx: "npm:^4.16.2"
+    typescript: "npm:^5.5.3"
+    web-push: "npm:^3.6.7"
+  languageName: unknown
+  linkType: soft
+
+"@proposalsapp/push-timeend@workspace:apps/push/timeend":
+  version: 0.0.0-use.local
+  resolution: "@proposalsapp/push-timeend@workspace:apps/push/timeend"
+  dependencies:
+    "@proposalsapp/db": "npm:*"
+    "@proposalsapp/emails": "npm:*"
+    "@types/amqplib": "npm:^0.10.5"
+    "@types/dotenv": "npm:^8.2.0"
+    "@types/express": "npm:^4.17.21"
+    "@types/node": "npm:^20.14.10"
+    "@types/node-cron": "npm:^3.0.11"
+    "@types/web-push": "npm:3.6.3"
+    amqplib: "npm:^0.10.4"
+    dotenv: "npm:^16.4.5"
+    express: "npm:^4.19.2"
+    kysely: "npm:^0.27.4"
+    node-cron: "npm:^3.0.3"
+    pg: "npm:^8.12.0"
+    tsx: "npm:^4.16.2"
+    typescript: "npm:^5.5.3"
+    web-push: "npm:^3.6.7"
+  languageName: unknown
+  linkType: soft
+
 "@proposalsapp/web@workspace:apps/web":
   version: 0.0.0-use.local
   resolution: "@proposalsapp/web@workspace:apps/web"
@@ -2897,6 +2945,7 @@ __metadata:
     react-day-picker: "npm:^8.10.1"
     react-dom: "npm:18.3.1"
     react-hook-form: "npm:^7.52.1"
+    react-icons: "npm:^5.2.1"
     react-infinite-scroller: "npm:1.2.6"
     react-intersection-observer: "npm:^9.10.3"
     react-resizable-panels: "npm:^2.0.20"
@@ -14578,6 +14627,15 @@ __metadata:
   peerDependencies:
     react: ^16.8.0 || ^17 || ^18 || ^19
   checksum: 10c0/68f21daa66f3c2b87c83f2f9b1dbd160a856b24e9315263af24fee8737b62336dc7cc43e09c581ff957ed032a3ac2355f69b1c1d32d89893a6e1f601112eacfd
+  languageName: node
+  linkType: hard
+
+"react-icons@npm:^5.2.1":
+  version: 5.2.1
+  resolution: "react-icons@npm:5.2.1"
+  peerDependencies:
+    react: "*"
+  checksum: 10c0/9d52b975afaf27dab07dcaefd50497ba43cc57076fc26ccac5142965e01c7fd0c503a62ea31c3bb710e0b2959a4620c2fed12c3c86960ad8ceb63de7f0085f3a
   languageName: node
   linkType: hard
 

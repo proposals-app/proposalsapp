@@ -30,7 +30,7 @@ export const SignOutButton = () => {
 
   return (
     <Button
-      className={`${manjari.className} block h-[42px] w-fit rounded-lg border-2 border-gold bg-luna text-center text-gold lg:h-[56px]`}
+      className={`${manjari.className} block h-[42px] w-fit self-end rounded-lg border-2 border-gold bg-luna text-center text-gold lg:h-[56px]`}
       onClick={() => {
         signOut();
       }}

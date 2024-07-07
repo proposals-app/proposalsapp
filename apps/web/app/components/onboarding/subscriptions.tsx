@@ -62,12 +62,12 @@ export const OnboardingSubscriptionModal = ({
     <AlertDialog open={open}>
       <AlertDialogContent
         className={cn(
-          `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:max-w-fit lg:rounded-3xl lg:p-12`,
+          `flex h-screen w-full flex-col items-center bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:min-h-[400px] lg:max-w-2xl lg:rounded-3xl lg:p-12`,
         )}
       >
         <AlertDialogCancel asChild>
           <Image
-            className="absolute ml-4 mt-12 h-[48px] w-[48px] cursor-pointer lg:ml-2 lg:mt-2"
+            className="absolute left-4 top-12 h-[48px] w-[48px] cursor-pointer lg:left-2 lg:top-2"
             src="/assets/icons/web/new/close-button.svg"
             alt="close button"
             width={48}
@@ -77,11 +77,12 @@ export const OnboardingSubscriptionModal = ({
             }}
             style={{
               maxWidth: "100%",
-              height: "auto"
-            }} />
+              height: "auto",
+            }}
+          />
         </AlertDialogCancel>
 
-        <div className="flex flex-col justify-center">
+        <div className="flex flex-col justify-start">
           <AlertDialogTitle
             className={`text-center text-[36px] leading-[48px] ${manjari.className}`}
           >
@@ -94,7 +95,7 @@ export const OnboardingSubscriptionModal = ({
           </AlertDialogDescription>
         </div>
 
-        <div className="grid w-full grid-flow-row grid-cols-4 gap-4 lg:grid-cols-6">
+        <div className="grid h-fit w-fit grid-flow-row grid-cols-4 gap-4 justify-self-center py-8 lg:grid-cols-6">
           {hotDaos.map((dao) => (
             <div
               className="relative h-[80px] w-[80px]"
@@ -123,23 +124,22 @@ export const OnboardingSubscriptionModal = ({
                 }
                 style={{
                   maxWidth: "100%",
-                  height: "auto"
-                }} />
+                  height: "auto",
+                }}
+              />
             </div>
           ))}
         </div>
 
-        <div className="pt-8">
-          <Button
-            className={`h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold ${poppins700.className}`}
-            disabled={selectedDaos.length == 0}
-            onClick={() => {
-              onboardingSubscribeDaos(selectedDaos);
-            }}
-          >
-            Continue...
-          </Button>
-        </div>
+        <Button
+          className={`mb-20 mt-auto min-h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold lg:mb-0 ${poppins700.className}`}
+          disabled={selectedDaos.length == 0}
+          onClick={() => {
+            onboardingSubscribeDaos(selectedDaos);
+          }}
+        >
+          Continue...
+        </Button>
       </AlertDialogContent>
     </AlertDialog>
   );

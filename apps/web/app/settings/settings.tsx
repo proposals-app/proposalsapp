@@ -9,6 +9,7 @@ import { SignOutButton } from "./components/sign-out";
 import { BackButton } from "./components/back-button";
 import { SaveButton } from "./components/save-button";
 import { currentSettingsType, saveSettings } from "./actions";
+import { PushNotificationsModal } from "./components/push-notifications-modal";
 
 export const Settings = ({
   hotDaos,
@@ -66,6 +67,7 @@ export const Settings = ({
         setVoterAddress={setVoterAddress}
         setVoterAddressValid={setVoterAddressValid}
       />
+      <PushNotificationsModal />
       <SignOutButton />
     </div>
   );

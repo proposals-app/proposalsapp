@@ -52,8 +52,6 @@ export default function SendNotification() {
     });
     setSubscription(sub);
     setIsSubscribed(true);
-    alert("Web push subscribed!");
-    console.log(sub);
   };
 
   const unsubscribeButtonOnClick: MouseEventHandler<HTMLButtonElement> = async (
@@ -67,7 +65,6 @@ export default function SendNotification() {
     await subscription.unsubscribe();
     setSubscription(null);
     setIsSubscribed(false);
-    console.log("Web push unsubscribed!");
   };
 
   const sendNotificationButtonOnClick: MouseEventHandler<
