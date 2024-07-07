@@ -193,7 +193,7 @@ export const setPushNotifications = async (subscriptionData: string) => {
     JSON.stringify({
       title: "Hello from proposals.app!",
       message:
-        "Your push notifications are now active! Never miss a vote again.",
+        "Your push notifications are now active! Never miss a vote again 🕺",
     }),
   );
 };
