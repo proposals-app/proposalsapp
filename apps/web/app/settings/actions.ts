@@ -181,6 +181,11 @@ export const setPushNotifications = async (subscriptionData: string) => {
   if (!user) throw new Error("Unauthorized");
 
   await db
+    .updateTable("userSettings")
+    .set({ pushNotifications: true })
+    .execute();
+
+  await db
     .insertInto("userPushNotificationSubscription")
     .values({
       userId: user.id,
@@ -209,6 +214,11 @@ export const setPushNotifications = async (subscriptionData: string) => {
 export const removePushNotifications = async (subscriptionEndpoint: string) => {
   const { user } = await validateRequest();
   if (!user) throw new Error("Unauthorized");
+
+  await db
+    .updateTable("userSettings")
+    .set({ pushNotifications: false })
+    .execute();
 
   await db
     .deleteFrom("userPushNotificationSubscription")

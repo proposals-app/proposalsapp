@@ -7,6 +7,7 @@
     "apps/web",
     "apps/ai_playground",
     "apps/emails/*",
+    "apps/push/*",
     "libs/ts/*",
     "libs/ts/emails/.react-email"
   ],
@@ -15,11 +16,15 @@
     "build-email-bulletin": "yarn build-db && yarn workspace @proposalsapp/email-bulletin build",
     "build-email-quorum": "yarn build-db && yarn workspace @proposalsapp/email-quorum build",
     "build-email-timeend": "yarn build-db && yarn workspace @proposalsapp/email-timeend build",
+    "build-push-timeend": "yarn build-db && yarn workspace @proposalsapp/push-timeend build",
+    "build-push-quorum": "yarn build-db && yarn workspace @proposalsapp/push-quorum build",
     "build-emails": "yarn workspace @proposalsapp/emails build",
     "build-web": "yarn build-db && yarn workspace @proposalsapp/web build",
     "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin start",
     "start-email-quorum": "yarn workspace @proposalsapp/email-quorum start",
     "start-email-timeend": "yarn workspace @proposalsapp/email-timeend start",
+    "start-push-timeend": "yarn workspace @proposalsapp/email-push start",
+    "start-push-quorum": "yarn workspace @proposalsapp/email-quorum start",
     "start-web": "yarn workspace @proposalsapp/web start",
     "update-deps": "./update-deps.sh"
   },
