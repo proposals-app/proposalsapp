@@ -9,15 +9,15 @@ const manjari = Manjari({
 
 export const SettingsButton = () => {
   return (
-    <Button
-      className={`${manjari.className} block h-[42px] w-fit rounded-lg border-2 border-gold bg-luna text-center text-gold lg:h-[56px]`}
+    <Link
+      className="text-[24px] leading-[32px] lg:leading-[46px]"
+      href={"/settings"}
     >
-      <Link
-        className="text-[24px] leading-[32px] lg:leading-[46px]"
-        href={"/settings"}
+      <Button
+        className={`${manjari.className} block h-[42px] w-fit rounded-lg border-2 border-gold bg-luna text-center text-gold lg:h-[56px]`}
       >
-        settings
-      </Link>
-    </Button>
+        <p className="text-[24px] leading-[32px] lg:leading-[46px]">settings</p>
+      </Button>
+    </Link>
   );
 };

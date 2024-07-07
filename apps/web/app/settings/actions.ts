@@ -33,7 +33,7 @@ export const getCurrentSettings = async () => {
     .innerJoin("voter", "voter.id", "userToVoter.voterId")
     .select("voter.address")
     .where("userToVoter.userId", "=", user.id)
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
 
   return {
     email: email.email,
@@ -57,7 +57,8 @@ const settingsSchema = z.object({
       {
         message: "Must be a valid Ethereum address or ENS domain name",
       },
-    ),
+    )
+    .optional(),
 });
 
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
@@ -120,53 +121,58 @@ export const saveSettings = async (newSettings: currentSettingsType) => {
     transport: http(),
   });
 
-  // Update userToVoter
-  let voterAddress = parsedSettings.voterAddress.includes(".eth")
-    ? await publicClient.getEnsAddress({
-        name: normalize(parsedSettings.voterAddress),
-      })
-    : parsedSettings.voterAddress;
+  if (parsedSettings.voterAddress) {
+    // Update userToVoter
+    let voterAddress = parsedSettings.voterAddress.includes(".eth")
+      ? await publicClient.getEnsAddress({
+          name: normalize(parsedSettings.voterAddress),
+        })
+      : parsedSettings.voterAddress;
 
-  if (!voterAddress) throw new Error("Invalid Ethereum address or ENS domain");
+    if (!voterAddress)
+      throw new Error("Invalid Ethereum address or ENS domain");
 
-  const ensName = parsedSettings.voterAddress.includes(".eth")
-    ? await publicClient.getEnsName({ address: voterAddress as `0x${string}` })
-    : null;
+    const ensName = parsedSettings.voterAddress.includes(".eth")
+      ? await publicClient.getEnsName({
+          address: voterAddress as `0x${string}`,
+        })
+      : null;
 
-  let voter = await db
-    .selectFrom("voter")
-    .select(["id", "ens"])
-    .where("address", "=", voterAddress)
-    .executeTakeFirst();
+    let voter = await db
+      .selectFrom("voter")
+      .select(["id", "ens"])
+      .where("address", "=", voterAddress)
+      .executeTakeFirst();
 
-  if (!voter) {
-    const [{ id: voterId }] = await db
-      .insertInto("voter")
-      .values({ address: voterAddress, ens: ensName })
-      .returning(["id"])
-      .execute();
+    if (!voter) {
+      const [{ id: voterId }] = await db
+        .insertInto("voter")
+        .values({ address: voterAddress, ens: ensName })
+        .returning(["id"])
+        .execute();
 
-    voter = { id: voterId, ens: ensName };
-  } else if (ensName && voter.ens !== ensName) {
-    await db
-      .updateTable("voter")
-      .set({ ens: ensName })
-      .where("id", "=", voter.id)
-      .execute();
-  }
+      voter = { id: voterId, ens: ensName };
+    } else if (ensName && voter.ens !== ensName) {
+      await db
+        .updateTable("voter")
+        .set({ ens: ensName })
+        .where("id", "=", voter.id)
+        .execute();
+    }
 
-  const existingLink = await db
-    .selectFrom("userToVoter")
-    .select("id")
-    .where("userId", "=", user.id)
-    .where("voterId", "=", voter.id)
-    .executeTakeFirst();
+    const existingLink = await db
+      .selectFrom("userToVoter")
+      .select("id")
+      .where("userId", "=", user.id)
+      .where("voterId", "=", voter.id)
+      .executeTakeFirst();
 
-  if (!existingLink) {
-    await db
-      .insertInto("userToVoter")
-      .values({ userId: user.id, voterId: voter.id })
-      .execute();
+    if (!existingLink) {
+      await db
+        .insertInto("userToVoter")
+        .values({ userId: user.id, voterId: voter.id })
+        .execute();
+    }
   }
 };
 

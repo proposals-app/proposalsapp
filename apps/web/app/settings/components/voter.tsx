@@ -20,11 +20,15 @@ const VoterFormSchema = z.object({
   address: z
     .string()
     .refine(
-      (value) => ethereumAddressRegex.test(value) || ensDomainRegex.test(value),
+      (value) =>
+        !value ||
+        ethereumAddressRegex.test(value) ||
+        ensDomainRegex.test(value),
       {
         message: "Must be a valid Ethereum address or ENS domain name",
       },
-    ),
+    )
+    .optional(),
 });
 
 export const VoterSettings = ({
@@ -32,7 +36,7 @@ export const VoterSettings = ({
   setVoterAddress,
   setVoterAddressValid,
 }: {
-  currentVoterAddress: string;
+  currentVoterAddress: string | undefined;
   setVoterAddress: (address: string) => void;
   setVoterAddressValid: (isValid: boolean) => void;
 }) => {
