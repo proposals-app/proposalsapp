@@ -1,3 +1,3 @@
 pub mod rabbitmq_callbacks;
-pub mod telemetry;
+pub mod tracing;
 pub mod types;

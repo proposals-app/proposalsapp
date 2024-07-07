@@ -6,7 +6,8 @@ use sea_orm::{ColumnTrait, ConnectOptions, EntityTrait, QueryFilter, Set};
 use sea_orm::{Database, DatabaseConnection};
 use seaorm::sea_orm_active_enums::DaoHandlerEnum;
 use seaorm::{dao, dao_handler, dao_settings};
-use utils::telemetry::setup_telemetry;
+use tracing::{info, instrument};
+use utils::tracing::run_with_tracing;
 
 mod data;
 
@@ -38,10 +39,9 @@ struct SettingsData {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    setup_telemetry();
+async fn main() {
     dotenv().ok();
-    run().await
+    run_with_tracing(run).await;
 }
 
 async fn run() -> Result<()> {
@@ -57,113 +57,141 @@ async fn run() -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip(db))]
 async fn seed_daos(seed_data: Vec<DaoSeedData>, db: &DatabaseConnection) -> Result<()> {
     for dao_data in seed_data {
-        let dao = match dao::Entity::find()
-            .filter(dao::Column::Name.eq(dao_data.name.clone()))
-            .one(db)
-            .await?
-        {
-            Some(d) => {
-                dao::Entity::update(dao::ActiveModel {
-                    id: Set(d.clone().id),
-                    name: Set(dao_data.name.clone()),
-                    slug: Set(dao_data.slug.clone()),
-                    hot: Set(dao_data.hot),
-                })
-                .exec(db)
-                .await?;
-                d
-            }
-            None => {
-                let dao = dao::ActiveModel {
-                    name: Set(dao_data.name.clone()),
-                    slug: Set(dao_data.slug.clone()),
-                    hot: Set(dao_data.hot),
-                    ..Default::default()
-                };
-                dao::Entity::insert(dao).exec(db).await?;
-                dao::Entity::find()
-                    .filter(dao::Column::Name.eq(dao_data.name.clone()))
-                    .one(db)
-                    .await?
-                    .unwrap()
-            }
-        };
+        let dao = upsert_dao(&dao_data, db).await?;
+        upsert_handlers(&dao, &dao_data.handlers, db).await?;
+        upsert_settings(&dao, &dao_data.settings, db).await?;
+    }
 
-        for handler_data in dao_data.handlers {
-            let existing_handler = dao_handler::Entity::find()
-                .filter(dao_handler::Column::DaoId.eq(dao.id.clone()))
-                .filter(dao_handler::Column::HandlerType.eq(handler_data.handler_type.clone()))
-                .one(db)
-                .await?;
+    Ok(())
+}
 
-            match existing_handler {
-                Some(h) => {
-                    dao_handler::Entity::update(dao_handler::ActiveModel {
-                        id: Set(h.id),
-                        dao_id: Set(h.dao_id),
-                        handler_type: Set(h.handler_type),
-                        governance_portal: Set(handler_data.clone().governance_portal),
-                        decoder: Set(handler_data.clone().decoder),
-                        refresh_enabled: Set(handler_data.clone().refresh_enabled),
-                        proposals_index: Set(h.proposals_index),
-                        proposals_refresh_speed: Set(h.proposals_refresh_speed),
-                        votes_index: Set(h.votes_index),
-                        votes_refresh_speed: Set(h.votes_refresh_speed),
-                    })
-                    .exec(db)
-                    .await?;
-                }
-                None => {
-                    dao_handler::Entity::insert(dao_handler::ActiveModel {
-                        dao_id: Set(dao.id.clone()),
-                        handler_type: Set(handler_data.clone().handler_type),
-                        governance_portal: Set(handler_data.clone().governance_portal),
-                        decoder: Set(handler_data.clone().decoder),
-                        refresh_enabled: Set(handler_data.clone().refresh_enabled),
-                        proposals_index: Set(handler_data.clone().proposals_index),
-                        proposals_refresh_speed: Set(handler_data.clone().proposals_refresh_speed),
-                        votes_index: Set(handler_data.clone().votes_index),
-                        votes_refresh_speed: Set(handler_data.clone().votes_refresh_speed),
-                        ..Default::default()
-                    })
-                    .exec(db)
-                    .await?;
-                }
-            }
+#[instrument(skip(db))]
+async fn upsert_dao(dao_data: &DaoSeedData, db: &DatabaseConnection) -> Result<dao::Model> {
+    let dao = match dao::Entity::find()
+        .filter(dao::Column::Name.eq(dao_data.name.clone()))
+        .one(db)
+        .await?
+    {
+        Some(d) => {
+            dao::Entity::update(dao::ActiveModel {
+                id: Set(d.clone().id),
+                name: Set(dao_data.name.clone()),
+                slug: Set(dao_data.slug.clone()),
+                hot: Set(dao_data.hot),
+            })
+            .exec(db)
+            .await?;
+            d
         }
+        None => {
+            let dao = dao::ActiveModel {
+                name: Set(dao_data.name.clone()),
+                slug: Set(dao_data.slug.clone()),
+                hot: Set(dao_data.hot),
+                ..Default::default()
+            };
+            dao::Entity::insert(dao).exec(db).await?;
+            dao::Entity::find()
+                .filter(dao::Column::Name.eq(dao_data.name.clone()))
+                .one(db)
+                .await?
+                .unwrap()
+        }
+    };
+    info!("Upserted DAO: {:?}", dao);
+    Ok(dao)
+}
 
-        let existing_settings = dao_settings::Entity::find()
-            .filter(dao_settings::Column::DaoId.eq(dao.id.clone()))
+#[instrument(skip(db))]
+async fn upsert_handlers(
+    dao: &dao::Model,
+    handlers: &[HandlerData],
+    db: &DatabaseConnection,
+) -> Result<()> {
+    for handler_data in handlers {
+        let existing_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::DaoId.eq(dao.id.clone()))
+            .filter(dao_handler::Column::HandlerType.eq(handler_data.handler_type.clone()))
             .one(db)
             .await?;
 
-        match existing_settings {
-            Some(s) => {
-                dao_settings::Entity::update(dao_settings::ActiveModel {
-                    id: Set(s.id),
-                    dao_id: Set(dao.id.clone()),
-                    picture: Set(dao_data.settings.picture),
-                    background_color: Set(dao_data.settings.background_color),
-                    quorum_warning_email_support: Set(s.quorum_warning_email_support),
-                    twitter_account: NotSet,
+        match existing_handler {
+            Some(h) => {
+                dao_handler::Entity::update(dao_handler::ActiveModel {
+                    id: Set(h.id),
+                    dao_id: Set(h.dao_id),
+                    handler_type: Set(h.handler_type),
+                    governance_portal: Set(handler_data.clone().governance_portal),
+                    decoder: Set(handler_data.clone().decoder),
+                    refresh_enabled: Set(handler_data.clone().refresh_enabled),
+                    proposals_index: Set(handler_data.proposals_index),
+                    proposals_refresh_speed: Set(handler_data.proposals_refresh_speed),
+                    votes_index: Set(handler_data.votes_index),
+                    votes_refresh_speed: Set(handler_data.votes_refresh_speed),
                 })
                 .exec(db)
                 .await?;
             }
             None => {
-                dao_settings::Entity::insert(dao_settings::ActiveModel {
-                    dao_id: Set(dao.id),
-                    picture: Set(dao_data.settings.picture),
-                    background_color: Set(dao_data.settings.background_color),
+                dao_handler::Entity::insert(dao_handler::ActiveModel {
+                    dao_id: Set(dao.id.clone()),
+                    handler_type: Set(handler_data.clone().handler_type),
+                    governance_portal: Set(handler_data.clone().governance_portal),
+                    decoder: Set(handler_data.clone().decoder),
+                    refresh_enabled: Set(handler_data.clone().refresh_enabled),
+                    proposals_index: Set(handler_data.clone().proposals_index),
+                    proposals_refresh_speed: Set(handler_data.clone().proposals_refresh_speed),
+                    votes_index: Set(handler_data.clone().votes_index),
+                    votes_refresh_speed: Set(handler_data.clone().votes_refresh_speed),
                     ..Default::default()
                 })
                 .exec(db)
                 .await?;
             }
         }
+        info!("Upserted handler: {:?}", handler_data);
     }
+    Ok(())
+}
 
+#[instrument(skip(db))]
+async fn upsert_settings(
+    dao: &dao::Model,
+    settings: &SettingsData,
+    db: &DatabaseConnection,
+) -> Result<()> {
+    let existing_settings = dao_settings::Entity::find()
+        .filter(dao_settings::Column::DaoId.eq(dao.id.clone()))
+        .one(db)
+        .await?;
+
+    match existing_settings {
+        Some(s) => {
+            dao_settings::Entity::update(dao_settings::ActiveModel {
+                id: Set(s.id),
+                dao_id: Set(dao.id.clone()),
+                picture: Set(settings.picture.clone()),
+                background_color: Set(settings.background_color.clone()),
+                quorum_warning_email_support: Set(s.quorum_warning_email_support),
+                twitter_account: NotSet,
+            })
+            .exec(db)
+            .await?;
+        }
+        None => {
+            dao_settings::Entity::insert(dao_settings::ActiveModel {
+                dao_id: Set(dao.id.clone()),
+                picture: Set(settings.picture.clone()),
+                background_color: Set(settings.background_color.clone()),
+                ..Default::default()
+            })
+            .exec(db)
+            .await?;
+        }
+    }
+    info!("Upserted settings: {:?}", settings);
     Ok(())
 }
