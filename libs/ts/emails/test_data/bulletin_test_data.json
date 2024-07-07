@@ -7,6 +7,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
       "timeEnd": 1920119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -16,6 +17,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -25,6 +27,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum with a very long name lalallalalalalala here is a very long proposal name im out of ideas omg what am i gonna write here im bored lol that's enough",
       "timeEnd": 1920119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -34,6 +37,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "short proposal",
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -43,6 +47,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Not voted yet",
       "voteIconUrl": "assets/email/not-voted-yet.png"
     },
@@ -52,6 +57,17 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
       "timeEnd": 1720119543,
+      "hasVoters": true,
+      "voteStatus": "Not voted yet",
+      "voteIconUrl": "assets/email/not-voted-yet.png"
+    },
+    {
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
+      "url": "https://proposal.url.here",
+      "proposalName": "This is an Aave proposal on Ethereum with no voters",
+      "timeEnd": 1720119543,
+      "hasVoters": false,
       "voteStatus": "Not voted yet",
       "voteIconUrl": "assets/email/not-voted-yet.png"
     }
@@ -63,6 +79,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -72,6 +89,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -81,6 +99,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum with a very long name lalallalalalalala here is a very long proposal name im out of ideas omg what am i gonna write here im bored lol that's enough",
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -90,6 +109,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "short proposal",
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -99,6 +119,7 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Snapshot",
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Not voted yet",
       "voteIconUrl": "assets/email/not-voted-yet.png"
     },
@@ -108,6 +129,17 @@
       "url": "https://proposal.url.here",
       "proposalName": "This is an Aave proposal on Ethereum",
       "timeEnd": 1720119543,
+      "hasVoters": true,
+      "voteStatus": "Not voted yet",
+      "voteIconUrl": "assets/email/not-voted-yet.png"
+    },
+    {
+      "daoLogoUrl": "assets/project-logos/aave",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
+      "url": "https://proposal.url.here",
+      "proposalName": "This is an Aave proposal on Ethereum with no voters",
+      "timeEnd": 1720119543,
+      "hasVoters": false,
       "voteStatus": "Not voted yet",
       "voteIconUrl": "assets/email/not-voted-yet.png"
     }
@@ -126,6 +158,7 @@
         "choicePercentage": 23
       },
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Did not vote",
       "voteIconUrl": "assets/email/did-not-vote.png"
     },
@@ -142,6 +175,7 @@
         "choicePercentage": 65
       },
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Did not vote",
       "voteIconUrl": "assets/email/did-not-vote.png"
     },
@@ -158,6 +192,7 @@
         "choicePercentage": 23
       },
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Did not vote",
       "voteIconUrl": "assets/email/did-not-vote.png"
     },
@@ -174,6 +209,7 @@
         "choicePercentage": 65
       },
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -190,6 +226,7 @@
         "choicePercentage": 65
       },
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -206,6 +243,7 @@
         "choicePercentage": 23
       },
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -222,6 +260,7 @@
         "choicePercentage": 23
       },
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -238,6 +277,24 @@
         "mkrSupporting": 12314
       },
       "timeEnd": 1720119543,
+      "hasVoters": true,
+      "voteStatus": "Voted",
+      "voteIconUrl": "assets/email/voted.png"
+    },
+    {
+      "daoLogoUrl": "assets/project-logos/makerdao",
+      "chainLogoUrl": "assets/email/chains/ethereum.png",
+      "url": "https://proposal.url.here",
+      "proposalName": "This is a Maker proposal on Ethereum with no voters",
+      "quorumReached": true,
+      "hiddenResult": false,
+      "makerProposal": true,
+      "makerResult": {
+        "choiceName": "Choice name",
+        "mkrSupporting": 12314
+      },
+      "timeEnd": 1720119543,
+      "hasVoters": false,
       "voteStatus": "Voted",
       "voteIconUrl": "assets/email/voted.png"
     },
@@ -254,6 +311,7 @@
         "mkrSupporting": 12314
       },
       "timeEnd": 1720119543,
+      "hasVoters": true,
       "voteStatus": "Did not vote",
       "voteIconUrl": "assets/email/did-not-vote.png"
     }

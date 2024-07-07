@@ -10,7 +10,6 @@ import DailyBulletinEmail, {
   EndedProposal,
   EndingSoonProposal,
 } from "@proposalsapp/emails/emails/daily-bulletin";
-import moment from "moment";
 import { ServerClient } from "postmark";
 
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
@@ -126,6 +125,7 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
       url: p.url,
       proposalName: p.name,
       timeEnd: p.timeEnd.getTime() / 1000,
+      hasVoters: voters.length > 0,
       voteIconUrl: voted
         ? "assets/email/voted.png"
         : "assets/email/not-voted-yet.png",
@@ -200,6 +200,7 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
       url: p.url,
       proposalName: p.name,
       timeEnd: p.timeEnd.getTime() / 1000,
+      hasVoters: voters.length > 0,
       voteIconUrl: voted
         ? "assets/email/voted.png"
         : "assets/email/not-voted-yet.png",
@@ -325,6 +326,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
       url: p.url,
       proposalName: p.name,
       timeEnd: p.timeEnd.getTime() / 1000,
+      hasVoters: voters.length > 0,
       voteIconUrl: voted
         ? "assets/email/voted.png"
         : "assets/email/did-not-vote.png",

@@ -51,6 +51,7 @@ export interface EndingSoonProposal {
   url: string;
   proposalName: string;
   timeEnd: number;
+  hasVoters: boolean;
   voteIconUrl: string;
   voteStatus: string;
 }
@@ -61,6 +62,7 @@ export interface NewProposal {
   url: string;
   proposalName: string;
   timeEnd: number;
+  hasVoters: boolean;
   voteIconUrl: string;
   voteStatus: string;
 }
@@ -81,6 +83,7 @@ export interface EndedProposal {
     choicePercentage: number;
   };
   timeEnd: number;
+  hasVoters: boolean;
   voteIconUrl: string;
   voteStatus: string;
 }
@@ -209,19 +212,23 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
             </Column>
 
             <Column className="table-cell h-[64px] w-[64px] lg:hidden">
-              <Img
-                src={`${baseUrl}/${proposal.voteIconUrl}`}
-                width={64}
-                className="m-0"
-              />
+              {proposal.hasVoters && (
+                <Img
+                  src={`${baseUrl}/${proposal.voteIconUrl}`}
+                  width={64}
+                  className="m-0"
+                />
+              )}
             </Column>
 
             <Column className="hidden h-[82px] w-[82px] lg:table-cell">
-              <Img
-                src={`${baseUrl}/${proposal.voteIconUrl}`}
-                width={82}
-                className="m-0"
-              />
+              {proposal.hasVoters && (
+                <Img
+                  src={`${baseUrl}/${proposal.voteIconUrl}`}
+                  width={82}
+                  className="m-0"
+                />
+              )}
             </Column>
 
             <Hr />
@@ -294,19 +301,23 @@ const New = (props: { data: NewProposal[] }) => {
             </Column>
 
             <Column className="table-cell h-[64px] w-[64px] lg:hidden">
-              <Img
-                src={`${baseUrl}/${proposal.voteIconUrl}`}
-                width={64}
-                className="m-0"
-              />
+              {proposal.hasVoters && (
+                <Img
+                  src={`${baseUrl}/${proposal.voteIconUrl}`}
+                  width={64}
+                  className="m-0"
+                />
+              )}
             </Column>
 
             <Column className="hidden h-[82px] w-[82px] lg:table-cell">
-              <Img
-                src={`${baseUrl}/${proposal.voteIconUrl}`}
-                width={82}
-                className="m-0"
-              />
+              {proposal.hasVoters && (
+                <Img
+                  src={`${baseUrl}/${proposal.voteIconUrl}`}
+                  width={82}
+                  className="m-0"
+                />
+              )}
             </Column>
 
             <Hr />
@@ -493,19 +504,23 @@ const Ended = (props: { data: EndedProposal[] }) => {
             </Column>
 
             <Column className="table-cell h-[64px] w-[64px] lg:hidden">
-              <Img
-                src={`${baseUrl}/${proposal.voteIconUrl}`}
-                width={64}
-                className="m-0"
-              />
+              {proposal.hasVoters && (
+                <Img
+                  src={`${baseUrl}/${proposal.voteIconUrl}`}
+                  width={64}
+                  className="m-0"
+                />
+              )}
             </Column>
 
             <Column className="hidden h-[82px] w-[82px] lg:table-cell">
-              <Img
-                src={`${baseUrl}/${proposal.voteIconUrl}`}
-                width={82}
-                className="m-0"
-              />
+              {proposal.hasVoters && (
+                <Img
+                  src={`${baseUrl}/${proposal.voteIconUrl}`}
+                  width={82}
+                  className="m-0"
+                />
+              )}
             </Column>
 
             <Hr />
