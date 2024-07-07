@@ -187,6 +187,15 @@ export const setPushNotifications = async (subscriptionData: string) => {
       auth: subscription.keys.auth,
     })
     .execute();
+
+  await webPush.sendNotification(
+    subscription,
+    JSON.stringify({
+      title: "Hello from proposals.app!",
+      message:
+        "Your push notifications are now active! Never miss a vote again.",
+    }),
+  );
 };
 
 export const removePushNotifications = async (subscriptionEndpoint: string) => {
