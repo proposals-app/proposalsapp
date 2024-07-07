@@ -19,8 +19,7 @@ export default async function Home({
       <div className="flex w-full flex-col items-center lg:px-2">
         <Filters />
       </div>
-      //
-      {/* <SendNotification /> */}
+
       <ProposalsTable searchParams={searchParams} />
     </div>
   );

@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Button } from "@/shadcn/ui/button";
 import { removePushNotifications, setPushNotifications } from "../actions";
+import { LuShare, LuPlusSquare } from "react-icons/lu";
 
 const manjari = Manjari({
   weight: "700",
@@ -110,7 +111,7 @@ export const PushNotificationsModal = () => {
     <AlertDialog open={open}>
       <AlertDialogTrigger asChild>
         <Button
-          className={`${manjari.className} block h-[42px] w-fit rounded-lg border-2 border-gold bg-luna text-center text-gold lg:h-[56px]`}
+          className={`${manjari.className} block h-[42px] w-fit rounded-lg border-2 border-gold bg-luna text-center text-gold lg:hidden lg:h-[56px]`}
           onClick={() => setOpen(!open)}
         >
           <p className="text-[24px] leading-[32px] lg:leading-[46px]">
@@ -147,13 +148,38 @@ export const PushNotificationsModal = () => {
           >
             Get push notifications
           </AlertDialogTitle>
-          <AlertDialogDescription
-            className={`text-center text-[18px] leading-[26px] text-dark ${poppins300.className} py-4`}
-          >
-            Would you like to receive push notifications when a proposal is
-            about to close and you haven't cast your vote yet?
-          </AlertDialogDescription>
 
+          {registration ? (
+            <AlertDialogDescription
+              className={`text-center text-[18px] leading-[26px] text-dark ${poppins300.className} py-4`}
+            >
+              Would you like to receive push notifications when a proposal is
+              about to close and you haven't cast your vote yet?
+            </AlertDialogDescription>
+          ) : (
+            <AlertDialogDescription
+              className={`text-center text-[18px] leading-[26px] text-dark ${poppins300.className} py-4`}
+            >
+              <div className="flex flex-col items-center gap-12">
+                <p>Please add app to screen first.</p>
+                <div className="flex flex-col">
+                  <div
+                    className={`flex flex-row items-center gap-2 text-[18px] leading-[26px] text-dark ${poppins300.className} py-4`}
+                  >
+                    <LuShare size={50} />
+                    <p>Open the share menu</p>
+                  </div>
+
+                  <div
+                    className={`flex flex-row items-center gap-2 text-[18px] leading-[26px] text-dark ${poppins300.className} py-4`}
+                  >
+                    <LuPlusSquare size={50} />
+                    <p>Add to Home Screen</p>
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          )}
           {isSubscribed && (
             <AlertDialogDescription
               className={`text-center text-[24px] leading-[32px] text-dark ${poppins700.className} py-4`}
@@ -169,6 +195,7 @@ export const PushNotificationsModal = () => {
               e.preventDefault();
               unsubscribeButtonOnClick();
             }}
+            disabled={!registration}
           >
             Disable notifications
           </Button>
@@ -179,6 +206,7 @@ export const PushNotificationsModal = () => {
               e.preventDefault();
               subscribeButtonOnClick();
             }}
+            disabled={!registration}
           >
             Yes!
           </Button>

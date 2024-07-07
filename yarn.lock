@@ -2799,6 +2799,7 @@ __metadata:
     react-day-picker: "npm:^8.10.1"
     react-dom: "npm:18.3.1"
     react-hook-form: "npm:^7.52.1"
+    react-icons: "npm:^5.2.1"
     react-infinite-scroller: "npm:1.2.6"
     react-intersection-observer: "npm:^9.10.3"
     react-resizable-panels: "npm:^2.0.20"
@@ -14480,6 +14481,15 @@ __metadata:
   peerDependencies:
     react: ^16.8.0 || ^17 || ^18 || ^19
   checksum: 10c0/68f21daa66f3c2b87c83f2f9b1dbd160a856b24e9315263af24fee8737b62336dc7cc43e09c581ff957ed032a3ac2355f69b1c1d32d89893a6e1f601112eacfd
+  languageName: node
+  linkType: hard
+
+"react-icons@npm:^5.2.1":
+  version: 5.2.1
+  resolution: "react-icons@npm:5.2.1"
+  peerDependencies:
+    react: "*"
+  checksum: 10c0/9d52b975afaf27dab07dcaefd50497ba43cc57076fc26ccac5142965e01c7fd0c503a62ea31c3bb710e0b2959a4620c2fed12c3c86960ad8ceb63de7f0085f3a
   languageName: node
   linkType: hard
 

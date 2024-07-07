@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       { status: 500 },
     );
 
-  await lucia.invalidateUserSessions(user.id);
+  // await lucia.invalidateUserSessions(user.id);
 
   await db
     .updateTable("user")
