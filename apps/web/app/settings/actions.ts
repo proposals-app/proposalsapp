@@ -199,7 +199,7 @@ export const setPushNotifications = async (subscriptionData: string) => {
   await webPush.sendNotification(
     subscription,
     JSON.stringify({
-      title: "Hello from proposals.app!",
+      title: "Hello",
       message:
         "Your push notifications are now active! Never miss a vote again 🕺",
     }),
