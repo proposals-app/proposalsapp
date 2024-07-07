@@ -149,12 +149,27 @@ export const onboardingAddVoter = async (formData: FormData) => {
     .set({ onboardingStep: 2 })
     .execute();
 
-  await send_bulletin(user.id);
+  await sendBulletin(user.id);
 
   revalidateTag("voters");
 };
 
-const send_bulletin = async (userId: string) => {
+export const skipOnboardingAddVoter = async () => {
+  const { user } = await validateRequest();
+  if (!user) return;
+
+  await db
+    .updateTable("user")
+    .where("user.id", "=", user.id)
+    .set({ onboardingStep: 2 })
+    .execute();
+
+  await sendBulletin(user.id);
+
+  revalidateTag("voters");
+};
+
+const sendBulletin = async (userId: string) => {
   type Message = {
     userId: string;
   };

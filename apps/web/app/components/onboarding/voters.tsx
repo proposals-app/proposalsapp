@@ -20,7 +20,7 @@ import {
   FormMessage,
 } from "@/shadcn/ui/form";
 import { Manjari, Poppins } from "next/font/google";
-import { onboardingAddVoter } from "./actions";
+import { onboardingAddVoter, skipOnboardingAddVoter } from "./actions";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -154,13 +154,24 @@ export const OnboardingVoterModal = ({ open }: { open: boolean }) => {
                 </FormItem>
               )}
             />
-            <Button
-              className={`mb-20 mt-auto min-h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold lg:mb-0 ${poppins700.className}`}
-              type="submit"
-              disabled={!isValid}
-            >
-              Success!
-            </Button>
+            <div className="mt-auto flex flex-col gap-4">
+              <Button
+                className={`min-h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold lg:mb-0 ${poppins700.className}`}
+                type="submit"
+                disabled={!isValid}
+              >
+                Success!
+              </Button>
+              <Button
+                className={`mb-20 mt-auto min-h-[60px] w-full bg-luna text-[24px] font-bold leading-[36px] text-dark underline hover:bg-luna disabled:bg-gold lg:mb-0 ${poppins300.className}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  skipOnboardingAddVoter();
+                }}
+              >
+                add a voting wallet later
+              </Button>
+            </div>
           </form>
         </Form>
       </AlertDialogContent>
