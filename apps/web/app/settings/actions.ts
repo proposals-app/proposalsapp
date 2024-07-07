@@ -175,6 +175,8 @@ export const setPushNotifications = async (subscriptionData: string) => {
     subscription: webPush.PushSubscription;
   };
 
+  console.log(subscription);
+
   const { user } = await validateRequest();
   if (!user) throw new Error("Unauthorized");
 
@@ -187,6 +189,12 @@ export const setPushNotifications = async (subscriptionData: string) => {
       auth: subscription.keys.auth,
     })
     .execute();
+
+  webPush.setVapidDetails(
+    `mailto:${process.env.WEB_PUSH_EMAIL}`,
+    process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY!,
+    process.env.WEB_PUSH_PRIVATE_KEY!,
+  );
 
   await webPush.sendNotification(
     subscription,
