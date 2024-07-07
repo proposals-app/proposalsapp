@@ -132,7 +132,7 @@ export const OnboardingSubscriptionModal = ({
         </div>
 
         <Button
-          className={`mt-auto min-h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold ${poppins700.className}`}
+          className={`mb-20 mt-auto min-h-[60px] w-full bg-dark text-[32px] font-bold leading-[36px] disabled:bg-gold lg:mb-0 ${poppins700.className}`}
           disabled={selectedDaos.length == 0}
           onClick={() => {
             onboardingSubscribeDaos(selectedDaos);

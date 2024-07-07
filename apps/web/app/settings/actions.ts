@@ -9,6 +9,7 @@ import { mainnet } from "viem/chains";
 import { normalize } from "path";
 import { AuthCodeEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
+import webPush from "web-push";
 
 export const getCurrentSettings = async () => {
   let { user } = await validateRequest();
@@ -167,4 +168,34 @@ export const saveSettings = async (newSettings: currentSettingsType) => {
       .values({ userId: user.id, voterId: voter.id })
       .execute();
   }
+};
+
+export const setPushNotifications = async (subscriptionData: string) => {
+  const { subscription } = JSON.parse(subscriptionData) as {
+    subscription: webPush.PushSubscription;
+  };
+
+  const { user } = await validateRequest();
+  if (!user) throw new Error("Unauthorized");
+
+  await db
+    .insertInto("userPushNotificationSubscription")
+    .values({
+      userId: user.id,
+      endpoint: subscription.endpoint,
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+    })
+    .execute();
+};
+
+export const removePushNotifications = async (subscriptionEndpoint: string) => {
+  const { user } = await validateRequest();
+  if (!user) throw new Error("Unauthorized");
+
+  await db
+    .deleteFrom("userPushNotificationSubscription")
+    .where("userId", "=", user.id)
+    //.where("endpoint", "=", subscriptionEndpoint)
+    .execute();
 };

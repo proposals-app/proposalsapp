@@ -4,7 +4,6 @@ import { OnboardingSubscriptionModal } from "./subscriptions";
 import { OnboardingVoterModal } from "./voters";
 import { getOnboardingStep } from "./actions";
 import { getHotDaos } from "@/app/actions";
-import { OnboardingPushNotificationsModal } from "./push-notifications";
 
 export default async function OnboardingFlow() {
   let { user } = await validateRequest();
@@ -18,10 +17,6 @@ export default async function OnboardingFlow() {
       )}
       {user && step && step.onboardingStep == 1 && (
         <OnboardingVoterModal open={true} />
-      )}
-
-      {user && step && step.onboardingStep == 2 && (
-        <OnboardingPushNotificationsModal />
       )}
     </Suspense>
   );
