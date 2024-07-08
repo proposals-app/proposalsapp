@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     setup_tracing();
 
     tokio::spawn(async move {
-        let mut interval = time::interval(std::time::Duration::from_secs(60));
+        let mut interval = time::interval(std::time::Duration::from_secs(60 * 10));
         loop {
             interval.tick().await;
             let _ = produce_jobs().await;
