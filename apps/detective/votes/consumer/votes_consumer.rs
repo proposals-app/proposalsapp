@@ -489,7 +489,7 @@ async fn update_proposal_index(
 
     proposal::Entity::update(proposal::ActiveModel {
         id: Set(proposal.id),
-        votes_index: Set(*new_index - 3600),
+        votes_index: Set(*new_index),
         votes_fetched: Set(fetched_votes),
         ..Default::default()
     })
