@@ -1,5 +1,6 @@
-use crate::ChainProposalsResult;
+use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use sea_orm::{NotSet, Set};
 use seaorm::sea_orm_active_enums::ProposalStateEnum;
@@ -41,68 +42,83 @@ struct Decoder {
     snapshot_space: String,
 }
 
-pub async fn snapshot_proposals(dao_handler: &dao_handler::Model) -> Result<ChainProposalsResult> {
-    let decoder: Decoder = serde_json::from_value(dao_handler.clone().decoder)?;
+pub struct SnapshotHandler;
 
-    let graphql_query = format!(
-        r#"
-        {{
-            proposals (
-                first: {},
-                orderBy: "created",
-                orderDirection: asc
-                where: {{
-                    space: {:?},
-                    created_gte: {}
-            }},
-            )
+#[async_trait]
+impl ProposalHandler for SnapshotHandler {
+    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+        let decoder: Decoder = serde_json::from_value(dao_handler.clone().decoder)?;
+
+        let graphql_query = format!(
+            r#"
             {{
-                id
-                title
-                body
-                discussion
-                choices
-                scores
-                scores_total
-                scores_state
-                created
-                start
-                end
-                quorum
-                link
-                state
-                flagged
-            }}
-        }}"#,
-        dao_handler.proposals_refresh_speed, decoder.snapshot_space, dao_handler.proposals_index
-    );
+                proposals (
+                    first: {},
+                    orderBy: "created",
+                    orderDirection: asc
+                    where: {{
+                        space: {:?},
+                        created_gte: {}
+                }},
+                )
+                {{
+                    id
+                    title
+                    body
+                    discussion
+                    choices
+                    scores
+                    scores_total
+                    scores_state
+                    created
+                    start
+                    end
+                    quorum
+                    link
+                    state
+                    flagged
+                }}
+            }}"#,
+            dao_handler.proposals_refresh_speed,
+            decoder.snapshot_space,
+            dao_handler.proposals_index
+        );
 
-    let graphql_response = reqwest::Client::new()
-        .get("https://hub.snapshot.org/graphql".to_string())
-        .json(&serde_json::json!({"query":graphql_query}))
-        .send()
-        .await?
-        .json::<GraphQLResponse>()
-        .await?;
+        let graphql_response = reqwest::Client::new()
+            .get("https://hub.snapshot.org/graphql".to_string())
+            .json(&serde_json::json!({"query":graphql_query}))
+            .send()
+            .await?
+            .json::<GraphQLResponse>()
+            .await?;
 
-    if let Some(data) = graphql_response.data {
-        let parsed_proposals = parse_proposals(data.proposals, dao_handler).await;
+        if let Some(data) = graphql_response.data {
+            let parsed_proposals = parse_proposals(data.proposals, dao_handler).await;
 
-        let highest_index_created = parsed_proposals
-            .iter()
-            .map(|proposal| proposal.index_created.clone().take())
-            .max()
-            .unwrap_or_default();
+            let highest_index_created = parsed_proposals
+                .iter()
+                .map(|proposal| proposal.index_created.clone().take())
+                .max()
+                .unwrap_or_default();
 
-        Ok(ChainProposalsResult {
-            proposals: parsed_proposals,
-            to_index: highest_index_created,
-        })
-    } else {
-        Ok(ChainProposalsResult {
-            proposals: vec![],
-            to_index: None,
-        })
+            Ok(ProposalsResult {
+                proposals: parsed_proposals,
+                to_index: highest_index_created,
+            })
+        } else {
+            Ok(ProposalsResult {
+                proposals: vec![],
+                to_index: None,
+            })
+        }
+    }
+
+    fn min_refresh_speed(&self) -> i32 {
+        10
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1_000
     }
 }
 

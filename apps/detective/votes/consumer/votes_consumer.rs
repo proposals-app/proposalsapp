@@ -20,9 +20,10 @@ use seaorm::{dao_handler, proposal, vote, voter};
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use tokio::sync::Notify;
-use tracing::{error, info, warn}; // Added error for better logging
+use tracing::{error, info, instrument, warn}; // Added error for better logging
 use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
-use utils::telemetry::setup_telemetry;
+use utils::tracing::setup_tracing;
+
 use utils::types::{VotesJob, VotesResponse};
 
 mod handlers {
@@ -61,7 +62,7 @@ const QUEUE_NAME: &str = "detective:votes";
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    setup_telemetry();
+    setup_tracing();
 
     let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
     let args: OpenConnectionArguments = rabbitmq_url.as_str().try_into().unwrap();
@@ -156,8 +157,8 @@ impl AsyncConsumer for VotesConsumer {
     }
 }
 
+#[instrument]
 async fn run(job: VotesJob) -> Result<()> {
-    info!("{:?}", job);
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
 
     let mut opt = ConnectOptions::new(database_url);
@@ -230,6 +231,7 @@ async fn run(job: VotesJob) -> Result<()> {
     }
 }
 
+#[instrument]
 async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
 
@@ -328,6 +330,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
     }
 }
 
+#[instrument]
 async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
 
@@ -416,6 +419,7 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
     }
 }
 
+#[instrument(skip(db))]
 async fn store_voters(parsed_votes: &[vote::ActiveModel], db: &DatabaseConnection) -> Result<()> {
     let voters = parsed_votes
         .iter()
@@ -469,6 +473,7 @@ async fn store_voters(parsed_votes: &[vote::ActiveModel], db: &DatabaseConnectio
     Ok(())
 }
 
+#[instrument(skip(db))]
 async fn update_dao_index(
     parsed_votes: &[vote::ActiveModel],
     dao_handler: &dao_handler::Model,
@@ -506,6 +511,7 @@ async fn update_dao_index(
     Ok(new_index)
 }
 
+#[instrument(skip(db))]
 async fn update_proposal_index(
     parsed_votes: &[vote::ActiveModel],
     proposal: &proposal::Model,
@@ -540,6 +546,7 @@ struct StoredVotes {
     updated_votes: u32,
 }
 
+#[instrument(skip(db))]
 async fn store_dao_votes(
     parsed_votes: &[vote::ActiveModel],
     dao_handler: &dao_handler::Model,
@@ -725,6 +732,7 @@ async fn store_dao_votes(
     })
 }
 
+#[instrument(skip(db))]
 async fn store_proposal_votes(
     parsed_votes: &[vote::ActiveModel],
     db: &DatabaseConnection,
@@ -783,6 +791,7 @@ async fn store_proposal_votes(
     })
 }
 
+#[instrument]
 async fn get_dao_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesResult> {
     let votes = match dao_handler.handler_type {
         DaoHandlerEnum::Snapshot => todo!(),
@@ -877,6 +886,7 @@ async fn get_dao_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesRes
     Ok(votes)
 }
 
+#[instrument]
 async fn get_proposal_votes(
     dao_handler: &dao_handler::Model,
     proposal: &proposal::Model,

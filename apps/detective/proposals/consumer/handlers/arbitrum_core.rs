@@ -1,5 +1,6 @@
-use crate::ChainProposalsResult;
+use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use contracts::gen::arbitrum_core_gov::arbitrum_core_gov::arbitrum_core_gov;
 use contracts::gen::arbitrum_core_gov::ProposalCreatedFilter;
@@ -21,62 +22,73 @@ struct Decoder {
     proposalUrl: String,
 }
 
-pub async fn arbitrum_core_proposals(
-    dao_handler: &dao_handler::Model,
-) -> Result<ChainProposalsResult> {
-    let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
-    let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
+pub struct ArbitrumCoreHandler;
 
-    let current_block = arb_rpc
-        .get_block_number()
-        .await
-        .context("get_block_number")?
-        .as_u64();
+#[async_trait]
+impl ProposalHandler for ArbitrumCoreHandler {
+    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+        let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
+        let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
 
-    let from_block = dao_handler.proposals_index;
-    let to_block = if dao_handler.proposals_index as u64
-        + dao_handler.proposals_refresh_speed as u64
-        > current_block
-    {
-        current_block
-    } else {
-        dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-    };
+        let current_block = arb_rpc
+            .get_block_number()
+            .await
+            .context("get_block_number")?
+            .as_u64();
 
-    let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
+        let from_block = dao_handler.proposals_index;
+        let to_block = if dao_handler.proposals_index as u64
+            + dao_handler.proposals_refresh_speed as u64
+            > current_block
+        {
+            current_block
+        } else {
+            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
+        };
 
-    let address = decoder.address.parse::<Address>().context("bad address")?;
+        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
 
-    let gov_contract = arbitrum_core_gov::new(address, arb_rpc.clone());
+        let address = decoder.address.parse::<Address>().context("bad address")?;
 
-    let proposal_events = gov_contract
-        .proposal_created_filter()
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("query_with_meta")?;
+        let gov_contract = arbitrum_core_gov::new(address, arb_rpc.clone());
 
-    let mut result = Vec::new();
+        let proposal_events = gov_contract
+            .proposal_created_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("query_with_meta")?;
 
-    for p in proposal_events.iter() {
-        let p = data_for_proposal(
-            p.clone(),
-            &arb_rpc,
-            &decoder,
-            dao_handler,
-            gov_contract.clone(),
-        )
-        .await
-        .context("data_for_proposal")?;
-        result.push(p);
+        let mut result = Vec::new();
+
+        for p in proposal_events.iter() {
+            let p = data_for_proposal(
+                p.clone(),
+                &arb_rpc,
+                &decoder,
+                dao_handler,
+                gov_contract.clone(),
+            )
+            .await
+            .context("data_for_proposal")?;
+            result.push(p);
+        }
+
+        Ok(ProposalsResult {
+            proposals: result,
+            to_index: Some(to_block as i32),
+        })
     }
 
-    Ok(ChainProposalsResult {
-        proposals: result,
-        to_index: Some(to_block as i32),
-    })
+    fn min_refresh_speed(&self) -> i32 {
+        100
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
+    }
 }
 
 async fn data_for_proposal(

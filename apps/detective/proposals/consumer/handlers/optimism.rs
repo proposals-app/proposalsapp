@@ -1,5 +1,6 @@
-use crate::ChainProposalsResult;
+use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use contracts::gen::optimism_gov_v_6::optimism_gov_v_6::optimism_gov_v6;
 use contracts::gen::optimism_gov_v_6::{
@@ -25,126 +26,139 @@ struct Decoder {
     proposalUrl: String,
 }
 
-pub async fn optimism_proposals(dao_handler: &dao_handler::Model) -> Result<ChainProposalsResult> {
-    let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
-    let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
+pub struct OptimismHandler;
 
-    let current_block = op_rpc
-        .get_block_number()
-        .await
-        .context("get_block_number")?
-        .as_u64();
+#[async_trait]
+impl ProposalHandler for OptimismHandler {
+    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+        let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
+        let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
 
-    let from_block = dao_handler.proposals_index;
-    let to_block = if dao_handler.proposals_index as u64
-        + dao_handler.proposals_refresh_speed as u64
-        > current_block
-    {
-        current_block
-    } else {
-        dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-    };
+        let current_block = op_rpc
+            .get_block_number()
+            .await
+            .context("get_block_number")?
+            .as_u64();
 
-    let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
+        let from_block = dao_handler.proposals_index;
+        let to_block = if dao_handler.proposals_index as u64
+            + dao_handler.proposals_refresh_speed as u64
+            > current_block
+        {
+            current_block
+        } else {
+            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
+        };
 
-    let address = decoder.address.parse::<Address>().context("bad address")?;
+        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
 
-    let gov_contract = optimism_gov_v6::new(address, op_rpc.clone());
+        let address = decoder.address.parse::<Address>().context("bad address")?;
 
-    let proposal_events_one = gov_contract
-        .proposal_created_1_filter()
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("query_with_meta")?;
+        let gov_contract = optimism_gov_v6::new(address, op_rpc.clone());
 
-    let proposal_events_two = gov_contract
-        .proposal_created_2_filter()
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("query_with_meta")?;
+        let proposal_events_one = gov_contract
+            .proposal_created_1_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("query_with_meta")?;
 
-    let proposal_events_three = gov_contract
-        .proposal_created_3_filter()
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("query_with_meta")?;
+        let proposal_events_two = gov_contract
+            .proposal_created_2_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("query_with_meta")?;
 
-    let proposal_events_four = gov_contract
-        .proposal_created_4_filter()
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("query_with_meta")?;
+        let proposal_events_three = gov_contract
+            .proposal_created_3_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("query_with_meta")?;
 
-    let mut result = Vec::new();
+        let proposal_events_four = gov_contract
+            .proposal_created_4_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("query_with_meta")?;
 
-    for p in proposal_events_one.iter() {
-        let p = data_for_proposal_one(
-            p.clone(),
-            &op_rpc,
-            &decoder,
-            dao_handler,
-            gov_contract.clone(),
-        )
-        .await
-        .context("data_for_proposal_one")?;
-        result.push(p);
+        let mut result = Vec::new();
+
+        for p in proposal_events_one.iter() {
+            let p = data_for_proposal_one(
+                p.clone(),
+                &op_rpc,
+                &decoder,
+                dao_handler,
+                gov_contract.clone(),
+            )
+            .await
+            .context("data_for_proposal_one")?;
+            result.push(p);
+        }
+
+        for p in proposal_events_two.iter() {
+            let p = data_for_proposal_two(
+                p.clone(),
+                &op_rpc,
+                &decoder,
+                dao_handler,
+                gov_contract.clone(),
+            )
+            .await
+            .context("data_for_proposal_two")?;
+            result.push(p);
+        }
+
+        for p in proposal_events_three.iter() {
+            let p = data_for_proposal_three(
+                p.clone(),
+                &op_rpc,
+                &decoder,
+                dao_handler,
+                gov_contract.clone(),
+            )
+            .await
+            .context("data_for_proposal_two")?;
+            result.push(p);
+        }
+
+        for p in proposal_events_four.iter() {
+            let p = data_for_proposal_four(
+                p.clone(),
+                &op_rpc,
+                &decoder,
+                dao_handler,
+                gov_contract.clone(),
+            )
+            .await
+            .context("data_for_proposal_two")?;
+            result.push(p);
+        }
+
+        Ok(ProposalsResult {
+            proposals: result,
+            to_index: Some(to_block as i32),
+        })
     }
 
-    for p in proposal_events_two.iter() {
-        let p = data_for_proposal_two(
-            p.clone(),
-            &op_rpc,
-            &decoder,
-            dao_handler,
-            gov_contract.clone(),
-        )
-        .await
-        .context("data_for_proposal_two")?;
-        result.push(p);
+    fn min_refresh_speed(&self) -> i32 {
+        100
     }
 
-    for p in proposal_events_three.iter() {
-        let p = data_for_proposal_three(
-            p.clone(),
-            &op_rpc,
-            &decoder,
-            dao_handler,
-            gov_contract.clone(),
-        )
-        .await
-        .context("data_for_proposal_two")?;
-        result.push(p);
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
     }
-
-    for p in proposal_events_four.iter() {
-        let p = data_for_proposal_four(
-            p.clone(),
-            &op_rpc,
-            &decoder,
-            dao_handler,
-            gov_contract.clone(),
-        )
-        .await
-        .context("data_for_proposal_two")?;
-        result.push(p);
-    }
-
-    Ok(ChainProposalsResult {
-        proposals: result,
-        to_index: Some(to_block as i32),
-    })
 }
 
 async fn data_for_proposal_one(

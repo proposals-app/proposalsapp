@@ -10,10 +10,10 @@ use sea_orm::{
 };
 use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnum};
 use tokio::time;
-use tracing::{error, info}; // Added error for better logging
+use tracing::{info, instrument};
 use utils::{
     rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
-    telemetry::setup_telemetry,
+    tracing::run_with_tracing,
     types::ProposalsJob,
 };
 
@@ -22,18 +22,23 @@ const QUEUE_NAME: &str = "detective:proposals";
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    setup_telemetry();
 
-    let mut interval = time::interval(std::time::Duration::from_secs(5 * 60));
+    let mut interval = time::interval(std::time::Duration::from_secs(60 * 5));
 
-    loop {
-        interval.tick().await;
-        if let Err(e) = produce_jobs().await {
-            error!("Error producing jobs: {:?}", e);
+    tokio::spawn(async move {
+        loop {
+            interval.tick().await;
+            run_with_tracing(produce_jobs).await;
         }
-    }
+    });
+
+    let guard = tokio::sync::Notify::new();
+    guard.notified().await;
+
+    Ok(())
 }
 
+#[instrument]
 async fn produce_jobs() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
     let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
@@ -58,6 +63,7 @@ async fn produce_jobs() -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip(rabbitmq_url))]
 async fn setup_rabbitmq_connection(rabbitmq_url: &str) -> Result<Connection> {
     let args: OpenConnectionArguments = rabbitmq_url
         .try_into()
@@ -72,6 +78,7 @@ async fn setup_rabbitmq_connection(rabbitmq_url: &str) -> Result<Connection> {
     Ok(connection)
 }
 
+#[instrument(skip(connection))]
 async fn setup_rabbitmq_channel(connection: &Connection) -> Result<amqprs::channel::Channel> {
     let channel = connection
         .open_channel(None)
@@ -84,6 +91,7 @@ async fn setup_rabbitmq_channel(connection: &Connection) -> Result<amqprs::chann
     Ok(channel)
 }
 
+#[instrument(skip(database_url))]
 async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
     let mut opt = ConnectOptions::new(database_url.to_string());
     opt.sqlx_logging(false);
@@ -92,6 +100,7 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
         .context("Failed to connect to database")
 }
 
+#[instrument(skip(db))]
 async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::Model>> {
     dao_handler::Entity::find()
         .filter(dao_handler::Column::HandlerType.is_not_in(vec![
@@ -105,6 +114,7 @@ async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::
         .context("Failed to fetch DAO handlers from database")
 }
 
+#[instrument(skip(channel))]
 async fn queue_dao_jobs(
     channel: &amqprs::channel::Channel,
     dao_handlers: &[dao_handler::Model],

@@ -1,5 +1,6 @@
-use crate::ChainProposalsResult;
+use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::{Datelike, NaiveDateTime, Utc};
 use contracts::gen::maker_poll_create::maker_poll_create::maker_poll_create;
 use contracts::gen::maker_poll_create::PollCreatedFilter;
@@ -23,59 +24,70 @@ struct Decoder {
     proposalUrl: String,
 }
 
-pub async fn maker_poll_proposals(
-    dao_handler: &dao_handler::Model,
-) -> Result<ChainProposalsResult> {
-    let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-    let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
+pub struct MakerPollHandler;
 
-    let current_block = eth_rpc
-        .get_block_number()
-        .await
-        .context("get_block_number")?
-        .as_u64();
+#[async_trait]
+impl ProposalHandler for MakerPollHandler {
+    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
+        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
-    let from_block = dao_handler.proposals_index;
-    let to_block = if dao_handler.proposals_index as u64
-        + dao_handler.proposals_refresh_speed as u64
-        > current_block
-    {
-        current_block
-    } else {
-        dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-    };
-
-    let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
-
-    let address = decoder
-        .address_create
-        .parse::<Address>()
-        .context("bad address")?;
-
-    let gov_contract = maker_poll_create::new(address, eth_rpc.clone());
-
-    let proposal_events = gov_contract
-        .poll_created_filter()
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("query_with_meta")?;
-
-    let mut result = Vec::new();
-
-    for p in proposal_events.iter() {
-        let p = data_for_proposal(p.clone(), &eth_rpc, &decoder, dao_handler)
+        let current_block = eth_rpc
+            .get_block_number()
             .await
-            .context("data_for_proposal")?;
-        result.push(p);
+            .context("get_block_number")?
+            .as_u64();
+
+        let from_block = dao_handler.proposals_index;
+        let to_block = if dao_handler.proposals_index as u64
+            + dao_handler.proposals_refresh_speed as u64
+            > current_block
+        {
+            current_block
+        } else {
+            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
+        };
+
+        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
+
+        let address = decoder
+            .address_create
+            .parse::<Address>()
+            .context("bad address")?;
+
+        let gov_contract = maker_poll_create::new(address, eth_rpc.clone());
+
+        let proposal_events = gov_contract
+            .poll_created_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("query_with_meta")?;
+
+        let mut result = Vec::new();
+
+        for p in proposal_events.iter() {
+            let p = data_for_proposal(p.clone(), &eth_rpc, &decoder, dao_handler)
+                .await
+                .context("data_for_proposal")?;
+            result.push(p);
+        }
+
+        Ok(ProposalsResult {
+            proposals: result,
+            to_index: Some(to_block as i32),
+        })
     }
 
-    Ok(ChainProposalsResult {
-        proposals: result,
-        to_index: Some(to_block as i32),
-    })
+    fn min_refresh_speed(&self) -> i32 {
+        100
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
+    }
 }
 
 async fn data_for_proposal(

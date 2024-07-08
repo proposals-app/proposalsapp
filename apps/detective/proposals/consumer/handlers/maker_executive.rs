@@ -1,5 +1,6 @@
-use crate::ChainProposalsResult;
+use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use contracts::gen::maker_executive_gov::maker_executive_gov::maker_executive_gov;
 use contracts::gen::maker_executive_gov::LogNoteFilter;
@@ -30,78 +31,89 @@ const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
 const VOTE_SINGLE_ACTION_TOPIC: &str =
     "0xa69beaba00000000000000000000000000000000000000000000000000000000";
 
-pub async fn maker_executive_proposals(
-    dao_handler: &dao_handler::Model,
-) -> Result<ChainProposalsResult> {
-    let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-    let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
+pub struct MakerExecutiveHandler;
 
-    let current_block = eth_rpc
-        .get_block_number()
-        .await
-        .context("get_block_number")?
-        .as_u64();
+#[async_trait]
+impl ProposalHandler for MakerExecutiveHandler {
+    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
+        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
-    let from_block = dao_handler.proposals_index;
-    let to_block = if dao_handler.proposals_index as u64
-        + dao_handler.proposals_refresh_speed as u64
-        > current_block
-    {
-        current_block
-    } else {
-        dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-    };
+        let current_block = eth_rpc
+            .get_block_number()
+            .await
+            .context("get_block_number")?
+            .as_u64();
 
-    let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
+        let from_block = dao_handler.proposals_index;
+        let to_block = if dao_handler.proposals_index as u64
+            + dao_handler.proposals_refresh_speed as u64
+            > current_block
+        {
+            current_block
+        } else {
+            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
+        };
 
-    let address = decoder.address.parse::<Address>().context("bad address")?;
+        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
 
-    let gov_contract = maker_executive_gov::new(address, eth_rpc.clone());
+        let address = decoder.address.parse::<Address>().context("bad address")?;
 
-    let single_spell_events = gov_contract
-        .log_note_filter()
-        .topic0(vec![VOTE_SINGLE_ACTION_TOPIC.parse::<H256>()?])
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("single_spell_events")?;
+        let gov_contract = maker_executive_gov::new(address, eth_rpc.clone());
 
-    let multi_spell_events = gov_contract
-        .log_note_filter()
-        .topic0(vec![VOTE_MULTIPLE_ACTIONS_TOPIC.parse::<H256>()?])
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("multi_spell_events")?;
+        let single_spell_events = gov_contract
+            .log_note_filter()
+            .topic0(vec![VOTE_SINGLE_ACTION_TOPIC.parse::<H256>()?])
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("single_spell_events")?;
 
-    let single_spells = get_single_spell_addresses(single_spell_events, gov_contract.clone())
-        .await
-        .context("get_single_spell_addresses")?;
-    let multi_spells = get_multi_spell_addresses(multi_spell_events)
-        .await
-        .context("get_multi_spell_addresses")?;
+        let multi_spell_events = gov_contract
+            .log_note_filter()
+            .topic0(vec![VOTE_MULTIPLE_ACTIONS_TOPIC.parse::<H256>()?])
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("multi_spell_events")?;
 
-    let spell_addresses: Vec<String> = [single_spells, multi_spells]
-        .concat()
-        .into_iter()
-        .unique()
-        .collect();
+        let single_spells = get_single_spell_addresses(single_spell_events, gov_contract.clone())
+            .await
+            .context("get_single_spell_addresses")?;
+        let multi_spells = get_multi_spell_addresses(multi_spell_events)
+            .await
+            .context("get_multi_spell_addresses")?;
 
-    let mut result = Vec::new();
+        let spell_addresses: Vec<String> = [single_spells, multi_spells]
+            .concat()
+            .into_iter()
+            .unique()
+            .collect();
 
-    for p in spell_addresses.iter() {
-        let p = data_for_proposal(&p.clone(), &decoder, dao_handler).await?;
-        result.push(p);
+        let mut result = Vec::new();
+
+        for p in spell_addresses.iter() {
+            let p = data_for_proposal(&p.clone(), &decoder, dao_handler).await?;
+            result.push(p);
+        }
+
+        Ok(ProposalsResult {
+            proposals: result,
+            to_index: Some(to_block as i32),
+        })
     }
 
-    Ok(ChainProposalsResult {
-        proposals: result,
-        to_index: Some(to_block as i32),
-    })
+    fn min_refresh_speed(&self) -> i32 {
+        100
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
+    }
 }
 
 async fn data_for_proposal(
