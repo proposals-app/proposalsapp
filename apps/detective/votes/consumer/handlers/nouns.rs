@@ -1,8 +1,9 @@
-use crate::{VotesHandler, VotesResult};
+use crate::VotesHandler;
+use crate::VotesResult;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use contracts::gen::frax_alpha_gov::frax_alpha_gov::frax_alpha_gov;
-use contracts::gen::frax_alpha_gov::{VoteCastFilter, VoteCastWithParamsFilter};
+use contracts::gen::nouns_proposals_gov::nouns_proposals_gov::nouns_proposals_gov;
+use contracts::gen::nouns_proposals_gov::VoteCastFilter;
 use ethers::prelude::Http;
 use ethers::prelude::LogMeta;
 use ethers::prelude::Provider;
@@ -11,7 +12,8 @@ use ethers::types::Address;
 use ethers::utils::to_checksum;
 use sea_orm::NotSet;
 use sea_orm::Set;
-use seaorm::{dao_handler, proposal, vote};
+use seaorm::proposal;
+use seaorm::{dao_handler, vote};
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -21,10 +23,10 @@ struct Decoder {
     address: String,
 }
 
-pub struct FraxAlphaHandler;
+pub struct NounsHandler;
 
 #[async_trait]
-impl VotesHandler for FraxAlphaHandler {
+impl VotesHandler for NounsHandler {
     async fn get_proposal_votes(
         &self,
         dao_handler: &dao_handler::Model,
@@ -59,7 +61,7 @@ impl VotesHandler for FraxAlphaHandler {
 
         let address = decoder.address.parse::<Address>().context("bad address")?;
 
-        let gov_contract = frax_alpha_gov::new(address, eth_rpc);
+        let gov_contract = nouns_proposals_gov::new(address, eth_rpc);
 
         let logs = gov_contract
             .vote_cast_filter()
@@ -70,24 +72,10 @@ impl VotesHandler for FraxAlphaHandler {
             .await
             .context("bad query")?;
 
-        let logs_with_params = gov_contract
-            .vote_cast_with_params_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
-            .await
-            .context("bad query")?;
-
         let votes = get_votes(logs.clone(), dao_handler).context("bad votes")?;
 
-        let votes_with_params =
-            get_votes_with_params(logs_with_params.clone(), dao_handler).context("bad votes")?;
-
-        let all_votes = [votes, votes_with_params].concat();
-
         Ok(VotesResult {
-            votes: all_votes,
+            votes,
             to_index: Some(to_block as i32),
         })
     }
@@ -114,39 +102,7 @@ fn get_votes(
             id: NotSet,
             index_created: Set(meta.block_number.as_u64() as i32),
             voter_address: Set(to_checksum(&log.voter, None)),
-            voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
-            block_created: Set(Some(meta.block_number.as_u64() as i32)),
-            choice: Set(match log.support {
-                0 => 1.into(),
-                1 => 0.into(),
-                2 => 2.into(),
-                _ => 2.into(),
-            }),
-            proposal_id: NotSet,
-            proposal_external_id: Set(log.proposal_id.to_string()),
-            dao_id: Set(dao_handler.dao_id.clone()),
-            dao_handler_id: Set(dao_handler.id.clone()),
-            ..Default::default()
-        })
-    }
-
-    Ok(votes)
-}
-
-fn get_votes_with_params(
-    logs: Vec<(VoteCastWithParamsFilter, LogMeta)>,
-    dao_handler: &dao_handler::Model,
-) -> Result<Vec<vote::ActiveModel>> {
-    let voter_logs: Vec<(VoteCastWithParamsFilter, LogMeta)> = logs.into_iter().collect();
-
-    let mut votes: Vec<vote::ActiveModel> = vec![];
-
-    for (log, meta) in voter_logs {
-        votes.push(vote::ActiveModel {
-            id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i32),
-            voter_address: Set(to_checksum(&log.voter, None)),
-            voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
+            voting_power: Set(log.votes.as_u128() as f64),
             block_created: Set(Some(meta.block_number.as_u64() as i32)),
             choice: Set(match log.support {
                 0 => 1.into(),

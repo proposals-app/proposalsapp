@@ -1,5 +1,7 @@
-use crate::ChainVotesResult;
+use crate::VotesHandler;
+use crate::VotesResult;
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use contracts::gen::maker_executive_gov::maker_executive_gov::maker_executive_gov;
 use contracts::gen::maker_executive_gov::LogNoteFilter;
 use ethers::prelude::Http;
@@ -11,6 +13,7 @@ use ethers::utils::to_checksum;
 use itertools::Itertools;
 use sea_orm::NotSet;
 use sea_orm::Set;
+use seaorm::proposal;
 use seaorm::{dao_handler, vote};
 use serde::Deserialize;
 use std::sync::Arc;
@@ -26,83 +29,107 @@ const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
 const VOTE_SINGLE_ACTION_TOPIC: &str =
     "0xa69beaba00000000000000000000000000000000000000000000000000000000";
 
-pub async fn maker_executive_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesResult> {
-    let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-    let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
+pub struct MakerExecutiveHandler;
 
-    let current_block = eth_rpc
-        .get_block_number()
-        .await
-        .context("bad current block")?
-        .as_u64();
-
-    let from_block = dao_handler.votes_index as u64;
-    let to_block = if dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
-        > current_block
-    {
-        current_block
-    } else {
-        dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
-    };
-
-    let decoder: Decoder =
-        serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
-
-    let address = decoder.address.parse::<Address>().context("bad address")?;
-
-    let gov_contract = maker_executive_gov::new(address, eth_rpc);
-
-    let single_spell_events = gov_contract
-        .log_note_filter()
-        .topic0(vec![VOTE_SINGLE_ACTION_TOPIC.parse::<H256>()?])
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("bad query")?;
-
-    let multi_spell_events = gov_contract
-        .log_note_filter()
-        .topic0(vec![VOTE_MULTIPLE_ACTIONS_TOPIC.parse::<H256>()?])
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("bad query")?;
-
-    let single_spell_casts = get_single_spell_addresses(single_spell_events, gov_contract.clone())
-        .await
-        .context("bad spells")?;
-    let multi_spell_casts = get_multi_spell_addresses(multi_spell_events)
-        .await
-        .context("bad spell")?;
-
-    let spell_casts: Vec<SpellCast> = [single_spell_casts, multi_spell_casts]
-        .concat()
-        .into_iter()
-        //filter out some invalid spells
-        .filter(|sc| {
-            !([
-                "0x0000000000000000000000000000000000000000",
-                "0x0000000000000000000000000000000000000001",
-                "0x0000000000000000000000000000000000000002",
-                "0x0000000000000000000000000000000000000020",
-            ]
-            .contains(&sc.spell.as_str()))
+#[async_trait]
+impl VotesHandler for MakerExecutiveHandler {
+    async fn get_proposal_votes(
+        &self,
+        dao_handler: &dao_handler::Model,
+        proposal: &proposal::Model,
+    ) -> Result<VotesResult> {
+        Ok(VotesResult {
+            votes: vec![],
+            to_index: None,
         })
-        .unique()
-        .collect();
+    }
+    async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
+        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
+        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
-    let votes = get_votes(spell_casts.clone(), &dao_handler.clone())
-        .await
-        .context("bad votes")?;
+        let current_block = eth_rpc
+            .get_block_number()
+            .await
+            .context("bad current block")?
+            .as_u64();
 
-    Ok(ChainVotesResult {
-        votes,
-        to_index: Some(to_block as i32),
-    })
+        let from_block = dao_handler.votes_index as u64;
+        let to_block = if dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
+            > current_block
+        {
+            current_block
+        } else {
+            dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
+        };
+
+        let decoder: Decoder =
+            serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
+
+        let address = decoder.address.parse::<Address>().context("bad address")?;
+
+        let gov_contract = maker_executive_gov::new(address, eth_rpc);
+
+        let single_spell_events = gov_contract
+            .log_note_filter()
+            .topic0(vec![VOTE_SINGLE_ACTION_TOPIC.parse::<H256>()?])
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("bad query")?;
+
+        let multi_spell_events = gov_contract
+            .log_note_filter()
+            .topic0(vec![VOTE_MULTIPLE_ACTIONS_TOPIC.parse::<H256>()?])
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("bad query")?;
+
+        let single_spell_casts =
+            get_single_spell_addresses(single_spell_events, gov_contract.clone())
+                .await
+                .context("bad spells")?;
+        let multi_spell_casts = get_multi_spell_addresses(multi_spell_events)
+            .await
+            .context("bad spell")?;
+
+        let spell_casts: Vec<SpellCast> = [single_spell_casts, multi_spell_casts]
+            .concat()
+            .into_iter()
+            //filter out some invalid spells
+            .filter(|sc| {
+                !([
+                    "0x0000000000000000000000000000000000000000",
+                    "0x0000000000000000000000000000000000000001",
+                    "0x0000000000000000000000000000000000000002",
+                    "0x0000000000000000000000000000000000000020",
+                ]
+                .contains(&sc.spell.as_str()))
+            })
+            .unique()
+            .collect();
+
+        let votes = get_votes(spell_casts.clone(), &dao_handler.clone())
+            .await
+            .context("bad votes")?;
+
+        Ok(VotesResult {
+            votes,
+            to_index: Some(to_block as i32),
+        })
+    }
+
+    fn min_refresh_speed(&self) -> i32 {
+        100
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
+    }
 }
 
 async fn get_votes(

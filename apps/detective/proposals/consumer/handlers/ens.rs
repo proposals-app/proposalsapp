@@ -21,10 +21,10 @@ struct Decoder {
     proposalUrl: String,
 }
 
-pub struct ENSHandler;
+pub struct EnsHandler;
 
 #[async_trait]
-impl ProposalHandler for ENSHandler {
+impl ProposalHandler for EnsHandler {
     async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());

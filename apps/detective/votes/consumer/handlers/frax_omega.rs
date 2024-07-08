@@ -1,5 +1,6 @@
-use crate::ChainVotesResult;
+use crate::{VotesHandler, VotesResult};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use contracts::gen::frax_omega_gov::frax_omega_gov::frax_omega_gov;
 use contracts::gen::frax_omega_gov::{VoteCastFilter, VoteCastWithParamsFilter};
 use ethers::prelude::Http;
@@ -10,7 +11,7 @@ use ethers::types::Address;
 use ethers::utils::to_checksum;
 use sea_orm::NotSet;
 use sea_orm::Set;
-use seaorm::{dao_handler, vote};
+use seaorm::{dao_handler, proposal, vote};
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -20,61 +21,84 @@ struct Decoder {
     address: String,
 }
 
-pub async fn frax_omega_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesResult> {
-    let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-    let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
+pub struct FraxOmegaHandler;
 
-    let current_block = eth_rpc
-        .get_block_number()
-        .await
-        .context("bad current block")?
-        .as_u64();
+#[async_trait]
+impl VotesHandler for FraxOmegaHandler {
+    async fn get_proposal_votes(
+        &self,
+        dao_handler: &dao_handler::Model,
+        proposal: &proposal::Model,
+    ) -> Result<VotesResult> {
+        Ok(VotesResult {
+            votes: vec![],
+            to_index: None,
+        })
+    }
+    async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
+        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
+        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
-    let from_block = dao_handler.votes_index as u64;
-    let to_block = if dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
-        > current_block
-    {
-        current_block
-    } else {
-        dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
-    };
+        let current_block = eth_rpc
+            .get_block_number()
+            .await
+            .context("bad current block")?
+            .as_u64();
 
-    let decoder: Decoder =
-        serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
+        let from_block = dao_handler.votes_index as u64;
+        let to_block = if dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
+            > current_block
+        {
+            current_block
+        } else {
+            dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
+        };
 
-    let address = decoder.address.parse::<Address>().context("bad address")?;
+        let decoder: Decoder =
+            serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
 
-    let gov_contract = frax_omega_gov::new(address, eth_rpc);
+        let address = decoder.address.parse::<Address>().context("bad address")?;
 
-    let logs = gov_contract
-        .vote_cast_filter()
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("bad query")?;
+        let gov_contract = frax_omega_gov::new(address, eth_rpc);
 
-    let logs_with_params = gov_contract
-        .vote_cast_with_params_filter()
-        .from_block(from_block)
-        .to_block(to_block)
-        .address(address.into())
-        .query_with_meta()
-        .await
-        .context("bad query")?;
+        let logs = gov_contract
+            .vote_cast_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("bad query")?;
 
-    let votes = get_votes(logs.clone(), dao_handler).context("bad votes")?;
+        let logs_with_params = gov_contract
+            .vote_cast_with_params_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("bad query")?;
 
-    let votes_with_params =
-        get_votes_with_params(logs_with_params.clone(), dao_handler).context("bad votes")?;
+        let votes = get_votes(logs.clone(), dao_handler).context("bad votes")?;
 
-    let all_votes = [votes, votes_with_params].concat();
+        let votes_with_params =
+            get_votes_with_params(logs_with_params.clone(), dao_handler).context("bad votes")?;
 
-    Ok(ChainVotesResult {
-        votes: all_votes,
-        to_index: Some(to_block as i32),
-    })
+        let all_votes = [votes, votes_with_params].concat();
+
+        Ok(VotesResult {
+            votes: all_votes,
+            to_index: Some(to_block as i32),
+        })
+    }
+
+    fn min_refresh_speed(&self) -> i32 {
+        100
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
+    }
 }
 
 fn get_votes(

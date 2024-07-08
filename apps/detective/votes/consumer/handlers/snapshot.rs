@@ -1,5 +1,6 @@
-use crate::ChainVotesResult;
+use crate::{VotesHandler, VotesResult};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao_handler, proposal, vote};
@@ -32,15 +33,26 @@ struct Decoder {
     snapshot_space: String,
 }
 
-pub async fn snapshot_votes(
-    dao_handler: &dao_handler::Model,
-    proposal: &proposal::Model,
-) -> Result<ChainVotesResult> {
-    let decoder: Decoder =
-        serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
+pub struct SnapshotHandler;
 
-    let graphql_query = format!(
-        r#"
+#[async_trait]
+impl VotesHandler for SnapshotHandler {
+    async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
+        Ok(VotesResult {
+            votes: vec![],
+            to_index: None,
+        })
+    }
+    async fn get_proposal_votes(
+        &self,
+        dao_handler: &dao_handler::Model,
+        proposal: &proposal::Model,
+    ) -> Result<VotesResult> {
+        let decoder: Decoder =
+            serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
+
+        let graphql_query = format!(
+            r#"
         {{
             votes (
                 first: {},
@@ -61,42 +73,51 @@ pub async fn snapshot_votes(
                 created
             }}
         }}"#,
-        proposal.votes_refresh_speed,
-        proposal.external_id,
-        decoder.snapshot_space,
-        proposal.votes_index
-    );
+            proposal.votes_refresh_speed,
+            proposal.external_id,
+            decoder.snapshot_space,
+            proposal.votes_index
+        );
 
-    let graphql_response = reqwest::Client::new()
-        .get("https://hub.snapshot.org/graphql".to_string())
-        .json(&serde_json::json!({"query":graphql_query}))
-        .send()
-        .await?
-        .json::<GraphQLResponse>()
-        .await?;
+        let graphql_response = reqwest::Client::new()
+            .get("https://hub.snapshot.org/graphql".to_string())
+            .json(&serde_json::json!({"query":graphql_query}))
+            .send()
+            .await?
+            .json::<GraphQLResponse>()
+            .await?;
 
-    if let Some(data) = graphql_response.data {
-        let parsed_votes = parse_votes(data.votes, proposal).await;
+        if let Some(data) = graphql_response.data {
+            let parsed_votes = parse_votes(data.votes, proposal).await;
 
-        let highest_index_created = parsed_votes
-            .iter()
-            .map(|vote| vote.index_created.clone().take())
-            .max()
-            .unwrap_or_default();
+            let highest_index_created = parsed_votes
+                .iter()
+                .map(|vote| vote.index_created.clone().take())
+                .max()
+                .unwrap_or_default();
 
-        Ok({
-            ChainVotesResult {
-                votes: parsed_votes,
-                to_index: highest_index_created,
-            }
-        })
-    } else {
-        Ok({
-            ChainVotesResult {
-                votes: vec![],
-                to_index: None,
-            }
-        })
+            Ok({
+                VotesResult {
+                    votes: parsed_votes,
+                    to_index: highest_index_created,
+                }
+            })
+        } else {
+            Ok({
+                VotesResult {
+                    votes: vec![],
+                    to_index: None,
+                }
+            })
+        }
+    }
+
+    fn min_refresh_speed(&self) -> i32 {
+        10
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1_000
     }
 }
 

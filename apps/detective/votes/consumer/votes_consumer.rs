@@ -20,41 +20,28 @@ use seaorm::{dao_handler, proposal, vote, voter};
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use tokio::sync::Notify;
-use tracing::{error, info, instrument, warn}; // Added error for better logging
+use tracing::{error, info, instrument, warn};
 use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
 use utils::tracing::setup_tracing;
 
 use utils::types::{VotesJob, VotesResponse};
+mod handlers;
 
-mod handlers {
-    pub mod aave_v2;
-    pub mod aave_v3_avalanche;
-    pub mod aave_v3_mainnet;
-    pub mod aave_v3_polygon;
-    pub mod arbitrum_core;
-    pub mod arbitrum_treasury;
-    pub mod compound;
-    pub mod dydx;
-    pub mod ens;
-    pub mod frax_alpha;
-    pub mod frax_omega;
-    pub mod gitcoin_v1;
-    pub mod gitcoin_v2;
-    pub mod hop;
-    pub mod interest_protocol;
-    pub mod maker_executive;
-    pub mod maker_poll;
-    pub mod maker_poll_arbitrum;
-    pub mod nouns_proposals;
-    pub mod optimism;
-    pub mod snapshot;
-    pub mod uniswap;
-    pub mod zerox_treasury;
-}
-
-pub struct ChainVotesResult {
+pub struct VotesResult {
     votes: Vec<vote::ActiveModel>,
     to_index: Option<i32>,
+}
+
+#[async_trait]
+pub trait VotesHandler: Send + Sync {
+    async fn get_proposal_votes(
+        &self,
+        dao_handler: &dao_handler::Model,
+        proposal: &proposal::Model,
+    ) -> Result<VotesResult>;
+    async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult>;
+    fn min_refresh_speed(&self) -> i32;
+    fn max_refresh_speed(&self) -> i32;
 }
 
 const QUEUE_NAME: &str = "detective:votes";
@@ -121,13 +108,7 @@ impl AsyncConsumer for VotesConsumer {
         content: Vec<u8>,
     ) {
         let job_str = String::from_utf8(content).ok();
-        let job: VotesJob = match serde_json::from_str(job_str.unwrap().as_str()) {
-            Ok(job) => job,
-            Err(e) => {
-                error!("Failed to parse job: {:?}", e);
-                return;
-            }
-        };
+        let job: VotesJob = serde_json::from_str(job_str.unwrap().as_str()).unwrap();
 
         let _ = match run(job.clone()).await {
             Ok(_) => {
@@ -151,7 +132,7 @@ impl AsyncConsumer for VotesConsumer {
                 {
                     error!("Failed to nack message: {:?}", err);
                 }
-                warn!("votes_consumer error: {:?}", e);
+                warn!("proposals_consumer error: {:?}", e);
             }
         };
     }
@@ -173,6 +154,8 @@ async fn run(job: VotesJob) -> Result<()> {
         .context("DB error")?
         .context("DAO not found")?;
 
+    let handler = handlers::get_handler(&dao_handler.handler_type);
+
     match job.proposal_id.clone() {
         Some(proposal_id) => {
             let proposal = proposal::Entity::find()
@@ -182,8 +165,8 @@ async fn run(job: VotesJob) -> Result<()> {
                 .context("DB error")?
                 .context("Proposal not found")?;
 
-            let ChainVotesResult { votes, to_index: _ } =
-                get_proposal_votes(&dao_handler, &proposal).await?;
+            let VotesResult { votes, to_index: _ } =
+                handler.get_proposal_votes(&dao_handler, &proposal).await?;
 
             store_voters(&votes, &db).await?;
 
@@ -206,7 +189,7 @@ async fn run(job: VotesJob) -> Result<()> {
             Ok(())
         }
         None => {
-            let ChainVotesResult { votes, to_index } = get_dao_votes(&dao_handler).await?;
+            let VotesResult { votes, to_index } = handler.get_dao_votes(&dao_handler).await?;
 
             store_voters(&votes, &db).await?;
 
@@ -247,31 +230,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
         .context("DB error")?
         .context("DAO not found")?;
 
-    let min_refresh_speed = match dao_handler.handler_type {
-        DaoHandlerEnum::AaveV2Mainnet => 100,
-        DaoHandlerEnum::AaveV3Mainnet => 100,
-        DaoHandlerEnum::AaveV3PolygonPos => 100,
-        DaoHandlerEnum::AaveV3Avalanche => 100,
-        DaoHandlerEnum::CompoundMainnet => 100,
-        DaoHandlerEnum::UniswapMainnet => 100,
-        DaoHandlerEnum::EnsMainnet => 100,
-        DaoHandlerEnum::GitcoinMainnet => 100,
-        DaoHandlerEnum::GitcoinV2Mainnet => 100,
-        DaoHandlerEnum::HopMainnet => 100,
-        DaoHandlerEnum::DydxMainnet => 100,
-        DaoHandlerEnum::InterestProtocolMainnet => 100,
-        DaoHandlerEnum::ZeroxProtocolMainnet => 100,
-        DaoHandlerEnum::FraxAlphaMainnet => 100,
-        DaoHandlerEnum::FraxOmegaMainnet => 100,
-        DaoHandlerEnum::NounsProposalsMainnet => 100,
-        DaoHandlerEnum::MakerExecutiveMainnet => 100,
-        DaoHandlerEnum::MakerPollMainnet => 100,
-        DaoHandlerEnum::MakerPollArbitrum => 100,
-        DaoHandlerEnum::OpOptimism => 100,
-        DaoHandlerEnum::ArbCoreArbitrum => 100,
-        DaoHandlerEnum::ArbTreasuryArbitrum => 100,
-        DaoHandlerEnum::Snapshot => 10,
-    };
+    let handler = handlers::get_handler(&dao_handler.handler_type);
 
     match job.proposal_id.clone() {
         Some(proposal_id) => {
@@ -284,8 +243,8 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
 
             let mut new_refresh_speed = (proposal.votes_refresh_speed as f32 * 0.5) as i32;
 
-            if new_refresh_speed < min_refresh_speed {
-                new_refresh_speed = min_refresh_speed;
+            if new_refresh_speed < handler.min_refresh_speed() {
+                new_refresh_speed = handler.min_refresh_speed();
             }
 
             info!(
@@ -307,8 +266,8 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
         None => {
             let mut new_refresh_speed = (dao_handler.votes_refresh_speed as f32 * 0.5) as i32;
 
-            if new_refresh_speed < min_refresh_speed {
-                new_refresh_speed = min_refresh_speed;
+            if new_refresh_speed < handler.min_refresh_speed() {
+                new_refresh_speed = handler.min_refresh_speed();
             }
 
             info!(
@@ -346,31 +305,7 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
         .context("DB error")?
         .context("DAO not found")?;
 
-    let max_refresh_speed = match dao_handler.handler_type {
-        DaoHandlerEnum::AaveV2Mainnet => 1_000_000,
-        DaoHandlerEnum::AaveV3Mainnet => 1_000_000,
-        DaoHandlerEnum::AaveV3PolygonPos => 1_000_000,
-        DaoHandlerEnum::AaveV3Avalanche => 1_000_000,
-        DaoHandlerEnum::CompoundMainnet => 1_000_000,
-        DaoHandlerEnum::UniswapMainnet => 1_000_000,
-        DaoHandlerEnum::EnsMainnet => 1_000_000,
-        DaoHandlerEnum::GitcoinMainnet => 1_000_000,
-        DaoHandlerEnum::GitcoinV2Mainnet => 1_000_000,
-        DaoHandlerEnum::HopMainnet => 1_000_000,
-        DaoHandlerEnum::DydxMainnet => 1_000_000,
-        DaoHandlerEnum::InterestProtocolMainnet => 1_000_000,
-        DaoHandlerEnum::ZeroxProtocolMainnet => 1_000_000,
-        DaoHandlerEnum::FraxAlphaMainnet => 1_000_000,
-        DaoHandlerEnum::FraxOmegaMainnet => 1_000_000,
-        DaoHandlerEnum::NounsProposalsMainnet => 1_000_000,
-        DaoHandlerEnum::MakerExecutiveMainnet => 1_000_000,
-        DaoHandlerEnum::MakerPollMainnet => 1_000_000,
-        DaoHandlerEnum::MakerPollArbitrum => 1_000_000,
-        DaoHandlerEnum::OpOptimism => 1_000_000,
-        DaoHandlerEnum::ArbCoreArbitrum => 1_000_000,
-        DaoHandlerEnum::ArbTreasuryArbitrum => 1_000_000,
-        DaoHandlerEnum::Snapshot => 1_000,
-    };
+    let handler = handlers::get_handler(&dao_handler.handler_type);
 
     match job.proposal_id.clone() {
         Some(proposal_id) => {
@@ -383,8 +318,8 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
 
             let mut new_refresh_speed = (proposal.votes_refresh_speed as f32 * 1.2) as i32;
 
-            if new_refresh_speed > max_refresh_speed {
-                new_refresh_speed = max_refresh_speed;
+            if new_refresh_speed > handler.max_refresh_speed() {
+                new_refresh_speed = handler.max_refresh_speed();
             }
 
             proposal::Entity::update(proposal::ActiveModel {
@@ -401,8 +336,8 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
         None => {
             let mut new_refresh_speed = (dao_handler.votes_refresh_speed as f32 * 1.2) as i32;
 
-            if new_refresh_speed > max_refresh_speed {
-                new_refresh_speed = max_refresh_speed;
+            if new_refresh_speed > handler.max_refresh_speed() {
+                new_refresh_speed = handler.max_refresh_speed();
             }
 
             dao_handler::Entity::update(dao_handler::ActiveModel {
@@ -789,135 +724,4 @@ async fn store_proposal_votes(
         inserted_votes,
         updated_votes,
     })
-}
-
-#[instrument]
-async fn get_dao_votes(dao_handler: &dao_handler::Model) -> Result<ChainVotesResult> {
-    let votes = match dao_handler.handler_type {
-        DaoHandlerEnum::Snapshot => todo!(),
-        DaoHandlerEnum::AaveV2Mainnet => handlers::aave_v2::aave_v2_votes(dao_handler)
-            .await
-            .context("aave_v2_votes error")?,
-        DaoHandlerEnum::AaveV3Mainnet => {
-            handlers::aave_v3_mainnet::aave_v3_mainnet_votes(dao_handler)
-                .await
-                .context("aave_v3_mainnet_votes error")?
-        }
-        DaoHandlerEnum::AaveV3PolygonPos => {
-            handlers::aave_v3_polygon::aave_v3_polygon_votes(dao_handler)
-                .await
-                .context("aave_v3_polygon_votes error")?
-        }
-        DaoHandlerEnum::AaveV3Avalanche => {
-            handlers::aave_v3_avalanche::aave_v3_avalanche_votes(dao_handler)
-                .await
-                .context("aave_v3_avalanche_votes error")?
-        }
-        DaoHandlerEnum::CompoundMainnet => handlers::compound::compound_votes(dao_handler)
-            .await
-            .context("compound_votes error")?,
-        DaoHandlerEnum::UniswapMainnet => handlers::uniswap::uniswap_votes(dao_handler)
-            .await
-            .context("uniswap_votes error")?,
-        DaoHandlerEnum::EnsMainnet => handlers::ens::ens_votes(dao_handler)
-            .await
-            .context("ens_votes error")?,
-        DaoHandlerEnum::GitcoinMainnet => handlers::gitcoin_v1::gitcoin_v1_votes(dao_handler)
-            .await
-            .context("gitcoin_v1_votes error")?,
-        DaoHandlerEnum::GitcoinV2Mainnet => handlers::gitcoin_v2::gitcoin_v2_votes(dao_handler)
-            .await
-            .context("gitcoin_v2_votes error")?,
-        DaoHandlerEnum::HopMainnet => handlers::hop::hop_votes(dao_handler)
-            .await
-            .context("hop_votes error")?,
-        DaoHandlerEnum::DydxMainnet => handlers::dydx::dydx_votes(dao_handler)
-            .await
-            .context("dydx_votes error")?,
-        DaoHandlerEnum::InterestProtocolMainnet => {
-            handlers::interest_protocol::interest_protocol_votes(dao_handler)
-                .await
-                .context("interest_protocol_votes error")?
-        }
-        DaoHandlerEnum::ZeroxProtocolMainnet => {
-            handlers::zerox_treasury::zerox_treasury_votes(dao_handler)
-                .await
-                .context("zerox_treasury_votes error")?
-        }
-        DaoHandlerEnum::FraxAlphaMainnet => handlers::frax_alpha::frax_alpha_votes(dao_handler)
-            .await
-            .context("frax_alpha_votes error")?,
-        DaoHandlerEnum::FraxOmegaMainnet => handlers::frax_omega::frax_omega_votes(dao_handler)
-            .await
-            .context("frax_omega_votes error")?,
-        DaoHandlerEnum::NounsProposalsMainnet => {
-            handlers::nouns_proposals::nouns_proposals_votes(dao_handler)
-                .await
-                .context("nouns_proposals_votes error")?
-        }
-        DaoHandlerEnum::MakerExecutiveMainnet => {
-            handlers::maker_executive::maker_executive_votes(dao_handler)
-                .await
-                .context("maker_executive_votes error")?
-        }
-        DaoHandlerEnum::MakerPollMainnet => handlers::maker_poll::maker_poll_votes(dao_handler)
-            .await
-            .context("maker_poll_votes error")?,
-        DaoHandlerEnum::MakerPollArbitrum => {
-            handlers::maker_poll_arbitrum::maker_poll_arbitrum_votes(dao_handler)
-                .await
-                .context("maker_poll_arbitrum_votes error")?
-        }
-        DaoHandlerEnum::OpOptimism => handlers::optimism::optimism_votes(dao_handler)
-            .await
-            .context("optimism_votes error")?,
-        DaoHandlerEnum::ArbCoreArbitrum => {
-            handlers::arbitrum_core::arbitrum_core_votes(dao_handler)
-                .await
-                .context("arbitrum_core_votes error")?
-        }
-        DaoHandlerEnum::ArbTreasuryArbitrum => {
-            handlers::arbitrum_treasury::arbitrum_treasury_votes(dao_handler)
-                .await
-                .context("arbitrum_treasury_votes error")?
-        }
-    };
-
-    Ok(votes)
-}
-
-#[instrument]
-async fn get_proposal_votes(
-    dao_handler: &dao_handler::Model,
-    proposal: &proposal::Model,
-) -> Result<ChainVotesResult> {
-    let votes = match dao_handler.handler_type {
-        DaoHandlerEnum::Snapshot => handlers::snapshot::snapshot_votes(dao_handler, proposal)
-            .await
-            .context("snapshot_votes error")?,
-        DaoHandlerEnum::AaveV2Mainnet => todo!(),
-        DaoHandlerEnum::AaveV3Mainnet => todo!(),
-        DaoHandlerEnum::AaveV3PolygonPos => todo!(),
-        DaoHandlerEnum::AaveV3Avalanche => todo!(),
-        DaoHandlerEnum::CompoundMainnet => todo!(),
-        DaoHandlerEnum::UniswapMainnet => todo!(),
-        DaoHandlerEnum::EnsMainnet => todo!(),
-        DaoHandlerEnum::GitcoinMainnet => todo!(),
-        DaoHandlerEnum::GitcoinV2Mainnet => todo!(),
-        DaoHandlerEnum::HopMainnet => todo!(),
-        DaoHandlerEnum::DydxMainnet => todo!(),
-        DaoHandlerEnum::InterestProtocolMainnet => todo!(),
-        DaoHandlerEnum::ZeroxProtocolMainnet => todo!(),
-        DaoHandlerEnum::FraxAlphaMainnet => todo!(),
-        DaoHandlerEnum::FraxOmegaMainnet => todo!(),
-        DaoHandlerEnum::NounsProposalsMainnet => todo!(),
-        DaoHandlerEnum::MakerExecutiveMainnet => todo!(),
-        DaoHandlerEnum::MakerPollMainnet => todo!(),
-        DaoHandlerEnum::MakerPollArbitrum => todo!(),
-        DaoHandlerEnum::OpOptimism => todo!(),
-        DaoHandlerEnum::ArbCoreArbitrum => todo!(),
-        DaoHandlerEnum::ArbTreasuryArbitrum => todo!(),
-    };
-
-    Ok(votes)
 }

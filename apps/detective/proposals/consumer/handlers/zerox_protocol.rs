@@ -22,10 +22,10 @@ struct Decoder {
     proposalUrl: String,
 }
 
-pub struct ZeroXTreasuryHandler;
+pub struct ZeroxProtocolHandler;
 
 #[async_trait]
-impl ProposalHandler for ZeroXTreasuryHandler {
+impl ProposalHandler for ZeroxProtocolHandler {
     async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
