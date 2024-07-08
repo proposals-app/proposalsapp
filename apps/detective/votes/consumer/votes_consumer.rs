@@ -148,7 +148,7 @@ async fn run(job: VotesJob) -> Result<()> {
     let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
 
     let dao_handler = dao_handler::Entity::find()
-        .filter(dao_handler::Column::Id.eq(job.dao_handler_id.clone()))
+        .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(&db)
         .await
         .context("DB error")?
@@ -156,7 +156,7 @@ async fn run(job: VotesJob) -> Result<()> {
 
     let handler = handlers::get_handler(&dao_handler.handler_type);
 
-    match job.proposal_id.clone() {
+    match job.proposal_id {
         Some(proposal_id) => {
             let proposal = proposal::Entity::find()
                 .filter(proposal::Column::Id.eq(proposal_id))
@@ -181,8 +181,8 @@ async fn run(job: VotesJob) -> Result<()> {
                 inserted_votes,
                 updated_votes,
                 new_index,
-                dao_handler_id: dao_handler.id.into(),
-                proposal_id: Some(proposal.id.into()),
+                dao_handler_id: dao_handler.id,
+                proposal_id: Some(proposal.id),
             };
 
             info!("{:?}", response);
@@ -204,7 +204,7 @@ async fn run(job: VotesJob) -> Result<()> {
                 inserted_votes,
                 updated_votes,
                 new_index,
-                dao_handler_id: dao_handler.id.into(),
+                dao_handler_id: dao_handler.id,
                 proposal_id: None,
             };
 
@@ -224,7 +224,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
     let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
 
     let dao_handler = dao_handler::Entity::find()
-        .filter(dao_handler::Column::Id.eq(job.dao_handler_id.clone()))
+        .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(&db)
         .await
         .context("DB error")?
@@ -232,7 +232,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
 
     let handler = handlers::get_handler(&dao_handler.handler_type);
 
-    match job.proposal_id.clone() {
+    match job.proposal_id {
         Some(proposal_id) => {
             let proposal = proposal::Entity::find()
                 .filter(proposal::Column::Id.eq(proposal_id))
@@ -253,7 +253,7 @@ async fn decrease_refresh_speed(job: VotesJob) -> Result<()> {
             );
 
             proposal::Entity::update(proposal::ActiveModel {
-                id: Set(proposal.id.clone()),
+                id: Set(proposal.id),
                 votes_refresh_speed: Set(new_refresh_speed),
                 ..Default::default()
             })
@@ -299,7 +299,7 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
     let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
 
     let dao_handler = dao_handler::Entity::find()
-        .filter(dao_handler::Column::Id.eq(job.dao_handler_id.clone()))
+        .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(&db)
         .await
         .context("DB error")?
@@ -307,7 +307,7 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
 
     let handler = handlers::get_handler(&dao_handler.handler_type);
 
-    match job.proposal_id.clone() {
+    match job.proposal_id {
         Some(proposal_id) => {
             let proposal = proposal::Entity::find()
                 .filter(proposal::Column::Id.eq(proposal_id))
@@ -323,7 +323,7 @@ async fn increase_refresh_speed(job: VotesJob) -> Result<()> {
             }
 
             proposal::Entity::update(proposal::ActiveModel {
-                id: Set(proposal.id.clone()),
+                id: Set(proposal.id),
                 votes_refresh_speed: Set(new_refresh_speed),
                 ..Default::default()
             })
@@ -434,7 +434,7 @@ async fn update_dao_index(
     }
 
     dao_handler::Entity::update(dao_handler::ActiveModel {
-        id: Set(dao_handler.id.clone()),
+        id: Set(dao_handler.id),
         votes_index: Set(new_index - 3600),
         ..Default::default()
     })
@@ -463,9 +463,9 @@ async fn update_proposal_index(
         && parsed_votes.is_empty();
 
     proposal::Entity::update(proposal::ActiveModel {
-        id: Set(proposal.id.clone()),
+        id: Set(proposal.id),
         votes_index: Set(*new_index - 3600),
-        votes_fetched: Set(fetched_votes.into()),
+        votes_fetched: Set(fetched_votes),
         ..Default::default()
     })
     .exec(db)
@@ -543,7 +543,7 @@ async fn store_dao_votes(
         | DaoHandlerEnum::ArbTreasuryArbitrum
         | DaoHandlerEnum::MakerExecutiveMainnet
         | DaoHandlerEnum::MakerPollMainnet
-        | DaoHandlerEnum::Snapshot => dao_handler.id.clone(),
+        | DaoHandlerEnum::Snapshot => dao_handler.id,
         DaoHandlerEnum::AaveV3PolygonPos => {
             dao_handler::Entity::find()
                 .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnum::AaveV3Mainnet))
@@ -600,7 +600,7 @@ async fn store_dao_votes(
     let proposal_map: HashMap<String, String> = proposals
         .clone()
         .into_iter()
-        .map(|p| (p.external_id, p.id.clone().into()))
+        .map(|p| (p.external_id, p.id.into()))
         .collect();
 
     let mut votes_to_process: Vec<vote::ActiveModel> = vec![];

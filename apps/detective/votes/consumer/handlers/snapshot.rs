@@ -37,7 +37,7 @@ pub struct SnapshotHandler;
 
 #[async_trait]
 impl VotesHandler for SnapshotHandler {
-    async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
+    async fn get_dao_votes(&self, _dao_handler: &dao_handler::Model) -> Result<VotesResult> {
         Ok(VotesResult {
             votes: vec![],
             to_index: None,
@@ -147,10 +147,10 @@ async fn parse_votes(
             )
             .expect("can not create timestart")
             .into()),
-            proposal_id: Set(proposal.id.clone()),
+            proposal_id: Set(proposal.id),
             proposal_external_id: Set(proposal.external_id.clone()),
-            dao_handler_id: Set(proposal.dao_handler_id.clone()),
-            dao_id: Set(proposal.dao_id.clone()),
+            dao_handler_id: Set(proposal.dao_handler_id),
+            dao_id: Set(proposal.dao_id),
         };
 
         parsed_votes.push(vote);

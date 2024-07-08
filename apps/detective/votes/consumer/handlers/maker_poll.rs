@@ -31,8 +31,8 @@ pub struct MakerPollHandler;
 impl VotesHandler for MakerPollHandler {
     async fn get_proposal_votes(
         &self,
-        dao_handler: &dao_handler::Model,
-        proposal: &proposal::Model,
+        _dao_handler: &dao_handler::Model,
+        _proposal: &proposal::Model,
     ) -> Result<VotesResult> {
         Ok(VotesResult {
             votes: vec![],
@@ -116,8 +116,8 @@ async fn get_votes(
             choice: Set(options.into()),
             proposal_id: NotSet,
             proposal_external_id: Set(log.poll_id.to_string()),
-            dao_id: Set(dao_handler.dao_id.clone()),
-            dao_handler_id: Set(dao_handler.id.clone()),
+            dao_id: Set(dao_handler.dao_id),
+            dao_handler_id: Set(dao_handler.id),
             ..Default::default()
         })
     }

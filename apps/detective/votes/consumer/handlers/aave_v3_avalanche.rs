@@ -29,8 +29,8 @@ pub struct AaveV3AvalancheHandler;
 impl VotesHandler for AaveV3AvalancheHandler {
     async fn get_proposal_votes(
         &self,
-        dao_handler: &dao_handler::Model,
-        proposal: &proposal::Model,
+        _dao_handler: &dao_handler::Model,
+        _proposal: &proposal::Model,
     ) -> Result<VotesResult> {
         Ok(VotesResult {
             votes: vec![],
@@ -113,8 +113,8 @@ fn get_votes(
             }),
             proposal_id: NotSet,
             proposal_external_id: Set(log.proposal_id.to_string()),
-            dao_id: Set(dao_handler.dao_id.clone()),
-            dao_handler_id: Set(dao_handler.id.clone()),
+            dao_id: Set(dao_handler.dao_id),
+            dao_handler_id: Set(dao_handler.id),
             ..Default::default()
         })
     }
