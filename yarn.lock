@@ -2677,7 +2677,7 @@ __metadata:
     ethers: "npm:6.13.1"
     input-otp: "npm:^1.2.4"
     lucia: "npm:3.2.0"
-    lucide-react: "npm:^0.401.0"
+    lucide-react: "npm:^0.402.0"
     moment: "npm:^2.30.1"
     next: "npm:14.2.4"
     next-themes: "npm:^0.3.0"
@@ -2686,7 +2686,7 @@ __metadata:
     pg: "npm:^8.12.0"
     pino-pretty: "npm:11.2.1"
     postcss: "npm:8.4.39"
-    posthog-js: "npm:^1.144.2"
+    posthog-js: "npm:^1.145.0"
     postmark: "npm:^4.0.4"
     prettier: "npm:^3.3.2"
     prettier-plugin-tailwindcss: "npm:^0.6.5"
@@ -2707,7 +2707,7 @@ __metadata:
     typescript: "npm:5.5.3"
     ua-parser-js: "npm:^1.0.38"
     vaul: "npm:^0.9.1"
-    viem: "npm:2.17.2"
+    viem: "npm:2.17.3"
     wagmi: "npm:2.10.9"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.23.8"
@@ -2724,7 +2724,7 @@ __metadata:
     dotenv: "npm:^16.4.5"
     kysely: "npm:^0.27.4"
     kysely-codegen: "npm:^0.15.0"
-    kysely-ctl: "npm:^0.8.9"
+    kysely-ctl: "npm:^0.8.10"
     pg: "npm:^8.12.0"
     typescript: "npm:^5.5.3"
   languageName: unknown
@@ -2926,7 +2926,7 @@ __metadata:
     ethers: "npm:6.13.1"
     input-otp: "npm:^1.2.4"
     lucia: "npm:3.2.0"
-    lucide-react: "npm:^0.401.0"
+    lucide-react: "npm:^0.402.0"
     moment: "npm:^2.30.1"
     next: "npm:14.2.4"
     next-themes: "npm:^0.3.0"
@@ -2935,7 +2935,7 @@ __metadata:
     pg: "npm:^8.12.0"
     pino-pretty: "npm:11.2.1"
     postcss: "npm:8.4.39"
-    posthog-js: "npm:^1.144.2"
+    posthog-js: "npm:^1.145.0"
     postmark: "npm:^4.0.4"
     prettier: "npm:^3.3.2"
     prettier-plugin-tailwindcss: "npm:^0.6.5"
@@ -2957,7 +2957,7 @@ __metadata:
     typescript: "npm:5.5.3"
     ua-parser-js: "npm:^1.0.38"
     vaul: "npm:^0.9.1"
-    viem: "npm:2.17.2"
+    viem: "npm:2.17.3"
     wagmi: "npm:2.10.9"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.23.8"
@@ -11402,9 +11402,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely-ctl@npm:^0.8.9":
-  version: 0.8.9
-  resolution: "kysely-ctl@npm:0.8.9"
+"kysely-ctl@npm:^0.8.10":
+  version: 0.8.10
+  resolution: "kysely-ctl@npm:0.8.10"
   dependencies:
     c12: "npm:^1.8.0"
     citty: "npm:^0.1.4"
@@ -11423,7 +11423,7 @@ __metadata:
       optional: true
   bin:
     kysely: dist/bin.js
-  checksum: 10c0/c593849d7b0cfed4e625299e11ae22dab9665355b2c31a6ff39d911d0c9a8a52e2fa6d8be2f4275e3526f23a9bee4871b56261a5efda9cf4af907ce019d14efc
+  checksum: 10c0/a17cc53ec97c8c28bc79cc6ec50cb6710399ba5ba29aee90283385045e7aee7f8d4757b596fc63c093b1ee47fbec3c2ba39e894de60c953e00d8d796eadefbf1
   languageName: node
   linkType: hard
 
@@ -12103,12 +12103,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^0.401.0":
-  version: 0.401.0
-  resolution: "lucide-react@npm:0.401.0"
+"lucide-react@npm:^0.402.0":
+  version: 0.402.0
+  resolution: "lucide-react@npm:0.402.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/da9237c1ce34099842c8159a938deb8d1ee7e35d1d98ab1b8435e3288def74a0abc448038bd10ec4652cddcba562602a903f761efe20e12088173b1ad0cf8351
+  checksum: 10c0/75a73ed9ccb2299129531727624439b70c748f66f26fad8f604e56e381f81a73a3b0bf24c43be646060aed0b5f63213497c0503ad777a631faffae8c87ddff0b
   languageName: node
   linkType: hard
 
@@ -14063,14 +14063,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.144.2":
-  version: 1.144.2
-  resolution: "posthog-js@npm:1.144.2"
+"posthog-js@npm:^1.145.0":
+  version: 1.145.0
+  resolution: "posthog-js@npm:1.145.0"
   dependencies:
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.0.1"
-  checksum: 10c0/543e0d1927edfd10e5fc55df77316c23c0095f834948b00bbbe1ce401d00953fd55c742df0bebd8bbd90c816b505a5b226f34bcf702ac55eeb0d05f126ffaad2
+  checksum: 10c0/27116311f51dd086c056938e4310cfd5648162d0b27a56f4638aab5d9885e250c4019002e1487bad2ca9e948dc713c4926ccf36422e2f28f462f253ae092418f
   languageName: node
   linkType: hard
 
@@ -16886,9 +16886,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.17.2":
-  version: 2.17.2
-  resolution: "viem@npm:2.17.2"
+"viem@npm:2.17.3":
+  version: 2.17.3
+  resolution: "viem@npm:2.17.3"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.10.0"
     "@noble/curves": "npm:1.4.0"
@@ -16903,7 +16903,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/1347f0421cd03a219539bb6619329ccd51f8f7702e5150d164fd266bc90afe5fafd707cbca18c5db523f7a46f3625e3dadb952d3ba17dcb2774201d7411292f7
+  checksum: 10c0/0881f4cb04353c3f801777f4d225228fe5dac62359d603ff932cd0645c3d623710381cd85a3b659657311a55dd87a12f646854b4ac6dfdac7493bfcdec2185a2
   languageName: node
   linkType: hard
 
