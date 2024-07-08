@@ -11,7 +11,7 @@ use sea_orm::{
 };
 use seaorm::{dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnum};
 use tokio::time;
-use tracing::{error, info, warn}; // Added error for better logging
+use tracing::{error, info, warn};
 use utils::{
     rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
     telemetry::setup_telemetry,
@@ -125,7 +125,7 @@ async fn fetch_proposals(
         .collect::<Vec<_>>();
     proposal::Entity::find()
         .filter(proposal::Column::VotesFetched.eq(false))
-        .filter(proposal::Column::DaoHandlerId.is_not_in(dao_handler_ids))
+        .filter(proposal::Column::DaoHandlerId.is_in(dao_handler_ids))
         .all(db)
         .await
         .context("Failed to fetch proposals from database")
