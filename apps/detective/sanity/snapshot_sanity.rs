@@ -98,7 +98,7 @@ async fn sanitize(
     let database_proposals = proposal::Entity::find()
         .filter(
             Condition::all()
-                .add(proposal::Column::DaoHandlerId.eq(dao_handler.id.clone()))
+                .add(proposal::Column::DaoHandlerId.eq(dao_handler.id))
                 .add(proposal::Column::TimeCreated.gte(sanitize_from))
                 .add(proposal::Column::TimeCreated.lte(sanitize_to)),
         )
