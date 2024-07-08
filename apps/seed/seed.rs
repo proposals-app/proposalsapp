@@ -113,7 +113,7 @@ async fn upsert_handlers(
 ) -> Result<()> {
     for handler_data in handlers {
         let existing_handler = dao_handler::Entity::find()
-            .filter(dao_handler::Column::DaoId.eq(dao.id.clone()))
+            .filter(dao_handler::Column::DaoId.eq(dao.id))
             .filter(dao_handler::Column::HandlerType.eq(handler_data.handler_type.clone()))
             .one(db)
             .await?;
@@ -137,7 +137,7 @@ async fn upsert_handlers(
             }
             None => {
                 dao_handler::Entity::insert(dao_handler::ActiveModel {
-                    dao_id: Set(dao.id.clone()),
+                    dao_id: Set(dao.id),
                     handler_type: Set(handler_data.clone().handler_type),
                     governance_portal: Set(handler_data.clone().governance_portal),
                     decoder: Set(handler_data.clone().decoder),
@@ -164,7 +164,7 @@ async fn upsert_settings(
     db: &DatabaseConnection,
 ) -> Result<()> {
     let existing_settings = dao_settings::Entity::find()
-        .filter(dao_settings::Column::DaoId.eq(dao.id.clone()))
+        .filter(dao_settings::Column::DaoId.eq(dao.id))
         .one(db)
         .await?;
 
@@ -172,7 +172,7 @@ async fn upsert_settings(
         Some(s) => {
             dao_settings::Entity::update(dao_settings::ActiveModel {
                 id: Set(s.id),
-                dao_id: Set(dao.id.clone()),
+                dao_id: Set(dao.id),
                 picture: Set(settings.picture.clone()),
                 background_color: Set(settings.background_color.clone()),
                 quorum_warning_email_support: Set(s.quorum_warning_email_support),
@@ -183,7 +183,7 @@ async fn upsert_settings(
         }
         None => {
             dao_settings::Entity::insert(dao_settings::ActiveModel {
-                dao_id: Set(dao.id.clone()),
+                dao_id: Set(dao.id),
                 picture: Set(settings.picture.clone()),
                 background_color: Set(settings.background_color.clone()),
                 ..Default::default()
