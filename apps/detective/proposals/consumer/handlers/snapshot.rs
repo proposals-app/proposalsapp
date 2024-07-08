@@ -174,11 +174,7 @@ async fn parse_proposals(
                     .context("can not create timeend")
                     .unwrap(),
             ),
-            flagged: Set(if graphql_proposal.flagged.is_some_and(|f| f) {
-                true
-            } else {
-                false
-            }),
+            flagged: Set(graphql_proposal.flagged.is_some_and(|f| f)),
             dao_handler_id: Set(dao_handler.id.to_owned()),
             dao_id: Set(dao_handler.dao_id.to_owned()),
             votes_index: NotSet,

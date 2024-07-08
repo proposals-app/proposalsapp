@@ -177,7 +177,7 @@ async fn run(job: ProposalsJob) -> Result<()> {
         inserted_proposals,
         updated_proposals,
         new_index,
-        dao_handler_id: dao_handler.id.into(),
+        dao_handler_id: dao_handler.id,
     };
 
     info!("{:?}", response);
@@ -214,7 +214,7 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
     );
 
     dao_handler::Entity::update(dao_handler::ActiveModel {
-        id: Set(dao_handler.id.clone()),
+        id: Set(dao_handler.id),
         proposals_refresh_speed: Set(new_refresh_speed),
         ..Default::default()
     })
@@ -249,7 +249,7 @@ async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
     }
 
     dao_handler::Entity::update(dao_handler::ActiveModel {
-        id: Set(dao_handler.id.clone()),
+        id: Set(dao_handler.id),
         proposals_refresh_speed: Set(new_refresh_speed),
         ..Default::default()
     })
@@ -286,7 +286,7 @@ async fn update_index(
     }
 
     dao_handler::Entity::update(dao_handler::ActiveModel {
-        id: Set(dao_handler.id.clone()),
+        id: Set(dao_handler.id),
         proposals_index: Set(new_index - 3600),
         ..Default::default()
     })
