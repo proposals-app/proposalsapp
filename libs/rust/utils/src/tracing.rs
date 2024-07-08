@@ -19,7 +19,11 @@ pub fn setup_tracing() {
         .or_else(|_| EnvFilter::try_new("info"))
         .unwrap();
 
-    let fmt_layer = fmt::layer().with_line_number(true).compact();
+    // Ensure the fmt layer logs to the console
+    let fmt_layer = fmt::layer()
+        .with_line_number(true)
+        .compact()
+        .with_writer(std::io::stdout);
 
     let otlp_address = std::env::var("OTLP_ADDRESS").unwrap_or(OTLP_ADDRESS.into());
 
@@ -73,6 +77,7 @@ pub fn setup_tracing() {
         .with(otel_layer)
         .init();
 }
+
 pub async fn run_with_tracing<F, Fut>(future: F)
 where
     F: FnOnce() -> Fut,

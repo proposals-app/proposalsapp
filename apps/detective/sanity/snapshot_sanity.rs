@@ -5,13 +5,12 @@ use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
 };
-use seaorm::sea_orm_active_enums::DaoHandlerEnum;
-use seaorm::sea_orm_active_enums::ProposalStateEnum;
+use seaorm::sea_orm_active_enums::{DaoHandlerEnum, ProposalStateEnum};
 use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use tokio::time;
-use tracing::info;
-use utils::telemetry::setup_telemetry;
+use tracing::{info, instrument};
+use utils::tracing::run_with_tracing;
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponse {
@@ -37,16 +36,13 @@ struct Decoder {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    setup_telemetry();
 
     let mut interval = time::interval(std::time::Duration::from_secs(60 * 15));
 
     tokio::spawn(async move {
         loop {
             interval.tick().await;
-            if let Err(e) = run().await {
-                tracing::error!("Error running scheduled task: {:?}", e);
-            }
+            run_with_tracing(run).await;
         }
     });
 
@@ -56,6 +52,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+#[instrument]
 async fn run() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
 
@@ -71,6 +68,7 @@ async fn run() -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip(db))]
 pub async fn snapshot_sanity_check(db: &DatabaseConnection) -> Result<()> {
     let sanitize_from: NaiveDateTime = (Utc::now() - Duration::days(90)).naive_utc();
     let sanitize_to: NaiveDateTime = (Utc::now() - Duration::minutes(5)).naive_utc();
@@ -90,6 +88,7 @@ pub async fn snapshot_sanity_check(db: &DatabaseConnection) -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip(db))]
 async fn sanitize(
     dao_handler: &dao_handler::Model,
     sanitize_from: chrono::NaiveDateTime,
@@ -104,9 +103,11 @@ async fn sanitize(
                 .add(proposal::Column::TimeCreated.lte(sanitize_to)),
         )
         .all(db)
-        .await?;
+        .await
+        .context("DB error")?;
 
-    let decoder: Decoder = serde_json::from_value(dao_handler.clone().decoder)?;
+    let decoder: Decoder = serde_json::from_value(dao_handler.clone().decoder)
+        .context("Decoding dao_handler.decoder")?;
 
     let graphql_query = format!(
         r#"
@@ -132,8 +133,8 @@ async fn sanitize(
     );
 
     let graphql_response = reqwest::Client::new()
-        .get("https://hub.snapshot.org/graphql".to_string())
-        .json(&serde_json::json!({"query":graphql_query}))
+        .get("https://hub.snapshot.org/graphql")
+        .json(&serde_json::json!({"query": graphql_query}))
         .send()
         .await?
         .json::<GraphQLResponse>()
@@ -147,7 +148,6 @@ async fn sanitize(
         .collect();
 
     let proposals_to_delete: Vec<proposal::Model> = database_proposals
-        .clone()
         .into_iter()
         .filter(|proposal| !graphql_proposal_ids.contains(&proposal.external_id))
         .collect();

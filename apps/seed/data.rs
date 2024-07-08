@@ -102,7 +102,7 @@ pub fn seed_data() -> Vec<DaoSeedData> {
                     handler_type: DaoHandlerEnum::CompoundMainnet,
                     governance_portal: "https://compound.finance/governance".to_string(),
                     decoder: json!({"proposalUrl": "https://compound.finance/governance/proposals/", "address":"0xc0Da02939E1441F497fd74F78cE7Decb17B66529"}),
-                    refresh_enabled: false,
+                    refresh_enabled: true,
                     proposals_index: 0,
                     proposals_refresh_speed: 1_000_000,
                     votes_index: 0,
