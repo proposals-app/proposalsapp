@@ -13,27 +13,28 @@ use tokio::time;
 use tracing::{info, instrument};
 use utils::{
     rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
-    tracing::run_with_tracing,
+    tracing::setup_tracing,
     types::ProposalsJob,
 };
 
 const QUEUE_NAME: &str = "detective:proposals";
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
-    let mut interval = time::interval(std::time::Duration::from_secs(60 * 5));
+    setup_tracing();
 
     tokio::spawn(async move {
+        let mut interval = time::interval(std::time::Duration::from_secs(60));
         loop {
             interval.tick().await;
-            run_with_tracing(produce_jobs).await;
+            let _ = produce_jobs().await;
         }
     });
 
-    let guard = tokio::sync::Notify::new();
-    guard.notified().await;
+    tokio::signal::ctrl_c().await?;
+    println!("Shutting down...");
 
     Ok(())
 }

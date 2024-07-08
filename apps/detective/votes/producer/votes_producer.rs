@@ -12,35 +12,37 @@ use sea_orm::{
 use seaorm::{dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnum};
 use tokio::time;
 use tracing::{info, instrument, warn};
-use utils::tracing::run_with_tracing;
+
 use utils::{
     rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
+    tracing::setup_tracing,
     types::VotesJob,
 };
 
 const QUEUE_NAME: &str = "detective:votes";
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
-    let mut interval = time::interval(std::time::Duration::from_secs(60 * 10));
+    setup_tracing();
 
     tokio::spawn(async move {
+        let mut interval = time::interval(std::time::Duration::from_secs(60));
         loop {
             interval.tick().await;
-            run_with_tracing(produce_jobs).await;
+            let _ = produce_jobs().await;
         }
     });
 
-    let guard = tokio::sync::Notify::new();
-    guard.notified().await;
+    tokio::signal::ctrl_c().await?;
+    println!("Shutting down...");
 
     Ok(())
 }
 
 #[instrument]
-async fn produce_jobs() -> Result<()> {
+async fn produce_jobs() -> Result<(), anyhow::Error> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
     let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
 

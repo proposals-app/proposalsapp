@@ -45,6 +45,7 @@ pub trait VotesHandler: Send + Sync {
 }
 
 const QUEUE_NAME: &str = "detective:votes";
+const JOB_TIMEOUT_SECONDS: u64 = 30;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -110,19 +111,40 @@ impl AsyncConsumer for VotesConsumer {
         let job_str = String::from_utf8(content).ok();
         let job: VotesJob = serde_json::from_str(job_str.unwrap().as_str()).unwrap();
 
-        let _ = match run(job.clone()).await {
-            Ok(_) => {
-                if let Err(e) = increase_refresh_speed(job.clone()).await {
-                    error!("Failed to increase refresh speed: {:?}", e);
+        // Set a timeout of 3 minutes for the job processing
+        match tokio::time::timeout(
+            tokio::time::Duration::from_secs(JOB_TIMEOUT_SECONDS),
+            run(job.clone()),
+        )
+        .await
+        {
+            Ok(result) => match result {
+                Ok(_) => {
+                    if let Err(e) = increase_refresh_speed(job.clone()).await {
+                        error!("Failed to increase refresh speed: {:?}", e);
+                    }
+                    if let Err(e) = channel
+                        .basic_ack(BasicAckArguments::new(deliver.delivery_tag(), false))
+                        .await
+                    {
+                        error!("Failed to acknowledge message: {:?}", e);
+                    }
                 }
-                if let Err(e) = channel
-                    .basic_ack(BasicAckArguments::new(deliver.delivery_tag(), false))
-                    .await
-                {
-                    error!("Failed to acknowledge message: {:?}", e);
+                Err(e) => {
+                    if let Err(err) = decrease_refresh_speed(job.clone()).await {
+                        error!("Failed to decrease refresh speed: {:?}", err);
+                    }
+                    if let Err(err) = channel
+                        .basic_nack(BasicNackArguments::new(deliver.delivery_tag(), false, true))
+                        .await
+                    {
+                        error!("Failed to nack message: {:?}", err);
+                    }
+                    warn!("votes_consumer error: {:?}", e);
                 }
-            }
-            Err(e) => {
+            },
+            Err(_) => {
+                // Timeout occurred
                 if let Err(err) = decrease_refresh_speed(job.clone()).await {
                     error!("Failed to decrease refresh speed: {:?}", err);
                 }
@@ -132,7 +154,10 @@ impl AsyncConsumer for VotesConsumer {
                 {
                     error!("Failed to nack message: {:?}", err);
                 }
-                warn!("proposals_consumer error: {:?}", e);
+                warn!(
+                    "Job took more than {} seconds and was nacked",
+                    JOB_TIMEOUT_SECONDS
+                );
             }
         };
     }
@@ -435,7 +460,7 @@ async fn update_dao_index(
 
     dao_handler::Entity::update(dao_handler::ActiveModel {
         id: Set(dao_handler.id),
-        votes_index: Set(new_index - 3600),
+        votes_index: Set(new_index),
         ..Default::default()
     })
     .exec(db)
