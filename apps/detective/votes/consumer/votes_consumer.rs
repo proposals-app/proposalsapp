@@ -45,7 +45,7 @@ pub trait VotesHandler: Send + Sync {
 }
 
 const QUEUE_NAME: &str = "detective:votes";
-const JOB_TIMEOUT_SECONDS: u64 = 30;
+const JOB_TIMEOUT_SECONDS: u64 = 60;
 
 #[tokio::main]
 async fn main() -> Result<()> {
