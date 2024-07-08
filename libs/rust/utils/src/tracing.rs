@@ -10,8 +10,8 @@ use tracing::error;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 pub fn setup_tracing() {
-    // let endpoint: String = std::env::var("HYPERDX_ENDPOINT").expect("HYPERDX_ENDPOINT not set!");
-    // let api_key: String = std::env::var("HYPERDX_KEY").expect("HYPERDX_KEY not set!");
+    let endpoint: String = std::env::var("HYPERDX_ENDPOINT").expect("HYPERDX_ENDPOINT not set!");
+    let api_key: String = std::env::var("HYPERDX_KEY").expect("HYPERDX_KEY not set!");
 
     global::set_text_map_propagator(TraceContextPropagator::new());
 
@@ -25,54 +25,54 @@ pub fn setup_tracing() {
         .compact()
         .with_writer(std::io::stdout);
 
-    // let crate_name = std::env::var("CARGO_PKG_NAME").unwrap().to_string();
+    let crate_name = std::env::var("CARGO_PKG_NAME").unwrap().to_string();
 
-    // let resources = vec![KeyValue::new("service.name", crate_name.to_lowercase())];
+    let resources = vec![KeyValue::new("service.name", crate_name.to_lowercase())];
 
-    // let tracer = opentelemetry_otlp::new_pipeline()
-    //     .tracing()
-    //     .with_exporter(
-    //         opentelemetry_otlp::new_exporter()
-    //             .http()
-    //             .with_endpoint(endpoint.clone())
-    //             .with_headers(HashMap::from([(
-    //                 "authorization".to_string(),
-    //                 api_key.clone(),
-    //             )])),
-    //     )
-    //     .with_trace_config(trace::config().with_resource(Resource::new(resources.clone())))
-    //     .install_batch(Tokio)
-    //     .unwrap();
+    let tracer = opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .http()
+                .with_endpoint(endpoint.clone())
+                .with_headers(HashMap::from([(
+                    "authorization".to_string(),
+                    api_key.clone(),
+                )])),
+        )
+        .with_trace_config(trace::config().with_resource(Resource::new(resources.clone())))
+        .install_batch(Tokio)
+        .unwrap();
 
-    // let otel_layer = tracing_opentelemetry::layer()
-    //     .with_error_fields_to_exceptions(true)
-    //     .with_error_events_to_exceptions(true)
-    //     .with_error_records_to_exceptions(true)
-    //     .with_location(true)
-    //     .with_tracer(tracer);
+    let otel_layer = tracing_opentelemetry::layer()
+        .with_error_fields_to_exceptions(true)
+        .with_error_events_to_exceptions(true)
+        .with_error_records_to_exceptions(true)
+        .with_location(true)
+        .with_tracer(tracer);
 
-    // let logs = opentelemetry_otlp::new_pipeline()
-    //     .logging()
-    //     .with_log_config(Config::default().with_resource(Resource::new(resources.clone())))
-    //     .with_exporter(
-    //         opentelemetry_otlp::new_exporter()
-    //             .http()
-    //             .with_endpoint(endpoint)
-    //             .with_headers(HashMap::from([(
-    //                 "authorization".to_string(),
-    //                 api_key.clone(),
-    //             )])),
-    //     )
-    //     .install_batch(Tokio)
-    //     .unwrap();
+    let logs = opentelemetry_otlp::new_pipeline()
+        .logging()
+        .with_log_config(Config::default().with_resource(Resource::new(resources.clone())))
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .http()
+                .with_endpoint(endpoint)
+                .with_headers(HashMap::from([(
+                    "authorization".to_string(),
+                    api_key.clone(),
+                )])),
+        )
+        .install_batch(Tokio)
+        .unwrap();
 
-    // let appender_tracing_layer = OpenTelemetryTracingBridge::new(&logs.provider().unwrap());
+    let appender_tracing_layer = OpenTelemetryTracingBridge::new(&logs.provider().unwrap());
 
     tracing_subscriber::registry()
         .with(filter_layer)
         .with(fmt_layer)
-        // .with(appender_tracing_layer)
-        // .with(otel_layer)
+        .with(appender_tracing_layer)
+        .with(otel_layer)
         .init();
 }
 
