@@ -92,7 +92,7 @@ impl VotesHandler for MakerPollArbitrumHandler {
     }
 
     fn max_refresh_speed(&self) -> i32 {
-        1_000_000
+        10_000_000
     }
 }
 
