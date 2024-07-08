@@ -11,7 +11,7 @@ use sea_orm::{
 };
 use seaorm::{dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnum};
 use tokio::time;
-use tracing::{error, info, warn}; // Added error for better logging
+use tracing::{error, info, warn};
 use utils::{
     rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
     telemetry::setup_telemetry,
@@ -55,10 +55,20 @@ async fn produce_jobs() -> Result<()> {
     }
 
     let db = setup_database(&database_url).await?;
-    let dao_handlers = fetch_dao_handlers(&db).await?;
-    let proposals = fetch_proposals(&db, &dao_handlers).await?;
+    let all_dao_handlers = fetch_dao_handlers(&db).await?;
+    let snapshot_dao_handlers: Vec<&dao_handler::Model> = all_dao_handlers
+        .iter()
+        .filter(|p| p.handler_type == DaoHandlerEnum::Snapshot)
+        .collect();
 
-    queue_jobs(&channel, &dao_handlers, &proposals).await?;
+    let chain_dao_handlers: Vec<&dao_handler::Model> = all_dao_handlers
+        .iter()
+        .filter(|p| p.handler_type != DaoHandlerEnum::Snapshot)
+        .collect();
+
+    let snapshot_proposals = fetch_proposals(&db, &snapshot_dao_handlers).await?;
+
+    queue_jobs(&channel, &chain_dao_handlers, &snapshot_proposals).await?;
 
     Ok(())
 }
@@ -99,7 +109,6 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
 
 async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::Model>> {
     dao_handler::Entity::find()
-        .filter(dao_handler::Column::HandlerType.ne(DaoHandlerEnum::Snapshot))
         .filter(dao_handler::Column::RefreshEnabled.eq(true))
         .all(db)
         .await
@@ -108,12 +117,15 @@ async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::
 
 async fn fetch_proposals(
     db: &DatabaseConnection,
-    dao_handlers: &[dao_handler::Model],
+    dao_handlers: &[&dao_handler::Model],
 ) -> Result<Vec<proposal::Model>> {
-    let dao_handler_ids = dao_handlers.iter().map(|dh| dh.id.clone());
+    let dao_handler_ids = dao_handlers
+        .iter()
+        .map(|dh| dh.id.clone())
+        .collect::<Vec<_>>();
     proposal::Entity::find()
         .filter(proposal::Column::VotesFetched.eq(false))
-        .filter(proposal::Column::DaoHandlerId.is_not_in(dao_handler_ids))
+        .filter(proposal::Column::DaoHandlerId.is_in(dao_handler_ids))
         .all(db)
         .await
         .context("Failed to fetch proposals from database")
@@ -121,7 +133,7 @@ async fn fetch_proposals(
 
 async fn queue_jobs(
     channel: &amqprs::channel::Channel,
-    dao_handlers: &[dao_handler::Model],
+    dao_handlers: &[&dao_handler::Model],
     proposals: &[proposal::Model],
 ) -> Result<()> {
     queue_dao_jobs(channel, dao_handlers).await?;
@@ -149,7 +161,7 @@ async fn queue_jobs(
 
 async fn queue_dao_jobs(
     channel: &amqprs::channel::Channel,
-    dao_handlers: &[dao_handler::Model],
+    dao_handlers: &[&dao_handler::Model],
 ) -> Result<()> {
     for dao_handler in dao_handlers {
         let job = VotesJob {
