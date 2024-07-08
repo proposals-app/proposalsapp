@@ -304,7 +304,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
       p.scoresTotal > p.quorum &&
       p.proposalState !== ProposalStateEnum.HIDDEN
     ) {
-      if (p.daoId !== "MakerDAO" && choices && scores) {
+      if (p.daoName !== "MakerDAO" && choices && scores) {
         const choiceIndex = getMaxScoreIndex(scores);
         result = {
           choiceName: choices[choiceIndex] || "",
@@ -312,7 +312,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
             (scores[choiceIndex] / p.scoresTotal) * 100,
           ),
         };
-      } else if (p.daoId === "MakerDAO") {
+      } else if (p.daoName === "MakerDAO") {
         makerResult = {
           choiceName: "Yes",
           mkrSupporting: Number((p.scoresTotal as number).toFixed(2)),
