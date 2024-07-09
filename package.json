@@ -53,5 +53,6 @@
   "dependencies": {
     "@proposalsapp/db": "^1.0.0",
     "@proposalsapp/emails": "^1.0.0"
-  }
+  },
+  "packageManager": "pnpm@latest"
 }
