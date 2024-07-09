@@ -10,16 +10,19 @@ use sea_orm::{
 };
 use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnum};
 use tokio::time;
-use tracing::{info, instrument};
+use tracing::{instrument, warn};
 use utils::{
+    errors::*,
     rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
     tracing::setup_tracing,
     types::ProposalsJob,
+    warnings::*,
 };
 
 const QUEUE_NAME: &str = "detective:proposals";
 
 #[tokio::main]
+#[instrument]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
@@ -41,8 +44,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[instrument]
 async fn produce_jobs() -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
-    let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
+    let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+    let rabbitmq_url = std::env::var("RABBITMQ_URL").expect(RABBITMQ_URL_NOT_SET);
 
     let connection = setup_rabbitmq_connection(&rabbitmq_url).await?;
     let channel = setup_rabbitmq_channel(&connection).await?;
@@ -50,9 +53,11 @@ async fn produce_jobs() -> Result<()> {
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME)
         .no_wait(false)
         .finish();
+
     let (_, message_count, _) = channel.queue_declare(queue).await?.unwrap();
 
     if message_count > 1000 {
+        warn!(QUEUE_MESSAGE_COUNT_EXCEEDED);
         return Ok(());
     }
 
@@ -66,16 +71,15 @@ async fn produce_jobs() -> Result<()> {
 
 #[instrument(skip(rabbitmq_url))]
 async fn setup_rabbitmq_connection(rabbitmq_url: &str) -> Result<Connection> {
-    let args: OpenConnectionArguments = rabbitmq_url
-        .try_into()
-        .context("Failed to parse RabbitMQ URL")?;
+    let args: OpenConnectionArguments = rabbitmq_url.try_into().context(RABBITMQ_URL_INVALID)?;
     let connection = Connection::open(&args)
         .await
-        .context("Failed to open RabbitMQ connection")?;
+        .context(RABBITMQ_CONNECT_FAILED)?;
     connection
         .register_callback(AppConnectionCallback)
         .await
-        .context("Failed to register RabbitMQ connection callback")?;
+        .context(RABBITMQ_REGISTER_FAILED)?;
+
     Ok(connection)
 }
 
@@ -84,11 +88,12 @@ async fn setup_rabbitmq_channel(connection: &Connection) -> Result<amqprs::chann
     let channel = connection
         .open_channel(None)
         .await
-        .context("Failed to open RabbitMQ channel")?;
+        .context(RABBITMQ_CHANNEL_OPEN_FAILED)?;
     channel
         .register_callback(AppChannelCallback)
         .await
-        .context("Failed to register RabbitMQ channel callback")?;
+        .context(RABBITMQ_REGISTER_FAILED)?;
+
     Ok(channel)
 }
 
@@ -96,14 +101,16 @@ async fn setup_rabbitmq_channel(connection: &Connection) -> Result<amqprs::chann
 async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
     let mut opt = ConnectOptions::new(database_url.to_string());
     opt.sqlx_logging(false);
-    Database::connect(opt)
+    let db = Database::connect(opt)
         .await
-        .context("Failed to connect to database")
+        .context(DATABASE_CONNECTION_FAILED)?;
+
+    Ok(db)
 }
 
 #[instrument(skip(db))]
 async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::Model>> {
-    dao_handler::Entity::find()
+    let dao_handlers = dao_handler::Entity::find()
         .filter(dao_handler::Column::HandlerType.is_not_in(vec![
             DaoHandlerEnum::MakerPollArbitrum,
             DaoHandlerEnum::AaveV3PolygonPos,
@@ -112,7 +119,9 @@ async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::
         .filter(dao_handler::Column::RefreshEnabled.eq(true))
         .all(db)
         .await
-        .context("Failed to fetch DAO handlers from database")
+        .context(DATABASE_FETCH_DAO_HANDLERS_FAILED)?;
+
+    Ok(dao_handlers)
 }
 
 #[instrument(skip(channel))]
@@ -122,27 +131,15 @@ async fn queue_dao_jobs(
 ) -> Result<()> {
     for dao_handler in dao_handlers {
         let job = ProposalsJob {
-            dao_handler_id: dao_handler.id.clone(),
+            dao_handler_id: dao_handler.id,
         };
         let content = serde_json::to_string(&job)?.into_bytes();
         let args = BasicPublishArguments::new("", QUEUE_NAME);
         channel
             .basic_publish(BasicProperties::default().finish(), content, args)
             .await
-            .context(format!(
-                "Failed to publish job for DAO handler ID: {:?}",
-                dao_handler.id
-            ))?;
+            .context(PUBLISH_JOB_FAILED)?;
     }
-
-    info!("Queued {} DAOs", dao_handlers.len());
-    info!(
-        "Queued {:?} DAOs",
-        dao_handlers
-            .iter()
-            .map(|d| d.id.clone().into())
-            .collect::<Vec<String>>()
-    );
 
     Ok(())
 }

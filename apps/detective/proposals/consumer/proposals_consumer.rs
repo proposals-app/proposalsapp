@@ -18,9 +18,11 @@ use seaorm::{dao_handler, proposal};
 use std::collections::HashSet;
 use tokio::sync::Notify;
 use tracing::{error, info, instrument, warn};
+use utils::errors::*;
 use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
 use utils::tracing::setup_tracing;
 use utils::types::{ProposalsJob, ProposalsResponse};
+use utils::warnings::*;
 
 mod handlers;
 
@@ -40,41 +42,46 @@ const QUEUE_NAME: &str = "detective:proposals";
 const JOB_TIMEOUT_SECONDS: u64 = 60;
 
 #[tokio::main]
+#[instrument]
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_tracing();
 
-    let rabbitmq_url = std::env::var("RABBITMQ_URL").expect("RABBITMQ_URL not set!");
-    let args: OpenConnectionArguments = rabbitmq_url.as_str().try_into().unwrap();
+    let rabbitmq_url = std::env::var("RABBITMQ_URL").context(RABBITMQ_URL_NOT_SET)?;
+    let args: OpenConnectionArguments = rabbitmq_url
+        .as_str()
+        .try_into()
+        .context(RABBITMQ_URL_INVALID)?;
     let connection = Connection::open(&args)
         .await
-        .context("Failed to open RabbitMQ connection")?;
+        .context(RABBITMQ_CONNECT_FAILED)?;
 
     connection
         .register_callback(AppConnectionCallback)
         .await
-        .context("Failed to register RabbitMQ connection callback")?;
+        .context(RABBITMQ_REGISTER_FAILED)?;
 
     let channel = connection
         .open_channel(None)
         .await
-        .context("Failed to open RabbitMQ channel")?;
+        .context(RABBITMQ_CHANNEL_OPEN_FAILED)?;
+
     channel
         .register_callback(AppChannelCallback)
         .await
-        .context("Failed to register RabbitMQ channel callback")?;
+        .context(RABBITMQ_REGISTER_FAILED)?;
 
     let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME);
     channel
         .queue_declare(queue)
         .await
-        .context("Failed to declare RabbitMQ queue")?;
+        .context(RABBITMQ_DECLARE_QUEUE_FAILED)?;
 
     // 5 workers
     channel
         .basic_qos(BasicQosArguments::new(0, 5, false))
         .await
-        .context("Failed to set RabbitMQ QoS")?;
+        .context(RABBITMQ_QOS_FAILED)?;
 
     channel
         .basic_consume(
@@ -82,7 +89,7 @@ async fn main() -> Result<()> {
             BasicConsumeArguments::new(QUEUE_NAME, ""),
         )
         .await
-        .context("Failed to start RabbitMQ consumer")?;
+        .context(RABBITMQ_START_CONSUMER_FAILED)?;
 
     // consume forever
     let guard = Notify::new();
@@ -106,6 +113,7 @@ impl ProposalsConsumer {
 
 #[async_trait]
 impl AsyncConsumer for ProposalsConsumer {
+    #[instrument(skip_all, fields(delivery_tag = deliver.delivery_tag()))]
     async fn consume(
         &mut self,
         channel: &Channel,
@@ -113,10 +121,23 @@ impl AsyncConsumer for ProposalsConsumer {
         _basic_properties: BasicProperties,
         content: Vec<u8>,
     ) {
-        let job_str = String::from_utf8(content).ok();
-        let job: ProposalsJob = serde_json::from_str(job_str.unwrap().as_str()).unwrap();
+        let job_str = match String::from_utf8(content) {
+            Ok(s) => s,
+            Err(e) => {
+                error!(PARSE_JOB_FAILED, error = %e);
+                return;
+            }
+        };
 
-        // Set a timeout of 3 minutes for the job processing
+        let job: ProposalsJob = match serde_json::from_str(&job_str) {
+            Ok(job) => job,
+            Err(e) => {
+                error!(DESERIALIZE_JOB_FAILED, error = %e);
+                return;
+            }
+        };
+
+        // Set a timeout for the job processing
         match tokio::time::timeout(
             tokio::time::Duration::from_secs(JOB_TIMEOUT_SECONDS),
             run(job.clone()),
@@ -126,43 +147,39 @@ impl AsyncConsumer for ProposalsConsumer {
             Ok(result) => match result {
                 Ok(_) => {
                     if let Err(e) = increase_refresh_speed(job.clone()).await {
-                        error!("Failed to increase refresh speed: {:?}", e);
+                        error!(INCREASE_REFRESH_SPEED_FAILED, error = %e);
                     }
-                    if let Err(e) = channel
+                    if let Err(err) = channel
                         .basic_ack(BasicAckArguments::new(deliver.delivery_tag(), false))
                         .await
                     {
-                        error!("Failed to acknowledge message: {:?}", e);
+                        error!(JOB_ACK_FAILED, error = %err);
                     }
                 }
                 Err(e) => {
                     if let Err(err) = decrease_refresh_speed(job.clone()).await {
-                        error!("Failed to decrease refresh speed: {:?}", err);
+                        error!(DECREASE_REFRESH_SPEED_FAILED, error = %err);
                     }
                     if let Err(err) = channel
                         .basic_nack(BasicNackArguments::new(deliver.delivery_tag(), false, true))
                         .await
                     {
-                        error!("Failed to nack message: {:?}", err);
+                        error!(JOB_NACK_FAILED, error = %err);
                     }
-                    warn!("proposals_consumer error: {:?}", e);
+                    warn!(PROPOSALS_JOB_FAILED, warning = %e);
                 }
             },
             Err(_) => {
-                // Timeout occurred
+                warn!(PROPOSALS_JOB_TIMEOUT);
                 if let Err(err) = decrease_refresh_speed(job.clone()).await {
-                    error!("Failed to decrease refresh speed: {:?}", err);
+                    error!(DECREASE_REFRESH_SPEED_FAILED, error = %err);
                 }
                 if let Err(err) = channel
                     .basic_nack(BasicNackArguments::new(deliver.delivery_tag(), false, true))
                     .await
                 {
-                    error!("Failed to nack message: {:?}", err);
+                    error!(JOB_NACK_FAILED, error = %err);
                 }
-                warn!(
-                    "Job took more than {} seconds and was nacked",
-                    JOB_TIMEOUT_SECONDS
-                );
             }
         };
     }
@@ -170,19 +187,21 @@ impl AsyncConsumer for ProposalsConsumer {
 
 #[instrument]
 async fn run(job: ProposalsJob) -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
+    let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
 
     let mut opt = ConnectOptions::new(database_url);
     opt.sqlx_logging(false);
 
-    let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
+    let db: DatabaseConnection = Database::connect(opt)
+        .await
+        .context(DATABASE_CONNECTION_FAILED)?;
 
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(&db)
         .await
-        .context("DB error while fetching DAO handler")?
-        .context("DAO handler not found")?;
+        .context(DATABASE_ERROR)?
+        .context(DAOHANDLER_NOT_FOUND_ERROR)?;
 
     let handler = handlers::get_handler(&dao_handler.handler_type);
 
@@ -212,19 +231,21 @@ async fn run(job: ProposalsJob) -> Result<()> {
 
 #[instrument]
 async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
+    let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
 
     let mut opt = ConnectOptions::new(database_url);
     opt.sqlx_logging(false);
 
-    let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
+    let db: DatabaseConnection = Database::connect(opt)
+        .await
+        .context(DATABASE_CONNECTION_FAILED)?;
 
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(&db)
         .await
-        .context("DB error while fetching DAO handler")?
-        .context("DAO handler not found")?;
+        .context(DATABASE_ERROR)?
+        .context(DAOHANDLER_NOT_FOUND_ERROR)?;
 
     let handler = handlers::get_handler(&dao_handler.handler_type);
     let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 0.5) as i32;
@@ -233,11 +254,6 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
         new_refresh_speed = handler.min_refresh_speed();
     }
 
-    info!(
-        "Refresh speed decreased to {} for DAO {}",
-        new_refresh_speed, dao_handler.dao_id
-    );
-
     dao_handler::Entity::update(dao_handler::ActiveModel {
         id: Set(dao_handler.id),
         proposals_refresh_speed: Set(new_refresh_speed),
@@ -245,26 +261,28 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
     })
     .exec(&db)
     .await
-    .context("DB error while updating DAO handler to decrease refresh speed")?;
+    .context(DATABASE_ERROR)?;
 
     Ok(())
 }
 
 #[instrument]
 async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
+    let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
 
     let mut opt = ConnectOptions::new(database_url);
     opt.sqlx_logging(false);
 
-    let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
+    let db: DatabaseConnection = Database::connect(opt)
+        .await
+        .context(DATABASE_CONNECTION_FAILED)?;
 
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(&db)
         .await
-        .context("DB error while fetching DAO handler")?
-        .context("DAO handler not found")?;
+        .context(DATABASE_ERROR)?
+        .context(DAOHANDLER_NOT_FOUND_ERROR)?;
 
     let handler = handlers::get_handler(&dao_handler.handler_type);
     let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 1.2) as i32;
@@ -280,7 +298,7 @@ async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
     })
     .exec(&db)
     .await
-    .context("DB error while updating DAO handler to increase refresh speed")?;
+    .context(DATABASE_ERROR)?;
 
     Ok(())
 }
@@ -317,7 +335,7 @@ async fn update_index(
     })
     .exec(db)
     .await
-    .context("DB error while updating proposals index")?;
+    .context(DATABASE_ERROR)?;
 
     Ok(new_index)
 }
@@ -347,7 +365,7 @@ async fn store_proposals(
             )
             .one(db)
             .await
-            .context(format!("DB error finding proposal {:?}", proposal.id))?;
+            .context(PROPOSAL_NOT_FOUND_ERROR)?;
 
         if let Some(existing) = existing_proposal {
             let mut updated_proposal = proposal.clone();
@@ -356,10 +374,7 @@ async fn store_proposals(
             proposal::Entity::update(updated_proposal.clone())
                 .exec(db)
                 .await
-                .context(format!(
-                    "DB error for existing proposal {:?}",
-                    updated_proposal.id
-                ))?;
+                .context(DATABASE_ERROR)?;
 
             updated_proposals += 1;
         } else if insert_ids_unique.insert(proposal.external_id.clone().take()) {
@@ -372,7 +387,7 @@ async fn store_proposals(
         .on_empty_do_nothing()
         .exec(db)
         .await
-        .context("DB error for new proposals")?;
+        .context(DATABASE_ERROR)?;
 
     Ok(StoredProposals {
         inserted_proposals,
