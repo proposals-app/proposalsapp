@@ -13,7 +13,7 @@ use tracing::instrument;
 use utils::errors::{
     DATABASE_CONNECTION_FAILED, DATABASE_ERROR, DATABASE_URL_NOT_SET, SANITIZE_FAILED,
 };
-use utils::tracing::run_with_tracing;
+use utils::tracing::{run_with_tracing, setup_tracing};
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponse {
@@ -40,12 +40,13 @@ struct Decoder {
 async fn main() -> Result<()> {
     dotenv().ok();
 
+    setup_tracing();
     let mut interval = time::interval(std::time::Duration::from_secs(60 * 15));
 
     tokio::spawn(async move {
         loop {
             interval.tick().await;
-            run_with_tracing(run).await;
+            let _ = run().await;
         }
     });
 
