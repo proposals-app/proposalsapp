@@ -5,7 +5,7 @@
   "type": "module",
   "workspaces": [
     "apps/web",
-    "apps/web_astro",
+    "apps/astro",
     "apps/arbitrum",
     "apps/ai_playground",
     "apps/emails/*",
@@ -23,7 +23,7 @@
     "build-emails": "yarn workspace @proposalsapp/emails build",
     "build-web": "yarn build-db && yarn workspace @proposalsapp/web build",
     "build-arbitrum": "yarn build-db && yarn workspace @proposalsapp/arbitrum build",
-    "build-astro": "yarn build-db && yarn workspace @proposalsapp/web_astro build",
+    "build-astro": "yarn build-db && yarn workspace @proposalsapp/astro build",
     "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin start",
     "start-email-quorum": "yarn workspace @proposalsapp/email-quorum start",
     "start-email-timeend": "yarn workspace @proposalsapp/email-timeend start",
@@ -31,7 +31,7 @@
     "start-push-timeend": "yarn workspace @proposalsapp/push-timeend start",
     "start-web": "yarn workspace @proposalsapp/web start",
     "start-arbitrum": "yarn workspace @proposalsapp/arbitrum start",
-    "start-astro": "yarn workspace @proposalsapp/web_astro start",
+    "start-astro": "yarn workspace @proposalsapp/astro start",
     "update-deps": "./update-deps.sh"
   },
   "resolutions": {

@@ -5,7 +5,6 @@ enum StateFilterEnum {
     CLOSED = "closed",
   }
 
-
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
 

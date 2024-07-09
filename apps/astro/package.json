@@ -1,5 +1,5 @@
 {
-  "name": "@proposalsapp/web_astro",
+  "name": "@proposalsapp/astro",
   "version": "0.1.0",
   "private": true,
   "scripts": {
