@@ -50,7 +50,7 @@
 </script>
 
 <div
-  class="grid w-full grid-cols-6 items-center justify-center gap-3 lg:grid-cols-12"
+  class="grid w-full grid-cols-6 items-center justify-center gap-2 lg:gap-4 lg:grid-cols-12"
 >
   {#each hotDaos as dao (dao.id)}
     <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -63,7 +63,7 @@
       on:mouseleave={handleMouseLeave}
     >
       <img
-        class={`h-full w-full rounded-lg cursor-pointer border-2 border-gold ${selectedDaoSlugs.includes(dao.slug) ? "bg-dark" : "bg-luna"}`}
+        class={`max-h-24 max-w-24 h-full w-full rounded-lg cursor-pointer border-2 border-gold ${selectedDaoSlugs.includes(dao.slug) ? "bg-dark" : "bg-luna"}`}
         src={hoveredDaoSlug === dao.slug
           ? `/assets/web/dao-logos/hot/${dao.slug}_hover.svg`
           : selectedDaoSlugs.includes(dao.slug)

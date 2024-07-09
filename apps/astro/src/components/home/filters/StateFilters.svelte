@@ -48,9 +48,7 @@ enum StateFilterEnum {
   });
 </script>
 
-<div
-  class="grid w-full max-w-[400px] grid-cols-1 gap-3 md:grid-cols-2 lg:max-w-full"
->
+<div class="grid w-full grid-cols-1 gap-2 lg:gap-4 lg:max-w-full">
   {#if $queryState}
     <button
       class={buttonClasses(StateFilterEnum.OPEN, $queryState)}
