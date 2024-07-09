@@ -1,0 +1,13 @@
+---
+import { getHotDaos } from "@/db/getHotDaos";
+import { Fragment } from "react";
+import DaosFilters from "./DaosFilters.svelte";
+import StateFilters from "./StateFilters.svelte";
+
+const hotDaos = await getHotDaos();
+---
+
+<div class="flex flex-col gap-2">
+  <StateFilters client:visible />
+  <DaosFilters hotDaos={hotDaos} client:visible />
+</div>

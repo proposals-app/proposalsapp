@@ -4,7 +4,10 @@
       "format_on_save": {
         "external": {
           "command": "prettier",
-          "arguments": ["--stdin-filepath", "{buffer_path}"]
+          "arguments": [
+            "--stdin-filepath",
+            "{buffer_path}"
+          ]
         }
       }
     },
@@ -12,7 +15,10 @@
       "format_on_save": {
         "external": {
           "command": "prettier",
-          "arguments": ["--stdin-filepath", "{buffer_path}"]
+          "arguments": [
+            "--stdin-filepath",
+            "{buffer_path}"
+          ]
         }
       }
     },
@@ -20,7 +26,10 @@
       "format_on_save": {
         "external": {
           "command": "prettier",
-          "arguments": ["--stdin-filepath", "{buffer_path}"]
+          "arguments": [
+            "--stdin-filepath",
+            "{buffer_path}"
+          ]
         }
       }
     }
