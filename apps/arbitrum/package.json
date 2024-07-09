@@ -57,7 +57,7 @@
     "ethers": "6.13.1",
     "input-otp": "^1.2.4",
     "lucia": "3.2.0",
-    "lucide-react": "^0.403.0",
+    "lucide-react": "^0.407.0",
     "moment": "^2.30.1",
     "next": "14.2.4",
     "next-themes": "^0.3.0",
@@ -82,7 +82,7 @@
     "ua-parser-js": "^1.0.38",
     "vaul": "^0.9.1",
     "viem": "2.17.3",
-    "wagmi": "2.10.9",
+    "wagmi": "2.10.10",
     "web-push": "^3.6.7",
     "zod": "^3.23.8"
   },
