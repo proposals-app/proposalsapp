@@ -2,7 +2,7 @@ providers = ['node']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [start]
-cmd = 'npm run start-astro'
+cmd = 'pnpm run start-astro'
 
 [phases.build]
-cmds = ['npm run build-astro']
+cmds = ['pnpm run build-astro']

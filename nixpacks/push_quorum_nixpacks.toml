@@ -2,7 +2,7 @@ providers = ['node']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [start]
-cmd = 'npm run start-push-quorum'
+cmd = 'pnpm run start-push-quorum'
 
 [phases.build]
-cmds = ['npm run build-push-quorum']
+cmds = ['pnpm run build-push-quorum']

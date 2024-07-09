@@ -2,7 +2,7 @@ providers = ['node']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [start]
-cmd = 'npm run start-email-quorum'
+cmd = 'pnpm run start-email-quorum'
 
 [phases.build]
-cmds = ['npm run build-email-quorum']
+cmds = ['pnpm run build-email-quorum']

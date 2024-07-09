@@ -6,9 +6,9 @@ cargo upgrade
 
 # Update root dependencies
 ncu -u
-yarn install
+pnpm install
 
 # Update dependencies in each workspace
-for dir in $(yarn workspaces list --json | jq -r '.location'); do
-  (cd "$dir" && ncu -u && yarn install)
+for dir in $(pnpm recursive exec -- bash -c 'echo $PWD' | grep -v 'node_modules'); do
+  (cd "$dir" && ncu -u && pnpm install)
 done

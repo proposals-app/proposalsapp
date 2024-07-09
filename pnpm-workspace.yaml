@@ -1,0 +1,13 @@
+packages:
+  - "libs/ts/db"
+  - "libs/ts/emails"
+  - "apps/web"
+  - "apps/astro"
+  - "apps/arbitrum"
+  - "apps/ai_playground"
+  - "apps/emails/bulletin"
+  - "apps/emails/quorum"
+  - "apps/emails/timeend"
+  - "apps/push/quorum"
+  - "apps/push/timeend"
+  - "libs/ts/emails/.react-email"
