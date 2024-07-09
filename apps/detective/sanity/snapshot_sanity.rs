@@ -9,7 +9,10 @@ use seaorm::sea_orm_active_enums::{DaoHandlerEnum, ProposalStateEnum};
 use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use tokio::time;
-use tracing::{info, instrument};
+use tracing::instrument;
+use utils::errors::{
+    DATABASE_CONNECTION_FAILED, DATABASE_ERROR, DATABASE_URL_NOT_SET, SANITIZE_FAILED,
+};
 use utils::tracing::run_with_tracing;
 
 #[derive(Debug, Deserialize)]
@@ -54,16 +57,16 @@ async fn main() -> Result<()> {
 
 #[instrument]
 async fn run() -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set!");
+    let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
 
     let mut opt = ConnectOptions::new(database_url);
     opt.sqlx_logging(false);
 
-    let db: DatabaseConnection = Database::connect(opt).await.context("DB connection")?;
+    let db: DatabaseConnection = Database::connect(opt)
+        .await
+        .context(DATABASE_CONNECTION_FAILED)?;
 
     snapshot_sanity_check(&db).await?;
-
-    info!("Done");
 
     Ok(())
 }
@@ -77,12 +80,12 @@ pub async fn snapshot_sanity_check(db: &DatabaseConnection) -> Result<()> {
         .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnum::Snapshot))
         .all(db)
         .await
-        .context("DB error")?;
+        .context(DATABASE_ERROR)?;
 
     for dao_handler in dao_handlers {
         sanitize(&dao_handler, sanitize_from, sanitize_to, db)
             .await
-            .context("sanitize error")?;
+            .context(SANITIZE_FAILED)?;
     }
 
     Ok(())
@@ -104,7 +107,7 @@ async fn sanitize(
         )
         .all(db)
         .await
-        .context("DB error")?;
+        .context(DATABASE_ERROR)?;
 
     let decoder: Decoder = serde_json::from_value(dao_handler.clone().decoder)
         .context("Decoding dao_handler.decoder")?;
@@ -164,7 +167,7 @@ async fn sanitize(
         proposal::Entity::update(updated_proposal.clone())
             .exec(db)
             .await
-            .context(format!("Sanitized proposal {:?}", updated_proposal.id))?;
+            .context(DATABASE_ERROR)?;
     }
 
     Ok(())

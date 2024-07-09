@@ -43,3 +43,5 @@ pub const VOTER_NOT_FOUND_ERROR: &str = "Voter not found";
 
 pub const DATABASE_FETCH_DAO_HANDLERS_FAILED: &str = "Failed to fetch DAO handlers from database";
 pub const DATABASE_FETCH_PROPOSALS_FAILED: &str = "Failed to fetch proposals from database";
+
+pub const SANITIZE_FAILED: &str = "Failed to sanitize";
