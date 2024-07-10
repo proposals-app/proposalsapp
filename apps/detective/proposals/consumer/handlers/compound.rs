@@ -13,6 +13,7 @@ use seaorm::{dao_handler, proposal};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
+use tracing::{info, warn};
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
