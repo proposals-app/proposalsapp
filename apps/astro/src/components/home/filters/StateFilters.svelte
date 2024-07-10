@@ -33,8 +33,8 @@
   };
 
   const buttonClasses = (state: string, currentState: string): string =>
-    `block h-10 w-full rounded-lg text-center hover:bg-dark lg:h-14 ${
-      currentState === state ? "bg-dark text-luna" : "border-2 border-gold bg-luna text-gold"
+    `block h-10 w-full rounded-lg text-center hover:bg-dark border-2 lg:h-14 ${
+      currentState === state ? "bg-dark text-luna" : "border-gold bg-luna text-gold"
     }`;
 
   onMount(() => {
