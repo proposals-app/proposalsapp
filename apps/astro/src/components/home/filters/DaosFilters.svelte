@@ -28,6 +28,7 @@
     }
     const query = setQuery("dao", selectedDaoSlugs);
     window.history.pushState({}, "", "?" + query);
+    window.dispatchEvent(new Event('popstate'));
   }
 
   function handleMouseEnter(slug: string) {
@@ -46,6 +47,7 @@
     selectedDaoSlugs = [];
     const query = setQuery("dao", selectedDaoSlugs);
     window.history.pushState({}, "", "?" + query);
+    window.dispatchEvent(new Event('popstate'));
   }
 </script>
 

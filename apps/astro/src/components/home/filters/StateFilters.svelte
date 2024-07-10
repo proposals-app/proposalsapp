@@ -1,12 +1,12 @@
 <script lang="ts">
-enum StateFilterEnum {
+  import { onMount } from 'svelte';
+  import { writable } from 'svelte/store';
+
+  enum StateFilterEnum {
     ALL = "all",
     OPEN = "open",
     CLOSED = "closed",
   }
-
-  import { onMount } from 'svelte';
-  import { writable } from 'svelte/store';
 
   const queryState = writable<string>(StateFilterEnum.ALL);
 
@@ -26,6 +26,7 @@ enum StateFilterEnum {
       const newState = currentState === state ? StateFilterEnum.ALL : state;
       const query = setQuery("state", newState);
       window.history.pushState({}, "", "?" + query);
+      window.dispatchEvent(new Event('popstate'));
       return newState;
     });
   };
