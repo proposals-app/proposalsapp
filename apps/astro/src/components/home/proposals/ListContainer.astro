@@ -10,4 +10,4 @@ const daos = Astro.url.searchParams.getAll("dao") || [""];
 const proposals = await getProposals(state as StateFilterEnum, daos, 0);
 ---
 
-<List {state} {daos} {proposals} client:only />
+<List {state} {daos} {proposals} client:only="svelte" />
