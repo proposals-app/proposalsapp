@@ -401,6 +401,9 @@ importers:
       '@proposalsapp/db':
         specifier: '*'
         version: link:../../libs/ts/db
+      '@proposalsapp/emails':
+        specifier: workspace:^
+        version: link:../../libs/ts/emails
       '@radix-ui/react-accordion':
         specifier: ^1.2.0
         version: 1.2.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -521,6 +524,9 @@ importers:
       oslo:
         specifier: ^1.2.1
         version: 1.2.1
+      postmark:
+        specifier: ^4.0.4
+        version: 4.0.4
       react:
         specifier: ^18.3.1
         version: 18.3.1

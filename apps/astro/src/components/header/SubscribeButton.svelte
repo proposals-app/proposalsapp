@@ -9,21 +9,51 @@
   const showModal = writable(false);
   const page = writable(Page.EMAIL);
   const termsAgreed = writable(false);
+  const email = writable('');
+  const otp = writable('');
 
   const toggleModal = () => {
     showModal.update((value) => !value);
   };
 
-  const handleEmailSubmit = (event) => {
+  const handleEmailSubmit = async (event) => {
     event.preventDefault();
-    // Replace with actual form handling logic
-    page.set(Page.CODE);
+
+    const emailValue = event.target.email.value;
+    email.set(emailValue);
+
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailValue }),
+    });
+
+    if (response.ok) {
+      page.set(Page.CODE);
+    } else {
+      // Handle error (e.g., display error message)
+      console.error('Failed to send email');
+    }
   };
 
-  const handleCodeSubmit = (event) => {
+  const handleCodeSubmit = async (event) => {
     event.preventDefault();
-    // Replace with actual form handling logic
-    toggleModal();
+
+    const otpValue = event.target.otp.value;
+    otp.set(otpValue);
+
+    const response = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp: otpValue }),
+    });
+
+    if (response.ok) {
+      toggleModal();
+    } else {
+      // Handle error (e.g., display error message)
+      console.error('Failed to verify OTP');
+    }
   };
 </script>
 
@@ -75,6 +105,7 @@
               <input
                 class="h-[60px] border rounded-lg px-2 w-full border-gold bg-luna text-[18px] lowercase leading-[24px] focus:border-0 focus:bg-white"
                 type="email"
+                name="email"
                 placeholder="delegatoooor@defi.com"
                 required
               />
@@ -114,6 +145,7 @@
               <input
                 class="h-[60px] border rounded-lg px-2 w-full text-center border-gold bg-luna text-[18px] lowercase leading-[24px] focus:border-0 focus:bg-white"
                 type="text"
+                name="otp"
                 placeholder="69420"
                 required
                 maxlength="6"

@@ -4,6 +4,7 @@ import { generateRandomString, alphabet } from "oslo/crypto";
 import { Lucia } from "lucia";
 import { db, db_pool } from "@proposalsapp/db";
 import { NodePostgresAdapter } from "@lucia-auth/adapter-postgresql";
+
 const adapter = new NodePostgresAdapter(db_pool, {
   user: "user",
   session: "user_session",
