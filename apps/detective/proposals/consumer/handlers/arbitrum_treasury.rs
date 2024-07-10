@@ -5,7 +5,7 @@ use chrono::NaiveDateTime;
 use contracts::gen::arbitrum_treasury_gov::arbitrum_treasury_gov::arbitrum_treasury_gov;
 use contracts::gen::arbitrum_treasury_gov::ProposalCreatedFilter;
 use ethers::prelude::*;
-use scanners::etherscan::estimate_timestamp;
+use scanners::etherscan::{self, estimate_timestamp};
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::Set;
 use seaorm::sea_orm_active_enums::ProposalStateEnum;
@@ -110,6 +110,9 @@ async fn data_for_proposal(
         .context("rpc.get_block")?;
     let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
 
+    let created_block_ethereum =
+        etherscan::estimate_block(created_block_timestamp.and_utc().timestamp() as u64).await?;
+
     let voting_start_block_number = log.start_block.as_u64();
     let voting_end_block_number = log.end_block.as_u64();
 
@@ -121,7 +124,7 @@ async fn data_for_proposal(
             #[allow(deprecated)]
             let fallback = NaiveDateTime::from_timestamp_millis(
                 (created_block_timestamp.and_utc().timestamp() * 1000)
-                    + (voting_start_block_number as i64 - created_block_number as i64)
+                    + (voting_start_block_number as i64 - created_block_ethereum as i64)
                         * average_block_time_millis,
             )
             .context("bad timestamp")?;
@@ -140,7 +143,7 @@ async fn data_for_proposal(
             #[allow(deprecated)]
             let fallback = NaiveDateTime::from_timestamp_millis(
                 created_block_timestamp.and_utc().timestamp() * 1000
-                    + (voting_end_block_number - created_block_number) as i64
+                    + (voting_end_block_number - created_block_ethereum) as i64
                         * average_block_time_millis,
             )
             .context("bad timestamp")?;

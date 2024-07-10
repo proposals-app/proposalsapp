@@ -109,24 +109,44 @@ async fn data_for_proposal(
     let voting_start_block_number = log.start_block.as_u64();
     let voting_end_block_number = log.end_block.as_u64();
 
+    let average_block_time_millis = 12_200;
+
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
-        #[allow(deprecated)]
-        Err(_) => NaiveDateTime::from_timestamp_millis(
-            (created_block_timestamp.and_utc().timestamp() * 1000)
-                + (voting_start_block_number as i64 - created_block_number as i64) * 12 * 1000,
-        )
-        .context("bad timestamp")?,
+        Err(_) => {
+            #[allow(deprecated)]
+            let fallback = NaiveDateTime::from_timestamp_millis(
+                (created_block_timestamp.and_utc().timestamp() * 1000)
+                    + (voting_start_block_number as i64 - created_block_number as i64)
+                        * average_block_time_millis,
+            )
+            .context("bad timestamp")?;
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_start_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
     };
 
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
-        #[allow(deprecated)]
-        Err(_) => NaiveDateTime::from_timestamp_millis(
-            created_block_timestamp.and_utc().timestamp() * 1000
-                + (voting_end_block_number - created_block_number) as i64 * 12 * 1000,
-        )
-        .context("bad timestamp")?,
+        Err(_) => {
+            #[allow(deprecated)]
+            let fallback = NaiveDateTime::from_timestamp_millis(
+                created_block_timestamp.and_utc().timestamp() * 1000
+                    + (voting_end_block_number - created_block_number) as i64
+                        * average_block_time_millis,
+            )
+            .context("bad timestamp")?;
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
     };
 
     let proposal_url = format!("{}{}", decoder.proposalUrl, log.id);
