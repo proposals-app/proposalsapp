@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use chrono::{NaiveDateTime, Utc};
 use ethers::providers::{Http, Middleware, Provider};
 use reqwest_middleware::ClientBuilder;
@@ -10,10 +10,14 @@ use tracing::{event, Level};
 
 #[derive(Deserialize, PartialEq, Debug)]
 pub struct EstimateTimestampResult {
-    CurrentBlock: String,
-    CountdownBlock: String,
-    RemainingBlock: String,
-    EstimateTimeInSec: String,
+    #[serde(rename = "CurrentBlock")]
+    current_block: String,
+    #[serde(rename = "CountdownBlock")]
+    countdown_block: String,
+    #[serde(rename = "RemainingBlock")]
+    remaining_block: String,
+    #[serde(rename = "EstimateTimeInSec")]
+    estimate_time_in_sec: String,
 }
 
 #[derive(Deserialize, PartialEq, Debug)]
@@ -64,7 +68,7 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                     .context("Failed to deserialize etherscan response")?;
 
                 let estimated_time = Utc::now().timestamp() * 1000
-                    + data.result.EstimateTimeInSec.parse::<f64>()? as i64 * 1000;
+                    + data.result.estimate_time_in_sec.parse::<f64>()? as i64 * 1000;
 
                 return NaiveDateTime::from_timestamp_millis(estimated_time)
                     .context("Invalid estimated timestamp");
@@ -162,7 +166,13 @@ mod tests {
         dotenv().ok();
 
         // Test with a block number likely to be in the future
-        let block_number = 20356196;
+        let rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
+        let provider = Provider::<Http>::try_from(rpc_url).unwrap();
+
+        let current_block = provider.get_block_number().await.unwrap();
+
+        let block_number = current_block.as_u64() + 100;
+
         let result = estimate_timestamp(block_number).await.unwrap();
 
         // Since we can't predict the future block time, just ensure we got a valid result

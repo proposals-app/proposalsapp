@@ -158,6 +158,7 @@ async fn data_for_proposal(
             fallback
         }
     };
+
     let mut title = format!(
         "{:.120}",
         log.description

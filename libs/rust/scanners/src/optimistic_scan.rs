@@ -1,21 +1,25 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use chrono::{NaiveDateTime, Utc};
 use ethers::providers::{Http, Middleware, Provider};
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::Deserialize;
+use std::time::Duration;
+use tokio::time::sleep;
 use tracing::{event, Level};
 
-#[allow(dead_code, non_snake_case)]
 #[derive(Deserialize, PartialEq, Debug)]
 pub struct EstimateTimestampResult {
-    CurrentBlock: String,
-    CountdownBlock: String,
-    RemainingBlock: String,
-    EstimateTimeInSec: String,
+    #[serde(rename = "CurrentBlock")]
+    current_block: String,
+    #[serde(rename = "CountdownBlock")]
+    countdown_block: String,
+    #[serde(rename = "RemainingBlock")]
+    remaining_block: String,
+    #[serde(rename = "EstimateTimeInSec")]
+    estimate_time_in_sec: String,
 }
 
-#[allow(dead_code, non_snake_case)]
 #[derive(Deserialize, PartialEq, Debug)]
 pub struct EstimateTimestamp {
     status: String,
@@ -24,74 +28,64 @@ pub struct EstimateTimestamp {
 }
 
 pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
-    let etherscan_api_key =
+    let optimisticscan_api_key =
         std::env::var("OPTIMISTIC_SCAN_API_KEY").expect("Optimistic Etherscan key not set!");
     let rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
-
     let provider = Provider::<Http>::try_from(rpc_url)?;
 
     let current_block = provider.get_block_number().await?;
 
     if block_number < current_block.as_u64() {
-        let block = provider.get_block(block_number).await?;
+        let block = provider
+            .get_block(block_number)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Block not found"))?;
 
-        #[allow(deprecated)]
-        let result: NaiveDateTime =
-            NaiveDateTime::from_timestamp_millis(block.unwrap().timestamp.as_u64() as i64 * 1000)
-                .context("bad timestamp")?;
-
-        return Ok(result);
+        return NaiveDateTime::from_timestamp_millis(block.timestamp.as_u64() as i64 * 1000)
+            .context("Invalid timestamp");
     }
-
-    let mut retries = 0;
 
     let retry_policy = ExponentialBackoff::builder().build_with_max_retries(5);
     let http_client = ClientBuilder::new(reqwest::Client::new())
         .with(RetryTransientMiddleware::new_with_policy(retry_policy))
         .build();
 
+    let mut retries = 0;
     loop {
         let response = http_client
             .get(format!(
         "https://api-optimistic.etherscan.io/api?module=block&action=getblockcountdown&blockno={}&apikey={}",
-        block_number, etherscan_api_key
-      ))
-            .timeout(std::time::Duration::from_secs(10))
-            .send()
-            .await;
+        block_number, optimisticscan_api_key
+    ))
+    .timeout(Duration::from_secs(10))
+    .send()
+    .await;
 
         match response {
             Ok(res) => {
                 let contents = res.text().await?;
-                let data = match serde_json::from_str::<EstimateTimestamp>(&contents) {
-                    #[allow(deprecated)]
-                    Ok(d) => NaiveDateTime::from_timestamp_millis(
-                        Utc::now().timestamp() * 1000
-                            + d.result.EstimateTimeInSec.parse::<f64>()? as i64 * 1000,
-                    )
-                    .context("bad timestamp")?,
+                let data: EstimateTimestamp = serde_json::from_str(&contents)
+                    .context("Failed to deserialize etherscan response")?;
 
-                    Err(_) => bail!("Unable to deserialize etherscan response."),
-                };
+                let estimated_time = Utc::now().timestamp() * 1000
+                    + data.result.estimate_time_in_sec.parse::<f64>()? as i64 * 1000;
 
-                return Ok(data);
+                return NaiveDateTime::from_timestamp_millis(estimated_time)
+                    .context("Invalid estimated timestamp");
             }
-
-            _ if retries < 15 => {
+            Err(_) if retries < 5 => {
                 retries += 1;
-                let backoff_duration = std::time::Duration::from_millis(2u64.pow(retries as u32));
-                tokio::time::sleep(backoff_duration).await;
+                let backoff_duration = Duration::from_millis(2u64.pow(retries));
+                sleep(backoff_duration).await;
             }
-            _ => {
-                #[allow(deprecated)]
+            Err(_) => {
                 return NaiveDateTime::from_timestamp_millis(Utc::now().timestamp() * 1000)
-                    .context("bad timestamp");
+                    .context("Failed to estimate timestamp after retries");
             }
         }
     }
 }
 
-#[allow(dead_code, non_snake_case)]
 #[derive(Deserialize, PartialEq, Debug)]
 pub struct EstimateBlock {
     status: String,
@@ -99,89 +93,123 @@ pub struct EstimateBlock {
     result: String,
 }
 
-pub async fn _estimate_block(timestamp: u64) -> Result<u64> {
-    let etherscan_api_key = std::env::var("ETHERSCAN_API_KEY").expect("Etherscan key not set!");
-
-    let mut retries = 0;
+pub async fn estimate_block(timestamp: u64) -> Result<u64> {
+    let optimisticscan_api_key =
+        std::env::var("OPTIMISTIC_SCAN_API_KEY").expect("Optimistic Etherscan key not set!");
 
     let retry_policy = ExponentialBackoff::builder().build_with_max_retries(5);
     let http_client = ClientBuilder::new(reqwest::Client::new())
         .with(RetryTransientMiddleware::new_with_policy(retry_policy))
         .build();
 
+    let mut retries = 0;
     loop {
         let response = http_client
-            .get(format!(
+                .get(format!(
                 "https://api-optimistic.etherscan.io/api?module=block&action=getblocknobytime&timestamp={}&closest=before&apikey={}",
-                timestamp, etherscan_api_key
-            ))
-            .timeout(std::time::Duration::from_secs(10))
-            .send()
-            .await;
+                timestamp, optimisticscan_api_key
+                ))
+                .timeout(Duration::from_secs(10))
+                .send()
+                .await;
 
         match response {
             Ok(res) => {
                 let contents = res.text().await?;
-                let data = match serde_json::from_str::<EstimateBlock>(&contents) {
-                    Ok(d) => d.result.parse::<u64>().unwrap_or(0),
-                    Err(_) => {
-                        event!(
-                            Level::ERROR,
-                            timestamp = timestamp,
-                            url = format!(
-                                "https://api-optimistic.etherscan.io/api?module=block&action=getblocknobytime&timestamp={}&closest=before&apikey={}",
-                                timestamp, etherscan_api_key
-                            ),
-                            "estimate_block"
-                        );
+                let data: EstimateBlock = serde_json::from_str(&contents)
+                    .context("Failed to deserialize etherscan response")?;
 
-                        0
-                    }
-                };
-
-                return Ok(data);
+                return data
+                    .result
+                    .parse::<u64>()
+                    .context("Failed to parse block number");
             }
-
-            _ if retries < 5 => {
+            Err(_) if retries < 5 => {
                 retries += 1;
-                let backoff_duration = std::time::Duration::from_millis(2u64.pow(retries as u32));
-                tokio::time::sleep(backoff_duration).await;
+                let backoff_duration = Duration::from_millis(2u64.pow(retries));
+                sleep(backoff_duration).await;
             }
-            _ => {
+            Err(_) => {
+                event!(
+                    Level::ERROR,
+                    timestamp,
+                    "Failed to estimate block number after retries"
+                );
                 return Ok(0);
             }
         }
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::utils::etherscan::{estimate_block, estimate_timestamp};
-//     use chrono::{DateTime, NaiveDateTime, Utc};
-//     use dotenv::dotenv;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use dotenv::dotenv;
 
-//     #[tokio::test]
-//     async fn get_block_timestamp() {
-//         dotenv().ok();
+    #[tokio::test]
+    async fn test_estimate_timestamp_past_block() {
+        dotenv().ok();
 
-//         let result = estimate_timestamp(18000000).await.unwrap();
+        // Test with a block number known to be in the past
+        let block_number = 12000000;
+        let result = estimate_timestamp(block_number).await.unwrap();
 
-//         assert_eq!(
-//             result,
-//             DateTime::<Utc>::from_utc(
-//                 NaiveDateTime::from_timestamp_millis(Utc::now().timestamp() * 1000)
-//                     .context("bad timestamp"),
-//                 Utc,
-//             ),
-//         );
-//     }
+        // We can't assert exact equality due to time differences, but we can check if it's in the past
+        assert!(
+            result < Utc::now().naive_utc(),
+            "Timestamp should be in the past"
+        );
+    }
 
-//     #[tokio::test]
-//     async fn get_block() {
-//         dotenv().ok();
+    #[tokio::test]
+    async fn test_estimate_timestamp_future_block() {
+        dotenv().ok();
 
-//         let result = estimate_block(1681908547).await.unwrap();
+        let rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
+        let provider = Provider::<Http>::try_from(rpc_url).unwrap();
 
-//         assert_eq!(result, 17080747);
-//     }
-// }
+        let current_block = provider.get_block_number().await.unwrap();
+
+        let block_number = current_block.as_u64() + 100;
+        let result = estimate_timestamp(block_number).await.unwrap();
+
+        // Since we can't predict the future block time, just ensure we got a valid result
+        assert!(
+            result > Utc::now().naive_utc(),
+            "Timestamp should be in the future"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_estimate_block() {
+        dotenv().ok();
+
+        // Test with a known timestamp
+        let timestamp = 1681908547; // Example timestamp
+        let result = estimate_block(timestamp).await.unwrap();
+
+        println!("{}", result);
+
+        // We can't assert exact block number, but ensure we got a valid non-zero result
+        assert!(result > 0, "Block number should be non-zero");
+    }
+
+    #[tokio::test]
+    async fn test_estimate_block_2() {
+        dotenv().ok();
+
+        // Test with a known timestamp
+        let timestamp = 1681908547; // Example timestamp
+        let expected_block_number = 92236867; // Known block number for the given timestamp
+        let result = estimate_block(timestamp).await.unwrap();
+
+        println!("Estimated Block Number: {}", result);
+
+        // Ensure we got the expected block number
+        assert_eq!(
+            result, expected_block_number,
+            "Block number should match the expected block number"
+        );
+    }
+}
