@@ -61,7 +61,9 @@
   on:click={toggleModal}
   class="block h-10 px-2 w-full rounded-lg border-2 border-gold bg-luna text-center text-gold hover:bg-dark lg:h-14"
 >
-  <div class="text-2xl font-manjari leading-[42px] lg:leading-[58px]">
+  <div
+    class="text-2xl lg:text-3xl font-manjari leading-[42px] lg:leading-[58px]"
+  >
     subscribe
   </div>
 </button>

@@ -50,13 +50,17 @@
   });
 </script>
 
-<div class="grid w-full grid-cols-1 gap-2 lg:gap-4 lg:max-w-full">
+<div
+  class="grid w-full grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-4 lg:max-w-full"
+>
   {#if $queryState}
     <button
       class={buttonClasses(StateFilterEnum.OPEN, $queryState)}
       on:click={() => handleClick(StateFilterEnum.OPEN)}
     >
-      <div class="text-2xl font-manjari leading-[42px] lg:leading-[58px]">
+      <div
+        class="text-2xl lg:text-3xl font-manjari leading-[42px] lg:leading-[58px]"
+      >
         open for voting
       </div>
     </button>
@@ -64,7 +68,9 @@
       class={buttonClasses(StateFilterEnum.CLOSED, $queryState)}
       on:click={() => handleClick(StateFilterEnum.CLOSED)}
     >
-      <div class="text-2xl font-manjari leading-[42px] lg:leading-[58px]">
+      <div
+        class="text-2xl lg:text-3xl font-manjari leading-[42px] lg:leading-[58px]"
+      >
         closed votes
       </div>
     </button>
