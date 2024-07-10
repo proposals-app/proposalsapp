@@ -1,5 +1,6 @@
 ---
 import { getProposals, StateFilterEnum } from "@/lib/db/getProposals";
+import List from "./List.svelte";
 
 export const prerender = true;
 
@@ -9,15 +10,4 @@ const daos = Astro.url.searchParams.getAll("dao") || [""];
 const proposals = await getProposals(state as StateFilterEnum, daos, 0);
 ---
 
-<div>
-  <div>
-    <h2>DAOs</h2>
-    <ul class="flex flex-col gap-2">
-      {
-        proposals.map((proposal) => (
-          <li class="break-words">{JSON.stringify(proposal)}</li>
-        ))
-      }
-    </ul>
-  </div>
-</div>
+<List {state} {daos} {proposals} client:only />

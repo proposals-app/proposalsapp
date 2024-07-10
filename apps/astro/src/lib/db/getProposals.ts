@@ -12,10 +12,9 @@ export const getProposals = async (
   daos: string | string[],
   page: number,
 ) => {
-  console.log({ active, daos, page });
   let daos_query = db.selectFrom("dao");
 
-  if (daos.length) daos_query = daos_query.where("dao.slug", "in", daos);
+  if (daos.length > 0) daos_query = daos_query.where("dao.slug", "in", daos);
 
   let db_daos = await daos_query.selectAll().execute();
 
