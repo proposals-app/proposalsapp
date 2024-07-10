@@ -385,3 +385,164 @@ async fn get_body(hexhash: String) -> Result<String> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Context;
+    use dotenv::dotenv;
+    use sea_orm::{
+        ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
+    };
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnum};
+
+    #[tokio::test]
+    async fn test_get_proposals() {
+        let _ = dotenv();
+
+        let database_url = std::env::var("DATABASE_URL")
+            .context("DATABASE_URL not set")
+            .unwrap();
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context("Failed to connect to database")
+            .unwrap();
+
+        let mut dao_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnum::AaveV3Mainnet))
+            .one(&db)
+            .await
+            .context("Failed to query DAO handler")
+            .unwrap()
+            .context("DAO handler not found")
+            .unwrap();
+
+        // Update proposals index to the specified block number
+        dao_handler.proposals_index = 19762955;
+        dao_handler.proposals_refresh_speed = 1;
+
+        // Call the get_proposals method
+        match AaveV3Handler.get_proposals(&dao_handler).await {
+            Ok(result) => {
+                // Assertions to verify the result
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                for proposal in result.proposals {
+                    assert_eq!(
+                        proposal.clone().external_id.take().unwrap(),
+                        "93",
+                        "Proposal id does not match"
+                    );
+                    assert_eq!(
+                        proposal.clone().name.take().unwrap(),
+                        "aAMPL Second Distribution",
+                        "Proposal name does not match"
+                    );
+                    assert!(
+                        proposal
+                            .clone()
+                            .body
+                            .take()
+                            .unwrap()
+                            .contains("aAMPL Second Distribution"),
+                        "Proposal body does not match"
+                    );
+                    assert!(
+                        proposal.clone().scores_total.take().unwrap() >= 0.0,
+                        "Invalid scores total"
+                    );
+                    assert_eq!(
+                        proposal.clone().url.take().unwrap(),
+                        "https://app.aave.com/governance/v3/proposal/?proposalId=93",
+                        "Proposal URL does not match"
+                    );
+                    assert_eq!(
+                        proposal.clone().discussion_url.take().unwrap(),
+                        "https://governance.aave.com/t/arfc-aampl-second-distribution/17464",
+                        "Discussion URL does not match"
+                    );
+                    assert_eq!(
+                        proposal.clone().choices.take().unwrap().to_string(),
+                        "[\"For\",\"Against\"]",
+                        "Choices do not match"
+                    );
+                    assert_eq!(
+                        proposal.clone().scores.take().unwrap().to_string(),
+                        "[541463.9945180276,0.0]",
+                        "Scores do not match"
+                    );
+                    assert_eq!(
+                        proposal.clone().scores_total.take().unwrap(),
+                        541463.9945180276,
+                        "Scores total does not match"
+                    );
+                    assert_eq!(
+                        proposal.clone().proposal_state.take().unwrap(),
+                        ProposalStateEnum::Succeeded,
+                        "Proposal state does not match"
+                    );
+                    assert_eq!(
+                        proposal.clone().block_created.take().unwrap().unwrap(),
+                        19762955,
+                        "Block created does not match"
+                    );
+
+                    if let Some(time_created) = proposal.clone().time_created.take().unwrap() {
+                        let expected_time_created = NaiveDateTime::parse_from_str(
+                            "2024-04-29 19:08:47",
+                            "%Y-%m-%d %H:%M:%S",
+                        )
+                        .unwrap();
+                        assert_eq!(
+                            time_created, expected_time_created,
+                            "Time created does not match"
+                        );
+                    } else {
+                        panic!("Time created is None");
+                    }
+
+                    if let Some(time_start) = proposal.clone().time_start.take() {
+                        let expected_time_start = NaiveDateTime::parse_from_str(
+                            "2024-04-30 19:09:11",
+                            "%Y-%m-%d %H:%M:%S",
+                        )
+                        .unwrap();
+                        assert_eq!(
+                            time_start, expected_time_start,
+                            "Time created does not match"
+                        );
+                    } else {
+                        panic!("Time created is None");
+                    }
+
+                    if let Some(time_end) = proposal.clone().time_end.take() {
+                        let expected_time_end = NaiveDateTime::parse_from_str(
+                            "2024-05-03 19:09:11",
+                            "%Y-%m-%d %H:%M:%S",
+                        )
+                        .unwrap();
+                        assert_eq!(time_end, expected_time_end, "Time created does not match");
+                    } else {
+                        panic!("Time created is None");
+                    }
+
+                    assert_eq!(
+                        proposal.clone().dao_handler_id.take().unwrap(),
+                        dao_handler.id,
+                        "DAO handler ID does not match"
+                    );
+
+                    assert_eq!(
+                        proposal.clone().dao_id.take().unwrap(),
+                        dao_handler.dao_id,
+                        "DAO handler ID does not match"
+                    );
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+}

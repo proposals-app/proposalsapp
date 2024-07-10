@@ -37,8 +37,8 @@ importers:
   apps/ai_playground:
     dependencies:
       '@langchain/community':
-        specifier: ^0.2.17
-        version: 0.2.17(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(lodash@4.17.21)(mysql2@3.10.2)(openai@4.52.4)(pg@8.12.0)(ws@8.17.1)
+        specifier: ^0.2.18
+        version: 0.2.18(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(lodash@4.17.21)(mysql2@3.10.2)(openai@4.52.4)(pg@8.12.0)(ws@8.17.1)
       '@proposalsapp/db':
         specifier: '*'
         version: link:../../libs/ts/db
@@ -61,8 +61,8 @@ importers:
         specifier: ^0.27.4
         version: 0.27.4
       langchain:
-        specifier: ^0.2.8
-        version: 0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1)
+        specifier: ^0.2.9
+        version: 0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1)
       moment:
         specifier: ^2.30.1
         version: 2.30.1
@@ -198,7 +198,7 @@ importers:
         version: 1.1.2(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@serwist/next':
         specifier: ^9.0.3
-        version: 9.0.3(next@14.2.4(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.5.3)(webpack@5.92.1)
+        version: 9.0.3(next@14.2.5(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.5.3)(webpack@5.92.1)
       '@tanstack/react-query':
         specifier: 5.50.1
         version: 5.50.1(react@18.3.1)
@@ -248,8 +248,8 @@ importers:
         specifier: ^2.30.1
         version: 2.30.1
       next:
-        specifier: 14.2.4
-        version: 14.2.4(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 14.2.5
+        version: 14.2.5(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       next-themes:
         specifier: ^0.3.0
         version: 0.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -263,8 +263,8 @@ importers:
         specifier: ^8.12.0
         version: 8.12.0
       posthog-js:
-        specifier: ^1.145.0
-        version: 1.145.0
+        specifier: ^1.146.0
+        version: 1.146.0
       postmark:
         specifier: ^4.0.4
         version: 4.0.4
@@ -354,8 +354,8 @@ importers:
         specifier: 9.6.0
         version: 9.6.0
       eslint-config-next:
-        specifier: 14.2.4
-        version: 14.2.4(eslint@9.6.0)(typescript@5.5.3)
+        specifier: 14.2.5
+        version: 14.2.5(eslint@9.6.0)(typescript@5.5.3)
       pino-pretty:
         specifier: 11.2.1
         version: 11.2.1
@@ -378,8 +378,8 @@ importers:
   apps/astro:
     dependencies:
       '@astrojs/check':
-        specifier: ^0.8.0
-        version: 0.8.0(prettier-plugin-astro@0.14.0)(prettier@3.3.2)(typescript@5.5.3)
+        specifier: ^0.8.1
+        version: 0.8.1(prettier-plugin-astro@0.14.0)(prettier@3.3.2)(typescript@5.5.3)
       '@astrojs/node':
         specifier: ^8.3.2
         version: 8.3.2(astro@4.11.5(@types/node@20.14.10)(terser@5.31.1)(typescript@5.5.3))
@@ -952,7 +952,7 @@ importers:
         version: 1.1.2(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@serwist/next':
         specifier: ^9.0.3
-        version: 9.0.3(next@14.2.4(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.5.3)(webpack@5.92.1)
+        version: 9.0.3(next@14.2.5(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.5.3)(webpack@5.92.1)
       '@tanstack/react-query':
         specifier: 5.50.1
         version: 5.50.1(react@18.3.1)
@@ -1005,8 +1005,8 @@ importers:
         specifier: ^2.30.1
         version: 2.30.1
       next:
-        specifier: 14.2.4
-        version: 14.2.4(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 14.2.5
+        version: 14.2.5(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       next-themes:
         specifier: ^0.3.0
         version: 0.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1020,8 +1020,8 @@ importers:
         specifier: ^8.12.0
         version: 8.12.0
       posthog-js:
-        specifier: ^1.145.0
-        version: 1.145.0
+        specifier: ^1.146.0
+        version: 1.146.0
       postmark:
         specifier: ^4.0.4
         version: 4.0.4
@@ -1114,8 +1114,8 @@ importers:
         specifier: 9.6.0
         version: 9.6.0
       eslint-config-next:
-        specifier: 14.2.4
-        version: 14.2.4(eslint@9.6.0)(typescript@5.5.3)
+        specifier: 14.2.5
+        version: 14.2.5(eslint@9.6.0)(typescript@5.5.3)
       pino-pretty:
         specifier: 11.2.1
         version: 11.2.1
@@ -1216,8 +1216,8 @@ packages:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
 
-  '@astrojs/check@0.8.0':
-    resolution: {integrity: sha512-2nh0Trn0yzMl3VVoPmDliFsgdApcbyspmbRV9chPuOYCHr7LZsapEGLHsLn5b2OMpydqRO38UpuvnzVPqtabHw==}
+  '@astrojs/check@0.8.1':
+    resolution: {integrity: sha512-QTzCuiBWll3SLSe7OsWtWyZRbwChXwxM4Y0Jb84jdPOdYobzHad9ubU7V23qmK3Y0BNwgzCbEP5C5FPVitb31Q==}
     hasBin: true
     peerDependencies:
       typescript: ^5.0.0
@@ -1231,8 +1231,8 @@ packages:
   '@astrojs/internal-helpers@0.4.1':
     resolution: {integrity: sha512-bMf9jFihO8YP940uD70SI/RDzIhUHJAolWVcO1v5PUivxGKvfLZTLTVVxEYzGYyPsA3ivdLNqMnL5VgmQySa+g==}
 
-  '@astrojs/language-server@2.11.0':
-    resolution: {integrity: sha512-GmhF4A2rDCFzk/U0k1ySa8d/p6binaQZQJwSmHsY4Q8aHi5urjkG9csm0ZevKMPJmIRewE4jgh3pwzMGa4e0eQ==}
+  '@astrojs/language-server@2.11.1':
+    resolution: {integrity: sha512-WSIBBUK9lSeVD4KhPiZk2u3wsXdj7WEYvYPPs8ZsgbSVIOzUJWAKVcITHiXmcXlzZB5ubK44YUN/Hq+f2GeMyQ==}
     hasBin: true
     peerDependencies:
       prettier: ^3.0.0
@@ -2580,8 +2580,8 @@ packages:
   '@kurkle/color@0.3.2':
     resolution: {integrity: sha512-fuscdXJ9G1qb7W8VdHi+IwRqij3lBkosAm4ydQtEmbY58OzHXqQhvlxqEkoz0yssNVn38bcpRWgA9PP+OGoisw==}
 
-  '@langchain/community@0.2.17':
-    resolution: {integrity: sha512-lbmOvOvE0L2EV8lUb/ZcYyrLGF0sveGpYg9A0m6F/nDhuPG1HZqHvU/LiHsCaVO2WJPGowibMPTC02fUG/6dKA==}
+  '@langchain/community@0.2.18':
+    resolution: {integrity: sha512-UsCB97dMG87giQLniKx4bjv7OnMw2vQeavSt9gqOnGCnfb5IQBAgdjX4SjwFPbVGMz1HQoQKVlNqQ64ozCdgNg==}
     engines: {node: '>=18'}
     peerDependencies:
       '@aws-crypto/sha256-js': ^5.0.0
@@ -2610,6 +2610,7 @@ packages:
       '@google-cloud/storage': ^6.10.1 || ^7.7.0
       '@gradientai/nodejs-sdk': ^1.2.0
       '@huggingface/inference': ^2.6.4
+      '@langchain/langgraph': ~0.0.26
       '@layerup/layerup-security': ^1.5.12
       '@mendable/firecrawl-js': ^0.0.13
       '@mlc-ai/web-llm': 0.2.46
@@ -2756,6 +2757,8 @@ packages:
       '@gradientai/nodejs-sdk':
         optional: true
       '@huggingface/inference':
+        optional: true
+      '@langchain/langgraph':
         optional: true
       '@layerup/layerup-security':
         optional: true
@@ -3100,11 +3103,11 @@ packages:
   '@next/env@14.1.4':
     resolution: {integrity: sha512-e7X7bbn3Z6DWnDi75UWn+REgAbLEqxI8Tq2pkFOFAMpWAWApz/YCUhtWMWn410h8Q2fYiYL7Yg5OlxMOCfFjJQ==}
 
-  '@next/env@14.2.4':
-    resolution: {integrity: sha512-3EtkY5VDkuV2+lNmKlbkibIJxcO4oIHEhBWne6PaAp+76J9KoSsGvNikp6ivzAT8dhhBMYrm6op2pS1ApG0Hzg==}
+  '@next/env@14.2.5':
+    resolution: {integrity: sha512-/zZGkrTOsraVfYjGP8uM0p6r0BDT6xWpkjdVbcz66PJVSpwXX3yNiRycxAuDfBKGWBrZBXRuK/YVlkNgxHGwmA==}
 
-  '@next/eslint-plugin-next@14.2.4':
-    resolution: {integrity: sha512-svSFxW9f3xDaZA3idQmlFw7SusOuWTpDTAeBlO3AEPDltrraV+lqs7mAc6A27YdnpQVVIA3sODqUAAHdWhVWsA==}
+  '@next/eslint-plugin-next@14.2.5':
+    resolution: {integrity: sha512-LY3btOpPh+OTIpviNojDpUdIbHW9j0JBYBjsIp8IxtDFfYFyORvw3yNq6N231FVqQA7n7lwaf7xHbVJlA1ED7g==}
 
   '@next/swc-darwin-arm64@14.1.4':
     resolution: {integrity: sha512-ubmUkbmW65nIAOmoxT1IROZdmmJMmdYvXIe8211send9ZYJu+SqxSnJM4TrPj9wmL6g9Atvj0S/2cFmMSS99jg==}
@@ -3112,8 +3115,8 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-arm64@14.2.4':
-    resolution: {integrity: sha512-AH3mO4JlFUqsYcwFUHb1wAKlebHU/Hv2u2kb1pAuRanDZ7pD/A/KPD98RHZmwsJpdHQwfEc/06mgpSzwrJYnNg==}
+  '@next/swc-darwin-arm64@14.2.5':
+    resolution: {integrity: sha512-/9zVxJ+K9lrzSGli1///ujyRfon/ZneeZ+v4ptpiPoOU+GKZnm8Wj8ELWU1Pm7GHltYRBklmXMTUqM/DqQ99FQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
@@ -3124,8 +3127,8 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@14.2.4':
-    resolution: {integrity: sha512-QVadW73sWIO6E2VroyUjuAxhWLZWEpiFqHdZdoQ/AMpN9YWGuHV8t2rChr0ahy+irKX5mlDU7OY68k3n4tAZTg==}
+  '@next/swc-darwin-x64@14.2.5':
+    resolution: {integrity: sha512-vXHOPCwfDe9qLDuq7U1OYM2wUY+KQ4Ex6ozwsKxp26BlJ6XXbHleOUldenM67JRyBfVjv371oneEvYd3H2gNSA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
@@ -3136,8 +3139,8 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-gnu@14.2.4':
-    resolution: {integrity: sha512-KT6GUrb3oyCfcfJ+WliXuJnD6pCpZiosx2X3k66HLR+DMoilRb76LpWPGb4tZprawTtcnyrv75ElD6VncVamUQ==}
+  '@next/swc-linux-arm64-gnu@14.2.5':
+    resolution: {integrity: sha512-vlhB8wI+lj8q1ExFW8lbWutA4M2ZazQNvMWuEDqZcuJJc78iUnLdPPunBPX8rC4IgT6lIx/adB+Cwrl99MzNaA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -3148,8 +3151,8 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-musl@14.2.4':
-    resolution: {integrity: sha512-Alv8/XGSs/ytwQcbCHwze1HmiIkIVhDHYLjczSVrf0Wi2MvKn/blt7+S6FJitj3yTlMwMxII1gIJ9WepI4aZ/A==}
+  '@next/swc-linux-arm64-musl@14.2.5':
+    resolution: {integrity: sha512-NpDB9NUR2t0hXzJJwQSGu1IAOYybsfeB+LxpGsXrRIb7QOrYmidJz3shzY8cM6+rO4Aojuef0N/PEaX18pi9OA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -3160,8 +3163,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-gnu@14.2.4':
-    resolution: {integrity: sha512-ze0ShQDBPCqxLImzw4sCdfnB3lRmN3qGMB2GWDRlq5Wqy4G36pxtNOo2usu/Nm9+V2Rh/QQnrRc2l94kYFXO6Q==}
+  '@next/swc-linux-x64-gnu@14.2.5':
+    resolution: {integrity: sha512-8XFikMSxWleYNryWIjiCX+gU201YS+erTUidKdyOVYi5qUQo/gRxv/3N1oZFCgqpesN6FPeqGM72Zve+nReVXQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -3172,8 +3175,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-musl@14.2.4':
-    resolution: {integrity: sha512-8dwC0UJoc6fC7PX70csdaznVMNr16hQrTDAMPvLPloazlcaWfdPogq+UpZX6Drqb1OBlwowz8iG7WR0Tzk/diQ==}
+  '@next/swc-linux-x64-musl@14.2.5':
+    resolution: {integrity: sha512-6QLwi7RaYiQDcRDSU/os40r5o06b5ue7Jsk5JgdRBGGp8l37RZEh9JsLSM8QF0YDsgcosSeHjglgqi25+m04IQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -3184,8 +3187,8 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-arm64-msvc@14.2.4':
-    resolution: {integrity: sha512-jxyg67NbEWkDyvM+O8UDbPAyYRZqGLQDTPwvrBBeOSyVWW/jFQkQKQ70JDqDSYg1ZDdl+E3nkbFbq8xM8E9x8A==}
+  '@next/swc-win32-arm64-msvc@14.2.5':
+    resolution: {integrity: sha512-1GpG2VhbspO+aYoMOQPQiqc/tG3LzmsdBH0LhnDS3JrtDx2QmzXe0B6mSZZiN3Bq7IOMXxv1nlsjzoS1+9mzZw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
@@ -3196,8 +3199,8 @@ packages:
     cpu: [ia32]
     os: [win32]
 
-  '@next/swc-win32-ia32-msvc@14.2.4':
-    resolution: {integrity: sha512-twrmN753hjXRdcrZmZttb/m5xaCBFa48Dt3FbeEItpJArxriYDunWxJn+QFXdJ3hPkm4u7CKxncVvnmgQMY1ag==}
+  '@next/swc-win32-ia32-msvc@14.2.5':
+    resolution: {integrity: sha512-Igh9ZlxwvCDsu6438FXlQTHlRno4gFpJzqPjSIBZooD22tKeI4fE/YMRoHVJHmrQ2P5YL1DoZ0qaOKkbeFWeMg==}
     engines: {node: '>= 10'}
     cpu: [ia32]
     os: [win32]
@@ -3208,8 +3211,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@next/swc-win32-x64-msvc@14.2.4':
-    resolution: {integrity: sha512-tkLrjBzqFTP8DVrAAQmZelEahfR9OxWpFR++vAI9FBhCiIxtwHwBHC23SBHCTURBtwB4kc/x44imVOnkKGNVGg==}
+  '@next/swc-win32-x64-msvc@14.2.5':
+    resolution: {integrity: sha512-tEQ7oinq1/CjSG9uSTerca3v4AZ+dFa+4Yu6ihaG8Ud8ddqLQgFGcnwYls13H5X5CPDPZJdYxyeMui6muOLd4g==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -6650,8 +6653,8 @@ packages:
     resolution: {integrity: sha512-/veY75JbMK4j1yjvuUxuVsiS/hr/4iHs9FTT6cgTexxdE0Ly/glccBAkloH/DofkjRbZU3bnoj38mOmhkZ0lHw==}
     engines: {node: '>=12'}
 
-  eslint-config-next@14.2.4:
-    resolution: {integrity: sha512-Qr0wMgG9m6m4uYy2jrYJmyuNlYZzPRQq5Kvb9IDlYwn+7yq6W6sfMNFgb+9guM1KYwuIo6TIaiFhZJ6SnQ/Efw==}
+  eslint-config-next@14.2.5:
+    resolution: {integrity: sha512-zogs9zlOiZ7ka+wgUnmcM0KBEDjo4Jis7kxN1jvC0N4wynQ2MIx/KBkg4mVF63J5EK4W0QMCn7xO3vNisjaAoA==}
     peerDependencies:
       eslint: ^7.23.0 || ^8.0.0
       typescript: '>=3.3.1'
@@ -8020,8 +8023,8 @@ packages:
       youtubei.js:
         optional: true
 
-  langchain@0.2.8:
-    resolution: {integrity: sha512-kb2IOMA71xH8e6EXFg0l4S+QSMC/c796pj1+7mPBkR91HHwoyHZhFRrBaZv4tV+Td+Ba91J2uEDBmySklZLpNQ==}
+  langchain@0.2.9:
+    resolution: {integrity: sha512-iZ0l7BDVfoifqZlDl1gy3JP5mIdhYjWiToPlDnlmfHD748cw3okvF0gZo0ruT4nbftnQcaM7JzPUiNC43UPfgg==}
     engines: {node: '>=18'}
     peerDependencies:
       '@aws-sdk/client-s3': ^3.310.0
@@ -8777,8 +8780,8 @@ packages:
       sass:
         optional: true
 
-  next@14.2.4:
-    resolution: {integrity: sha512-R8/V7vugY+822rsQGQCjoLhMuC9oFj9SOi4Cl4b2wjDrseD0LRZ10W7R6Czo4w9ZznVSshKjuIomsRjvm9EKJQ==}
+  next@14.2.5:
+    resolution: {integrity: sha512-0f8aRfBVL+mpzfBjYfQuLWh2WyAwtJXCRfkPF4UJ5qd2YwrHczsrSzXU4tRMV0OAxR8ZJZWPFn6uhSC56UTsLA==}
     engines: {node: '>=18.17.0'}
     hasBin: true
     peerDependencies:
@@ -9383,8 +9386,8 @@ packages:
   postgres-range@1.1.4:
     resolution: {integrity: sha512-i/hbxIE9803Alj/6ytL7UHQxRvZkI9O4Sy+J3HGc4F4oo/2eQAjTSNJ0bfxyse3bH0nuVesCk+3IRLaMtG3H6w==}
 
-  posthog-js@1.145.0:
-    resolution: {integrity: sha512-LQdH6S2Ks3mnCI0q9aD5SZS0Uujc/90nuJuEeGDeGkWkVkYOSQJt4n0UHrIWEsZdmIKZf0a6OIBhTmO+yUiY3w==}
+  posthog-js@1.146.0:
+    resolution: {integrity: sha512-ciA3AmqED7CI1upQg+v3Be6+0ird0zDZi+K//l1Ck9OkFyXhbOfT3p7IFo39Q7nt+oCneelyF94KiPEQlZfUzg==}
 
   postmark@4.0.4:
     resolution: {integrity: sha512-Qme+i5nidpcySxPBaPT0Arqc15dKl9D+fk9qsHEV2s8mhTK13/213RRD2/uemp8H6/ZHjAfgKCTY9TfzThbCTQ==}
@@ -11293,9 +11296,9 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
 
-  '@astrojs/check@0.8.0(prettier-plugin-astro@0.14.0)(prettier@3.3.2)(typescript@5.5.3)':
+  '@astrojs/check@0.8.1(prettier-plugin-astro@0.14.0)(prettier@3.3.2)(typescript@5.5.3)':
     dependencies:
-      '@astrojs/language-server': 2.11.0(prettier-plugin-astro@0.14.0)(prettier@3.3.2)(typescript@5.5.3)
+      '@astrojs/language-server': 2.11.1(prettier-plugin-astro@0.14.0)(prettier@3.3.2)(typescript@5.5.3)
       chokidar: 3.6.0
       fast-glob: 3.3.2
       kleur: 4.1.5
@@ -11311,7 +11314,7 @@ snapshots:
 
   '@astrojs/internal-helpers@0.4.1': {}
 
-  '@astrojs/language-server@2.11.0(prettier-plugin-astro@0.14.0)(prettier@3.3.2)(typescript@5.5.3)':
+  '@astrojs/language-server@2.11.1(prettier-plugin-astro@0.14.0)(prettier@3.3.2)(typescript@5.5.3)':
     dependencies:
       '@astrojs/compiler': 2.8.2
       '@jridgewell/sourcemap-codec': 1.5.0
@@ -12830,7 +12833,7 @@ snapshots:
 
   '@kurkle/color@0.3.2': {}
 
-  '@langchain/community@0.2.17(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(lodash@4.17.21)(mysql2@3.10.2)(openai@4.52.4)(pg@8.12.0)(ws@8.17.1)':
+  '@langchain/community@0.2.18(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(lodash@4.17.21)(mysql2@3.10.2)(openai@4.52.4)(pg@8.12.0)(ws@8.17.1)':
     dependencies:
       '@langchain/core': 0.2.14(langchain@0.2.3(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
       '@langchain/openai': 0.1.3(langchain@0.2.3(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))
@@ -12840,7 +12843,7 @@ snapshots:
       js-yaml: 4.1.0
       langchain: 0.2.3(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1)
       langsmith: 0.1.36(@langchain/core@0.2.14(langchain@0.2.3(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4))(langchain@0.2.3(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
-      uuid: 9.0.1
+      uuid: 10.0.0
       zod: 3.23.8
       zod-to-json-schema: 3.23.1(zod@3.23.8)
     optionalDependencies:
@@ -12880,13 +12883,13 @@ snapshots:
       - langchain
       - openai
 
-  '@langchain/core@0.2.14(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)':
+  '@langchain/core@0.2.14(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)':
     dependencies:
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.12
-      langsmith: 0.1.36(@langchain/core@0.2.14(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4))(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
+      langsmith: 0.1.36(@langchain/core@0.2.14(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4))(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
       ml-distance: 4.0.1
       mustache: 4.2.0
       p-queue: 6.6.2
@@ -12920,9 +12923,9 @@ snapshots:
       - encoding
       - langchain
 
-  '@langchain/openai@0.2.1(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))':
+  '@langchain/openai@0.2.1(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))':
     dependencies:
-      '@langchain/core': 0.2.14(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
+      '@langchain/core': 0.2.14(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
       js-tiktoken: 1.0.12
       openai: 4.52.4
       zod: 3.23.8
@@ -12939,9 +12942,9 @@ snapshots:
       - langchain
       - openai
 
-  '@langchain/textsplitters@0.0.3(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)':
+  '@langchain/textsplitters@0.0.3(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)':
     dependencies:
-      '@langchain/core': 0.2.14(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
+      '@langchain/core': 0.2.14(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
       js-tiktoken: 1.0.12
     transitivePeerDependencies:
       - langchain
@@ -13167,64 +13170,64 @@ snapshots:
 
   '@next/env@14.1.4': {}
 
-  '@next/env@14.2.4': {}
+  '@next/env@14.2.5': {}
 
-  '@next/eslint-plugin-next@14.2.4':
+  '@next/eslint-plugin-next@14.2.5':
     dependencies:
       glob: 10.3.10
 
   '@next/swc-darwin-arm64@14.1.4':
     optional: true
 
-  '@next/swc-darwin-arm64@14.2.4':
+  '@next/swc-darwin-arm64@14.2.5':
     optional: true
 
   '@next/swc-darwin-x64@14.1.4':
     optional: true
 
-  '@next/swc-darwin-x64@14.2.4':
+  '@next/swc-darwin-x64@14.2.5':
     optional: true
 
   '@next/swc-linux-arm64-gnu@14.1.4':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@14.2.4':
+  '@next/swc-linux-arm64-gnu@14.2.5':
     optional: true
 
   '@next/swc-linux-arm64-musl@14.1.4':
     optional: true
 
-  '@next/swc-linux-arm64-musl@14.2.4':
+  '@next/swc-linux-arm64-musl@14.2.5':
     optional: true
 
   '@next/swc-linux-x64-gnu@14.1.4':
     optional: true
 
-  '@next/swc-linux-x64-gnu@14.2.4':
+  '@next/swc-linux-x64-gnu@14.2.5':
     optional: true
 
   '@next/swc-linux-x64-musl@14.1.4':
     optional: true
 
-  '@next/swc-linux-x64-musl@14.2.4':
+  '@next/swc-linux-x64-musl@14.2.5':
     optional: true
 
   '@next/swc-win32-arm64-msvc@14.1.4':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@14.2.4':
+  '@next/swc-win32-arm64-msvc@14.2.5':
     optional: true
 
   '@next/swc-win32-ia32-msvc@14.1.4':
     optional: true
 
-  '@next/swc-win32-ia32-msvc@14.2.4':
+  '@next/swc-win32-ia32-msvc@14.2.5':
     optional: true
 
   '@next/swc-win32-x64-msvc@14.1.4':
     optional: true
 
-  '@next/swc-win32-x64-msvc@14.2.4':
+  '@next/swc-win32-x64-msvc@14.2.5':
     optional: true
 
   '@noble/curves@1.2.0':
@@ -15162,14 +15165,14 @@ snapshots:
     optionalDependencies:
       typescript: 5.5.3
 
-  '@serwist/next@9.0.3(next@14.2.4(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.5.3)(webpack@5.92.1)':
+  '@serwist/next@9.0.3(next@14.2.5(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.5.3)(webpack@5.92.1)':
     dependencies:
       '@serwist/build': 9.0.3(typescript@5.5.3)
       '@serwist/webpack-plugin': 9.0.3(typescript@5.5.3)(webpack@5.92.1)
       '@serwist/window': 9.0.3(typescript@5.5.3)
       chalk: 5.3.0
       glob: 10.4.1
-      next: 14.2.4(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      next: 14.2.5(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       serwist: 9.0.3(typescript@5.5.3)
       zod: 3.23.8
     optionalDependencies:
@@ -17678,14 +17681,14 @@ snapshots:
 
   escape-string-regexp@5.0.0: {}
 
-  eslint-config-next@14.2.4(eslint@9.6.0)(typescript@5.5.3):
+  eslint-config-next@14.2.5(eslint@9.6.0)(typescript@5.5.3):
     dependencies:
-      '@next/eslint-plugin-next': 14.2.4
+      '@next/eslint-plugin-next': 14.2.5
       '@rushstack/eslint-patch': 1.10.3
       '@typescript-eslint/parser': 7.2.0(eslint@9.6.0)(typescript@5.5.3)
       eslint: 9.6.0
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@9.6.0))(eslint@9.6.0)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@9.6.0)
       eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-typescript@3.6.1)(eslint@9.6.0)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@9.6.0)
       eslint-plugin-react: 7.34.3(eslint@9.6.0)
@@ -17713,12 +17716,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@9.6.0))(eslint@9.6.0):
+  eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@9.6.0):
     dependencies:
       debug: 4.3.5
       enhanced-resolve: 5.17.0
       eslint: 9.6.0
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@9.6.0))(eslint@9.6.0))(eslint@9.6.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@9.6.0))(eslint@9.6.0)
       eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-typescript@3.6.1)(eslint@9.6.0)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.5
@@ -17730,14 +17733,14 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@9.6.0))(eslint@9.6.0))(eslint@9.6.0):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@9.6.0))(eslint@9.6.0):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 7.2.0(eslint@9.6.0)(typescript@5.5.3)
       eslint: 9.6.0
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@9.6.0))(eslint@9.6.0)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@9.6.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -17751,7 +17754,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.6.0
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@9.6.0))(eslint@9.6.0))(eslint@9.6.0)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@9.6.0)(typescript@5.5.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@9.6.0))(eslint@9.6.0)
       hasown: 2.0.2
       is-core-module: 2.14.0
       is-glob: 4.0.3
@@ -19133,21 +19136,21 @@ snapshots:
       - encoding
       - openai
 
-  langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1):
+  langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1):
     dependencies:
-      '@langchain/core': 0.2.14(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
-      '@langchain/openai': 0.2.1(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))
-      '@langchain/textsplitters': 0.0.3(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
+      '@langchain/core': 0.2.14(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
+      '@langchain/openai': 0.2.1(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))
+      '@langchain/textsplitters': 0.0.3(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
       binary-extensions: 2.3.0
       js-tiktoken: 1.0.12
       js-yaml: 4.1.0
       jsonpointer: 5.0.1
       langchainhub: 0.0.11
-      langsmith: 0.1.36(@langchain/core@0.2.14(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4))(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
+      langsmith: 0.1.36(@langchain/core@0.2.14(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4))(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
       ml-distance: 4.0.1
       openapi-types: 12.1.3
       p-retry: 4.6.2
-      uuid: 9.0.1
+      uuid: 10.0.0
       yaml: 2.4.5
       zod: 3.23.8
       zod-to-json-schema: 3.23.1(zod@3.23.8)
@@ -19177,7 +19180,7 @@ snapshots:
       langchain: 0.2.3(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1)
       openai: 4.52.4
 
-  langsmith@0.1.36(@langchain/core@0.2.14(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4))(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4):
+  langsmith@0.1.36(@langchain/core@0.2.14(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4))(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4):
     dependencies:
       '@types/uuid': 9.0.8
       commander: 10.0.1
@@ -19185,8 +19188,8 @@ snapshots:
       p-retry: 4.6.2
       uuid: 9.0.1
     optionalDependencies:
-      '@langchain/core': 0.2.14(langchain@0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
-      langchain: 0.2.8(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1)
+      '@langchain/core': 0.2.14(langchain@0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1))(openai@4.52.4)
+      langchain: 0.2.9(axios@1.7.2)(cheerio@1.0.0-rc.12)(chromadb@1.8.1(openai@4.52.4))(fast-xml-parser@4.4.0)(html-to-text@9.0.5)(ignore@5.3.1)(openai@4.52.4)(ws@8.17.1)
       openai: 4.52.4
 
   language-subtag-registry@0.3.23: {}
@@ -20066,9 +20069,9 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@14.2.4(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  next@14.2.5(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
-      '@next/env': 14.2.4
+      '@next/env': 14.2.5
       '@swc/helpers': 0.5.5
       busboy: 1.6.0
       caniuse-lite: 1.0.30001640
@@ -20078,15 +20081,15 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       styled-jsx: 5.1.1(@babel/core@7.24.7)(react@18.3.1)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 14.2.4
-      '@next/swc-darwin-x64': 14.2.4
-      '@next/swc-linux-arm64-gnu': 14.2.4
-      '@next/swc-linux-arm64-musl': 14.2.4
-      '@next/swc-linux-x64-gnu': 14.2.4
-      '@next/swc-linux-x64-musl': 14.2.4
-      '@next/swc-win32-arm64-msvc': 14.2.4
-      '@next/swc-win32-ia32-msvc': 14.2.4
-      '@next/swc-win32-x64-msvc': 14.2.4
+      '@next/swc-darwin-arm64': 14.2.5
+      '@next/swc-darwin-x64': 14.2.5
+      '@next/swc-linux-arm64-gnu': 14.2.5
+      '@next/swc-linux-arm64-musl': 14.2.5
+      '@next/swc-linux-x64-gnu': 14.2.5
+      '@next/swc-linux-x64-musl': 14.2.5
+      '@next/swc-win32-arm64-msvc': 14.2.5
+      '@next/swc-win32-ia32-msvc': 14.2.5
+      '@next/swc-win32-x64-msvc': 14.2.5
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
@@ -20702,7 +20705,7 @@ snapshots:
 
   postgres-range@1.1.4: {}
 
-  posthog-js@1.145.0:
+  posthog-js@1.146.0:
     dependencies:
       fflate: 0.4.8
       preact: 10.22.1

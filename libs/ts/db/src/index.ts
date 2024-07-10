@@ -17,19 +17,29 @@ const db_pool = new Pool({
   connectionString: process.env.DATABASE_URL!,
 });
 
-const db = new Kysely<DB>({
-  dialect: new PostgresDialect({
-    pool: db_pool,
-  }),
-  plugins: [
-    new CamelCasePlugin(),
-    new DeduplicateJoinsPlugin(),
-    new ParseJSONResultsPlugin(),
-  ],
-});
+const createDbInstance = () => {
+  return new Kysely<DB>({
+    dialect: new PostgresDialect({
+      pool: db_pool,
+    }),
+    plugins: [
+      new CamelCasePlugin(),
+      new DeduplicateJoinsPlugin(),
+      new ParseJSONResultsPlugin(),
+    ],
+  });
+};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var db: Kysely<DB> | undefined;
+}
+
+export const db = global.db || createDbInstance();
+
+//if (process.env.NODE_ENV !== "production") global.db = db;
 
 export { db_pool };
-export { db };
 export * from "./kysely_db";
 export { Kysely };
 export { jsonArrayFrom } from "kysely/helpers/postgres";
