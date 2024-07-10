@@ -13,7 +13,7 @@ use tracing::instrument;
 use utils::errors::{
     DATABASE_CONNECTION_FAILED, DATABASE_ERROR, DATABASE_URL_NOT_SET, SANITIZE_FAILED,
 };
-use utils::tracing::{run_with_tracing, setup_tracing};
+use utils::tracing::setup_tracing;
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponse {
