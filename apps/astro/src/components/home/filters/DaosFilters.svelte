@@ -65,8 +65,8 @@
       on:mouseleave={handleMouseLeave}
     >
       <img
-        class={`max-h-24 max-w-24 h-full w-full rounded-lg cursor-pointer border-2 border-gold ${selectedDaoSlugs.includes(dao.slug) ? "bg-dark" : "bg-luna"}`}
-        src={hoveredDaoSlug === dao.slug
+        class={`max-h-24 max-w-24 h-full w-full rounded-lg cursor-pointer border-2 ${selectedDaoSlugs.includes(dao.slug) ? "bg-dark border-dark" : "border-gold bg-luna"}`}
+        src={hoveredDaoSlug === dao.slug && !selectedDaoSlugs.includes(dao.slug)
           ? `/assets/web/dao-logos/hot/${dao.slug}_hover.svg`
           : selectedDaoSlugs.includes(dao.slug)
             ? `/assets/web/dao-logos/hot/${dao.slug}_active.svg`
