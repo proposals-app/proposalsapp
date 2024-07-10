@@ -5,7 +5,7 @@ use chrono::NaiveDateTime;
 use contracts::gen::arbitrum_treasury_gov::arbitrum_treasury_gov::arbitrum_treasury_gov;
 use contracts::gen::arbitrum_treasury_gov::ProposalCreatedFilter;
 use ethers::prelude::*;
-use scanners::etherscan::{self, estimate_timestamp};
+use scanners::etherscan::{self};
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::Set;
 use seaorm::sea_orm_active_enums::ProposalStateEnum;
@@ -107,43 +107,46 @@ async fn data_for_proposal(
     let created_block = rpc
         .get_block(meta.block_number)
         .await
-        .context("rpc.get_block")?;
-    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+        .context("rpc.get_block")?
+        .context("bad block")?;
 
-    let created_block_ethereum =
-        etherscan::estimate_block(created_block_timestamp.and_utc().timestamp() as u64).await?;
+    let created_block_timestamp = created_block.timestamp.as_u64() as i64;
+    let created_block_naive_datetime = NaiveDateTime::from_timestamp(created_block_timestamp, 0);
+
+    let created_block_ethereum = etherscan::estimate_block(created_block_timestamp as u64).await?;
 
     let voting_start_block_number = log.start_block.as_u64();
     let voting_end_block_number = log.end_block.as_u64();
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
-        Ok(r) => r,
-        Err(_) => {
-            #[allow(deprecated)]
-            let fallback = NaiveDateTime::from_timestamp_millis(
-                (created_block_timestamp.and_utc().timestamp() * 1000)
-                    + (voting_start_block_number as i64 - created_block_ethereum as i64)
-                        * average_block_time_millis,
-            )
-            .context("bad timestamp")?;
-            warn!(
-                "Could not estimate timestamp for {:?}",
-                voting_start_block_number
-            );
-            info!("Fallback to {:?}", fallback);
-            fallback
-        }
-    };
+    let voting_starts_timestamp =
+        match etherscan::estimate_timestamp(voting_start_block_number).await {
+            Ok(r) => r,
+            Err(_) => {
+                #[allow(deprecated)]
+                let fallback = NaiveDateTime::from_timestamp_millis(
+                    (created_block_timestamp * 1000)
+                        + (voting_start_block_number as i64 - created_block_ethereum as i64)
+                            * average_block_time_millis,
+                )
+                .context("bad timestamp")?;
+                warn!(
+                    "Could not estimate timestamp for {:?}",
+                    voting_start_block_number
+                );
+                info!("Fallback to {:?}", fallback);
+                fallback
+            }
+        };
 
-    let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
+    let voting_ends_timestamp = match etherscan::estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
         Err(_) => {
             #[allow(deprecated)]
             let fallback = NaiveDateTime::from_timestamp_millis(
-                created_block_timestamp.and_utc().timestamp() * 1000
-                    + (voting_end_block_number - created_block_ethereum) as i64
+                (created_block_timestamp * 1000)
+                    + (voting_end_block_number as i64 - created_block_ethereum as i64)
                         * average_block_time_millis,
             )
             .context("bad timestamp")?;
@@ -155,7 +158,6 @@ async fn data_for_proposal(
             fallback
         }
     };
-
     let mut title = format!(
         "{:.120}",
         log.description
@@ -240,7 +242,7 @@ async fn data_for_proposal(
         proposal_state: Set(state),
         flagged: NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(Some(created_block_timestamp)),
+        time_created: Set(Some(created_block_naive_datetime)),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_handler_id: Set(dao_handler.clone().id),
