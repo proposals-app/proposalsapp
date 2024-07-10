@@ -1,19 +1,23 @@
 ---
-export const prerender = false;
+import { getProposals, StateFilterEnum } from "@/lib/db/getProposals";
 
-const state = Astro.url.searchParams.get("state") || "";
-const daos = Astro.url.searchParams.getAll("dao") || [];
+export const prerender = true;
+
+const state = Astro.url.searchParams.get("state") || "open";
+const daos = Astro.url.searchParams.getAll("dao") || [""];
+
+const proposals = await getProposals(state as StateFilterEnum, daos, 0);
 ---
 
 <div>
   <div>
     <h2>DAOs</h2>
-    <ul>
-      {daos.map((item) => <li>{item}</li>)}
+    <ul class="flex flex-col gap-2">
+      {
+        proposals.map((proposal) => (
+          <li class="break-words">{JSON.stringify(proposal)}</li>
+        ))
+      }
     </ul>
-  </div>
-  <div>
-    <h2>State</h2>
-    <p>{state}</p>
   </div>
 </div>
