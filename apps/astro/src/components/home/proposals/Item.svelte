@@ -47,34 +47,36 @@
 
 </script>
 
-<li
-  class="bg-white p-2 rounded-2xl break-words flex flex-row items-center gap-2 shadow-sm transition-all duration-200 hover:shadow-md"
->
-  <img
-    class="h-14 w-14 rounded-xl"
-    src={`${proposal.daoPicture}_medium.png`}
-    alt={proposal.daoName}
-  />
-  <p
-    class="w-full text-ellipsis text-[18px] leading-[24px] font-poppins font-light"
+<a href={proposal.url}>
+  <li
+    class="bg-white p-2 rounded-2xl break-words flex flex-row items-center gap-2 shadow-sm transition-all duration-200 hover:shadow-md"
   >
-    {proposal.name.length < MAX_NAME_LENGTH
-      ? proposal.name
-      : `${proposal.name.slice(0, MAX_NAME_LENGTH - 3)}...`}
-  </p>
+    <img
+      class="h-14 w-14 rounded-xl"
+      src={`${proposal.daoPicture}_medium.png`}
+      alt={proposal.daoName}
+    />
+    <p
+      class="w-full text-ellipsis text-[18px] leading-[24px] font-poppins font-light"
+    >
+      {proposal.name.length < MAX_NAME_LENGTH
+        ? proposal.name
+        : `${proposal.name.slice(0, MAX_NAME_LENGTH - 3)}...`}
+    </p>
 
-  <div class="min-w-[100px] text-center">
-    {#if new Date(proposal.timeEnd).getTime() > new Date().getTime()}
-      <div class="text-xl text-black font-thin text-nowrap">open for</div>
-      <div class="text-xl font-semibold text-black">
-        {moment(proposal.timeEnd).fromNow(true)}
-      </div>
-    {:else}
-      <div class="text-xl text-gold font-thin text-nowrap">closed</div>
-      <div class="text-xl font-semibold text-gold">
-        {moment(proposal.timeEnd).fromNow(true)}
-        {"ago"}
-      </div>
-    {/if}
-  </div>
-</li>
+    <div class="min-w-[100px] text-center">
+      {#if new Date(proposal.timeEnd).getTime() > new Date().getTime()}
+        <div class="text-xl text-black font-thin text-nowrap">open for</div>
+        <div class="text-xl font-semibold text-black">
+          {moment(proposal.timeEnd).fromNow(true)}
+        </div>
+      {:else}
+        <div class="text-xl text-gold font-thin text-nowrap">closed</div>
+        <div class="text-xl font-semibold text-gold">
+          {moment(proposal.timeEnd).fromNow(true)}
+          {"ago"}
+        </div>
+      {/if}
+    </div>
+  </li>
+</a>

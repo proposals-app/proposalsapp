@@ -5,7 +5,7 @@ use chrono::NaiveDateTime;
 use contracts::gen::arbitrum_core_gov::arbitrum_core_gov::arbitrum_core_gov;
 use contracts::gen::arbitrum_core_gov::ProposalCreatedFilter;
 use ethers::prelude::*;
-use scanners::etherscan::estimate_timestamp;
+use scanners::arbiscan::estimate_timestamp;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::Set;
 use seaorm::sea_orm_active_enums::ProposalStateEnum;
