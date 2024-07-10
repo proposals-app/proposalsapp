@@ -1,4 +1,4 @@
-import { type User, type Session } from "lucia";
+import { type User } from "lucia";
 import { TimeSpan, createDate, isWithinExpirationDate } from "oslo";
 import { generateRandomString, alphabet } from "oslo/crypto";
 import { Lucia } from "lucia";
