@@ -1,5 +1,5 @@
 ---
-import SubscribeButton from "./SubscribeButton.astro";
+import SubscribeButton from "./SubscribeButton.svelte";
 ---
 
 <div
@@ -18,7 +18,7 @@ import SubscribeButton from "./SubscribeButton.astro";
   </a>
 
   <div class="flex w-fit justify-center">
-    <SubscribeButton />
+    <SubscribeButton client:load />
     <!-- <Suspense>
       {!user && <SubscribeButton />}
       {user && <SettingsButton />}

@@ -395,6 +395,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.9.0
         version: 3.9.0(react-hook-form@7.52.1(react@18.3.1))
+      '@lucia-auth/adapter-postgresql':
+        specifier: ^3.1.2
+        version: 3.1.2(lucia@3.2.0)(pg@8.12.0)
       '@proposalsapp/db':
         specifier: '*'
         version: link:../../libs/ts/db
@@ -506,6 +509,9 @@ importers:
       input-otp:
         specifier: ^1.2.4
         version: 1.2.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      lucia:
+        specifier: 3.2.0
+        version: 3.2.0
       lucide-react:
         specifier: ^0.407.0
         version: 0.407.0(react@18.3.1)

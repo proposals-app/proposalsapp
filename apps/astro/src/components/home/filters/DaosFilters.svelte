@@ -1,6 +1,6 @@
 <!-- src/components/DaosFilter.svelte -->
 <script lang="ts">
-  import type { hotDaosType } from '@/db/getHotDaos';
+  import type { hotDaosType } from '@/lib/db/getHotDaos';
   import { onMount } from 'svelte';
 
   export let hotDaos: hotDaosType = [];

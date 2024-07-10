@@ -55,13 +55,17 @@
       class={buttonClasses(StateFilterEnum.OPEN, $queryState)}
       on:click={() => handleClick(StateFilterEnum.OPEN)}
     >
-      <p class="text-[24px] leading-[32px]">open for voting</p>
+      <div class="text-2xl font-manjari leading-[42px] lg:leading-[58px]">
+        open for voting
+      </div>
     </button>
     <button
       class={buttonClasses(StateFilterEnum.CLOSED, $queryState)}
       on:click={() => handleClick(StateFilterEnum.CLOSED)}
     >
-      <p class="text-[24px] leading-[32px]">closed votes</p>
+      <div class="text-2xl font-manjari leading-[42px] lg:leading-[58px]">
+        closed votes
+      </div>
     </button>
   {/if}
 </div>

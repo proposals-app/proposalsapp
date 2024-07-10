@@ -19,6 +19,10 @@ export default {
         bgdark: "#161413",
         rainbow: "linear-gradient(90deg, #FF0000, #00FF00, #0000FF)",
       },
+      fontFamily: {
+        poppins: ["Poppins", "sans-serif"],
+        manjari: ["Manjari", "sans-serif"],
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
