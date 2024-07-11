@@ -14,7 +14,7 @@
 
     try {
       const daosParam = daos.length === 0 || (daos.length === 1 && daos[0] === "") ? "" : daos.join(',');
-      const response = await fetch(`/api/proposals?state=${state}&daos=${daosParam}&page=${page}`);
+      const response = await fetch(`/api/proposals?state=${state}&dao=${daosParam}&page=${page}`);
       if (!response.ok) {
         throw new Error('Failed to fetch proposals');
       }
