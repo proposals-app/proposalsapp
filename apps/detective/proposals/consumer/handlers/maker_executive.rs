@@ -117,12 +117,11 @@ async fn data_for_proposal(
     decoder: &Decoder,
     dao_handler: &dao_handler::Model,
 ) -> Result<proposal::ActiveModel> {
-    let proposal_url = format!("{}{}", decoder.proposalUrl, spell_address);
-
     let proposal_data = get_proposal_data(spell_address.clone())
         .await
         .context("get_proposal_data")?;
 
+    let proposal_url = format!("{}{}", decoder.proposalUrl, proposal_data.key);
     let created_timestamp = NaiveDateTime::parse_from_str(
         proposal_data.clone().date.split(" GMT").next().unwrap(),
         "%a %b %d %Y %H:%M:%S",
@@ -220,22 +219,23 @@ struct TimeData {
 #[allow(non_snake_case)]
 #[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
 struct SpellData {
-    expiration: String,
-    datePassed: Option<String>,
-    dateExecuted: Option<String>,
-    mkrSupport: String,
     hasBeenCast: bool,
     hasBeenScheduled: bool,
+    expiration: String,
+    mkrSupport: String,
+    datePassed: Option<String>,
+    dateExecuted: Option<String>,
 }
 
 #[allow(non_snake_case)]
 #[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
 struct ProposalData {
     title: String,
-    content: String,
-    spellData: SpellData,
-    active: bool,
+    about: String,
+    key: String,
     date: String,
+    active: bool,
+    spellData: SpellData,
 }
 
 const MAX_RETRIES: u32 = 10;
@@ -273,9 +273,10 @@ async fn get_proposal_data(spell_address: String) -> Result<ProposalData> {
 
     Ok(ProposalData {
         title: "Unknown".into(),
-        content: "Unknown".into(),
+        about: "Unknown".into(),
         date: "Sat Jan 01 2000 00:00:00".into(),
         active: false,
+        key: "unknown".into(),
         spellData: SpellData {
             expiration: "2000-01-01T00:00:00-00:00".into(),
             datePassed: None,
