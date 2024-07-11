@@ -172,10 +172,18 @@ async fn data_for_proposal(
     };
 
     if state == ProposalStateEnum::Executed {
-        voting_ends_timestamp =
-            DateTime::parse_from_rfc3339(proposal_data.clone().spellData.dateExecuted.as_str())?
-                .with_timezone(&Utc)
-                .naive_utc();
+        if proposal_data.clone().spellData.dateExecuted.is_some() {
+            voting_ends_timestamp = DateTime::parse_from_rfc3339(
+                proposal_data
+                    .clone()
+                    .spellData
+                    .dateExecuted
+                    .unwrap()
+                    .as_str(),
+            )?
+            .with_timezone(&Utc)
+            .naive_utc();
+        }
     }
 
     Ok(proposal::ActiveModel {
@@ -213,8 +221,8 @@ struct TimeData {
 #[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
 struct SpellData {
     expiration: String,
-    datePassed: String,
-    dateExecuted: String,
+    datePassed: Option<String>,
+    dateExecuted: Option<String>,
     mkrSupport: String,
     hasBeenCast: bool,
     hasBeenScheduled: bool,
@@ -270,8 +278,8 @@ async fn get_proposal_data(spell_address: String) -> Result<ProposalData> {
         active: false,
         spellData: SpellData {
             expiration: "2000-01-01T00:00:00-00:00".into(),
-            datePassed: "2000-01-01T00:00:00-00:00".into(),
-            dateExecuted: "2000-01-01T00:00:00-00:00".into(),
+            datePassed: None,
+            dateExecuted: None,
             mkrSupport: "0".into(),
             hasBeenCast: false,
             hasBeenScheduled: false,
