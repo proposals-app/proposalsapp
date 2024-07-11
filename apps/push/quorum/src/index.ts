@@ -59,12 +59,12 @@ cron.schedule("* * * * *", async () => {
 
   const proposals = await db
     .selectFrom("proposal")
+    .selectAll()
     .where("timeEnd", ">", new Date())
     .where("timeEnd", "<", new Date(new Date().getTime() + 1 * 60 * 60 * 1000))
-    .selectAll()
+    .where((eb) => eb("quorum", ">", eb.ref("scoresTotal")))
     .execute();
 
-  const proposalsNoQuorum = proposals.filter((p) => p.quorum > p.scoresTotal);
   const daos = proposals.map((p) => p.daoId);
 
   const users = await db
@@ -77,11 +77,9 @@ cron.schedule("* * * * *", async () => {
     .distinct()
     .execute();
 
-  console.log(
-    `${proposalsNoQuorum.length} push quorum proposals for ${users.length} users`,
-  );
+  if (proposals.length == 0) return;
 
-  if (proposalsNoQuorum.length == 0) return;
+  console.log(`${proposals.length} proposals for ${users.length} users`);
 
   for (const user of users) {
     const voters = (await db
@@ -91,7 +89,7 @@ cron.schedule("* * * * *", async () => {
       .select("voter.address")
       .execute()) ?? [{ address: "" }];
 
-    for (const proposal of proposalsNoQuorum) {
+    for (const proposal of proposals) {
       const votes = await db
         .selectFrom("vote")
         .where("vote.proposalId", "=", proposal.id)
@@ -107,6 +105,8 @@ cron.schedule("* * * * *", async () => {
         userId: user.id,
         proposalId: proposal.id,
       };
+
+      console.log({ message });
 
       rbmq_ch!.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
     }

@@ -76,11 +76,9 @@ cron.schedule("* * * * *", async () => {
     .distinct()
     .execute();
 
-  console.log(
-    `${proposals.length} push timeend proposals for ${users.length} users`,
-  );
-
   if (proposals.length == 0) return;
+
+  console.log(`${proposals.length} proposals for ${users.length} users`);
 
   for (const user of users) {
     const voters = (await db
@@ -106,6 +104,8 @@ cron.schedule("* * * * *", async () => {
         userId: user.id,
         proposalId: proposal.id,
       };
+
+      console.log({ message });
 
       rbmq_ch!.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
     }
