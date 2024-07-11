@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
+chrono = { workspace = true }
 futures = { workspace = true }
 backtrace = { workspace = true }
 amqprs = { workspace = true, features = ["tls", "urispec"] }
@@ -20,6 +21,7 @@ sea-orm = { workspace = true, features = [
     "with-bigdecimal",
     "with-uuid",
 ] }
+seaorm = { path = "../seaorm" }
 
 tokio = { workspace = true }
 
@@ -30,7 +32,12 @@ tracing-error = { workspace = true }
 opentelemetry = { workspace = true }
 opentelemetry_sdk = { workspace = true, features = ["rt-tokio", "logs"] }
 opentelemetry-http = { workspace = true }
-opentelemetry-otlp = { workspace = true, features = ["logs", "http-proto", "reqwest-client", "reqwest-rustls"] }
+opentelemetry-otlp = { workspace = true, features = [
+    "logs",
+    "http-proto",
+    "reqwest-client",
+    "reqwest-rustls",
+] }
 opentelemetry-proto = { workspace = true }
 opentelemetry-contrib = { workspace = true }
 opentelemetry-appender-tracing = { workspace = true }

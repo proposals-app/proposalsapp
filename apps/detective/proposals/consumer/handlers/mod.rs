@@ -11,6 +11,7 @@ mod gitcoin_v1;
 mod gitcoin_v2;
 mod hop;
 mod interest_protocol;
+mod lido;
 mod maker_executive;
 mod maker_poll;
 mod nouns;

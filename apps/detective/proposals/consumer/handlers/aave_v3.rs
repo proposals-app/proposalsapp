@@ -379,169 +379,33 @@ async fn get_body(hexhash: String) -> Result<String> {
         }
     }
 }
+
 #[cfg(test)]
-mod tests {
+mod aave_tests {
     use super::*;
-    use anyhow::Context;
-    use chrono::NaiveDateTime;
     use dotenv::dotenv;
-    use sea_orm::{
-        prelude::Uuid, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
-        QueryFilter,
-    };
+    use sea_orm::prelude::Uuid;
     use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnum};
-
-    async fn setup_database() -> DatabaseConnection {
-        dotenv().ok();
-
-        let database_url = std::env::var("DATABASE_URL")
-            .context("DATABASE_URL not set")
-            .unwrap();
-
-        let mut opt = ConnectOptions::new(database_url);
-        opt.sqlx_logging(false);
-
-        Database::connect(opt)
-            .await
-            .context("Failed to connect to database")
-            .unwrap()
-    }
-
-    async fn get_dao_handler(db: &DatabaseConnection) -> dao_handler::Model {
-        dao_handler::Entity::find()
-            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnum::AaveV3Mainnet))
-            .one(db)
-            .await
-            .context("Failed to query DAO handler")
-            .unwrap()
-            .context("DAO handler not found")
-            .unwrap()
-    }
-
-    struct ExpectedProposal {
-        external_id: &'static str,
-        name: &'static str,
-        body: &'static str,
-        url: &'static str,
-        discussion_url: &'static str,
-        choices: &'static str,
-        scores: &'static str,
-        scores_total: f64,
-        proposal_state: ProposalStateEnum,
-        block_created: Option<i32>,
-        time_created: Option<&'static str>,
-        time_start: &'static str,
-        time_end: &'static str,
-    }
-
-    fn assert_proposal(
-        proposal: &proposal::ActiveModel,
-        expected: &ExpectedProposal,
-        dao_handler_id: Uuid,
-        dao_id: Uuid,
-    ) {
-        assert_eq!(
-            proposal.external_id.clone().take().unwrap(),
-            expected.external_id,
-            "Proposal id does not match"
-        );
-        assert_eq!(
-            proposal.name.clone().take().unwrap(),
-            expected.name,
-            "Proposal name does not match"
-        );
-        assert!(
-            proposal
-                .body
-                .clone()
-                .take()
-                .unwrap()
-                .contains(expected.body),
-            "Proposal body does not match"
-        );
-        assert!(
-            proposal.scores_total.clone().take().unwrap() >= 0.0,
-            "Invalid scores total"
-        );
-        assert_eq!(
-            proposal.url.clone().take().unwrap(),
-            expected.url,
-            "Proposal URL does not match"
-        );
-        assert_eq!(
-            proposal.discussion_url.clone().take().unwrap(),
-            expected.discussion_url,
-            "Discussion URL does not match"
-        );
-
-        let choices_json = proposal.choices.clone().take().unwrap().to_string();
-        assert_eq!(choices_json, expected.choices, "Choices do not match");
-
-        let scores_json = proposal.scores.clone().take().unwrap().to_string();
-        assert_eq!(scores_json, expected.scores, "Scores do not match");
-
-        assert_eq!(
-            proposal.scores_total.clone().take().unwrap(),
-            expected.scores_total,
-            "Scores total does not match"
-        );
-        assert_eq!(
-            proposal.proposal_state.clone().take().unwrap(),
-            expected.proposal_state,
-            "Proposal state does not match"
-        );
-        assert_eq!(
-            proposal.block_created.clone().take().unwrap(),
-            expected.block_created,
-            "Block created does not match"
-        );
-
-        if let Some(time_created_str) = expected.time_created {
-            let expected_time_created =
-                NaiveDateTime::parse_from_str(time_created_str, "%Y-%m-%d %H:%M:%S").unwrap();
-            assert_eq!(
-                proposal.time_created.clone().take().unwrap(),
-                Some(expected_time_created),
-                "Time created does not match"
-            );
-        }
-
-        let expected_time_start =
-            NaiveDateTime::parse_from_str(expected.time_start, "%Y-%m-%d %H:%M:%S").unwrap();
-        assert_eq!(
-            proposal.time_start.clone().take().unwrap(),
-            expected_time_start,
-            "Time start does not match"
-        );
-
-        let expected_time_end =
-            NaiveDateTime::parse_from_str(expected.time_end, "%Y-%m-%d %H:%M:%S").unwrap();
-        assert_eq!(
-            proposal.time_end.clone().take().unwrap(),
-            expected_time_end,
-            "Time end does not match"
-        );
-
-        assert_eq!(
-            proposal.dao_handler_id.clone().take().unwrap(),
-            dao_handler_id,
-            "DAO handler ID does not match"
-        );
-
-        assert_eq!(
-            proposal.dao_id.clone().take().unwrap(),
-            dao_id,
-            "DAO ID does not match"
-        );
-    }
+    use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn test_get_proposals() {
-        let db = setup_database().await;
-        let mut dao_handler = get_dao_handler(&db).await;
+    async fn test_aave_v3_proposals() {
+        let _ = dotenv().ok();
 
-        dao_handler.proposals_index = 19762955;
-        dao_handler.proposals_refresh_speed = 1;
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            handler_type: DaoHandlerEnum::AaveV3Mainnet,
+            decoder: json!({"address":"0x9AEE0B04504CeF83A65AC3f0e838D0593BCb2BC7",
+                            "proposalUrl":"https://app.aave.com/governance/v3/proposal/?proposalId=",
+                            "voting_machine":"0x617332a777780F546261247F621051d0b98975Eb"}),
+            governance_portal: "https://app.aave.com/governance".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 19762955,
+            votes_index: 19762955,
+            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+        };
 
         match AaveV3Handler.get_proposals(&dao_handler).await {
             Ok(result) => {
@@ -556,6 +420,7 @@ mod tests {
                     choices: "[\"For\",\"Against\"]",
                     scores: "[541463.9945180276,0.0]",
                     scores_total: 541463.9945180276,
+                    quorum: 0.0,
                     proposal_state: ProposalStateEnum::Succeeded,
                     block_created: Some(19762955),
                     time_created: Some("2024-04-29 19:08:47"),

@@ -7,6 +7,6 @@ const hotDaos = await getHotDaos();
 ---
 
 <div class="flex flex-col gap-2 lg:gap-4">
-  <StateFilters client:visible />
-  <DaosFilters hotDaos={hotDaos} client:visible />
+  <StateFilters client:only="svelte" />
+  <DaosFilters hotDaos={hotDaos} client:only="svelte" />
 </div>
