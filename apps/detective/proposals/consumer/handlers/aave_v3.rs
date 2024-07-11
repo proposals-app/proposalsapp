@@ -483,7 +483,7 @@ mod tests {
         let choices_json = proposal.choices.clone().take().unwrap().to_string();
         assert_eq!(choices_json, expected.choices, "Choices do not match");
 
-        let scores_json = (proposal.scores.clone().take().unwrap().to_string());
+        let scores_json = proposal.scores.clone().take().unwrap().to_string();
         assert_eq!(scores_json, expected.scores, "Scores do not match");
 
         assert_eq!(
@@ -552,7 +552,7 @@ mod tests {
         match AaveV3Handler.get_proposals(&dao_handler).await {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
-                let expected_proposals = vec![ExpectedProposal {
+                let expected_proposals = [ExpectedProposal {
                     external_id: "93",
                     name: "aAMPL Second Distribution",
                     body: "aAMPL Second Distribution",
