@@ -2,19 +2,15 @@ use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::{Datelike, NaiveDateTime, Utc};
-use contracts::gen::maker_poll_create::maker_poll_create::maker_poll_create;
-use contracts::gen::maker_poll_create::PollCreatedFilter;
+use contracts::gen::maker_poll_create::{maker_poll_create::maker_poll_create, PollCreatedFilter};
 use ethers::prelude::*;
 use regex::Regex;
 use reqwest::StatusCode;
-use sea_orm::ActiveValue::NotSet;
-use sea_orm::Set;
-use seaorm::sea_orm_active_enums::ProposalStateEnum;
-use seaorm::{dao_handler, proposal};
+use sea_orm::{ActiveValue::NotSet, Set};
+use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 use tokio::time::sleep;
 
 #[allow(non_snake_case)]

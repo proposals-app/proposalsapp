@@ -3,8 +3,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use sea_orm::{NotSet, Set};
-use seaorm::sea_orm_active_enums::ProposalStateEnum;
-use seaorm::{dao_handler, proposal};
+use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]

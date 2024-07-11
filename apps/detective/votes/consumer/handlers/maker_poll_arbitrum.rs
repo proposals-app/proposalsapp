@@ -1,23 +1,20 @@
-use crate::VotesHandler;
-use crate::VotesResult;
+use crate::{VotesHandler, VotesResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use contracts::gen::maker_poll_vote_arbitrum::maker_poll_vote_arbitrum::maker_poll_vote_arbitrum;
-use contracts::gen::maker_poll_vote_arbitrum::VotedFilter;
-use ethers::prelude::Http;
-use ethers::prelude::LogMeta;
-use ethers::prelude::Provider;
-use ethers::providers::Middleware;
-use ethers::types::Address;
-use ethers::utils::to_checksum;
+use contracts::gen::maker_poll_vote_arbitrum::{
+    maker_poll_vote_arbitrum::maker_poll_vote_arbitrum, VotedFilter,
+};
+use ethers::{
+    prelude::{Http, LogMeta, Provider},
+    providers::Middleware,
+    types::Address,
+    utils::to_checksum,
+};
 use num_bigint::BigInt;
-use sea_orm::NotSet;
-use sea_orm::Set;
-use seaorm::proposal;
-use seaorm::{dao_handler, vote};
+use sea_orm::{NotSet, Set};
+use seaorm::{dao_handler, proposal, vote};
 use serde::Deserialize;
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]

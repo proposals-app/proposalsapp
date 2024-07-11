@@ -1,11 +1,11 @@
 use anyhow::Result;
 use data::seed_data;
 use dotenv::dotenv;
-use sea_orm::ActiveValue::NotSet;
-use sea_orm::{ColumnTrait, ConnectOptions, EntityTrait, QueryFilter, Set};
-use sea_orm::{Database, DatabaseConnection};
-use seaorm::sea_orm_active_enums::DaoHandlerEnum;
-use seaorm::{dao, dao_handler, dao_settings};
+use sea_orm::{
+    ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
+    QueryFilter, Set,
+};
+use seaorm::{dao, dao_handler, dao_settings, sea_orm_active_enums::DaoHandlerEnum};
 use tracing::{info, instrument};
 use utils::tracing::run_with_tracing;
 

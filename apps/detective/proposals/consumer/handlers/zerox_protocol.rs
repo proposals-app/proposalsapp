@@ -2,14 +2,13 @@ use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::{NaiveDateTime, Utc};
-use contracts::gen::zerox_staking::zerox_staking::zerox_staking;
-use contracts::gen::zerox_treasury::zerox_treasury::zerox_treasury;
-use contracts::gen::zerox_treasury::ProposalCreatedFilter;
+use contracts::gen::{
+    zerox_staking::zerox_staking::zerox_staking,
+    zerox_treasury::{zerox_treasury::zerox_treasury, ProposalCreatedFilter},
+};
 use ethers::prelude::*;
-use sea_orm::ActiveValue::NotSet;
-use sea_orm::Set;
-use seaorm::sea_orm_active_enums::ProposalStateEnum;
-use seaorm::{dao_handler, proposal};
+use sea_orm::{ActiveValue::NotSet, Set};
+use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;

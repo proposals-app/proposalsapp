@@ -1,26 +1,21 @@
-use crate::ProposalHandler;
-use crate::ProposalsResult;
+use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
-use contracts::gen::aave_v_2_executor::aave_v2_executor;
-use contracts::gen::aave_v_2_gov::aave_v2_gov;
-use contracts::gen::aave_v_2_gov::ProposalCreatedFilter;
-use contracts::gen::aave_v_2_strategy::aave_v2_strategy;
-use ethers::prelude::*;
-use ethers::utils::hex;
+use contracts::gen::{
+    aave_v_2_executor::aave_v2_executor,
+    aave_v_2_gov::{aave_v2_gov, ProposalCreatedFilter},
+    aave_v_2_strategy::aave_v2_strategy,
+};
+use ethers::{prelude::*, utils::hex};
 use regex::Regex;
 use scanners::etherscan::estimate_timestamp;
-use sea_orm::ActiveValue::NotSet;
-use sea_orm::Set;
-use seaorm::sea_orm_active_enums::ProposalStateEnum;
-use seaorm::{dao_handler, proposal};
+use sea_orm::{ActiveValue::NotSet, Set};
+use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::Deserialize;
 use serde_json::json;
-use std::sync::Arc;
-use std::time::Duration;
-use tracing::info;
-use tracing::warn;
+use std::{sync::Arc, time::Duration};
+use tracing::{info, warn};
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]

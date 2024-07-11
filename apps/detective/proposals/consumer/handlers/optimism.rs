@@ -2,19 +2,18 @@ use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
-use contracts::gen::optimism_gov_v_6::optimism_gov_v_6::optimism_gov_v6;
-use contracts::gen::optimism_gov_v_6::{
-    ProposalCreated1Filter, ProposalCreated2Filter, ProposalCreated3Filter, ProposalCreated4Filter,
+use contracts::gen::{
+    optimism_gov_v_6::{
+        optimism_gov_v_6::optimism_gov_v6, ProposalCreated1Filter, ProposalCreated2Filter,
+        ProposalCreated3Filter, ProposalCreated4Filter,
+    },
+    optimism_votemodule_0x_2796_4c_5f_4f389b839903_6e_107_6d_8_4c_6984576c33,
+    optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5,
 };
-use contracts::gen::optimism_votemodule_0x_2796_4c_5f_4f389b839903_6e_107_6d_8_4c_6984576c33;
-use contracts::gen::optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5;
-use ethers::prelude::*;
-use ethers::utils::to_checksum;
+use ethers::{prelude::*, utils::to_checksum};
 use scanners::optimistic_scan::estimate_timestamp;
-use sea_orm::ActiveValue::NotSet;
-use sea_orm::Set;
-use seaorm::sea_orm_active_enums::ProposalStateEnum;
-use seaorm::{dao_handler, proposal};
+use sea_orm::{ActiveValue::NotSet, Set};
+use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;

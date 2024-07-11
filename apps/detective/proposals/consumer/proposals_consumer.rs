@@ -1,10 +1,12 @@
-use amqprs::channel::{
-    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments, Channel,
-    QueueDeclareArguments,
+use amqprs::{
+    channel::{
+        BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments, Channel,
+        QueueDeclareArguments,
+    },
+    connection::{Connection, OpenConnectionArguments},
+    consumer::AsyncConsumer,
+    BasicProperties, Deliver,
 };
-use amqprs::connection::{Connection, OpenConnectionArguments};
-use amqprs::consumer::AsyncConsumer;
-use amqprs::{BasicProperties, Deliver};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use dotenv::dotenv;
@@ -13,16 +15,17 @@ use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
 };
-use seaorm::sea_orm_active_enums::ProposalStateEnum;
-use seaorm::{dao_handler, proposal};
+use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use std::collections::HashSet;
 use tokio::sync::Notify;
 use tracing::{error, info, instrument, warn};
-use utils::errors::*;
-use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
-use utils::tracing::setup_tracing;
-use utils::types::{ProposalsJob, ProposalsResponse};
-use utils::warnings::*;
+use utils::{
+    errors::*,
+    rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
+    tracing::setup_tracing,
+    types::{ProposalsJob, ProposalsResponse},
+    warnings::*,
+};
 
 mod handlers;
 

@@ -2,16 +2,14 @@ use crate::{ProposalHandler, ProposalsResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
-use contracts::gen::nouns_proposals_gov::nouns_proposals_gov::nouns_proposals_gov;
 use contracts::gen::nouns_proposals_gov::{
-    NounsDAOStorageV2ProposalCondensed, ProposalCreatedFilter,
+    nouns_proposals_gov::nouns_proposals_gov, NounsDAOStorageV2ProposalCondensed,
+    ProposalCreatedFilter,
 };
 use ethers::prelude::*;
 use scanners::etherscan::estimate_timestamp;
-use sea_orm::ActiveValue::NotSet;
-use sea_orm::Set;
-use seaorm::sea_orm_active_enums::ProposalStateEnum;
-use seaorm::{dao_handler, proposal};
+use sea_orm::{ActiveValue::NotSet, Set};
+use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;

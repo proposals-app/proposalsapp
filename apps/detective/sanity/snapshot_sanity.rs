@@ -5,15 +5,17 @@ use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
 };
-use seaorm::sea_orm_active_enums::{DaoHandlerEnum, ProposalStateEnum};
-use seaorm::{dao_handler, proposal};
+use seaorm::{
+    dao_handler, proposal,
+    sea_orm_active_enums::{DaoHandlerEnum, ProposalStateEnum},
+};
 use serde::Deserialize;
 use tokio::time;
 use tracing::instrument;
-use utils::errors::{
-    DATABASE_CONNECTION_FAILED, DATABASE_ERROR, DATABASE_URL_NOT_SET, SANITIZE_FAILED,
+use utils::{
+    errors::{DATABASE_CONNECTION_FAILED, DATABASE_ERROR, DATABASE_URL_NOT_SET, SANITIZE_FAILED},
+    tracing::setup_tracing,
 };
-use utils::tracing::setup_tracing;
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponse {

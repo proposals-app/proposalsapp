@@ -1,31 +1,39 @@
-use amqprs::channel::{
-    BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments, Channel,
-    QueueDeclareArguments,
+use amqprs::{
+    channel::{
+        BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments, Channel,
+        QueueDeclareArguments,
+    },
+    connection::{Connection, OpenConnectionArguments},
+    consumer::AsyncConsumer,
+    BasicProperties, Deliver,
 };
-use amqprs::connection::{Connection, OpenConnectionArguments};
-use amqprs::consumer::AsyncConsumer;
-use amqprs::{BasicProperties, Deliver};
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use dotenv::dotenv;
-use sea_orm::prelude::Uuid;
-use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::{
+    prelude::Uuid,
+    ActiveValue::{NotSet, Set},
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     TransactionTrait,
 };
-use seaorm::sea_orm_active_enums::DaoHandlerEnum;
-use seaorm::sea_orm_active_enums::ProposalStateEnum;
-use seaorm::{dao_handler, proposal, vote, voter};
-use std::cmp::Reverse;
-use std::collections::{HashMap, HashSet};
+use seaorm::{
+    dao_handler, proposal,
+    sea_orm_active_enums::{DaoHandlerEnum, ProposalStateEnum},
+    vote, voter,
+};
+use std::{
+    cmp::Reverse,
+    collections::{HashMap, HashSet},
+};
 use tokio::sync::Notify;
 use tracing::{error, info, instrument, warn};
-use utils::errors::*;
-use utils::rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback};
-use utils::tracing::setup_tracing;
-use utils::types::{VotesJob, VotesResponse};
-use utils::warnings::*;
+use utils::{
+    errors::*,
+    rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
+    tracing::setup_tracing,
+    types::{VotesJob, VotesResponse},
+    warnings::*,
+};
 mod handlers;
 
 pub struct VotesResult {

@@ -1,20 +1,18 @@
-use crate::VotesHandler;
-use crate::VotesResult;
+use crate::{VotesHandler, VotesResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use contracts::gen::maker_executive_gov::maker_executive_gov::maker_executive_gov;
-use contracts::gen::maker_executive_gov::LogNoteFilter;
-use ethers::prelude::Http;
-use ethers::prelude::LogMeta;
-use ethers::prelude::Provider;
-use ethers::providers::Middleware;
-use ethers::types::{Address, H256, U256};
-use ethers::utils::to_checksum;
+use contracts::gen::maker_executive_gov::{
+    maker_executive_gov::maker_executive_gov, LogNoteFilter,
+};
+use ethers::{
+    prelude::{Http, LogMeta, Provider},
+    providers::Middleware,
+    types::{Address, H256, U256},
+    utils::to_checksum,
+};
 use itertools::Itertools;
-use sea_orm::NotSet;
-use sea_orm::Set;
-use seaorm::proposal;
-use seaorm::{dao_handler, vote};
+use sea_orm::{NotSet, Set};
+use seaorm::{dao_handler, proposal, vote};
 use serde::Deserialize;
 use std::sync::Arc;
 
