@@ -3,13 +3,13 @@
 import { generateEmailVerificationCode, validateRequest } from "@/lib/auth";
 import { AsyncReturnType } from "@/lib/utils";
 import { db } from "@proposalsapp/db";
-import { z } from "zod";
+import { AuthCodeEmail, render } from "@proposalsapp/emails";
+import { normalize } from "path";
+import { ServerClient } from "postmark";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
-import { normalize } from "path";
-import { AuthCodeEmail, render } from "@proposalsapp/emails";
-import { ServerClient } from "postmark";
 import webPush from "web-push";
+import { z } from "zod";
 
 export const getCurrentSettings = async () => {
   let { user } = await validateRequest();
@@ -180,8 +180,6 @@ export const setPushNotifications = async (subscriptionData: string) => {
   const { subscription } = JSON.parse(subscriptionData) as {
     subscription: webPush.PushSubscription;
   };
-
-  console.log(subscription);
 
   const { user } = await validateRequest();
   if (!user) throw new Error("Unauthorized");

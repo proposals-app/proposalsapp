@@ -63,13 +63,16 @@ export async function sendTimeend(userId: string, proposalId: string) {
       subscription: webPush.PushSubscription;
     };
 
-    await webPush.sendNotification(
-      subscription,
-      JSON.stringify({
-        title: "Your Vote is Needed!",
-        message: `${dao.name} proposal is nearing its deadline and you didn't vote yet. Don't forget to cast your vote!`,
-      }),
-    );
+    await webPush
+      .sendNotification(
+        subscription,
+        JSON.stringify({
+          title: "Your Vote is Needed!",
+          message: `${dao.name} proposal is nearing its deadline and you didn't vote yet. Don't forget to cast your vote!`,
+        }),
+      )
+      .then((r) => console.log(r))
+      .catch((e) => console.log(e));
   }
 
   await db

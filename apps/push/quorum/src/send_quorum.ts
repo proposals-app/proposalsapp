@@ -67,13 +67,16 @@ export async function sendQuorum(userId: string, proposalId: string) {
       subscription: webPush.PushSubscription;
     };
 
-    await webPush.sendNotification(
-      subscription,
-      JSON.stringify({
-        title: "Your Vote is Needed!",
-        message: `${dao.name} proposal is nearing its deadline and hasn't reached quorum yet. Don't forget to cast your vote!`,
-      }),
-    );
+    await webPush
+      .sendNotification(
+        subscription,
+        JSON.stringify({
+          title: "Your Vote is Needed!",
+          message: `${dao.name} proposal is nearing its deadline and hasn't reached quorum yet. Don't forget to cast your vote!`,
+        }),
+      )
+      .then((r) => console.log(r))
+      .catch((e) => console.log(e));
   }
 
   await db
