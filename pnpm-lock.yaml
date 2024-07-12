@@ -263,8 +263,8 @@ importers:
         specifier: ^8.12.0
         version: 8.12.0
       posthog-js:
-        specifier: ^1.146.0
-        version: 1.146.0
+        specifier: ^1.146.2
+        version: 1.146.2
       postmark:
         specifier: ^4.0.4
         version: 4.0.4
@@ -1020,8 +1020,8 @@ importers:
         specifier: ^8.12.0
         version: 8.12.0
       posthog-js:
-        specifier: ^1.146.0
-        version: 1.146.0
+        specifier: ^1.146.2
+        version: 1.146.2
       postmark:
         specifier: ^4.0.4
         version: 4.0.4
@@ -9386,8 +9386,8 @@ packages:
   postgres-range@1.1.4:
     resolution: {integrity: sha512-i/hbxIE9803Alj/6ytL7UHQxRvZkI9O4Sy+J3HGc4F4oo/2eQAjTSNJ0bfxyse3bH0nuVesCk+3IRLaMtG3H6w==}
 
-  posthog-js@1.146.0:
-    resolution: {integrity: sha512-ciA3AmqED7CI1upQg+v3Be6+0ird0zDZi+K//l1Ck9OkFyXhbOfT3p7IFo39Q7nt+oCneelyF94KiPEQlZfUzg==}
+  posthog-js@1.146.2:
+    resolution: {integrity: sha512-KwzNayfKP7/+HBL1EAdOeMUfiag/dmEPkzN6VOMokBnHNIbJs9JcbBinxmZydEx57FuvDaF14tPVZRPNNxD5Jg==}
 
   postmark@4.0.4:
     resolution: {integrity: sha512-Qme+i5nidpcySxPBaPT0Arqc15dKl9D+fk9qsHEV2s8mhTK13/213RRD2/uemp8H6/ZHjAfgKCTY9TfzThbCTQ==}
@@ -20705,7 +20705,7 @@ snapshots:
 
   postgres-range@1.1.4: {}
 
-  posthog-js@1.146.0:
+  posthog-js@1.146.2:
     dependencies:
       fflate: 0.4.8
       preact: 10.22.1

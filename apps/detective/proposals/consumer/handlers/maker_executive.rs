@@ -189,7 +189,7 @@ async fn data_for_proposal(
         id: NotSet,
         external_id: Set(spell_address.to_string()),
         name: Set(proposal_data.title.clone()),
-        body: Set(proposal_data.content.clone()),
+        body: Set(proposal_data.about.clone()),
         url: Set(proposal_url),
         discussion_url: Set(String::from("")),
         choices: Set(json!(vec!["Yes"])),
