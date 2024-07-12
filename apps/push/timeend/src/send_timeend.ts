@@ -71,20 +71,22 @@ export async function sendTimeend(userId: string, proposalId: string) {
           message: `${dao.name} proposal is nearing its deadline and you didn't vote yet. Don't forget to cast your vote!`,
         }),
       )
-      .then((r) => console.log(r))
+      .then(async (r) => {
+        console.log(r);
+        if (r.statusCode == 201)
+          await db
+            .insertInto("notification")
+            .values({
+              userId: userId,
+              proposalId: proposalId,
+              type: NotificationTypeEnumV2.PUSHTIMEEND,
+              dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
+              submittedAt: new Date(),
+            })
+            .execute();
+      })
       .catch((e) => console.log(e));
   }
-
-  await db
-    .insertInto("notification")
-    .values({
-      userId: userId,
-      proposalId: proposalId,
-      type: NotificationTypeEnumV2.PUSHTIMEEND,
-      dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
-      submittedAt: new Date(),
-    })
-    .execute();
 
   console.log(`send push timeend for ${proposalId} to ${userId}`);
 }

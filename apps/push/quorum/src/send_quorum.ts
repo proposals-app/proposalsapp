@@ -75,7 +75,21 @@ export async function sendQuorum(userId: string, proposalId: string) {
           message: `${dao.name} proposal is nearing its deadline and hasn't reached quorum yet. Don't forget to cast your vote!`,
         }),
       )
-      .then((r) => console.log(r))
+      .then(async (r) => {
+        console.log(r);
+        if (r.statusCode == 201) {
+          await db
+            .insertInto("notification")
+            .values({
+              userId: userId,
+              proposalId: proposalId,
+              type: NotificationTypeEnumV2.PUSHQUORUMNOTREACHED,
+              dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
+              submittedAt: new Date(),
+            })
+            .execute();
+        }
+      })
       .catch((e) => console.log(e));
   }
 
