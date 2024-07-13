@@ -6,7 +6,7 @@ use seaorm::{proposal, sea_orm_active_enums::ProposalStateEnum};
 pub struct ExpectedProposal {
     pub external_id: &'static str,
     pub name: &'static str,
-    pub body: &'static str,
+    pub body_contains: Vec<&'static str>,
     pub url: &'static str,
     pub discussion_url: &'static str,
     pub choices: &'static str,
@@ -36,15 +36,14 @@ pub fn assert_proposal(
         expected.name,
         "Proposal name does not match"
     );
-    assert!(
-        proposal
-            .body
-            .clone()
-            .take()
-            .unwrap()
-            .contains(expected.body),
-        "Proposal body does not match"
-    );
+
+    for body in &expected.body_contains {
+        assert!(
+            proposal.body.clone().take().unwrap().contains(body),
+            "Proposal body does not match"
+        );
+    }
+
     assert!(
         proposal.scores_total.clone().take().unwrap() >= 0.0,
         "Invalid scores total"

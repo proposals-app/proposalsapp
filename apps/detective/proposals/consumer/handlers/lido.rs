@@ -171,7 +171,7 @@ mod lido_tests {
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn test_lido_proposals() {
+    async fn lido_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -199,7 +199,7 @@ mod lido_tests {
                 let expected_proposals = [ExpectedProposal {
                     external_id: "165",
                     name: "Vote #165",
-                    body: "Omnibus vote: 1) Add node operator A41 with reward address `0x2A64944eBFaFF8b6A0d07B222D3d83ac29c241a7`;\n 2) Add node operator Develp GmbH with reward address `0x0a6a0b60fFeF196113b3530781df6e747DdC565e`;\n 3) Add node operator Ebunker with reward address `0x2A2245d1f47430b9f60adCFC63D158021E80A728`;\n 4) Add node operator Gateway.fm AS with reward address `0x78CEE97C23560279909c0215e084dB293F036774`;\n 5) Add node operator Numic with reward address `0x0209a89b6d9F707c14eB6cD4C3Fb519280a7E1AC`;\n 6) Add node operator ParaFi Technologies LLC with reward address `0x5Ee590eFfdf9456d5666002fBa05fbA8C3752CB7`;\n 7) Add node operator RockawayX Infra with reward address `0xcA6817DAb36850D58375A10c78703CE49d41D25a`;\n 8) Grant STAKING_MODULE_MANAGE_ROLE to Lido Agent;\n 9) Set Jump Crypto targetValidatorsLimits to 0;\n 10) Update Anchor Vault implementation from `0x07BE9BB2B1789b8F5B2f9345F18378A8B036A171` to `0x9530708033E7262bD7c005d0e0D47D8A9184277d`.\nlidovoteipfs://bafkreiafqk57mx7mwieujnkvwukkelfdxijy2tvzr3weaooxgokqljdfv4",
+                    body_contains: vec!["Omnibus vote: 1) Add node operator A41 with reward address `0x2A64944eBFaFF8b6A0d07B222D3d83ac29c241a7`;\n 2) Add node operator Develp GmbH with reward address `0x0a6a0b60fFeF196113b3530781df6e747DdC565e`;\n 3) Add node operator Ebunker with reward address `0x2A2245d1f47430b9f60adCFC63D158021E80A728`;\n 4) Add node operator Gateway.fm AS with reward address `0x78CEE97C23560279909c0215e084dB293F036774`;\n 5) Add node operator Numic with reward address `0x0209a89b6d9F707c14eB6cD4C3Fb519280a7E1AC`;\n 6) Add node operator ParaFi Technologies LLC with reward address `0x5Ee590eFfdf9456d5666002fBa05fbA8C3752CB7`;\n 7) Add node operator RockawayX Infra with reward address `0xcA6817DAb36850D58375A10c78703CE49d41D25a`;\n 8) Grant STAKING_MODULE_MANAGE_ROLE to Lido Agent;\n 9) Set Jump Crypto targetValidatorsLimits to 0;\n 10) Update Anchor Vault implementation from `0x07BE9BB2B1789b8F5B2f9345F18378A8B036A171` to `0x9530708033E7262bD7c005d0e0D47D8A9184277d`.\nlidovoteipfs://bafkreiafqk57mx7mwieujnkvwukkelfdxijy2tvzr3weaooxgokqljdfv4"],
                     url: "https://vote.lido.fi/vote/165",
                     discussion_url: "",
                     choices: "[\"yea\",\"nay\"]",

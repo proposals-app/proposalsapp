@@ -156,14 +156,14 @@ async fn data_for_proposal(
         .unwrap_or(99); //default to Unknown
 
     let state = match proposal_state {
-        0 => ProposalStateEnum::Pending,
-        1 => ProposalStateEnum::Canceled,
+        0 => ProposalStateEnum::Unknown,
+        1 => ProposalStateEnum::Pending,
         2 => ProposalStateEnum::Active,
-        3 => ProposalStateEnum::Defeated,
-        4 => ProposalStateEnum::Succeeded,
-        5 => ProposalStateEnum::Queued,
-        6 => ProposalStateEnum::Expired,
-        7 => ProposalStateEnum::Executed,
+        3 => ProposalStateEnum::Queued,
+        4 => ProposalStateEnum::Executed,
+        5 => ProposalStateEnum::Defeated,
+        6 => ProposalStateEnum::Canceled,
+        7 => ProposalStateEnum::Expired,
         _ => ProposalStateEnum::Unknown,
     };
 
@@ -373,7 +373,7 @@ async fn get_body(hexhash: String) -> Result<String> {
 }
 
 #[cfg(test)]
-mod aave_tests {
+mod aave_v3 {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
@@ -381,7 +381,7 @@ mod aave_tests {
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn test_aave_v3_proposal_1() {
+    async fn aave_v3_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -391,8 +391,8 @@ mod aave_tests {
             refresh_enabled: true,
             proposals_refresh_speed: 1,
             votes_refresh_speed: 1,
-            proposals_index: 19762955,
-            votes_index: 19762955,
+            proposals_index: 18959200,
+            votes_index: 0,
             dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
         };
 
@@ -407,21 +407,140 @@ mod aave_tests {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
-                    external_id: "93",
-                    name: "aAMPL Second Distribution",
-                    body: "aAMPL Second Distribution",
-                    url: "https://app.aave.com/governance/v3/proposal/?proposalId=93",
+                    external_id: "1",
+                    name: "Polygon V2 Reserve Factor Updates",
+                    body_contains: vec!["This AIP is a continuation of AIP-284 and increases the Reserve Factor (RF) for assets on Polygon v2 by 5.00%, up to a maximum of 99.99%.","TokenLogic and karpatkey receive no compensation beyond Aave protocol for the creation of this proposal. TokenLogic and karpatkey are both delegates within the Aave ecosystem."],
+                    url: "https://app.aave.com/governance/v3/proposal/?proposalId=1",
                     discussion_url:
-                        "https://governance.aave.com/t/arfc-aampl-second-distribution/17464",
+                        "https://governance.aave.com/t/arfc-reserve-factor-updates-polygon-aave-v2/13937",
                     choices: "[\"For\",\"Against\"]",
-                    scores: "[541463.9945180276,0.0]",
-                    scores_total: 541463.9945180276,
+                    scores: "[368222.2477753108,445.092704273313]",
+                    scores_total: 368667.3404795841,
                     quorum: 0.0,
-                    proposal_state: ProposalStateEnum::Succeeded,
-                    block_created: Some(19762955),
-                    time_created: Some("2024-04-29 19:08:47"),
-                    time_start: "2024-04-30 19:09:11",
-                    time_end: "2024-05-03 19:09:11",
+                    proposal_state: ProposalStateEnum::Executed,
+                    block_created: Some(18959200),
+                    time_created: Some("2024-01-08 01:57:59"),
+                    time_start: "2024-01-09 02:00:59",
+                    time_end: "2024-01-12 02:00:59",
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn aave_v3_2() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
+            governance_portal: "https://app.aave.com/governance".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 19819808 - 19812127,
+            votes_refresh_speed: 1,
+            proposals_index: 19812127,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            name: "Aave".into(),
+            slug: "aave".into(),
+            hot: true,
+        };
+
+        match AaveV3Handler.get_proposals(&dao_handler, &dao).await {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "100",
+                    name: "Generalized LT/LTV Reductions on Aave V3 Step 2",
+                    body_contains: vec!["Reduce stablecoin LTs and LTVs across all markets.","adjust DAI and sDAI risk parameters, it has been excluded from this proposal."],
+                    url: "https://app.aave.com/governance/v3/proposal/?proposalId=100",
+                    discussion_url:
+                        "https://governance.aave.com/t/arfc-generalized-lt-ltv-reductions-on-aave-v3-step-2-04-23-2024/17455",
+                    choices: "[\"For\",\"Against\"]",
+                    scores: "[673483.6390054198,0.0]",
+                    scores_total: 673483.6390054198,
+                    quorum: 0.0,
+                    proposal_state: ProposalStateEnum::Executed,
+                    block_created: Some(19812127),
+                    time_created: Some("2024-05-06 16:07:11"),
+                    time_start: "2024-05-07 16:07:47",
+                    time_end: "2024-05-10 16:07:47",
+                },
+                ExpectedProposal {
+                    external_id: "101",
+                    name: "weETH Onbaording",
+                    body_contains: vec!["The intention behind this initiative is to enhance the diversity of assets on Aave and bolster liquidity within the ecosystem."],
+                    url: "https://app.aave.com/governance/v3/proposal/?proposalId=101",
+                    discussion_url:
+                        "https://governance.aave.com/t/arfc-onboard-weeth-to-aave-v3-on-ethereum/16758",
+                    choices: "[\"For\",\"Against\"]",
+                    scores: "[0.0,0.0]",
+                    scores_total: 0.0,
+                    quorum: 0.0,
+                    proposal_state: ProposalStateEnum::Canceled,
+                    block_created: Some(19819808),
+                    time_created: Some("2024-05-07 17:54:23"),
+                    time_start: "1970-01-01 00:00:00",
+                    time_end: "1970-01-01 00:00:00",
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn aave_v3_3() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
+            governance_portal: "https://app.aave.com/governance".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 19412601,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            name: "Aave".into(),
+            slug: "aave".into(),
+            hot: true,
+        };
+
+        match AaveV3Handler.get_proposals(&dao_handler, &dao).await {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "47",
+                    name: "Activation of A-C Prime Foundation",
+                    body_contains: vec!["giving mandate to Centrifuge to create a Association to represent the Aave DAO off-chain, this AIP proposes the activation of the A-C Prime Foundation.","References"],
+                    url: "https://app.aave.com/governance/v3/proposal/?proposalId=47",
+                    discussion_url:
+                        "https://governance.aave.com/t/arfc-aave-treasury-rwa-allocation/14790",
+                    choices: "[\"For\",\"Against\"]",
+                    scores: "[69575.82853768951,425389.02729258186]",
+                    scores_total: 494964.8558302714,
+                    quorum: 0.0,
+                    proposal_state: ProposalStateEnum::Defeated,
+                    block_created: Some(19412601),
+                    time_created: Some("2024-03-11 14:58:23"),
+                    time_start: "2024-03-12 17:34:59",
+                    time_end: "2024-03-15 17:34:59",
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

@@ -27,12 +27,6 @@ struct GraphQLVote {
     created: i32,
 }
 
-#[allow(non_snake_case)]
-#[derive(Debug, Deserialize)]
-struct Decoder {
-    snapshot_space: String,
-}
-
 pub struct SnapshotHandler;
 
 #[async_trait]
