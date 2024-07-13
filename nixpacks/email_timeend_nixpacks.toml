@@ -2,7 +2,7 @@ providers = ['node']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [start]
-cmd = 'pnpm run start-email-timeend'
+cmd = 'yarn start-email-timeend'
 
 [phases.build]
-cmds = ['pnpm run build-email-timeend']
+cmds = ['yarn build-email-timeend']

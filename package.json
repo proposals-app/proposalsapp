@@ -6,9 +6,10 @@
   "workspaces": [
     "libs/ts/db",
     "libs/ts/emails",
+    "libs/ts/emails/.react-email",
     "apps/web",
     "apps/arbitrum",
-    "apps/ai_playground",
+    "apps/astro",
     "apps/emails/bulletin",
     "apps/emails/quorum",
     "apps/emails/timeend",
@@ -16,43 +17,38 @@
     "apps/push/timeend"
   ],
   "scripts": {
-    "build-db": "pnpm -F @proposalsapp/db run db:gen:ts",
-    "build-email-bulletin": "pnpm run build-db && pnpm -F @proposalsapp/emails-bulletin run build",
-    "build-email-quorum": "pnpm run build-db && pnpm -F @proposalsapp/emails-quorum run build",
-    "build-email-timeend": "pnpm run build-db && pnpm -F @proposalsapp/emails-timeend run build",
-    "build-push-quorum": "pnpm run build-db && pnpm -F @proposalsapp/push-quorum run build",
-    "build-push-timeend": "pnpm run build-db && pnpm -F @proposalsapp/push-timeend run build",
-    "build-emails": "pnpm -F @proposalsapp/emails run build",
-    "build-web": "pnpm run build-db && pnpm -F @proposalsapp/web run build",
-    "build-arbitrum": "pnpm run build-db && pnpm -F @proposalsapp/arbitrum run build",
-    "build-astro": "pnpm run build-db && pnpm -F @proposalsapp/astro run build",
-    "start-email-bulletin": "pnpm -F @proposalsapp/emails-bulletin run start",
-    "start-email-quorum": "pnpm -F @proposalsapp/emails-quorum run start",
-    "start-email-timeend": "pnpm -F @proposalsapp/emails-timeend run start",
-    "start-push-quorum": "pnpm -F @proposalsapp/push-quorum run start",
-    "start-push-timeend": "pnpm -F @proposalsapp/push-timeend run start",
-    "start-web": "pnpm -F @proposalsapp/web run start",
-    "start-arbitrum": "pnpm -F @proposalsapp/arbitrum run start",
-    "start-astro": "pnpm -F @proposalsapp/astro run start",
+    "build-db": "yarn workspace @proposalsapp/db run db:gen:ts",
+    "build-email-bulletin": "yarn run build-db && yarn workspace @proposalsapp/emails-bulletin run build",
+    "build-email-quorum": "yarn run build-db && yarn workspace @proposalsapp/emails-quorum run build",
+    "build-email-timeend": "yarn run build-db && yarn workspace @proposalsapp/emails-timeend run build",
+    "build-push-quorum": "yarn run build-db && yarn workspace @proposalsapp/push-quorum run build",
+    "build-push-timeend": "yarn run build-db && yarn workspace @proposalsapp/push-timeend run build",
+    "build-emails": "yarn workspace @proposalsapp/emails run build",
+    "build-web": "yarn run build-db && yarn workspace @proposalsapp/web run build",
+    "build-arbitrum": "yarn run build-db && yarn workspace @proposalsapp/arbitrum run build",
+    "build-astro": "yarn run build-db && yarn workspace @proposalsapp/astro run build",
+    "start-email-bulletin": "yarn workspace @proposalsapp/emails-bulletin run start",
+    "start-email-quorum": "yarn workspace @proposalsapp/emails-quorum run start",
+    "start-email-timeend": "yarn workspace @proposalsapp/emails-timeend run start",
+    "start-push-quorum": "yarn workspace @proposalsapp/push-quorum run start",
+    "start-push-timeend": "yarn workspace @proposalsapp/push-timeend run start",
+    "start-web": "yarn workspace @proposalsapp/web run start",
+    "start-arbitrum": "yarn workspace @proposalsapp/arbitrum run start",
+    "start-astro": "yarn workspace @proposalsapp/astro run start",
     "update-deps": "./update-deps.sh"
   },
   "overrides": {
     "undici": "6.6.2"
   },
   "devDependencies": {
-    "@tsconfig/node18": "18.2.4",
     "@tsconfig/recommended": "^1.0.7",
     "constructs": "10.3.0",
     "dotenv": "16.4.5",
-    "prettier": "^3.3.2",
+    "prettier": "^3.3.3",
     "typescript": "5.5.3"
   },
   "engines": {
     "node": "20"
   },
-  "dependencies": {
-    "@proposalsapp/db": "^1.0.0",
-    "@proposalsapp/emails": "^1.0.0"
-  },
-  "packageManager": "pnpm@9.5.0"
+  "packageManager": "yarn@4.3.1"
 }

@@ -2,7 +2,7 @@ providers = ['node']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [start]
-cmd = 'pnpm run start-web'
+cmd = 'yarn start-web'
 
 [phases.build]
-cmds = ['pnpm run build-web']
+cmds = ['yarn build-web']

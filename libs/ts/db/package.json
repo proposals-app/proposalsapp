@@ -4,7 +4,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
-    "db:gen": "pnpm run db:gen:rust && pnpm run db:gen:ts",
+    "db:gen": "yarn db:gen:rust && yarn db:gen:ts",
     "db:gen:rust": "sea-orm-cli generate entity -v --lib --expanded-format --with-serde both --date-time-crate chrono -o ../../rust/seaorm/src",
     "db:gen:ts": "kysely-codegen --camel-case --runtime-enums --out-file ./src/kysely_db.ts",
     "db:migrate:latest": "kysely migrate latest"
@@ -16,6 +16,7 @@
     "pg": "^8.12.0"
   },
   "devDependencies": {
+    "@tsconfig/recommended": "^1.0.7",
     "@types/dotenv": "^8.2.0",
     "@types/pg": "^8",
     "kysely-codegen": "^0.15.0",

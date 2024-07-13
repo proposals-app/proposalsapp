@@ -38,24 +38,12 @@
 
 ---
 
-### GIGABYTE GeForce RTX 4070 WINDFORCE OC 12GB GDDR6X 192-bit DLSS 3.0
-
-|                 |          |
-| --------------- | -------- |
-| CUDA Cores      | 5888     |
-| GPU Boost clock | 2490 MHz |
-| VRAM            | 12 GB    |
-
----
-
 ### Storage
 
 |         |                                 |
 | ------- | ------------------------------- |
 | M.2 SSD | 1x 1TB Samsung SSD 970 EVO Plus |
-| SSD     | 2x 1TB WDC_WDS100T1R0A-68A4W0   |
-| HDD     | 2x 6TB WDC_WD60PURZ-85ZUFY1     |
-| HDD     | 1x 20TB WDC_WD201KFGX-68BKJN0   |
+| SSD     | 4x 1TB WDC_WDS100T1R0A-68A4W0   |
 
 ---
 

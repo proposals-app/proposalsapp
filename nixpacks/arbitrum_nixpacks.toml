@@ -2,7 +2,7 @@ providers = ['node']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [start]
-cmd = 'pnpm run start-arbitrum'
+cmd = 'yarn start-arbitrum'
 
 [phases.build]
-cmds = ['pnpm run build-arbitrum']
+cmds = ['yarn build-arbitrum']

@@ -2,7 +2,7 @@ providers = ['node']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [start]
-cmd = 'pnpm run start-email-bulletin'
+cmd = 'yarn start-email-bulletin'
 
 [phases.build]
-cmds = ['pnpm run build-email-bulletin']
+cmds = ['yarn build-email-bulletin']

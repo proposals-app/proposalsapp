@@ -15,8 +15,12 @@
     "dotenv": "^16.4.5",
     "moment": "^2.30.1",
     "postmark": "^4.0.4",
-    "prettier": "^3.3.2",
+    "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.5",
     "react-email": "2.1.5"
+  },
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.7",
+    "typescript": "^5.5.3"
   }
 }
