@@ -24,7 +24,6 @@ struct DaoSeedData {
 struct HandlerData {
     handler_type: DaoHandlerEnumV2,
     governance_portal: String,
-    decoder: serde_json::Value,
     refresh_enabled: bool,
     proposals_refresh_speed: i32,
     votes_refresh_speed: i32,
@@ -125,7 +124,6 @@ async fn upsert_handlers(
                     dao_id: Set(h.dao_id),
                     handler_type: Set(h.handler_type),
                     governance_portal: Set(handler_data.clone().governance_portal),
-                    decoder: Set(handler_data.clone().decoder),
                     refresh_enabled: Set(handler_data.clone().refresh_enabled),
                     proposals_index: Set(handler_data.proposals_index),
                     proposals_refresh_speed: Set(handler_data.proposals_refresh_speed),
@@ -140,7 +138,6 @@ async fn upsert_handlers(
                     dao_id: Set(dao.id),
                     handler_type: Set(handler_data.clone().handler_type),
                     governance_portal: Set(handler_data.clone().governance_portal),
-                    decoder: Set(handler_data.clone().decoder),
                     refresh_enabled: Set(handler_data.clone().refresh_enabled),
                     proposals_index: Set(handler_data.clone().proposals_index),
                     proposals_refresh_speed: Set(handler_data.clone().proposals_refresh_speed),

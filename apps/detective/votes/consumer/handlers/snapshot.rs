@@ -1,5 +1,5 @@
 use crate::{VotesHandler, VotesResult};
-use anyhow::{Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use sea_orm::{ActiveValue::NotSet, Set};

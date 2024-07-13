@@ -387,9 +387,6 @@ mod aave_tests {
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
             handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
-            decoder: json!({"address":"0x9AEE0B04504CeF83A65AC3f0e838D0593BCb2BC7",
-                            "proposalUrl":"https://app.aave.com/governance/v3/proposal/?proposalId=",
-                            "voting_machine":"0x617332a777780F546261247F621051d0b98975Eb"}),
             governance_portal: "https://app.aave.com/governance".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,

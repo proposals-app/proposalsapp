@@ -89,7 +89,6 @@ export interface Dao {
 
 export interface DaoHandler {
   daoId: string;
-  decoder: Generated<Json>;
   governancePortal: Generated<string>;
   handlerType: DaoHandlerEnumV2;
   id: Generated<string>;

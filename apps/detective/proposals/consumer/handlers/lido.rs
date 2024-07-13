@@ -6,16 +6,8 @@ use contracts::gen::lido_aragon_voting::{lido_aragon_voting::lido_aragon_voting,
 use ethers::prelude::*;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
-use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    address: String,
-    proposalUrl: String,
-}
 
 pub struct LidoHandler;
 
@@ -45,9 +37,9 @@ impl ProposalHandler for LidoHandler {
             dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
         };
 
-        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0x2e59a20f205bb85a89c53f1936454680651e618e"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = lido_aragon_voting::new(address, eth_rpc.clone());
 
@@ -63,14 +55,8 @@ impl ProposalHandler for LidoHandler {
         let mut result = Vec::new();
 
         for p in proposal_events.iter() {
-            let p = data_for_proposal(
-                p.clone(),
-                &eth_rpc,
-                &decoder,
-                dao_handler,
-                gov_contract.clone(),
-            )
-            .await?;
+            let p =
+                data_for_proposal(p.clone(), &eth_rpc, dao_handler, gov_contract.clone()).await?;
             result.push(p);
         }
 
@@ -92,7 +78,6 @@ impl ProposalHandler for LidoHandler {
 async fn data_for_proposal(
     p: (contracts::gen::lido_aragon_voting::StartVoteFilter, LogMeta),
     rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
     gov_contract: lido_aragon_voting<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
@@ -109,7 +94,7 @@ async fn data_for_proposal(
     let proposal_external_id = log.vote_id.to_string();
     let title = format!("Vote #{}", log.vote_id.to_string());
     let body = log.metadata.to_string();
-    let proposal_url = format!("{}{}", decoder.proposalUrl, log.vote_id.to_string());
+    let proposal_url = format!("https://vote.lido.fi/vote/{}", log.vote_id.to_string());
     let discussionurl = String::from("");
 
     let onchain_proposal = gov_contract
@@ -192,8 +177,6 @@ mod lido_tests {
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
             handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
-            decoder: json!({"address":"0x2e59a20f205bb85a89c53f1936454680651e618e",
-                            "proposalUrl":"https://vote.lido.fi/vote/"}),
             governance_portal: "https://vote.lido.fi".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,

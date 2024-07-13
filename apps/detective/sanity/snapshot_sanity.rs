@@ -6,7 +6,7 @@ use sea_orm::{
     Set,
 };
 use seaorm::{
-    dao_handler, proposal,
+    dao, dao_handler, proposal,
     sea_orm_active_enums::{DaoHandlerEnumV2, ProposalStateEnum},
 };
 use serde::Deserialize;
@@ -30,12 +30,6 @@ struct GraphQLResponseInner {
 #[derive(Debug, Clone, Deserialize)]
 struct GraphQLProposal {
     id: String,
-}
-
-#[allow(non_snake_case)]
-#[derive(Debug, Deserialize)]
-struct Decoder {
-    snapshot_space: String,
 }
 
 #[tokio::main]
@@ -112,8 +106,26 @@ async fn sanitize(
         .await
         .context(DATABASE_ERROR)?;
 
-    let decoder: Decoder = serde_json::from_value(dao_handler.clone().decoder)
-        .context("Decoding dao_handler.decoder")?;
+    let dao = dao::Entity::find()
+        .filter(dao::Column::Id.eq(dao_handler.dao_id))
+        .one(db)
+        .await
+        .context(DATABASE_ERROR)?
+        .context(DATABASE_ERROR)?;
+
+    let snapshot_space = match dao.name.as_str() {
+        "Compound" => "comp-vote.eth",
+        "Gitcoin" => "gitcoindao.eth",
+        "Arbitrum DAO" => "arbitrumfoundation.eth",
+        "Optimism" => "opcollective.eth",
+        "Uniswap" => "uniswapgovernance.eth",
+        "Hop Protocol" => "hop.eth",
+        "Frax" => "frax.eth",
+        "dYdX" => "dydxgov.eth",
+        "ENS" => "ens.eth",
+        "Aave" => "aave.eth",
+        _ => "unknown.eth", // Handle any other cases
+    };
 
     let graphql_query = format!(
         r#"
@@ -133,7 +145,7 @@ async fn sanitize(
             }}
         }}
     "#,
-        decoder.snapshot_space,
+        snapshot_space,
         sanitize_from.and_utc().timestamp(),
         sanitize_to.and_utc().timestamp()
     );

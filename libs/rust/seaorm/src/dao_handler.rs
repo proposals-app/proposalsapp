@@ -16,7 +16,6 @@ impl EntityName for Entity {
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
     pub id: Uuid,
-    pub decoder: Json,
     pub governance_portal: String,
     pub refresh_enabled: bool,
     pub proposals_refresh_speed: i32,
@@ -30,7 +29,6 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
-    Decoder,
     GovernancePortal,
     RefreshEnabled,
     ProposalsRefreshSpeed,
@@ -65,7 +63,6 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::Uuid.def(),
-            Self::Decoder => ColumnType::Json.def(),
             Self::GovernancePortal => ColumnType::Text.def(),
             Self::RefreshEnabled => ColumnType::Boolean.def(),
             Self::ProposalsRefreshSpeed => ColumnType::Integer.def(),
