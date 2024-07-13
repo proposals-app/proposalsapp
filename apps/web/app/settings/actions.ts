@@ -186,6 +186,7 @@ export const setPushNotifications = async (subscriptionData: string) => {
 
   await db
     .updateTable("userSettings")
+    .where("userSettings.userId", "=", user.id)
     .set({ pushNotifications: true })
     .execute();
 
@@ -221,6 +222,7 @@ export const removePushNotifications = async (subscriptionEndpoint: string) => {
 
   await db
     .updateTable("userSettings")
+    .where("userSettings.userId", "=", user.id)
     .set({ pushNotifications: false })
     .execute();
 
