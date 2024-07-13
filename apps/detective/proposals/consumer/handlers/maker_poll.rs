@@ -7,24 +7,21 @@ use ethers::prelude::*;
 use regex::Regex;
 use reqwest::StatusCode;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{sync::Arc, time::Duration};
 use tokio::time::sleep;
 
-#[allow(non_snake_case)]
-#[derive(Debug, Deserialize)]
-struct Decoder {
-    address_create: String,
-    proposalUrl: String,
-}
-
 pub struct MakerPollHandler;
 
 #[async_trait]
 impl ProposalHandler for MakerPollHandler {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
+    ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
@@ -44,10 +41,7 @@ impl ProposalHandler for MakerPollHandler {
             dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
         };
 
-        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
-
-        let address = decoder
-            .address_create
+        let address = "0xf9be8f0945acddeedaa64dfca5fe9629d0cf8e5d"
             .parse::<Address>()
             .context("bad address")?;
 
@@ -65,7 +59,7 @@ impl ProposalHandler for MakerPollHandler {
         let mut result = Vec::new();
 
         for p in proposal_events.iter() {
-            let p = data_for_proposal(p.clone(), &eth_rpc, &decoder, dao_handler)
+            let p = data_for_proposal(p.clone(), &eth_rpc, dao_handler)
                 .await
                 .context("data_for_proposal")?;
             result.push(p);
@@ -92,7 +86,6 @@ async fn data_for_proposal(
         LogMeta,
     ),
     rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
 ) -> Result<proposal::ActiveModel> {
     let (log, meta): (PollCreatedFilter, LogMeta) = p.clone();
@@ -123,8 +116,7 @@ async fn data_for_proposal(
     }
 
     let proposal_url = format!(
-        "{}{}",
-        decoder.proposalUrl,
+        "https://vote.makerdao.com/polling/{}",
         log.multi_hash.chars().take(8).collect::<String>()
     );
 

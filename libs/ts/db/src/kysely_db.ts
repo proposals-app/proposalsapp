@@ -1,6 +1,6 @@
 import type { ColumnType } from "kysely";
 
-export enum DaoHandlerEnum {
+export enum DaoHandlerEnumV2 {
   AAVEV2MAINNET = "AAVE_V2_MAINNET",
   AAVEV3AVALANCHE = "AAVE_V3_AVALANCHE",
   AAVEV3MAINNET = "AAVE_V3_MAINNET",
@@ -15,7 +15,6 @@ export enum DaoHandlerEnum {
   GITCOINMAINNET = "GITCOIN_MAINNET",
   GITCOINV2MAINNET = "GITCOIN_V2_MAINNET",
   HOPMAINNET = "HOP_MAINNET",
-  INTERESTPROTOCOLMAINNET = "INTEREST_PROTOCOL_MAINNET",
   MAKEREXECUTIVEMAINNET = "MAKER_EXECUTIVE_MAINNET",
   MAKERPOLLARBITRUM = "MAKER_POLL_ARBITRUM",
   MAKERPOLLMAINNET = "MAKER_POLL_MAINNET",
@@ -23,7 +22,6 @@ export enum DaoHandlerEnum {
   OPOPTIMISM = "OP_OPTIMISM",
   SNAPSHOT = "SNAPSHOT",
   UNISWAPMAINNET = "UNISWAP_MAINNET",
-  ZEROXPROTOCOLMAINNET = "ZEROX_PROTOCOL_MAINNET",
 }
 
 export enum NotificationDispatchedStateEnum {
@@ -93,7 +91,7 @@ export interface DaoHandler {
   daoId: string;
   decoder: Generated<Json>;
   governancePortal: Generated<string>;
-  handlerType: DaoHandlerEnum;
+  handlerType: DaoHandlerEnumV2;
   id: Generated<string>;
   proposalsIndex: Generated<number>;
   proposalsRefreshSpeed: Generated<number>;

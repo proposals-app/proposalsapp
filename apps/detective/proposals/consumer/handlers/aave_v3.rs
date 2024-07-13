@@ -6,23 +6,19 @@ use contracts::gen::aave_v_3_gov_mainnet::{aave_v3_gov_mainnet, ProposalCreatedF
 use ethers::{prelude::*, utils::hex};
 use regex::Regex;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    address: String,
-    proposalUrl: String,
-}
 
 pub struct AaveV3Handler;
 
 #[async_trait]
 impl ProposalHandler for AaveV3Handler {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
+    ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
@@ -42,9 +38,9 @@ impl ProposalHandler for AaveV3Handler {
             dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
         };
 
-        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0x9b6f5ef589A3DD08670Dd146C11C4Fb33E04494F"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = aave_v3_gov_mainnet::new(address, eth_rpc.clone());
 
@@ -60,15 +56,9 @@ impl ProposalHandler for AaveV3Handler {
         let mut result = Vec::new();
 
         for p in proposal_events.iter() {
-            let p = data_for_proposal(
-                p.clone(),
-                &eth_rpc,
-                &decoder,
-                dao_handler,
-                gov_contract.clone(),
-            )
-            .await
-            .context("data_for_proposal")?;
+            let p = data_for_proposal(p.clone(), &eth_rpc, dao_handler, gov_contract.clone())
+                .await
+                .context("data_for_proposal")?;
             result.push(p);
         }
 
@@ -93,7 +83,6 @@ async fn data_for_proposal(
         LogMeta,
     ),
     _rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
     gov_contract: aave_v3_gov_mainnet<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
@@ -130,7 +119,10 @@ async fn data_for_proposal(
     )
     .context("bad timestamp")?;
 
-    let proposal_url = format!("{}{}", decoder.proposalUrl, log.proposal_id);
+    let proposal_url = format!(
+        "https://app.aave.com/governance/v3/proposal/?proposalId={}",
+        log.proposal_id
+    );
 
     let proposal_external_id = log.proposal_id.to_string();
 
@@ -385,7 +377,7 @@ mod aave_tests {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnum};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
@@ -394,7 +386,7 @@ mod aave_tests {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            handler_type: DaoHandlerEnum::AaveV3Mainnet,
+            handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
             decoder: json!({"address":"0x9AEE0B04504CeF83A65AC3f0e838D0593BCb2BC7",
                             "proposalUrl":"https://app.aave.com/governance/v3/proposal/?proposalId=",
                             "voting_machine":"0x617332a777780F546261247F621051d0b98975Eb"}),
@@ -407,7 +399,14 @@ mod aave_tests {
             dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
         };
 
-        match AaveV3Handler.get_proposals(&dao_handler).await {
+        let dao = dao::Model {
+            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            name: "Aave".into(),
+            slug: "aave".into(),
+            hot: true,
+        };
+
+        match AaveV3Handler.get_proposals(&dao_handler, &dao).await {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

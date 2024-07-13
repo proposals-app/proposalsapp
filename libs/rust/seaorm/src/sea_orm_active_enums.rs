@@ -4,8 +4,12 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "dao_handler_enum")]
-pub enum DaoHandlerEnum {
+#[sea_orm(
+    rs_type = "String",
+    db_type = "Enum",
+    enum_name = "dao_handler_enum_v2"
+)]
+pub enum DaoHandlerEnumV2 {
     #[sea_orm(string_value = "AAVE_V2_MAINNET")]
     AaveV2Mainnet,
     #[sea_orm(string_value = "AAVE_V3_AVALANCHE")]
@@ -34,8 +38,6 @@ pub enum DaoHandlerEnum {
     GitcoinV2Mainnet,
     #[sea_orm(string_value = "HOP_MAINNET")]
     HopMainnet,
-    #[sea_orm(string_value = "INTEREST_PROTOCOL_MAINNET")]
-    InterestProtocolMainnet,
     #[sea_orm(string_value = "MAKER_EXECUTIVE_MAINNET")]
     MakerExecutiveMainnet,
     #[sea_orm(string_value = "MAKER_POLL_ARBITRUM")]
@@ -50,8 +52,6 @@ pub enum DaoHandlerEnum {
     Snapshot,
     #[sea_orm(string_value = "UNISWAP_MAINNET")]
     UniswapMainnet,
-    #[sea_orm(string_value = "ZEROX_PROTOCOL_MAINNET")]
-    ZeroxProtocolMainnet,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(

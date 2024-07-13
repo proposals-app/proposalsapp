@@ -15,7 +15,7 @@ use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
 };
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use std::collections::HashSet;
 use tokio::sync::Notify;
 use tracing::{error, info, instrument, warn};
@@ -36,7 +36,11 @@ pub struct ProposalsResult {
 
 #[async_trait]
 pub trait ProposalHandler: Send + Sync {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult>;
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        dao: &dao::Model,
+    ) -> Result<ProposalsResult>;
     fn min_refresh_speed(&self) -> i32;
     fn max_refresh_speed(&self) -> i32;
 }
@@ -206,12 +210,19 @@ async fn run(job: ProposalsJob) -> Result<()> {
         .context(DATABASE_ERROR)?
         .context(DAOHANDLER_NOT_FOUND_ERROR)?;
 
+    let dao = dao::Entity::find()
+        .filter(dao::Column::Id.eq(dao_handler.dao_id))
+        .one(&db)
+        .await
+        .context(DATABASE_ERROR)?
+        .context(DAOHANDLER_NOT_FOUND_ERROR)?;
+
     let handler = handlers::get_handler(&dao_handler.handler_type);
 
     let ProposalsResult {
         proposals,
         to_index,
-    } = handler.get_proposals(&dao_handler).await?;
+    } = handler.get_proposals(&dao_handler, &dao).await?;
 
     let StoredProposals {
         inserted_proposals,

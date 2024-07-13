@@ -11,15 +11,8 @@ use ethers::{
     utils::to_checksum,
 };
 use sea_orm::{NotSet, Set};
-use seaorm::{dao_handler, proposal, vote};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, vote};
 use std::sync::Arc;
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    address: String,
-}
 
 pub struct FraxAlphaHandler;
 
@@ -28,6 +21,7 @@ impl VotesHandler for FraxAlphaHandler {
     async fn get_proposal_votes(
         &self,
         _dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
         _proposal: &proposal::Model,
     ) -> Result<VotesResult> {
         Ok(VotesResult {
@@ -54,10 +48,9 @@ impl VotesHandler for FraxAlphaHandler {
             dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
         };
 
-        let decoder: Decoder =
-            serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0xe8Ab863E629a05c73D6a23b99d37027E3763156e"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = frax_alpha_gov::new(address, eth_rpc);
 

@@ -5,7 +5,7 @@ use chrono::NaiveDateTime;
 use contracts::gen::lido_aragon_voting::{lido_aragon_voting::lido_aragon_voting, StartVoteFilter};
 use ethers::prelude::*;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -21,7 +21,11 @@ pub struct LidoHandler;
 
 #[async_trait]
 impl ProposalHandler for LidoHandler {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
+    ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
@@ -178,7 +182,7 @@ mod lido_tests {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnum};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
@@ -187,7 +191,7 @@ mod lido_tests {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            handler_type: DaoHandlerEnum::AaveV3Mainnet,
+            handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
             decoder: json!({"address":"0x2e59a20f205bb85a89c53f1936454680651e618e",
                             "proposalUrl":"https://vote.lido.fi/vote/"}),
             governance_portal: "https://vote.lido.fi".into(),
@@ -199,7 +203,14 @@ mod lido_tests {
             dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
         };
 
-        match LidoHandler.get_proposals(&dao_handler).await {
+        let dao = dao::Model {
+            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            name: "Lido".into(),
+            slug: "lido".into(),
+            hot: true,
+        };
+
+        match LidoHandler.get_proposals(&dao_handler, &dao).await {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

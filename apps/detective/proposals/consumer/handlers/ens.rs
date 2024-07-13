@@ -6,24 +6,20 @@ use contracts::gen::ens_gov::{ens_gov::ens_gov, ProposalCreatedFilter};
 use ethers::prelude::*;
 use scanners::etherscan::estimate_timestamp;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde_json::json;
 use std::sync::Arc;
 use tracing::{info, warn};
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    address: String,
-    proposalUrl: String,
-}
 
 pub struct EnsHandler;
 
 #[async_trait]
 impl ProposalHandler for EnsHandler {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
+    ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
@@ -43,9 +39,9 @@ impl ProposalHandler for EnsHandler {
             dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
         };
 
-        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0x323A76393544d5ecca80cd6ef2A560C6a395b7E3"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = ens_gov::new(address, eth_rpc.clone());
 
@@ -61,14 +57,8 @@ impl ProposalHandler for EnsHandler {
         let mut result = Vec::new();
 
         for p in proposal_events.iter() {
-            let p = data_for_proposal(
-                p.clone(),
-                &eth_rpc,
-                &decoder,
-                dao_handler,
-                gov_contract.clone(),
-            )
-            .await?;
+            let p =
+                data_for_proposal(p.clone(), &eth_rpc, dao_handler, gov_contract.clone()).await?;
             result.push(p);
         }
 
@@ -90,7 +80,6 @@ impl ProposalHandler for EnsHandler {
 async fn data_for_proposal(
     p: (contracts::gen::ens_gov::ProposalCreatedFilter, LogMeta),
     rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
     gov_contract: ens_gov<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
@@ -146,7 +135,7 @@ async fn data_for_proposal(
         }
     };
 
-    let proposal_url = format!("{}{}", decoder.proposalUrl, log.proposal_id);
+    let proposal_url = format!("https://www.tally.xyz/gov/ens/proposal/{}", log.proposal_id);
 
     let proposal_external_id = log.proposal_id.to_string();
 

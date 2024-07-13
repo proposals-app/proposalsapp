@@ -5,7 +5,7 @@ use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
     QueryFilter, Set,
 };
-use seaorm::{dao, dao_handler, dao_settings, sea_orm_active_enums::DaoHandlerEnum};
+use seaorm::{dao, dao_handler, dao_settings, sea_orm_active_enums::DaoHandlerEnumV2};
 use tracing::{info, instrument};
 use utils::tracing::run_with_tracing;
 
@@ -22,7 +22,7 @@ struct DaoSeedData {
 
 #[derive(Debug, Clone)]
 struct HandlerData {
-    handler_type: DaoHandlerEnum,
+    handler_type: DaoHandlerEnumV2,
     governance_portal: String,
     decoder: serde_json::Value,
     refresh_enabled: bool,

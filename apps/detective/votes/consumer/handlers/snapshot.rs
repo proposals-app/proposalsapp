@@ -1,9 +1,9 @@
 use crate::{VotesHandler, VotesResult};
-use anyhow::{Context, Result};
+use anyhow::{Result};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_handler, proposal, vote};
+use seaorm::{dao, dao_handler, proposal, vote};
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -46,10 +46,22 @@ impl VotesHandler for SnapshotHandler {
     async fn get_proposal_votes(
         &self,
         dao_handler: &dao_handler::Model,
+        dao: &dao::Model,
         proposal: &proposal::Model,
     ) -> Result<VotesResult> {
-        let decoder: Decoder =
-            serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
+        let snapshot_space = match dao.name.as_str() {
+            "Compound" => "comp-vote.eth",
+            "Gitcoin" => "gitcoindao.eth",
+            "Arbitrum DAO" => "arbitrumfoundation.eth",
+            "Optimism" => "opcollective.eth",
+            "Uniswap" => "uniswapgovernance.eth",
+            "Hop Protocol" => "hop.eth",
+            "Frax" => "frax.eth",
+            "dYdX" => "dydxgov.eth",
+            "ENS" => "ens.eth",
+            "Aave" => "aave.eth",
+            _ => "unknown.eth", // Handle any other cases
+        };
 
         let graphql_query = format!(
             r#"
@@ -75,7 +87,7 @@ impl VotesHandler for SnapshotHandler {
         }}"#,
             proposal.votes_refresh_speed,
             proposal.external_id,
-            decoder.snapshot_space,
+            snapshot_space,
             proposal.votes_index
         );
 

@@ -12,15 +12,8 @@ use ethers::{
 };
 use itertools::Itertools;
 use sea_orm::{NotSet, Set};
-use seaorm::{dao_handler, proposal, vote};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, vote};
 use std::sync::Arc;
-
-#[allow(non_snake_case)]
-#[derive(Debug, Deserialize)]
-struct Decoder {
-    address: String,
-}
 
 const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
     "0xed08132900000000000000000000000000000000000000000000000000000000";
@@ -34,6 +27,7 @@ impl VotesHandler for MakerExecutiveHandler {
     async fn get_proposal_votes(
         &self,
         _dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
         _proposal: &proposal::Model,
     ) -> Result<VotesResult> {
         Ok(VotesResult {
@@ -60,10 +54,9 @@ impl VotesHandler for MakerExecutiveHandler {
             dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
         };
 
-        let decoder: Decoder =
-            serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0x0a3f6849f78076aefaDf113F5BED87720274dDC0"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = maker_executive_gov::new(address, eth_rpc);
 

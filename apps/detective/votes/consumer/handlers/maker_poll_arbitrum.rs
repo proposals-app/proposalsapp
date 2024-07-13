@@ -12,15 +12,8 @@ use ethers::{
 };
 use num_bigint::BigInt;
 use sea_orm::{NotSet, Set};
-use seaorm::{dao_handler, proposal, vote};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, vote};
 use std::{str::FromStr, sync::Arc};
-
-#[allow(non_snake_case)]
-#[derive(Debug, Deserialize)]
-struct Decoder {
-    address_vote: String,
-}
 
 pub struct MakerPollArbitrumHandler;
 
@@ -29,6 +22,7 @@ impl VotesHandler for MakerPollArbitrumHandler {
     async fn get_proposal_votes(
         &self,
         _dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
         _proposal: &proposal::Model,
     ) -> Result<VotesResult> {
         Ok(VotesResult {
@@ -55,11 +49,7 @@ impl VotesHandler for MakerPollArbitrumHandler {
             dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
         };
 
-        let decoder: Decoder =
-            serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
-
-        let address = decoder
-            .address_vote
+        let address = "0x4f4e551b4920a5417F8d4e7f8f099660dAdadcEC"
             .parse::<Address>()
             .context("bad address")?;
 

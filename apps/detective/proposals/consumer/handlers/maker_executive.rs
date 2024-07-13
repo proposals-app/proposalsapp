@@ -9,18 +9,11 @@ use ethers::{prelude::*, utils::to_checksum};
 use itertools::Itertools;
 use scanners::etherscan::estimate_block;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{collections::HashSet, sync::Arc, time::Duration};
 use tokio::time::sleep;
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    address: String,
-    proposalUrl: String,
-}
 
 const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
     "0xed08132900000000000000000000000000000000000000000000000000000000";
@@ -31,7 +24,11 @@ pub struct MakerExecutiveHandler;
 
 #[async_trait]
 impl ProposalHandler for MakerExecutiveHandler {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
+    ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
@@ -51,9 +48,9 @@ impl ProposalHandler for MakerExecutiveHandler {
             dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
         };
 
-        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0x0a3f6849f78076aefaDf113F5BED87720274dDC0"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = maker_executive_gov::new(address, eth_rpc.clone());
 
@@ -93,7 +90,7 @@ impl ProposalHandler for MakerExecutiveHandler {
         let mut result = Vec::new();
 
         for p in spell_addresses.iter() {
-            let p = data_for_proposal(&p.clone(), &decoder, dao_handler).await?;
+            let p = data_for_proposal(&p.clone(), dao_handler).await?;
             result.push(p);
         }
 
@@ -114,14 +111,13 @@ impl ProposalHandler for MakerExecutiveHandler {
 
 async fn data_for_proposal(
     spell_address: &String,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
 ) -> Result<proposal::ActiveModel> {
     let proposal_data = get_proposal_data(spell_address.clone())
         .await
         .context("get_proposal_data")?;
 
-    let proposal_url = format!("{}{}", decoder.proposalUrl, proposal_data.key);
+    let proposal_url = format!("https://vote.makerdao.com/executive/{}", proposal_data.key);
     let created_timestamp = NaiveDateTime::parse_from_str(
         proposal_data.clone().date.split(" GMT").next().unwrap(),
         "%a %b %d %Y %H:%M:%S",

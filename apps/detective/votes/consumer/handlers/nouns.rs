@@ -11,15 +11,8 @@ use ethers::{
     utils::to_checksum,
 };
 use sea_orm::{NotSet, Set};
-use seaorm::{dao_handler, proposal, vote};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, vote};
 use std::sync::Arc;
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    address: String,
-}
 
 pub struct NounsHandler;
 
@@ -28,6 +21,7 @@ impl VotesHandler for NounsHandler {
     async fn get_proposal_votes(
         &self,
         _dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
         _proposal: &proposal::Model,
     ) -> Result<VotesResult> {
         Ok(VotesResult {
@@ -54,10 +48,9 @@ impl VotesHandler for NounsHandler {
             dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
         };
 
-        let decoder: Decoder =
-            serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0x6f3E6272A167e8AcCb32072d08E0957F9c79223d"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = nouns_proposals_gov::new(address, eth_rpc);
 

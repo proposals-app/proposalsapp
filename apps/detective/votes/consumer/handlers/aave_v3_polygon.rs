@@ -11,15 +11,8 @@ use ethers::{
     utils::to_checksum,
 };
 use sea_orm::{NotSet, Set};
-use seaorm::{dao_handler, proposal, vote};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, vote};
 use std::sync::Arc;
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    voting_machine: String,
-}
 
 pub struct AaveV3PolygonHandler;
 
@@ -28,6 +21,7 @@ impl VotesHandler for AaveV3PolygonHandler {
     async fn get_proposal_votes(
         &self,
         _dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
         _proposal: &proposal::Model,
     ) -> Result<VotesResult> {
         Ok(VotesResult {
@@ -54,11 +48,7 @@ impl VotesHandler for AaveV3PolygonHandler {
             dao_handler.votes_index as u64 + dao_handler.votes_refresh_speed as u64
         };
 
-        let decoder: Decoder =
-            serde_json::from_value(dao_handler.clone().decoder).context("bad decoder")?;
-
-        let address = decoder
-            .voting_machine
+        let address = "0xc8a2ADC4261c6b669CdFf69E717E77C9cFeB420d"
             .parse::<Address>()
             .context("bad address")?;
 

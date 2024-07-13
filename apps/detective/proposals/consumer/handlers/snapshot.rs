@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use sea_orm::{NotSet, Set};
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -35,18 +35,28 @@ struct GraphQLProposal {
     flagged: Option<bool>,
 }
 
-#[allow(non_snake_case)]
-#[derive(Debug, Deserialize)]
-struct Decoder {
-    snapshot_space: String,
-}
-
 pub struct SnapshotHandler;
 
 #[async_trait]
 impl ProposalHandler for SnapshotHandler {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
-        let decoder: Decoder = serde_json::from_value(dao_handler.clone().decoder)?;
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        dao: &dao::Model,
+    ) -> Result<ProposalsResult> {
+        let snapshot_space = match dao.name.as_str() {
+            "Compound" => "comp-vote.eth",
+            "Gitcoin" => "gitcoindao.eth",
+            "Arbitrum DAO" => "arbitrumfoundation.eth",
+            "Optimism" => "opcollective.eth",
+            "Uniswap" => "uniswapgovernance.eth",
+            "Hop Protocol" => "hop.eth",
+            "Frax" => "frax.eth",
+            "dYdX" => "dydxgov.eth",
+            "ENS" => "ens.eth",
+            "Aave" => "aave.eth",
+            _ => "unknown.eth", // Handle any other cases
+        };
 
         let graphql_query = format!(
             r#"
@@ -78,9 +88,7 @@ impl ProposalHandler for SnapshotHandler {
                     flagged
                 }}
             }}"#,
-            dao_handler.proposals_refresh_speed,
-            decoder.snapshot_space,
-            dao_handler.proposals_index
+            dao_handler.proposals_refresh_speed, snapshot_space, dao_handler.proposals_index
         );
 
         let graphql_response = reqwest::Client::new()

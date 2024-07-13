@@ -13,23 +13,19 @@ use contracts::gen::{
 use ethers::{prelude::*, utils::to_checksum};
 use scanners::optimistic_scan::estimate_timestamp;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde_json::json;
 use std::sync::Arc;
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    address: String,
-    proposalUrl: String,
-}
 
 pub struct OptimismHandler;
 
 #[async_trait]
 impl ProposalHandler for OptimismHandler {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
+    ) -> Result<ProposalsResult> {
         let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
         let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
 
@@ -49,9 +45,9 @@ impl ProposalHandler for OptimismHandler {
             dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
         };
 
-        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0xcDF27F107725988f2261Ce2256bDfCdE8B382B10"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = optimism_gov_v6::new(address, op_rpc.clone());
 
@@ -94,54 +90,30 @@ impl ProposalHandler for OptimismHandler {
         let mut result = Vec::new();
 
         for p in proposal_events_one.iter() {
-            let p = data_for_proposal_one(
-                p.clone(),
-                &op_rpc,
-                &decoder,
-                dao_handler,
-                gov_contract.clone(),
-            )
-            .await
-            .context("data_for_proposal_one")?;
+            let p = data_for_proposal_one(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
+                .await
+                .context("data_for_proposal_one")?;
             result.push(p);
         }
 
         for p in proposal_events_two.iter() {
-            let p = data_for_proposal_two(
-                p.clone(),
-                &op_rpc,
-                &decoder,
-                dao_handler,
-                gov_contract.clone(),
-            )
-            .await
-            .context("data_for_proposal_two")?;
+            let p = data_for_proposal_two(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
+                .await
+                .context("data_for_proposal_two")?;
             result.push(p);
         }
 
         for p in proposal_events_three.iter() {
-            let p = data_for_proposal_three(
-                p.clone(),
-                &op_rpc,
-                &decoder,
-                dao_handler,
-                gov_contract.clone(),
-            )
-            .await
-            .context("data_for_proposal_two")?;
+            let p = data_for_proposal_three(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
+                .await
+                .context("data_for_proposal_two")?;
             result.push(p);
         }
 
         for p in proposal_events_four.iter() {
-            let p = data_for_proposal_four(
-                p.clone(),
-                &op_rpc,
-                &decoder,
-                dao_handler,
-                gov_contract.clone(),
-            )
-            .await
-            .context("data_for_proposal_two")?;
+            let p = data_for_proposal_four(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
+                .await
+                .context("data_for_proposal_two")?;
             result.push(p);
         }
 
@@ -166,7 +138,6 @@ async fn data_for_proposal_one(
         LogMeta,
     ),
     rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
     gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
@@ -232,7 +203,7 @@ async fn data_for_proposal_one(
 
     let body = log.description.to_string();
 
-    let proposal_url = format!("{}{}", decoder.proposalUrl, log.proposal_id);
+    let proposal_url = format!("https://vote.optimism.io/proposals/{}", log.proposal_id);
 
     let proposal_external_id = log.proposal_id.to_string();
 
@@ -309,7 +280,6 @@ async fn data_for_proposal_two(
         LogMeta,
     ),
     rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
     gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
@@ -364,7 +334,7 @@ async fn data_for_proposal_two(
 
     let body = log.description.to_string();
 
-    let proposal_url = format!("{}{}", decoder.proposalUrl, log.proposal_id);
+    let proposal_url = format!("https://vote.optimism.io/proposals/{}", log.proposal_id);
 
     let proposal_external_id = log.proposal_id.to_string();
 
@@ -453,7 +423,6 @@ async fn data_for_proposal_three(
         LogMeta,
     ),
     rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
     gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
@@ -519,7 +488,7 @@ async fn data_for_proposal_three(
 
     let body = log.description.to_string();
 
-    let proposal_url = format!("{}{}", decoder.proposalUrl, log.proposal_id);
+    let proposal_url = format!("https://vote.optimism.io/proposals/{}", log.proposal_id);
 
     let proposal_external_id = log.proposal_id.to_string();
 
@@ -610,7 +579,6 @@ async fn data_for_proposal_four(
         LogMeta,
     ),
     rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
     gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
@@ -676,7 +644,7 @@ async fn data_for_proposal_four(
 
     let body = log.description.to_string();
 
-    let proposal_url = format!("{}{}", decoder.proposalUrl, log.proposal_id);
+    let proposal_url = format!("https://vote.optimism.io/proposals/{}", log.proposal_id);
 
     let proposal_external_id = log.proposal_id.to_string();
 

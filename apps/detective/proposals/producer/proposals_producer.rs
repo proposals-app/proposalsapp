@@ -8,7 +8,7 @@ use dotenv::dotenv;
 use sea_orm::{
     ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
 };
-use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnum};
+use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
 use tokio::time;
 use tracing::{instrument, warn};
 use utils::{
@@ -112,9 +112,9 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
 async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::Model>> {
     let dao_handlers = dao_handler::Entity::find()
         .filter(dao_handler::Column::HandlerType.is_not_in(vec![
-            DaoHandlerEnum::MakerPollArbitrum,
-            DaoHandlerEnum::AaveV3PolygonPos,
-            DaoHandlerEnum::AaveV3Avalanche,
+            DaoHandlerEnumV2::MakerPollArbitrum,
+            DaoHandlerEnumV2::AaveV3PolygonPos,
+            DaoHandlerEnumV2::AaveV3Avalanche,
         ]))
         .filter(dao_handler::Column::RefreshEnabled.eq(true))
         .all(db)

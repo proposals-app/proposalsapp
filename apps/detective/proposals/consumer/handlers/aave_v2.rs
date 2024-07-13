@@ -11,24 +11,20 @@ use ethers::{prelude::*, utils::hex};
 use regex::Regex;
 use scanners::etherscan::estimate_timestamp;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tracing::{info, warn};
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    address: String,
-    proposalUrl: String,
-}
 
 pub struct AaveV2Handler;
 
 #[async_trait]
 impl ProposalHandler for AaveV2Handler {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
+    ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
@@ -48,9 +44,9 @@ impl ProposalHandler for AaveV2Handler {
             dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
         };
 
-        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0xEC568fffba86c094cf06b22134B23074DFE2252c"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = aave_v2_gov::new(address, eth_rpc.clone());
 
@@ -66,15 +62,9 @@ impl ProposalHandler for AaveV2Handler {
         let mut result = Vec::new();
 
         for p in proposal_events.iter() {
-            let p = data_for_proposal(
-                p.clone(),
-                &eth_rpc,
-                &decoder,
-                dao_handler,
-                gov_contract.clone(),
-            )
-            .await
-            .context("data_for_proposal")?;
+            let p = data_for_proposal(p.clone(), &eth_rpc, dao_handler, gov_contract.clone())
+                .await
+                .context("data_for_proposal")?;
             result.push(p);
         }
 
@@ -96,7 +86,6 @@ impl ProposalHandler for AaveV2Handler {
 async fn data_for_proposal(
     p: (contracts::gen::aave_v_2_gov::ProposalCreatedFilter, LogMeta),
     rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
     gov_contract: aave_v2_gov<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
@@ -152,7 +141,10 @@ async fn data_for_proposal(
         }
     };
 
-    let proposal_url = format!("{}{}", decoder.proposalUrl, log.id);
+    let proposal_url = format!(
+        "https://app.aave.com/governance/proposal/?proposalId={}",
+        log.id
+    );
 
     let proposal_external_id = log.id.to_string();
 

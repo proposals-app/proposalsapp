@@ -8,7 +8,7 @@ use dotenv::dotenv;
 use sea_orm::{
     ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
 };
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnum};
+use seaorm::{dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnumV2};
 use tokio::time;
 use tracing::{error, instrument, warn};
 use utils::{
@@ -68,12 +68,12 @@ async fn produce_jobs() -> Result<(), anyhow::Error> {
     let all_dao_handlers = fetch_dao_handlers(&db).await?;
     let snapshot_dao_handlers: Vec<&dao_handler::Model> = all_dao_handlers
         .iter()
-        .filter(|p| p.handler_type == DaoHandlerEnum::Snapshot)
+        .filter(|p| p.handler_type == DaoHandlerEnumV2::Snapshot)
         .collect();
 
     let chain_dao_handlers: Vec<&dao_handler::Model> = all_dao_handlers
         .iter()
-        .filter(|p| p.handler_type != DaoHandlerEnum::Snapshot)
+        .filter(|p| p.handler_type != DaoHandlerEnumV2::Snapshot)
         .collect();
 
     let snapshot_proposals = fetch_proposals(&db, &snapshot_dao_handlers).await?;

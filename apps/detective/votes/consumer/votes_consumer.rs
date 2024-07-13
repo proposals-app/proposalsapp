@@ -17,8 +17,8 @@ use sea_orm::{
     TransactionTrait,
 };
 use seaorm::{
-    dao_handler, proposal,
-    sea_orm_active_enums::{DaoHandlerEnum, ProposalStateEnum},
+    dao, dao_handler, proposal,
+    sea_orm_active_enums::{DaoHandlerEnumV2, ProposalStateEnum},
     vote, voter,
 };
 use std::{
@@ -46,6 +46,7 @@ pub trait VotesHandler: Send + Sync {
     async fn get_proposal_votes(
         &self,
         dao_handler: &dao_handler::Model,
+        dao: &dao::Model,
         proposal: &proposal::Model,
     ) -> Result<VotesResult>;
     async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult>;
@@ -222,6 +223,13 @@ async fn run(job: VotesJob) -> Result<()> {
 
     match job.proposal_id {
         Some(proposal_id) => {
+            let dao = dao::Entity::find()
+                .filter(dao::Column::Id.eq(dao_handler.dao_id))
+                .one(&db)
+                .await
+                .context(DATABASE_ERROR)?
+                .context(DAOHANDLER_NOT_FOUND_ERROR)?;
+
             let proposal = proposal::Entity::find()
                 .filter(proposal::Column::Id.eq(proposal_id))
                 .one(&db)
@@ -229,8 +237,9 @@ async fn run(job: VotesJob) -> Result<()> {
                 .context(DATABASE_ERROR)?
                 .context(PROPOSAL_NOT_FOUND_ERROR)?;
 
-            let VotesResult { votes, to_index: _ } =
-                handler.get_proposal_votes(&dao_handler, &proposal).await?;
+            let VotesResult { votes, to_index: _ } = handler
+                .get_proposal_votes(&dao_handler, &dao, &proposal)
+                .await?;
 
             store_voters(&votes, &db).await?;
 
@@ -472,14 +481,14 @@ async fn update_dao_index(
         .max()
         .unwrap_or(&dao_handler.votes_index);
 
-    if dao_handler.handler_type != DaoHandlerEnum::Snapshot {
+    if dao_handler.handler_type != DaoHandlerEnumV2::Snapshot {
         new_index = to_index.unwrap_or(dao_handler.votes_index + dao_handler.votes_refresh_speed);
     }
 
     if new_index > dao_handler.proposals_index
-        && dao_handler.handler_type != DaoHandlerEnum::MakerPollArbitrum
-        && dao_handler.handler_type != DaoHandlerEnum::AaveV3PolygonPos
-        && dao_handler.handler_type != DaoHandlerEnum::AaveV3Avalanche
+        && dao_handler.handler_type != DaoHandlerEnumV2::MakerPollArbitrum
+        && dao_handler.handler_type != DaoHandlerEnumV2::AaveV3PolygonPos
+        && dao_handler.handler_type != DaoHandlerEnumV2::AaveV3Avalanche
     {
         new_index = dao_handler.proposals_index;
     }
@@ -567,47 +576,45 @@ async fn store_dao_votes(
     // the proposal might be on different chain
     // ex: aave mainnet proposal with aave polygon votes
     let proposal_handler_id = match dao_handler.handler_type {
-        DaoHandlerEnum::AaveV2Mainnet
-        | DaoHandlerEnum::AaveV3Mainnet
-        | DaoHandlerEnum::CompoundMainnet
-        | DaoHandlerEnum::UniswapMainnet
-        | DaoHandlerEnum::EnsMainnet
-        | DaoHandlerEnum::GitcoinMainnet
-        | DaoHandlerEnum::GitcoinV2Mainnet
-        | DaoHandlerEnum::HopMainnet
-        | DaoHandlerEnum::DydxMainnet
-        | DaoHandlerEnum::InterestProtocolMainnet
-        | DaoHandlerEnum::ZeroxProtocolMainnet
-        | DaoHandlerEnum::FraxAlphaMainnet
-        | DaoHandlerEnum::FraxOmegaMainnet
-        | DaoHandlerEnum::NounsProposalsMainnet
-        | DaoHandlerEnum::OpOptimism
-        | DaoHandlerEnum::ArbCoreArbitrum
-        | DaoHandlerEnum::ArbTreasuryArbitrum
-        | DaoHandlerEnum::MakerExecutiveMainnet
-        | DaoHandlerEnum::MakerPollMainnet
-        | DaoHandlerEnum::Snapshot => dao_handler.id,
-        DaoHandlerEnum::AaveV3PolygonPos => {
+        DaoHandlerEnumV2::AaveV2Mainnet
+        | DaoHandlerEnumV2::AaveV3Mainnet
+        | DaoHandlerEnumV2::CompoundMainnet
+        | DaoHandlerEnumV2::UniswapMainnet
+        | DaoHandlerEnumV2::EnsMainnet
+        | DaoHandlerEnumV2::GitcoinMainnet
+        | DaoHandlerEnumV2::GitcoinV2Mainnet
+        | DaoHandlerEnumV2::HopMainnet
+        | DaoHandlerEnumV2::DydxMainnet
+        | DaoHandlerEnumV2::FraxAlphaMainnet
+        | DaoHandlerEnumV2::FraxOmegaMainnet
+        | DaoHandlerEnumV2::NounsProposalsMainnet
+        | DaoHandlerEnumV2::OpOptimism
+        | DaoHandlerEnumV2::ArbCoreArbitrum
+        | DaoHandlerEnumV2::ArbTreasuryArbitrum
+        | DaoHandlerEnumV2::MakerExecutiveMainnet
+        | DaoHandlerEnumV2::MakerPollMainnet
+        | DaoHandlerEnumV2::Snapshot => dao_handler.id,
+        DaoHandlerEnumV2::AaveV3PolygonPos => {
             dao_handler::Entity::find()
-                .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnum::AaveV3Mainnet))
+                .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV2::AaveV3Mainnet))
                 .one(db)
                 .await
                 .context(DATABASE_ERROR)?
                 .context(DAOHANDLER_NOT_FOUND_ERROR)?
                 .id
         }
-        DaoHandlerEnum::AaveV3Avalanche => {
+        DaoHandlerEnumV2::AaveV3Avalanche => {
             dao_handler::Entity::find()
-                .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnum::AaveV3Mainnet))
+                .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV2::AaveV3Mainnet))
                 .one(db)
                 .await
                 .context(DATABASE_ERROR)?
                 .context(DAOHANDLER_NOT_FOUND_ERROR)?
                 .id
         }
-        DaoHandlerEnum::MakerPollArbitrum => {
+        DaoHandlerEnumV2::MakerPollArbitrum => {
             dao_handler::Entity::find()
-                .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnum::MakerPollMainnet))
+                .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV2::MakerPollMainnet))
                 .one(db)
                 .await
                 .context(DATABASE_ERROR)?

@@ -8,24 +8,20 @@ use contracts::gen::arbitrum_treasury_gov::{
 use ethers::prelude::*;
 use scanners::etherscan::{self};
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
-use serde::Deserialize;
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde_json::json;
 use std::sync::Arc;
 use tracing::{info, warn};
-
-#[allow(non_snake_case)]
-#[derive(Deserialize)]
-struct Decoder {
-    address: String,
-    proposalUrl: String,
-}
 
 pub struct ArbitrumTreasuryHandler;
 
 #[async_trait]
 impl ProposalHandler for ArbitrumTreasuryHandler {
-    async fn get_proposals(&self, dao_handler: &dao_handler::Model) -> Result<ProposalsResult> {
+    async fn get_proposals(
+        &self,
+        dao_handler: &dao_handler::Model,
+        _dao: &dao::Model,
+    ) -> Result<ProposalsResult> {
         let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
         let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
 
@@ -45,9 +41,9 @@ impl ProposalHandler for ArbitrumTreasuryHandler {
             dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
         };
 
-        let decoder: Decoder = serde_json::from_value(dao_handler.decoder.clone())?;
-
-        let address = decoder.address.parse::<Address>().context("bad address")?;
+        let address = "0x789fC99093B09aD01C34DC7251D0C89ce743e5a4"
+            .parse::<Address>()
+            .context("bad address")?;
 
         let gov_contract = arbitrum_treasury_gov::new(address, arb_rpc.clone());
 
@@ -63,15 +59,9 @@ impl ProposalHandler for ArbitrumTreasuryHandler {
         let mut result = Vec::new();
 
         for p in proposal_events.iter() {
-            let p = data_for_proposal(
-                p.clone(),
-                &arb_rpc,
-                &decoder,
-                dao_handler,
-                gov_contract.clone(),
-            )
-            .await
-            .context("data_for_proposal")?;
+            let p = data_for_proposal(p.clone(), &arb_rpc, dao_handler, gov_contract.clone())
+                .await
+                .context("data_for_proposal")?;
             result.push(p);
         }
 
@@ -96,7 +86,6 @@ async fn data_for_proposal(
         LogMeta,
     ),
     rpc: &Arc<Provider<Http>>,
-    decoder: &Decoder,
     dao_handler: &dao_handler::Model,
     gov_contract: arbitrum_treasury_gov<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
@@ -175,7 +164,10 @@ async fn data_for_proposal(
         title = "Unknown".into()
     }
 
-    let proposal_url = format!("{}{}", decoder.proposalUrl, log.proposal_id);
+    let proposal_url = format!(
+        "https://www.tally.xyz/gov/arbitrum/proposal/{}",
+        log.proposal_id
+    );
 
     let proposal_external_id = log.proposal_id.to_string();
 
