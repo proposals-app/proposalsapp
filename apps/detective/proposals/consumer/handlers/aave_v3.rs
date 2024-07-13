@@ -38,7 +38,7 @@ impl ProposalHandler for AaveV3Handler {
             dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
         };
 
-        let address = "0x9b6f5ef589A3DD08670Dd146C11C4Fb33E04494F"
+        let address = "0x9AEE0B04504CeF83A65AC3f0e838D0593BCb2BC7"
             .parse::<Address>()
             .context("bad address")?;
 
@@ -381,7 +381,7 @@ mod aave_tests {
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn test_aave_v3_proposals() {
+    async fn test_aave_v3_proposal_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
