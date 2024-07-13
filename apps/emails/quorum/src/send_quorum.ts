@@ -1,7 +1,7 @@
 import {
   db,
   NotificationDispatchedStateEnum,
-  NotificationTypeEnum,
+  NotificationTypeEnumV2,
 } from "@proposalsapp/db";
 import { QuorumData, QuorumEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
@@ -13,7 +13,11 @@ export async function sendQuorum(userId: string, proposalId: string) {
     .selectFrom("notification")
     .where("userId", "=", userId)
     .where("proposalId", "=", proposalId)
-    .where("notification.type", "=", NotificationTypeEnum.QUORUMNOTREACHEDEMAIL)
+    .where(
+      "notification.type",
+      "=",
+      NotificationTypeEnumV2.EMAILQUORUMNOTREACHED,
+    )
     .where(
       "notification.dispatchstatus",
       "=",
@@ -97,7 +101,7 @@ export async function sendQuorum(userId: string, proposalId: string) {
     .values({
       userId: userId,
       proposalId: proposalId,
-      type: NotificationTypeEnum.QUORUMNOTREACHEDEMAIL,
+      type: NotificationTypeEnumV2.EMAILQUORUMNOTREACHED,
       dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
       submittedAt: new Date(res.SubmittedAt),
     })

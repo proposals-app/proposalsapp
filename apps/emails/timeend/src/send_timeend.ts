@@ -1,7 +1,7 @@
 import {
   db,
   NotificationDispatchedStateEnum,
-  NotificationTypeEnum,
+  NotificationTypeEnumV2,
 } from "@proposalsapp/db";
 import { NotVotedData, NotVotedEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
@@ -13,7 +13,7 @@ export async function sendTimeend(userId: string, proposalId: string) {
     .selectFrom("notification")
     .where("userId", "=", userId)
     .where("proposalId", "=", proposalId)
-    .where("notification.type", "=", NotificationTypeEnum.TIMEENDEMAIL)
+    .where("notification.type", "=", NotificationTypeEnumV2.EMAILTIMEEND)
     .where(
       "notification.dispatchstatus",
       "=",
@@ -97,7 +97,7 @@ export async function sendTimeend(userId: string, proposalId: string) {
     .values({
       userId: userId,
       proposalId: proposalId,
-      type: NotificationTypeEnum.TIMEENDEMAIL,
+      type: NotificationTypeEnumV2.EMAILTIMEEND,
       dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
       submittedAt: new Date(res.SubmittedAt),
     })
