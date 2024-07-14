@@ -57,7 +57,7 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
         "https://api-optimistic.etherscan.io/api?module=block&action=getblockcountdown&blockno={}&apikey={}",
         block_number, optimisticscan_api_key
     ))
-    .timeout(Duration::from_secs(10))
+    .timeout(Duration::from_secs(5))
     .send()
     .await;
 
@@ -109,7 +109,7 @@ pub async fn estimate_block(timestamp: u64) -> Result<u64> {
                 "https://api-optimistic.etherscan.io/api?module=block&action=getblocknobytime&timestamp={}&closest=before&apikey={}",
                 timestamp, optimisticscan_api_key
                 ))
-                .timeout(Duration::from_secs(10))
+                .timeout(Duration::from_secs(5))
                 .send()
                 .await;
 

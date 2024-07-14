@@ -46,7 +46,7 @@ pub trait ProposalHandler: Send + Sync {
 }
 
 const QUEUE_NAME: &str = "detective:proposals";
-const JOB_TIMEOUT_SECONDS: u64 = 60;
+const JOB_TIMEOUT_SECONDS: u64 = 90;
 
 #[tokio::main]
 #[instrument]

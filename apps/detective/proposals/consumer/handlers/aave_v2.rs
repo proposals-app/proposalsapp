@@ -75,7 +75,7 @@ impl ProposalHandler for AaveV2Handler {
     }
 
     fn min_refresh_speed(&self) -> i32 {
-        100
+        10
     }
 
     fn max_refresh_speed(&self) -> i32 {
@@ -311,12 +311,12 @@ async fn get_title(hexhash: String) -> Result<String> {
             }
         }
 
-        if retries < 12 {
+        if retries < 5 {
             retries += 1;
             let backoff_duration = Duration::from_millis(2u64.pow(retries as u32));
             tokio::time::sleep(backoff_duration).await;
         } else {
-            return Ok("Unknown".to_string()); // Exit after 12 retries
+            return Ok("Unknown".to_string()); // Exit after 5 retries
         }
     }
 }
@@ -383,12 +383,12 @@ async fn get_discussion(hexhash: String) -> Result<String> {
             }
         }
 
-        if retries < 12 {
+        if retries < 5 {
             retries += 1;
             let backoff_duration = Duration::from_millis(2u64.pow(retries as u32));
             tokio::time::sleep(backoff_duration).await;
         } else {
-            return Ok("Unknown".to_string()); // Exit after 12 retries
+            return Ok("Unknown".to_string()); // Exit after 5 retries
         }
     }
 }
@@ -421,18 +421,18 @@ async fn get_body(hexhash: String) -> Result<String> {
             }
         }
 
-        if retries < 12 {
+        if retries < 5 {
             retries += 1;
             let backoff_duration = Duration::from_millis(2u64.pow(retries as u32));
             tokio::time::sleep(backoff_duration).await;
         } else {
-            return Ok("Unknown".to_string()); // Exit after 12 retries
+            return Ok("Unknown".to_string()); // Exit after 5 retries
         }
     }
 }
 
 #[cfg(test)]
-mod aavev_v2_content {
+mod aave_v2_content {
     use crate::handlers::aave_v2::{get_body, get_discussion, get_title};
 
     #[tokio::test]

@@ -101,7 +101,7 @@ impl ProposalHandler for MakerExecutiveHandler {
     }
 
     fn min_refresh_speed(&self) -> i32 {
-        100
+        10
     }
 
     fn max_refresh_speed(&self) -> i32 {
@@ -235,7 +235,7 @@ struct ProposalData {
     spellData: SpellData,
 }
 
-const MAX_RETRIES: u32 = 10;
+const MAX_RETRIES: u32 = 5;
 
 async fn get_proposal_data(spell_address: String) -> Result<ProposalData> {
     let client = reqwest::Client::new();

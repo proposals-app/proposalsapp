@@ -69,7 +69,7 @@ impl ProposalHandler for GitcoinV1Handler {
     }
 
     fn min_refresh_speed(&self) -> i32 {
-        100
+        10
     }
 
     fn max_refresh_speed(&self) -> i32 {
