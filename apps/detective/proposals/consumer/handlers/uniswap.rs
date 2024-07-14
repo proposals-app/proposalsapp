@@ -180,6 +180,8 @@ async fn data_for_proposal(
         proposal_votes.7.as_u128() as f64 / (10.0f64.powi(18)),
     ];
 
+    let scores_quorum = proposal_votes.5.as_u128() as f64 / (10.0f64.powi(18));
+
     let scores_total: f64 = scores.iter().sum();
 
     let quorum = gov_contract
@@ -221,6 +223,7 @@ async fn data_for_proposal(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,

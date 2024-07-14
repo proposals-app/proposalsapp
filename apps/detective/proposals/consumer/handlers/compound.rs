@@ -183,6 +183,8 @@ async fn data_for_proposal(
 
     let scores_total: f64 = scores.iter().sum();
 
+    let scores_quorum = onchain_proposal.5.as_u128() as f64 / (10.0f64.powi(18));
+
     let quorum = gov_contract
         .quorum_votes()
         .call()
@@ -222,6 +224,7 @@ async fn data_for_proposal(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
@@ -236,4 +239,135 @@ async fn data_for_proposal(
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
     })
+}
+
+#[cfg(test)]
+mod compound_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
+    use utils::test_utils::{assert_proposal, ExpectedProposal};
+
+    #[tokio::test]
+    async fn compound_1() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::CompoundMainnet),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 12235671,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+        };
+
+        match CompoundHandler.get_proposals(&dao_handler, &dao).await {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "43",
+                    name: "Governance Analysis Period",
+                    body_contains: vec!["This would allow the community and developers additional time to audit new contracts and proposals for errors, and users the opportunity to move COMP or delegations prior to a vote commencing."],
+                    url: "https://compound.finance/governance/proposals/43",
+                    discussion_url:
+                        "",
+                    choices: "[\"For\",\"Against\",\"Abstain\"]",
+                    scores: "[1367841.9649007607,5000.0,0.0]",
+                    scores_total: 1372841.9649007607,
+                    scores_quorum: 1367841.9649007607,
+                    quorum: 399999.99999999994,
+                    proposal_state: ProposalStateEnum::Executed,
+                    block_created: Some(12235671),
+                    time_created: Some("2021-04-14 03:00:21"),
+                    time_start: "2021-04-14 03:00:23",
+                    time_end: "2021-04-16 19:13:09",
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn compound_2() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 20215251 - 20214270,
+            votes_refresh_speed: 1,
+            proposals_index: 20214270,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+        };
+
+        match CompoundHandler.get_proposals(&dao_handler, &dao).await {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "271",
+                    name: "[Gauntlet] - WETH Arbitrum v3 Global Param Updates",
+                    body_contains: vec!["Gauntlet recommends to adjust these params to match the setting on Base WETH Comet. The adjustment to lower BASE Borrow Min will allow users to borrow lower amounts of WETH and Base Min Rewards the adjustment will allow the incentives to kick off earlier within the market."],
+                    url: "https://compound.finance/governance/proposals/271",
+                    discussion_url:
+                        "",
+                    choices: "[\"For\",\"Against\",\"Abstain\"]",
+                    scores: "[381721.9323550018,0.0,50007.948335668865]",
+                    scores_total: 431729.8806906707,
+                    scores_quorum: 381721.9323550018,
+                    quorum: 399999.99999999994,
+                    proposal_state: ProposalStateEnum::Defeated,
+                    block_created: Some(20214270),
+                    time_created: Some("2024-07-01 21:10:47"),
+                    time_start: "2024-07-03 17:15:35",
+                    time_end: "2024-07-06 11:18:59",
+                },
+                ExpectedProposal {
+                    external_id: "272",
+                    name: "[Gauntlet] Polygon USDC.e and Scroll USDC - Risk and Incentive Recommendations",
+                    body_contains: vec!["Gauntlet recommends adjusting Polygon USDC.e Comet's supply caps to risk off under utilized caps and reducing incentives to account for the higher costs per USDC.e within the protocol."],
+                    url:  "https://compound.finance/governance/proposals/272",
+                    discussion_url:
+                        "",
+                    choices: "[\"For\",\"Against\",\"Abstain\"]",
+                    scores: "[475671.1200245885,0.0,0.0]",
+                    scores_total: 475671.1200245885,
+                    scores_quorum: 475671.1200245885,
+                    quorum: 399999.99999999994,
+                    proposal_state: ProposalStateEnum::Executed,
+                    block_created: Some(20215251),
+                    time_created: Some("2024-07-02 00:27:59"),
+                    time_start: "2024-07-03 20:31:59",
+                    time_end: "2024-07-06 14:35:47",
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
 }

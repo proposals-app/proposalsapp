@@ -37,6 +37,7 @@ pub struct Model {
     pub time_end: DateTime,
     pub dao_handler_id: Uuid,
     pub dao_id: Uuid,
+    pub scores_quorum: f64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -63,6 +64,7 @@ pub enum Column {
     TimeEnd,
     DaoHandlerId,
     DaoId,
+    ScoresQuorum,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -111,6 +113,7 @@ impl ColumnTrait for Column {
             Self::TimeEnd => ColumnType::DateTime.def(),
             Self::DaoHandlerId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
+            Self::ScoresQuorum => ColumnType::Double.def(),
         }
     }
 }

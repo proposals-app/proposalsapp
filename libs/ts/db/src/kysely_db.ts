@@ -140,6 +140,7 @@ export interface Proposal {
   proposalState: ProposalStateEnum;
   quorum: number;
   scores: Generated<Json>;
+  scoresQuorum: Generated<number>;
   scoresTotal: number;
   timeCreated: Timestamp | null;
   timeEnd: Timestamp;

@@ -82,6 +82,7 @@ export async function sendQuorum(userId: string, proposalId: string) {
     countdownUrl: countdownLarge,
     countdownUrlSmall: countdownSmall,
     scoresTotal: proposal.scoresTotal,
+    scoresQuorum: proposal.scoresQuorum,
     quorum: proposal.quorum,
   };
 

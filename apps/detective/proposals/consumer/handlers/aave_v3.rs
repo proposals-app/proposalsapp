@@ -135,6 +135,16 @@ async fn data_for_proposal(
 
     let scores_total = scores.iter().sum();
 
+    let voting_config = gov_contract
+        .get_voting_config(log.access_level)
+        .call()
+        .await
+        .context("gov_contract.get_voting_config")?;
+
+    let quorum = voting_config.yes_threshold as f64;
+
+    let scores_quorum = onchain_proposal.for_votes as f64 / (10.0f64.powi(18));
+
     let hash: Vec<u8> = log.ipfs_hash.into();
 
     let title = get_title(hex::encode(hash.clone()))
@@ -177,7 +187,8 @@ async fn data_for_proposal(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
-        quorum: Set(0.into()),
+        quorum: Set(quorum.into()),
+        scores_quorum: Set(scores_quorum.into()),
         proposal_state: Set(state),
         flagged: NotSet,
         block_created: Set(Some(created_block_number as i32)),
@@ -373,7 +384,7 @@ async fn get_body(hexhash: String) -> Result<String> {
 }
 
 #[cfg(test)]
-mod aave_v3 {
+mod aave_v3_proposals {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
@@ -385,21 +396,21 @@ mod aave_v3 {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
-            governance_portal: "https://app.aave.com/governance".into(),
+            governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
             votes_refresh_speed: 1,
             proposals_index: 18959200,
             votes_index: 0,
-            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
         let dao = dao::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            name: "Aave".into(),
-            slug: "aave".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
             hot: true,
         };
 
@@ -416,7 +427,8 @@ mod aave_v3 {
                     choices: "[\"For\",\"Against\"]",
                     scores: "[368222.2477753108,445.092704273313]",
                     scores_total: 368667.3404795841,
-                    quorum: 0.0,
+                    scores_quorum: 368222.2477753108,
+                    quorum: 320000.0,
                     proposal_state: ProposalStateEnum::Executed,
                     block_created: Some(18959200),
                     time_created: Some("2024-01-08 01:57:59"),
@@ -436,21 +448,21 @@ mod aave_v3 {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
-            governance_portal: "https://app.aave.com/governance".into(),
+            governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 19819808 - 19812127,
             votes_refresh_speed: 1,
             proposals_index: 19812127,
             votes_index: 0,
-            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
         let dao = dao::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            name: "Aave".into(),
-            slug: "aave".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
             hot: true,
         };
 
@@ -467,7 +479,8 @@ mod aave_v3 {
                     choices: "[\"For\",\"Against\"]",
                     scores: "[673483.6390054198,0.0]",
                     scores_total: 673483.6390054198,
-                    quorum: 0.0,
+                    scores_quorum: 673483.6390054198,
+                    quorum: 320000.0,
                     proposal_state: ProposalStateEnum::Executed,
                     block_created: Some(19812127),
                     time_created: Some("2024-05-06 16:07:11"),
@@ -484,7 +497,8 @@ mod aave_v3 {
                     choices: "[\"For\",\"Against\"]",
                     scores: "[0.0,0.0]",
                     scores_total: 0.0,
-                    quorum: 0.0,
+                    scores_quorum: 0.0,
+                    quorum: 320000.0,
                     proposal_state: ProposalStateEnum::Canceled,
                     block_created: Some(19819808),
                     time_created: Some("2024-05-07 17:54:23"),
@@ -504,21 +518,21 @@ mod aave_v3 {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
-            governance_portal: "https://app.aave.com/governance".into(),
+            governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
             votes_refresh_speed: 1,
             proposals_index: 19412601,
             votes_index: 0,
-            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
         let dao = dao::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            name: "Aave".into(),
-            slug: "aave".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
             hot: true,
         };
 
@@ -534,8 +548,9 @@ mod aave_v3 {
                         "https://governance.aave.com/t/arfc-aave-treasury-rwa-allocation/14790",
                     choices: "[\"For\",\"Against\"]",
                     scores: "[69575.82853768951,425389.02729258186]",
+                    scores_quorum: 69575.82853768951,
                     scores_total: 494964.8558302714,
-                    quorum: 0.0,
+                    quorum: 320000.0,
                     proposal_state: ProposalStateEnum::Defeated,
                     block_created: Some(19412601),
                     time_created: Some("2024-03-11 14:58:23"),

@@ -190,6 +190,8 @@ async fn data_for_proposal(
 
     let quorum = onchain_proposal.quorum_votes.as_u128() as f64;
 
+    let scores_quorum = onchain_proposal.for_votes.as_u128() as f64;
+
     let proposal_state = gov_contract
         .state(log.id)
         .call()
@@ -221,6 +223,7 @@ async fn data_for_proposal(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,

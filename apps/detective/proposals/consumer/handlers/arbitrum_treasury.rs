@@ -185,8 +185,10 @@ async fn data_for_proposal(
         onchain_proposal.2.as_u128() as f64 / (10.0f64.powi(18)),
     ];
 
-    let scores_total = onchain_proposal.0.as_u128() as f64 / (10.0f64.powi(18))
-        + onchain_proposal.1.as_u128() as f64 / (10.0f64.powi(18));
+    let scores_total = scores.iter().sum();
+
+    let scores_quorum = onchain_proposal.1.as_u128() as f64 / (10.0f64.powi(18))
+        + onchain_proposal.2.as_u128() as f64 / (10.0f64.powi(18));
 
     let proposal_snapshot_block = gov_contract
         .proposal_snapshot(log.proposal_id)
@@ -230,6 +232,7 @@ async fn data_for_proposal(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
@@ -244,4 +247,196 @@ async fn data_for_proposal(
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
     })
+}
+
+#[cfg(test)]
+mod arbitrum_treasury_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
+    use utils::test_utils::{assert_proposal, ExpectedProposal};
+
+    #[tokio::test]
+    async fn arbitrum_treasury_1() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::ArbTreasuryArbitrum),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 98423914,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+        };
+
+        match ArbitrumTreasuryHandler
+            .get_proposals(&dao_handler, &dao)
+            .await
+        {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "79904733039853333959339953965823982558487956291458141923259498272549038367575",
+                    name: "AIP-1.1 - Lockup, Budget, Transparency",
+                    body_contains: vec!["tl;dr: AIP-1.1 proposes (1) a lockup, (2) a budget and (3) transparency reporting regarding the 7.5% of the $ARB tokens distributed to the Foundation’s “Administrative Budget Wallet”."],
+                    url: "https://www.tally.xyz/gov/arbitrum/proposal/79904733039853333959339953965823982558487956291458141923259498272549038367575",
+                    discussion_url:
+                        "",
+                    choices: "[\"For\",\"Against\",\"Abstain\"]",
+                    scores: "[11877205.411525283,6447687.896985268,69223452.30270293]",
+                    scores_total: 87548345.61121348,
+                    scores_quorum: 81100657.71422821,
+                    quorum: 86006753.44625983,
+                    proposal_state: ProposalStateEnum::Defeated,
+                    block_created: Some(98423914),
+                    time_created: Some("2023-06-06 15:56:04"),
+                    time_start: "2023-06-09 17:03:59",
+                    time_end: "2023-06-23 21:04:59",
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn arbitrum_treasury_2() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::ArbTreasuryArbitrum),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 192337153 - 188757729,
+            votes_refresh_speed: 1,
+            proposals_index: 188757729,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+        };
+
+        match ArbitrumTreasuryHandler
+            .get_proposals(&dao_handler, &dao)
+            .await
+        {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "21881347407562908848280051025758535553780110598432331587570488445729767071232",
+                    name: "[Non-constitutional] Proposal to fund Plurality Labs Milestone 1B(ridge)",
+                    body_contains: vec!["Back in August, Arbitrum DAO passed our AIP-3 to build a pluralistic grants framework that decentralizes grants decision-making, avoids capture and scales valuable grants allocations, and grows the Arbitrum ecosystem overall."],
+                    url: "https://www.tally.xyz/gov/arbitrum/proposal/21881347407562908848280051025758535553780110598432331587570488445729767071232",
+                    discussion_url:
+                        "",
+                    choices: "[\"For\",\"Against\",\"Abstain\"]",
+                    scores: "[132198272.60652485,3381866.368158056,15924693.155036394]",
+                    scores_total: 151504832.1297193,
+                    quorum: 76729679.14643185,
+                    scores_quorum: 148122965.76156124,
+                    proposal_state: ProposalStateEnum::Executed,
+                    block_created: Some(188757729),
+                    time_created: Some("2024-03-09 20:16:53"),
+                    time_start: "2024-03-12 20:44:59",
+                    time_end: "2024-03-27 00:54:23",
+                },
+                ExpectedProposal {
+                    external_id: "38070839538623347085766954167338451189998347523518753197890888828931691912919",
+                    name: "Arbitrum Stable Treasury Endowment Program",
+                    body_contains: vec!["This proposal is a trial run for a larger investment policy of the ArbitrumDAO treasury, both in"],
+                    url: "https://www.tally.xyz/gov/arbitrum/proposal/38070839538623347085766954167338451189998347523518753197890888828931691912919",
+                    discussion_url:
+                        "",
+                    choices: "[\"For\",\"Against\",\"Abstain\"]",
+                    scores: "[94491382.72088398,153122.22745584013,59798941.21114432]",
+                    scores_total: 154443446.15948415,
+                    quorum: 81467837.817622,
+                    scores_quorum: 154290323.9320283,
+                    proposal_state: ProposalStateEnum::Executed,
+                    block_created: Some(192337153),
+                    time_created: Some("2024-03-20 12:37:09"),
+                    time_start: "2024-03-23 13:19:23",
+                    time_end: "2024-04-06 18:03:47",
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn arbitrum_treasury_3() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::ArbTreasuryArbitrum),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 219487184,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+        };
+
+        match ArbitrumTreasuryHandler
+            .get_proposals(&dao_handler, &dao)
+            .await
+        {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "79183200449169085571205208154003416944507585311666453826890708127615057369177",
+                    name: "Kwenta x Perennial: Arbitrum Onboarding Incentives",
+                    body_contains: vec!["Kwenta, a prominent DeFi application in the Optimism ecosystem, is set to expand to Arbitrum, utilizing Perennial V2, an Arbitrum-native protocol. This joint proposal requests 1.9 million ARB to fund targeted onboarding incentives, aiming to bring Kwenta users to Arbitrum."],
+                    url: "https://www.tally.xyz/gov/arbitrum/proposal/79183200449169085571205208154003416944507585311666453826890708127615057369177",
+                    discussion_url:
+                        "",
+                    choices:"[\"For\",\"Against\",\"Abstain\"]",
+                    scores: "[127691476.62141035,4316786.371440648,28731665.366070155]",
+                    scores_total: 160739928.35892117,
+                    scores_quorum: 156423141.98748052,
+                    quorum: 111155592.92446591,
+                    proposal_state: ProposalStateEnum::Executed,
+                    block_created: Some(219487184),
+                    time_created: Some("2024-06-07 22:07:24"),
+                    time_start: "2024-06-10 22:31:35",
+                    time_end: "2024-06-25 00:50:23",
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
 }

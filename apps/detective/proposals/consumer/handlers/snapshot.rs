@@ -161,6 +161,7 @@ async fn parse_proposals(
             choices: Set(graphql_proposal.choices.into()),
             scores: Set(graphql_proposal.scores.into()),
             scores_total: Set(graphql_proposal.scores_total),
+            scores_quorum: Set(graphql_proposal.scores_total),
             quorum: Set(graphql_proposal.quorum),
             block_created: NotSet,
             #[allow(deprecated)]

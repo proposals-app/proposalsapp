@@ -112,6 +112,8 @@ async fn data_for_proposal(
     let scores_total = scores.iter().sum();
     let quorum = onchain_proposal.5 as f64 / (10.0f64.powi(18));
 
+    let scores_quorum = scores.iter().sum();
+
     let state = if onchain_proposal.0 {
         ProposalStateEnum::Active
     } else {
@@ -146,6 +148,7 @@ async fn data_for_proposal(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
@@ -163,7 +166,7 @@ async fn data_for_proposal(
 }
 
 #[cfg(test)]
-mod lido_tests {
+mod lido_proposals {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
@@ -175,21 +178,21 @@ mod lido_tests {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
-            governance_portal: "https://vote.lido.fi".into(),
+            governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
             votes_refresh_speed: 1,
             proposals_index: 18271583,
-            votes_index: 18271583,
-            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
         let dao = dao::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            name: "Lido".into(),
-            slug: "lido".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
             hot: true,
         };
 
@@ -205,12 +208,87 @@ mod lido_tests {
                     choices: "[\"yea\",\"nay\"]",
                     scores: "[50305714.08549471,0.0]",
                     scores_total: 50305714.08549471,
+                    scores_quorum: 50305714.08549471,
                     quorum: 0.05,
                     proposal_state: ProposalStateEnum::Executed,
                     block_created: Some(18271583),
                     time_created: Some("2023-10-03 17:46:59"),
                     time_start: "2023-10-03 17:46:59",
                     time_end: "2023-10-06 17:46:59",
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn lido_2() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 19069831 - 19020628,
+            votes_refresh_speed: 1,
+            proposals_index: 19020628,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+        };
+
+        match LidoHandler.get_proposals(&dao_handler, &dao).await {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "170",
+                    name: "Vote #170",
+                    body_contains: vec![
+                        "Grant MANAGE_MEMBERS_AND_QUORUM_ROLE on HashConsensus for AccountingOracle on Lido on Ethereum to Agent;",
+                        "Add oracle member named 'ChainLayer' with address 0xc79F702202E3A6B0B6310B537E786B9ACAA19BAf to HashConsensus for ValidatorsExitBusOracle on Lido on Ethereum Oracle set;"
+                    ],
+                    url: "https://vote.lido.fi/vote/170",
+                    discussion_url: "",
+                    choices: "[\"yea\",\"nay\"]",
+                    scores:  "[32191115.799568973,0.0]",
+                    scores_total: 32191115.799568973,
+                    scores_quorum: 32191115.799568973,
+                    quorum: 0.05,
+                    proposal_state: ProposalStateEnum::Defeated,
+                    block_created: Some(19020629),
+                    time_created: Some("2024-01-16 16:24:59"),
+                    time_start: "2024-01-16 16:24:59",
+                    time_end: "2024-01-19 16:24:59",
+                },
+                ExpectedProposal {
+                    external_id: "171",
+                    name: "Vote #171",
+                    body_contains: vec![
+                        "Grant MANAGE_MEMBERS_AND_QUORUM_ROLE on HashConsensus for AccountingOracle on Lido on Ethereum to Agent;",
+                        "Remove the oracle member named 'Jump Crypto' with address 0x1d0813bf088be3047d827d98524fbf779bc25f00 from HashConsensus for AccountingOracle on Lido on Ethereum;"
+                    ],
+                    url: "https://vote.lido.fi/vote/171",
+                    discussion_url: "",
+                    choices: "[\"yea\",\"nay\"]",
+                    scores:  "[50990689.46758321,0.0]",
+                    scores_total: 50990689.46758321,
+                    scores_quorum: 50990689.46758321,
+                    quorum: 0.05,
+                    proposal_state: ProposalStateEnum::Executed,
+                    block_created: Some(19069831),
+                    time_created: Some("2024-01-23 14:01:23"),
+                    time_start: "2024-01-23 14:01:23",
+                    time_end: "2024-01-26 14:01:23",
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

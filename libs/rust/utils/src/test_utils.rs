@@ -13,6 +13,7 @@ pub struct ExpectedProposal {
     pub scores: &'static str,
     pub scores_total: f64,
     pub quorum: f64,
+    pub scores_quorum: f64,
     pub proposal_state: ProposalStateEnum,
     pub block_created: Option<i32>,
     pub time_created: Option<&'static str>,
@@ -44,15 +45,6 @@ pub fn assert_proposal(
         );
     }
 
-    assert!(
-        proposal.scores_total.clone().take().unwrap() >= 0.0,
-        "Invalid scores total"
-    );
-    assert_eq!(
-        proposal.quorum.clone().take().unwrap(),
-        expected.quorum,
-        "Invalid quorum"
-    );
     assert_eq!(
         proposal.url.clone().take().unwrap(),
         expected.url,
@@ -75,6 +67,19 @@ pub fn assert_proposal(
         expected.scores_total,
         "Scores total does not match"
     );
+
+    assert_eq!(
+        proposal.quorum.clone().take().unwrap(),
+        expected.quorum,
+        "Invalid quorum"
+    );
+
+    assert_eq!(
+        proposal.scores_quorum.clone().take().unwrap(),
+        expected.scores_quorum,
+        "Invalid scores_quorum"
+    );
+
     assert_eq!(
         proposal.proposal_state.clone().take().unwrap(),
         expected.proposal_state,

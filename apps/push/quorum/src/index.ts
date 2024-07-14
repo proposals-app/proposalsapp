@@ -1,9 +1,9 @@
-import cron from "node-cron";
+import { db } from "@proposalsapp/db";
 import amqplib from "amqplib";
 import { config as dotenv_config } from "dotenv";
-import { sendQuorum } from "./send_quorum";
 import express from "express";
-import { db } from "@proposalsapp/db";
+import cron from "node-cron";
+import { sendQuorum } from "./send_quorum";
 
 const QUEUE_NAME = "push:quorum";
 
@@ -62,7 +62,7 @@ cron.schedule("* * * * *", async () => {
     .selectAll()
     .where("timeEnd", ">", new Date())
     .where("timeEnd", "<", new Date(new Date().getTime() + 1 * 60 * 60 * 1000))
-    .where((eb) => eb("quorum", ">", eb.ref("scoresTotal")))
+    .where((eb) => eb("quorum", ">", eb.ref("scoresQuorum")))
     .execute();
 
   const daos = proposals.map((p) => p.daoId);

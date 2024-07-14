@@ -227,6 +227,8 @@ async fn data_for_proposal_one(
 
     let scores_total: f64 = scores.iter().sum();
 
+    let scores_quorum = scores_total;
+
     let quorum = gov_contract
         .quorum(log.start_block)
         .await
@@ -258,6 +260,7 @@ async fn data_for_proposal_one(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
@@ -365,6 +368,8 @@ async fn data_for_proposal_two(
         scores_total = scores.iter().sum();
     }
 
+    let scores_quorum = scores_total;
+
     let proposal_state = gov_contract
         .state(log.proposal_id)
         .await
@@ -401,6 +406,7 @@ async fn data_for_proposal_two(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
@@ -521,6 +527,8 @@ async fn data_for_proposal_three(
         scores_total = votes.2.iter().sum::<u128>() as f64 / (10.0f64.powi(18));
     }
 
+    let scores_quorum = scores_total;
+
     let proposal_state = gov_contract
         .state(log.proposal_id)
         .await
@@ -557,6 +565,7 @@ async fn data_for_proposal_three(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
@@ -661,12 +670,9 @@ async fn data_for_proposal_four(
         abstain_votes.as_u128() as f64 / (10.0f64.powi(18)),
     ];
 
-    let proposal_state = gov_contract
-        .state(log.proposal_id)
-        .await
-        .context("gov_contract.state")?;
-
     let scores_total: f64 = scores.iter().sum();
+
+    let scores_quorum = scores_total;
 
     let quorum = gov_contract
         .quorum(log.start_block)
@@ -674,6 +680,11 @@ async fn data_for_proposal_four(
         .context("gov_contract.quorum")?
         .as_u128() as f64
         / (10.0f64.powi(18));
+
+    let proposal_state = gov_contract
+        .state(log.proposal_id)
+        .await
+        .context("gov_contract.state")?;
 
     let state = match proposal_state {
         0 => ProposalStateEnum::Pending,
@@ -699,6 +710,7 @@ async fn data_for_proposal_four(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,

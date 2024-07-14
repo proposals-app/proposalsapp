@@ -186,6 +186,8 @@ async fn data_for_proposal(
 
     let scores_total = scores.iter().sum();
 
+    let scores_quorum = onchain_proposal.for_votes.as_u128() as f64 / (10.0f64.powi(18));
+
     let hash: Vec<u8> = log.ipfs_hash.into();
 
     let title = get_title(hex::encode(hash.clone()))
@@ -234,6 +236,7 @@ async fn data_for_proposal(
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
         quorum: Set(quorum),
+        scores_quorum: Set(scores_quorum),
         proposal_state: Set(state),
         flagged: NotSet,
         block_created: Set(Some(created_block_number as i32)),
@@ -429,7 +432,7 @@ async fn get_body(hexhash: String) -> Result<String> {
 }
 
 #[cfg(test)]
-mod content_tests {
+mod aavev_v2_content {
     use crate::handlers::aave_v2::{get_body, get_discussion, get_title};
 
     #[tokio::test]
@@ -549,7 +552,7 @@ mod content_tests {
 }
 
 #[cfg(test)]
-mod aave_v2 {
+mod aave_v2_proposals {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
@@ -561,21 +564,21 @@ mod aave_v2 {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
-            governance_portal: "https://app.aave.com/governance".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::AaveV2Mainnet),
+            governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
             votes_refresh_speed: 1,
             proposals_index: 11512328,
-            votes_index: 11512328,
-            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
         let dao = dao::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            name: "Aave".into(),
-            slug: "aave".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
             hot: true,
         };
 
@@ -592,6 +595,7 @@ mod aave_v2 {
                     choices: "[\"For\",\"Against\"]",
                     scores: "[414202.51861143525,100.20000140213439]",
                     scores_total: 414302.7186128374,
+                    scores_quorum: 414202.51861143525,
                     quorum: 0.0,
                     proposal_state: ProposalStateEnum::Executed,
                     block_created: Some(11512328),
@@ -612,21 +616,21 @@ mod aave_v2 {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
-            governance_portal: "https://app.aave.com/governance".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::AaveV2Mainnet),
+            governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 18686736 - 18678972,
             votes_refresh_speed: 1,
             proposals_index: 18678972,
             votes_index: 0,
-            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
         let dao = dao::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            name: "Aave".into(),
-            slug: "aave".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
             hot: true,
         };
 
@@ -643,6 +647,7 @@ mod aave_v2 {
                     choices: "[\"For\",\"Against\"]",
                     scores: "[502888.9536269785,0.0]",
                     scores_total: 502888.9536269785,
+                    scores_quorum: 502888.9536269785,
                     quorum: 0.0,
                     proposal_state: ProposalStateEnum::Executed,
                     block_created: Some(18678972),
@@ -660,6 +665,7 @@ mod aave_v2 {
                     choices: "[\"For\",\"Against\"]",
                     scores: "[42312.786398795535,0.0]",
                     scores_total: 42312.786398795535,
+                    scores_quorum: 42312.786398795535,
                     quorum: 0.0,
                     proposal_state: ProposalStateEnum::Canceled,
                     block_created: Some(18686736),
@@ -680,21 +686,21 @@ mod aave_v2 {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::AaveV3Mainnet),
-            governance_portal: "https://app.aave.com/governance".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::AaveV2Mainnet),
+            governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
             votes_refresh_speed: 1,
             proposals_index: 18790604,
             votes_index: 0,
-            dao_id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
         let dao = dao::Model {
-            id: Uuid::parse_str("9cbadfa8-5888-4922-a5e5-f9a999ae5c1a").unwrap(),
-            name: "Aave".into(),
-            slug: "aave".into(),
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
             hot: true,
         };
 
@@ -711,6 +717,7 @@ mod aave_v2 {
                     choices: "[\"For\",\"Against\"]",
                     scores: "[536551.6296395722,0.0]",
                     scores_total: 536551.6296395722,
+                    scores_quorum: 536551.6296395722,
                     quorum: 0.0,
                     proposal_state: ProposalStateEnum::Executed,
                     block_created: Some(18790604),

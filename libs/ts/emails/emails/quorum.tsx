@@ -18,8 +18,8 @@ import {
 import * as React from "react";
 import Footer from "../components/footer";
 import Header from "../components/header";
-import test_data from "../test_data/quorum_test_data.json";
 import { baseUrl } from "../src/const";
+import test_data from "../test_data/quorum_test_data.json";
 
 export interface QuorumData {
   daoName: string;
@@ -30,6 +30,7 @@ export interface QuorumData {
   countdownUrl: string;
   countdownUrlSmall: string;
   scoresTotal: number;
+  scoresQuorum: number;
   quorum: number;
 }
 
@@ -38,7 +39,7 @@ export const QuorumEmail = (data: QuorumData) => (
     <Font fontFamily="Roboto" fallbackFontFamily={"Verdana"} />
     <Tailwind>
       <Head />
-      <Body className="bg-white m-0 p-0 text-zinc-800">
+      <Body className="m-0 bg-white p-0 text-zinc-800">
         <Container>
           <Header />
           <Section className="p-2">
@@ -79,9 +80,9 @@ export const QuorumEmail = (data: QuorumData) => (
                   height={16}
                 />
               </Column>
-              <Column className=" align-top">
+              <Column className="align-top">
                 <Link href={`${data.url ? data.url : test_data.url}`}>
-                  <Text className="m-0 text-zinc-800 font-bold text-lg">
+                  <Text className="m-0 text-lg font-bold text-zinc-800">
                     {data.proposalName
                       ? data.proposalName
                       : test_data.proposalName}
@@ -90,7 +91,7 @@ export const QuorumEmail = (data: QuorumData) => (
               </Column>
             </Row>
 
-            <Row className="p-4 bg-black">
+            <Row className="bg-black p-4">
               <Column>
                 <Heading as="h3" className="text-zinc-200">
                   This proposal is ending in
@@ -100,14 +101,14 @@ export const QuorumEmail = (data: QuorumData) => (
                 </Text>
               </Column>
 
-              <Column className="font-bold text-end w-[100px] md:w-[200px]">
+              <Column className="md:w-[200px] w-[100px] text-end font-bold">
                 <Img
                   src={`${
                     data.countdownUrl
                       ? data.countdownUrl
                       : test_data.countdownUrl
                   }`}
-                  className="hidden md:block"
+                  className="md:block hidden"
                 />
                 <Img
                   src={`${
@@ -115,22 +116,22 @@ export const QuorumEmail = (data: QuorumData) => (
                       ? data.countdownUrlSmall
                       : test_data.countdownUrlSmall
                   }`}
-                  className="block md:hidden"
+                  className="md:hidden block"
                 />
               </Column>
             </Row>
 
-            <Row className="py-2 justify-between">
+            <Row className="justify-between py-2">
               <Column>
-                <Text className="text-xs m-0">Not Enough Quorum</Text>
+                <Text className="m-0 text-xs">Not Enough Quorum</Text>
                 <div className="flex gap-1">
-                  <Text className="text-xs m-0">
-                    {data.scoresTotal
-                      ? data.scoresTotal
-                      : test_data.scoresTotal}
+                  <Text className="m-0 text-xs">
+                    {data.scoresQuorum
+                      ? data.scoresQuorum
+                      : test_data.scoresQuorum}
                   </Text>
-                  <Text className="text-xs m-0"> / </Text>
-                  <Text className="text-xs text-zinc-500 m-0">
+                  <Text className="m-0 text-xs"> / </Text>
+                  <Text className="m-0 text-xs text-zinc-500">
                     {data.quorum ? data.quorum : test_data.quorum}
                   </Text>
                 </div>

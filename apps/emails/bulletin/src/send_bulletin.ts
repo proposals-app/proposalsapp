@@ -331,7 +331,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
         ? "assets/email/voted.png"
         : "assets/email/did-not-vote.png",
       voteStatus: voted ? "Voted" : "Did not vote",
-      quorumReached: p.scoresTotal > p.quorum,
+      quorumReached: p.scoresQuorum > p.quorum,
       hiddenResult: p.proposalState === ProposalStateEnum.HIDDEN,
       result,
       makerResult,

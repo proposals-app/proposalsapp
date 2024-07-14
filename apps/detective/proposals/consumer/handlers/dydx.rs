@@ -183,6 +183,8 @@ async fn data_for_proposal(
 
     let scores_total = scores.iter().sum();
 
+    let scores_quorum = onchain_proposal.for_votes.as_u128() as f64 / (10.0f64.powi(18));
+
     let hash: Vec<u8> = log.ipfs_hash.into();
 
     let title = get_title(hex::encode(hash.clone()))
@@ -224,6 +226,7 @@ async fn data_for_proposal(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,

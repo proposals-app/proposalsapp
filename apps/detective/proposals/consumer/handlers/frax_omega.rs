@@ -148,6 +148,8 @@ async fn data_for_proposal(
     let scores_total: f64 =
         (against_votes + for_votes + abstain_votes).as_u128() as f64 / (10.0f64.powi(18));
 
+    let scores_quorum = (for_votes + abstain_votes).as_u128() as f64 / (10.0f64.powi(18));
+
     let quorum = gov_contract
         .quorum(log.vote_start)
         .await
@@ -190,6 +192,7 @@ async fn data_for_proposal(
             abstain_votes.as_u128() as f64 / (10.0f64.powi(18))
         ])),
         scores_total: Set(scores_total),
+        scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
