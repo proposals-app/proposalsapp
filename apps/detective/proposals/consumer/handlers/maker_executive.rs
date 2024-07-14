@@ -149,7 +149,9 @@ async fn data_for_proposal(
         .unwrap() as f64
         / (10.0f64.powi(18));
 
-    let block_created = estimate_block(created_timestamp.and_utc().timestamp() as u64).await?;
+    let block_created = estimate_block(created_timestamp.and_utc().timestamp() as u64)
+        .await
+        .unwrap_or(0);
 
     let state = if proposal_data.spellData.hasBeenCast {
         ProposalStateEnum::Executed
