@@ -1,9 +1,9 @@
-import cron from "node-cron";
+import { db } from "@proposalsapp/db";
 import amqplib from "amqplib";
 import { config as dotenv_config } from "dotenv";
-import { sendTimeend } from "./send_timeend";
 import express from "express";
-import { db } from "@proposalsapp/db";
+import cron from "node-cron";
+import { sendTimeend } from "./send_timeend";
 
 const QUEUE_NAME = "push:timeend";
 
@@ -81,21 +81,22 @@ cron.schedule("* * * * *", async () => {
   console.log(`${proposals.length} proposals for ${users.length} users`);
 
   for (const user of users) {
-    const voters = (await db
+    const voters = await db
       .selectFrom("voter")
       .innerJoin("userToVoter", "voter.id", "userToVoter.voterId")
       .where("userId", "=", user.id)
       .select("voter.address")
-      .execute()) ?? [{ address: "" }];
+      .execute();
 
     for (const proposal of proposals) {
       const votes = await db
         .selectFrom("vote")
+        .select("vote.id")
         .where("vote.proposalId", "=", proposal.id)
         .where("vote.voterAddress", "in", [
+          "",
           ...voters.map((voter) => voter.address),
         ])
-        .select("vote.id")
         .execute();
 
       if (votes.length > 0) continue;

@@ -83,18 +83,19 @@ cron.schedule("* * * * *", async () => {
   if (proposals.length == 0) return;
 
   for (const user of users) {
-    const voters = (await db
+    const voters = await db
       .selectFrom("voter")
       .innerJoin("userToVoter", "voter.id", "userToVoter.voterId")
       .where("userId", "=", user.id)
       .select("voter.address")
-      .execute()) ?? [{ address: "" }];
+      .execute();
 
     for (const proposal of proposals) {
       const votes = await db
         .selectFrom("vote")
         .where("vote.proposalId", "=", proposal.id)
         .where("vote.voterAddress", "in", [
+          "",
           ...voters.map((voter) => voter.address),
         ])
         .select("vote.id")

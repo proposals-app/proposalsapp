@@ -105,11 +105,10 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
           .selectFrom("vote")
           .select("vote.voterAddress")
           .whereRef("vote.proposalId", "=", "proposal.id")
-          .where(
-            "vote.voterAddress",
-            "in",
-            voters.length > 0 ? voters.map((p) => p.address) : [""],
-          ),
+          .where("vote.voterAddress", "in", [
+            "",
+            ...voters.map((voter) => voter.address),
+          ]),
       ).as("vote"),
     ])
     .orderBy("proposal.timeEnd", "asc")
@@ -180,11 +179,10 @@ async function getNew(userId: string): Promise<EndingSoonProposal[]> {
           .selectFrom("vote")
           .select("vote.voterAddress")
           .whereRef("vote.proposalId", "=", "proposal.id")
-          .where(
-            "vote.voterAddress",
-            "in",
-            voters.length > 0 ? voters.map((p) => p.address) : [""],
-          ),
+          .where("vote.voterAddress", "in", [
+            "",
+            ...voters.map((voter) => voter.address),
+          ]),
       ).as("vote"),
     ])
     .orderBy("proposal.timeEnd", "asc")
@@ -257,11 +255,10 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
           .selectFrom("vote")
           .select("vote.voterAddress")
           .whereRef("vote.proposalId", "=", "proposal.id")
-          .where(
-            "vote.voterAddress",
-            "in",
-            voters.length > 0 ? voters.map((p) => p.address) : [""],
-          ),
+          .where("vote.voterAddress", "in", [
+            "",
+            ...voters.map((voter) => voter.address),
+          ]),
       ).as("vote"),
     ])
     .orderBy("proposal.timeEnd", "desc")

@@ -82,7 +82,7 @@
     "tailwindcss-animate": "^1.0.7",
     "ua-parser-js": "^1.0.38",
     "vaul": "^0.9.1",
-    "viem": "2.17.3",
+    "viem": "2.17.4",
     "wagmi": "2.10.10",
     "web-push": "^3.6.7",
     "zod": "^3.23.8"
