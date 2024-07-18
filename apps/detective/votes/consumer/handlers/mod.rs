@@ -12,6 +12,7 @@ mod frax_omega;
 mod gitcoin_v1;
 mod gitcoin_v2;
 mod hop;
+mod lido;
 mod maker_executive;
 mod maker_poll;
 mod maker_poll_arbitrum;
