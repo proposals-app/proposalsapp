@@ -11,16 +11,16 @@
   },
   "dependencies": {
     "@proposalsapp/db": "*",
-    "dotenv": "^16.4.5",
-    "kysely": "^0.27.4",
-    "pg": "^8.12.0"
+    "dotenv": "16.4.5",
+    "kysely": "0.27.4",
+    "pg": "8.12.0"
   },
   "devDependencies": {
-    "@tsconfig/recommended": "^1.0.7",
-    "@types/dotenv": "^8.2.0",
-    "@types/pg": "^8",
-    "kysely-codegen": "^0.15.0",
-    "kysely-ctl": "^0.8.11",
-    "typescript": "^5.5.3"
+    "@tsconfig/recommended": "1.0.7",
+    "@types/dotenv": "8.2.0",
+    "@types/pg": "8",
+    "kysely-codegen": "0.15.0",
+    "kysely-ctl": "0.8.11",
+    "typescript": "5.5.3"
   }
 }

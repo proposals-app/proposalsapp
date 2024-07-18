@@ -1,0 +1,28 @@
+providers = ['node']
+buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
+
+[phases.setup]
+nixPkgs = ['...', 'python3', 'gcc']
+
+[phases.install]
+cmds = [
+    'npm install -g corepack@latest && corepack enable',
+    'yarn install --mode=update-lockfile',
+    'yarn install',
+]
+onlyIncludeFiles = [
+    'package.json',
+    '.yarnrc.yml',
+    '.yarn',
+    'apps/web/package.json',
+    'libs/ts/db/package.json',
+    'libs/ts/emails/package.json',
+]
+
+[phases.build]
+cmds = ['yarn build-web']
+onlyIncludeFiles = ['apps/web', 'libs/ts/db', 'libs/ts/emails']
+
+[start]
+cmd = 'yarn start-web'
+onlyIncludeFiles = ['apps/web']

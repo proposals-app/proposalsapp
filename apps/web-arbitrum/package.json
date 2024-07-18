@@ -1,5 +1,5 @@
 {
-  "name": "@proposalsapp/arbitrum",
+  "name": "@proposalsapp/web-arbitrum",
   "version": "0.1.0",
   "private": true,
   "scripts": {

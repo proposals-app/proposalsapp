@@ -8,8 +8,8 @@
     "libs/ts/emails",
     "libs/ts/emails/.react-email",
     "apps/web",
-    "apps/arbitrum",
-    "apps/astro",
+    "apps/web-arbitrum",
+    "apps/web-astro",
     "apps/emails/bulletin",
     "apps/emails/quorum",
     "apps/emails/timeend",
@@ -25,26 +25,26 @@
     "build-push-timeend": "yarn run build-db && yarn workspace @proposalsapp/push-timeend run build",
     "build-emails": "yarn workspace @proposalsapp/emails run build",
     "build-web": "yarn run build-db && yarn workspace @proposalsapp/web run build",
-    "build-arbitrum": "yarn run build-db && yarn workspace @proposalsapp/arbitrum run build",
-    "build-astro": "yarn run build-db && yarn workspace @proposalsapp/astro run build",
+    "build-web-arbitrum": "yarn run build-db && yarn workspace @proposalsapp/web-arbitrum run build",
+    "build-web-astro": "yarn run build-db && yarn workspace @proposalsapp/web-astro run build",
     "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin run start",
     "start-email-quorum": "yarn workspace @proposalsapp/email-quorum run start",
     "start-email-timeend": "yarn workspace @proposalsapp/email-timeend run start",
     "start-push-quorum": "yarn workspace @proposalsapp/push-quorum run start",
     "start-push-timeend": "yarn workspace @proposalsapp/push-timeend run start",
     "start-web": "yarn workspace @proposalsapp/web run start",
-    "start-arbitrum": "yarn workspace @proposalsapp/arbitrum run start",
-    "start-astro": "yarn workspace @proposalsapp/astro run start",
+    "start-web-arbitrum": "yarn workspace @proposalsapp/web-arbitrum run start",
+    "start-web-astro": "yarn workspace @proposalsapp/web-astro run start",
     "update-deps": "./update-deps.sh"
   },
   "overrides": {
     "undici": "6.6.2"
   },
   "devDependencies": {
-    "@tsconfig/recommended": "^1.0.7",
+    "@tsconfig/recommended": "1.0.7",
     "constructs": "10.3.0",
     "dotenv": "16.4.5",
-    "prettier": "^3.3.3",
+    "prettier": "3.3.3",
     "typescript": "5.5.3"
   },
   "engines": {
