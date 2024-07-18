@@ -3596,27 +3596,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "seed"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "dotenv",
- "futures",
- "itertools 0.12.1",
- "num-bigint",
- "regex",
- "sea-orm",
- "seaorm",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "utils",
-]
-
-[[package]]
 name = "semver"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
