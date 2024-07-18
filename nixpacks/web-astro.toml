@@ -24,5 +24,5 @@ cmds = ['yarn build-web-astro']
 onlyIncludeFiles = ['apps/web-astro', 'libs/ts/db', 'libs/ts/emails']
 
 [start]
-cmd = 'yarn start-web-astro'
+cmd = 'yarn start-web-astro --host'
 onlyIncludeFiles = ['apps/web-astro']

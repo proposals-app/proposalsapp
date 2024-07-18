@@ -13,6 +13,6 @@ nixpacks build --config nixpacks/web-astro.toml . --name web-astro \
 --env DATABASE_URL=$DATABASE_URL \
 --env POSTMARK_API_KEY=$POSTMARK_API_KEY \
 --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
---env PORT=3000
+--env PORT=4321
 
-docker run -p 3000:3000 -it web-astro
+docker run -p 4321:4321 -it web-astro
