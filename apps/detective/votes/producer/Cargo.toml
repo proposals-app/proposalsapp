@@ -1,5 +1,5 @@
 [package]
-name = "votes_producer"
+name = "votes-producer"
 version = "0.1.0"
 edition = "2021"
 
@@ -41,5 +41,5 @@ utils = { path = "../../../../libs/rust/utils" }
 ethers = { workspace = true }
 
 [[bin]]
-name = "votes_producer"
+name = "votes-producer"
 path = "votes_producer.rs"

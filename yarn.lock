@@ -3032,7 +3032,7 @@ __metadata:
     react-hook-form: "npm:^7.52.1"
     react-infinite-scroller: "npm:1.2.6"
     react-intersection-observer: "npm:^9.13.0"
-    react-resizable-panels: "npm:^2.0.20"
+    react-resizable-panels: "npm:^2.0.21"
     serwist: "npm:^9.0.5"
     sonner: "npm:^1.5.0"
     tailwind-merge: "npm:^2.4.0"
@@ -3091,7 +3091,7 @@ __metadata:
     "@radix-ui/react-tooltip": "npm:^1.1.2"
     "@types/react": "npm:^18.3.3"
     "@types/react-dom": "npm:^18.3.0"
-    astro: "npm:^4.12.0"
+    astro: "npm:^4.12.1"
     class-variance-authority: "npm:^0.7.0"
     clsx: "npm:^2.1.1"
     cmdk: "npm:^1.0.0"
@@ -3111,7 +3111,7 @@ __metadata:
     react-day-picker: "npm:^8.10.1"
     react-dom: "npm:^18.3.1"
     react-hook-form: "npm:^7.52.1"
-    react-resizable-panels: "npm:^2.0.20"
+    react-resizable-panels: "npm:^2.0.21"
     recharts: "npm:^2.12.7"
     sonner: "npm:^1.5.0"
     svelte: "npm:^4.2.18"
@@ -3208,7 +3208,7 @@ __metadata:
     react-icons: "npm:5.2.1"
     react-infinite-scroller: "npm:1.2.6"
     react-intersection-observer: "npm:9.13.0"
-    react-resizable-panels: "npm:2.0.20"
+    react-resizable-panels: "npm:2.0.21"
     serwist: "npm:9.0.5"
     sonner: "npm:1.5.0"
     tailwind-merge: "npm:2.4.0"
@@ -7691,9 +7691,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"astro@npm:^4.12.0":
-  version: 4.12.0
-  resolution: "astro@npm:4.12.0"
+"astro@npm:^4.12.1":
+  version: 4.12.1
+  resolution: "astro@npm:4.12.1"
   dependencies:
     "@astrojs/compiler": "npm:^2.9.0"
     "@astrojs/internal-helpers": "npm:0.4.1"
@@ -7763,7 +7763,7 @@ __metadata:
       optional: true
   bin:
     astro: astro.js
-  checksum: 10c0/ca2e5cabcc7a0d83df1a443402146e10eb5290521eb28829179e9c9af21ce2e22e8f567615cf8ffe19b5bbb0df1b04914f2521e638001b5ba7658d07a8661deb
+  checksum: 10c0/78d24bbc2c68ad901db5140b394108c79b8ac155d57a7eb28c0473e5af5ef470f15ef4f8f0b061aa220fd6569dd4ee647cc2ea6feddc5b3b35ad1ae0b40d3430
   languageName: node
   linkType: hard
 
@@ -16547,13 +16547,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-resizable-panels@npm:2.0.20, react-resizable-panels@npm:^2.0.20":
-  version: 2.0.20
-  resolution: "react-resizable-panels@npm:2.0.20"
+"react-resizable-panels@npm:2.0.21, react-resizable-panels@npm:^2.0.21":
+  version: 2.0.21
+  resolution: "react-resizable-panels@npm:2.0.21"
   peerDependencies:
     react: ^16.14.0 || ^17.0.0 || ^18.0.0
     react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0
-  checksum: 10c0/247e53d4cf13a5086ee6c2bbe47b82429850ee2b433c5423731d74ca8730fda573231d26e3811a6fd59953710e0b3a83708af0657aec977a8fcb227d1ad2c58f
+  checksum: 10c0/fcb61433cf1552747349fc1a3aa68205e03c3ea7d2608ce949805d700ee0b473c3d58a038b1fd721fa9201f0be1b1b233dfba5674f70a9e65567dab9c41673e3
   languageName: node
   linkType: hard
 

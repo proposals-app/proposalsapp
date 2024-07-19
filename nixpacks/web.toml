@@ -3,6 +3,7 @@ buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [phases.setup]
 nixPkgs = ['...', 'python3', 'gcc']
+onlyIncludeFiles = []
 
 [phases.install]
 cmds = [
@@ -25,4 +26,3 @@ onlyIncludeFiles = ['apps/web', 'libs/ts/db', 'libs/ts/emails']
 
 [start]
 cmd = 'yarn start-web'
-onlyIncludeFiles = ['apps/web']

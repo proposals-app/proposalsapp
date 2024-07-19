@@ -4849,7 +4849,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
-name = "votes_consumer"
+name = "votes-producer"
 version = "0.1.0"
 dependencies = [
  "amqprs",
@@ -4875,7 +4875,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "votes_producer"
+name = "votes_consumer"
 version = "0.1.0"
 dependencies = [
  "amqprs",
