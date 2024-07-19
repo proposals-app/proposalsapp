@@ -3,7 +3,6 @@ buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [variables]
 NIXPACKS_METADATA = 'rust'
-BIN_NAME = 'votes-producer'
 
 [phases.setup]
 nixPkgs = [
@@ -18,13 +17,13 @@ nixPkgs = [
 dependsOn = ['setup']
 cmds = [
     'mkdir -p bin',
-    'cargo build --release --package $BIN_NAME --target x86_64-unknown-linux-musl',
-    'cp target/x86_64-unknown-linux-musl/release/$BIN_NAME bin',
+    'cargo build --release --package votes-producer --target x86_64-unknown-linux-musl',
+    'cp target/x86_64-unknown-linux-musl/release/votes-producer bin',
 ]
 cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
 
 
 [start]
-cmd = './bin/$BIN_NAME'
+cmd = './bin/votes-producerE'
 runImage = 'debian:bullseye-slim'
-onlyIncludeFiles = ['./bin/$BIN_NAME']
+onlyIncludeFiles = ['./bin/votes-producer']
