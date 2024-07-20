@@ -16,6 +16,12 @@ RUN npm install -g corepack@latest && corepack enable
 RUN yarn install --mode=update-lockfile
 RUN yarn install
 
+# Define build argument
+ARG DATABASE_URL
+
+# Set the environment variable for the build phase
+ENV DATABASE_URL=${DATABASE_URL}
+
 # Copy the remaining files required for the build phase
 COPY apps/emails/bulletin apps/emails/bulletin
 COPY libs/ts/db libs/ts/db
