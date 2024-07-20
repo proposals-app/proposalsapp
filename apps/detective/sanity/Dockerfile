@@ -1,24 +1,46 @@
 # Use the latest version of Rust
-FROM rust:latest as builder
-
-# Set the working directory
+FROM rust:latest as chef
 WORKDIR /app
 
-# Copy only the specified files for the setup phase
-COPY Cargo.toml .
-COPY apps/detective/ ./apps/detective/
-COPY libs/rust/ ./libs/rust/
+# Install cargo-chef
+RUN cargo install cargo-chef
+COPY . .
 
-# Build the project for the specified target
+# Prepare the build plan
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Stage 1: Cacher
+FROM rust:latest as cacher
+WORKDIR /app
+
+# Install cargo-chef
+RUN cargo install cargo-chef
+
+# Copy the build plan
+COPY --from=chef /app/recipe.json recipe.json
+
+# Restore the dependencies cache
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Stage 2: Builder
+FROM rust:latest as builder
+WORKDIR /app
+
+# Copy the source code
+COPY . .
+
+# Copy the cached dependencies
+COPY --from=cacher /app/target target
+COPY --from=cacher /usr/local/cargo /usr/local/cargo
+
+# Build the project
 RUN cargo build --release --package snapshot-sanity
 
-# Use a minimal Debian image for the final stage
+# Stage 3: Final
 FROM debian:stable-slim
-
-# Set the working directory
 WORKDIR /app
 
-# Install required dependencies (if any)
+# Install required dependencies
 RUN apt-get update && apt-get install -y \
     libssl-dev \
     && apt-get clean \
