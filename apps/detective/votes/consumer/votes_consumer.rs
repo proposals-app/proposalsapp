@@ -81,10 +81,12 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
 }
 
 #[instrument(skip(db))]
+#[instrument(skip(db))]
 async fn consume_jobs(db: &DatabaseConnection) -> Result<()> {
     while let Some(queue_job) = get_next_job(db).await? {
-        match queue_job.job_type.as_str() {
-            "Votes" => {
+        let job_type_str = queue_job.job_type.as_str();
+        match job_type_str {
+            t if t == JobType::Votes.as_str() => {
                 let job: VotesJob =
                     serde_json::from_value(queue_job.job).context(DESERIALIZE_JOB_FAILED)?;
                 if let Err(e) = process_votes_job(job, db).await {
