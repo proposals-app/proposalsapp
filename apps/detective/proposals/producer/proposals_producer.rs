@@ -6,8 +6,7 @@ use amqprs::{
 use anyhow::{Context, Result};
 use dotenv::dotenv;
 use sea_orm::{
-    ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityOrSelect, EntityTrait,
-    QueryFilter, QuerySelect, Set,
+    ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter, Set,
 };
 use seaorm::{dao_handler, job_queue, sea_orm_active_enums::DaoHandlerEnumV2};
 use serde_json::json;

@@ -1,30 +1,20 @@
-use amqprs::{
-    channel::{
-        BasicAckArguments, BasicConsumeArguments, BasicNackArguments, BasicQosArguments, Channel,
-        QueueDeclareArguments,
-    },
-    connection::{Connection, OpenConnectionArguments},
-    consumer::AsyncConsumer,
-    BasicProperties, Deliver,
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use dotenv::dotenv;
 use itertools::Itertools;
 use sea_orm::{
+    sea_query::{LockBehavior, LockType},
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
-    Set,
+    QuerySelect, Set, TransactionTrait,
 };
-use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
+use seaorm::{dao, dao_handler, job_queue, proposal, sea_orm_active_enums::ProposalStateEnum};
 use std::collections::HashSet;
-use tokio::sync::Notify;
-use tracing::{error, info, instrument, warn};
+use tokio::time::{self, Duration};
+use tracing::{info, instrument, warn};
 use utils::{
     errors::*,
-    rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
     tracing::setup_tracing,
-    types::{ProposalsJob, ProposalsResponse},
-    warnings::*,
+    types::{JobType, ProposalsJob, ProposalsResponse},
 };
 
 mod handlers;
@@ -45,174 +35,126 @@ pub trait ProposalHandler: Send + Sync {
     fn max_refresh_speed(&self) -> i32;
 }
 
-const QUEUE_NAME: &str = "detective:proposals";
-const JOB_TIMEOUT_SECONDS: u64 = 90;
-
 #[tokio::main]
 #[instrument]
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_tracing();
 
-    let rabbitmq_url = std::env::var("RABBITMQ_URL").context(RABBITMQ_URL_NOT_SET)?;
-    let args: OpenConnectionArguments = rabbitmq_url
-        .as_str()
-        .try_into()
-        .context(RABBITMQ_URL_INVALID)?;
-    let connection = Connection::open(&args)
-        .await
-        .context(RABBITMQ_CONNECT_FAILED)?;
+    let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
+    let db = setup_database(&database_url).await?;
 
-    connection
-        .register_callback(AppConnectionCallback)
-        .await
-        .context(RABBITMQ_REGISTER_FAILED)?;
+    // Spawn the consumer task
+    tokio::spawn(async move {
+        loop {
+            if let Err(e) = consume_jobs(&db).await {
+                warn!("Failed to consume jobs: {:?}", e);
+            }
+            // Wait a bit before fetching new jobs to avoid busy loop
+            time::sleep(Duration::from_secs(1)).await;
+        }
+    });
 
-    let channel = connection
-        .open_channel(None)
-        .await
-        .context(RABBITMQ_CHANNEL_OPEN_FAILED)?;
-
-    channel
-        .register_callback(AppChannelCallback)
-        .await
-        .context(RABBITMQ_REGISTER_FAILED)?;
-
-    let queue = QueueDeclareArguments::durable_client_named(QUEUE_NAME);
-    channel
-        .queue_declare(queue)
-        .await
-        .context(RABBITMQ_DECLARE_QUEUE_FAILED)?;
-
-    // 5 workers
-    channel
-        .basic_qos(BasicQosArguments::new(0, 5, false))
-        .await
-        .context(RABBITMQ_QOS_FAILED)?;
-
-    channel
-        .basic_consume(
-            ProposalsConsumer::new(),
-            BasicConsumeArguments::new(QUEUE_NAME, ""),
-        )
-        .await
-        .context(RABBITMQ_START_CONSUMER_FAILED)?;
-
-    // consume forever
-    let guard = Notify::new();
-    guard.notified().await;
+    tokio::signal::ctrl_c().await?;
+    println!("Shutting down...");
 
     Ok(())
 }
 
-pub struct ProposalsConsumer {}
-impl Default for ProposalsConsumer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ProposalsConsumer {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-#[async_trait]
-impl AsyncConsumer for ProposalsConsumer {
-    #[instrument(skip_all, fields(delivery_tag = deliver.delivery_tag()))]
-    async fn consume(
-        &mut self,
-        channel: &Channel,
-        deliver: Deliver,
-        _basic_properties: BasicProperties,
-        content: Vec<u8>,
-    ) {
-        let job_str = match String::from_utf8(content) {
-            Ok(s) => s,
-            Err(e) => {
-                error!(PARSE_JOB_FAILED, error = %e);
-                return;
-            }
-        };
-
-        let job: ProposalsJob = match serde_json::from_str(&job_str) {
-            Ok(job) => job,
-            Err(e) => {
-                error!(DESERIALIZE_JOB_FAILED, error = %e);
-                return;
-            }
-        };
-
-        // Set a timeout for the job processing
-        match tokio::time::timeout(
-            tokio::time::Duration::from_secs(JOB_TIMEOUT_SECONDS),
-            run(job.clone()),
-        )
+#[instrument(skip(database_url))]
+async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
+    let mut opt = ConnectOptions::new(database_url.to_string());
+    opt.sqlx_logging(false);
+    Database::connect(opt)
         .await
-        {
-            Ok(result) => match result {
-                Ok(_) => {
-                    if let Err(e) = increase_refresh_speed(job.clone()).await {
-                        error!(INCREASE_REFRESH_SPEED_FAILED, error = %e);
-                    }
-                    if let Err(err) = channel
-                        .basic_ack(BasicAckArguments::new(deliver.delivery_tag(), false))
-                        .await
-                    {
-                        error!(JOB_ACK_FAILED, error = %err);
-                    }
-                }
-                Err(e) => {
-                    if let Err(err) = decrease_refresh_speed(job.clone()).await {
-                        error!(DECREASE_REFRESH_SPEED_FAILED, error = %err);
-                    }
-                    if let Err(err) = channel
-                        .basic_nack(BasicNackArguments::new(deliver.delivery_tag(), false, true))
-                        .await
-                    {
-                        error!(JOB_NACK_FAILED, error = %err);
-                    }
-                    warn!(PROPOSALS_JOB_FAILED, warning = %e);
-                }
-            },
-            Err(_) => {
-                warn!(PROPOSALS_JOB_TIMEOUT);
-                if let Err(err) = decrease_refresh_speed(job.clone()).await {
-                    error!(DECREASE_REFRESH_SPEED_FAILED, error = %err);
-                }
-                if let Err(err) = channel
-                    .basic_nack(BasicNackArguments::new(deliver.delivery_tag(), false, true))
-                    .await
-                {
-                    error!(JOB_NACK_FAILED, error = %err);
+        .context(DATABASE_CONNECTION_FAILED)
+}
+
+#[instrument(skip(db))]
+async fn consume_jobs(db: &DatabaseConnection) -> Result<()> {
+    while let Some(queue_job) = get_next_job(db).await? {
+        match queue_job.job_type.as_str() {
+            "Proposals" => {
+                let job: ProposalsJob =
+                    serde_json::from_value(queue_job.job).context(DESERIALIZE_JOB_FAILED)?;
+                if let Err(e) = process_proposals_job(job, db).await {
+                    warn!("Failed to process proposals job: {:?}", e);
+                    mark_job_failed(queue_job.id, db).await?;
+                } else {
+                    mark_job_processed(queue_job.id, db).await?;
                 }
             }
-        };
+            _ => {
+                warn!("Unknown job type: {}", queue_job.job_type);
+                mark_job_failed(queue_job.id, db).await?;
+            }
+        }
     }
+
+    Ok(())
+}
+
+#[instrument(skip(db))]
+async fn get_next_job(db: &DatabaseConnection) -> Result<Option<job_queue::Model>> {
+    let transaction = db.begin().await.context(DATABASE_ERROR)?;
+
+    let job = job_queue::Entity::find()
+        .filter(job_queue::Column::Processed.eq(false))
+        .filter(job_queue::Column::JobType.eq(JobType::Proposals.as_str()))
+        .lock_with_behavior(LockType::Update, LockBehavior::SkipLocked)
+        .one(&transaction)
+        .await
+        .context(DATABASE_ERROR)?;
+
+    if let Some(job) = job {
+        transaction.commit().await.context(DATABASE_ERROR)?;
+        Ok(Some(job))
+    } else {
+        transaction.rollback().await.context(DATABASE_ERROR)?;
+        Ok(None)
+    }
+}
+
+#[instrument(skip(db))]
+async fn mark_job_processed(job_id: i32, db: &DatabaseConnection) -> Result<()> {
+    job_queue::Entity::update(job_queue::ActiveModel {
+        id: Set(job_id),
+        processed: Set(Some(true)),
+        ..Default::default()
+    })
+    .exec(db)
+    .await
+    .context(DATABASE_ERROR)?;
+
+    Ok(())
+}
+
+#[instrument(skip(db))]
+async fn mark_job_failed(job_id: i32, db: &DatabaseConnection) -> Result<()> {
+    job_queue::Entity::update(job_queue::ActiveModel {
+        id: Set(job_id),
+        processed: Set(Some(false)),
+        ..Default::default()
+    })
+    .exec(db)
+    .await
+    .context(DATABASE_ERROR)?;
+
+    Ok(())
 }
 
 #[instrument]
-async fn run(job: ProposalsJob) -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
-
-    let mut opt = ConnectOptions::new(database_url);
-    opt.sqlx_logging(false);
-
-    let db: DatabaseConnection = Database::connect(opt)
-        .await
-        .context(DATABASE_CONNECTION_FAILED)?;
-
+async fn process_proposals_job(job: ProposalsJob, db: &DatabaseConnection) -> Result<()> {
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
-        .one(&db)
+        .one(db)
         .await
         .context(DATABASE_ERROR)?
         .context(DAOHANDLER_NOT_FOUND_ERROR)?;
 
     let dao = dao::Entity::find()
         .filter(dao::Column::Id.eq(dao_handler.dao_id))
-        .one(&db)
+        .one(db)
         .await
         .context(DATABASE_ERROR)?
         .context(DAOHANDLER_NOT_FOUND_ERROR)?;
@@ -227,9 +169,9 @@ async fn run(job: ProposalsJob) -> Result<()> {
     let StoredProposals {
         inserted_proposals,
         updated_proposals,
-    } = store_proposals(&proposals, &db).await?;
+    } = store_proposals(&proposals, db).await?;
 
-    let new_index = update_index(&proposals, &dao_handler, to_index, &db).await?;
+    let new_index = update_index(&proposals, &dao_handler, to_index, db).await?;
 
     let response = ProposalsResponse {
         inserted_proposals,
@@ -244,19 +186,10 @@ async fn run(job: ProposalsJob) -> Result<()> {
 }
 
 #[instrument]
-async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
-
-    let mut opt = ConnectOptions::new(database_url);
-    opt.sqlx_logging(false);
-
-    let db: DatabaseConnection = Database::connect(opt)
-        .await
-        .context(DATABASE_CONNECTION_FAILED)?;
-
+async fn decrease_refresh_speed(job: ProposalsJob, db: &DatabaseConnection) -> Result<()> {
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
-        .one(&db)
+        .one(db)
         .await
         .context(DATABASE_ERROR)?
         .context(DAOHANDLER_NOT_FOUND_ERROR)?;
@@ -273,7 +206,7 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
         proposals_refresh_speed: Set(new_refresh_speed),
         ..Default::default()
     })
-    .exec(&db)
+    .exec(db)
     .await
     .context(DATABASE_ERROR)?;
 
@@ -281,19 +214,10 @@ async fn decrease_refresh_speed(job: ProposalsJob) -> Result<()> {
 }
 
 #[instrument]
-async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
-
-    let mut opt = ConnectOptions::new(database_url);
-    opt.sqlx_logging(false);
-
-    let db: DatabaseConnection = Database::connect(opt)
-        .await
-        .context(DATABASE_CONNECTION_FAILED)?;
-
+async fn increase_refresh_speed(job: ProposalsJob, db: &DatabaseConnection) -> Result<()> {
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
-        .one(&db)
+        .one(db)
         .await
         .context(DATABASE_ERROR)?
         .context(DAOHANDLER_NOT_FOUND_ERROR)?;
@@ -310,7 +234,7 @@ async fn increase_refresh_speed(job: ProposalsJob) -> Result<()> {
         proposals_refresh_speed: Set(new_refresh_speed),
         ..Default::default()
     })
-    .exec(&db)
+    .exec(db)
     .await
     .context(DATABASE_ERROR)?;
 
