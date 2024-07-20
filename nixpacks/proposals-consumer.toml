@@ -5,7 +5,7 @@ buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 nixPkgs = [
     'binutils',
     'gcc',
-    '(rust-bin.stable.latest.default.override { targets = ["x86_64-unknown-linux-musl"]; })',
+    '(rust-bin.stable.latest.default.override { targets = ["aarch64-unknown-linux-musl"]; })',
     'musl',
     'musl.dev',
 ]
@@ -14,7 +14,7 @@ onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 [phases.build]
 dependsOn = ['setup']
 cmds = [
-    'cargo build --release --package proposals-consumer --target x86_64-unknown-linux-musl',
+    'cargo build --release --package proposals-consumer --target aarch64-unknown-linux-musl',
 ]
 onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 
@@ -22,8 +22,8 @@ onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 PROPOSALS_BIN = 'proposals-consumer'
 
 [start]
-cmd = './target/x86_64-unknown-linux-musl/release/proposals-consumer'
+cmd = './target/aarch64-unknown-linux-musl/release/proposals-consumer'
 runImage = 'debian:latest'
 onlyIncludeFiles = [
-    './target/x86_64-unknown-linux-musl/release/proposals-consumer',
+    './target/aarch64-unknown-linux-musl/release/proposals-consumer',
 ]
