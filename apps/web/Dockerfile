@@ -18,9 +18,13 @@ RUN yarn install
 
 # Define build argument
 ARG DATABASE_URL
+ARG POSTMARK_API_KEY
+ARG NEXT_PUBLIC_POSTHOG_KEY
 
 # Set the environment variable for the build phase
 ENV DATABASE_URL=${DATABASE_URL}
+ENV POSTMARK_API_KEY=${POSTMARK_API_KEY}
+ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
 
 # Copy the remaining files required for the build phase
 COPY apps/web apps/web
