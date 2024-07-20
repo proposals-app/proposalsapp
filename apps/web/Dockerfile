@@ -53,5 +53,6 @@ COPY --from=builder /app/.yarn /app/.yarn
 # Set the environment variable
 ENV PROPOSALS_BIN=web
 
+EXPOSE 3000
 # Set the default command
 CMD ["yarn", "start-web"]
