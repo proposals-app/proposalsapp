@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-amqprs = { workspace = true, features = ["tls", "urispec"] }
 anyhow = { workspace = true, features = ["backtrace"] }
 async-trait = { workspace = true }
 chrono = { workspace = true }

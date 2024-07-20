@@ -8,7 +8,6 @@ anyhow = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 backtrace = { workspace = true }
-amqprs = { workspace = true, features = ["tls", "urispec"] }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
