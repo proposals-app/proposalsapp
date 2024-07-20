@@ -6,7 +6,6 @@ WORKDIR /app
 
 # Copy only the specified files for the setup phase
 COPY Cargo.toml .
-COPY Cargo.lock .
 COPY apps/detective/ ./apps/detective/
 COPY libs/rust/ ./libs/rust/
 
