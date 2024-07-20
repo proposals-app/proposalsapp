@@ -9,6 +9,7 @@ nixPkgs = [
     'musl',
     'musl.dev',
 ]
+onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 
 [phases.build]
 dependsOn = ['setup']
@@ -17,7 +18,7 @@ cmds = [
     'cargo build --release --package snapshot-sanity --target x86_64-unknown-linux-musl',
     'cp target/x86_64-unknown-linux-musl/release/snapshot-sanity bin',
 ]
-cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
+onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 
 [variables]
 PROPOSALS_BIN = 'snapshot-sanity'

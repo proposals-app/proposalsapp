@@ -9,6 +9,7 @@ nixPkgs = [
     'musl',
     'musl.dev',
 ]
+onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 
 [phases.build]
 dependsOn = ['setup']
@@ -17,7 +18,7 @@ cmds = [
     'cargo build --release --package votes-producer --target x86_64-unknown-linux-musl',
     'cp target/x86_64-unknown-linux-musl/release/votes-producer bin',
 ]
-cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
+onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 
 [variables]
 PROPOSALS_BIN = 'votes-producer'
