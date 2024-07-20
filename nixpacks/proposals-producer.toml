@@ -1,11 +1,25 @@
 providers = ['rust']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
+[phases.setup]
+nixPkgs = [
+    'binutils',
+    'gcc',
+    '(rust-bin.stable.latest.default.override { targets = ["x86_64-unknown-linux-musl"]; })',
+    'musl',
+    'musl.dev',
+]
+
 [phases.build]
-cmds = ['cargo build --release --package proposals-producer']
-onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
+dependsOn = ['setup']
+cmds = [
+    'mkdir -p bin',
+    'cargo build --release --package proposals-producer --target x86_64-unknown-linux-musl',
+    'cp target/x86_64-unknown-linux-musl/release/proposals-producer bin',
+]
+cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
 
 [start]
-cmd = 'apt-get update && apt-get install -y patchelf && patchelf --set-interpreter /lib/ld-linux-aarch64.so.1 /app/target/release/proposals-producer && ./target/release/proposals-producer'
+cmd = './bin/proposals-consumer'
 runImage = 'debian:latest'
-onlyIncludeFiles = ['./target/release/proposals-producer']
+onlyIncludeFiles = ['./bin/proposals-consumer']
