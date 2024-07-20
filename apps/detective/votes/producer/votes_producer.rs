@@ -185,7 +185,7 @@ async fn queue_dao_jobs(
         let job_json = serde_json::to_string(&job)?;
 
         job_queue::Entity::insert(job_queue::ActiveModel {
-            job: Set(json!(job_json)),
+            job: Set(json!(job)),
             job_type: Set(JobType::Votes.as_str().to_string()),
             processed: Set(Some(false)),
             ..Default::default()
@@ -219,7 +219,7 @@ async fn queue_proposal_jobs(
         let job_json = serde_json::to_string(&job)?;
 
         job_queue::Entity::insert(job_queue::ActiveModel {
-            job: Set(json!(job_json)),
+            job: Set(json!(job)),
             job_type: Set(JobType::Votes.as_str().to_string()),
             processed: Set(Some(false)),
             ..Default::default()

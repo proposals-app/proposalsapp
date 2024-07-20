@@ -154,7 +154,7 @@ async fn queue_dao_jobs(
 
         // Insert job into PostgreSQL queue
         job_queue::Entity::insert(job_queue::ActiveModel {
-            job: Set(json!(job_json)),
+            job: Set(json!(job)),
             job_type: Set(JobType::Proposals.as_str().to_string()),
             processed: Set(Some(false)),
             ..Default::default()
