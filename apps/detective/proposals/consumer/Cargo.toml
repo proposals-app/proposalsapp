@@ -1,5 +1,5 @@
 [package]
-name = "proposals_consumer"
+name = "proposals-consumer"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,6 +12,7 @@ contracts = { path = "../../../../libs/rust/contracts" }
 dotenv = { workspace = true }
 ethers = { workspace = true }
 futures = { workspace = true }
+hex = { workspace = true }
 itertools = { workspace = true }
 num-bigint = { workspace = true }
 regex = { workspace = true }
@@ -41,5 +42,5 @@ tracing-subscriber = { workspace = true, features = [
 utils = { path = "../../../../libs/rust/utils" }
 
 [[bin]]
-name = "proposals_consumer"
+name = "proposals-consumer"
 path = "proposals_consumer.rs"

@@ -92,9 +92,9 @@ async fn data_for_proposal(
     let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
 
     let proposal_external_id = log.vote_id.to_string();
-    let title = format!("Vote #{}", log.vote_id.to_string());
+    let title = format!("Vote #{}", log.vote_id);
     let body = log.metadata.to_string();
-    let proposal_url = format!("https://vote.lido.fi/vote/{}", log.vote_id.to_string());
+    let proposal_url = format!("https://vote.lido.fi/vote/{}", log.vote_id);
     let discussionurl = String::from("");
 
     let onchain_proposal = gov_contract
@@ -116,12 +116,10 @@ async fn data_for_proposal(
 
     let state = if onchain_proposal.0 {
         ProposalStateEnum::Active
+    } else if onchain_proposal.1 {
+        ProposalStateEnum::Executed
     } else {
-        if onchain_proposal.1 {
-            ProposalStateEnum::Executed
-        } else {
-            ProposalStateEnum::Defeated
-        }
+        ProposalStateEnum::Defeated
     };
 
     let voting_starts_timestamp =

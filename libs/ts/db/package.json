@@ -10,7 +10,6 @@
     "db:migrate:latest": "kysely migrate latest"
   },
   "dependencies": {
-    "@proposalsapp/db": "*",
     "dotenv": "16.4.5",
     "kysely": "0.27.4",
     "pg": "8.12.0"

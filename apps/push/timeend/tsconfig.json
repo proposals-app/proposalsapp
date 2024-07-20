@@ -6,8 +6,5 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../../../libs/ts/db" },
-    { "path": "../../../libs/ts/emails" }
-  ]
+  "references": [{ "path": "../../../libs/ts/db" }]
 }

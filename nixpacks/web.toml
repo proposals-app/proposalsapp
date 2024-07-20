@@ -26,3 +26,14 @@ onlyIncludeFiles = ['apps/web', 'libs/ts/db', 'libs/ts/emails']
 
 [start]
 cmd = 'yarn start-web'
+runImage = 'node:22-bookworm'
+onlyIncludeFiles = [
+    'apps/web',
+    'libs/ts/db',
+    'libs/ts/emails',
+    'node_modules',
+    'package.json',
+    'yarn.lock',
+    '.yarnrc.yml',
+    '.yarn',
+]

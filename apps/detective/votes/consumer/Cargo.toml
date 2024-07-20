@@ -1,5 +1,5 @@
 [package]
-name = "votes_consumer"
+name = "votes-consumer"
 version = "0.1.0"
 edition = "2021"
 
@@ -41,5 +41,5 @@ utils = { path = "../../../../libs/rust/utils" }
 ethers = { workspace = true }
 
 [[bin]]
-name = "votes_consumer"
+name = "votes-consumer"
 path = "votes_consumer.rs"

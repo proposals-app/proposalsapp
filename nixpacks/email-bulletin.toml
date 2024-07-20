@@ -15,20 +15,20 @@ onlyIncludeFiles = [
     'package.json',
     '.yarnrc.yml',
     '.yarn',
-    'apps/web-arbitrum/package.json',
+    'apps/emails/bulletin/package.json',
     'libs/ts/db/package.json',
     'libs/ts/emails/package.json',
 ]
 
 [phases.build]
-cmds = ['yarn build-web-arbitrum']
-onlyIncludeFiles = ['apps/web-arbitrum', 'libs/ts/db', 'libs/ts/emails']
+cmds = ['yarn build-email-bulletin']
+onlyIncludeFiles = ['apps/emails/bulletin', 'libs/ts/db', 'libs/ts/emails']
 
 [start]
-cmd = 'yarn start-web-arbitrum'
+cmd = 'yarn start-email-bulletin'
 runImage = 'node:22-bookworm'
 onlyIncludeFiles = [
-    'apps/web-arbitrum',
+    'apps/emails/bulletin',
     'libs/ts/db',
     'libs/ts/emails',
     'node_modules',

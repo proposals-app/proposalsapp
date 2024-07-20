@@ -168,19 +168,19 @@ async fn data_for_proposal(
         ProposalStateEnum::Unknown
     };
 
-    if state == ProposalStateEnum::Executed {
-        if proposal_data.clone().spellData.dateExecuted.is_some() {
-            voting_ends_timestamp = DateTime::parse_from_rfc3339(
-                proposal_data
-                    .clone()
-                    .spellData
-                    .dateExecuted
-                    .unwrap()
-                    .as_str(),
-            )?
-            .with_timezone(&Utc)
-            .naive_utc();
-        }
+    if state == ProposalStateEnum::Executed
+        && proposal_data.clone().spellData.dateExecuted.is_some()
+    {
+        voting_ends_timestamp = DateTime::parse_from_rfc3339(
+            proposal_data
+                .clone()
+                .spellData
+                .dateExecuted
+                .unwrap()
+                .as_str(),
+        )?
+        .with_timezone(&Utc)
+        .naive_utc();
     }
 
     Ok(proposal::ActiveModel {
@@ -193,7 +193,7 @@ async fn data_for_proposal(
         choices: Set(json!(vec!["Yes"])),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
-        scores_quorum: Set(0.0),
+        scores_quorum: Set(scores_total),
         quorum: Set(0.0),
         proposal_state: Set(state),
         flagged: NotSet,

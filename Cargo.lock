@@ -2834,7 +2834,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "proposals_consumer"
+name = "proposals-consumer"
 version = "0.1.0"
 dependencies = [
  "amqprs",
@@ -2845,6 +2845,7 @@ dependencies = [
  "dotenv",
  "ethers",
  "futures",
+ "hex",
  "itertools 0.12.1",
  "num-bigint",
  "regex",
@@ -2863,7 +2864,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "proposals_producer"
+name = "proposals-producer"
 version = "0.1.0"
 dependencies = [
  "amqprs",
@@ -3771,7 +3772,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
-name = "snapshot_sanity"
+name = "snapshot-sanity"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -4849,7 +4850,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
-name = "votes-producer"
+name = "votes-consumer"
 version = "0.1.0"
 dependencies = [
  "amqprs",
@@ -4875,7 +4876,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "votes_consumer"
+name = "votes-producer"
 version = "0.1.0"
 dependencies = [
  "amqprs",

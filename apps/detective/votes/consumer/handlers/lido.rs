@@ -113,7 +113,7 @@ mod lido_votes {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2, vote};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
     use utils::test_utils::{assert_vote, ExpectedVote};
 
     #[tokio::test]

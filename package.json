@@ -41,11 +41,7 @@
     "undici": "6.6.2"
   },
   "devDependencies": {
-    "@tsconfig/recommended": "1.0.7",
-    "constructs": "10.3.0",
-    "dotenv": "16.4.5",
-    "prettier": "3.3.3",
-    "typescript": "5.5.3"
+    "@tsconfig/recommended": "1.0.7"
   },
   "engines": {
     "node": "20"

@@ -187,8 +187,8 @@ async fn data_for_proposal(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
-        quorum: Set(quorum.into()),
-        scores_quorum: Set(scores_quorum.into()),
+        quorum: Set(quorum),
+        scores_quorum: Set(scores_quorum),
         proposal_state: Set(state),
         flagged: NotSet,
         block_created: Set(Some(created_block_number as i32)),
@@ -378,7 +378,7 @@ async fn get_body(hexhash: String) -> Result<String> {
             let backoff_duration = Duration::from_millis(2u64.pow(retries as u32));
             tokio::time::sleep(backoff_duration).await;
         } else {
-            return Ok("Unknown".to_string()); // Exit after 12 retries
+            return Ok("Unknown".to_string());
         }
     }
 }

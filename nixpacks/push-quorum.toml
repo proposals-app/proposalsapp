@@ -15,22 +15,20 @@ onlyIncludeFiles = [
     'package.json',
     '.yarnrc.yml',
     '.yarn',
-    'apps/web-arbitrum/package.json',
+    'apps/push/quorum/package.json',
     'libs/ts/db/package.json',
-    'libs/ts/emails/package.json',
 ]
 
 [phases.build]
-cmds = ['yarn build-web-arbitrum']
-onlyIncludeFiles = ['apps/web-arbitrum', 'libs/ts/db', 'libs/ts/emails']
+cmds = ['yarn build-push-quorum']
+onlyIncludeFiles = ['apps/push/quorum', 'libs/ts/db']
 
 [start]
-cmd = 'yarn start-web-arbitrum'
+cmd = 'yarn start-push-quorum'
 runImage = 'node:22-bookworm'
 onlyIncludeFiles = [
-    'apps/web-arbitrum',
+    'apps/push/quorum',
     'libs/ts/db',
-    'libs/ts/emails',
     'node_modules',
     'package.json',
     'yarn.lock',

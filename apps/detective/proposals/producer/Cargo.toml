@@ -1,5 +1,5 @@
 [package]
-name = "proposals_producer"
+name = "proposals-producer"
 version = "0.1.0"
 edition = "2021"
 
@@ -41,5 +41,5 @@ tracing-subscriber = { workspace = true, features = [
 utils = { path = "../../../../libs/rust/utils" }
 
 [[bin]]
-name = "proposals_producer"
+name = "proposals-producer"
 path = "proposals_producer.rs"

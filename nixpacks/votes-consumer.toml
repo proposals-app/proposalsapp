@@ -2,10 +2,10 @@ providers = ['rust']
 buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [phases.build]
-cmds = ['cargo build --release --package votes-producer']
+cmds = ['cargo build --release --package votes-consumer']
 onlyIncludeFiles = ['Cargo.toml', 'Cargo.lock', 'apps/detective', 'libs/rust']
 
 [start]
-cmd = './target/release/votes-producer'
+cmd = './target/release/votes-consumer'
 runImage = 'debian:latest'
-onlyIncludeFiles = ['./target/release/votes-producer']
+onlyIncludeFiles = ['./target/release/votes-consumer']

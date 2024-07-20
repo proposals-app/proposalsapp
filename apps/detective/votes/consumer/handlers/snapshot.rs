@@ -39,7 +39,7 @@ impl VotesHandler for SnapshotHandler {
     }
     async fn get_proposal_votes(
         &self,
-        dao_handler: &dao_handler::Model,
+        _dao_handler: &dao_handler::Model,
         dao: &dao::Model,
         proposal: &proposal::Model,
     ) -> Result<VotesResult> {
