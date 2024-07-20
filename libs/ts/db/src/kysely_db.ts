@@ -116,6 +116,14 @@ export interface EmailVerification {
   userId: string;
 }
 
+export interface JobQueue {
+  createdAt: Generated<Timestamp | null>;
+  id: Generated<number>;
+  job: Json;
+  jobType: string;
+  processed: Generated<boolean | null>;
+}
+
 export interface Notification {
   dispatchstatus: Generated<NotificationDispatchedStateEnum>;
   id: Generated<string>;
@@ -222,6 +230,7 @@ export interface DB {
   daoHandler: DaoHandler;
   daoSettings: DaoSettings;
   emailVerification: EmailVerification;
+  jobQueue: JobQueue;
   notification: Notification;
   proposal: Proposal;
   subscription: Subscription;

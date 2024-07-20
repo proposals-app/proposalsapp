@@ -6,16 +6,17 @@ use amqprs::{
 use anyhow::{Context, Result};
 use dotenv::dotenv;
 use sea_orm::{
-    ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
+    ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter, Set,
 };
-use seaorm::{dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnumV2};
+use seaorm::{dao_handler, job_queue, proposal, sea_orm_active_enums::DaoHandlerEnumV2};
+use serde_json::json;
 use tokio::time::{self, Duration};
 use tracing::{error, instrument, warn};
 use utils::{
     errors::*,
     rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
     tracing::setup_tracing,
-    types::VotesJob,
+    types::{JobType, VotesJob},
     warnings::*,
 };
 
@@ -84,7 +85,7 @@ async fn produce_jobs() -> Result<()> {
 
     let snapshot_proposals = fetch_proposals(&db, &snapshot_dao_handlers).await?;
 
-    queue_jobs(&channel, &chain_dao_handlers, &snapshot_proposals).await?;
+    queue_jobs(&db, &channel, &chain_dao_handlers, &snapshot_proposals).await?;
 
     Ok(())
 }
@@ -157,58 +158,82 @@ async fn fetch_proposals(
         .context(DATABASE_FETCH_PROPOSALS_FAILED)
 }
 
-#[instrument(skip(channel))]
+#[instrument(skip(db, channel))]
 async fn queue_jobs(
+    db: &DatabaseConnection,
     channel: &amqprs::channel::Channel,
     dao_handlers: &[&dao_handler::Model],
     proposals: &[proposal::Model],
 ) -> Result<()> {
-    queue_dao_jobs(channel, dao_handlers).await?;
-    queue_proposal_jobs(channel, proposals).await?;
+    queue_dao_jobs(db, channel, dao_handlers).await?;
+    queue_proposal_jobs(db, channel, proposals).await?;
     Ok(())
 }
 
 #[instrument(skip(channel))]
 async fn queue_dao_jobs(
+    db: &DatabaseConnection,
     channel: &amqprs::channel::Channel,
     dao_handlers: &[&dao_handler::Model],
 ) -> Result<()> {
     for dao_handler in dao_handlers {
-        publish_job(
-            channel,
-            VotesJob {
-                dao_handler_id: dao_handler.id,
-                proposal_id: None,
-            },
-        )
-        .await?;
+        let job = VotesJob {
+            dao_handler_id: dao_handler.id,
+            proposal_id: None,
+        };
+
+        let job_json = serde_json::to_string(&job)?;
+
+        job_queue::Entity::insert(job_queue::ActiveModel {
+            job: Set(json!(job_json)),
+            job_type: Set(JobType::Votes.as_str().to_string()),
+            processed: Set(Some(false)),
+            ..Default::default()
+        })
+        .exec(db)
+        .await
+        .context(DATABASE_ERROR)?;
+
+        let content = job_json.into_bytes();
+        let args = BasicPublishArguments::new("", QUEUE_NAME);
+        channel
+            .basic_publish(BasicProperties::default().finish(), content, args)
+            .await
+            .context(PUBLISH_JOB_FAILED)?;
     }
     Ok(())
 }
 
 #[instrument(skip(channel))]
 async fn queue_proposal_jobs(
+    db: &DatabaseConnection,
     channel: &amqprs::channel::Channel,
     proposals: &[proposal::Model],
 ) -> Result<()> {
     for proposal in proposals {
-        publish_job(
-            channel,
-            VotesJob {
-                dao_handler_id: proposal.dao_handler_id,
-                proposal_id: Some(proposal.id),
-            },
-        )
-        .await?;
+        let job = VotesJob {
+            dao_handler_id: proposal.dao_handler_id,
+            proposal_id: Some(proposal.id),
+        };
+
+        let job_json = serde_json::to_string(&job)?;
+
+        job_queue::Entity::insert(job_queue::ActiveModel {
+            job: Set(json!(job_json)),
+            job_type: Set(JobType::Votes.as_str().to_string()),
+            processed: Set(Some(false)),
+            ..Default::default()
+        })
+        .exec(db)
+        .await
+        .context(DATABASE_ERROR)?;
+
+        let content = job_json.into_bytes();
+        let args = BasicPublishArguments::new("", QUEUE_NAME);
+        channel
+            .basic_publish(BasicProperties::default().finish(), content, args)
+            .await
+            .context(PUBLISH_JOB_FAILED)?;
     }
     Ok(())
-}
-
-async fn publish_job(channel: &amqprs::channel::Channel, job: VotesJob) -> Result<()> {
-    let content = serde_json::to_string(&job)?.into_bytes();
-    let args = BasicPublishArguments::new("", QUEUE_NAME);
-    channel
-        .basic_publish(BasicProperties::default(), content, args)
-        .await
-        .context(PUBLISH_JOB_FAILED)
 }

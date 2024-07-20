@@ -6,16 +6,18 @@ use amqprs::{
 use anyhow::{Context, Result};
 use dotenv::dotenv;
 use sea_orm::{
-    ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
+    ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityOrSelect, EntityTrait,
+    QueryFilter, QuerySelect, Set,
 };
-use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
+use seaorm::{dao_handler, job_queue, sea_orm_active_enums::DaoHandlerEnumV2};
+use serde_json::json;
 use tokio::time::{self, Duration};
 use tracing::{instrument, warn};
 use utils::{
     errors::*,
     rabbitmq_callbacks::{AppChannelCallback, AppConnectionCallback},
     tracing::setup_tracing,
-    types::ProposalsJob,
+    types::{JobType, ProposalsJob},
     warnings::*,
 };
 
@@ -82,7 +84,7 @@ async fn produce_jobs() -> Result<()> {
     let db = setup_database(&config.database_url).await?;
     let dao_handlers = fetch_dao_handlers(&db).await?;
 
-    queue_dao_jobs(&channel, &dao_handlers).await?;
+    queue_dao_jobs(&db, &channel, &dao_handlers).await?;
 
     Ok(())
 }
@@ -138,8 +140,9 @@ async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::
         .context(DATABASE_FETCH_DAO_HANDLERS_FAILED)
 }
 
-#[instrument(skip(channel))]
+#[instrument(skip(db, channel))]
 async fn queue_dao_jobs(
+    db: &DatabaseConnection,
     channel: &amqprs::channel::Channel,
     dao_handlers: &[dao_handler::Model],
 ) -> Result<()> {
@@ -147,7 +150,22 @@ async fn queue_dao_jobs(
         let job = ProposalsJob {
             dao_handler_id: dao_handler.id,
         };
-        let content = serde_json::to_string(&job)?.into_bytes();
+
+        let job_json = serde_json::to_string(&job)?;
+
+        // Insert job into PostgreSQL queue
+        job_queue::Entity::insert(job_queue::ActiveModel {
+            job: Set(json!(job_json)),
+            job_type: Set(JobType::Proposals.as_str().to_string()),
+            processed: Set(Some(false)),
+            ..Default::default()
+        })
+        .exec(db)
+        .await
+        .context(DATABASE_ERROR)?;
+
+        // Publish job to RabbitMQ
+        let content = job_json.into_bytes();
         let args = BasicPublishArguments::new("", QUEUE_NAME);
         channel
             .basic_publish(BasicProperties::default().finish(), content, args)

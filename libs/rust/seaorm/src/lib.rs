@@ -7,6 +7,7 @@ pub mod dao;
 pub mod dao_handler;
 pub mod dao_settings;
 pub mod email_verification;
+pub mod job_queue;
 pub mod kysely_migration;
 pub mod kysely_migration_lock;
 pub mod notification;
