@@ -6,6 +6,6 @@ cmds = ['cargo build --release --package proposals-consumer']
 onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 
 [start]
-cmd = 'apt-get update && apt-get install -y patchelf && patchelf --set-interpreter /lib/ld-linux-aarch64.so.1 /app/target/release/proposals-consumer && ./target/release/proposals-consumer'
+cmd = 'apt-get update && apt-get install -y patchelf libc6 && patchelf --set-interpreter /lib/ld-linux-aarch64.so.1 /app/target/release/proposals-consumer && ./target/release/proposals-consumer'
 runImage = 'debian:latest'
 onlyIncludeFiles = ['./target/release/proposals-consumer']
