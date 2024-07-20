@@ -21,5 +21,8 @@ WORKDIR /app
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/proposals-producer .
 
+# Set the environment variable
+ENV PROPOSALS_BIN=proposals-producer
+
 # Set the default command
 CMD ["./proposals-producer"]

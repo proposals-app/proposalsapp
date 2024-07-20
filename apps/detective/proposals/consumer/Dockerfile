@@ -21,5 +21,8 @@ WORKDIR /app
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/proposals-consumer .
 
+# Set the environment variable
+ENV PROPOSALS_BIN=proposals-consumer
+
 # Set the default command
 CMD ["./proposals-consumer"]

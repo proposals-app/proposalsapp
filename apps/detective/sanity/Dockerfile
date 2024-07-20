@@ -21,5 +21,8 @@ WORKDIR /app
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/snapshot-sanity .
 
+# Set the environment variable
+ENV PROPOSALS_BIN=snapshot-sanity
+
 # Set the default command
 CMD ["./snapshot-sanity"]
