@@ -19,6 +19,9 @@ cmds = [
 ]
 cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
 
+[variables]
+PROPOSALS_BIN = 'snapshot-sanity'
+
 [start]
 cmd = './bin/snapshot-sanity'
 runImage = 'debian:latest'

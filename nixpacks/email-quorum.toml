@@ -24,6 +24,9 @@ onlyIncludeFiles = [
 cmds = ['yarn build-email-quorum']
 onlyIncludeFiles = ['apps/emails/quorum', 'libs/ts/db', 'libs/ts/emails']
 
+[variables]
+PROPOSALS_BIN = 'email-quorum'
+
 [start]
 cmd = 'yarn start-email-quorum'
 runImage = 'node:22-bookworm'

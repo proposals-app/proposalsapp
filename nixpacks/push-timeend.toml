@@ -23,6 +23,9 @@ onlyIncludeFiles = [
 cmds = ['yarn build-push-timeend']
 onlyIncludeFiles = ['apps/push/timeend', 'libs/ts/db']
 
+[variables]
+PROPOSALS_BIN = 'push-timeend'
+
 [start]
 cmd = 'yarn start-push-timeend'
 runImage = 'node:22-bookworm'

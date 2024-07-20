@@ -23,6 +23,9 @@ onlyIncludeFiles = [
 cmds = ['yarn build-push-quorum']
 onlyIncludeFiles = ['apps/push/quorum', 'libs/ts/db']
 
+[variables]
+PROPOSALS_BIN = 'push-quorum'
+
 [start]
 cmd = 'yarn start-push-quorum'
 runImage = 'node:22-bookworm'

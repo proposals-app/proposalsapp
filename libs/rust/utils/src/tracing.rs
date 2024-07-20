@@ -26,7 +26,7 @@ pub fn setup_tracing() {
         .with_writer(std::io::stdout);
 
     let crate_name = std::env::var("CARGO_PKG_NAME")
-        .unwrap_or(std::env::var("NIXPACKS_RUST_BIN").unwrap_or("unknown".to_string()))
+        .unwrap_or(std::env::var("PROPOSALS_BIN").unwrap_or("unknown".to_string()))
         .to_string();
 
     let resources = vec![KeyValue::new("service.name", crate_name.to_lowercase())];

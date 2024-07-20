@@ -19,6 +19,9 @@ cmds = [
 ]
 cacheDirectories = ['/root/.cargo/git', '/root/.cargo/registry']
 
+[variables]
+PROPOSALS_BIN = 'proposals-producer'
+
 [start]
 cmd = './bin/proposals-consumer'
 runImage = 'debian:latest'
