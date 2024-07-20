@@ -14,9 +14,7 @@ onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 [phases.build]
 dependsOn = ['setup']
 cmds = [
-    'mkdir -p bin',
     'cargo build --release --package proposals-consumer --target x86_64-unknown-linux-musl',
-    'cp target/x86_64-unknown-linux-musl/release/proposals-consumer bin',
 ]
 onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 
@@ -24,6 +22,8 @@ onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 PROPOSALS_BIN = 'proposals-consumer'
 
 [start]
-cmd = './bin/proposals-consumer'
+cmd = './target/x86_64-unknown-linux-musl/release/proposals-consumer'
 runImage = 'debian:latest'
-onlyIncludeFiles = ['./bin/proposals-consumer']
+onlyIncludeFiles = [
+    './target/x86_64-unknown-linux-musl/release/proposals-consumer',
+]
