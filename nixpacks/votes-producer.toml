@@ -3,9 +3,9 @@ buildImage = 'ghcr.io/railwayapp/nixpacks:latest'
 
 [phases.build]
 cmds = ['cargo build --release --package votes-producer']
-onlyIncludeFiles = ['Cargo.toml', 'Cargo.lock', 'apps/detective', 'libs/rust']
+onlyIncludeFiles = ['Cargo.toml', 'apps/detective', 'libs/rust']
 
 [start]
-cmd = './target/release/votes-producer'
+cmd = 'apt-get update && apt-get install -y patchelf && patchelf --set-interpreter /lib/ld-linux-aarch64.so.1 /app/target/release/votes-producer && ./target/release/votes-producer'
 runImage = 'debian:latest'
 onlyIncludeFiles = ['./target/release/votes-producer']

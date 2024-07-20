@@ -3,6 +3,7 @@ node_modules
 
 # build
 target
+Cargo.lock
 
 # misc
 .DS_Store
