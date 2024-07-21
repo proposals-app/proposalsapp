@@ -10,7 +10,6 @@
   "dependencies": {
     "@proposalsapp/db": "*",
     "@proposalsapp/emails": "*",
-    "amqplib": "^0.10.4",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "node-cron": "^3.0.3",
@@ -18,7 +17,6 @@
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.7",
-    "@types/amqplib": "^0.10.5",
     "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.21",
     "@types/node-cron": "^3.0.11",

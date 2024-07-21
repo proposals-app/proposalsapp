@@ -7,7 +7,6 @@ import { normalize } from "path";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 import { z } from "zod";
-import amqplib from "amqplib";
 
 export const getOnboardingStep = async () => {
   let { user } = await validateRequest();
@@ -174,12 +173,15 @@ const sendBulletin = async (userId: string) => {
     userId: string;
   };
 
-  const QUEUE_NAME = "email:bulletin";
-
-  const rbmqConn = await amqplib.connect(process.env.RABBITMQ_URL!);
-  const rbmqCh = await rbmqConn.createChannel();
-  await rbmqCh.assertQueue(QUEUE_NAME);
+  const JOB_TYPE = "email-bulletin";
 
   const message: Message = { userId: userId };
-  rbmqCh?.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
+
+  await db
+    .insertInto("jobQueue")
+    .values({
+      job: message,
+      jobType: JOB_TYPE,
+    })
+    .execute();
 };

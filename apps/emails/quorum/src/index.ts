@@ -1,11 +1,10 @@
 import { db } from "@proposalsapp/db";
-import amqplib from "amqplib";
 import { config as dotenv_config } from "dotenv";
 import express from "express";
 import cron from "node-cron";
 import { sendQuorum } from "./send_quorum";
 
-const QUEUE_NAME = "email:quorum";
+const JOB_TYPE = "email-quorum";
 
 type Message = {
   userId: string;
@@ -13,9 +12,6 @@ type Message = {
 };
 
 dotenv_config();
-
-let rbmq_conn: amqplib.Connection | undefined;
-let rbmq_ch: amqplib.Channel | undefined;
 
 const app = express();
 
@@ -27,32 +23,36 @@ app.listen(3000, () => {
   console.log(`Healthcheck is running at http://localhost:3000`);
 });
 
-async function setupQueue() {
-  rbmq_conn = await amqplib.connect(process.env.RABBITMQ_URL!);
-  rbmq_ch = await rbmq_conn.createChannel();
-  await rbmq_ch.assertQueue(QUEUE_NAME);
-  //rbmq_ch.prefetch(5);
+async function processJobQueue() {
+  try {
+    const jobs = await db
+      .selectFrom("jobQueue")
+      .selectAll()
+      .where("processed", "=", false)
+      .where("jobType", "=", JOB_TYPE)
+      .execute();
 
-  rbmq_ch.consume(QUEUE_NAME, async (msg) => {
-    if (msg !== null) {
-      const message = JSON.parse(msg.content.toString()) as Message;
-
-      await sendQuorum(message.userId, message.proposalId)
-        .then(() => rbmq_ch!.ack(msg))
-        .catch((e) => {
-          rbmq_ch!.nack(msg);
-          console.log(e);
-        });
+    for (const job of jobs) {
+      const message = job.job as Message;
+      try {
+        await sendQuorum(message.userId, message.proposalId);
+        await db
+          .updateTable("jobQueue")
+          .set({ processed: true })
+          .where("id", "=", job.id)
+          .execute();
+      } catch (e) {
+        console.log(e);
+      }
     }
-  });
+  } catch (err) {
+    console.error("Error processing job queue:", err);
+  }
 }
 
-setupQueue()
-  .then(() => console.log("RabbitMQ set up!"))
-  .catch((err) => {
-    console.error("Error setting up RabbitMQ:", err);
-    process.exit(1);
-  });
+cron.schedule("* * * * *", async () => {
+  await processJobQueue();
+});
 
 cron.schedule("* * * * *", async () => {
   console.log("running cron");
@@ -110,7 +110,13 @@ cron.schedule("* * * * *", async () => {
 
       console.log({ message });
 
-      rbmq_ch!.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(message)));
+      await db
+        .insertInto("jobQueue")
+        .values({
+          job: message,
+          jobType: JOB_TYPE,
+        })
+        .execute();
     }
   }
 });
