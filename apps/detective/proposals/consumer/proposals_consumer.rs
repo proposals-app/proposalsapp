@@ -46,12 +46,23 @@ async fn main() -> Result<()> {
 
     // Spawn the consumer task
     tokio::spawn(async move {
+        let mut backoff = 1;
         loop {
-            if let Err(e) = consume_jobs(&db).await {
-                warn!("Failed to consume jobs: {:?}", e);
+            match consume_jobs(&db).await {
+                Ok(true) => {
+                    backoff = 1;
+                }
+                Ok(false) => {
+                    // No jobs processed, apply exponential backoff
+                    time::sleep(Duration::from_secs(backoff)).await;
+                    backoff = (backoff * 2).min(60);
+                }
+                Err(e) => {
+                    warn!("Failed to consume jobs: {:?}", e);
+                    time::sleep(Duration::from_secs(backoff)).await;
+                    backoff = (backoff * 2).min(60);
+                }
             }
-            // Wait a bit before fetching new jobs to avoid busy loop
-            time::sleep(Duration::from_secs(1)).await;
         }
     });
 
@@ -71,49 +82,65 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
 }
 
 #[instrument(skip(db))]
-async fn consume_jobs(db: &DatabaseConnection) -> Result<()> {
-    while let Some(queue_job) = get_next_job(db).await? {
-        let job_type_str = queue_job.job_type.as_str();
-        match job_type_str {
-            t if t == JobType::Proposals.as_str() => {
-                let job: ProposalsJob =
-                    serde_json::from_value(queue_job.job).context(DESERIALIZE_JOB_FAILED)?;
-                if let Err(e) = process_proposals_job(job, db).await {
-                    warn!("Failed to process proposals job: {:?}", e);
-                    mark_job_failed(queue_job.id, db).await?;
-                } else {
-                    mark_job_processed(queue_job.id, db).await?;
+async fn consume_jobs(db: &DatabaseConnection) -> Result<bool> {
+    let jobs = get_next_jobs(db).await?;
+    if jobs.is_empty() {
+        return Ok(false);
+    }
+
+    let tasks: Vec<_> = jobs
+        .into_iter()
+        .map(|job| {
+            let db = db.clone();
+            tokio::spawn(async move {
+                let job_type_str = job.job_type.as_str();
+                match job_type_str {
+                    t if t == JobType::Proposals.as_str() => {
+                        let proposaljob: ProposalsJob =
+                            serde_json::from_value(job.job).context(DESERIALIZE_JOB_FAILED)?;
+                        if let Err(e) = process_proposals_job(&proposaljob, &db).await {
+                            warn!("Failed to process proposals job: {:?}", e);
+                            decrease_refresh_speed(&proposaljob, &db).await?;
+                            mark_job_failed(job.id, &db).await?;
+                        } else {
+                            increase_refresh_speed(&proposaljob, &db).await?;
+                            mark_job_processed(job.id, &db).await?;
+                        }
+                    }
+                    _ => {
+                        warn!("Unknown job type: {}", job.job_type);
+                        mark_job_failed(job.id, &db).await?;
+                    }
                 }
-            }
-            _ => {
-                warn!("Unknown job type: {}", queue_job.job_type);
-                mark_job_failed(queue_job.id, db).await?;
-            }
+                Ok::<(), anyhow::Error>(())
+            })
+        })
+        .collect();
+
+    for task in tasks {
+        if let Err(e) = task.await {
+            warn!("Task failed: {:?}", e);
         }
     }
 
-    Ok(())
+    Ok(true)
 }
 
 #[instrument(skip(db))]
-async fn get_next_job(db: &DatabaseConnection) -> Result<Option<job_queue::Model>> {
+async fn get_next_jobs(db: &DatabaseConnection) -> Result<Vec<job_queue::Model>> {
     let transaction = db.begin().await.context(DATABASE_ERROR)?;
 
-    let job = job_queue::Entity::find()
+    let jobs = job_queue::Entity::find()
         .filter(job_queue::Column::Processed.eq(false))
         .filter(job_queue::Column::JobType.eq(JobType::Proposals.as_str()))
         .lock_with_behavior(LockType::Update, LockBehavior::SkipLocked)
-        .one(&transaction)
+        .limit(5)
+        .all(&transaction)
         .await
         .context(DATABASE_ERROR)?;
 
-    if let Some(job) = job {
-        transaction.commit().await.context(DATABASE_ERROR)?;
-        Ok(Some(job))
-    } else {
-        transaction.rollback().await.context(DATABASE_ERROR)?;
-        Ok(None)
-    }
+    transaction.commit().await.context(DATABASE_ERROR)?;
+    Ok(jobs)
 }
 
 #[instrument(skip(db))]
@@ -145,7 +172,7 @@ async fn mark_job_failed(job_id: i32, db: &DatabaseConnection) -> Result<()> {
 }
 
 #[instrument]
-async fn process_proposals_job(job: ProposalsJob, db: &DatabaseConnection) -> Result<()> {
+async fn process_proposals_job(job: &ProposalsJob, db: &DatabaseConnection) -> Result<()> {
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(db)
@@ -182,62 +209,6 @@ async fn process_proposals_job(job: ProposalsJob, db: &DatabaseConnection) -> Re
     };
 
     info!("{:?}", response);
-
-    Ok(())
-}
-
-#[instrument]
-async fn decrease_refresh_speed(job: ProposalsJob, db: &DatabaseConnection) -> Result<()> {
-    let dao_handler = dao_handler::Entity::find()
-        .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
-        .one(db)
-        .await
-        .context(DATABASE_ERROR)?
-        .context(DAOHANDLER_NOT_FOUND_ERROR)?;
-
-    let handler = handlers::get_handler(&dao_handler.handler_type);
-    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 0.5) as i32;
-
-    if new_refresh_speed < handler.min_refresh_speed() {
-        new_refresh_speed = handler.min_refresh_speed();
-    }
-
-    dao_handler::Entity::update(dao_handler::ActiveModel {
-        id: Set(dao_handler.id),
-        proposals_refresh_speed: Set(new_refresh_speed),
-        ..Default::default()
-    })
-    .exec(db)
-    .await
-    .context(DATABASE_ERROR)?;
-
-    Ok(())
-}
-
-#[instrument]
-async fn increase_refresh_speed(job: ProposalsJob, db: &DatabaseConnection) -> Result<()> {
-    let dao_handler = dao_handler::Entity::find()
-        .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
-        .one(db)
-        .await
-        .context(DATABASE_ERROR)?
-        .context(DAOHANDLER_NOT_FOUND_ERROR)?;
-
-    let handler = handlers::get_handler(&dao_handler.handler_type);
-    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 1.2) as i32;
-
-    if new_refresh_speed > handler.max_refresh_speed() {
-        new_refresh_speed = handler.max_refresh_speed();
-    }
-
-    dao_handler::Entity::update(dao_handler::ActiveModel {
-        id: Set(dao_handler.id),
-        proposals_refresh_speed: Set(new_refresh_speed),
-        ..Default::default()
-    })
-    .exec(db)
-    .await
-    .context(DATABASE_ERROR)?;
 
     Ok(())
 }
@@ -322,14 +293,72 @@ async fn store_proposals(
         }
     }
 
-    proposal::Entity::insert_many(proposals_to_insert)
-        .on_empty_do_nothing()
-        .exec(db)
-        .await
-        .context(DATABASE_ERROR)?;
+    if !proposals_to_insert.is_empty() {
+        proposal::Entity::insert_many(proposals_to_insert)
+            .on_empty_do_nothing()
+            .exec(db)
+            .await
+            .context(DATABASE_ERROR)?;
+    }
 
     Ok(StoredProposals {
         inserted_proposals,
         updated_proposals,
     })
+}
+
+#[instrument]
+async fn decrease_refresh_speed(job: &ProposalsJob, db: &DatabaseConnection) -> Result<()> {
+    let dao_handler = dao_handler::Entity::find()
+        .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
+        .one(db)
+        .await
+        .context(DATABASE_ERROR)?
+        .context(DAOHANDLER_NOT_FOUND_ERROR)?;
+
+    let handler = handlers::get_handler(&dao_handler.handler_type);
+    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 0.5) as i32;
+
+    if new_refresh_speed < handler.min_refresh_speed() {
+        new_refresh_speed = handler.min_refresh_speed();
+    }
+
+    dao_handler::Entity::update(dao_handler::ActiveModel {
+        id: Set(dao_handler.id),
+        proposals_refresh_speed: Set(new_refresh_speed),
+        ..Default::default()
+    })
+    .exec(db)
+    .await
+    .context(DATABASE_ERROR)?;
+
+    Ok(())
+}
+
+#[instrument]
+async fn increase_refresh_speed(job: &ProposalsJob, db: &DatabaseConnection) -> Result<()> {
+    let dao_handler = dao_handler::Entity::find()
+        .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
+        .one(db)
+        .await
+        .context(DATABASE_ERROR)?
+        .context(DAOHANDLER_NOT_FOUND_ERROR)?;
+
+    let handler = handlers::get_handler(&dao_handler.handler_type);
+    let mut new_refresh_speed = (dao_handler.proposals_refresh_speed as f32 * 1.2) as i32;
+
+    if new_refresh_speed > handler.max_refresh_speed() {
+        new_refresh_speed = handler.max_refresh_speed();
+    }
+
+    dao_handler::Entity::update(dao_handler::ActiveModel {
+        id: Set(dao_handler.id),
+        proposals_refresh_speed: Set(new_refresh_speed),
+        ..Default::default()
+    })
+    .exec(db)
+    .await
+    .context(DATABASE_ERROR)?;
+
+    Ok(())
 }
