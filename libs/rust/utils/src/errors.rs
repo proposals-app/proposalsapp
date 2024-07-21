@@ -15,16 +15,6 @@ pub const DATABASE_ERROR: &str = "Database error";
 pub const DB_TRANSACTION_BEGIN_FAILED: &str = "Failed to begin database transaction";
 pub const DB_TRANSACTION_COMMIT_FAILED: &str = "Failed to commit database transaction";
 
-//rabbitmq
-pub const RABBITMQ_URL_NOT_SET: &str = "RABBITMQ_URL not set!";
-pub const RABBITMQ_URL_INVALID: &str = "RABBITMQ_URL invalid!";
-pub const RABBITMQ_CONNECT_FAILED: &str = "RabbitMQ connection failed to open!";
-pub const RABBITMQ_REGISTER_FAILED: &str = "RabbitMQ callback failed to register!";
-pub const RABBITMQ_CHANNEL_OPEN_FAILED: &str = "RabbitMQ failed to open channel!";
-pub const RABBITMQ_DECLARE_QUEUE_FAILED: &str = "RabbitMQ failed to declare queue!";
-pub const RABBITMQ_QOS_FAILED: &str = "RabbitMQ set up QoS!";
-pub const RABBITMQ_START_CONSUMER_FAILED: &str = "RabbitMQ failed to start consumer!";
-
 pub const PRODUCE_JOBS_FAILED: &str = "Failed to produce jobs";
 pub const PUBLISH_JOB_FAILED: &str = "Failed to publish job";
 pub const PARSE_JOB_FAILED: &str = "Failed to parse job";
