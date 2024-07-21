@@ -38,15 +38,6 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config) => {
-    config.externals = [
-      ...(config.externals || []),
-      "pino-pretty",
-      "lokijs",
-      "encoding",
-    ];
-    return config;
-  },
   transpilePackages: ["@proposalsapp/db"],
 };
 
