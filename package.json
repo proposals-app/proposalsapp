@@ -9,7 +9,6 @@
     "libs/ts/emails/.react-email",
     "apps/web",
     "apps/web-arbitrum",
-    "apps/web-astro",
     "apps/emails/bulletin",
     "apps/emails/quorum",
     "apps/emails/timeend",
@@ -26,7 +25,6 @@
     "build-emails": "yarn workspace @proposalsapp/emails run build",
     "build-web": "yarn run build-db && yarn workspace @proposalsapp/web run build",
     "build-web-arbitrum": "yarn run build-db && yarn workspace @proposalsapp/web-arbitrum run build",
-    "build-web-astro": "yarn run build-db && yarn workspace @proposalsapp/web-astro run build",
     "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin run start",
     "start-email-quorum": "yarn workspace @proposalsapp/email-quorum run start",
     "start-email-timeend": "yarn workspace @proposalsapp/email-timeend run start",
@@ -34,7 +32,6 @@
     "start-push-timeend": "yarn workspace @proposalsapp/push-timeend run start",
     "start-web": "yarn workspace @proposalsapp/web run start",
     "start-web-arbitrum": "yarn workspace @proposalsapp/web-arbitrum run start",
-    "start-web-astro": "yarn workspace @proposalsapp/web-astro run start",
     "update-deps": "./update-deps.sh"
   },
   "overrides": {

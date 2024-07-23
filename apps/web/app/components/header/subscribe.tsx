@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/shadcn/ui/button";
+import { Button, buttonVariants } from "@/shadcn/ui/button";
 import { Input } from "@/shadcn/ui/input";
 import { Checkbox } from "@/shadcn/ui/checkbox";
 import { z } from "zod";
@@ -141,8 +141,9 @@ export const SubscribeButton = () => {
               height={48}
               style={{
                 maxWidth: "100%",
-                height: "auto"
-              }} />
+                height: "auto",
+              }}
+            />
           </AlertDialogCancel>
 
           <Form {...emailForm}>
@@ -243,8 +244,9 @@ export const SubscribeButton = () => {
               height={48}
               style={{
                 maxWidth: "100%",
-                height: "auto"
-              }} />
+                height: "auto",
+              }}
+            />
           </AlertDialogCancel>
 
           <Form {...otpForm}>
