@@ -4,8 +4,8 @@ use dotenv::dotenv;
 use itertools::Itertools;
 use sea_orm::{
     sea_query::{LockBehavior, LockType},
-    ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect, Set, TransactionTrait,
+    ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, Order,
+    QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 use seaorm::{dao, dao_handler, job_queue, proposal, sea_orm_active_enums::ProposalStateEnum};
 use std::collections::HashSet;
@@ -133,6 +133,7 @@ async fn get_next_jobs(db: &DatabaseConnection) -> Result<Vec<job_queue::Model>>
     let jobs = job_queue::Entity::find()
         .filter(job_queue::Column::Processed.eq(false))
         .filter(job_queue::Column::JobType.eq(JobType::Proposals.as_str()))
+        .order_by(job_queue::Column::CreatedAt, Order::Asc)
         .lock_with_behavior(LockType::Update, LockBehavior::SkipLocked)
         .limit(5)
         .all(&transaction)
