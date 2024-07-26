@@ -67,6 +67,8 @@ cron.schedule("* * * * *", async () => {
 
   const daos = proposals.map((p) => p.daoId);
 
+  if (!daos.length) return;
+
   const users = await db
     .selectFrom("user")
     .innerJoin("userSettings", "userSettings.userId", "user.id")

@@ -370,4 +370,56 @@ mod compound_proposals {
             Err(e) => panic!("Failed to get proposals: {:?}", e),
         }
     }
+
+    #[tokio::test]
+    async fn compound_3() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV2::CompoundMainnet),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 20355844,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+        };
+
+        match CompoundHandler.get_proposals(&dao_handler, &dao).await {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "284",
+                    name: "Add wstETH as collateral into cUSDCv3 on Optimism",
+                    body_contains: vec!["Compound Growth Program [AlphaGrowth] proposes to add wstETH into cUSDCv3 on Optimism network."],
+                    url: "https://compound.finance/governance/proposals/284",
+                    discussion_url:
+                        "",
+                    choices: "[\"For\",\"Against\",\"Abstain\"]",
+                    scores: "[560578.7289136582,0.0,0.0]",
+                    scores_total: 560578.7289136582,
+                    scores_quorum: 560578.7289136582,
+                    quorum: 399999.99999999994,
+                    proposal_state: ProposalStateEnum::Queued,
+                    block_created: Some(20355844),
+                    time_created: Some("2024-07-21 15:35:59"),
+                    time_start: "2024-07-23 11:38:35",
+                    time_end: "2024-07-26 05:40:47",
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
 }
