@@ -255,7 +255,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/parser@npm:7.24.8, @babel/parser@npm:^7.1.0, @babel/parser@npm:^7.20.7, @babel/parser@npm:^7.24.5, @babel/parser@npm:^7.24.7, @babel/parser@npm:^7.24.8":
+"@babel/parser@npm:7.25.0":
+  version: 7.25.0
+  resolution: "@babel/parser@npm:7.25.0"
+  bin:
+    parser: ./bin/babel-parser.js
+  checksum: 10c0/4aecf13829fa6f4a66835429bd235458544d9cd14374b17c19bc7726f472727ca33f500e51e1298ddc72db93bdd77fcaa9ddc095200b0b792173069e6cf9742e
+  languageName: node
+  linkType: hard
+
+"@babel/parser@npm:^7.1.0, @babel/parser@npm:^7.20.7, @babel/parser@npm:^7.24.5, @babel/parser@npm:^7.24.7, @babel/parser@npm:^7.24.8":
   version: 7.24.8
   resolution: "@babel/parser@npm:7.24.8"
   bin:
@@ -864,14 +873,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/config-array@npm:^0.17.0":
-  version: 0.17.0
-  resolution: "@eslint/config-array@npm:0.17.0"
+"@eslint/config-array@npm:^0.17.1":
+  version: 0.17.1
+  resolution: "@eslint/config-array@npm:0.17.1"
   dependencies:
     "@eslint/object-schema": "npm:^2.1.4"
     debug: "npm:^4.3.1"
     minimatch: "npm:^3.1.2"
-  checksum: 10c0/97eb23ef0948dbc5f24884a3b75c537ca37ee2b1f27a864cd0d9189c089bc1a724dc6e1a4d9b7dd304d9f732ca02aa7916243a7715d6f1f17159d8a8c83f0c9e
+  checksum: 10c0/b986a0a96f2b42467578968ce3d4ae3b9284e587f8490f2dcdc44ff1b8d30580c62b221da6e58d07b09e156c3050e2dc38267f9370521d9cafc099c4e30154ef
   languageName: node
   linkType: hard
 
@@ -909,10 +918,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.7.0":
-  version: 9.7.0
-  resolution: "@eslint/js@npm:9.7.0"
-  checksum: 10c0/73fc10666f6f4aed6f58e407e09f42ceb0d42fa60c52701c64ea9f59a81a6a8ad5caecdfd423d03088481515fe7ec17eb461acb4ef1ad70b649b6eae465b3164
+"@eslint/js@npm:9.8.0":
+  version: 9.8.0
+  resolution: "@eslint/js@npm:9.8.0"
+  checksum: 10c0/42edaae6b020436410454579509dcb6a8cd5b260e9f18e037fd803ae28d35eb13663d4019f0ab8ba686a19d3c4a43b0e11394c148e23345377ab694da0e83262
   languageName: node
   linkType: hard
 
@@ -1424,7 +1433,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/curves@npm:~1.4.0":
+"@noble/curves@npm:^1.4.0, @noble/curves@npm:~1.4.0":
   version: 1.4.2
   resolution: "@noble/curves@npm:1.4.2"
   dependencies:
@@ -1433,7 +1442,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/hashes@npm:1.4.0, @noble/hashes@npm:~1.4.0":
+"@noble/hashes@npm:1.4.0, @noble/hashes@npm:^1.4.0, @noble/hashes@npm:~1.4.0":
   version: 1.4.0
   resolution: "@noble/hashes@npm:1.4.0"
   checksum: 10c0/8c3f005ee72e7b8f9cff756dfae1241485187254e3f743873e22073d63906863df5d4f13d441b7530ea614b7a093f0d889309f28b59850f33b66cb26a779a4a5
@@ -1895,8 +1904,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/emails@workspace:libs/ts/emails"
   dependencies:
-    "@react-email/components": "npm:0.0.21"
-    "@react-email/render": "npm:0.0.16"
+    "@react-email/components": "npm:0.0.22"
+    "@react-email/render": "npm:0.0.17"
     "@tsconfig/recommended": "npm:1.0.7"
     dotenv: "npm:16.4.5"
     moment: "npm:2.30.1"
@@ -1905,8 +1914,8 @@ __metadata:
     prettier-plugin-tailwindcss: "npm:0.6.5"
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
-    react-email: "npm:2.1.5"
-    tailwindcss: "npm:3.4.6"
+    react-email: "npm:2.1.6"
+    tailwindcss: "npm:3.4.7"
     typescript: "npm:5.5.4"
   languageName: unknown
   linkType: soft
@@ -1959,14 +1968,14 @@ __metadata:
     autoprefixer: "npm:10.4.19"
     class-variance-authority: "npm:^0.7.0"
     next: "npm:14.2.5"
-    pino-pretty: "npm:11.2.1"
-    postcss: "npm:8.4.39"
+    pino-pretty: "npm:11.2.2"
+    postcss: "npm:8.4.40"
     prettier: "npm:^3.3.3"
     prettier-plugin-tailwindcss: "npm:^0.6.5"
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
     tailwind-merge: "npm:^2.4.0"
-    tailwindcss: "npm:3.4.6"
+    tailwindcss: "npm:3.4.7"
     tailwindcss-animate: "npm:^1.0.7"
     typescript: "npm:5.5.4"
     web-push: "npm:^3.6.7"
@@ -2010,7 +2019,7 @@ __metadata:
     "@radix-ui/react-toggle-group": "npm:^1.1.0"
     "@radix-ui/react-tooltip": "npm:^1.1.2"
     "@serwist/next": "npm:9.0.5"
-    "@types/node": "npm:20.14.11"
+    "@types/node": "npm:20.14.12"
     "@types/react": "npm:18.3.3"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:18.3.0"
@@ -2023,20 +2032,20 @@ __metadata:
     embla-carousel-react: "npm:^8.1.7"
     input-otp: "npm:^1.2.4"
     lucia: "npm:3.2.0"
-    lucide-react: "npm:^0.414.0"
+    lucide-react: "npm:^0.416.0"
     moment: "npm:2.30.1"
     next: "npm:14.2.5"
     next-themes: "npm:^0.3.0"
     oslo: "npm:1.2.1"
     pg: "npm:8.12.0"
-    pino-pretty: "npm:11.2.1"
-    postcss: "npm:8.4.39"
-    posthog-js: "npm:1.148.2"
+    pino-pretty: "npm:11.2.2"
+    postcss: "npm:8.4.40"
+    posthog-js: "npm:1.150.0"
     postmark: "npm:4.0.4"
     prettier: "npm:3.3.3"
     prettier-plugin-tailwindcss: "npm:0.6.5"
     react: "npm:18.3.1"
-    react-day-picker: "npm:8.10.0"
+    react-day-picker: "npm:9.0.4"
     react-dom: "npm:18.3.1"
     react-hook-form: "npm:^7.52.1"
     react-icons: "npm:5.2.1"
@@ -2046,11 +2055,11 @@ __metadata:
     serwist: "npm:9.0.5"
     sonner: "npm:^1.5.0"
     tailwind-merge: "npm:2.4.0"
-    tailwindcss: "npm:3.4.6"
+    tailwindcss: "npm:3.4.7"
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:5.5.4"
     vaul: "npm:^0.9.1"
-    viem: "npm:2.17.10"
+    viem: "npm:2.18.2"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -3536,180 +3545,180 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-email/body@npm:0.0.8":
-  version: 0.0.8
-  resolution: "@react-email/body@npm:0.0.8"
+"@react-email/body@npm:0.0.9":
+  version: 0.0.9
+  resolution: "@react-email/body@npm:0.0.9"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/b81f552cc68e1efdb78c7472767ef0fd373f4688852b7b8cdfa37ba085d18ac63cc5a3021a8b32a762947c35efeeac01bd410957c33591203560804fc32ceab9
+  checksum: 10c0/c438839f53456a3279c428be0ac994dc814486ff5f6bdff0f29aba6faadac9a7c819432ac490d22b33145d837f4da4ece7977279d14ab265385e299dde0b3266
   languageName: node
   linkType: hard
 
-"@react-email/button@npm:0.0.15":
-  version: 0.0.15
-  resolution: "@react-email/button@npm:0.0.15"
+"@react-email/button@npm:0.0.16":
+  version: 0.0.16
+  resolution: "@react-email/button@npm:0.0.16"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/2c887ff8d5e5cdfdb4f03da81f9c8c854a587498860dbf4c6913fa3475b2821497a6fc53a6dbb2d1bfef1682b8d1880197465c366062fb70af109b98e2056385
+  checksum: 10c0/83035c665d06af31fca4921637c7554915be362f853fc740687c0ce9dedc5837ab83a2b2a3f2631cb948111b2d3655b40a2ec4161fd9e2b79d8cb3e818b8673b
   languageName: node
   linkType: hard
 
-"@react-email/code-block@npm:0.0.5":
-  version: 0.0.5
-  resolution: "@react-email/code-block@npm:0.0.5"
+"@react-email/code-block@npm:0.0.6":
+  version: 0.0.6
+  resolution: "@react-email/code-block@npm:0.0.6"
   dependencies:
     prismjs: "npm:1.29.0"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/e1aaf1659b6a599f3954edbdbcd8635d9b22abfe2e82dc8487aa49f73fdfa82defbf1e3efb1dd85774806c9104c54b68bdacb4ef53eecd19b2185277052d88e6
+  checksum: 10c0/364017644bf0bb363b7115ab6e60c4a3e5494f9789d0ebeeac29e6ade44e1fa65fb9af9243a4917bb9235589db9afad61b0dc69b9878fac1c38afa03fe738995
   languageName: node
   linkType: hard
 
-"@react-email/code-inline@npm:0.0.2":
-  version: 0.0.2
-  resolution: "@react-email/code-inline@npm:0.0.2"
+"@react-email/code-inline@npm:0.0.3":
+  version: 0.0.3
+  resolution: "@react-email/code-inline@npm:0.0.3"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/8d762b666d4e1613a27587879eb287e52619c17aff5ea415b4067478f829b9fa0bf9a99fda511fdb06426073fad61d8bde1a4b47f42c3f37737a16bdce4d81be
+  checksum: 10c0/9bdab80a27745e61f7e59ab47506140a27c48c493126648e53caa601017f54f5d0cafa3d8ce3836cb9acd171ea6962b2a13dd7ec7a8c68907c6757f63dfb9ca1
   languageName: node
   linkType: hard
 
-"@react-email/column@npm:0.0.10":
-  version: 0.0.10
-  resolution: "@react-email/column@npm:0.0.10"
+"@react-email/column@npm:0.0.11":
+  version: 0.0.11
+  resolution: "@react-email/column@npm:0.0.11"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/3789ce472feef47a0ac420a4568794e80bec9a792988e59b7b6cb16bd23c5fc259b2e4250434bc06faf69e6ceddbdbdfa22a3c9f9447760644cd7b3e5b35d700
+  checksum: 10c0/1b8a2885db76855c0ad9e7bbd3d1814da9c2aef7300f37d750426890f5410c1f28583f8e5d781eb7b823e6485d466e57a34068d2acbaa937a6f82c8f909925c5
   languageName: node
   linkType: hard
 
-"@react-email/components@npm:0.0.21":
-  version: 0.0.21
-  resolution: "@react-email/components@npm:0.0.21"
+"@react-email/components@npm:0.0.22":
+  version: 0.0.22
+  resolution: "@react-email/components@npm:0.0.22"
   dependencies:
-    "@react-email/body": "npm:0.0.8"
-    "@react-email/button": "npm:0.0.15"
-    "@react-email/code-block": "npm:0.0.5"
-    "@react-email/code-inline": "npm:0.0.2"
-    "@react-email/column": "npm:0.0.10"
-    "@react-email/container": "npm:0.0.12"
-    "@react-email/font": "npm:0.0.6"
-    "@react-email/head": "npm:0.0.9"
-    "@react-email/heading": "npm:0.0.12"
-    "@react-email/hr": "npm:0.0.8"
-    "@react-email/html": "npm:0.0.8"
-    "@react-email/img": "npm:0.0.8"
-    "@react-email/link": "npm:0.0.8"
-    "@react-email/markdown": "npm:0.0.10"
-    "@react-email/preview": "npm:0.0.9"
-    "@react-email/render": "npm:0.0.16"
-    "@react-email/row": "npm:0.0.8"
-    "@react-email/section": "npm:0.0.12"
-    "@react-email/tailwind": "npm:0.0.18"
-    "@react-email/text": "npm:0.0.8"
+    "@react-email/body": "npm:0.0.9"
+    "@react-email/button": "npm:0.0.16"
+    "@react-email/code-block": "npm:0.0.6"
+    "@react-email/code-inline": "npm:0.0.3"
+    "@react-email/column": "npm:0.0.11"
+    "@react-email/container": "npm:0.0.13"
+    "@react-email/font": "npm:0.0.7"
+    "@react-email/head": "npm:0.0.10"
+    "@react-email/heading": "npm:0.0.13"
+    "@react-email/hr": "npm:0.0.9"
+    "@react-email/html": "npm:0.0.9"
+    "@react-email/img": "npm:0.0.9"
+    "@react-email/link": "npm:0.0.9"
+    "@react-email/markdown": "npm:0.0.11"
+    "@react-email/preview": "npm:0.0.10"
+    "@react-email/render": "npm:0.0.17"
+    "@react-email/row": "npm:0.0.9"
+    "@react-email/section": "npm:0.0.13"
+    "@react-email/tailwind": "npm:0.0.19"
+    "@react-email/text": "npm:0.0.9"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/0d1aa2d3c340211e9c82fc253e1d4fa942e4c17ebe99d11cbd98761642d07f3baa9a60354594e517db60078540b2410c39eb3a2e1b7665549fdfe8ffadc6a086
+  checksum: 10c0/df03715c9fd8b4a8bcd03941194c12e9a934b91b21177fd190ea2bc824437d942caa03af337e485744180bf9d89f4a11f8710c743e78505e3837cd3ce5a876e6
   languageName: node
   linkType: hard
 
-"@react-email/container@npm:0.0.12":
-  version: 0.0.12
-  resolution: "@react-email/container@npm:0.0.12"
+"@react-email/container@npm:0.0.13":
+  version: 0.0.13
+  resolution: "@react-email/container@npm:0.0.13"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/a500a7245aa7e31621aecfea74bc9e28cc9153640d2ef19f7c12157a57ed4994ed6720f671f9ff452500f8cd6446796b47921bc05da7f3afdfa71fe42ec665e2
+  checksum: 10c0/bab78c343423b4a7644049ab2f84b8552e655ac75f3e02b622c38d6c59f817221801e5335132409dcbba9f53ddca4b3b9de88e848752af8948d72d0116f02482
   languageName: node
   linkType: hard
 
-"@react-email/font@npm:0.0.6":
-  version: 0.0.6
-  resolution: "@react-email/font@npm:0.0.6"
+"@react-email/font@npm:0.0.7":
+  version: 0.0.7
+  resolution: "@react-email/font@npm:0.0.7"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/f6916202cbb2a29100ccf3fd3b727b7768990a77be61862b18b2b883a34c11bacd9b41d709aa4a9d83a7c16e34a48be68e561eaf7b3c23231c2a8e53ebb2fb96
+  checksum: 10c0/7e8431de492aba4b5c8a2b15b24970d497850dcc1da4e6cd0decb4f80b202eda7477248dd866bbaa706a4c8eb7454caa38e45de780b1a07896aabdff78b36945
   languageName: node
   linkType: hard
 
-"@react-email/head@npm:0.0.9":
+"@react-email/head@npm:0.0.10":
+  version: 0.0.10
+  resolution: "@react-email/head@npm:0.0.10"
+  peerDependencies:
+    react: ^18.2.0
+  checksum: 10c0/b2ce86657a109087d2687d3a01f31919f54638602421b55552ac9a8494ed123c21ef9e73a81703c1b750590fdd9da75eba3425b1a2a19fcc6141eef4e3f8a6b5
+  languageName: node
+  linkType: hard
+
+"@react-email/heading@npm:0.0.13":
+  version: 0.0.13
+  resolution: "@react-email/heading@npm:0.0.13"
+  dependencies:
+    "@radix-ui/react-slot": "npm:1.1.0"
+  peerDependencies:
+    react: ^18.2.0
+  checksum: 10c0/4b83537ec32df9a81a09f8bb5c32de409514abad192e0ff0802a0f64247ace29f0ab3504d98e334c9ee203815ce3ed8a266fc91aadb4da4d898560e8f1952dfc
+  languageName: node
+  linkType: hard
+
+"@react-email/hr@npm:0.0.9":
   version: 0.0.9
-  resolution: "@react-email/head@npm:0.0.9"
+  resolution: "@react-email/hr@npm:0.0.9"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/1f65f87df6a1435eea5a2d357e2a20c3e2c2f63efb53265ac4c7698249a10a9f4317d0b55d6e252014b509b7fd744ae97bf60d44db1370bc352e4174998bf11c
+  checksum: 10c0/713decd0cd3f6c910f5e35d3d9946917be3ef6900e35174570154f183e73ce46975ee4c6cd2c6fed8b9a2edfb18f6d4d181c5a3b6de57df40d22de2ee2671216
   languageName: node
   linkType: hard
 
-"@react-email/heading@npm:0.0.12":
-  version: 0.0.12
-  resolution: "@react-email/heading@npm:0.0.12"
-  dependencies:
-    "@radix-ui/react-slot": "npm:1.0.2"
+"@react-email/html@npm:0.0.9":
+  version: 0.0.9
+  resolution: "@react-email/html@npm:0.0.9"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/e15719b101551f4db522b993162c741fedf57e8636a58e8b1f3ed5fbe3860f5b46f802eda7bbdbc3d7de76a3e0d0e13a177ee6eeaa42910617ff652b4d5f045f
+  checksum: 10c0/f7cf89a99779de23bc82ee4cba815764f1294eee27b5d6739b3120559b42c570ef44661b51c1931974aa5359c76982ec6a58e25624493cb883ad2d8f024384b6
   languageName: node
   linkType: hard
 
-"@react-email/hr@npm:0.0.8":
-  version: 0.0.8
-  resolution: "@react-email/hr@npm:0.0.8"
+"@react-email/img@npm:0.0.9":
+  version: 0.0.9
+  resolution: "@react-email/img@npm:0.0.9"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/e9859b5e34f4ab9cd320f99575d97f3cd6c23d70272128de8aadbc9f0f5f14c9d92afd982498725499cab1286339aed5d8a84e4a0a655a6dc42bbbca10f2c336
+  checksum: 10c0/a2bf74c0f8655dcf624f79ebe8a5904e7fbaedb6885d6881cb4d54765f6e9dd80e1067cde416ea66fe1b89d383c9e904a42f4015e63c72e53cad2b1023ca65f1
   languageName: node
   linkType: hard
 
-"@react-email/html@npm:0.0.8":
-  version: 0.0.8
-  resolution: "@react-email/html@npm:0.0.8"
+"@react-email/link@npm:0.0.9":
+  version: 0.0.9
+  resolution: "@react-email/link@npm:0.0.9"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/befbecd4e9d34a16ffe5ad207819d0b70feba566181766a9eb83ef897f59818a2f215bbbc3ad2ad4e8598a9cc9d3aec49ab5b94bfbd177c9e1cc148439ae4beb
+  checksum: 10c0/25e2c4c16f78060f1ac30b9cc8ce1a13647eb7a58b235edfe9a0af7fd3e4d0a63c01f694bd0b5a8386c9da0a0a0f0c8952c8b709cdcee206a730cf2ba24a874d
   languageName: node
   linkType: hard
 
-"@react-email/img@npm:0.0.8":
-  version: 0.0.8
-  resolution: "@react-email/img@npm:0.0.8"
-  peerDependencies:
-    react: ^18.2.0
-  checksum: 10c0/6813919bd4a9cd20d2f25987de204ba76c38940391126f3bcce542554f35dcacfea5bacebd96bd6a952e657d2dac937e2bf4419718bcdbcbe8f51ae9761302de
-  languageName: node
-  linkType: hard
-
-"@react-email/link@npm:0.0.8":
-  version: 0.0.8
-  resolution: "@react-email/link@npm:0.0.8"
-  peerDependencies:
-    react: ^18.2.0
-  checksum: 10c0/749c171fcf71cca675bc9661b2609e85a5ecc1fbf82e30fa8041daff81ac4e2c1caf09bef33128a4a43efe0f3ab2878015b8f7bc6c531cbd59f259e88ee224c0
-  languageName: node
-  linkType: hard
-
-"@react-email/markdown@npm:0.0.10":
-  version: 0.0.10
-  resolution: "@react-email/markdown@npm:0.0.10"
+"@react-email/markdown@npm:0.0.11":
+  version: 0.0.11
+  resolution: "@react-email/markdown@npm:0.0.11"
   dependencies:
     md-to-react-email: "npm:5.0.2"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/8c3f50dd0c18996c4cdcef56822b0118255b96a3d5a954f2a4ec526cccb7c47bffefcd55f090d922a4a51c3eaacc48c1e9750d09be99e5b2ced407e58d8c4500
+  checksum: 10c0/3fcc61460d40f3d5e339fb26952de087b58f51ab0fb886f67b2822c062047883030ce281e3b828ff6aae21ddfaf485c954239706baee4c7f9e828e38cd5be85d
   languageName: node
   linkType: hard
 
-"@react-email/preview@npm:0.0.9":
-  version: 0.0.9
-  resolution: "@react-email/preview@npm:0.0.9"
+"@react-email/preview@npm:0.0.10":
+  version: 0.0.10
+  resolution: "@react-email/preview@npm:0.0.10"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/036c3eb9512d217824c54545dd9e4adc18e65e1accb4b700818c308ea423a85be7699468570e4172b3ac5d3ffb262440838672be9da13f2874421592e468d7d1
+  checksum: 10c0/d2692e148537b288c4f132d8c85414fccf2567d209cd25d1d4d21fe50bf96eddf5835c5f7eeedf7f0c3e09871a6d0f1787e271525edb29e573912f7c5ba81e34
   languageName: node
   linkType: hard
 
-"@react-email/render@npm:0.0.16":
-  version: 0.0.16
-  resolution: "@react-email/render@npm:0.0.16"
+"@react-email/render@npm:0.0.17":
+  version: 0.0.17
+  resolution: "@react-email/render@npm:0.0.17"
   dependencies:
     html-to-text: "npm:9.0.5"
     js-beautify: "npm:^1.14.11"
@@ -3717,43 +3726,43 @@ __metadata:
   peerDependencies:
     react: ^18.2.0
     react-dom: ^18.2.0
-  checksum: 10c0/1cc3479f674f070f8564b8944dcb86081b7f52b67742d0c255d79b6cea989be0e2207d2adcd5a920ff4b41fbe360d655ac97a71f8ebd5e6d78441cafcfc668dc
+  checksum: 10c0/34a1c5a55586d7cd723638d8cd5328fddf30015e5065a2e9d5204772e0532e84d63af1b2b1b8ec02cef52a8f57d34871200c0075a9ed7b2861362d8138d3db5e
   languageName: node
   linkType: hard
 
-"@react-email/row@npm:0.0.8":
-  version: 0.0.8
-  resolution: "@react-email/row@npm:0.0.8"
+"@react-email/row@npm:0.0.9":
+  version: 0.0.9
+  resolution: "@react-email/row@npm:0.0.9"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/256c8cbdfd6462f398371fc6d8a5fe929c27d857fe8b8e5b94909cf07a18db5f18235b7cde7c42ea1af481f93f9d3b718153fba496290623e7b91c15acd6cfbd
+  checksum: 10c0/df8453f1ba61fd57bdd33c148115e4654efb422f14e00fe5f5351be03f7e18d04cdf3c87ec1044d447a1937069b76e17e9b0cda2a8a0e955e037423aa8cec17d
   languageName: node
   linkType: hard
 
-"@react-email/section@npm:0.0.12":
-  version: 0.0.12
-  resolution: "@react-email/section@npm:0.0.12"
+"@react-email/section@npm:0.0.13":
+  version: 0.0.13
+  resolution: "@react-email/section@npm:0.0.13"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/2ce3ee0387b62b0a6082911f4172ada85372db7503cb118049a3298113f317a277268ad1d15e64397297775f63064e5d5605b11d3bc1d72bccc94005d6057884
+  checksum: 10c0/3d71f3d781a7329d0d4929a3769ff4a985e65684cd136fb6a9968db70d478858e022073627146fd4c6be3680753e057e69c5f6929f9e18e4cee8ab3f405ed8ef
   languageName: node
   linkType: hard
 
-"@react-email/tailwind@npm:0.0.18":
-  version: 0.0.18
-  resolution: "@react-email/tailwind@npm:0.0.18"
+"@react-email/tailwind@npm:0.0.19":
+  version: 0.0.19
+  resolution: "@react-email/tailwind@npm:0.0.19"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/320e49d21cf206c51005ac80de6080a5a9073945469a706dbd1f54d9bfb00a70b217289f8f03fe30d3b4b94e32640fb721f52f41db3e6d69d64b516a17f6d181
+  checksum: 10c0/d032087a38806a2a494485ef8b47814f0170e075081d028c6032b1cce2145b6278031c1cb6a9e97eeae3af3102f84db252e29a8b71e4bfd5771998d8a70436ac
   languageName: node
   linkType: hard
 
-"@react-email/text@npm:0.0.8":
-  version: 0.0.8
-  resolution: "@react-email/text@npm:0.0.8"
+"@react-email/text@npm:0.0.9":
+  version: 0.0.9
+  resolution: "@react-email/text@npm:0.0.9"
   peerDependencies:
     react: ^18.2.0
-  checksum: 10c0/6a54aebe0450555fdc7edaac63b58ca108b4d2244d7fa79dc3b6a1ec20053b6dd080ffcadd2b69f85bdacb0792173904475ffd738fda64006928270d4e053368
+  checksum: 10c0/998cdeec2272107ec8a92d21bb52005f2a75ed337f81b93f95c4ac8a94cf2d0983d0971a62a8180e74d1a6db3e376b96215a02b2956049740034158145ab3faa
   languageName: node
   linkType: hard
 
@@ -4118,9 +4127,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-darwin-arm64@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-darwin-arm64@npm:1.7.0"
+"@swc/core-darwin-arm64@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-darwin-arm64@npm:1.7.2"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
@@ -4132,9 +4141,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-darwin-x64@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-darwin-x64@npm:1.7.0"
+"@swc/core-darwin-x64@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-darwin-x64@npm:1.7.2"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
@@ -4146,9 +4155,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm-gnueabihf@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.7.0"
+"@swc/core-linux-arm-gnueabihf@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.7.2"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
@@ -4160,9 +4169,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm64-gnu@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-linux-arm64-gnu@npm:1.7.0"
+"@swc/core-linux-arm64-gnu@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-linux-arm64-gnu@npm:1.7.2"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
@@ -4174,9 +4183,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm64-musl@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-linux-arm64-musl@npm:1.7.0"
+"@swc/core-linux-arm64-musl@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-linux-arm64-musl@npm:1.7.2"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
@@ -4188,9 +4197,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-linux-x64-gnu@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-linux-x64-gnu@npm:1.7.0"
+"@swc/core-linux-x64-gnu@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-linux-x64-gnu@npm:1.7.2"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
@@ -4202,9 +4211,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-linux-x64-musl@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-linux-x64-musl@npm:1.7.0"
+"@swc/core-linux-x64-musl@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-linux-x64-musl@npm:1.7.2"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
@@ -4216,9 +4225,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-win32-arm64-msvc@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-win32-arm64-msvc@npm:1.7.0"
+"@swc/core-win32-arm64-msvc@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-win32-arm64-msvc@npm:1.7.2"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
@@ -4230,9 +4239,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-win32-ia32-msvc@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-win32-ia32-msvc@npm:1.7.0"
+"@swc/core-win32-ia32-msvc@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-win32-ia32-msvc@npm:1.7.2"
   conditions: os=win32 & cpu=ia32
   languageName: node
   linkType: hard
@@ -4244,9 +4253,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-win32-x64-msvc@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core-win32-x64-msvc@npm:1.7.0"
+"@swc/core-win32-x64-msvc@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core-win32-x64-msvc@npm:1.7.2"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -4297,22 +4306,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@swc/core@npm:1.7.0"
+"@swc/core@npm:1.7.2":
+  version: 1.7.2
+  resolution: "@swc/core@npm:1.7.2"
   dependencies:
-    "@swc/core-darwin-arm64": "npm:1.7.0"
-    "@swc/core-darwin-x64": "npm:1.7.0"
-    "@swc/core-linux-arm-gnueabihf": "npm:1.7.0"
-    "@swc/core-linux-arm64-gnu": "npm:1.7.0"
-    "@swc/core-linux-arm64-musl": "npm:1.7.0"
-    "@swc/core-linux-x64-gnu": "npm:1.7.0"
-    "@swc/core-linux-x64-musl": "npm:1.7.0"
-    "@swc/core-win32-arm64-msvc": "npm:1.7.0"
-    "@swc/core-win32-ia32-msvc": "npm:1.7.0"
-    "@swc/core-win32-x64-msvc": "npm:1.7.0"
+    "@swc/core-darwin-arm64": "npm:1.7.2"
+    "@swc/core-darwin-x64": "npm:1.7.2"
+    "@swc/core-linux-arm-gnueabihf": "npm:1.7.2"
+    "@swc/core-linux-arm64-gnu": "npm:1.7.2"
+    "@swc/core-linux-arm64-musl": "npm:1.7.2"
+    "@swc/core-linux-x64-gnu": "npm:1.7.2"
+    "@swc/core-linux-x64-musl": "npm:1.7.2"
+    "@swc/core-win32-arm64-msvc": "npm:1.7.2"
+    "@swc/core-win32-ia32-msvc": "npm:1.7.2"
+    "@swc/core-win32-x64-msvc": "npm:1.7.2"
     "@swc/counter": "npm:^0.1.3"
-    "@swc/types": "npm:^0.1.9"
+    "@swc/types": "npm:^0.1.12"
   peerDependencies:
     "@swc/helpers": "*"
   dependenciesMeta:
@@ -4339,7 +4348,7 @@ __metadata:
   peerDependenciesMeta:
     "@swc/helpers":
       optional: true
-  checksum: 10c0/8c98bd94dcf1bb002c84cbb66cce7c656f5e71c8bbe439669af9c24a3d58f7c768b8cdd8d779f9683d9beb14bac1ce56a231b0ebf1f5b24563e7fac46cd5dbb7
+  checksum: 10c0/fa07d7fce91a36554b468af9eceba599b94d2ae68a6a3756566bc03a33726f994ba6be419b8f50d543950442e8caa41738d547a9d2ee41d11f65332d6f6f6cb1
   languageName: node
   linkType: hard
 
@@ -4369,7 +4378,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/types@npm:^0.1.5, @swc/types@npm:^0.1.9":
+"@swc/types@npm:^0.1.12":
+  version: 0.1.12
+  resolution: "@swc/types@npm:0.1.12"
+  dependencies:
+    "@swc/counter": "npm:^0.1.3"
+  checksum: 10c0/f95fea7dee8fc07f8389afbb9578f3d0cd84b429b1d0dbff7fd99b2ef06ed88e96bc33631f36c3bc0505d5a783bee1374acd84b8fc2593001219b6c2caba241b
+  languageName: node
+  linkType: hard
+
+"@swc/types@npm:^0.1.5":
   version: 0.1.9
   resolution: "@swc/types@npm:0.1.9"
   dependencies:
@@ -4660,12 +4678,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:20.14.11, @types/node@npm:>=10.0.0":
+"@types/node@npm:*, @types/node@npm:>=10.0.0":
   version: 20.14.11
   resolution: "@types/node@npm:20.14.11"
   dependencies:
     undici-types: "npm:~5.26.4"
   checksum: 10c0/5306becc0ff41d81b1e31524bd376e958d0741d1ce892dffd586b9ae0cb6553c62b0d62abd16da8bea6b9a2c17572d360450535d7c073794b0cef9cb4e39691e
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:20.14.12":
+  version: 20.14.12
+  resolution: "@types/node@npm:20.14.12"
+  dependencies:
+    undici-types: "npm:~5.26.4"
+  checksum: 10c0/59bc5fa11fdd23fd517f859063118f54a1ab53d3399ef63c926f8902429d7453abc0db22ef4b0a6110026b6ab81b6472fee894e1d235c24b01a0b3e10cfae0bb
   languageName: node
   linkType: hard
 
@@ -7843,15 +7870,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:9.7.0":
-  version: 9.7.0
-  resolution: "eslint@npm:9.7.0"
+"eslint@npm:9.8.0":
+  version: 9.8.0
+  resolution: "eslint@npm:9.8.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.2.0"
     "@eslint-community/regexpp": "npm:^4.11.0"
-    "@eslint/config-array": "npm:^0.17.0"
+    "@eslint/config-array": "npm:^0.17.1"
     "@eslint/eslintrc": "npm:^3.1.0"
-    "@eslint/js": "npm:9.7.0"
+    "@eslint/js": "npm:9.8.0"
     "@humanwhocodes/module-importer": "npm:^1.0.1"
     "@humanwhocodes/retry": "npm:^0.3.0"
     "@nodelib/fs.walk": "npm:^1.2.8"
@@ -7883,7 +7910,7 @@ __metadata:
     text-table: "npm:^0.2.0"
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/e2369a9534404f62f37ee5560e56fb84e0776a9c8f084550170017992772e7034d73571bdf4060e2fe9b836f136d45b07d50407d4b9361de720ee77794259274
+  checksum: 10c0/a2ee0cce1147565d011fe185733af482f34d5466f5df5f390d0ea2ecf78097883cf568ed6c771d687138609c63cd55cd1e3ff12de7393c03f54fcffcdd0f225d
   languageName: node
   linkType: hard
 
@@ -8288,9 +8315,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"framer-motion@npm:11.3.9":
-  version: 11.3.9
-  resolution: "framer-motion@npm:11.3.9"
+"framer-motion@npm:11.3.18":
+  version: 11.3.18
+  resolution: "framer-motion@npm:11.3.18"
   dependencies:
     tslib: "npm:^2.4.0"
   peerDependencies:
@@ -8304,7 +8331,7 @@ __metadata:
       optional: true
     react-dom:
       optional: true
-  checksum: 10c0/e7803e281f69b5aec8998d9edea62c5eee8287aaa13d5d28f30f7ecc1018e7b742f9c614500ab894f2f3cf3f9e9f4894fc4a20195d7daa935222e30420cdc3d9
+  checksum: 10c0/df547401df2e358ce02f2dd4cab7d1981c30790ccf37483a147230dd7929f508210193ca4b6b4d41cd07609abc2317cdaae1a0f74ac6a945974f51c6791ab761
   languageName: node
   linkType: hard
 
@@ -9894,12 +9921,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^0.414.0":
-  version: 0.414.0
-  resolution: "lucide-react@npm:0.414.0"
+"lucide-react@npm:^0.416.0":
+  version: 0.416.0
+  resolution: "lucide-react@npm:0.416.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/280123f5f43cad653aa74f519ad2294fdc82c32028c780e3228c2a92997e987e4708a20527af64731882a9dedc6117f98ba0582946e86751a8f02f8297f8f815
+  checksum: 10c0/4aa583d251f3286ec86bdce95b63e3f58428ad6df509cdd9dd453f9eaa845a3188283726915ddbd1fdc6c49548bb31325038e2e96cb31d2eac000beb97b22c26
   languageName: node
   linkType: hard
 
@@ -11081,9 +11108,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pino-pretty@npm:11.2.1":
-  version: 11.2.1
-  resolution: "pino-pretty@npm:11.2.1"
+"pino-pretty@npm:11.2.2":
+  version: 11.2.2
+  resolution: "pino-pretty@npm:11.2.2"
   dependencies:
     colorette: "npm:^2.0.7"
     dateformat: "npm:^4.6.3"
@@ -11101,7 +11128,7 @@ __metadata:
     strip-json-comments: "npm:^3.1.1"
   bin:
     pino-pretty: bin.js
-  checksum: 10c0/6c7f15b5bf8a007c8b7157eae445675b13cd95097ffa512d5ebd661f9e7abd328fa27592b25708756a09f098f87cb03ca81837518cd725c16e3f801129b941d4
+  checksum: 10c0/3ce1769907886a5584f6c8123d9bc987712ad10a375797733a0fe95a238df587dac8e2b709bab291c4e30d41b0cf65808c708c96f8eb98b2778b6df60afa7e66
   languageName: node
   linkType: hard
 
@@ -11252,7 +11279,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:8.4.39, postcss@npm:^8.4.23, postcss@npm:^8.4.39":
+"postcss@npm:8.4.40":
+  version: 8.4.40
+  resolution: "postcss@npm:8.4.40"
+  dependencies:
+    nanoid: "npm:^3.3.7"
+    picocolors: "npm:^1.0.1"
+    source-map-js: "npm:^1.2.0"
+  checksum: 10c0/65ed67573e5443beaeb582282ff27a6be7c7fe3b4d9fa15761157616f2b97510cb1c335023c26220b005909f007337026d6e3ff092f25010b484ad484e80ea7f
+  languageName: node
+  linkType: hard
+
+"postcss@npm:^8.4.23, postcss@npm:^8.4.39":
   version: 8.4.39
   resolution: "postcss@npm:8.4.39"
   dependencies:
@@ -11337,14 +11375,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.148.2":
-  version: 1.148.2
-  resolution: "posthog-js@npm:1.148.2"
+"posthog-js@npm:1.150.0":
+  version: 1.150.0
+  resolution: "posthog-js@npm:1.150.0"
   dependencies:
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.0.1"
-  checksum: 10c0/9ff76422729f5bb0ffdc4fa87402b38c86f6d2a03ee8da5dfa7ed7c58e1c38ab84bd95ee5d09f9b6e0fa25896429da05aaebc0cdfbfb7ab2e5cb77e548f34ce3
+  checksum: 10c0/2a951e12cd07b1e5125d8d8b57ed7eb28adf634bb016f0376940e29c3a8fd0612fac046d7d90c9d120fb41a8b0f60d0bbdaba5d14d1b0a20945678d77e49c409
   languageName: node
   linkType: hard
 
@@ -11462,18 +11500,18 @@ __metadata:
   resolution: "preview-server@workspace:libs/ts/emails/.react-email"
   dependencies:
     "@babel/core": "npm:7.24.9"
-    "@babel/parser": "npm:7.24.8"
+    "@babel/parser": "npm:7.25.0"
     "@radix-ui/colors": "npm:3.0.0"
     "@radix-ui/react-collapsible": "npm:1.1.0"
     "@radix-ui/react-popover": "npm:1.1.1"
     "@radix-ui/react-slot": "npm:1.1.0"
     "@radix-ui/react-toggle-group": "npm:1.1.0"
     "@radix-ui/react-tooltip": "npm:1.1.2"
-    "@swc/core": "npm:1.7.0"
+    "@swc/core": "npm:1.7.2"
     "@types/babel__core": "npm:7.20.5"
     "@types/fs-extra": "npm:11.0.4"
     "@types/mime-types": "npm:2.1.4"
-    "@types/node": "npm:20.14.11"
+    "@types/node": "npm:20.14.12"
     "@types/normalize-path": "npm:3.0.2"
     "@types/react": "npm:18.3.3"
     "@types/react-dom": "npm:^18.3.0"
@@ -11486,17 +11524,17 @@ __metadata:
     commander: "npm:12.1.0"
     debounce: "npm:2.1.0"
     esbuild: "npm:0.23.0"
-    eslint: "npm:9.7.0"
+    eslint: "npm:9.8.0"
     eslint-config-prettier: "npm:9.1.0"
     eslint-config-turbo: "npm:2.0.9"
-    framer-motion: "npm:11.3.9"
+    framer-motion: "npm:11.3.18"
     glob: "npm:11.0.0"
     log-symbols: "npm:6.0.0"
     mime-types: "npm:2.1.35"
     next: "npm:14.2.5"
     normalize-path: "npm:3.0.0"
     ora: "npm:8.0.1"
-    postcss: "npm:8.4.39"
+    postcss: "npm:8.4.40"
     prism-react-renderer: "npm:2.3.1"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
@@ -11507,8 +11545,8 @@ __metadata:
     source-map-js: "npm:1.2.0"
     stacktrace-parser: "npm:0.1.10"
     tailwind-merge: "npm:2.4.0"
-    tailwindcss: "npm:3.4.6"
-    tsup: "npm:8.2.2"
+    tailwindcss: "npm:3.4.7"
+    tsup: "npm:8.2.3"
     tsx: "npm:4.16.2"
     typescript: "npm:5.5.4"
     vitest: "npm:2.0.4"
@@ -11696,13 +11734,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-day-picker@npm:8.10.0":
-  version: 8.10.0
-  resolution: "react-day-picker@npm:8.10.0"
+"react-day-picker@npm:9.0.4":
+  version: 9.0.4
+  resolution: "react-day-picker@npm:9.0.4"
+  dependencies:
+    date-fns: "npm:^3.6.0"
   peerDependencies:
-    date-fns: ^2.28.0 || ^3.0.0
-    react: ^16.8.0 || ^17.0.0 || ^18.0.0
-  checksum: 10c0/e9868aced1e40b4cb7d6cf8d50e250226b38ec7ebea944b65aa9db20a0f36d0581b8a501297d09dcbf2d812de852168952b3fb27990915381629d6e314c2a4d8
+    react: ">=16.8.0"
+  checksum: 10c0/15f9b3ccbfe2070ecbad322ad370d788ad5f16ba941cb403f7713d1cb46bb4e25cb8248dd5e9812798400e3c74c253e86fac921bbaa9148b3643cc25b95cff10
   languageName: node
   linkType: hard
 
@@ -11718,9 +11757,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-email@npm:2.1.5":
-  version: 2.1.5
-  resolution: "react-email@npm:2.1.5"
+"react-email@npm:2.1.6":
+  version: 2.1.6
+  resolution: "react-email@npm:2.1.6"
   dependencies:
     "@babel/core": "npm:7.24.5"
     "@babel/parser": "npm:7.24.5"
@@ -11764,7 +11803,7 @@ __metadata:
     typescript: "npm:5.1.6"
   bin:
     email: cli/index.js
-  checksum: 10c0/a9f77554711c70af08efb70b913543fc57403fcb609e57a4f88ce9d56359889a659d80d4037dd76205d8e5c0b00a35ff75f71a7c0e828a617975fad8cd8122b2
+  checksum: 10c0/4b7d758b9762b1c2d6bd206133a331a5c5d7766f2bec781095efff3103265ebdbc8b9fa7b4b32aa36768315c867e01522d2537b907c4d44f6f68aa70a3b7a44a
   languageName: node
   linkType: hard
 
@@ -13315,9 +13354,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss@npm:3.4.6":
-  version: 3.4.6
-  resolution: "tailwindcss@npm:3.4.6"
+"tailwindcss@npm:3.4.7":
+  version: 3.4.7
+  resolution: "tailwindcss@npm:3.4.7"
   dependencies:
     "@alloc/quick-lru": "npm:^5.2.0"
     arg: "npm:^5.0.2"
@@ -13344,7 +13383,7 @@ __metadata:
   bin:
     tailwind: lib/cli.js
     tailwindcss: lib/cli.js
-  checksum: 10c0/8d82b697ecf41d8cd100ab3369e3cbcb30e350afc5b595a000b201ba666628a68543154297f96c5b2a3f2614f37bb981af4766556ebaae832079fa9a436e8563
+  checksum: 10c0/dd74c29ae0ec314d46300a1163b106b84d3ca58d71e4e16c2c8ad9ee3d7ba6cfeab4a97176c0e9bfeebc5e9cd9636531648a3f3874ede376751a572d230dd979
   languageName: node
   linkType: hard
 
@@ -13548,9 +13587,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsup@npm:8.2.2":
-  version: 8.2.2
-  resolution: "tsup@npm:8.2.2"
+"tsup@npm:8.2.3":
+  version: 8.2.3
+  resolution: "tsup@npm:8.2.3"
   dependencies:
     bundle-require: "npm:^5.0.0"
     cac: "npm:^6.7.14"
@@ -13585,7 +13624,7 @@ __metadata:
   bin:
     tsup: dist/cli-default.js
     tsup-node: dist/cli-node.js
-  checksum: 10c0/d13461553517701affc75f6ae2f4988b4493da630d99504f20db4f9a822bfebf07d0dfc4f2057d0428711607aacdc541adcb641af395443e463a3a35c277d9a4
+  checksum: 10c0/4a6fba80b441b400e44633db7e52d383cfd502119e6bdf7680ac07d5110eab2473d8b980a664c1564d0418d89c0e680b24a9f43d2d7da1193ce72259a863725a
   languageName: node
   linkType: hard
 
@@ -13948,9 +13987,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.17.10":
-  version: 2.17.10
-  resolution: "viem@npm:2.17.10"
+"viem@npm:2.18.2":
+  version: 2.18.2
+  resolution: "viem@npm:2.18.2"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.10.0"
     "@noble/curves": "npm:1.4.0"
@@ -13959,13 +13998,14 @@ __metadata:
     "@scure/bip39": "npm:1.3.0"
     abitype: "npm:1.0.5"
     isows: "npm:1.0.4"
+    webauthn-p256: "npm:0.0.5"
     ws: "npm:8.17.1"
   peerDependencies:
     typescript: ">=5.0.4"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/44e3315d77475fcf6364ba502ff37752ffe27f1ff3fe9c31bae52fedfea37fa2a905279a4ce8fc8a36ef5c11c1fbd07a22eb00fb1dfa20a155ea1b321bc3e383
+  checksum: 10c0/1d5514d2d40b16a01447d0bd75a0115f04e2ddb5af11dea526df8b48580ed11e8171674de93fbc526219551243da6cbe5ec66f15be97a3c9b5c5200122cb88f7
   languageName: node
   linkType: hard
 
@@ -14111,6 +14151,16 @@ __metadata:
   version: 4.2.2
   resolution: "web-vitals@npm:4.2.2"
   checksum: 10c0/0e41d016a80d8f48e00c95f3d8405a4cb8c6a12a83ac6677ce49447c85ca6fb2325f40915ae5460bb59f07d1b7d65b66b8b42ea50135594ae7dc892453775004
+  languageName: node
+  linkType: hard
+
+"webauthn-p256@npm:0.0.5":
+  version: 0.0.5
+  resolution: "webauthn-p256@npm:0.0.5"
+  dependencies:
+    "@noble/curves": "npm:^1.4.0"
+    "@noble/hashes": "npm:^1.4.0"
+  checksum: 10c0/8a445dddaf0e699363a0a7bca51742f672dbbec427c1a97618465bfc418df0eff10d3f1cf5e43bcd0cd0dc5abcdaad7914916c06c84107eaf226f5a1d0690c13
   languageName: node
   linkType: hard
 
