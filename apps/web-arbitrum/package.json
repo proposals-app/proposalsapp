@@ -15,19 +15,19 @@
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "tailwind-merge": "^2.4.0",
+    "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
-    "autoprefixer": "10.4.19",
+    "autoprefixer": "10.4.20",
     "pino-pretty": "11.2.2",
-    "postcss": "8.4.40",
+    "postcss": "8.4.41",
     "prettier": "^3.3.3",
-    "prettier-plugin-tailwindcss": "^0.6.5",
-    "tailwindcss": "3.4.7",
+    "prettier-plugin-tailwindcss": "^0.6.6",
+    "tailwindcss": "3.4.9",
     "typescript": "5.5.4"
   }
 }
