@@ -81,7 +81,7 @@ export async function sendTimeend(userId: string, proposalId: string) {
     quorum: proposal.quorum,
   };
 
-  const emailHtml = render(NotVotedEmail(emailData));
+  const emailHtml = await render(NotVotedEmail(emailData));
 
   const options = {
     From: "new@proposals.app",

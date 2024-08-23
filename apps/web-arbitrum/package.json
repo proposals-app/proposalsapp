@@ -12,7 +12,7 @@
   "dependencies": {
     "@serwist/next": "^9.0.5",
     "class-variance-authority": "^0.7.0",
-    "next": "14.2.5",
+    "next": "14.2.6",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "tailwind-merge": "^2.5.2",
@@ -20,7 +20,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@types/react": "18.3.3",
+    "@types/react": "18.3.4",
     "@types/react-dom": "18.3.0",
     "autoprefixer": "10.4.20",
     "pino-pretty": "11.2.2",

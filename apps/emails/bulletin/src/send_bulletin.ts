@@ -32,7 +32,7 @@ export async function sendBulletin(userId: string) {
     return;
   }
 
-  const emailHtml = render(DailyBulletinEmail(bulletinData));
+  const emailHtml = await render(DailyBulletinEmail(bulletinData));
   const options = {
     From: "new@proposals.app",
     To: user.email,

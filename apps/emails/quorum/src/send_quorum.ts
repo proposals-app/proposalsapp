@@ -86,7 +86,7 @@ export async function sendQuorum(userId: string, proposalId: string) {
     quorum: proposal.quorum,
   };
 
-  const emailHtml = render(QuorumEmail(emailData));
+  const emailHtml = await render(QuorumEmail(emailData));
 
   const options = {
     From: "new@proposals.app",
