@@ -83,7 +83,7 @@ export const saveSettings = async (newSettings: currentSettingsType) => {
       parsedSettings.email,
     );
 
-    const emailHtml = render(
+    const emailHtml = await render(
       AuthCodeEmail({ email: parsedSettings.email, code: verificationCode }),
     );
 

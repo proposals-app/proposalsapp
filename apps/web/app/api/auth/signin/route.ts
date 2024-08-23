@@ -45,7 +45,9 @@ export async function POST(request: Request) {
 
   const verificationCode = await generateEmailVerificationCode(user.id, email);
 
-  const emailHtml = render(AuthCodeEmail({ email, code: verificationCode }));
+  const emailHtml = await render(
+    AuthCodeEmail({ email, code: verificationCode }),
+  );
 
   const options = {
     From: "new@proposals.app",
