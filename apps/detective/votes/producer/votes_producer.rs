@@ -14,7 +14,6 @@ use utils::{
 };
 
 const JOB_INTERVAL: Duration = Duration::from_secs(60);
-const MAX_QUEUE_SIZE: u32 = 1000;
 
 struct Config {
     database_url: String,
