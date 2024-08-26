@@ -2199,6 +2199,7 @@ __metadata:
     "@react-email/components": "npm:0.0.23"
     "@react-email/render": "npm:1.0.0"
     "@tsconfig/recommended": "npm:1.0.7"
+    "@types/react": "npm:^18.3.4"
     dotenv: "npm:16.4.5"
     moment: "npm:2.30.1"
     postmark: "npm:4.0.5"
@@ -4896,7 +4897,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:18.3.4":
+"@types/react@npm:18.3.4, @types/react@npm:^18.3.4":
   version: 18.3.4
   resolution: "@types/react@npm:18.3.4"
   dependencies:
