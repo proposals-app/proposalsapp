@@ -10,7 +10,7 @@
     "vapid": "web-push generate-vapid-keys"
   },
   "dependencies": {
-    "@serwist/next": "^9.0.5",
+    "@serwist/next": "^9.0.6",
     "class-variance-authority": "^0.7.0",
     "next": "14.2.6",
     "react": "18.3.1",

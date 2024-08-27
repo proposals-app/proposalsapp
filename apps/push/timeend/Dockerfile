@@ -1,5 +1,5 @@
 # Use the Railway Nixpacks image for the build stage
-FROM node:latest as builder
+FROM node:22.6 as builder
 
 # Set the working directory
 WORKDIR /app
