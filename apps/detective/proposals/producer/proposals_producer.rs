@@ -3,7 +3,7 @@ use dotenv::dotenv;
 use sea_orm::{
     ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter, Set,
 };
-use seaorm::{dao_handler, job_queue, sea_orm_active_enums::DaoHandlerEnumV2};
+use seaorm::{dao_handler, job_queue, sea_orm_active_enums::DaoHandlerEnumV3};
 use serde_json::json;
 use tokio::time::{self, Duration};
 use tracing::{instrument, warn};
@@ -74,9 +74,9 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
 async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::Model>> {
     dao_handler::Entity::find()
         .filter(dao_handler::Column::HandlerType.is_not_in(vec![
-            DaoHandlerEnumV2::MakerPollArbitrum,
-            DaoHandlerEnumV2::AaveV3PolygonPos,
-            DaoHandlerEnumV2::AaveV3Avalanche,
+            DaoHandlerEnumV3::MakerPollArbitrum,
+            DaoHandlerEnumV3::AaveV3PolygonPos,
+            DaoHandlerEnumV3::AaveV3Avalanche,
         ]))
         .filter(dao_handler::Column::RefreshEnabled.eq(true))
         .all(db)

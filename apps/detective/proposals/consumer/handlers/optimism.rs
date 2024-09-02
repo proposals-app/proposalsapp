@@ -8,6 +8,7 @@ use contracts::gen::{
         optimism_gov_v_6::optimism_gov_v6, ProposalCreated1Filter, ProposalCreated2Filter,
         ProposalCreated3Filter, ProposalCreated4Filter,
     },
+    optimism_token::optimism_token::optimism_token,
     optimism_votemodule_0x_2796_4c_5f_4f389b839903_6e_107_6d_8_4c_6984576c33,
     optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5,
 };
@@ -52,6 +53,12 @@ impl ProposalHandler for OptimismHandler {
             .context("bad address")?;
 
         let gov_contract = optimism_gov_v6::new(address, op_rpc.clone());
+
+        let token_address = "0x4200000000000000000000000000000000000042"
+            .parse::<Address>()
+            .context("bad address")?;
+
+        let op_token = optimism_token::new(token_address, op_rpc.clone());
 
         let proposal_events_one = gov_contract
             .proposal_created_1_filter()
@@ -99,9 +106,15 @@ impl ProposalHandler for OptimismHandler {
         }
 
         for p in proposal_events_two.iter() {
-            let p = data_for_proposal_two(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
-                .await
-                .context("data_for_proposal_two")?;
+            let p = data_for_proposal_two(
+                p.clone(),
+                &op_rpc,
+                dao_handler,
+                gov_contract.clone(),
+                op_token.clone(),
+            )
+            .await
+            .context("data_for_proposal_two")?;
             result.push(p);
         }
 
@@ -288,6 +301,7 @@ async fn data_for_proposal_two(
     rpc: &Arc<Provider<Http>>,
     dao_handler: &dao_handler::Model,
     gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
+    op_token: optimism_token<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
     println!("ProposalCreated2Filter");
     let (log, meta): (ProposalCreated2Filter, LogMeta) = p.clone();
@@ -345,105 +359,63 @@ async fn data_for_proposal_two(
 
     let proposal_external_id = log.proposal_id.to_string();
 
-    let mut choices: Vec<&str> = vec![];
-    let mut choices_strings: Vec<String> = vec![];
-    let mut scores: Vec<f64> = vec![];
-    let mut scores_total: f64 = 0.0;
+    let mut supply = 0.0;
 
     if to_checksum(&log.voting_module, None) == "0x27964c5f4F389B8399036e1076d84c6984576C33" {
+        #[derive(Debug, Deserialize)]
+        struct ProposalSettings {
+            against_threshold: U256,
+            is_relative_to_votable_supply: bool,
+        }
+
+        let types: Vec<ParamType> = vec![ParamType::Tuple(vec![
+            ParamType::Uint(256), // againstThreshold
+            ParamType::Bool,      // isRelativeToVotableSupply
+        ])];
+
         let voting_module =
             optimism_votemodule_0x_2796_4c_5f_4f389b839903_6e_107_6d_8_4c_6984576c33::optimism_votemodule_0x27964c5f4F389B8399036e1076d84c6984576C33::new(
                 log.voting_module,
                 rpc.clone(),
             );
 
-        let successful = voting_module
-            .vote_succeeded(log.proposal_id)
-            .await
-            .context("voting_module.vote_succeeded")?;
+        let decoded_proposal_data =
+            decode(&types, &log.proposal_data).context("Failed to decode proposal data")?;
 
-        choices = vec!["For", "Against"];
+        let proposal_tokens = decoded_proposal_data[0].clone().into_tuple().unwrap();
 
-        scores = if successful {
-            vec![100.0, 0.0]
-        } else {
-            vec![0.0, 100.0]
+        let proposal_settings = ProposalSettings {
+            against_threshold: proposal_tokens[0].clone().into_uint().unwrap(),
+            is_relative_to_votable_supply: proposal_tokens[1].clone().into_bool().unwrap(),
         };
 
-        scores_total = scores.iter().sum();
+        if proposal_settings.is_relative_to_votable_supply {
+            let votable_supply = gov_contract
+                .votable_supply_with_block_number(ethers::types::U256::from(
+                    meta.block_number.as_u64(),
+                ))
+                .await?;
+
+            supply = votable_supply.as_u128() as f64 / 10.0f64.powi(18);
+        } else {
+            let total_supply = op_token.total_supply().await?;
+
+            supply = total_supply.as_u128() as f64 / 10.0f64.powi(18);
+        }
     }
 
-    if to_checksum(&log.voting_module, None) == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
-        #[derive(Debug, Deserialize)]
-        struct ProposalOption {
-            description: String,
-        }
+    let (against_votes, _, _) = gov_contract.proposal_votes(log.proposal_id).await?;
 
-        #[derive(Debug, Deserialize)]
-        struct ProposalData {
-            proposal_options: Vec<ProposalOption>,
-        }
+    let for_votes = supply - against_votes.as_u128() as f64 / 10.0f64.powi(18);
 
-        // Define the expected types
-        let types: Vec<ParamType> = vec![
-            ParamType::Array(Box::new(ParamType::Tuple(vec![
-                ParamType::Uint(256),                             // budgetTokensSpent
-                ParamType::Array(Box::new(ParamType::Address)),   // targets
-                ParamType::Array(Box::new(ParamType::Uint(256))), // values
-                ParamType::Array(Box::new(ParamType::Bytes)),     // calldatas
-                ParamType::String,                                // description
-            ]))),
-            ParamType::Tuple(vec![
-                ParamType::Uint(8),   // maxApprovals
-                ParamType::Uint(8),   // criteria
-                ParamType::Address,   // budgetToken
-                ParamType::Uint(128), // criteriaValue
-                ParamType::Uint(128), // budgetAmount
-            ]),
-        ];
-
-        // Decode the bytes using the defined types
-        let decoded_proposal_data = decode(&types, &log.proposal_data)?;
-
-        // Extract the decoded data
-        let proposal_options_tokens = decoded_proposal_data[0].clone().into_array().unwrap();
-
-        // Parse proposal options
-        let proposal_options: Vec<ProposalOption> = proposal_options_tokens
-            .into_iter()
-            .map(|token| {
-                let tokens = token.into_tuple().unwrap();
-                ProposalOption {
-                    description: tokens[4].clone().into_string().unwrap(),
-                }
-            })
-            .collect();
-
-        // Construct the proposal data
-        let proposal_data = ProposalData { proposal_options };
-
-        choices_strings = proposal_data
-            .proposal_options
-            .iter()
-            .map(|o| o.description.clone())
-            .collect();
-
-        choices = choices_strings.iter().map(|s| s.as_str()).collect();
-    }
-
-    let scores_quorum = scores_total;
+    let choices: Vec<&str> = vec!["Against", "For"];
+    let scores: Vec<f64> = vec![against_votes.as_u128() as f64 / 10.0f64.powi(18), for_votes];
+    let scores_total: f64 = scores.iter().sum();
 
     let proposal_state = gov_contract
         .state(log.proposal_id)
         .await
         .context("gov_contract.state")?;
-
-    let quorum = gov_contract
-        .quorum(log.proposal_id)
-        .await
-        .context("gov_contract.quorum")?
-        .as_u128() as f64
-        / (10.0f64.powi(18));
 
     let state = match proposal_state {
         0 => ProposalStateEnum::Pending,
@@ -469,8 +441,8 @@ async fn data_for_proposal_two(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
-        scores_quorum: Set(scores_quorum),
-        quorum: Set(quorum),
+        scores_quorum: Set(0.0),
+        quorum: Set(0.0),
         proposal_state: Set(state),
         flagged: NotSet,
         block_created: Set(Some(created_block_number as i32)),
@@ -849,7 +821,7 @@ mod optimism_proposals {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
@@ -858,12 +830,12 @@ mod optimism_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::OpOptimism),
+            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
             votes_refresh_speed: 1,
-            proposals_index: 122606557,
+            proposals_index: 115003910,
             votes_index: 0,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
@@ -879,22 +851,22 @@ mod optimism_proposals {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
-                    external_id: "90325319727942518873831548042238075814171401667882437093972023619135226172775",
-                    name: "Mission Requests: Intent #3A, 6M OP",
-                    body_contains: vec!["# Mission Requests: Intent #3A, 6M OP","9,500 active developers driving usage across the Superchain"],
-                    url: "https://vote.optimism.io/proposals/90325319727942518873831548042238075814171401667882437093972023619135226172775",
+                    external_id: "64861580915106728278960188313654044018229192803489945934331754023009986585740",
+                    name: "Upgrade Proposal #3: Delta Network Upgrade ",
+                    body_contains: vec!["This upgrade (“Delta”) contains a single consensus-layer feature, Span Batches."],
+                    url: "https://vote.optimism.io/proposals/64861580915106728278960188313654044018229192803489945934331754023009986585740",
                     discussion_url:
                         "",
-                    choices:  "[\"Request 1A: Optimism Dominance in Yield-Bearing Assets 1A\",\"Request 1B: Optimism Dominance in Yield-Bearing Assets 1B\",\"Request 1C: Optimism Dominance in Yield-Bearing Assets 1C\",\"Request 1D: Optimism Dominance in Yield-Bearing Assets 1D\",\"Request 2: Subsidized Audit Grants\",\"Request 3: Developer Tools\",\"Request 4: Research capital migration to the Superchain\",\"Request 5: Microgrants for Experimental Projects\",\"Request 6: Optimism as base for LRTs\",\"Request 7: Experimental Derivative Markets \",\"Request 8: ERC 4337 Data & Attribution Standards for the Superchain \",\"Request 9: Sequencer commitment games\",\"Request 10: Develop Onchain Social Games that attract Builders to Optimism - v2\",\"Request 11: Open-source transaction simulator\",\"Request 12: Increase Project Accounts\",\"Request 13: Support on-chain games close to launch\",\"Request 14:Optimism as Venture Studio\",\"Request 15: Gaming Infra in the Superchain\",\"Request 16: Marquee Governance Hackaton \",\"Request 17 :Accelerating Game Development in the Superchain\",\"Request 18: Decentralized Basis Trade\",\"Request 19: Create Educational Programs that Empower Developers on Optimism - Modified with Lower Budget \"]",
-                    scores: "[]",
-                    scores_total: 0.0,
-                    scores_quorum: 0.0,
-                    quorum: 26226000.0,
+                    choices:  "[\"For\",\"Against\",\"Abstain\"]",
+                    scores: "[47973168.65157966,17442.55720272951,4944.826909433364]",
+                    scores_total: 47995556.03569182,
+                    scores_quorum: 47995556.03569182,
+                    quorum: 25500000.000000004,
                     proposal_state: ProposalStateEnum::Succeeded,
-                    block_created: Some(122606557),
-                    time_created: Some("2024-07-12 19:18:11"),
-                    time_start: "2024-07-12 19:18:11",
-                    time_end: "2024-07-18 19:18:11",
+                    block_created: Some(115003910),
+                    time_created: Some("2024-01-18 19:36:37"),
+                    time_start: "2024-01-18 19:36:37",
+                    time_end: "2024-01-24 19:36:37",
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -910,12 +882,12 @@ mod optimism_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::OpOptimism),
+            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
             votes_refresh_speed: 1,
-            proposals_index: 118635402,
+            proposals_index: 115004187,
             votes_index: 0,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
@@ -931,22 +903,22 @@ mod optimism_proposals {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
-                    external_id: "63758762292293008954414933414904836930778692439616923618399126968620365661274",
-                    name: "Governor Upgrade #1: Improve advanced delegation voting ",
-                    body_contains: vec!["This update enables voters with advanced delegated voting power to cast their votes in a single transaction. This enhancement addresses user feedback on the advanced delegation feature, simplifying the voting process."],
-                    url: "https://vote.optimism.io/proposals/63758762292293008954414933414904836930778692439616923618399126968620365661274",
+                    external_id: "114318499951173425640219752344574142419220609526557632733105006940618608635406",
+                    name: "Summary of Code of Conduct enforcement decisions",
+                    body_contains: vec!["The elected Token House Code of Conduct Council’s decisions are subject to optimistic approval by the Token House."],
+                    url: "https://vote.optimism.io/proposals/114318499951173425640219752344574142419220609526557632733105006940618608635406",
                     discussion_url:
                         "",
-                    choices:  "[\"For\",\"Against\",\"Abstain\"]",
-                    scores: "[54315284.90088786,1629.486018624594,1666.622113799688]",
-                    scores_total: 54318581.00902029,
-                    scores_quorum: 54318581.00902029,
-                    quorum: 26226000.0,
+                    choices:  "[\"Against\",\"For\"]",
+                    scores: "[2046807.8678072141,82953192.13219279]",
+                    scores_total: 85000000.0,
+                    scores_quorum: 0.0,
+                    quorum: 0.0,
                     proposal_state: ProposalStateEnum::Succeeded,
-                    block_created: Some(118635402),
-                    time_created: Some("2024-04-11 21:06:21"),
-                    time_start: "2024-04-11 21:06:21",
-                    time_end: "2024-04-17 21:06:21",
+                    block_created: Some(115004187),
+                    time_created: Some("2024-01-18 19:45:51"),
+                    time_start: "2024-01-18 19:45:51",
+                    time_end: "2024-01-24 19:45:51",
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -962,7 +934,7 @@ mod optimism_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::OpOptimism),
+            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -1014,7 +986,7 @@ mod optimism_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::OpOptimism),
+            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,

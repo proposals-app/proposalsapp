@@ -254,7 +254,7 @@ mod arbitrum_treasury_proposals {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
@@ -263,7 +263,7 @@ mod arbitrum_treasury_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::ArbTreasuryArbitrum),
+            handler_type: (DaoHandlerEnumV3::ArbTreasuryArbitrum),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -318,7 +318,7 @@ mod arbitrum_treasury_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::ArbTreasuryArbitrum),
+            handler_type: (DaoHandlerEnumV3::ArbTreasuryArbitrum),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 192337153 - 188757729,
@@ -391,7 +391,7 @@ mod arbitrum_treasury_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV2::ArbTreasuryArbitrum),
+            handler_type: (DaoHandlerEnumV3::ArbTreasuryArbitrum),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,

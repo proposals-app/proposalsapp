@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
-    enum_name = "dao_handler_enum_v2"
+    enum_name = "dao_handler_enum_v3"
 )]
-pub enum DaoHandlerEnumV2 {
+pub enum DaoHandlerEnumV3 {
     #[sea_orm(string_value = "AAVE_V2_MAINNET")]
     AaveV2Mainnet,
     #[sea_orm(string_value = "AAVE_V3_AVALANCHE")]
@@ -46,8 +46,16 @@ pub enum DaoHandlerEnumV2 {
     MakerPollMainnet,
     #[sea_orm(string_value = "NOUNS_PROPOSALS_MAINNET")]
     NounsProposalsMainnet,
-    #[sea_orm(string_value = "OP_OPTIMISM")]
-    OpOptimism,
+    #[sea_orm(string_value = "OP_OPTIMISM_OLD")]
+    OpOptimismOld,
+    #[sea_orm(string_value = "OP_OPTIMISM_TYPE1")]
+    OpOptimismType1,
+    #[sea_orm(string_value = "OP_OPTIMISM_TYPE2")]
+    OpOptimismType2,
+    #[sea_orm(string_value = "OP_OPTIMISM_TYPE3")]
+    OpOptimismType3,
+    #[sea_orm(string_value = "OP_OPTIMISM_TYPE4")]
+    OpOptimismType4,
     #[sea_orm(string_value = "SNAPSHOT")]
     Snapshot,
     #[sea_orm(string_value = "UNISWAP_MAINNET")]

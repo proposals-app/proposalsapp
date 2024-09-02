@@ -173,6 +173,7 @@ pub struct ExpectedVote {
     pub block_created: Option<i32>,
     pub choice: i32,
     pub proposal_external_id: &'static str,
+    pub reason: Option<String>,
 }
 
 pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
@@ -203,6 +204,13 @@ pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
         "Choice mismatch: expected {}, got {}",
         expected.choice,
         vote.choice.clone().take().unwrap()
+    );
+    assert_eq!(
+        vote.reason.clone().take().unwrap(),
+        expected.reason,
+        "Reason mismatch: expected {:?}, got {:?}",
+        expected.reason,
+        vote.reason.clone().take().unwrap()
     );
     assert_eq!(
         vote.proposal_external_id.clone().take().unwrap(),

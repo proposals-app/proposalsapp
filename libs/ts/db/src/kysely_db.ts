@@ -1,6 +1,6 @@
 import type { ColumnType } from "kysely";
 
-export enum DaoHandlerEnumV2 {
+export enum DaoHandlerEnumV3 {
   AAVEV2MAINNET = "AAVE_V2_MAINNET",
   AAVEV3AVALANCHE = "AAVE_V3_AVALANCHE",
   AAVEV3MAINNET = "AAVE_V3_MAINNET",
@@ -19,7 +19,11 @@ export enum DaoHandlerEnumV2 {
   MAKERPOLLARBITRUM = "MAKER_POLL_ARBITRUM",
   MAKERPOLLMAINNET = "MAKER_POLL_MAINNET",
   NOUNSPROPOSALSMAINNET = "NOUNS_PROPOSALS_MAINNET",
-  OPOPTIMISM = "OP_OPTIMISM",
+  OPOPTIMISMOLD = "OP_OPTIMISM_OLD",
+  OPOPTIMISMTYPE1 = "OP_OPTIMISM_TYPE1",
+  OPOPTIMISMTYPE2 = "OP_OPTIMISM_TYPE2",
+  OPOPTIMISMTYPE3 = "OP_OPTIMISM_TYPE3",
+  OPOPTIMISMTYPE4 = "OP_OPTIMISM_TYPE4",
   SNAPSHOT = "SNAPSHOT",
   UNISWAPMAINNET = "UNISWAP_MAINNET",
 }
@@ -90,7 +94,7 @@ export interface Dao {
 export interface DaoHandler {
   daoId: string;
   governancePortal: Generated<string>;
-  handlerType: DaoHandlerEnumV2;
+  handlerType: DaoHandlerEnumV3;
   id: Generated<string>;
   proposalsIndex: Generated<number>;
   proposalsRefreshSpeed: Generated<number>;

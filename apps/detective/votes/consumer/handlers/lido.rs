@@ -113,7 +113,7 @@ mod lido_votes {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV2};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
     use utils::test_utils::{assert_vote, ExpectedVote};
 
     #[tokio::test]
@@ -122,7 +122,7 @@ mod lido_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV2::AaveV3Mainnet,
+            handler_type: DaoHandlerEnumV3::AaveV3Mainnet,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -141,6 +141,7 @@ mod lido_votes {
                     block_created: Some(20233212),
                     choice: 0,
                     proposal_external_id: "175",
+                    reason: Some(String::from("")),
                 }];
                 for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
@@ -156,7 +157,7 @@ mod lido_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV2::AaveV3Mainnet,
+            handler_type: DaoHandlerEnumV3::AaveV3Mainnet,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 0,
@@ -176,6 +177,7 @@ mod lido_votes {
                         block_created: Some(14678817),
                         choice: 0,
                         proposal_external_id: "126",
+                        reason: Some(String::from("")),
                     },
                     ExpectedVote {
                         voter_address: "0x1f3813fE7ace2a33585F1438215C7F42832FB7B3",
@@ -183,6 +185,7 @@ mod lido_votes {
                         block_created: Some(14679507),
                         choice: 0,
                         proposal_external_id: "126",
+                        reason: Some(String::from("")),
                     },
                 ];
                 for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {

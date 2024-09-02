@@ -7,7 +7,7 @@ use sea_orm::{
 };
 use seaorm::{
     dao, dao_handler, proposal,
-    sea_orm_active_enums::{DaoHandlerEnumV2, ProposalStateEnum},
+    sea_orm_active_enums::{DaoHandlerEnumV3, ProposalStateEnum},
 };
 use serde::Deserialize;
 use tokio::time;
@@ -74,7 +74,7 @@ pub async fn snapshot_sanity_check(db: &DatabaseConnection) -> Result<()> {
     let sanitize_to: NaiveDateTime = (Utc::now() - Duration::minutes(5)).naive_utc();
 
     let dao_handlers = dao_handler::Entity::find()
-        .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV2::Snapshot))
+        .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV3::Snapshot))
         .all(db)
         .await
         .context(DATABASE_ERROR)?;
