@@ -14,10 +14,10 @@ use sea_orm::{NotSet, Set};
 use seaorm::{dao, dao_handler, proposal, vote};
 use std::sync::Arc;
 
-pub struct OptimismHandler;
+pub struct OptimismType4Handler;
 
 #[async_trait]
-impl VotesHandler for OptimismHandler {
+impl VotesHandler for OptimismType4Handler {
     async fn get_proposal_votes(
         &self,
         _dao_handler: &dao_handler::Model,
@@ -173,7 +173,7 @@ mod optimism_votes {
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        match OptimismHandler.get_dao_votes(&dao_handler).await {
+        match OptimismType4Handler.get_dao_votes(&dao_handler).await {
             Ok(result) => {
                 assert!(!result.votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
@@ -209,7 +209,7 @@ mod optimism_votes {
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        match OptimismHandler.get_dao_votes(&dao_handler).await {
+        match OptimismType4Handler.get_dao_votes(&dao_handler).await {
             Ok(result) => {
                 assert!(!result.votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
@@ -245,7 +245,7 @@ mod optimism_votes {
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        match OptimismHandler.get_dao_votes(&dao_handler).await {
+        match OptimismType4Handler.get_dao_votes(&dao_handler).await {
             Ok(result) => {
                 assert!(!result.votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {

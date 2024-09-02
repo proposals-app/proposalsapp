@@ -20,10 +20,10 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
-pub struct OptimismHandler;
+pub struct OptimismOldHandler;
 
 #[async_trait]
-impl ProposalHandler for OptimismHandler {
+impl ProposalHandler for OptimismOldHandler {
     async fn get_proposals(
         &self,
         dao_handler: &dao_handler::Model,
@@ -847,7 +847,7 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismHandler.get_proposals(&dao_handler, &dao).await {
+        match OptimismOldHandler.get_proposals(&dao_handler, &dao).await {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -899,7 +899,7 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismHandler.get_proposals(&dao_handler, &dao).await {
+        match OptimismOldHandler.get_proposals(&dao_handler, &dao).await {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -951,7 +951,7 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismHandler.get_proposals(&dao_handler, &dao).await {
+        match OptimismOldHandler.get_proposals(&dao_handler, &dao).await {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -1003,7 +1003,7 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismHandler.get_proposals(&dao_handler, &dao).await {
+        match OptimismOldHandler.get_proposals(&dao_handler, &dao).await {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

@@ -397,7 +397,7 @@ mod aave_v3_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: Some(DaoHandlerEnumV3::AaveV3Mainnet),
+            handler_type: (DaoHandlerEnumV3::AaveV3Mainnet),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -449,7 +449,7 @@ mod aave_v3_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: Some(DaoHandlerEnumV3::AaveV3Mainnet),
+            handler_type: (DaoHandlerEnumV3::AaveV3Mainnet),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 19819808 - 19812127,
@@ -519,7 +519,7 @@ mod aave_v3_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: Some(DaoHandlerEnumV3::AaveV3Mainnet),
+            handler_type: (DaoHandlerEnumV3::AaveV3Mainnet),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
