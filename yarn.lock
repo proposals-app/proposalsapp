@@ -1588,7 +1588,7 @@ __metadata:
     class-variance-authority: "npm:^0.7.0"
     next: "npm:14.2.7"
     pino-pretty: "npm:11.2.2"
-    postcss: "npm:8.4.42"
+    postcss: "npm:8.4.44"
     prettier: "npm:^3.3.3"
     prettier-plugin-tailwindcss: "npm:^0.6.6"
     react: "npm:18.3.1"
@@ -1651,15 +1651,15 @@ __metadata:
     embla-carousel-react: "npm:^8.2.0"
     input-otp: "npm:^1.2.4"
     lucia: "npm:3.2.0"
-    lucide-react: "npm:^0.437.0"
+    lucide-react: "npm:^0.438.0"
     moment: "npm:2.30.1"
     next: "npm:14.2.7"
     next-themes: "npm:^0.3.0"
     oslo: "npm:1.2.1"
     pg: "npm:8.12.0"
     pino-pretty: "npm:11.2.2"
-    postcss: "npm:8.4.42"
-    posthog-js: "npm:1.160.0"
+    postcss: "npm:8.4.44"
+    posthog-js: "npm:1.160.1"
     postmark: "npm:4.0.5"
     prettier: "npm:3.3.3"
     prettier-plugin-tailwindcss: "npm:0.6.6"
@@ -6488,12 +6488,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^0.437.0":
-  version: 0.437.0
-  resolution: "lucide-react@npm:0.437.0"
+"lucide-react@npm:^0.438.0":
+  version: 0.438.0
+  resolution: "lucide-react@npm:0.438.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
-  checksum: 10c0/8fd85690e93a59d01f7ae1343b6f37b5fc7b99296a165180b74825cc73146b4c71b907e6a692970ee5f83a52f89a4d3c62998e6e2ecc3e86ba25b92d25ed9828
+  checksum: 10c0/d5e9e9130e301b3231fffd3e5fab85975a7523fb5ab160a8125ad6937de713af46d0ac7a96c1ba532b9ff39a14d940aefa9ea41cb30123ff7f8ce88f44cfe2f1
   languageName: node
   linkType: hard
 
@@ -7548,14 +7548,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:8.4.42":
-  version: 8.4.42
-  resolution: "postcss@npm:8.4.42"
+"postcss@npm:8.4.44":
+  version: 8.4.44
+  resolution: "postcss@npm:8.4.44"
   dependencies:
     nanoid: "npm:^3.3.7"
     picocolors: "npm:^1.0.1"
     source-map-js: "npm:^1.2.0"
-  checksum: 10c0/ac4dd01b07b2b9db12c24284aed497d35436ed05e4944be6cf00eb8daa4914fd9fbc5ec729e47981b4f1a9c51847d043d1808c796b9440ae0c5e8ff7a29bc821
+  checksum: 10c0/53c33338261a3d4f4198f8893e9dfe8b828d8d9186142ee85f02d228f04245c5bbe31239411a357a556ad20ed96f28db24d0921d63edc428fdc9133289371a1d
   languageName: node
   linkType: hard
 
@@ -7644,14 +7644,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.160.0":
-  version: 1.160.0
-  resolution: "posthog-js@npm:1.160.0"
+"posthog-js@npm:1.160.1":
+  version: 1.160.1
+  resolution: "posthog-js@npm:1.160.1"
   dependencies:
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.0.1"
-  checksum: 10c0/ba2601cab0578a6cbed50b2fe600781abbbd60707621f37ee87e55f3453e0babe8a32890fcd8ba9994e10707f26fbe9c804c69b7a00f101810db6e59590bfc16
+  checksum: 10c0/66e4a533832629b8fa7eae82087cc0599bd4d2f11793a6064e82d48d1e4523cd10426a39c94bcabf243af6f5ca72377ac999e083d6c67da9951bb2e8146b6a35
   languageName: node
   linkType: hard
 
