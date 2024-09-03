@@ -249,6 +249,7 @@ async fn data_for_proposal(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -602,6 +603,7 @@ mod aave_v2_proposals {
                     time_created: Some("2020-12-23 21:45:20"),
                     time_start: "2020-12-23 21:45:20",
                     time_end: "2020-12-26 20:38:38",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -654,6 +656,7 @@ mod aave_v2_proposals {
                     time_created: Some("2023-11-29 18:11:35"),
                     time_start: "2023-11-30 18:21:47",
                     time_end: "2023-12-03 10:49:11",
+                    metadata: None
                 },
                 ExpectedProposal {
                     external_id: "389",
@@ -672,6 +675,7 @@ mod aave_v2_proposals {
                     time_created: Some("2023-11-30 20:15:47"),
                     time_start: "2023-12-01 20:26:23",
                     time_end: "2023-12-04 12:55:47",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -724,6 +728,7 @@ mod aave_v2_proposals {
                     time_created: Some("2023-12-15 09:23:47"),
                     time_start: "2023-12-16 09:42:23",
                     time_end: "2023-12-19 02:20:59",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

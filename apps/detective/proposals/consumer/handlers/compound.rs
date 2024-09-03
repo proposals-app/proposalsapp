@@ -238,6 +238,7 @@ async fn data_for_proposal(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -292,6 +293,7 @@ mod compound_proposals {
                     time_created: Some("2021-04-14 03:00:21"),
                     time_start: "2021-04-14 03:00:23",
                     time_end: "2021-04-16 19:13:09",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -344,6 +346,7 @@ mod compound_proposals {
                     time_created: Some("2024-07-01 21:10:47"),
                     time_start: "2024-07-03 17:15:35",
                     time_end: "2024-07-06 11:18:59",
+                    metadata: None
                 },
                 ExpectedProposal {
                     external_id: "272",
@@ -362,6 +365,7 @@ mod compound_proposals {
                     time_created: Some("2024-07-02 00:27:59"),
                     time_start: "2024-07-03 20:31:59",
                     time_end: "2024-07-06 14:35:47",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -414,6 +418,7 @@ mod compound_proposals {
                     time_created: Some("2024-07-21 15:35:59"),
                     time_start: "2024-07-23 11:38:35",
                     time_end: "2024-07-26 05:40:47",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

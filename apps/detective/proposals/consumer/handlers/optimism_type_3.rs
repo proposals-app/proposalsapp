@@ -4,12 +4,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use contracts::gen::{
-    optimism_gov_v_6::{
-        optimism_gov_v_6::optimism_gov_v6, ProposalCreated1Filter, ProposalCreated2Filter,
-        ProposalCreated3Filter, ProposalCreated4Filter,
-    },
-    optimism_token::optimism_token::optimism_token,
-    optimism_votemodule_0x_2796_4c_5f_4f389b839903_6e_107_6d_8_4c_6984576c33,
+    optimism_gov_v_6::{optimism_gov_v_6::optimism_gov_v6, ProposalCreated3Filter},
     optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5,
 };
 use ethers::{prelude::*, utils::to_checksum};
@@ -163,12 +158,14 @@ async fn data_for_proposal_three(
 
     let proposal_external_id = log.proposal_id.to_string();
 
+    let voting_module = to_checksum(&log.voting_module, None);
+
     let mut choices: Vec<&str> = vec![];
     let mut choices_strings: Vec<String> = vec![];
     let mut scores: Vec<f64> = vec![];
     let mut scores_total: f64 = 0.0;
 
-    if to_checksum(&log.voting_module, None) == "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5" {
+    if voting_module == "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5" {
         let voting_module =
             optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5::optimism_votemodule_0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5::new(
                 log.voting_module,
@@ -296,6 +293,7 @@ async fn data_for_proposal_three(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: Set(json!({"proposal_type":3, "voting_module" : voting_module}).into()),
     })
 }
 
@@ -308,7 +306,7 @@ mod optimism_proposals {
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn optimism_3() {
+    async fn optimism_type_3() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -350,6 +348,7 @@ mod optimism_proposals {
                     time_created: Some("2023-06-29 22:25:25"),
                     time_start: "2023-06-29 22:25:25",
                     time_end: "2023-07-13 22:25:25",
+                    metadata: Some(json!({"proposal_type": 3, "voting_module": String::from("0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5")}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

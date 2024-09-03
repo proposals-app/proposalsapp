@@ -114,6 +114,7 @@ mod lido_votes {
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use serde_json::json;
     use utils::test_utils::{assert_vote, ExpectedVote};
 
     #[tokio::test]
@@ -139,7 +140,7 @@ mod lido_votes {
                     voter_address: "0x7eE09c11D6Dc9684D6D5a4C6d333e5b9e336bb6C",
                     voting_power: 5016797.950057261,
                     block_created: Some(20233212),
-                    choice: 0,
+                    choice: json!(0),
                     proposal_external_id: "175",
                     reason: Some(String::from("")),
                 }];
@@ -175,7 +176,7 @@ mod lido_votes {
                         voter_address: "0x7eE09c11D6Dc9684D6D5a4C6d333e5b9e336bb6C",
                         voting_power: 8350129.950057261,
                         block_created: Some(14678817),
-                        choice: 0,
+                        choice: json!(0),
                         proposal_external_id: "126",
                         reason: Some(String::from("")),
                     },
@@ -183,7 +184,7 @@ mod lido_votes {
                         voter_address: "0x1f3813fE7ace2a33585F1438215C7F42832FB7B3",
                         voting_power: 18279999.0,
                         block_created: Some(14679507),
-                        choice: 0,
+                        choice: json!(0),
                         proposal_external_id: "126",
                         reason: Some(String::from("")),
                     },

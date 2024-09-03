@@ -155,10 +155,11 @@ mod optimism_votes {
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use serde_json::json;
     use utils::test_utils::{assert_vote, ExpectedVote};
 
     #[tokio::test]
-    async fn optimism_votes_2() {
+    async fn optimism_votes_type_2_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -180,7 +181,7 @@ mod optimism_votes {
                     voter_address: "0x049e37b4276B58dB622Ab5db2ff2AfFCb40DC11C",
                     voting_power: 56351.64083348377,
                     block_created: Some(115261441),
-                    choice: 0,
+                    choice: json!(0),
                     proposal_external_id: "114318499951173425640219752344574142419220609526557632733105006940618608635406",
                     reason: Some(String::from("I agree with Jack")),
                 }];

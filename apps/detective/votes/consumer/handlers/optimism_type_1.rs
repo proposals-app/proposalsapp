@@ -155,10 +155,11 @@ mod optimism_votes {
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use serde_json::json;
     use utils::test_utils::{assert_vote, ExpectedVote};
 
     #[tokio::test]
-    async fn optimism_votes_1() {
+    async fn optimism_votes_type_1_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -180,7 +181,7 @@ mod optimism_votes {
                     voter_address: "0xC776cBDDeA014889E8BaB4323C894C5c34DB214D",
                     voting_power: 2.84234644277626,
                     block_created: Some(115004770),
-                    choice: 1,
+                    choice: json!(1),
                     proposal_external_id: "64861580915106728278960188313654044018229192803489945934331754023009986585740",
                     reason: Some(String::from("I think this is a good feature")),
                 }];
@@ -188,6 +189,42 @@ mod optimism_votes {
                     assert_vote(vote, expected);
                 }
                 assert_eq!(result.to_index, Some(115004771));
+            }
+            Err(e) => panic!("Failed to get votes: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_votes_type_1_2() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 0,
+            votes_index: 115257697,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        match OptimismType1Handler.get_dao_votes(&dao_handler).await {
+            Ok(result) => {
+                assert!(!result.votes.is_empty(), "No votes were fetched");
+                let expected_votes = [ExpectedVote {
+                    voter_address: "0xB1F34669752D645F7fbf5B6f3E3CB9ADFf0528b2",
+                    voting_power: 1.91,
+                    block_created: Some(115257697),
+                    choice: json!(0),
+                    proposal_external_id: "64861580915106728278960188313654044018229192803489945934331754023009986585740",
+                    reason: Some(String::from("")),
+                }];
+                for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
+                    assert_vote(vote, expected);
+                }
+                assert_eq!(result.to_index, Some(115257698));
             }
             Err(e) => panic!("Failed to get votes: {:?}", e),
         }

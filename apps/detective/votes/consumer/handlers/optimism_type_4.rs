@@ -155,21 +155,22 @@ mod optimism_votes {
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use serde_json::json;
     use utils::test_utils::{assert_vote, ExpectedVote};
 
     #[tokio::test]
-    async fn optimism_votes_1() {
+    async fn optimism_votes_type_4() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            handler_type: DaoHandlerEnumV3::OpOptimismType4,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
             votes_refresh_speed: 1,
             proposals_index: 0,
-            votes_index: 115004770,
+            votes_index: 110770895,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
@@ -177,89 +178,17 @@ mod optimism_votes {
             Ok(result) => {
                 assert!(!result.votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
-                    voter_address: "0xC776cBDDeA014889E8BaB4323C894C5c34DB214D",
-                    voting_power: 2.84234644277626,
-                    block_created: Some(115004770),
-                    choice: 1,
-                    proposal_external_id: "64861580915106728278960188313654044018229192803489945934331754023009986585740",
-                    reason: Some(String::from("I think this is a good feature")),
+                    voter_address: "0x4f41877773e44F2275dA1942FEe898556821bf66",
+                    voting_power: 1826137.2164138977,
+                    block_created: Some(110770895),
+                    choice: json!(0),
+                    proposal_external_id: "25353629475948605098820168047140307200589226219380649297323431722674892706917",
+                    reason: Some(String::from("Without commenting on the substance of his allegations or the related discussions, I believe what Carlos has posted in his response to the CoC notice with regard to whether there was intentional or malicious doxing. I take Carlos at his word that he was only invoking these people's identities because (1) they were already public in several different domains, as supported by his screenshots, and (2) they were relevant to the claims he was making regarding connections between different organizations. I would however remind Carlos that there is an extremely high bar of support and context needed to substantiate allegations like his. Zooming out, I'm glad a CoC council is being formed and encourage people to apply.")),
                 }];
                 for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
                 }
-                assert_eq!(result.to_index, Some(115004771));
-            }
-            Err(e) => panic!("Failed to get votes: {:?}", e),
-        }
-    }
-
-    #[tokio::test]
-    async fn optimism_votes_2() {
-        let _ = dotenv().ok();
-
-        let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::OpOptimismOld,
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 1,
-            votes_refresh_speed: 1,
-            proposals_index: 0,
-            votes_index: 115261441,
-            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-        };
-
-        match OptimismType4Handler.get_dao_votes(&dao_handler).await {
-            Ok(result) => {
-                assert!(!result.votes.is_empty(), "No votes were fetched");
-                let expected_votes = [ExpectedVote {
-                    voter_address: "0x049e37b4276B58dB622Ab5db2ff2AfFCb40DC11C",
-                    voting_power: 56351.64083348377,
-                    block_created: Some(115261441),
-                    choice: 0,
-                    proposal_external_id: "114318499951173425640219752344574142419220609526557632733105006940618608635406",
-                    reason: Some(String::from("I agree with Jack")),
-                }];
-                for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
-                    assert_vote(vote, expected);
-                }
-                assert_eq!(result.to_index, Some(115261442));
-            }
-            Err(e) => panic!("Failed to get votes: {:?}", e),
-        }
-    }
-
-    #[tokio::test]
-    async fn optimism_votes_3() {
-        let _ = dotenv().ok();
-
-        let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::OpOptimismOld,
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 1,
-            votes_refresh_speed: 1,
-            proposals_index: 0,
-            votes_index: 106787763,
-            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-        };
-
-        match OptimismType4Handler.get_dao_votes(&dao_handler).await {
-            Ok(result) => {
-                assert!(!result.votes.is_empty(), "No votes were fetched");
-                let expected_votes = [ExpectedVote {
-                    voter_address: "0x995013B47EF3A2B07b9e60dA6D1fFf8fa9C53Cf4",
-                    voting_power: 1001481.1043390606,
-                    block_created: Some(106787763),
-                    choice: 0,
-                    proposal_external_id: "76298930109016961673734608568752969826843280855214969572559472848313136347131",
-                    reason: Some(String::from("Opinion in forum")),
-                }];
-                for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
-                    assert_vote(vote, expected);
-                }
-                assert_eq!(result.to_index, Some(106787764));
+                assert_eq!(result.to_index, Some(110770896));
             }
             Err(e) => panic!("Failed to get votes: {:?}", e),
         }

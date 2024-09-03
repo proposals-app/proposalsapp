@@ -246,6 +246,7 @@ async fn data_for_proposal(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -303,6 +304,7 @@ mod arbitrum_treasury_proposals {
                     time_created: Some("2023-06-06 15:56:04"),
                     time_start: "2023-06-09 17:03:59",
                     time_end: "2023-06-23 21:04:59",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -358,6 +360,7 @@ mod arbitrum_treasury_proposals {
                     time_created: Some("2024-03-09 20:16:53"),
                     time_start: "2024-03-12 20:44:59",
                     time_end: "2024-03-27 00:54:23",
+                    metadata: None
                 },
                 ExpectedProposal {
                     external_id: "38070839538623347085766954167338451189998347523518753197890888828931691912919",
@@ -376,6 +379,7 @@ mod arbitrum_treasury_proposals {
                     time_created: Some("2024-03-20 12:37:09"),
                     time_start: "2024-03-23 13:19:23",
                     time_end: "2024-04-06 18:03:47",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -431,6 +435,7 @@ mod arbitrum_treasury_proposals {
                     time_created: Some("2024-06-07 22:07:24"),
                     time_start: "2024-06-10 22:31:35",
                     time_end: "2024-06-25 00:50:23",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

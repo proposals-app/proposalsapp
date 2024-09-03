@@ -238,5 +238,6 @@ async fn data_for_proposal(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet
     })
 }

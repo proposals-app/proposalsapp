@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
 use sea_orm::prelude::Uuid;
 use seaorm::{proposal, sea_orm_active_enums::ProposalStateEnum, vote};
+use serde_json::Value;
 
 pub struct ExpectedProposal {
     pub external_id: &'static str,
@@ -18,6 +19,7 @@ pub struct ExpectedProposal {
     pub time_created: Option<&'static str>,
     pub time_start: &'static str,
     pub time_end: &'static str,
+    pub metadata: Option<Value>,
 }
 
 pub fn assert_proposal(
@@ -165,13 +167,24 @@ pub fn assert_proposal(
         dao_id,
         proposal.dao_id.clone().take().unwrap()
     );
+
+    let metadata_json = proposal.metadata.clone().take();
+
+    if metadata_json.is_some() {
+        let unwrapped_metadata = metadata_json.unwrap();
+        assert_eq!(
+            unwrapped_metadata, expected.metadata,
+            "Metadata do not match: expected {:?}, got {:?}",
+            expected.metadata, unwrapped_metadata
+        );
+    }
 }
 
 pub struct ExpectedVote {
     pub voter_address: &'static str,
     pub voting_power: f64,
     pub block_created: Option<i32>,
-    pub choice: i32,
+    pub choice: Value,
     pub proposal_external_id: &'static str,
     pub reason: Option<String>,
 }
@@ -198,13 +211,14 @@ pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
         expected.block_created,
         vote.block_created.clone().take().unwrap()
     );
+
+    let choices_json = vote.choice.clone().take().unwrap();
     assert_eq!(
-        vote.choice.clone().take().unwrap(),
-        expected.choice,
-        "Choice mismatch: expected {}, got {}",
-        expected.choice,
-        vote.choice.clone().take().unwrap()
+        choices_json, expected.choice,
+        "Choice do not match: expected {}, got {}",
+        expected.choice, choices_json
     );
+
     assert_eq!(
         vote.reason.clone().take().unwrap(),
         expected.reason,

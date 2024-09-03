@@ -160,6 +160,7 @@ async fn data_for_proposal(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -213,6 +214,7 @@ mod lido_proposals {
                     time_created: Some("2023-10-03 17:46:59"),
                     time_start: "2023-10-03 17:46:59",
                     time_end: "2023-10-06 17:46:59",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -267,6 +269,7 @@ mod lido_proposals {
                     time_created: Some("2024-01-16 16:24:59"),
                     time_start: "2024-01-16 16:24:59",
                     time_end: "2024-01-19 16:24:59",
+                    metadata: None
                 },
                 ExpectedProposal {
                     external_id: "171",
@@ -287,6 +290,7 @@ mod lido_proposals {
                     time_created: Some("2024-01-23 14:01:23"),
                     time_start: "2024-01-23 14:01:23",
                     time_end: "2024-01-26 14:01:23",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

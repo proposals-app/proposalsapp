@@ -4,13 +4,8 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use contracts::gen::{
-    optimism_gov_v_6::{
-        optimism_gov_v_6::optimism_gov_v6, ProposalCreated1Filter, ProposalCreated2Filter,
-        ProposalCreated3Filter, ProposalCreated4Filter,
-    },
+    optimism_gov_v_6::{optimism_gov_v_6::optimism_gov_v6, ProposalCreated2Filter},
     optimism_token::optimism_token::optimism_token,
-    optimism_votemodule_0x_2796_4c_5f_4f389b839903_6e_107_6d_8_4c_6984576c33,
-    optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5,
 };
 use ethers::{prelude::*, utils::to_checksum};
 use scanners::optimistic_scan::estimate_timestamp;
@@ -167,7 +162,10 @@ async fn data_for_proposal_two(
 
     let mut supply = 0.0;
 
-    if to_checksum(&log.voting_module, None) == "0x27964c5f4F389B8399036e1076d84c6984576C33" {
+    let voting_module = to_checksum(&log.voting_module, None);
+    let proposal_type = log.proposal_type;
+
+    if voting_module == "0x27964c5f4F389B8399036e1076d84c6984576C33" {
         #[derive(Debug, Deserialize)]
         struct ProposalSettings {
             against_threshold: U256,
@@ -178,12 +176,6 @@ async fn data_for_proposal_two(
             ParamType::Uint(256), // againstThreshold
             ParamType::Bool,      // isRelativeToVotableSupply
         ])];
-
-        let voting_module =
-            optimism_votemodule_0x_2796_4c_5f_4f389b839903_6e_107_6d_8_4c_6984576c33::optimism_votemodule_0x27964c5f4F389B8399036e1076d84c6984576C33::new(
-                log.voting_module,
-                rpc.clone(),
-            );
 
         let decoded_proposal_data =
             decode(&types, &log.proposal_data).context("Failed to decode proposal data")?;
@@ -261,6 +253,9 @@ async fn data_for_proposal_two(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: Set(
+            json!({"proposal_type":proposal_type, "voting_module" : voting_module}).into(),
+        ),
     })
 }
 
@@ -273,7 +268,7 @@ mod optimism_proposals {
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn optimism_2() {
+    async fn optimism_type_2() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -315,6 +310,7 @@ mod optimism_proposals {
                     time_created: Some("2024-01-18 19:45:51"),
                     time_start: "2024-01-18 19:45:51",
                     time_end: "2024-01-24 19:45:51",
+                    metadata: Some(json!({"proposal_type": 2, "voting_module": String::from("0x27964c5f4F389B8399036e1076d84c6984576C33")}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

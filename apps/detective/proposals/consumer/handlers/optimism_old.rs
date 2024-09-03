@@ -290,6 +290,7 @@ async fn data_for_proposal_one(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -455,6 +456,7 @@ async fn data_for_proposal_two(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -667,6 +669,7 @@ async fn data_for_proposal_three(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -813,6 +816,7 @@ async fn data_for_proposal_four(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -825,7 +829,7 @@ mod optimism_proposals {
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn optimism_1() {
+    async fn optimism_old_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -867,6 +871,7 @@ mod optimism_proposals {
                     time_created: Some("2024-01-18 19:36:37"),
                     time_start: "2024-01-18 19:36:37",
                     time_end: "2024-01-24 19:36:37",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -877,7 +882,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_2() {
+    async fn optimism_old_2() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -919,6 +924,7 @@ mod optimism_proposals {
                     time_created: Some("2024-01-18 19:45:51"),
                     time_start: "2024-01-18 19:45:51",
                     time_end: "2024-01-24 19:45:51",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -929,7 +935,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_3() {
+    async fn optimism_old_3() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -971,6 +977,7 @@ mod optimism_proposals {
                     time_created: Some("2023-06-29 22:25:25"),
                     time_start: "2023-06-29 22:25:25",
                     time_end: "2023-07-13 22:25:25",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -981,7 +988,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_4() {
+    async fn optimism_old_4() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -1023,6 +1030,7 @@ mod optimism_proposals {
                     time_created: Some("2023-10-12 19:08:55"),
                     time_start: "2023-10-12 19:08:55",
                     time_end: "2023-10-25 19:15:55",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

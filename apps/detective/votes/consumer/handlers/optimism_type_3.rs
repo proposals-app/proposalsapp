@@ -1,18 +1,22 @@
-use crate::{VotesHandler, VotesResult};
+use crate::{setup_database, VotesHandler, VotesResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use contracts::gen::optimism_gov_v_6::{
     optimism_gov_v_6::optimism_gov_v6, VoteCastFilter, VoteCastWithParamsFilter,
 };
 use ethers::{
+    abi::{decode, ParamType},
     prelude::{Http, LogMeta, Provider},
     providers::Middleware,
     types::Address,
     utils::to_checksum,
 };
-use sea_orm::{NotSet, Set};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set};
 use seaorm::{dao, dao_handler, proposal, vote};
+use serde::Deserialize;
+use serde_json::{json, Value};
 use std::sync::Arc;
+use utils::errors::{DATABASE_ERROR, DATABASE_URL_NOT_SET, PROPOSAL_NOT_FOUND_ERROR};
 
 pub struct OptimismType3Handler;
 
@@ -54,6 +58,9 @@ impl VotesHandler for OptimismType3Handler {
 
         let gov_contract = optimism_gov_v6::new(address, op_rpc);
 
+        let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
+        let db = setup_database(&database_url).await?;
+
         let logs = gov_contract
             .vote_cast_filter()
             .from_block(from_block)
@@ -73,8 +80,9 @@ impl VotesHandler for OptimismType3Handler {
             .context("bad query")?;
 
         let votes = get_votes(logs.clone(), dao_handler).context("bad votes")?;
-        let votes_with_params =
-            get_votes_with_params(logs_with_params.clone(), dao_handler).context("bad votes")?;
+        let votes_with_params = get_votes_with_params(logs_with_params.clone(), dao_handler, &db)
+            .await
+            .context("bad votes")?;
 
         let all_votes = [votes, votes_with_params].concat();
 
@@ -121,22 +129,58 @@ fn get_votes(
     Ok(votes)
 }
 
-fn get_votes_with_params(
+async fn get_votes_with_params(
     logs: Vec<(VoteCastWithParamsFilter, LogMeta)>,
     dao_handler: &dao_handler::Model,
+    db: &DatabaseConnection,
 ) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCastWithParamsFilter, LogMeta)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
     for (log, meta) in voter_logs {
+        let mut choice = vec![];
+
+        let proposal = proposal::Entity::find()
+            .filter(proposal::Column::ExternalId.eq(log.proposal_id.to_string()))
+            .one(db)
+            .await
+            .context(DATABASE_ERROR)?
+            .context(PROPOSAL_NOT_FOUND_ERROR)?;
+
+        #[derive(Deserialize)]
+        struct ProposalMetadata {
+            voting_module: Value,
+        }
+
+        let proposal_metadata: ProposalMetadata = serde_json::from_value(
+            proposal
+                .metadata
+                .unwrap_or(json!({"voting_module": "0x27964c5f4F389B8399036e1076d84c6984576C33"})),
+        )
+        .unwrap();
+
+        if proposal_metadata.voting_module == "0x27964c5f4F389B8399036e1076d84c6984576C33" {
+            let param_types = vec![ParamType::Array(Box::new(ParamType::Uint(256)))];
+
+            let decoded = decode(&param_types, &log.params).context("Failed to decode params")?;
+
+            if let Some(ethers::abi::Token::Array(options)) = decoded.get(0) {
+                for option in options {
+                    if let ethers::abi::Token::Uint(value) = option {
+                        choice.push(value.as_u64() as i32);
+                    }
+                }
+            }
+        }
+
         votes.push(vote::ActiveModel {
             id: NotSet,
             index_created: Set(meta.block_number.as_u64() as i32),
             voter_address: Set(to_checksum(&log.voter, None)),
             voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
             block_created: Set(Some(meta.block_number.as_u64() as i32)),
-            choice: Set(log.support.into()),
+            choice: Set(choice.into()),
             proposal_id: NotSet,
             proposal_external_id: Set(log.proposal_id.to_string()),
             dao_id: Set(dao_handler.dao_id),
@@ -158,7 +202,7 @@ mod optimism_votes {
     use utils::test_utils::{assert_vote, ExpectedVote};
 
     #[tokio::test]
-    async fn optimism_votes_3() {
+    async fn optimism_votes_type_3() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -180,7 +224,7 @@ mod optimism_votes {
                     voter_address: "0x995013B47EF3A2B07b9e60dA6D1fFf8fa9C53Cf4",
                     voting_power: 1001481.1043390606,
                     block_created: Some(106787763),
-                    choice: 0,
+                    choice: json!([1,2,3,4,5,6,8,9,10]),
                     proposal_external_id: "76298930109016961673734608568752969826843280855214969572559472848313136347131",
                     reason: Some(String::from("Opinion in forum")),
                 }];

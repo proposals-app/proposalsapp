@@ -249,6 +249,7 @@ async fn data_for_proposal(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -303,6 +304,7 @@ mod arbitrum_core_proposals {
                     time_created: Some("2023-06-06 15:56:32"),
                     time_start: "2023-06-09 17:04:35",
                     time_end: "2023-06-23 21:05:35",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -355,6 +357,7 @@ mod arbitrum_core_proposals {
                     time_created: Some("2023-12-22 00:25:34"),
                     time_start: "2023-12-25 01:11:35",
                     time_end: "2024-01-08 05:23:47",
+                    metadata: None
                 },
                 ExpectedProposal {
                     external_id: "13830398746784164287014809687499019395362322167304875665797507515532859950760",
@@ -373,6 +376,7 @@ mod arbitrum_core_proposals {
                     time_created: Some("2024-01-03 16:30:40"),
                     time_start: "2024-01-06 17:29:11",
                     time_end: "2024-01-20 20:21:35",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -425,6 +429,7 @@ mod arbitrum_core_proposals {
                     time_created: Some("2024-05-23 13:19:47"),
                     time_start: "2024-05-26 13:47:11",
                     time_end: "2024-06-09 15:44:11",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

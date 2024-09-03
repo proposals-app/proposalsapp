@@ -38,6 +38,7 @@ pub struct Model {
     pub dao_handler_id: Uuid,
     pub dao_id: Uuid,
     pub scores_quorum: f64,
+    pub metadata: Option<Json>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -65,6 +66,7 @@ pub enum Column {
     DaoHandlerId,
     DaoId,
     ScoresQuorum,
+    Metadata,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -114,6 +116,7 @@ impl ColumnTrait for Column {
             Self::DaoHandlerId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
             Self::ScoresQuorum => ColumnType::Double.def(),
+            Self::Metadata => ColumnType::Json.def().null(),
         }
     }
 }

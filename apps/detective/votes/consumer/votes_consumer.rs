@@ -83,7 +83,7 @@ async fn main() -> Result<()> {
 }
 
 #[instrument(skip(database_url))]
-async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
+pub async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
     let mut opt = ConnectOptions::new(database_url.to_string());
     opt.sqlx_logging(false);
     Database::connect(opt)

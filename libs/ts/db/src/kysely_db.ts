@@ -148,6 +148,7 @@ export interface Proposal {
   flagged: Generated<boolean>;
   id: Generated<string>;
   indexCreated: Generated<number>;
+  metadata: Json | null;
   name: string;
   proposalState: ProposalStateEnum;
   quorum: number;

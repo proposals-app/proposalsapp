@@ -241,6 +241,7 @@ async fn data_for_proposal(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: NotSet,
     })
 }
 
@@ -474,6 +475,7 @@ mod dydx_proposals {
                     time_created: Some("2021-11-16 19:03:13"),
                     time_start: "2021-11-17 19:36:19",
                     time_end: "2021-11-21 23:51:38",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -484,7 +486,7 @@ mod dydx_proposals {
     }
 
     #[tokio::test]
-    async fn compound_2() {
+    async fn dydx_2() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -526,6 +528,7 @@ mod dydx_proposals {
                     time_created: Some("2023-04-18 23:13:35"),
                     time_start: "2023-04-19 21:28:35",
                     time_end: "2023-04-23 14:23:59",
+                    metadata: None
                 },
                 ExpectedProposal {
                     external_id: "13",
@@ -544,6 +547,7 @@ mod dydx_proposals {
                     time_created: Some("2023-06-14 11:48:35"),
                     time_start: "2023-06-15 10:00:23",
                     time_end: "2023-06-19 02:30:47",
+                    metadata: None
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

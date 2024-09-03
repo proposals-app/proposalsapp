@@ -155,10 +155,11 @@ mod optimism_votes {
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use serde_json::json;
     use utils::test_utils::{assert_vote, ExpectedVote};
 
     #[tokio::test]
-    async fn optimism_votes_1() {
+    async fn optimism_votes_old_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -180,7 +181,7 @@ mod optimism_votes {
                     voter_address: "0xC776cBDDeA014889E8BaB4323C894C5c34DB214D",
                     voting_power: 2.84234644277626,
                     block_created: Some(115004770),
-                    choice: 1,
+                    choice: json!(1),
                     proposal_external_id: "64861580915106728278960188313654044018229192803489945934331754023009986585740",
                     reason: Some(String::from("I think this is a good feature")),
                 }];
@@ -194,7 +195,7 @@ mod optimism_votes {
     }
 
     #[tokio::test]
-    async fn optimism_votes_2() {
+    async fn optimism_votes_old_2() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -216,7 +217,7 @@ mod optimism_votes {
                     voter_address: "0x049e37b4276B58dB622Ab5db2ff2AfFCb40DC11C",
                     voting_power: 56351.64083348377,
                     block_created: Some(115261441),
-                    choice: 0,
+                    choice: json!(0),
                     proposal_external_id: "114318499951173425640219752344574142419220609526557632733105006940618608635406",
                     reason: Some(String::from("I agree with Jack")),
                 }];
@@ -230,7 +231,7 @@ mod optimism_votes {
     }
 
     #[tokio::test]
-    async fn optimism_votes_3() {
+    async fn optimism_votes_old_3() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -252,7 +253,7 @@ mod optimism_votes {
                     voter_address: "0x995013B47EF3A2B07b9e60dA6D1fFf8fa9C53Cf4",
                     voting_power: 1001481.1043390606,
                     block_created: Some(106787763),
-                    choice: 0,
+                    choice: json!(0),
                     proposal_external_id: "76298930109016961673734608568752969826843280855214969572559472848313136347131",
                     reason: Some(String::from("Opinion in forum")),
                 }];

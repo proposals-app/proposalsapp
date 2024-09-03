@@ -156,7 +156,7 @@ async fn data_for_proposal_one(
     let (against_votes, for_votes, abstain_votes) = gov_contract
         .proposal_votes(log.proposal_id)
         .await
-        .context("voting_module.proposal_votes")?;
+        .context("gov_contract.proposal_votes")?;
 
     let choices = vec!["For", "Against", "Abstain"];
 
@@ -220,6 +220,7 @@ async fn data_for_proposal_one(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
+        metadata: Set(json!({"proposal_type":1}).into()),
     })
 }
 
@@ -232,12 +233,12 @@ mod optimism_proposals {
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn optimism_1() {
+    async fn optimism_type_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
+            handler_type: (DaoHandlerEnumV3::OpOptimismType1),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -274,6 +275,7 @@ mod optimism_proposals {
                     time_created: Some("2024-01-18 19:36:37"),
                     time_start: "2024-01-18 19:36:37",
                     time_end: "2024-01-24 19:36:37",
+                    metadata: Some(json!({"proposal_type": 1}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
