@@ -165,7 +165,7 @@ async fn get_votes_with_params(
 
             let decoded = decode(&param_types, &log.params).context("Failed to decode params")?;
 
-            if let Some(ethers::abi::Token::Array(options)) = decoded.get(0) {
+            if let Some(ethers::abi::Token::Array(options)) = decoded.first() {
                 for option in options {
                     if let ethers::abi::Token::Uint(value) = option {
                         choice.push(value.as_u64() as i32);
