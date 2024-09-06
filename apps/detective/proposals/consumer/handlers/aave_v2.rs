@@ -259,6 +259,7 @@ async fn get_title(hexhash: String) -> Result<String> {
     let re = Regex::new(r"title:\s*(.*?)\n")?; // Move regex out of loop
 
     let gateways = [
+        format!("http://ipfs:8080/ipfs/f01701220{hexhash}"),
         format!("https://cloudflare-ipfs.com/ipfs/f01701220{hexhash}"),
         format!("https://gateway.pinata.cloud/ipfs/f01701220{hexhash}"),
     ];
@@ -328,6 +329,7 @@ async fn get_discussion(hexhash: String) -> Result<String> {
     let re = Regex::new(r"discussions:\s*(.*?)\n")?; // Move regex out of loop
 
     let gateways = [
+        format!("http://ipfs:8080/ipfs/f01701220{hexhash}"),
         format!("https://cloudflare-ipfs.com/ipfs/f01701220{hexhash}"),
         format!("https://gateway.pinata.cloud/ipfs/f01701220{hexhash}"),
     ];
@@ -399,6 +401,7 @@ async fn get_body(hexhash: String) -> Result<String> {
     let mut current_gateway = 0;
 
     let gateways = [
+        format!("http://ipfs:8080/ipfs/f01701220{hexhash}"),
         format!("https://cloudflare-ipfs.com/ipfs/f01701220{hexhash}"),
         format!("https://gateway.pinata.cloud/ipfs/f01701220{hexhash}"),
     ];
