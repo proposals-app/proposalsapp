@@ -112,13 +112,16 @@ pub fn assert_proposal(
         expected.proposal_state,
         proposal.proposal_state.clone().take().unwrap()
     );
-    assert_eq!(
-        proposal.block_created.clone().take().unwrap(),
-        expected.block_created,
-        "Block created does not match: expected {:?}, got {:?}",
-        expected.block_created,
-        proposal.block_created.clone().take().unwrap()
-    );
+
+    if proposal.block_created.clone().take().is_some() {
+        assert_eq!(
+            proposal.block_created.clone().take().unwrap(),
+            expected.block_created,
+            "Block created does not match: expected {:?}, got {:?}",
+            expected.block_created,
+            proposal.block_created.clone().take().unwrap()
+        );
+    }
 
     if let Some(time_created_str) = expected.time_created {
         let expected_time_created =

@@ -188,11 +188,72 @@ async fn parse_proposals(
             votes_index: NotSet,
             votes_fetched: NotSet,
             votes_refresh_speed: NotSet,
-            metadata: NotSet
+            metadata: NotSet,
         };
 
         parsed_proposals.push(proposal);
     }
 
     parsed_proposals
+}
+
+#[cfg(test)]
+mod snapshot_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use utils::test_utils::{assert_proposal, ExpectedProposal};
+
+    #[tokio::test]
+    async fn snapshot_aave() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV3::Snapshot),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 1725263866,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "Aave".into(),
+            slug: "aave".into(),
+            hot: true,
+        };
+
+        match SnapshotHandler.get_proposals(&dao_handler, &dao).await {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "0xf87cf0761b27becf6c8d18bbb457c9e6bf6b7aa436cdb0d197ad2d93a495ed04",
+                    name: "[TEMP CHECK] Onboard cbBTC to Aave v3 on Base",
+                    body_contains: vec!["The proposal aims to onboard Coinbase’s cbBTC, to the Aave v3 protocol on Base."],
+                    url: "https://snapshot.org/#/aave.eth/proposal/0xf87cf0761b27becf6c8d18bbb457c9e6bf6b7aa436cdb0d197ad2d93a495ed04",
+                    discussion_url:"https://governance.aave.com/t/temp-check-onboard-cbbtc-to-aave-v3-on-base/18805/1",
+                    choices: "[\"YAE\",\"NAY\",\"Abstain\"]",
+                    scores: "[802818.335753119,1430.6269857913692,0.10106163035550476]",
+                    scores_total: 804249.0638005408,
+                    scores_quorum: 804249.0638005408,
+                    quorum: 0.0,
+                    proposal_state: ProposalStateEnum::Executed,
+                    block_created: None,
+                    time_created: Some("2024-09-02 07:57:46"),
+                    time_start: "2024-09-03 07:57:46",
+                    time_end: "2024-09-06 07:57:46",
+                    metadata: None,
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
 }

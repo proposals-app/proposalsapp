@@ -104,7 +104,16 @@ async fn data_for_proposal(
     let created_block_ethereum = etherscan::estimate_block(created_block_timestamp as u64).await?;
 
     let voting_start_block_number = log.start_block.as_u64();
-    let voting_end_block_number = log.end_block.as_u64();
+    let mut voting_end_block_number = log.end_block.as_u64();
+
+    let gov_contract_end_block_number = gov_contract
+        .proposal_deadline(log.proposal_id)
+        .await?
+        .as_u64();
+
+    if gov_contract_end_block_number > voting_end_block_number {
+        voting_end_block_number = gov_contract_end_block_number;
+    }
 
     let average_block_time_millis = 12_200;
 
