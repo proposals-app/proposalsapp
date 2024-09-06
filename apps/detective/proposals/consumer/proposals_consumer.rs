@@ -7,7 +7,10 @@ use sea_orm::{
     ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, Order,
     QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
-use seaorm::{dao, dao_handler, job_queue, proposal, sea_orm_active_enums::ProposalStateEnum};
+use seaorm::{
+    dao, dao_handler, job_queue, proposal,
+    sea_orm_active_enums::{DaoHandlerEnumV3, ProposalStateEnum},
+};
 use std::collections::HashSet;
 use tokio::time::{self, Duration};
 use tracing::{info, instrument, warn};
@@ -231,8 +234,10 @@ async fn update_index(
 
     for proposal in sorted_proposals.iter() {
         if proposal.proposal_state.as_ref() == &ProposalStateEnum::Active
-            && proposal.index_created.is_set()
-            && proposal.index_created.clone().unwrap() < new_index
+            || (proposal.proposal_state.as_ref() == &ProposalStateEnum::Pending
+                && dao_handler.handler_type == DaoHandlerEnumV3::Snapshot)
+                && proposal.index_created.is_set()
+                && proposal.index_created.clone().unwrap() < new_index
         {
             new_index = proposal.index_created.clone().unwrap();
             break;
