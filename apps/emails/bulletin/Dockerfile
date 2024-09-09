@@ -48,7 +48,8 @@ COPY --from=builder /app/libs/ts/db/package.json ./libs/ts/db/
 COPY --from=builder /app/libs/ts/emails/package.json ./libs/ts/emails/
 
 # Install production dependencies
-RUN yarn workspaces focus @proposalsapp/email-bulletin --production
+RUN yarn workspaces focus @proposalsapp/email-bulletin --production && \
+    yarn add tsx
 
 # Set environment variables
 ENV NODE_ENV=production
