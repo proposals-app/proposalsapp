@@ -52,6 +52,8 @@ RUN yarn build-web
 
 FROM node:20
 
+RUN npm install -g corepack@latest && corepack enable
+
 # Set the working directory
 WORKDIR /app
 
