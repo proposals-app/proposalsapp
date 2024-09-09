@@ -33,25 +33,34 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Run as non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Install and enable Corepack
+RUN apk add --no-cache npm && \
+    npm install -g corepack && \
+    corepack enable
 
 # Copy built artifacts and node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/apps/emails/bulletin/dist ./apps/emails/bulletin/dist
-COPY --from=builder --chown=nodejs:nodejs /app/package.json /app/yarn.lock /app/.yarnrc.yml ./
+COPY --from=builder /app/apps/emails/bulletin/dist ./apps/emails/bulletin/dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json /app/yarn.lock /app/.yarnrc.yml ./
 
 # Activate the correct Yarn version
-RUN npm install -g corepack@latest && corepack enable
 RUN corepack prepare yarn@$(node -p "require('./package.json').packageManager.split('@')[1]") --activate
-
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PROPOSALS_BIN=email-bulletin
 
+# Create non-root user
+RUN adduser -S nodejs -u 1001
+
+# Set correct permissions
+RUN chown -R nodejs:nodejs /app
+
+# Switch to non-root user
 USER nodejs
+
+# Ensure .yarn directory exists with correct permissions
+RUN mkdir -p /app/.yarn && chown -R nodejs:nodejs /app/.yarn
 
 # Set the default command
 CMD ["yarn", "start-email-bulletin"]
