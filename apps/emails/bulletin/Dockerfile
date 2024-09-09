@@ -50,17 +50,15 @@ RUN corepack prepare yarn@$(node -p "require('./package.json').packageManager.sp
 ENV NODE_ENV=production
 ENV PROPOSALS_BIN=email-bulletin
 
-# Create non-root user
-RUN adduser -S nodejs -u 1001
-
-# Set correct permissions
-RUN chown -R nodejs:nodejs /app
-
-# Switch to non-root user
-USER nodejs
+# Create non-root user and set permissions
+RUN addgroup -S nodejs && adduser -S nodejs -G nodejs && \
+    chown -R nodejs:nodejs /app
 
 # Ensure .yarn directory exists with correct permissions
 RUN mkdir -p /app/.yarn && chown -R nodejs:nodejs /app/.yarn
+
+# Switch to non-root user
+USER nodejs
 
 # Set the default command
 CMD ["yarn", "start-email-bulletin"]
