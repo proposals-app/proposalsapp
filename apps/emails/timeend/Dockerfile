@@ -16,6 +16,7 @@ COPY libs/ts/emails/package.json libs/ts/emails/
 
 # Install dependencies
 RUN yarn install --mode=update-lockfile
+RUN yarn install
 
 # Copy the remaining project files
 COPY apps/emails/timeend/ apps/emails/timeend/
