@@ -10,7 +10,7 @@ RUN corepack enable && corepack prepare yarn@4 --activate
 COPY package.json yarn.lock .yarnrc.yml ./
 
 # Copy project-specific package files
-COPY apps/email/timeend/package.json apps/email/timeend/
+COPY apps/emails/timeend/package.json apps/emails/timeend/
 COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
 
@@ -18,7 +18,7 @@ COPY libs/ts/emails/package.json libs/ts/emails/
 RUN yarn install --mode=update-lockfile
 
 # Copy the remaining project files
-COPY apps/email/timeend/ apps/email/timeend/
+COPY apps/emails/timeend/ apps/emails/timeend/
 COPY libs/ts/db/ libs/ts/db/
 COPY libs/ts/emails/ libs/ts/emails/
 
@@ -37,7 +37,7 @@ RUN corepack enable && corepack prepare yarn@4 --activate
 WORKDIR /app
 
 # Copy the built project and required files from the builder stage
-COPY --from=builder /app/apps/email/timeend/ /app/apps/email/timeend/
+COPY --from=builder /app/apps/emails/timeend/ /app/apps/emails/timeend/
 COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
 COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
 COPY --from=builder /app/node_modules/ /app/node_modules/

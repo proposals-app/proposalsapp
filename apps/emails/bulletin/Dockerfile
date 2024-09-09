@@ -10,7 +10,7 @@ RUN corepack enable && corepack prepare yarn@4 --activate
 COPY package.json yarn.lock .yarnrc.yml ./
 
 # Copy project-specific package files
-COPY apps/email/bulletin/package.json apps/email/bulletin/
+COPY apps/emails/bulletin/package.json apps/emails/bulletin/
 COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
 
@@ -18,7 +18,7 @@ COPY libs/ts/emails/package.json libs/ts/emails/
 RUN yarn install --mode=update-lockfile
 
 # Copy the remaining project files
-COPY apps/email/bulletin/ apps/email/bulletin/
+COPY apps/emails/bulletin/ apps/emails/bulletin/
 COPY libs/ts/db/ libs/ts/db/
 COPY libs/ts/emails/ libs/ts/emails/
 
@@ -37,7 +37,7 @@ RUN corepack enable && corepack prepare yarn@4 --activate
 WORKDIR /app
 
 # Copy the built project and required files from the builder stage
-COPY --from=builder /app/apps/email/bulletin/ /app/apps/email/bulletin/
+COPY --from=builder /app/apps/emails/bulletin/ /app/apps/emails/bulletin/
 COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
 COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
 COPY --from=builder /app/node_modules/ /app/node_modules/
