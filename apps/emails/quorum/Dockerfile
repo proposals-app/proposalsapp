@@ -1,5 +1,4 @@
-# Use the latest Node.js version for the build stage
-FROM node:22.6 as builder
+FROM node:20 as builder
 
 # Set the working directory
 WORKDIR /app
@@ -31,8 +30,7 @@ COPY libs/ts/emails/ libs/ts/emails/
 # Build the project
 RUN yarn build-email-quorum
 
-# Use a minimal Node.js image for the final stage
-FROM node:alpine
+FROM node:20
 
 # Set the working directory
 WORKDIR /app

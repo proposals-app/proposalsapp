@@ -1,5 +1,4 @@
-# Use the Railway Nixpacks image for the build stage
-FROM node:22.6 as builder
+FROM node:20 as builder
 
 # Set the working directory
 WORKDIR /app
@@ -41,8 +40,7 @@ COPY libs/ts/db libs/ts/db
 # Build the project
 RUN yarn build-push-quorum
 
-# Use the official Node.js image for the final stage
-FROM node:latest
+FROM node:20
 
 # Set the working directory
 WORKDIR /app
