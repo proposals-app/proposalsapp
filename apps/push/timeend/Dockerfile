@@ -6,7 +6,6 @@ WORKDIR /app
 
 # Copy only the specified files for the setup phase
 COPY package.json .yarnrc.yml ./
-COPY .yarn .yarn/
 COPY apps/push/timeend/package.json apps/push/timeend/package.json
 COPY libs/ts/db/package.json libs/ts/db/package.json
 
@@ -55,7 +54,6 @@ COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/yarn.lock /app/yarn.lock
 COPY --from=builder /app/.yarnrc.yml /app/.yarnrc.yml
-COPY --from=builder /app/.yarn /app/.yarn
 
 # Set the environment variable
 ENV PROPOSALS_BIN=push-timeend

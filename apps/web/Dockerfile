@@ -6,7 +6,6 @@ WORKDIR /app
 
 # Copy package-related files
 COPY package.json yarn.lock .yarnrc.yml ./
-COPY .yarn .yarn/
 
 # Copy project-specific package files
 COPY apps/web/package.json apps/web/
@@ -66,7 +65,6 @@ COPY --from=builder /app/node_modules/ /app/node_modules/
 COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 COPY --from=builder /app/.yarnrc.yml /app/
-COPY --from=builder /app/.yarn /app/.yarn
 
 # Set the environment variable
 ENV PROPOSALS_BIN=web
