@@ -42,6 +42,11 @@ COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/apps/emails/bulletin/dist ./apps/emails/bulletin/dist
 COPY --from=builder --chown=nodejs:nodejs /app/package.json /app/yarn.lock /app/.yarnrc.yml ./
 
+# Activate the correct Yarn version
+RUN npm install -g corepack@latest && corepack enable
+RUN corepack prepare yarn@$(node -p "require('./package.json').packageManager.split('@')[1]") --activate
+
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV PROPOSALS_BIN=email-bulletin
