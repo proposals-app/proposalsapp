@@ -3,6 +3,10 @@ FROM node:22.6 as builder
 # Set the working directory
 WORKDIR /app
 
+# Install and enable Corepack
+RUN corepack enable
+RUN corepack prepare yarn@4.4.1 --activate
+
 # Copy package-related files
 COPY package.json yarn.lock .yarnrc.yml ./
 
@@ -12,7 +16,6 @@ COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
 
 # Install dependencies
-RUN npm install -g corepack@latest && corepack enable
 RUN yarn install --mode=update-lockfile
 RUN yarn install
 
@@ -32,6 +35,10 @@ RUN yarn build-email-bulletin
 
 # Use a minimal Node.js image for the final stage
 FROM node:alpine
+
+# Install and enable Corepack
+RUN corepack enable
+RUN corepack prepare yarn@4.4.1 --activate
 
 # Set the working directory
 WORKDIR /app
