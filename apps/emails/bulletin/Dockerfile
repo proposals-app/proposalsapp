@@ -43,9 +43,9 @@ ENV NODE_ENV=production
 ENV PROPOSALS_BIN=email-bulletin
 
 # Run as non-root user
-RUN addgroup -g 1001 -S nodejs \
-    && adduser -S nodejs -u 1001 \
-    && chown -R nodejs:nodejs /app
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Set the default command
