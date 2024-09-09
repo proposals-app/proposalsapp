@@ -4,17 +4,18 @@ FROM node:20-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
+# Install build dependencies and Yarn 4
+RUN apk add --no-cache python3 make g++ && \
+    corepack enable && \
+    yarn set version 4.4.1
 
-# Copy package.json and yarn.lock files
+# Copy package.json files for all workspaces
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY apps/emails/bulletin/package.json ./apps/emails/bulletin/
 COPY libs/ts/db/package.json ./libs/ts/db/
 COPY libs/ts/emails/package.json ./libs/ts/emails/
 
 # Install dependencies
-RUN npm install -g corepack@latest && corepack enable
 RUN yarn install
 
 # Copy only the necessary source files
@@ -28,23 +29,26 @@ ENV DATABASE_URL=${DATABASE_URL}
 RUN yarn build-email-bulletin
 
 # Production stage
-FROM node:20-alpine
+FROM node:20-alpine AS production
 
 # Set working directory
 WORKDIR /app
 
-# Install and enable Corepack
+# Install production dependencies
 RUN apk add --no-cache npm && \
-    npm install -g corepack && \
-    corepack enable
+    corepack enable && \
+    yarn set version 4.4.1
 
-# Copy built artifacts and node_modules
-COPY --from=builder /app/apps/emails/bulletin/dist ./apps/emails/bulletin/dist
-COPY --from=builder /app/node_modules ./node_modules
+# Copy built artifacts and yarn files
 COPY --from=builder /app/package.json /app/yarn.lock /app/.yarnrc.yml ./
+COPY --from=builder /app/.yarn ./.yarn
+COPY --from=builder /app/apps/emails/bulletin/dist ./apps/emails/bulletin/dist
+COPY --from=builder /app/apps/emails/bulletin/package.json ./apps/emails/bulletin/
+COPY --from=builder /app/libs/ts/db/package.json ./libs/ts/db/
+COPY --from=builder /app/libs/ts/emails/package.json ./libs/ts/emails/
 
-# Activate the correct Yarn version
-RUN corepack prepare yarn@$(node -p "require('./package.json').packageManager.split('@')[1]") --activate
+# Install production dependencies
+RUN yarn workspaces focus @proposalsapp/email-bulletin --production
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -53,9 +57,6 @@ ENV PROPOSALS_BIN=email-bulletin
 # Create non-root user and set permissions
 RUN addgroup -S nodejs && adduser -S nodejs -G nodejs && \
     chown -R nodejs:nodejs /app
-
-# Ensure .yarn directory exists with correct permissions
-RUN mkdir -p /app/.yarn && chown -R nodejs:nodejs /app/.yarn
 
 # Switch to non-root user
 USER nodejs
