@@ -1,7 +1,10 @@
-FROM node:20 as builder
+FROM node:alpine AS builder
 
 # Set the working directory
 WORKDIR /app
+
+# Install and enable Corepack
+RUN corepack enable && corepack prepare yarn@4 --activate
 
 # Copy package-related files
 COPY package.json yarn.lock .yarnrc.yml ./
@@ -12,19 +15,8 @@ COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
 
 # Install dependencies
-RUN npm install -g corepack@latest && corepack enable
 RUN yarn install --mode=update-lockfile
 RUN yarn install
-
-# Define build arguments
-ARG DATABASE_URL
-ARG POSTMARK_API_KEY
-ARG NEXT_PUBLIC_POSTHOG_KEY
-
-# Set environment variables for the build phase
-ENV DATABASE_URL=${DATABASE_URL}
-ENV POSTMARK_API_KEY=${POSTMARK_API_KEY}
-ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
 
 # Copy the remaining project files
 COPY apps/web-arbitrum/ apps/web-arbitrum/
@@ -32,11 +24,15 @@ COPY libs/ts/db/ libs/ts/db/
 COPY libs/ts/emails/ libs/ts/emails/
 
 # Build the project
+ARG DATABASE_URL=postgresql://user:password@host:5432/database
+ENV DATABASE_URL=${DATABASE_URL}
 RUN yarn build-web-arbitrum
 
-FROM node:20
+# Use a minimal Node.js image for the final stage
+FROM node:alpine
 
-RUN npm install -g corepack@latest && corepack enable
+# Install and enable Corepack
+RUN corepack enable && corepack prepare yarn@4 --activate
 
 # Set the working directory
 WORKDIR /app
@@ -52,9 +48,6 @@ COPY --from=builder /app/.yarnrc.yml /app/
 
 # Set the environment variable
 ENV PROPOSALS_BIN=web-arbitrum
-
-# Expose the application port
-EXPOSE 3000
 
 # Set the default command
 CMD ["yarn", "start-web-arbitrum"]
