@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:22.6 as builder
 
 # Set the working directory
 WORKDIR /app
@@ -31,7 +31,7 @@ COPY libs/ts/emails/ libs/ts/emails/
 RUN yarn build-email-bulletin
 
 # Use a minimal Node.js image for the final stage
-FROM node:20-alpine AS production
+FROM node:alpine
 
 # Set the working directory
 WORKDIR /app
