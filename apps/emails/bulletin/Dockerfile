@@ -33,19 +33,19 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
+# Run as non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
 # Copy built artifacts and node_modules
-COPY --from=builder /app/apps/emails/bulletin/dist ./apps/emails/bulletin/dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json /app/yarn.lock /app/.yarnrc.yml ./
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/apps/emails/bulletin/dist ./apps/emails/bulletin/dist
+COPY --from=builder --chown=nodejs:nodejs /app/package.json /app/yarn.lock /app/.yarnrc.yml ./
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PROPOSALS_BIN=email-bulletin
 
-# Run as non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Set the default command
