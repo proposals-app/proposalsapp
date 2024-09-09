@@ -1,58 +1,53 @@
-# Build stage
 FROM node:20-alpine AS builder
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Install build dependencies and Yarn 4
-RUN apk add --no-cache python3 make g++ && \
-    corepack enable && \
-    yarn set version 4.4.1
-
-# Copy package.json files for all workspaces
+# Copy package-related files
 COPY package.json yarn.lock .yarnrc.yml ./
-COPY apps/emails/bulletin/package.json ./apps/emails/bulletin/
-COPY libs/ts/db/package.json ./libs/ts/db/
-COPY libs/ts/emails/package.json ./libs/ts/emails/
+COPY .yarn .yarn/
+
+# Copy project-specific package files
+COPY apps/emails/bulletin/package.json apps/emails/bulletin/
+COPY libs/ts/db/package.json libs/ts/db/
+COPY libs/ts/emails/package.json libs/ts/emails/
 
 # Install dependencies
+RUN npm install -g corepack@latest && corepack enable
+RUN yarn install --mode=update-lockfile
 RUN yarn install
 
-# Copy only the necessary source files
-COPY apps/emails/bulletin ./apps/emails/bulletin
-COPY libs/ts/db ./libs/ts/db
-COPY libs/ts/emails ./libs/ts/emails
+# Define build argument
+ARG DATABASE_URL
+
+# Set the environment variable for the build phase
+ENV DATABASE_URL=${DATABASE_URL}
+
+# Copy the remaining project files
+COPY apps/emails/bulletin/ apps/emails/bulletin/
+COPY libs/ts/db/ libs/ts/db/
+COPY libs/ts/emails/ libs/ts/emails/
 
 # Build the project
-ARG DATABASE_URL
-ENV DATABASE_URL=${DATABASE_URL}
 RUN yarn build-email-bulletin
 
-# Production stage
+# Use a minimal Node.js image for the final stage
 FROM node:20-alpine AS production
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Install production dependencies
-RUN apk add --no-cache npm && \
-    corepack enable && \
-    yarn set version 4.4.1
+# Copy the built project and required files from the builder stage
+COPY --from=builder /app/apps/emails/bulletin/ /app/apps/emails/bulletin/
+COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
+COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
+COPY --from=builder /app/node_modules/ /app/node_modules/
+COPY --from=builder /app/package.json /app/
+COPY --from=builder /app/yarn.lock /app/
+COPY --from=builder /app/.yarnrc.yml /app/
+COPY --from=builder /app/.yarn /app/.yarn
 
-# Copy built artifacts and yarn files
-COPY --from=builder /app/package.json /app/yarn.lock /app/.yarnrc.yml ./
-COPY --from=builder /app/.yarn ./.yarn
-COPY --from=builder /app/apps/emails/bulletin/dist ./apps/emails/bulletin/dist
-COPY --from=builder /app/apps/emails/bulletin/package.json ./apps/emails/bulletin/
-COPY --from=builder /app/libs/ts/db/package.json ./libs/ts/db/
-COPY --from=builder /app/libs/ts/emails/package.json ./libs/ts/emails/
-
-# Install production dependencies
-RUN yarn workspaces focus @proposalsapp/email-bulletin --production && \
-    yarn add tsx
-
-# Set environment variables
-ENV NODE_ENV=production
+# Set the environment variable
 ENV PROPOSALS_BIN=email-bulletin
 
 # Set the default command
