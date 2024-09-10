@@ -17,6 +17,7 @@ impl ProposalHandler for LidoHandler {
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
+        from_index: i32,
     ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
@@ -27,15 +28,13 @@ impl ProposalHandler for LidoHandler {
             .context("bad current block")?
             .as_u64();
 
-        let from_block = dao_handler.proposals_index;
-        let to_block = if dao_handler.proposals_index as u64
-            + dao_handler.proposals_refresh_speed as u64
-            > current_block
-        {
-            current_block
-        } else {
-            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-        };
+        let from_block = from_index;
+        let to_block =
+            if from_index as u64 + dao_handler.proposals_refresh_speed as u64 > current_block {
+                current_block
+            } else {
+                from_index as u64 + dao_handler.proposals_refresh_speed as u64
+            };
 
         let address = "0x2e59a20f205bb85a89c53f1936454680651e618e"
             .parse::<Address>()
@@ -195,7 +194,10 @@ mod lido_proposals {
             hot: true,
         };
 
-        match LidoHandler.get_proposals(&dao_handler, &dao).await {
+        match LidoHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -247,7 +249,10 @@ mod lido_proposals {
             hot: true,
         };
 
-        match LidoHandler.get_proposals(&dao_handler, &dao).await {
+        match LidoHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

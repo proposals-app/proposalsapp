@@ -19,6 +19,7 @@ impl JobType {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ProposalsJob {
     pub dao_handler_id: Uuid,
+    pub from_index: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

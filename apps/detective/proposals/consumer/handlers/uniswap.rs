@@ -19,6 +19,7 @@ impl ProposalHandler for UniswapHandler {
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
+        from_index: i32,
     ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
@@ -29,15 +30,13 @@ impl ProposalHandler for UniswapHandler {
             .context("bad current block")?
             .as_u64();
 
-        let from_block = dao_handler.proposals_index;
-        let to_block = if dao_handler.proposals_index as u64
-            + dao_handler.proposals_refresh_speed as u64
-            > current_block
-        {
-            current_block
-        } else {
-            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-        };
+        let from_block = from_index;
+        let to_block =
+            if from_index as u64 + dao_handler.proposals_refresh_speed as u64 > current_block {
+                current_block
+            } else {
+                from_index as u64 + dao_handler.proposals_refresh_speed as u64
+            };
 
         let address = "0x408ED6354d4973f66138C91495F2f2FCbd8724C3"
             .parse::<Address>()
@@ -237,6 +236,6 @@ async fn data_for_proposal(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
-        metadata: NotSet
+        metadata: NotSet,
     })
 }

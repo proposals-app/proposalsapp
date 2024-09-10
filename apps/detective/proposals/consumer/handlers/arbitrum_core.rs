@@ -21,6 +21,7 @@ impl ProposalHandler for ArbitrumCoreHandler {
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
+        from_index: i32,
     ) -> Result<ProposalsResult> {
         let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
         let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
@@ -31,15 +32,13 @@ impl ProposalHandler for ArbitrumCoreHandler {
             .context("get_block_number")?
             .as_u64();
 
-        let from_block = dao_handler.proposals_index;
-        let to_block = if dao_handler.proposals_index as u64
-            + dao_handler.proposals_refresh_speed as u64
-            > current_block
-        {
-            current_block
-        } else {
-            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-        };
+        let from_block = from_index;
+        let to_block =
+            if from_index as u64 + dao_handler.proposals_refresh_speed as u64 > current_block {
+                current_block
+            } else {
+                from_index as u64 + dao_handler.proposals_refresh_speed as u64
+            };
 
         let address = "0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9"
             .parse::<Address>()
@@ -293,7 +292,10 @@ mod arbitrum_core_proposals {
             hot: true,
         };
 
-        match ArbitrumCoreHandler.get_proposals(&dao_handler, &dao).await {
+        match ArbitrumCoreHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -346,7 +348,10 @@ mod arbitrum_core_proposals {
             hot: true,
         };
 
-        match ArbitrumCoreHandler.get_proposals(&dao_handler, &dao).await {
+        match ArbitrumCoreHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -418,7 +423,10 @@ mod arbitrum_core_proposals {
             hot: true,
         };
 
-        match ArbitrumCoreHandler.get_proposals(&dao_handler, &dao).await {
+        match ArbitrumCoreHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

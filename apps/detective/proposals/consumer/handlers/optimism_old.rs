@@ -28,6 +28,7 @@ impl ProposalHandler for OptimismOldHandler {
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
+        from_index: i32,
     ) -> Result<ProposalsResult> {
         let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
         let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
@@ -38,15 +39,13 @@ impl ProposalHandler for OptimismOldHandler {
             .context("get_block_number")?
             .as_u64();
 
-        let from_block = dao_handler.proposals_index;
-        let to_block = if dao_handler.proposals_index as u64
-            + dao_handler.proposals_refresh_speed as u64
-            > current_block
-        {
-            current_block
-        } else {
-            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-        };
+        let from_block = from_index;
+        let to_block =
+            if from_index as u64 + dao_handler.proposals_refresh_speed as u64 > current_block {
+                current_block
+            } else {
+                from_index as u64 + dao_handler.proposals_refresh_speed as u64
+            };
 
         let address = "0xcDF27F107725988f2261Ce2256bDfCdE8B382B10"
             .parse::<Address>()
@@ -851,7 +850,10 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismOldHandler.get_proposals(&dao_handler, &dao).await {
+        match OptimismOldHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -904,7 +906,10 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismOldHandler.get_proposals(&dao_handler, &dao).await {
+        match OptimismOldHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -957,7 +962,10 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismOldHandler.get_proposals(&dao_handler, &dao).await {
+        match OptimismOldHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -1010,7 +1018,10 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismOldHandler.get_proposals(&dao_handler, &dao).await {
+        match OptimismOldHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

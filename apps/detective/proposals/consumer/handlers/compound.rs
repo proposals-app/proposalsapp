@@ -19,6 +19,7 @@ impl ProposalHandler for CompoundHandler {
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
+        from_index: i32,
     ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
@@ -29,15 +30,13 @@ impl ProposalHandler for CompoundHandler {
             .context("get_block_number")?
             .as_u64();
 
-        let from_block = dao_handler.proposals_index;
-        let to_block = if dao_handler.proposals_index as u64
-            + dao_handler.proposals_refresh_speed as u64
-            > current_block
-        {
-            current_block
-        } else {
-            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-        };
+        let from_block = from_index;
+        let to_block =
+            if from_index as u64 + dao_handler.proposals_refresh_speed as u64 > current_block {
+                current_block
+            } else {
+                from_index as u64 + dao_handler.proposals_refresh_speed as u64
+            };
 
         let address = "0xc0Da02939E1441F497fd74F78cE7Decb17B66529"
             .parse::<Address>()
@@ -273,7 +272,10 @@ mod compound_proposals {
             hot: true,
         };
 
-        match CompoundHandler.get_proposals(&dao_handler, &dao).await {
+        match CompoundHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -326,7 +328,10 @@ mod compound_proposals {
             hot: true,
         };
 
-        match CompoundHandler.get_proposals(&dao_handler, &dao).await {
+        match CompoundHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -398,7 +403,10 @@ mod compound_proposals {
             hot: true,
         };
 
-        match CompoundHandler.get_proposals(&dao_handler, &dao).await {
+        match CompoundHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

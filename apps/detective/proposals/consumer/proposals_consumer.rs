@@ -33,6 +33,7 @@ pub trait ProposalHandler: Send + Sync {
         &self,
         dao_handler: &dao_handler::Model,
         dao: &dao::Model,
+        from_index: i32,
     ) -> Result<ProposalsResult>;
     fn min_refresh_speed(&self) -> i32;
     fn max_refresh_speed(&self) -> i32;
@@ -196,7 +197,9 @@ async fn process_proposals_job(job: &ProposalsJob, db: &DatabaseConnection) -> R
     let ProposalsResult {
         proposals,
         to_index,
-    } = handler.get_proposals(&dao_handler, &dao).await?;
+    } = handler
+        .get_proposals(&dao_handler, &dao, job.from_index)
+        .await?;
 
     let StoredProposals {
         inserted_proposals,

@@ -21,6 +21,7 @@ impl ProposalHandler for ArbitrumTreasuryHandler {
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
+        from_index: i32,
     ) -> Result<ProposalsResult> {
         let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
         let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
@@ -31,15 +32,13 @@ impl ProposalHandler for ArbitrumTreasuryHandler {
             .context("get_block_number")?
             .as_u64();
 
-        let from_block = dao_handler.proposals_index;
-        let to_block = if dao_handler.proposals_index as u64
-            + dao_handler.proposals_refresh_speed as u64
-            > current_block
-        {
-            current_block
-        } else {
-            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-        };
+        let from_block = from_index;
+        let to_block =
+            if from_index as u64 + dao_handler.proposals_refresh_speed as u64 > current_block {
+                current_block
+            } else {
+                from_index as u64 + dao_handler.proposals_refresh_speed as u64
+            };
 
         let address = "0x789fC99093B09aD01C34DC7251D0C89ce743e5a4"
             .parse::<Address>()
@@ -291,7 +290,7 @@ mod arbitrum_treasury_proposals {
         };
 
         match ArbitrumTreasuryHandler
-            .get_proposals(&dao_handler, &dao)
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
             .await
         {
             Ok(result) => {
@@ -347,7 +346,7 @@ mod arbitrum_treasury_proposals {
         };
 
         match ArbitrumTreasuryHandler
-            .get_proposals(&dao_handler, &dao)
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
             .await
         {
             Ok(result) => {
@@ -422,7 +421,7 @@ mod arbitrum_treasury_proposals {
         };
 
         match ArbitrumTreasuryHandler
-            .get_proposals(&dao_handler, &dao)
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
             .await
         {
             Ok(result) => {

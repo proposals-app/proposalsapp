@@ -24,6 +24,7 @@ impl ProposalHandler for AaveV2Handler {
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
+        from_index: i32,
     ) -> Result<ProposalsResult> {
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
@@ -34,15 +35,13 @@ impl ProposalHandler for AaveV2Handler {
             .context("get_block_number")?
             .as_u64();
 
-        let from_block = dao_handler.proposals_index;
-        let to_block = if dao_handler.proposals_index as u64
-            + dao_handler.proposals_refresh_speed as u64
-            > current_block
-        {
-            current_block
-        } else {
-            dao_handler.proposals_index as u64 + dao_handler.proposals_refresh_speed as u64
-        };
+        let from_block = from_index;
+        let to_block =
+            if from_index as u64 + dao_handler.proposals_refresh_speed as u64 > current_block {
+                current_block
+            } else {
+                from_index as u64 + dao_handler.proposals_refresh_speed as u64
+            };
 
         let address = "0xEC568fffba86c094cf06b22134B23074DFE2252c"
             .parse::<Address>()
@@ -586,7 +585,10 @@ mod aave_v2_proposals {
             hot: true,
         };
 
-        match AaveV2Handler.get_proposals(&dao_handler, &dao).await {
+        match AaveV2Handler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -639,7 +641,10 @@ mod aave_v2_proposals {
             hot: true,
         };
 
-        match AaveV2Handler.get_proposals(&dao_handler, &dao).await {
+        match AaveV2Handler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
@@ -711,7 +716,10 @@ mod aave_v2_proposals {
             hot: true,
         };
 
-        match AaveV2Handler.get_proposals(&dao_handler, &dao).await {
+        match AaveV2Handler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

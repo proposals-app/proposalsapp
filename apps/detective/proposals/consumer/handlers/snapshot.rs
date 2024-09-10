@@ -43,6 +43,7 @@ impl ProposalHandler for SnapshotHandler {
         &self,
         dao_handler: &dao_handler::Model,
         dao: &dao::Model,
+        from_index: i32,
     ) -> Result<ProposalsResult> {
         let snapshot_space = match dao.name.as_str() {
             "Compound" => "comp-vote.eth",
@@ -88,7 +89,7 @@ impl ProposalHandler for SnapshotHandler {
                     flagged
                 }}
             }}"#,
-            dao_handler.proposals_refresh_speed, snapshot_space, dao_handler.proposals_index
+            dao_handler.proposals_refresh_speed, snapshot_space, from_index
         );
 
         let graphql_response = reqwest::Client::new()
@@ -228,7 +229,10 @@ mod snapshot_proposals {
             hot: true,
         };
 
-        match SnapshotHandler.get_proposals(&dao_handler, &dao).await {
+        match SnapshotHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

@@ -13,7 +13,8 @@ use utils::{
     types::{JobType, ProposalsJob},
 };
 
-const JOB_INTERVAL: Duration = Duration::from_secs(60 * 5);
+const REGULAR_JOB_INTERVAL: Duration = Duration::from_secs(60 * 5);
+const BACKTRACK_JOB_INTERVAL: Duration = Duration::from_secs(60 * 60);
 
 struct Config {
     database_url: String,
@@ -33,30 +34,45 @@ async fn main() -> Result<()> {
     dotenv().ok();
     setup_tracing();
 
-    tokio::spawn(async {
-        let mut interval = time::interval(JOB_INTERVAL);
+    let regular_job = tokio::spawn(async {
+        let mut interval = time::interval(REGULAR_JOB_INTERVAL);
         loop {
             interval.tick().await;
-            if let Err(e) = produce_jobs().await {
-                warn!("Failed to produce jobs: {:?}", e);
+            if let Err(e) = produce_jobs(false).await {
+                warn!("Failed to produce regular jobs: {:?}", e);
             }
         }
     });
 
-    tokio::signal::ctrl_c().await?;
-    println!("Shutting down...");
+    let backtrack_job = tokio::spawn(async {
+        let mut interval = time::interval(BACKTRACK_JOB_INTERVAL);
+        loop {
+            interval.tick().await;
+            if let Err(e) = produce_jobs(true).await {
+                warn!("Failed to produce backtrack jobs: {:?}", e);
+            }
+        }
+    });
+
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            println!("Shutting down...");
+        }
+        _ = regular_job => {}
+        _ = backtrack_job => {}
+    }
 
     Ok(())
 }
 
 #[instrument]
-async fn produce_jobs() -> Result<()> {
+async fn produce_jobs(backtrack: bool) -> Result<()> {
     let config = Config::from_env()?;
 
     let db = setup_database(&config.database_url).await?;
     let dao_handlers = fetch_dao_handlers(&db).await?;
 
-    queue_dao_jobs(&db, &dao_handlers).await?;
+    queue_dao_jobs(&db, &dao_handlers, backtrack).await?;
 
     Ok(())
 }
@@ -88,10 +104,19 @@ async fn fetch_dao_handlers(db: &DatabaseConnection) -> Result<Vec<dao_handler::
 async fn queue_dao_jobs(
     db: &DatabaseConnection,
     dao_handlers: &[dao_handler::Model],
+    backtrack: bool,
 ) -> Result<()> {
     for dao_handler in dao_handlers {
+        let from_index = if backtrack {
+            let backtrack_index = (dao_handler.proposals_index as f64 * 0.9) as i32;
+            std::cmp::max(backtrack_index, 0)
+        } else {
+            dao_handler.proposals_index
+        };
+
         let job = ProposalsJob {
             dao_handler_id: dao_handler.id,
+            from_index,
         };
 
         // Insert job into PostgreSQL queue
