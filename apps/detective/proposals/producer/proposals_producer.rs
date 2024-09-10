@@ -14,7 +14,7 @@ use utils::{
 };
 
 const REGULAR_JOB_INTERVAL: Duration = Duration::from_secs(60 * 5);
-const BACKTRACK_JOB_INTERVAL: Duration = Duration::from_secs(60 * 60);
+const BACKTRACK_JOB_INTERVAL: Duration = Duration::from_secs(3 * 60 * 60);
 
 struct Config {
     database_url: String,
