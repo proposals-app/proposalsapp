@@ -11,7 +11,7 @@
     "@proposalsapp/db": "*",
     "@proposalsapp/emails": "*",
     "dotenv": "^16.4.5",
-    "express": "^4.20.0",
+    "express": "^4.21.0",
     "node-cron": "^3.0.3",
     "postmark": "^4.0.5"
   },
@@ -20,7 +20,7 @@
     "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.21",
     "@types/node-cron": "^3.0.11",
-    "tsx": "^4.19.0",
+    "tsx": "^4.19.1",
     "typescript": "^5.6.2"
   }
 }
