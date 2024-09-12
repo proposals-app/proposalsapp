@@ -189,8 +189,8 @@ async fn data_for_proposal(
 
     let quorum = onchain_proposal.quorum_votes.as_u128() as f64;
 
-    let scores_quorum = onchain_proposal.against_votes.as_u128() as f64
-        + onchain_proposal.abstain_votes.as_u128() as f64;
+    let scores_quorum = onchain_proposal.for_votes.as_u128() as f64
+        + onchain_proposal.against_votes.as_u128() as f64;
 
     let proposal_state = gov_contract
         .state(log.id)
