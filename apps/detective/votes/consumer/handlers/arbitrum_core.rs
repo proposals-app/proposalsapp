@@ -119,6 +119,7 @@ fn get_votes(
             proposal_external_id: Set(log.proposal_id.to_string()),
             dao_id: Set(dao_handler.dao_id),
             dao_handler_id: Set(dao_handler.id),
+            reason: Set(Some(log.reason)),
             ..Default::default()
         })
     }
