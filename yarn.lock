@@ -2106,7 +2106,7 @@ __metadata:
     "@types/pg": "npm:8"
     dotenv: "npm:16.4.5"
     kysely: "npm:0.27.4"
-    kysely-codegen: "npm:0.15.0"
+    kysely-codegen: "npm:0.16.6"
     kysely-ctl: "npm:0.9.0"
     pg: "npm:8.12.0"
     typescript: "npm:5.6.2"
@@ -2290,7 +2290,7 @@ __metadata:
     "@radix-ui/react-toggle-group": "npm:^1.1.0"
     "@radix-ui/react-tooltip": "npm:^1.1.2"
     "@serwist/next": "npm:9.0.7"
-    "@types/node": "npm:22.5.4"
+    "@types/node": "npm:22.5.5"
     "@types/react": "npm:18.3.5"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:18.3.0"
@@ -2300,7 +2300,7 @@ __metadata:
     clsx: "npm:2.1.1"
     cmdk: "npm:^1.0.0"
     date-fns: "npm:^3.6.0"
-    embla-carousel-react: "npm:^8.2.1"
+    embla-carousel-react: "npm:^8.3.0"
     input-otp: "npm:^1.2.4"
     lucia: "npm:3.2.0"
     lucide-react: "npm:^0.441.0"
@@ -2329,8 +2329,8 @@ __metadata:
     tailwindcss: "npm:3.4.11"
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:5.6.2"
-    vaul: "npm:^0.9.2"
-    viem: "npm:2.21.6"
+    vaul: "npm:^0.9.3"
+    viem: "npm:2.21.7"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -2664,7 +2664,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@radix-ui/react-dialog@npm:1.1.1, @radix-ui/react-dialog@npm:^1.0.4, @radix-ui/react-dialog@npm:^1.1.1":
+"@radix-ui/react-dialog@npm:1.1.1, @radix-ui/react-dialog@npm:^1.1.1":
   version: 1.1.1
   resolution: "@radix-ui/react-dialog@npm:1.1.1"
   dependencies:
@@ -4775,12 +4775,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:22.5.4":
-  version: 22.5.4
-  resolution: "@types/node@npm:22.5.4"
+"@types/node@npm:22.5.5":
+  version: 22.5.5
+  resolution: "@types/node@npm:22.5.5"
   dependencies:
     undici-types: "npm:~6.19.2"
-  checksum: 10c0/b445daa7eecd761ad4d778b882d6ff7bcc3b4baad2086ea9804db7c5d4a4ab0298b00d7f5315fc640a73b5a1d52bbf9628e09c9fec0cf44dbf9b4df674a8717d
+  checksum: 10c0/ead9495cfc6b1da5e7025856dcce2591e9bae635357410c0d2dd619fce797d2a1d402887580ca4b336cb78168b195224869967de370a23f61663cf1e4836121c
   languageName: node
   linkType: hard
 
@@ -5153,27 +5153,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/expect@npm:2.1.0":
-  version: 2.1.0
-  resolution: "@vitest/expect@npm:2.1.0"
+"@vitest/expect@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@vitest/expect@npm:2.1.1"
   dependencies:
-    "@vitest/spy": "npm:2.1.0"
-    "@vitest/utils": "npm:2.1.0"
+    "@vitest/spy": "npm:2.1.1"
+    "@vitest/utils": "npm:2.1.1"
     chai: "npm:^5.1.1"
     tinyrainbow: "npm:^1.2.0"
-  checksum: 10c0/103f129cc59b1a0ab768012f361234eccffe320fc798b41e99adb472e4eaee861fd032d214b897101763bd034aef41e7117238a8db939781e5183ca300d9b638
+  checksum: 10c0/2a467bcd37378b653040cca062a665f382087eb9f69cff670848a0c207a8458f27211c408c75b7e563e069a2e6d533c78f24e1a317c259646b948813342dbf3d
   languageName: node
   linkType: hard
 
-"@vitest/mocker@npm:2.1.0":
-  version: 2.1.0
-  resolution: "@vitest/mocker@npm:2.1.0"
+"@vitest/mocker@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@vitest/mocker@npm:2.1.1"
   dependencies:
     "@vitest/spy": "npm:^2.1.0-beta.1"
     estree-walker: "npm:^3.0.3"
     magic-string: "npm:^0.30.11"
   peerDependencies:
-    "@vitest/spy": 2.1.0
+    "@vitest/spy": 2.1.1
     msw: ^2.3.5
     vite: ^5.0.0
   peerDependenciesMeta:
@@ -5181,41 +5181,50 @@ __metadata:
       optional: true
     vite:
       optional: true
-  checksum: 10c0/e225bd4c5a7b20d5fc9a1ff3ff81633de3fef7c87e204742cfe74fe8f84d82bf8cdb64cfb9a4a059b6229a477ef01e70bb292d03ac7e4c70d9c6e33752796e8d
+  checksum: 10c0/e0681bb75bf7255ce49f720d193c9c795a64d42fef13c7af5c157514ebce88a5b89dbf702aa0929d4cefaed3db73351bd3ade3ccabecc09a23a872d9c55be50d
   languageName: node
   linkType: hard
 
-"@vitest/pretty-format@npm:2.1.0, @vitest/pretty-format@npm:^2.1.0":
-  version: 2.1.0
-  resolution: "@vitest/pretty-format@npm:2.1.0"
+"@vitest/pretty-format@npm:2.1.1, @vitest/pretty-format@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "@vitest/pretty-format@npm:2.1.1"
   dependencies:
     tinyrainbow: "npm:^1.2.0"
-  checksum: 10c0/ca954991c9d6792efcacbb05310c95fb80687ed95b05549d24c12f0fe84af84df7f0d8d6b38497a1c6b80620ebda7db0b8637900820ffd4ab78e2d79bee5e222
+  checksum: 10c0/21057465a794a037a7af2c48397531eadf9b2d8a7b4d1ee5af9081cf64216cd0039b9e06317319df79aa2240fed1dbb6767b530deae2bd4b42d6fb974297e97d
   languageName: node
   linkType: hard
 
-"@vitest/runner@npm:2.1.0":
-  version: 2.1.0
-  resolution: "@vitest/runner@npm:2.1.0"
+"@vitest/runner@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@vitest/runner@npm:2.1.1"
   dependencies:
-    "@vitest/utils": "npm:2.1.0"
+    "@vitest/utils": "npm:2.1.1"
     pathe: "npm:^1.1.2"
-  checksum: 10c0/6461ed27bf85d42e7e9068ce60a7aff33170403c6ffaeefd2f95b67aad2211e6798f3df2c4316e7adf0ce802eded069ca13938cbcda454e57e430c8a3dee7a7e
+  checksum: 10c0/a6d1424d6224d8a60ed0bbf7cdacb165ef36bc71cc957ad2c11ed1989fa5106636173369f0d8e1fa3f319a965091e52c8ce21203fce4bafe772632ccc2bd65a6
   languageName: node
   linkType: hard
 
-"@vitest/snapshot@npm:2.1.0":
-  version: 2.1.0
-  resolution: "@vitest/snapshot@npm:2.1.0"
+"@vitest/snapshot@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@vitest/snapshot@npm:2.1.1"
   dependencies:
-    "@vitest/pretty-format": "npm:2.1.0"
+    "@vitest/pretty-format": "npm:2.1.1"
     magic-string: "npm:^0.30.11"
     pathe: "npm:^1.1.2"
-  checksum: 10c0/61c3a1d983119c5e865452b3f81518be7876e2a477190ff21d2ae1b7c23ef3c7c08d1956f2b4e391f2fc85fe3c12c5387123c7ca80e0b4386f9c26ea755daecc
+  checksum: 10c0/e9dadee87a2f489883dec0360b55b2776d2a07e460bf2430b34867cd4e9f34b09b3e219a23bc8c3e1359faefdd166072d3305b66a0bea475c7d616470b7d841c
   languageName: node
   linkType: hard
 
-"@vitest/spy@npm:2.1.0, @vitest/spy@npm:^2.1.0-beta.1":
+"@vitest/spy@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@vitest/spy@npm:2.1.1"
+  dependencies:
+    tinyspy: "npm:^3.0.0"
+  checksum: 10c0/b251be1390c105b68aa95270159c4583c3e1a0f7a2e1f82db8b7fadedc3cb459c5ef9286033a1ae764810e00715552fc80afe4507cd8b0065934fb1a64926e06
+  languageName: node
+  linkType: hard
+
+"@vitest/spy@npm:^2.1.0-beta.1":
   version: 2.1.0
   resolution: "@vitest/spy@npm:2.1.0"
   dependencies:
@@ -5224,14 +5233,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/utils@npm:2.1.0":
-  version: 2.1.0
-  resolution: "@vitest/utils@npm:2.1.0"
+"@vitest/utils@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@vitest/utils@npm:2.1.1"
   dependencies:
-    "@vitest/pretty-format": "npm:2.1.0"
+    "@vitest/pretty-format": "npm:2.1.1"
     loupe: "npm:^3.1.1"
     tinyrainbow: "npm:^1.2.0"
-  checksum: 10c0/ddc6b2194f0b6be96185fd82bf26877189df337fbd4dcc6f113503eddfd228a46d1d7efb1c7b56d370ad038fc864360f8eaef495752ff4b6868f09895c7a0fd7
+  checksum: 10c0/b724c7f23591860bd24cd8e6d0cd803405f4fbff746db160a948290742144463287566a05ca400deb56817603b5185c4429707947869c3d453805860b5e3a3e5
   languageName: node
   linkType: hard
 
@@ -6157,6 +6166,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chokidar@npm:4.0.0":
+  version: 4.0.0
+  resolution: "chokidar@npm:4.0.0"
+  dependencies:
+    readdirp: "npm:^4.0.1"
+  checksum: 10c0/42d03c53b0ad200689e4fae7763133561480561cab8ba5304e8f2298ff45ff84bf0f6065c3f02b9e557b74b156813734439a1a2ff19a1ea6b35692395cd92738
+  languageName: node
+  linkType: hard
+
 "chownr@npm:^2.0.0":
   version: 2.0.0
   resolution: "chownr@npm:2.0.0"
@@ -7033,31 +7051,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"embla-carousel-react@npm:^8.2.1":
-  version: 8.2.1
-  resolution: "embla-carousel-react@npm:8.2.1"
+"embla-carousel-react@npm:^8.3.0":
+  version: 8.3.0
+  resolution: "embla-carousel-react@npm:8.3.0"
   dependencies:
-    embla-carousel: "npm:8.2.1"
-    embla-carousel-reactive-utils: "npm:8.2.1"
+    embla-carousel: "npm:8.3.0"
+    embla-carousel-reactive-utils: "npm:8.3.0"
   peerDependencies:
     react: ^16.8.0 || ^17.0.1 || ^18.0.0
-  checksum: 10c0/ecc167163c47a831b1c2cfd88f4fe11c04841511a7009ee20c1b6c25da6f60c981da91bcc4d6d98074b09ff10e1ae17a62d18fbae6930a1794411512ec8080ee
+  checksum: 10c0/ee3492dfbc900391c8137cca2f55c403307e3dd121a77ea3bbacca33afb82715647eaae5a6d6cc25590284892e45c75e70ab5bb033ebc20016a1972333104dc6
   languageName: node
   linkType: hard
 
-"embla-carousel-reactive-utils@npm:8.2.1":
-  version: 8.2.1
-  resolution: "embla-carousel-reactive-utils@npm:8.2.1"
+"embla-carousel-reactive-utils@npm:8.3.0":
+  version: 8.3.0
+  resolution: "embla-carousel-reactive-utils@npm:8.3.0"
   peerDependencies:
-    embla-carousel: 8.2.1
-  checksum: 10c0/7611dd66299c5da50f9b30ab78a296bd1d6ed67e4a687df7e77b2fb05074ef7e652060940595643b1977a9df362ff42b253f5ca2fc4b08612422ef9a57c8190d
+    embla-carousel: 8.3.0
+  checksum: 10c0/64769d7b5d0169f7cda810d909b446ccd47b28afbcb205196c0e1799c51ebbefaa71465cabd6bc5ab92bad78da99fdf2808dc8e1a3f3f18a7e428ae2e0136a0e
   languageName: node
   linkType: hard
 
-"embla-carousel@npm:8.2.1":
-  version: 8.2.1
-  resolution: "embla-carousel@npm:8.2.1"
-  checksum: 10c0/7b480be5a57b9d1f12f880f2048e6019cc53b41bd1a30a1b1bd5f0b93328bda40761e82ab1457918ce3e1469afbce457665fdf16a349f7c7ed3ce6ab8930da41
+"embla-carousel@npm:8.3.0":
+  version: 8.3.0
+  resolution: "embla-carousel@npm:8.3.0"
+  checksum: 10c0/0240156d6a736603d82ddfe93b03ce296e385e9c18ed2cca9465634c8adb7560bfc2fbef6368a4da2a54926c4ba6de1012ebb33d2fc92c052030ea2288e4cc92
   languageName: node
   linkType: hard
 
@@ -9799,26 +9817,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely-codegen@npm:0.15.0":
-  version: 0.15.0
-  resolution: "kysely-codegen@npm:0.15.0"
+"kysely-codegen@npm:0.16.6":
+  version: 0.16.6
+  resolution: "kysely-codegen@npm:0.16.6"
   dependencies:
     chalk: "npm:4.1.2"
     dotenv: "npm:^16.4.5"
     dotenv-expand: "npm:^11.0.6"
     git-diff: "npm:^2.0.6"
-    micromatch: "npm:^4.0.5"
+    micromatch: "npm:^4.0.8"
     minimist: "npm:^1.2.8"
+    pluralize: "npm:^8.0.0"
   peerDependencies:
     "@libsql/kysely-libsql": ^0.3.0
     "@tediousjs/connection-string": ^0.5.0
     better-sqlite3: ">=7.6.2"
     kysely: ^0.27.0
+    kysely-bun-sqlite: ^0.3.2
     kysely-bun-worker: ^0.5.3
     mysql2: ^2.3.3 || ^3.0.0
     pg: ^8.8.0
     tarn: ^3.0.0
-    tedious: ^16.6.0 || ^17.0.0
+    tedious: ^18.0.0
   peerDependenciesMeta:
     "@libsql/kysely-libsql":
       optional: true
@@ -9828,6 +9848,8 @@ __metadata:
       optional: true
     kysely:
       optional: false
+    kysely-bun-sqlite:
+      optional: true
     kysely-bun-worker:
       optional: true
     mysql2:
@@ -9840,7 +9862,7 @@ __metadata:
       optional: true
   bin:
     kysely-codegen: dist/cli/bin.js
-  checksum: 10c0/3519fe5b7a3f23e739309819ed70b6731b6dc6424b0c8b9869d48f872a00e3b70e306ae8dd4e66531a605cc6336bdc51f311937191136dd3b767661e5ad7f5f4
+  checksum: 10c0/84c05bc698777f60caa45e11f9324000d98669542ff6baff60955c1bbe81b1d634033ea5ff6b9365c0822a692d742564f39b6e704aa810a4e568f60d06a724d3
   languageName: node
   linkType: hard
 
@@ -10190,6 +10212,16 @@ __metadata:
     braces: "npm:^3.0.3"
     picomatch: "npm:^2.3.1"
   checksum: 10c0/58fa99bc5265edec206e9163a1d2cec5fabc46a5b473c45f4a700adce88c2520456ae35f2b301e4410fb3afb27e9521fb2813f6fc96be0a48a89430e0916a772
+  languageName: node
+  linkType: hard
+
+"micromatch@npm:^4.0.8":
+  version: 4.0.8
+  resolution: "micromatch@npm:4.0.8"
+  dependencies:
+    braces: "npm:^3.0.3"
+    picomatch: "npm:^2.3.1"
+  checksum: 10c0/166fa6eb926b9553f32ef81f5f531d27b4ce7da60e5baf8c021d043b27a388fb95e46a8038d5045877881e673f8134122b59624d5cecbd16eb50a42e7a6b5ca8
   languageName: node
   linkType: hard
 
@@ -11680,7 +11712,7 @@ __metadata:
     "@types/babel__core": "npm:7.20.5"
     "@types/fs-extra": "npm:11.0.4"
     "@types/mime-types": "npm:2.1.4"
-    "@types/node": "npm:22.5.4"
+    "@types/node": "npm:22.5.5"
     "@types/normalize-path": "npm:3.0.2"
     "@types/react": "npm:^18.3.5"
     "@types/react-dom": "npm:^18.3.0"
@@ -11688,7 +11720,7 @@ __metadata:
     "@vercel/style-guide": "npm:6.0.0"
     autoprefixer: "npm:10.4.20"
     chalk: "npm:5.3.0"
-    chokidar: "npm:3.6.0"
+    chokidar: "npm:4.0.0"
     clsx: "npm:2.1.1"
     commander: "npm:12.1.0"
     debounce: "npm:2.1.1"
@@ -11718,7 +11750,7 @@ __metadata:
     tsup: "npm:8.2.4"
     tsx: "npm:4.19.1"
     typescript: "npm:5.6.2"
-    vitest: "npm:2.1.0"
+    vitest: "npm:2.1.1"
   bin:
     email: ./dist/cli/index.js
   languageName: unknown
@@ -12157,6 +12189,13 @@ __metadata:
     process: "npm:^0.11.10"
     string_decoder: "npm:^1.3.0"
   checksum: 10c0/a2c80e0e53aabd91d7df0330929e32d0a73219f9477dbbb18472f6fdd6a11a699fc5d172a1beff98d50eae4f1496c950ffa85b7cc2c4c196963f289a5f39275d
+  languageName: node
+  linkType: hard
+
+"readdirp@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "readdirp@npm:4.0.1"
+  checksum: 10c0/e5a0b547015f68ecc918f115b62b75b2b840611480a9240cb3317090a0ddac01bb9b40315a8fa08acdf52a43eea17b808c89b645263cba3ab64dc557d7f801f1
   languageName: node
   linkType: hard
 
@@ -14008,15 +14047,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vaul@npm:^0.9.2":
-  version: 0.9.2
-  resolution: "vaul@npm:0.9.2"
+"vaul@npm:^0.9.3":
+  version: 0.9.3
+  resolution: "vaul@npm:0.9.3"
   dependencies:
-    "@radix-ui/react-dialog": "npm:^1.0.4"
+    "@radix-ui/react-dialog": "npm:^1.1.1"
   peerDependencies:
     react: ^16.8 || ^17.0 || ^18.0
     react-dom: ^16.8 || ^17.0 || ^18.0
-  checksum: 10c0/39401d88fc3c6139c245ad541264e0c41560e5499553b973d80df8003798e894e4822b67f531da65cc349b601b8c22f1252a5573f13f1d67de6de631524f0fbd
+  checksum: 10c0/67ae8ad2ae76f13eab098d22467cee0420bf8c1a2a0073710db366dc762c88fafc21680ec3689abf0c3c7dd86b9c22f46fc7fdde3caa6f771c183d336bea7fd2
   languageName: node
   linkType: hard
 
@@ -14042,9 +14081,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.6":
-  version: 2.21.6
-  resolution: "viem@npm:2.21.6"
+"viem@npm:2.21.7":
+  version: 2.21.7
+  resolution: "viem@npm:2.21.7"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.10.0"
     "@noble/curves": "npm:1.4.0"
@@ -14060,13 +14099,13 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/6d039e0855567fb3793aee929ecb527e04ee000504aa73967bf4bd51d90c4a2dbc88f826790a06af7011432fde97ae7a22f9e24459dde462dc0d38c5157d2dc2
+  checksum: 10c0/6f129fc706b95455bfa7f42d8e328ecbf11365cfd7ec887a486ebe51a9ec69082d16a9dc662b0218c9e74108dce6f6962e9704ace10fd1b7abc04ee186039194
   languageName: node
   linkType: hard
 
-"vite-node@npm:2.1.0":
-  version: 2.1.0
-  resolution: "vite-node@npm:2.1.0"
+"vite-node@npm:2.1.1":
+  version: 2.1.1
+  resolution: "vite-node@npm:2.1.1"
   dependencies:
     cac: "npm:^6.7.14"
     debug: "npm:^4.3.6"
@@ -14074,7 +14113,7 @@ __metadata:
     vite: "npm:^5.0.0"
   bin:
     vite-node: vite-node.mjs
-  checksum: 10c0/2d85b21ed0f0ef5703a15c8e9d47dcff5a3f67685e2ad153998069bb0ab257e7580616dfbc03bf66dc4f655f8435ecb16d9a2d56b367bf5c6994fbbfc466f9bd
+  checksum: 10c0/8a8b958df3d48af915e07e7efb042ee4c036ca0b73d2c411dc29254fd3533ada0807ce5096d8339894d3e786418b7d1a9c4ae02718c6aca11b5098de2b14c336
   languageName: node
   linkType: hard
 
@@ -14121,17 +14160,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:2.1.0":
-  version: 2.1.0
-  resolution: "vitest@npm:2.1.0"
+"vitest@npm:2.1.1":
+  version: 2.1.1
+  resolution: "vitest@npm:2.1.1"
   dependencies:
-    "@vitest/expect": "npm:2.1.0"
-    "@vitest/mocker": "npm:2.1.0"
-    "@vitest/pretty-format": "npm:^2.1.0"
-    "@vitest/runner": "npm:2.1.0"
-    "@vitest/snapshot": "npm:2.1.0"
-    "@vitest/spy": "npm:2.1.0"
-    "@vitest/utils": "npm:2.1.0"
+    "@vitest/expect": "npm:2.1.1"
+    "@vitest/mocker": "npm:2.1.1"
+    "@vitest/pretty-format": "npm:^2.1.1"
+    "@vitest/runner": "npm:2.1.1"
+    "@vitest/snapshot": "npm:2.1.1"
+    "@vitest/spy": "npm:2.1.1"
+    "@vitest/utils": "npm:2.1.1"
     chai: "npm:^5.1.1"
     debug: "npm:^4.3.6"
     magic-string: "npm:^0.30.11"
@@ -14142,13 +14181,13 @@ __metadata:
     tinypool: "npm:^1.0.0"
     tinyrainbow: "npm:^1.2.0"
     vite: "npm:^5.0.0"
-    vite-node: "npm:2.1.0"
+    vite-node: "npm:2.1.1"
     why-is-node-running: "npm:^2.3.0"
   peerDependencies:
     "@edge-runtime/vm": "*"
     "@types/node": ^18.0.0 || >=20.0.0
-    "@vitest/browser": 2.1.0
-    "@vitest/ui": 2.1.0
+    "@vitest/browser": 2.1.1
+    "@vitest/ui": 2.1.1
     happy-dom: "*"
     jsdom: "*"
   peerDependenciesMeta:
@@ -14166,7 +14205,7 @@ __metadata:
       optional: true
   bin:
     vitest: vitest.mjs
-  checksum: 10c0/38c7b059337481401d415fa37bb4dffd92817472ad8c919f7d28a25eb68fa24ea930206395653fd6ce7757e503adec2c34a847ffacd92065bb20b8ee7ab50f43
+  checksum: 10c0/77a67092338613376dadd8f6f6872383db8409402ce400ac1de48efd87a7214183e798484a3eb2310221c03554e37a00f9fdbc91e49194e7c68e009a5589f494
   languageName: node
   linkType: hard
 
