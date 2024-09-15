@@ -2106,7 +2106,7 @@ __metadata:
     "@types/pg": "npm:8"
     dotenv: "npm:16.4.5"
     kysely: "npm:0.27.4"
-    kysely-codegen: "npm:0.16.6"
+    kysely-codegen: "npm:0.15.0"
     kysely-ctl: "npm:0.9.0"
     pg: "npm:8.12.0"
     typescript: "npm:5.6.2"
@@ -2240,7 +2240,7 @@ __metadata:
     class-variance-authority: "npm:^0.7.0"
     next: "npm:14.2.11"
     pino-pretty: "npm:11.2.2"
-    postcss: "npm:8.4.45"
+    postcss: "npm:8.4.47"
     prettier: "npm:^3.3.3"
     prettier-plugin-tailwindcss: "npm:^0.6.6"
     react: "npm:18.3.1"
@@ -2310,7 +2310,7 @@ __metadata:
     oslo: "npm:1.2.1"
     pg: "npm:8.12.0"
     pino-pretty: "npm:11.2.2"
-    postcss: "npm:8.4.45"
+    postcss: "npm:8.4.47"
     posthog-js: "npm:1.161.3"
     postmark: "npm:4.0.5"
     prettier: "npm:3.3.3"
@@ -2321,7 +2321,7 @@ __metadata:
     react-hook-form: "npm:^7.53.0"
     react-icons: "npm:5.3.0"
     react-intersection-observer: "npm:9.13.1"
-    react-resizable-panels: "npm:^2.1.2"
+    react-resizable-panels: "npm:^2.1.3"
     recharts: "npm:^2.12.7"
     serwist: "npm:9.0.7"
     sonner: "npm:^1.5.0"
@@ -9817,28 +9817,26 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely-codegen@npm:0.16.6":
-  version: 0.16.6
-  resolution: "kysely-codegen@npm:0.16.6"
+"kysely-codegen@npm:0.15.0":
+  version: 0.15.0
+  resolution: "kysely-codegen@npm:0.15.0"
   dependencies:
     chalk: "npm:4.1.2"
     dotenv: "npm:^16.4.5"
     dotenv-expand: "npm:^11.0.6"
     git-diff: "npm:^2.0.6"
-    micromatch: "npm:^4.0.8"
+    micromatch: "npm:^4.0.5"
     minimist: "npm:^1.2.8"
-    pluralize: "npm:^8.0.0"
   peerDependencies:
     "@libsql/kysely-libsql": ^0.3.0
     "@tediousjs/connection-string": ^0.5.0
     better-sqlite3: ">=7.6.2"
     kysely: ^0.27.0
-    kysely-bun-sqlite: ^0.3.2
     kysely-bun-worker: ^0.5.3
     mysql2: ^2.3.3 || ^3.0.0
     pg: ^8.8.0
     tarn: ^3.0.0
-    tedious: ^18.0.0
+    tedious: ^16.6.0 || ^17.0.0
   peerDependenciesMeta:
     "@libsql/kysely-libsql":
       optional: true
@@ -9848,8 +9846,6 @@ __metadata:
       optional: true
     kysely:
       optional: false
-    kysely-bun-sqlite:
-      optional: true
     kysely-bun-worker:
       optional: true
     mysql2:
@@ -9862,7 +9858,7 @@ __metadata:
       optional: true
   bin:
     kysely-codegen: dist/cli/bin.js
-  checksum: 10c0/84c05bc698777f60caa45e11f9324000d98669542ff6baff60955c1bbe81b1d634033ea5ff6b9365c0822a692d742564f39b6e704aa810a4e568f60d06a724d3
+  checksum: 10c0/3519fe5b7a3f23e739309819ed70b6731b6dc6424b0c8b9869d48f872a00e3b70e306ae8dd4e66531a605cc6336bdc51f311937191136dd3b767661e5ad7f5f4
   languageName: node
   linkType: hard
 
@@ -10212,16 +10208,6 @@ __metadata:
     braces: "npm:^3.0.3"
     picomatch: "npm:^2.3.1"
   checksum: 10c0/58fa99bc5265edec206e9163a1d2cec5fabc46a5b473c45f4a700adce88c2520456ae35f2b301e4410fb3afb27e9521fb2813f6fc96be0a48a89430e0916a772
-  languageName: node
-  linkType: hard
-
-"micromatch@npm:^4.0.8":
-  version: 4.0.8
-  resolution: "micromatch@npm:4.0.8"
-  dependencies:
-    braces: "npm:^3.0.3"
-    picomatch: "npm:^2.3.1"
-  checksum: 10c0/166fa6eb926b9553f32ef81f5f531d27b4ce7da60e5baf8c021d043b27a388fb95e46a8038d5045877881e673f8134122b59624d5cecbd16eb50a42e7a6b5ca8
   languageName: node
   linkType: hard
 
@@ -11293,6 +11279,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"picocolors@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "picocolors@npm:1.1.0"
+  checksum: 10c0/86946f6032148801ef09c051c6fb13b5cf942eaf147e30ea79edb91dd32d700934edebe782a1078ff859fb2b816792e97ef4dab03d7f0b804f6b01a0df35e023
+  languageName: node
+  linkType: hard
+
 "picomatch@npm:^2.0.4, picomatch@npm:^2.2.1, picomatch@npm:^2.3.1":
   version: 2.3.1
   resolution: "picomatch@npm:2.3.1"
@@ -11477,14 +11470,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:8.4.45, postcss@npm:^8.4.43":
-  version: 8.4.45
-  resolution: "postcss@npm:8.4.45"
+"postcss@npm:8.4.47":
+  version: 8.4.47
+  resolution: "postcss@npm:8.4.47"
   dependencies:
     nanoid: "npm:^3.3.7"
-    picocolors: "npm:^1.0.1"
-    source-map-js: "npm:^1.2.0"
-  checksum: 10c0/ad6f8b9b1157d678560373696109745ab97a947d449f8a997acac41c7f1e4c0f3ca4b092d6df1387f430f2c9a319987b1780dbdc27e35800a88cde9b606c1e8f
+    picocolors: "npm:^1.1.0"
+    source-map-js: "npm:^1.2.1"
+  checksum: 10c0/929f68b5081b7202709456532cee2a145c1843d391508c5a09de2517e8c4791638f71dd63b1898dba6712f8839d7a6da046c72a5e44c162e908f5911f57b5f44
   languageName: node
   linkType: hard
 
@@ -11496,6 +11489,17 @@ __metadata:
     picocolors: "npm:^1.0.1"
     source-map-js: "npm:^1.2.0"
   checksum: 10c0/16f5ac3c4e32ee76d1582b3c0dcf1a1fdb91334a45ad755eeb881ccc50318fb8d64047de4f1601ac96e30061df203f0f2e2edbdc0bfc49b9c57bc9fb9bedaea3
+  languageName: node
+  linkType: hard
+
+"postcss@npm:^8.4.43":
+  version: 8.4.45
+  resolution: "postcss@npm:8.4.45"
+  dependencies:
+    nanoid: "npm:^3.3.7"
+    picocolors: "npm:^1.0.1"
+    source-map-js: "npm:^1.2.0"
+  checksum: 10c0/ad6f8b9b1157d678560373696109745ab97a947d449f8a997acac41c7f1e4c0f3ca4b092d6df1387f430f2c9a319987b1780dbdc27e35800a88cde9b606c1e8f
   languageName: node
   linkType: hard
 
@@ -11735,7 +11739,7 @@ __metadata:
     next: "npm:14.2.11"
     normalize-path: "npm:3.0.0"
     ora: "npm:8.1.0"
-    postcss: "npm:8.4.45"
+    postcss: "npm:8.4.47"
     prism-react-renderer: "npm:2.4.0"
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
@@ -12071,13 +12075,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-resizable-panels@npm:^2.1.2":
-  version: 2.1.2
-  resolution: "react-resizable-panels@npm:2.1.2"
+"react-resizable-panels@npm:^2.1.3":
+  version: 2.1.3
+  resolution: "react-resizable-panels@npm:2.1.3"
   peerDependencies:
     react: ^16.14.0 || ^17.0.0 || ^18.0.0
     react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0
-  checksum: 10c0/f532915f45a45e1fcd524249d114ff56b8e3f6a4b0c21509c6635fd23b12a1d68a72dab7be22d2944e904b42ae6e026f7a46749d025b5bbd454be88bbb5319db
+  checksum: 10c0/65257545a935f8bd664b234659bb72535f37ba3ff2a1f09e4063315a8a4651604a6dc3da73b80895d6f15f2c52f9ca5c3e0affa3e1db7aa77b8b430df221bc68
   languageName: node
   linkType: hard
 
@@ -13030,7 +13034,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"source-map-js@npm:1.2.1":
+"source-map-js@npm:1.2.1, source-map-js@npm:^1.2.1":
   version: 1.2.1
   resolution: "source-map-js@npm:1.2.1"
   checksum: 10c0/7bda1fc4c197e3c6ff17de1b8b2c20e60af81b63a52cb32ec5a5d67a20a7d42651e2cb34ebe93833c5a2a084377e17455854fee3e21e7925c64a51b6a52b0faf
