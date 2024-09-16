@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use dotenv::dotenv;
 use reqwest::Client;
+use sea_orm::ConnectOptions;
 use sea_orm::{
     prelude::Uuid, ColumnTrait, Condition, Database, DatabaseConnection, EntityTrait, QueryFilter,
     Set,
@@ -21,7 +22,9 @@ struct DbHandler {
 
 impl DbHandler {
     async fn new(database_url: &str) -> Result<Self> {
-        let conn = Database::connect(database_url).await?;
+        let mut opt = ConnectOptions::new(database_url.to_string());
+        opt.sqlx_logging(false);
+        let conn = Database::connect(opt).await?;
         Ok(Self { conn })
     }
 
