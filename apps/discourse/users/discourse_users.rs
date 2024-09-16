@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 use tracing::instrument;
+use tracing::{error, info, warn};
 use utils::tracing::setup_tracing;
 mod models;
 use models::{Response, User};
@@ -24,6 +25,7 @@ impl DbHandler {
         Ok(Self { conn })
     }
 
+    #[instrument(skip(self, user), fields(user_id = user.id, dao_discourse_id = %dao_discourse_id))]
     async fn upsert_user(&self, user: &User, dao_discourse_id: Uuid) -> Result<()> {
         let existing_user = discourse_user::Entity::find()
             .filter(
@@ -94,6 +96,7 @@ impl UserFetcher {
         }
     }
 
+    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     async fn update_all_users(&self, db_handler: &DbHandler, dao_discourse_id: Uuid) -> Result<()> {
         let mut page = 0;
         let mut total_users = 0;
@@ -123,7 +126,7 @@ impl UserFetcher {
                 db_handler.upsert_user(&user, dao_discourse_id).await?;
             }
 
-            println!(
+            info!(
                 "Fetched and upserted page {}: {} users (total users so far: {})",
                 page + 1,
                 num_users,
@@ -131,7 +134,7 @@ impl UserFetcher {
             );
 
             if response.directory_items.is_empty() {
-                println!("No more users to fetch. Stopping.");
+                info!("No more users to fetch. Stopping.");
                 break;
             }
 
@@ -142,6 +145,7 @@ impl UserFetcher {
         Ok(())
     }
 
+    #[instrument(skip(self), fields(page = page))]
     async fn fetch_page(&self, page: usize) -> Result<Response> {
         let url = format!(
             "{}/directory_items.json?page={}&order=asc&period=all",
@@ -151,6 +155,7 @@ impl UserFetcher {
             .await
     }
 
+    #[instrument(skip(self, client), fields(url = %url, max_retries = max_retries))]
     async fn fetch_page_with_retries(
         &self,
         client: &Client,
@@ -186,13 +191,13 @@ impl UserFetcher {
                                 .map(Duration::from_secs)
                                 .unwrap_or(Duration::from_secs(60));
 
-                            println!(
+                            warn!(
                                 "Rate limited. Waiting for {:?} before retrying...",
                                 retry_after
                             );
                             sleep(retry_after).await;
                         } else {
-                            println!(
+                            warn!(
                                 "Server error {}. Retrying in {:?}...",
                                 response.status(),
                                 delay
@@ -211,7 +216,7 @@ impl UserFetcher {
                     if attempt > max_retries {
                         return Err(anyhow!("Max retries reached. Last error: {}", e));
                     }
-                    println!("Request error: {}. Retrying in {:?}...", e, delay);
+                    warn!("Request error: {}. Retrying in {:?}...", e, delay);
                     sleep(delay).await;
                     delay *= 2; // Exponential backoff
                 }
@@ -225,6 +230,7 @@ impl UserFetcher {
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_tracing();
+
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
     let db_handler = Arc::new(DbHandler::new(&database_url).await?);
 
@@ -244,13 +250,13 @@ async fn main() -> Result<()> {
                     .await
                 {
                     Ok(_) => {
-                        println!(
+                        info!(
                             "Successfully updated users for {}",
                             dao_discourse.discourse_base_url
                         );
                     }
                     Err(e) => {
-                        eprintln!(
+                        error!(
                             "Error updating users for {} (ID: {}): {}",
                             dao_discourse.discourse_base_url, dao_discourse.id, e
                         );
