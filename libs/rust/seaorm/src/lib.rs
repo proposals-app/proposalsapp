@@ -4,8 +4,10 @@ pub mod prelude;
 
 pub mod countdown_cache;
 pub mod dao;
+pub mod dao_discourse;
 pub mod dao_handler;
 pub mod dao_settings;
+pub mod discourse_user;
 pub mod email_verification;
 pub mod job_queue;
 pub mod kysely_migration;

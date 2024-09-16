@@ -42,6 +42,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
+    DaoDiscourse,
     DaoHandler,
     DaoSettings,
     Proposal,
@@ -64,12 +65,19 @@ impl ColumnTrait for Column {
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
+            Self::DaoDiscourse => Entity::has_many(super::dao_discourse::Entity).into(),
             Self::DaoHandler => Entity::has_many(super::dao_handler::Entity).into(),
             Self::DaoSettings => Entity::has_one(super::dao_settings::Entity).into(),
             Self::Proposal => Entity::has_many(super::proposal::Entity).into(),
             Self::Subscription => Entity::has_many(super::subscription::Entity).into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
         }
+    }
+}
+
+impl Related<super::dao_discourse::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DaoDiscourse.def()
     }
 }
 
