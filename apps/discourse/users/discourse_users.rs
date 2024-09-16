@@ -28,7 +28,6 @@ impl DbHandler {
         Ok(Self { conn })
     }
 
-    #[instrument(skip(self, user), fields(user_id = user.id, dao_discourse_id = %dao_discourse_id))]
     async fn upsert_user(&self, user: &User, dao_discourse_id: Uuid) -> Result<()> {
         let existing_user = discourse_user::Entity::find()
             .filter(
