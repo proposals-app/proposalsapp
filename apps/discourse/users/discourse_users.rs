@@ -245,33 +245,40 @@ async fn main() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
     let db_handler = Arc::new(DbHandler::new(&database_url).await?);
 
-    let target_id = Uuid::parse_str("1a9ae6ad-9523-4000-90c1-5beca82869ea")?;
+    let dao_discourses = dao_discourse::Entity::find().all(&db_handler.conn).await?;
 
-    let dao_discourse = dao_discourse::Entity::find_by_id(target_id)
-        .one(&db_handler.conn)
-        .await?
-        .context("Target dao_discourse not found")?;
+    let mut handles = vec![];
 
-    let fetcher = UserFetcher::new(&dao_discourse.discourse_base_url, 3);
-
-    loop {
-        match fetcher
-            .update_all_users(&db_handler, dao_discourse.id)
-            .await
-        {
-            Ok(_) => {
-                info!(
-                    "Successfully updated users for {}",
-                    dao_discourse.discourse_base_url
-                );
+    for dao_discourse in dao_discourses {
+        let fetcher = UserFetcher::new(&dao_discourse.discourse_base_url, 3);
+        let db_handler_clone = Arc::clone(&db_handler);
+        let handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
+            loop {
+                interval.tick().await;
+                match fetcher
+                    .update_all_users(&db_handler_clone, dao_discourse.id)
+                    .await
+                {
+                    Ok(_) => {
+                        info!(
+                            "Successfully updated users for {}",
+                            dao_discourse.discourse_base_url
+                        );
+                    }
+                    Err(e) => {
+                        error!(
+                            "Error updating users for {} (ID: {}): {}",
+                            dao_discourse.discourse_base_url, dao_discourse.id, e
+                        );
+                    }
+                }
             }
-            Err(e) => {
-                error!(
-                    "Error updating users for {} (ID: {}): {}",
-                    dao_discourse.discourse_base_url, dao_discourse.id, e
-                );
-            }
-        }
-        tokio::time::sleep(Duration::from_secs(60 * 60)).await;
+        });
+        handles.push(handle);
     }
+
+    futures::future::join_all(handles).await;
+
+    Ok(())
 }
