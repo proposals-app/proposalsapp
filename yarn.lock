@@ -2108,7 +2108,7 @@ __metadata:
     kysely: "npm:0.27.4"
     kysely-codegen: "npm:0.15.0"
     kysely-ctl: "npm:0.9.0"
-    pg: "npm:8.12.0"
+    pg: "npm:8.13.0"
     typescript: "npm:5.6.2"
   languageName: unknown
   linkType: soft
@@ -2177,7 +2177,7 @@ __metadata:
     "@react-email/components": "npm:0.0.25"
     "@react-email/render": "npm:1.0.1"
     "@tsconfig/recommended": "npm:1.0.7"
-    "@types/react": "npm:^18.3.6"
+    "@types/react": "npm:^18.3.7"
     dotenv: "npm:16.4.5"
     moment: "npm:2.30.1"
     postmark: "npm:4.0.5"
@@ -2186,7 +2186,7 @@ __metadata:
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
     react-email: "npm:3.0.1"
-    tailwindcss: "npm:3.4.11"
+    tailwindcss: "npm:3.4.12"
     typescript: "npm:5.6.2"
   languageName: unknown
   linkType: soft
@@ -2234,7 +2234,7 @@ __metadata:
   resolution: "@proposalsapp/web-arbitrum@workspace:apps/web-arbitrum"
   dependencies:
     "@serwist/next": "npm:^9.0.7"
-    "@types/react": "npm:18.3.6"
+    "@types/react": "npm:18.3.7"
     "@types/react-dom": "npm:18.3.0"
     autoprefixer: "npm:10.4.20"
     class-variance-authority: "npm:^0.7.0"
@@ -2246,7 +2246,7 @@ __metadata:
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
     tailwind-merge: "npm:^2.5.2"
-    tailwindcss: "npm:3.4.11"
+    tailwindcss: "npm:3.4.12"
     tailwindcss-animate: "npm:^1.0.7"
     typescript: "npm:5.6.2"
     web-push: "npm:^3.6.7"
@@ -2291,7 +2291,7 @@ __metadata:
     "@radix-ui/react-tooltip": "npm:^1.1.2"
     "@serwist/next": "npm:9.0.7"
     "@types/node": "npm:22.5.5"
-    "@types/react": "npm:18.3.6"
+    "@types/react": "npm:18.3.7"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:18.3.0"
     "@types/web-push": "npm:3.6.3"
@@ -2308,7 +2308,7 @@ __metadata:
     next: "npm:14.2.11"
     next-themes: "npm:^0.3.0"
     oslo: "npm:1.2.1"
-    pg: "npm:8.12.0"
+    pg: "npm:8.13.0"
     pino-pretty: "npm:11.2.2"
     postcss: "npm:8.4.47"
     posthog-js: "npm:1.161.5"
@@ -2326,11 +2326,11 @@ __metadata:
     serwist: "npm:9.0.7"
     sonner: "npm:^1.5.0"
     tailwind-merge: "npm:2.5.2"
-    tailwindcss: "npm:3.4.11"
+    tailwindcss: "npm:3.4.12"
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:5.6.2"
     vaul: "npm:^0.9.3"
-    viem: "npm:2.21.7"
+    viem: "npm:2.21.8"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -4865,13 +4865,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:18.3.6, @types/react@npm:^18.3.6":
-  version: 18.3.6
-  resolution: "@types/react@npm:18.3.6"
+"@types/react@npm:18.3.7, @types/react@npm:^18.3.7":
+  version: 18.3.7
+  resolution: "@types/react@npm:18.3.7"
   dependencies:
     "@types/prop-types": "npm:*"
     csstype: "npm:^3.0.2"
-  checksum: 10c0/e347787a496f2006fe61358316e040c22548a1669559277b72dad39e2f1f713080115be9fe6c30f9d1d28a54054b96cf6c06471be6967a3605e31f5b84a6cec7
+  checksum: 10c0/460f40eadf1fd035344b2ff9061d5c2314db9403f76d05fff7724c78543737c95829e1628567c63d27b542647867eca5b6f284dfd38f1d3b70754f32c4cbecb7
   languageName: node
   linkType: hard
 
@@ -11202,6 +11202,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pg-connection-string@npm:^2.7.0":
+  version: 2.7.0
+  resolution: "pg-connection-string@npm:2.7.0"
+  checksum: 10c0/50a1496a1c858f9495d78a2c7a66d93ef3602e718aff2953bb5738f3ea616d7f727f32fc20513c9bed127650cd14c1ddc7b458396f4000e689d4b64c65c5c51e
+  languageName: node
+  linkType: hard
+
 "pg-int8@npm:1.0.1":
   version: 1.0.1
   resolution: "pg-int8@npm:1.0.1"
@@ -11225,10 +11232,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pg-pool@npm:^3.7.0":
+  version: 3.7.0
+  resolution: "pg-pool@npm:3.7.0"
+  peerDependencies:
+    pg: ">=8.0"
+  checksum: 10c0/9128673cf941f288c0cb1a74ca959a9b4f6075ef73b2cc7dece5d4db3dd7043784869e7c12bce2e69ca0df22132a419cc45c2050b4373632856fe8bae9eb94b5
+  languageName: node
+  linkType: hard
+
 "pg-protocol@npm:*, pg-protocol@npm:^1.6.1":
   version: 1.6.1
   resolution: "pg-protocol@npm:1.6.1"
   checksum: 10c0/7eadef4010ac0a3925c460be7332ca4098a5c6d5181725a62193fcfa800000ae6632d98d814f3989b42cf5fdc3b45e34c714a1959d29174e81e30730e140ae5f
+  languageName: node
+  linkType: hard
+
+"pg-protocol@npm:^1.7.0":
+  version: 1.7.0
+  resolution: "pg-protocol@npm:1.7.0"
+  checksum: 10c0/c4af854d9b843c808231c0040fed89f2b9101006157df8da2bb2f62a7dde702de748d852228dc22df41cc7ffddfb526af3bcb34b278b581e9f76a060789186c1
   languageName: node
   linkType: hard
 
@@ -11260,7 +11283,29 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg@npm:8.12.0, pg@npm:^8.8.0":
+"pg@npm:8.13.0":
+  version: 8.13.0
+  resolution: "pg@npm:8.13.0"
+  dependencies:
+    pg-cloudflare: "npm:^1.1.1"
+    pg-connection-string: "npm:^2.7.0"
+    pg-pool: "npm:^3.7.0"
+    pg-protocol: "npm:^1.7.0"
+    pg-types: "npm:^2.1.0"
+    pgpass: "npm:1.x"
+  peerDependencies:
+    pg-native: ">=3.0.1"
+  dependenciesMeta:
+    pg-cloudflare:
+      optional: true
+  peerDependenciesMeta:
+    pg-native:
+      optional: true
+  checksum: 10c0/1521189063d2293d62f3fac61e797a3096a62a69668c223827d00b83c17a320805f31f0b5316feb80f8d9eed0c6c32f95146d8aca866af05816a66fd2ba8e32a
+  languageName: node
+  linkType: hard
+
+"pg@npm:^8.8.0":
   version: 8.12.0
   resolution: "pg@npm:8.12.0"
   dependencies:
@@ -11744,7 +11789,7 @@ __metadata:
     "@types/mime-types": "npm:2.1.4"
     "@types/node": "npm:22.5.5"
     "@types/normalize-path": "npm:3.0.2"
-    "@types/react": "npm:^18.3.6"
+    "@types/react": "npm:^18.3.7"
     "@types/react-dom": "npm:^18.3.0"
     "@types/webpack": "npm:5.28.5"
     "@vercel/style-guide": "npm:6.0.0"
@@ -11776,7 +11821,7 @@ __metadata:
     source-map-js: "npm:1.2.1"
     stacktrace-parser: "npm:0.1.10"
     tailwind-merge: "npm:2.5.2"
-    tailwindcss: "npm:3.4.11"
+    tailwindcss: "npm:3.4.12"
     tsup: "npm:8.3.0"
     tsx: "npm:4.19.1"
     typescript: "npm:5.6.2"
@@ -13475,9 +13520,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss@npm:3.4.11":
-  version: 3.4.11
-  resolution: "tailwindcss@npm:3.4.11"
+"tailwindcss@npm:3.4.12":
+  version: 3.4.12
+  resolution: "tailwindcss@npm:3.4.12"
   dependencies:
     "@alloc/quick-lru": "npm:^5.2.0"
     arg: "npm:^5.0.2"
@@ -13504,7 +13549,7 @@ __metadata:
   bin:
     tailwind: lib/cli.js
     tailwindcss: lib/cli.js
-  checksum: 10c0/b5bce27a6370e7a1c68a8c61db1e5379ccd14dcc5410149342f7742f45be0f2af72cbc0f3ac4e97535fc214d3f2546ade5edbb737f5b74d0a2431b8bb8e54b0d
+  checksum: 10c0/9ed1449d3b98ce54c6c3a6c3354121a14b39d8dba28815ea1b0fc5a0b32422a744545ba357690468912a1a781593bc7da3d4e56367abed284a300ae1fb0ab42b
   languageName: node
   linkType: hard
 
@@ -14121,9 +14166,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.7":
-  version: 2.21.7
-  resolution: "viem@npm:2.21.7"
+"viem@npm:2.21.8":
+  version: 2.21.8
+  resolution: "viem@npm:2.21.8"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.10.0"
     "@noble/curves": "npm:1.4.0"
@@ -14139,7 +14184,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/6f129fc706b95455bfa7f42d8e328ecbf11365cfd7ec887a486ebe51a9ec69082d16a9dc662b0218c9e74108dce6f6962e9704ace10fd1b7abc04ee186039194
+  checksum: 10c0/ba7acc456b779014a47bb09db97c2daafd80b45faa0993fec62c89bf6502bc38f9e1b940fa7d5a63ffc32db33141558b779ea93424c5328cde73694379e7f573
   languageName: node
   linkType: hard
 

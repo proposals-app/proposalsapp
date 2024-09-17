@@ -63,6 +63,8 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+
 export type Json = JsonValue;
 
 export type JsonArray = JsonValue[];
@@ -91,6 +93,12 @@ export interface Dao {
   slug: string;
 }
 
+export interface DaoDiscourse {
+  daoId: string;
+  discourseBaseUrl: string;
+  id: Generated<string>;
+}
+
 export interface DaoHandler {
   daoId: string;
   governancePortal: Generated<string>;
@@ -110,6 +118,23 @@ export interface DaoSettings {
   picture: string;
   quorumWarningEmailSupport: Generated<boolean>;
   twitterAccount: Json | null;
+}
+
+export interface DiscourseUser {
+  avatarTemplate: string;
+  daoDiscourseId: string;
+  daysVisited: Int8 | null;
+  externalId: Int8;
+  id: Generated<string>;
+  likesGiven: Int8 | null;
+  likesReceived: Int8 | null;
+  name: string | null;
+  postCount: Int8 | null;
+  postsRead: Int8 | null;
+  title: string | null;
+  topicCount: Int8 | null;
+  topicsEntered: Int8 | null;
+  username: string;
 }
 
 export interface EmailVerification {
@@ -232,8 +257,10 @@ export interface Voter {
 export interface DB {
   countdownCache: CountdownCache;
   dao: Dao;
+  daoDiscourse: DaoDiscourse;
   daoHandler: DaoHandler;
   daoSettings: DaoSettings;
+  discourseUser: DiscourseUser;
   emailVerification: EmailVerification;
   jobQueue: JobQueue;
   notification: Notification;
