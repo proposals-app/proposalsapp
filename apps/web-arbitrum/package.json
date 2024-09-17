@@ -20,7 +20,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@types/react": "18.3.5",
+    "@types/react": "18.3.6",
     "@types/react-dom": "18.3.0",
     "autoprefixer": "10.4.20",
     "pino-pretty": "11.2.2",

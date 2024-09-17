@@ -2177,7 +2177,7 @@ __metadata:
     "@react-email/components": "npm:0.0.25"
     "@react-email/render": "npm:1.0.1"
     "@tsconfig/recommended": "npm:1.0.7"
-    "@types/react": "npm:^18.3.5"
+    "@types/react": "npm:^18.3.6"
     dotenv: "npm:16.4.5"
     moment: "npm:2.30.1"
     postmark: "npm:4.0.5"
@@ -2234,7 +2234,7 @@ __metadata:
   resolution: "@proposalsapp/web-arbitrum@workspace:apps/web-arbitrum"
   dependencies:
     "@serwist/next": "npm:^9.0.7"
-    "@types/react": "npm:18.3.5"
+    "@types/react": "npm:18.3.6"
     "@types/react-dom": "npm:18.3.0"
     autoprefixer: "npm:10.4.20"
     class-variance-authority: "npm:^0.7.0"
@@ -2291,7 +2291,7 @@ __metadata:
     "@radix-ui/react-tooltip": "npm:^1.1.2"
     "@serwist/next": "npm:9.0.7"
     "@types/node": "npm:22.5.5"
-    "@types/react": "npm:18.3.5"
+    "@types/react": "npm:18.3.6"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:18.3.0"
     "@types/web-push": "npm:3.6.3"
@@ -2299,7 +2299,7 @@ __metadata:
     class-variance-authority: "npm:0.7.0"
     clsx: "npm:2.1.1"
     cmdk: "npm:^1.0.0"
-    date-fns: "npm:^3.6.0"
+    date-fns: "npm:^4.1.0"
     embla-carousel-react: "npm:^8.3.0"
     input-otp: "npm:^1.2.4"
     lucia: "npm:3.2.0"
@@ -2311,7 +2311,7 @@ __metadata:
     pg: "npm:8.12.0"
     pino-pretty: "npm:11.2.2"
     postcss: "npm:8.4.47"
-    posthog-js: "npm:1.161.3"
+    posthog-js: "npm:1.161.5"
     postmark: "npm:4.0.5"
     prettier: "npm:3.3.3"
     prettier-plugin-tailwindcss: "npm:0.6.6"
@@ -4865,13 +4865,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:18.3.5, @types/react@npm:^18.3.5":
-  version: 18.3.5
-  resolution: "@types/react@npm:18.3.5"
+"@types/react@npm:18.3.6, @types/react@npm:^18.3.6":
+  version: 18.3.6
+  resolution: "@types/react@npm:18.3.6"
   dependencies:
     "@types/prop-types": "npm:*"
     csstype: "npm:^3.0.2"
-  checksum: 10c0/548b1d3d7c2f0242fbfdbbd658731b4ce69a134be072fa83e6ab516f2840402a3f20e3e7f72e95133b23d4880ef24a6d864050dc8e1f7c68f39fa87ca8445917
+  checksum: 10c0/e347787a496f2006fe61358316e040c22548a1669559277b72dad39e2f1f713080115be9fe6c30f9d1d28a54054b96cf6c06471be6967a3605e31f5b84a6cec7
   languageName: node
   linkType: hard
 
@@ -6667,6 +6667,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"date-fns@npm:^4.1.0":
+  version: 4.1.0
+  resolution: "date-fns@npm:4.1.0"
+  checksum: 10c0/b79ff32830e6b7faa009590af6ae0fb8c3fd9ffad46d930548fbb5acf473773b4712ae887e156ba91a7b3dc30591ce0f517d69fd83bd9c38650fdc03b4e0bac8
+  languageName: node
+  linkType: hard
+
 "dateformat@npm:^4.6.3":
   version: 4.6.3
   resolution: "dateformat@npm:4.6.3"
@@ -8346,6 +8353,18 @@ __metadata:
   dependencies:
     reusify: "npm:^1.0.4"
   checksum: 10c0/1095f16cea45fb3beff558bb3afa74ca7a9250f5a670b65db7ed585f92b4b48381445cd328b3d87323da81e43232b5d5978a8201bde84e0cd514310f1ea6da34
+  languageName: node
+  linkType: hard
+
+"fdir@npm:^6.3.0":
+  version: 6.3.0
+  resolution: "fdir@npm:6.3.0"
+  peerDependencies:
+    picomatch: ^3 || ^4
+  peerDependenciesMeta:
+    picomatch:
+      optional: true
+  checksum: 10c0/be91cd6ab2edbc6df457a69b79672ee9345996986821918ef01908ce9619b8cbecd9c6c13d4ca5d0aeb548b162050d68c599f45bb3fbff194a91e16f25e646b5
   languageName: node
   linkType: hard
 
@@ -11293,6 +11312,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"picomatch@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "picomatch@npm:4.0.2"
+  checksum: 10c0/7c51f3ad2bb42c776f49ebf964c644958158be30d0a510efd5a395e8d49cb5acfed5b82c0c5b365523ce18e6ab85013c9ebe574f60305892ec3fa8eee8304ccc
+  languageName: node
+  linkType: hard
+
 "pify@npm:^2.3.0":
   version: 2.3.0
   resolution: "pify@npm:2.3.0"
@@ -11577,14 +11603,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.161.3":
-  version: 1.161.3
-  resolution: "posthog-js@npm:1.161.3"
+"posthog-js@npm:1.161.5":
+  version: 1.161.5
+  resolution: "posthog-js@npm:1.161.5"
   dependencies:
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.0.1"
-  checksum: 10c0/f5b85f56f38d57c70b1ef038d886f671b8f126927189a8043b8817942883e366b7d3ac530c9a171baaaed11aabc1736f83bba9ede2f3058a80ec3e4f688c49aa
+  checksum: 10c0/72af3278fa03c5c28f7a83c198fc099769b1f86b228f3d929e1f7c87fabe77622494f155db9046b97fb3ddde451daf361b53fa4d65a96117cc145a476d857130
   languageName: node
   linkType: hard
 
@@ -11718,7 +11744,7 @@ __metadata:
     "@types/mime-types": "npm:2.1.4"
     "@types/node": "npm:22.5.5"
     "@types/normalize-path": "npm:3.0.2"
-    "@types/react": "npm:^18.3.5"
+    "@types/react": "npm:^18.3.6"
     "@types/react-dom": "npm:^18.3.0"
     "@types/webpack": "npm:5.28.5"
     "@vercel/style-guide": "npm:6.0.0"
@@ -11751,7 +11777,7 @@ __metadata:
     stacktrace-parser: "npm:0.1.10"
     tailwind-merge: "npm:2.5.2"
     tailwindcss: "npm:3.4.11"
-    tsup: "npm:8.2.4"
+    tsup: "npm:8.3.0"
     tsx: "npm:4.19.1"
     typescript: "npm:5.6.2"
     vitest: "npm:2.1.1"
@@ -13585,6 +13611,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tinyglobby@npm:^0.2.1":
+  version: 0.2.6
+  resolution: "tinyglobby@npm:0.2.6"
+  dependencies:
+    fdir: "npm:^6.3.0"
+    picomatch: "npm:^4.0.2"
+  checksum: 10c0/d7b5eb4c5b9c341f961c1d3c30624f9a1e22b27b48a79a65b48120245a77c143827f75f5854628fef1a4bd4bc3cfaf06ce76497f3a574e3f933229c5e556e5fe
+  languageName: node
+  linkType: hard
+
 "tinypool@npm:^1.0.0":
   version: 1.0.1
   resolution: "tinypool@npm:1.0.1"
@@ -13696,9 +13732,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsup@npm:8.2.4":
-  version: 8.2.4
-  resolution: "tsup@npm:8.2.4"
+"tsup@npm:8.3.0":
+  version: 8.3.0
+  resolution: "tsup@npm:8.3.0"
   dependencies:
     bundle-require: "npm:^5.0.0"
     cac: "npm:^6.7.14"
@@ -13707,7 +13743,6 @@ __metadata:
     debug: "npm:^4.3.5"
     esbuild: "npm:^0.23.0"
     execa: "npm:^5.1.1"
-    globby: "npm:^11.1.0"
     joycon: "npm:^3.1.1"
     picocolors: "npm:^1.0.1"
     postcss-load-config: "npm:^6.0.1"
@@ -13715,6 +13750,7 @@ __metadata:
     rollup: "npm:^4.19.0"
     source-map: "npm:0.8.0-beta.0"
     sucrase: "npm:^3.35.0"
+    tinyglobby: "npm:^0.2.1"
     tree-kill: "npm:^1.2.2"
   peerDependencies:
     "@microsoft/api-extractor": ^7.36.0
@@ -13733,7 +13769,7 @@ __metadata:
   bin:
     tsup: dist/cli-default.js
     tsup-node: dist/cli-node.js
-  checksum: 10c0/0fa967ae0feb483528ae52fd9988d7931a092b3645a456e23b62ac03a0556da6f569fb2a77b3baf50ff1d12b9afac38aa9d29f15eb82c8a2b4faeda8362858da
+  checksum: 10c0/7f7132e48fca2284fd721077c6462c440dabdc95bcacf2e9837f81d2ca9771f804ff4f8b81a743e8fc6c3def856cf3ae99421c0568a7f030196abdc9e12e97e8
   languageName: node
   linkType: hard
 
