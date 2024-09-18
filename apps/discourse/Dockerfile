@@ -34,7 +34,7 @@ COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 
 # Build the project
-RUN cargo build --release --package discourse-users
+RUN cargo build --release --package discourse
 
 # Stage 3: Final
 FROM debian:stable-slim
@@ -47,10 +47,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
-COPY --from=builder /app/target/release/discourse-users /usr/local/bin/discourse-users
+COPY --from=builder /app/target/release/discourse /usr/local/bin/discourse
 
 # Set the environment variable
-ENV PROPOSALS_BIN=discourse-users
+ENV PROPOSALS_BIN=discourse
 
 # Set the default command
-CMD ["discourse-users"]
+CMD ["discourse"]

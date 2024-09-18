@@ -47,7 +47,7 @@ pub struct Meta {
 
 /// Represents the response from the directory_items endpoint.
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Response {
+pub struct UserResponse {
     pub directory_items: Vec<DirectoryItem>,
     pub meta: Meta,
 }

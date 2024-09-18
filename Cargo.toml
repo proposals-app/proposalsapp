@@ -5,7 +5,7 @@ members = [
     "apps/detective/sanity",
     "apps/detective/votes/consumer",
     "apps/detective/votes/producer",
-    "apps/discourse/users",
+    "apps/discourse",
     "libs/rust/contracts",
     "libs/rust/scanners",
     "libs/rust/seaorm",

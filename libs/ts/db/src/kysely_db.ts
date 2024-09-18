@@ -120,6 +120,25 @@ export interface DaoSettings {
   twitterAccount: Json | null;
 }
 
+export interface DiscourseCategory {
+  color: string;
+  daoDiscourseId: string;
+  description: string | null;
+  descriptionText: string | null;
+  externalId: number;
+  id: Generated<string>;
+  name: string;
+  postCount: number;
+  slug: string;
+  textColor: string;
+  topicCount: number;
+  topicsAllTime: number | null;
+  topicsDay: number | null;
+  topicsMonth: number | null;
+  topicsWeek: number | null;
+  topicsYear: number | null;
+}
+
 export interface DiscourseUser {
   avatarTemplate: string;
   daoDiscourseId: string;
@@ -260,6 +279,7 @@ export interface DB {
   daoDiscourse: DaoDiscourse;
   daoHandler: DaoHandler;
   daoSettings: DaoSettings;
+  discourseCategory: DiscourseCategory;
   discourseUser: DiscourseUser;
   emailVerification: EmailVerification;
   jobQueue: JobQueue;

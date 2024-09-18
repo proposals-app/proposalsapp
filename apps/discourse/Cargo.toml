@@ -1,5 +1,5 @@
 [package]
-name = "discourse-users"
+name = "discourse"
 version = "0.1.0"
 edition = "2021"
 
@@ -14,8 +14,8 @@ sea-orm = { workspace = true, features = [
     "with-bigdecimal",
     "with-uuid",
 ] }
-seaorm = { path = "../../../libs/rust/seaorm" }
-utils = { path = "../../../libs/rust/utils" }
+seaorm = { path = "../../libs/rust/seaorm" }
+utils = { path = "../../libs/rust/utils" }
 dotenv = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
@@ -30,5 +30,5 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 
 [[bin]]
-name = "discourse-users"
-path = "discourse_users.rs"
+name = "discourse"
+path = "main.rs"

@@ -7,6 +7,7 @@ pub mod dao;
 pub mod dao_discourse;
 pub mod dao_handler;
 pub mod dao_settings;
+pub mod discourse_category;
 pub mod discourse_user;
 pub mod email_verification;
 pub mod job_queue;
