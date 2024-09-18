@@ -66,7 +66,8 @@ impl UserFetcher {
             let num_users = page_users.len();
             total_users += num_users;
 
-            for user in page_users {
+            for mut user in page_users {
+                user.avatar_template = self.process_avatar_url(&user.avatar_template);
                 db_handler.upsert_user(&user, dao_discourse_id).await?;
             }
 
@@ -97,6 +98,20 @@ impl UserFetcher {
         }
 
         Ok(())
+    }
+
+    fn process_avatar_url(&self, avatar_template: &String) -> String {
+        if avatar_template.starts_with("http") {
+            // It's already a full URL, just replace {size}
+            avatar_template.replace("{size}", "120")
+        } else {
+            // It's a relative URL, prepend the base URL and replace {size}
+            format!(
+                "{}{}",
+                self.base_url,
+                avatar_template.replace("{size}", "120")
+            )
+        }
     }
 
     #[instrument(skip(self), fields(url = %url, max_retries = max_retries))]
