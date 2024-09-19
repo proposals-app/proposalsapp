@@ -7,6 +7,8 @@ use seaorm::discourse_user;
 
 use crate::models::{categories::Category, users::User};
 
+use crate::models::topics::Topic;
+
 pub struct DbHandler {
     pub conn: DatabaseConnection,
 }
@@ -127,6 +129,70 @@ impl DbHandler {
                 .exec(&self.conn)
                 .await
                 .context("discourse_category::Entity::insert")?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn upsert_topic(&self, topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
+        let existing_topic = seaorm::discourse_topic::Entity::find()
+            .filter(
+                sea_orm::Condition::all()
+                    .add(seaorm::discourse_topic::Column::ExternalId.eq(topic.id))
+                    .add(seaorm::discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
+            )
+            .one(&self.conn)
+            .await
+            .context("discourse_topic::Entity::find")?;
+
+        if let Some(existing_topic) = existing_topic {
+            let mut topic_update: seaorm::discourse_topic::ActiveModel = existing_topic.into();
+            topic_update.title = Set(topic.title.clone());
+            topic_update.fancy_title = Set(topic.fancy_title.clone());
+            topic_update.slug = Set(topic.slug.clone());
+            topic_update.posts_count = Set(topic.posts_count);
+            topic_update.reply_count = Set(topic.reply_count);
+            topic_update.created_at = Set(topic.created_at.naive_utc());
+            topic_update.last_posted_at = Set(topic.last_posted_at.naive_utc());
+            topic_update.bumped_at = Set(topic.bumped_at.naive_utc());
+            topic_update.pinned = Set(topic.pinned);
+            topic_update.visible = Set(topic.visible);
+            topic_update.closed = Set(topic.closed);
+            topic_update.archived = Set(topic.archived);
+            topic_update.views = Set(topic.views);
+            topic_update.like_count = Set(topic.like_count);
+            topic_update.category_id = Set(topic.category_id);
+            topic_update.pinned_globally = Set(topic.pinned_globally);
+            seaorm::discourse_topic::Entity::update(topic_update)
+                .exec(&self.conn)
+                .await
+                .context("discourse_topic::Entity::update")?;
+        } else {
+            let topic_model = seaorm::discourse_topic::ActiveModel {
+                external_id: Set(topic.id),
+                title: Set(topic.title.clone()),
+                fancy_title: Set(topic.fancy_title.clone()),
+                slug: Set(topic.slug.clone()),
+                posts_count: Set(topic.posts_count),
+                reply_count: Set(topic.reply_count),
+                created_at: Set(topic.created_at.naive_utc()),
+                last_posted_at: Set(topic.last_posted_at.naive_utc()),
+                bumped_at: Set(topic.bumped_at.naive_utc()),
+                pinned: Set(topic.pinned),
+                visible: Set(topic.visible),
+                closed: Set(topic.closed),
+                archived: Set(topic.archived),
+                views: Set(topic.views),
+                like_count: Set(topic.like_count),
+                category_id: Set(topic.category_id),
+                pinned_globally: Set(topic.pinned_globally),
+                dao_discourse_id: Set(dao_discourse_id),
+                ..Default::default()
+            };
+            seaorm::discourse_topic::Entity::insert(topic_model)
+                .exec(&self.conn)
+                .await
+                .context("discourse_topic::Entity::insert")?;
         }
 
         Ok(())

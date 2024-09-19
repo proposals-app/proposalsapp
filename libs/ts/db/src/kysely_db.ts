@@ -139,6 +139,28 @@ export interface DiscourseCategory {
   topicsYear: number | null;
 }
 
+export interface DiscourseTopic {
+  archived: boolean;
+  bumpedAt: Timestamp;
+  categoryId: number;
+  closed: boolean;
+  createdAt: Timestamp;
+  daoDiscourseId: string;
+  externalId: number;
+  fancyTitle: string;
+  id: Generated<string>;
+  lastPostedAt: Timestamp;
+  likeCount: number;
+  pinned: boolean;
+  pinnedGlobally: boolean;
+  postsCount: number;
+  replyCount: number;
+  slug: string;
+  title: string;
+  views: number;
+  visible: boolean;
+}
+
 export interface DiscourseUser {
   avatarTemplate: string;
   daoDiscourseId: string;
@@ -280,6 +302,7 @@ export interface DB {
   daoHandler: DaoHandler;
   daoSettings: DaoSettings;
   discourseCategory: DiscourseCategory;
+  discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;
   emailVerification: EmailVerification;
   jobQueue: JobQueue;
