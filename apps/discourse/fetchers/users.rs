@@ -94,7 +94,7 @@ impl UserFetcher {
 
             previous_response = Some(response);
             page += 1;
-            sleep(Duration::from_millis(500)).await;
+            sleep(Duration::from_secs_f32(1.0)).await;
         }
 
         Ok(())
