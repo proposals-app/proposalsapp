@@ -32,8 +32,8 @@ impl DbHandler {
             .await
             .map_err(|err: DbErr| {
                 anyhow::anyhow!(
-                    "Failed to find existing user with external ID {} for DAO discourse ID {}: {}",
-                    user.id,
+                    "Failed to find existing user {:?} for DAO discourse ID {}: {}",
+                    user,
                     dao_discourse_id,
                     err
                 )
@@ -57,8 +57,8 @@ impl DbHandler {
                 .await
                 .map_err(|err: DbErr| {
                     anyhow::anyhow!(
-                        "Failed to update existing user with external ID {} for DAO discourse ID {}: {}",
-                        user.id,
+                        "Failed to update existing user {:?} for DAO discourse ID {}: {}",
+                        user,
                         dao_discourse_id,
                         err
                     )
@@ -85,8 +85,8 @@ impl DbHandler {
                 .await
                 .map_err(|err: DbErr| {
                     anyhow::anyhow!(
-                        "Failed to insert new user with external ID {} for DAO discourse ID {}: {}",
-                        user.id,
+                        "Failed to insert new user {:?} for DAO discourse ID {}: {}",
+                        user,
                         dao_discourse_id,
                         err
                     )
@@ -107,8 +107,8 @@ impl DbHandler {
             .await
             .map_err(|err: DbErr| {
                 anyhow::anyhow!(
-                    "Failed to find existing category with external ID {} for DAO discourse ID {}: {}",
-                    category.id,
+                    "Failed to find existing category {:?} for DAO discourse ID {}: {}",
+                    category,
                     dao_discourse_id,
                     err
                 )
@@ -135,8 +135,8 @@ impl DbHandler {
                 .await
                 .map_err(|err: DbErr| {
                     anyhow::anyhow!(
-                        "Failed to update existing category with external ID {} for DAO discourse ID {}: {}",
-                        category.id,
+                        "Failed to update existing category {:?} for DAO discourse ID {}: {}",
+                        category,
                         dao_discourse_id,
                         err
                     )
@@ -165,8 +165,8 @@ impl DbHandler {
                 .await
                 .map_err(|err: DbErr| {
                     anyhow::anyhow!(
-                        "Failed to insert new category with external ID {} for DAO discourse ID {}: {}",
-                        category.id,
+                        "Failed to insert new category {:?} for DAO discourse ID {}: {}",
+                        category,
                         dao_discourse_id,
                         err
                     )
@@ -187,8 +187,8 @@ impl DbHandler {
             .await
             .map_err(|err: DbErr| {
                 anyhow::anyhow!(
-                    "Failed to find existing topic with external ID {} for DAO discourse ID {}: {}",
-                    topic.id,
+                    "Failed to find existing topic {:?} for DAO discourse ID {}: {}",
+                    topic,
                     dao_discourse_id,
                     err
                 )
@@ -217,8 +217,8 @@ impl DbHandler {
                 .await
                 .map_err(|err: DbErr| {
                     anyhow::anyhow!(
-                        "Failed to update existing topic with external ID {} for DAO discourse ID {}: {}",
-                        topic.id,
+                        "Failed to update existing topic {:?} for DAO discourse ID {}: {}",
+                        topic,
                         dao_discourse_id,
                         err
                     )
@@ -250,8 +250,8 @@ impl DbHandler {
                 .await
                 .map_err(|err: DbErr| {
                     anyhow::anyhow!(
-                        "Failed to insert new topic with external ID {} for DAO discourse ID {}: {}",
-                        topic.id,
+                        "Failed to insert new topic {:?} for DAO discourse ID {}: {}",
+                        topic,
                         dao_discourse_id,
                         err
                     )
@@ -272,8 +272,8 @@ impl DbHandler {
             .await
             .map_err(|err: DbErr| {
                 anyhow::anyhow!(
-                    "Failed to find existing post with external ID {} for DAO discourse ID {}: {}",
-                    post.id,
+                    "Failed to find existing post {:?} for DAO discourse ID {}: {}",
+                    post,
                     dao_discourse_id,
                     err
                 )
@@ -309,14 +309,13 @@ impl DbHandler {
                 .exec(&self.conn)
                 .await
                 .map_err(|err: DbErr| {
-                               anyhow::anyhow!(
-                                   "Failed to update existing post with external ID {} for DAO discourse ID {}. Error: {}. Post details: {:?}",
-                                   post.id,
-                                   dao_discourse_id,
-                                   err,
-                                   post
-                               )
-                           })?;
+                    anyhow::anyhow!(
+                        "Failed to update existing post {:?} for DAO discourse ID {}: {}.",
+                        post,
+                        dao_discourse_id,
+                        err,
+                    )
+                })?;
         } else {
             let post_model = seaorm::discourse_post::ActiveModel {
                 external_id: Set(post.id),
@@ -351,15 +350,13 @@ impl DbHandler {
                 .exec(&self.conn)
                 .await
                 .map_err(|err: DbErr| {
-                               anyhow::anyhow!(
-                                   "Failed to insert new post with external ID {} for DAO discourse ID {}. Error: {}. Post details: {:?}. User ID: {}",
-                                   post.id,
-                                   dao_discourse_id,
-                                   err,
-                                   post,
-                                   post.user_id
-                               )
-                           })?;
+                    anyhow::anyhow!(
+                        "Failed to insert new post {:?} for DAO discourse ID {}: {}",
+                        post,
+                        dao_discourse_id,
+                        err,
+                    )
+                })?;
         }
 
         Ok(())

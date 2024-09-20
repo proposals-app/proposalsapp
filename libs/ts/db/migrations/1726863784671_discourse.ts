@@ -138,7 +138,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addColumn("user_id", "integer", (col) => col.notNull())
     .addColumn("dao_discourse_id", "uuid", (col) => col.notNull())
     .addForeignKeyConstraint(
-      "fk_discourse_topic_dao_discourse_id",
+      "fk_discourse_post_dao_discourse_id",
       ["dao_discourse_id"],
       "dao_discourse",
       ["id"],
@@ -146,7 +146,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
     )
     .execute();
 
-  // Add unique constraints to ensure the combinations are unique
+  // Add unique constraints and indexes
   await db.schema
     .alterTable("discourse_user")
     .addUniqueConstraint("uq_discourse_user_external_id_dao_discourse_id", [
@@ -156,11 +156,9 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .execute();
 
   await db.schema
-    .alterTable("discourse_topic")
-    .addUniqueConstraint("uq_discourse_topic_external_id_dao_discourse_id", [
-      "external_id",
-      "dao_discourse_id",
-    ])
+    .createIndex("idx_discourse_user_external_id")
+    .on("discourse_user")
+    .column("external_id")
     .execute();
 
   await db.schema
@@ -172,6 +170,59 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .execute();
 
   await db.schema
+    .createIndex("idx_discourse_category_external_id")
+    .on("discourse_category")
+    .column("external_id")
+    .execute();
+
+  await db.schema
+    .alterTable("discourse_topic")
+    .addUniqueConstraint("uq_discourse_topic_external_id_dao_discourse_id", [
+      "external_id",
+      "dao_discourse_id",
+    ])
+    .execute();
+
+  await db.schema
+    .createIndex("idx_discourse_topic_external_id")
+    .on("discourse_topic")
+    .column("external_id")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_discourse_topic_category_id")
+    .on("discourse_topic")
+    .column("category_id")
+    .execute();
+
+  await db.schema
+    .alterTable("discourse_post")
+    .addUniqueConstraint("uq_discourse_post_external_id_dao_discourse_id", [
+      "external_id",
+      "dao_discourse_id",
+    ])
+    .execute();
+
+  await db.schema
+    .createIndex("idx_discourse_post_external_id")
+    .on("discourse_post")
+    .column("external_id")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_discourse_post_user_id")
+    .on("discourse_post")
+    .column("user_id")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_discourse_post_topic_id")
+    .on("discourse_post")
+    .column("topic_id")
+    .execute();
+
+  // Add foreign key relationships
+  await db.schema
     .alterTable("discourse_post")
     .addForeignKeyConstraint(
       "fk_discourse_post_user",
@@ -181,7 +232,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
     )
     .execute();
 
-  // Relationship between posts and topics
   await db.schema
     .alterTable("discourse_post")
     .addForeignKeyConstraint(
@@ -192,7 +242,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
     )
     .execute();
 
-  // Relationship between topics and categories
   await db.schema
     .alterTable("discourse_topic")
     .addForeignKeyConstraint(
