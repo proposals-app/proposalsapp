@@ -1,35 +1,24 @@
+use crate::api_handler::ApiHandler;
+use crate::models::categories::CategoryResponse;
 use crate::DbHandler;
-use anyhow::{anyhow, Result};
-use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
-use reqwest::Client;
+use anyhow::Result;
 use sea_orm::prelude::Uuid;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
+use tracing::info;
 use tracing::instrument;
-use tracing::{info, warn};
-
-use crate::models::categories::CategoryResponse;
 
 pub struct CategoryFetcher {
-    client: Client,
-    max_retries: usize,
+    api_handler: Arc<ApiHandler>,
     base_url: String,
 }
 
 impl CategoryFetcher {
-    pub fn new(base_url: &str, max_retries: usize) -> Self {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            USER_AGENT,
-            HeaderValue::from_static(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
-            ),
-        );
-
+    pub fn new(base_url: &str, api_handler: Arc<ApiHandler>) -> Self {
         Self {
-            client: Client::builder().default_headers(headers).build().unwrap(),
+            api_handler,
             base_url: base_url.to_string(),
-            max_retries,
         }
     }
 
@@ -45,7 +34,7 @@ impl CategoryFetcher {
 
         loop {
             let url = format!("{}/categories.json?page={}", self.base_url, page);
-            let response = self.fetch_page_with_retries(&url, self.max_retries).await?;
+            let response: CategoryResponse = self.api_handler.fetch(&url).await?;
 
             let num_categories = response.category_list.categories.len();
             total_categories += num_categories;
@@ -87,73 +76,5 @@ impl CategoryFetcher {
             total_categories
         );
         Ok(())
-    }
-
-    #[instrument(skip(self), fields(url = %url, max_retries = max_retries))]
-    async fn fetch_page_with_retries(
-        &self,
-        url: &str,
-        max_retries: usize,
-    ) -> Result<CategoryResponse> {
-        let mut attempt = 0;
-        let mut delay = Duration::from_secs(2);
-
-        loop {
-            match self.client.get(url).send().await {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        let resp_json = response.json::<CategoryResponse>().await?;
-                        return Ok(resp_json);
-                    } else if response.status().is_server_error()
-                        || response.status().as_u16() == 429
-                    {
-                        attempt += 1;
-                        if attempt > max_retries {
-                            return Err(anyhow!(
-                                "Max retries reached. Last error: HTTP {}",
-                                response.status()
-                            ));
-                        }
-
-                        if response.status().as_u16() == 429 {
-                            let retry_after = response
-                                .headers()
-                                .get("Retry-After")
-                                .and_then(|h| h.to_str().ok())
-                                .and_then(|s| s.parse::<u64>().ok())
-                                .map(Duration::from_secs)
-                                .unwrap_or(Duration::from_secs(60));
-
-                            warn!(
-                                "Rate limited. Waiting for {:?} before retrying...",
-                                retry_after
-                            );
-                            sleep(retry_after).await;
-                        } else {
-                            warn!(
-                                "Server error {}. Retrying in {:?}...",
-                                response.status(),
-                                delay
-                            );
-                            sleep(delay).await;
-                            delay *= 2;
-                        }
-                    } else {
-                        let status = response.status();
-                        let body = response.text().await.unwrap_or_default();
-                        return Err(anyhow!("Request failed with status {}: {}", status, body));
-                    }
-                }
-                Err(e) => {
-                    attempt += 1;
-                    if attempt > max_retries {
-                        return Err(anyhow!("Max retries reached. Last error: {}", e));
-                    }
-                    warn!("Request error: {}. Retrying in {:?}...", e, delay);
-                    sleep(delay).await;
-                    delay *= 2; // Exponential backoff
-                }
-            }
-        }
     }
 }

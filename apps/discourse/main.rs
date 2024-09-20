@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use api_handler::ApiHandler;
 use dotenv::dotenv;
 use fetchers::posts::PostFetcher;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
@@ -7,6 +8,7 @@ use std::time::Duration;
 use tracing::{error, info};
 use utils::tracing::setup_tracing;
 
+mod api_handler;
 mod db_handler;
 mod fetchers;
 mod models;
@@ -28,17 +30,22 @@ async fn main() -> Result<()> {
         .all(&db_handler.conn)
         .await?;
 
+    let shared_api_handler = Arc::new(ApiHandler::new(3));
+
     let mut handles = vec![];
     for dao_discourse in dao_discourses {
         // Spawn user fetcher thread
         let db_handler_users_clone = Arc::clone(&db_handler);
         let dao_discourse_users_clone = dao_discourse.clone();
+        let api_handler = Arc::clone(&shared_api_handler);
         let user_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
             loop {
                 interval.tick().await;
-                let user_fetcher =
-                    UserFetcher::new(&dao_discourse_users_clone.discourse_base_url, 3);
+                let user_fetcher = UserFetcher::new(
+                    &dao_discourse_users_clone.discourse_base_url,
+                    Arc::clone(&api_handler),
+                );
                 match user_fetcher
                     .update_all_users(&db_handler_users_clone, dao_discourse_users_clone.id)
                     .await
@@ -64,12 +71,15 @@ async fn main() -> Result<()> {
         // Spawn category fetcher thread
         let db_handler_category_clone = Arc::clone(&db_handler);
         let dao_discourse_category_clone = dao_discourse.clone();
+        let api_handler = Arc::clone(&shared_api_handler);
         let category_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
             loop {
                 interval.tick().await;
-                let category_fetcher =
-                    CategoryFetcher::new(&dao_discourse_category_clone.discourse_base_url, 5);
+                let category_fetcher = CategoryFetcher::new(
+                    &dao_discourse_category_clone.discourse_base_url,
+                    Arc::clone(&api_handler),
+                );
                 match category_fetcher
                     .update_all_categories(
                         &db_handler_category_clone,
@@ -98,12 +108,16 @@ async fn main() -> Result<()> {
         // Spawn topic fetcher thread
         let db_handler_topic_clone = Arc::clone(&db_handler);
         let dao_discourse_topic_clone = dao_discourse.clone();
+        let api_handler = Arc::clone(&shared_api_handler);
         let topic_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
             loop {
                 interval.tick().await;
-                let topic_fetcher =
-                    TopicFetcher::new(&dao_discourse_topic_clone.discourse_base_url, 5);
+
+                let topic_fetcher = TopicFetcher::new(
+                    &dao_discourse_topic_clone.discourse_base_url,
+                    Arc::clone(&api_handler),
+                );
                 match topic_fetcher
                     .update_all_topics(&db_handler_topic_clone, dao_discourse_topic_clone.id)
                     .await
@@ -128,12 +142,15 @@ async fn main() -> Result<()> {
 
         let db_handler_post_clone = Arc::clone(&db_handler);
         let dao_discourse_post_clone = dao_discourse.clone();
+        let api_handler = Arc::clone(&shared_api_handler);
         let post_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
             loop {
                 interval.tick().await;
-                let post_fetcher =
-                    PostFetcher::new(&dao_discourse_post_clone.discourse_base_url, 5);
+                let post_fetcher = PostFetcher::new(
+                    &dao_discourse_post_clone.discourse_base_url,
+                    Arc::clone(&api_handler),
+                );
 
                 // Fetch topics first
                 let topics = seaorm::discourse_topic::Entity::find()
