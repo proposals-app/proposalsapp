@@ -36,6 +36,7 @@ pub struct Post {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PostResponse {
     pub post_stream: PostStream,
+    pub posts_count: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

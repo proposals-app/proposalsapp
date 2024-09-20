@@ -4,6 +4,7 @@ use anyhow::{anyhow, Result};
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
 use sea_orm::prelude::Uuid;
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter};
 use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{info, instrument, warn};
@@ -42,11 +43,21 @@ impl PostFetcher {
         let mut total_posts = 0;
         let mut previous_response: Option<PostResponse> = None;
 
+        let current_posts_count = seaorm::discourse_post::Entity::find()
+            .filter(seaorm::discourse_post::Column::TopicId.eq(topic_id))
+            .count(&db_handler.conn)
+            .await?;
+
         loop {
             let url = format!("{}/t/{}.json?page={}", self.base_url, topic_id, page);
             let response = self
                 .fetch_posts_with_retries(&url, self.max_retries)
                 .await?;
+
+            if response.posts_count <= current_posts_count as i32 {
+                info!("No new posts to fetch for topic {}. Stopping.", topic_id);
+                break;
+            }
 
             let num_posts = response.post_stream.posts.len();
             total_posts += num_posts;

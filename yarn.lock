@@ -2318,7 +2318,7 @@ __metadata:
     pg: "npm:8.13.0"
     pino-pretty: "npm:11.2.2"
     postcss: "npm:8.4.47"
-    posthog-js: "npm:1.162.0"
+    posthog-js: "npm:1.163.0"
     postmark: "npm:4.0.5"
     prettier: "npm:3.3.3"
     prettier-plugin-tailwindcss: "npm:0.6.6"
@@ -11648,14 +11648,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.162.0":
-  version: 1.162.0
-  resolution: "posthog-js@npm:1.162.0"
+"posthog-js@npm:1.163.0":
+  version: 1.163.0
+  resolution: "posthog-js@npm:1.163.0"
   dependencies:
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.0.1"
-  checksum: 10c0/c5c1b5cdf7015d1ae4787ea5ec8a9bb4c902f46a27bb16f4d63c93a4a915a05b2f7163f211975e35a3d567f1f150cd2c35839ae2a40715882214c2d9a6d01251
+  checksum: 10c0/7904071fbc080d327315937e04c7ce26db1e17ccecb6e1f07223aad5679d9018d61bc758b5987ad9e4b28144053b1515eb586d6bc507d649b71230d1ef67f8ca
   languageName: node
   linkType: hard
 
