@@ -15,7 +15,7 @@ impl EntityName for Entity {
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
     pub id: Uuid,
-    pub external_id: i64,
+    pub external_id: i32,
     pub username: String,
     pub name: Option<String>,
     pub avatar_template: String,
@@ -63,6 +63,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     DaoDiscourse,
+    DiscoursePost,
 }
 
 impl ColumnTrait for Column {
@@ -70,7 +71,7 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::Uuid.def(),
-            Self::ExternalId => ColumnType::BigInteger.def(),
+            Self::ExternalId => ColumnType::Integer.def(),
             Self::Username => ColumnType::Text.def(),
             Self::Name => ColumnType::Text.def().null(),
             Self::AvatarTemplate => ColumnType::Text.def(),
@@ -94,6 +95,7 @@ impl RelationTrait for Relation {
                 .from(Column::DaoDiscourseId)
                 .to(super::dao_discourse::Column::Id)
                 .into(),
+            Self::DiscoursePost => Entity::has_many(super::discourse_post::Entity).into(),
         }
     }
 }
@@ -101,6 +103,12 @@ impl RelationTrait for Relation {
 impl Related<super::dao_discourse::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DaoDiscourse.def()
+    }
+}
+
+impl Related<super::discourse_post::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DiscoursePost.def()
     }
 }
 

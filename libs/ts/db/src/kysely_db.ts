@@ -195,7 +195,7 @@ export interface DiscourseUser {
   avatarTemplate: string;
   daoDiscourseId: string;
   daysVisited: Int8 | null;
-  externalId: Int8;
+  externalId: number;
   id: Generated<string>;
   likesGiven: Int8 | null;
   likesReceived: Int8 | null;
