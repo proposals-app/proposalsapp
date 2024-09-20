@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
             loop {
                 interval.tick().await;
                 let category_fetcher =
-                    CategoryFetcher::new(&dao_discourse_category_clone.discourse_base_url, 3);
+                    CategoryFetcher::new(&dao_discourse_category_clone.discourse_base_url, 5);
                 match category_fetcher
                     .update_all_categories(
                         &db_handler_category_clone,
@@ -103,7 +103,7 @@ async fn main() -> Result<()> {
             loop {
                 interval.tick().await;
                 let topic_fetcher =
-                    TopicFetcher::new(&dao_discourse_topic_clone.discourse_base_url, 3);
+                    TopicFetcher::new(&dao_discourse_topic_clone.discourse_base_url, 5);
                 match topic_fetcher
                     .update_all_topics(&db_handler_topic_clone, dao_discourse_topic_clone.id)
                     .await
@@ -133,7 +133,7 @@ async fn main() -> Result<()> {
             loop {
                 interval.tick().await;
                 let post_fetcher =
-                    PostFetcher::new(&dao_discourse_post_clone.discourse_base_url, 3);
+                    PostFetcher::new(&dao_discourse_post_clone.discourse_base_url, 5);
 
                 // Fetch topics first
                 let topics = seaorm::discourse_topic::Entity::find()
