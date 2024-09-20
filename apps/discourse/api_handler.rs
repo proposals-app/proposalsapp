@@ -78,10 +78,12 @@ impl ApiHandler {
             let permit = self.semaphore.clone().acquire_owned().await.unwrap();
             let client = self.client.clone();
             let max_retries = self.max_retries;
+            let jobs_in_queue = self.jobs_in_queue.clone();
 
             tokio::spawn(async move {
                 let result = Self::execute_request(&client, &job.url, max_retries).await;
                 let _ = job.response_sender.send(result);
+                jobs_in_queue.fetch_sub(1, Ordering::SeqCst);
                 drop(permit);
             });
         }
