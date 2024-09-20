@@ -4,8 +4,6 @@ use crate::models::users::{User, UserResponse};
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::sleep;
 use tracing::{info, instrument};
 
 pub struct UserFetcher {
@@ -84,7 +82,6 @@ impl UserFetcher {
 
             previous_response = Some(response);
             page += 1;
-            sleep(Duration::from_secs_f32(1.0)).await;
         }
 
         Ok(())

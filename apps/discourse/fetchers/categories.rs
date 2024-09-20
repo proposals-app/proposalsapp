@@ -4,8 +4,6 @@ use crate::DbHandler;
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::sleep;
 use tracing::info;
 use tracing::instrument;
 
@@ -68,7 +66,6 @@ impl CategoryFetcher {
 
             previous_response = Some(response);
             page += 1;
-            sleep(Duration::from_secs_f32(1.0)).await;
         }
 
         info!(

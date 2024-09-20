@@ -6,8 +6,6 @@ use sea_orm::prelude::Uuid;
 use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter};
 use seaorm::discourse_post;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::sleep;
 use tracing::{info, instrument};
 
 pub struct PostFetcher {
@@ -45,7 +43,6 @@ impl PostFetcher {
 
             if response.posts_count <= current_posts_count as i32 {
                 info!("No new posts to fetch for topic {}. Stopping.", topic_id);
-                sleep(Duration::from_secs_f32(0.25)).await;
                 break;
             }
 
@@ -83,7 +80,6 @@ impl PostFetcher {
 
             previous_response = Some(response);
             page += 1;
-            sleep(Duration::from_secs_f32(1.0)).await;
         }
 
         info!(

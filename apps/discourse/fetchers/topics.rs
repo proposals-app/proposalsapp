@@ -3,8 +3,6 @@ use crate::{api_handler::ApiHandler, db_handler::DbHandler};
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::sleep;
 use tracing::{info, instrument};
 
 pub struct TopicFetcher {
@@ -65,7 +63,6 @@ impl TopicFetcher {
 
             previous_response = Some(response);
             page += 1;
-            sleep(Duration::from_secs_f32(1.0)).await;
         }
 
         info!("Finished updating topics. Total topics: {}", total_topics);
