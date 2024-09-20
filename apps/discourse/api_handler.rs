@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use reqwest::header::USER_AGENT;
 use reqwest::Client;
 use serde::de::DeserializeOwned;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -94,7 +95,12 @@ impl ApiHandler {
         let mut delay = Duration::from_secs(2);
 
         loop {
-            match client.get(url).send().await {
+            match client
+                .get(url)
+                .header(USER_AGENT, "proposals.app Discourse Fetcher/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.11")
+                .send()
+                .await
+            {
                 Ok(response) => {
                     if response.status().is_success() {
                         return response
@@ -112,29 +118,21 @@ impl ApiHandler {
                             ));
                         }
 
-                        if response.status().as_u16() == 429 {
-                            let retry_after = response
-                                .headers()
-                                .get("Retry-After")
-                                .and_then(|h| h.to_str().ok())
-                                .and_then(|s| s.parse::<u64>().ok())
-                                .map(Duration::from_secs)
-                                .unwrap_or(Duration::from_secs(60));
+                        let retry_after = response
+                            .headers()
+                            .get("Retry-After")
+                            .and_then(|h| h.to_str().ok())
+                            .and_then(|s| s.parse::<u64>().ok())
+                            .map(Duration::from_secs)
+                            .unwrap_or(delay);
 
-                            warn!(
-                                "Rate limited. Waiting for {:?} before retrying...",
-                                retry_after
-                            );
-                            sleep(retry_after).await;
-                        } else {
-                            warn!(
-                                "Server error {}. Retrying in {:?}...",
-                                response.status(),
-                                delay
-                            );
-                            sleep(delay).await;
-                            delay *= 2;
-                        }
+                        warn!(
+                            "Rate limited or server error {}. Waiting for {:?} before retrying...",
+                            response.status(),
+                            retry_after
+                        );
+                        sleep(retry_after).await;
+                        delay = delay.max(retry_after) * 2; // Increase delay, but use Retry-After if it's longer
                     } else {
                         let status = response.status();
                         let body = response.text().await.unwrap_or_default();
