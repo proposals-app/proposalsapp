@@ -4,6 +4,7 @@ use crate::models::posts::PostResponse;
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter};
+use seaorm::discourse_post;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -33,8 +34,8 @@ impl PostFetcher {
         let mut total_posts = 0;
         let mut previous_response: Option<PostResponse> = None;
 
-        let current_posts_count = seaorm::discourse_post::Entity::find()
-            .filter(seaorm::discourse_post::Column::TopicId.eq(topic_id))
+        let current_posts_count = discourse_post::Entity::find()
+            .filter(discourse_post::Column::TopicId.eq(topic_id))
             .count(&db_handler.conn)
             .await?;
 
