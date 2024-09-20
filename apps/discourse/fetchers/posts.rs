@@ -56,7 +56,7 @@ impl PostFetcher {
 
             if response.posts_count <= current_posts_count as i32 {
                 info!("No new posts to fetch for topic {}. Stopping.", topic_id);
-                sleep(Duration::from_secs_f32(0.5)).await;
+                sleep(Duration::from_secs_f32(0.1)).await;
                 break;
             }
 
