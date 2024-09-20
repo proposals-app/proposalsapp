@@ -1,11 +1,12 @@
 use anyhow::{anyhow, Result};
 use reqwest::Client;
 use serde::de::DeserializeOwned;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, Semaphore};
 use tokio::time::sleep;
-use tracing::warn;
+use tracing::{info, warn};
 
 #[derive(Clone)]
 pub struct ApiHandler {
@@ -13,6 +14,7 @@ pub struct ApiHandler {
     max_retries: usize,
     semaphore: Arc<Semaphore>,
     sender: mpsc::Sender<Job>,
+    jobs_in_queue: Arc<AtomicUsize>,
 }
 
 struct Job {
@@ -25,12 +27,14 @@ impl ApiHandler {
         let client = Client::new();
         let semaphore = Arc::new(Semaphore::new(5));
         let (sender, receiver) = mpsc::channel(100);
+        let jobs_in_queue = Arc::new(AtomicUsize::new(0));
 
         let api_handler = Self {
             client,
             max_retries,
             semaphore: semaphore.clone(),
             sender,
+            jobs_in_queue,
         };
 
         tokio::spawn(api_handler.clone().run_queue(receiver));
@@ -52,6 +56,16 @@ impl ApiHandler {
             .send(job)
             .await
             .map_err(|e| anyhow!("Failed to send job: {}", e))?;
+
+        self.jobs_in_queue.fetch_add(1, Ordering::SeqCst);
+
+        let jobs_in_queue = self.jobs_in_queue.load(Ordering::SeqCst);
+        let available_permits = self.semaphore.available_permits();
+
+        info!(
+            "Job queue status: {} jobs in queue, {} available permits",
+            jobs_in_queue, available_permits
+        );
 
         let response = response_receiver
             .await
