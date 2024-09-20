@@ -139,6 +139,36 @@ export interface DiscourseCategory {
   topicsYear: number | null;
 }
 
+export interface DiscoursePost {
+  cooked: string;
+  createdAt: Timestamp;
+  daoDiscourseId: string;
+  displayUsername: string | null;
+  externalId: number;
+  flairBgColor: string | null;
+  flairColor: string | null;
+  flairName: string | null;
+  flairUrl: string | null;
+  id: Generated<string>;
+  incomingLinkCount: number;
+  name: string | null;
+  postNumber: number;
+  postType: number;
+  primaryGroupName: string | null;
+  quoteCount: number;
+  readersCount: number;
+  reads: number;
+  replyCount: number;
+  replyToPostNumber: number | null;
+  score: number;
+  topicId: number;
+  topicSlug: string;
+  updatedAt: Timestamp;
+  userId: number;
+  username: string;
+  version: number;
+}
+
 export interface DiscourseTopic {
   archived: boolean;
   bumpedAt: Timestamp;
@@ -302,6 +332,7 @@ export interface DB {
   daoHandler: DaoHandler;
   daoSettings: DaoSettings;
   discourseCategory: DiscourseCategory;
+  discoursePost: DiscoursePost;
   discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;
   emailVerification: EmailVerification;

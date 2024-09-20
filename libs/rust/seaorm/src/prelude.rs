@@ -6,6 +6,7 @@ pub use super::dao_discourse::Entity as DaoDiscourse;
 pub use super::dao_handler::Entity as DaoHandler;
 pub use super::dao_settings::Entity as DaoSettings;
 pub use super::discourse_category::Entity as DiscourseCategory;
+pub use super::discourse_post::Entity as DiscoursePost;
 pub use super::discourse_topic::Entity as DiscourseTopic;
 pub use super::discourse_user::Entity as DiscourseUser;
 pub use super::email_verification::Entity as EmailVerification;

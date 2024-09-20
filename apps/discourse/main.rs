@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use dotenv::dotenv;
-use sea_orm::EntityTrait;
+use fetchers::posts::PostFetcher;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{error, info};
@@ -125,9 +126,58 @@ async fn main() -> Result<()> {
             }
         });
 
+        let db_handler_post_clone = Arc::clone(&db_handler);
+        let dao_discourse_post_clone = dao_discourse.clone();
+        let post_handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
+            loop {
+                interval.tick().await;
+                let post_fetcher =
+                    PostFetcher::new(&dao_discourse_post_clone.discourse_base_url, 3);
+
+                // Fetch topics first
+                let topics = seaorm::discourse_topic::Entity::find()
+                    .filter(
+                        seaorm::discourse_topic::Column::DaoDiscourseId
+                            .eq(dao_discourse_post_clone.id),
+                    )
+                    .all(&db_handler_post_clone.conn)
+                    .await
+                    .unwrap_or_default();
+
+                for topic in topics {
+                    match post_fetcher
+                        .update_posts_for_topic(
+                            &db_handler_post_clone,
+                            dao_discourse_post_clone.id,
+                            topic.external_id,
+                        )
+                        .await
+                    {
+                        Ok(_) => {
+                            info!(
+                                "Successfully updated posts for topic {} in {}",
+                                topic.external_id, dao_discourse_post_clone.discourse_base_url
+                            );
+                        }
+                        Err(e) => {
+                            error!(
+                                "Error updating posts for topic {} in {} (ID: {}): {}",
+                                topic.external_id,
+                                dao_discourse_post_clone.discourse_base_url,
+                                dao_discourse_post_clone.id,
+                                e
+                            );
+                        }
+                    }
+                }
+            }
+        });
+
         handles.push(user_handle);
         handles.push(category_handle);
         handles.push(topic_handle);
+        handles.push(post_handle);
     }
 
     futures::future::join_all(handles).await;

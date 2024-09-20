@@ -5,6 +5,7 @@ use sea_orm::{
 };
 use seaorm::discourse_user;
 
+use crate::models::posts::Post;
 use crate::models::{categories::Category, users::User};
 
 use crate::models::topics::Topic;
@@ -193,6 +194,86 @@ impl DbHandler {
                 .exec(&self.conn)
                 .await
                 .context("discourse_topic::Entity::insert")?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn upsert_post(&self, post: &Post, dao_discourse_id: Uuid) -> Result<()> {
+        let existing_post = seaorm::discourse_post::Entity::find()
+            .filter(
+                sea_orm::Condition::all()
+                    .add(seaorm::discourse_post::Column::ExternalId.eq(post.id))
+                    .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id)),
+            )
+            .one(&self.conn)
+            .await
+            .context("discourse_post::Entity::find")?;
+
+        if let Some(existing_post) = existing_post {
+            let mut post_update: seaorm::discourse_post::ActiveModel = existing_post.into();
+            post_update.name = Set(post.name.clone());
+            post_update.username = Set(post.username.clone());
+            post_update.created_at = Set(post.created_at.naive_utc());
+            post_update.cooked = Set(post.cooked.clone());
+            post_update.post_number = Set(post.post_number);
+            post_update.post_type = Set(post.post_type);
+            post_update.updated_at = Set(post.updated_at.naive_utc());
+            post_update.reply_count = Set(post.reply_count);
+            post_update.reply_to_post_number = Set(post.reply_to_post_number);
+            post_update.quote_count = Set(post.quote_count);
+            post_update.incoming_link_count = Set(post.incoming_link_count);
+            post_update.reads = Set(post.reads);
+            post_update.readers_count = Set(post.readers_count);
+            post_update.score = Set(post.score);
+            post_update.topic_id = Set(post.topic_id);
+            post_update.topic_slug = Set(post.topic_slug.clone());
+            post_update.display_username = Set(post.display_username.clone());
+            post_update.primary_group_name = Set(post.primary_group_name.clone());
+            post_update.flair_name = Set(post.flair_name.clone());
+            post_update.flair_url = Set(post.flair_url.clone());
+            post_update.flair_bg_color = Set(post.flair_bg_color.clone());
+            post_update.flair_color = Set(post.flair_color.clone());
+            post_update.version = Set(post.version);
+            post_update.user_id = Set(post.user_id);
+            seaorm::discourse_post::Entity::update(post_update)
+                .exec(&self.conn)
+                .await
+                .context("discourse_post::Entity::update")?;
+        } else {
+            let post_model = seaorm::discourse_post::ActiveModel {
+                external_id: Set(post.id),
+                name: Set(post.name.clone()),
+                username: Set(post.username.clone()),
+                created_at: Set(post.created_at.naive_utc()),
+                cooked: Set(post.cooked.clone()),
+                post_number: Set(post.post_number),
+                post_type: Set(post.post_type),
+                updated_at: Set(post.updated_at.naive_utc()),
+                reply_count: Set(post.reply_count),
+                reply_to_post_number: Set(post.reply_to_post_number),
+                quote_count: Set(post.quote_count),
+                incoming_link_count: Set(post.incoming_link_count),
+                reads: Set(post.reads),
+                readers_count: Set(post.readers_count),
+                score: Set(post.score),
+                topic_id: Set(post.topic_id),
+                topic_slug: Set(post.topic_slug.clone()),
+                display_username: Set(post.display_username.clone()),
+                primary_group_name: Set(post.primary_group_name.clone()),
+                flair_name: Set(post.flair_name.clone()),
+                flair_url: Set(post.flair_url.clone()),
+                flair_bg_color: Set(post.flair_bg_color.clone()),
+                flair_color: Set(post.flair_color.clone()),
+                version: Set(post.version),
+                user_id: Set(post.user_id),
+                dao_discourse_id: Set(dao_discourse_id),
+                ..Default::default()
+            };
+            seaorm::discourse_post::Entity::insert(post_model)
+                .exec(&self.conn)
+                .await
+                .context("discourse_post::Entity::insert")?;
         }
 
         Ok(())

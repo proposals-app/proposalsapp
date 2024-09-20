@@ -42,6 +42,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 pub enum Relation {
     Dao,
     DiscourseCategory,
+    DiscoursePost,
     DiscourseTopic,
     DiscourseUser,
 }
@@ -65,6 +66,7 @@ impl RelationTrait for Relation {
                 .to(super::dao::Column::Id)
                 .into(),
             Self::DiscourseCategory => Entity::has_many(super::discourse_category::Entity).into(),
+            Self::DiscoursePost => Entity::has_many(super::discourse_post::Entity).into(),
             Self::DiscourseTopic => Entity::has_many(super::discourse_topic::Entity).into(),
             Self::DiscourseUser => Entity::has_many(super::discourse_user::Entity).into(),
         }
@@ -80,6 +82,12 @@ impl Related<super::dao::Entity> for Entity {
 impl Related<super::discourse_category::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DiscourseCategory.def()
+    }
+}
+
+impl Related<super::discourse_post::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DiscoursePost.def()
     }
 }
 
