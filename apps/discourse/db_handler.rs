@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use sea_orm::{
     prelude::Uuid, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
     QueryFilter, Set,
@@ -9,6 +9,8 @@ use crate::models::posts::Post;
 use crate::models::{categories::Category, users::User};
 
 use crate::models::topics::Topic;
+
+use sea_orm::DbErr;
 
 pub struct DbHandler {
     pub conn: DatabaseConnection,
@@ -31,7 +33,14 @@ impl DbHandler {
             )
             .one(&self.conn)
             .await
-            .context("discourse_user::Entity::find")?;
+            .map_err(|err: DbErr| {
+                anyhow::anyhow!(
+                    "Failed to find existing user with external ID {} for DAO discourse ID {}: {}",
+                    user.id,
+                    dao_discourse_id,
+                    err
+                )
+            })?;
 
         if let Some(existing_user) = existing_user {
             let mut user_update: discourse_user::ActiveModel = existing_user.into();
@@ -49,7 +58,14 @@ impl DbHandler {
             discourse_user::Entity::update(user_update)
                 .exec(&self.conn)
                 .await
-                .context("discourse_user::Entity::update")?;
+                .map_err(|err: DbErr| {
+                    anyhow::anyhow!(
+                        "Failed to update existing user with external ID {} for DAO discourse ID {}: {}",
+                        user.id,
+                        dao_discourse_id,
+                        err
+                    )
+                })?;
         } else {
             let user_model = discourse_user::ActiveModel {
                 external_id: Set(user.id),
@@ -70,7 +86,14 @@ impl DbHandler {
             discourse_user::Entity::insert(user_model)
                 .exec(&self.conn)
                 .await
-                .context("discourse_user::Entity::insert")?;
+                .map_err(|err: DbErr| {
+                    anyhow::anyhow!(
+                        "Failed to insert new user with external ID {} for DAO discourse ID {}: {}",
+                        user.id,
+                        dao_discourse_id,
+                        err
+                    )
+                })?;
         }
 
         Ok(())
@@ -85,7 +108,14 @@ impl DbHandler {
             )
             .one(&self.conn)
             .await
-            .context("discourse_category::Entity::find")?;
+            .map_err(|err: DbErr| {
+                anyhow::anyhow!(
+                    "Failed to find existing category with external ID {} for DAO discourse ID {}: {}",
+                    category.id,
+                    dao_discourse_id,
+                    err
+                )
+            })?;
 
         if let Some(existing_category) = existing_category {
             let mut category_update: seaorm::discourse_category::ActiveModel =
@@ -106,7 +136,14 @@ impl DbHandler {
             seaorm::discourse_category::Entity::update(category_update)
                 .exec(&self.conn)
                 .await
-                .context("discourse_category::Entity::update")?;
+                .map_err(|err: DbErr| {
+                    anyhow::anyhow!(
+                        "Failed to update existing category with external ID {} for DAO discourse ID {}: {}",
+                        category.id,
+                        dao_discourse_id,
+                        err
+                    )
+                })?;
         } else {
             let category_model = seaorm::discourse_category::ActiveModel {
                 external_id: Set(category.id),
@@ -129,7 +166,14 @@ impl DbHandler {
             seaorm::discourse_category::Entity::insert(category_model)
                 .exec(&self.conn)
                 .await
-                .context("discourse_category::Entity::insert")?;
+                .map_err(|err: DbErr| {
+                    anyhow::anyhow!(
+                        "Failed to insert new category with external ID {} for DAO discourse ID {}: {}",
+                        category.id,
+                        dao_discourse_id,
+                        err
+                    )
+                })?;
         }
 
         Ok(())
@@ -144,7 +188,14 @@ impl DbHandler {
             )
             .one(&self.conn)
             .await
-            .context("discourse_topic::Entity::find")?;
+            .map_err(|err: DbErr| {
+                anyhow::anyhow!(
+                    "Failed to find existing topic with external ID {} for DAO discourse ID {}: {}",
+                    topic.id,
+                    dao_discourse_id,
+                    err
+                )
+            })?;
 
         if let Some(existing_topic) = existing_topic {
             let mut topic_update: seaorm::discourse_topic::ActiveModel = existing_topic.into();
@@ -167,7 +218,14 @@ impl DbHandler {
             seaorm::discourse_topic::Entity::update(topic_update)
                 .exec(&self.conn)
                 .await
-                .context("discourse_topic::Entity::update")?;
+                .map_err(|err: DbErr| {
+                    anyhow::anyhow!(
+                        "Failed to update existing topic with external ID {} for DAO discourse ID {}: {}",
+                        topic.id,
+                        dao_discourse_id,
+                        err
+                    )
+                })?;
         } else {
             let topic_model = seaorm::discourse_topic::ActiveModel {
                 external_id: Set(topic.id),
@@ -193,7 +251,14 @@ impl DbHandler {
             seaorm::discourse_topic::Entity::insert(topic_model)
                 .exec(&self.conn)
                 .await
-                .context("discourse_topic::Entity::insert")?;
+                .map_err(|err: DbErr| {
+                    anyhow::anyhow!(
+                        "Failed to insert new topic with external ID {} for DAO discourse ID {}: {}",
+                        topic.id,
+                        dao_discourse_id,
+                        err
+                    )
+                })?;
         }
 
         Ok(())
@@ -208,7 +273,14 @@ impl DbHandler {
             )
             .one(&self.conn)
             .await
-            .context("discourse_post::Entity::find")?;
+            .map_err(|err: DbErr| {
+                anyhow::anyhow!(
+                    "Failed to find existing post with external ID {} for DAO discourse ID {}: {}",
+                    post.id,
+                    dao_discourse_id,
+                    err
+                )
+            })?;
 
         if let Some(existing_post) = existing_post {
             let mut post_update: seaorm::discourse_post::ActiveModel = existing_post.into();
@@ -239,7 +311,14 @@ impl DbHandler {
             seaorm::discourse_post::Entity::update(post_update)
                 .exec(&self.conn)
                 .await
-                .context("discourse_post::Entity::update")?;
+                .map_err(|err: DbErr| {
+                    anyhow::anyhow!(
+                        "Failed to update existing post with external ID {} for DAO discourse ID {}: {}",
+                        post.id,
+                        dao_discourse_id,
+                        err
+                    )
+                })?;
         } else {
             let post_model = seaorm::discourse_post::ActiveModel {
                 external_id: Set(post.id),
@@ -273,7 +352,14 @@ impl DbHandler {
             seaorm::discourse_post::Entity::insert(post_model)
                 .exec(&self.conn)
                 .await
-                .context("discourse_post::Entity::insert")?;
+                .map_err(|err: DbErr| {
+                    anyhow::anyhow!(
+                        "Failed to insert new post with external ID {} for DAO discourse ID {}: {}",
+                        post.id,
+                        dao_discourse_id,
+                        err
+                    )
+                })?;
         }
 
         Ok(())
