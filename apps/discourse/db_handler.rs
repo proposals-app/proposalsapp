@@ -1,16 +1,13 @@
+use crate::models::posts::Post;
+use crate::models::topics::Topic;
+use crate::models::{categories::Category, users::User};
 use anyhow::Result;
+use sea_orm::DbErr;
 use sea_orm::{
     prelude::Uuid, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
     QueryFilter, Set,
 };
 use seaorm::discourse_user;
-
-use crate::models::posts::Post;
-use crate::models::{categories::Category, users::User};
-
-use crate::models::topics::Topic;
-
-use sea_orm::DbErr;
 
 pub struct DbHandler {
     pub conn: DatabaseConnection,
@@ -312,13 +309,14 @@ impl DbHandler {
                 .exec(&self.conn)
                 .await
                 .map_err(|err: DbErr| {
-                    anyhow::anyhow!(
-                        "Failed to update existing post with external ID {} for DAO discourse ID {}: {}",
-                        post.id,
-                        dao_discourse_id,
-                        err
-                    )
-                })?;
+                               anyhow::anyhow!(
+                                   "Failed to update existing post with external ID {} for DAO discourse ID {}. Error: {}. Post details: {:?}",
+                                   post.id,
+                                   dao_discourse_id,
+                                   err,
+                                   post
+                               )
+                           })?;
         } else {
             let post_model = seaorm::discourse_post::ActiveModel {
                 external_id: Set(post.id),
@@ -353,13 +351,15 @@ impl DbHandler {
                 .exec(&self.conn)
                 .await
                 .map_err(|err: DbErr| {
-                    anyhow::anyhow!(
-                        "Failed to insert new post with external ID {} for DAO discourse ID {}: {}",
-                        post.id,
-                        dao_discourse_id,
-                        err
-                    )
-                })?;
+                               anyhow::anyhow!(
+                                   "Failed to insert new post with external ID {} for DAO discourse ID {}. Error: {}. Post details: {:?}. User ID: {}",
+                                   post.id,
+                                   dao_discourse_id,
+                                   err,
+                                   post,
+                                   post.user_id
+                               )
+                           })?;
         }
 
         Ok(())
