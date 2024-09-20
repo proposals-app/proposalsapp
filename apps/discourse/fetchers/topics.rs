@@ -90,7 +90,7 @@ impl TopicFetcher {
         max_retries: usize,
     ) -> Result<TopicResponse> {
         let mut attempt = 0;
-        let mut delay = Duration::from_secs(1);
+        let mut delay = Duration::from_secs(2);
 
         loop {
             match self.client.get(url).send().await {

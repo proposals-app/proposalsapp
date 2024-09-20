@@ -117,7 +117,7 @@ impl UserFetcher {
     #[instrument(skip(self), fields(url = %url, max_retries = max_retries))]
     async fn fetch_page_with_retries(&self, url: &str, max_retries: usize) -> Result<UserResponse> {
         let mut attempt = 0;
-        let mut delay = Duration::from_secs(1);
+        let mut delay = Duration::from_secs(2);
 
         loop {
             match self.client.get(url).send().await {

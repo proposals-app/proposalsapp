@@ -111,7 +111,7 @@ impl PostFetcher {
         max_retries: usize,
     ) -> Result<PostResponse> {
         let mut attempt = 0;
-        let mut delay = Duration::from_secs(1);
+        let mut delay = Duration::from_secs(2);
 
         loop {
             match self.client.get(url).send().await {
