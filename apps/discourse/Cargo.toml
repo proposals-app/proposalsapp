@@ -29,6 +29,7 @@ tracing-subscriber = { workspace = true, features = [
     "env-filter",
     "json",
 ] }
+oneshot = "0.1.8"
 
 [[bin]]
 name = "discourse"
