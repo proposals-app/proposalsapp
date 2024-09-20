@@ -39,7 +39,7 @@ async fn main() -> Result<()> {
         let dao_discourse_users_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&shared_api_handler);
         let user_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
+            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
                 interval.tick().await;
                 let user_fetcher = UserFetcher::new(
@@ -73,7 +73,7 @@ async fn main() -> Result<()> {
         let dao_discourse_category_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&shared_api_handler);
         let category_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
+            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
                 interval.tick().await;
                 let category_fetcher = CategoryFetcher::new(
@@ -110,7 +110,7 @@ async fn main() -> Result<()> {
         let dao_discourse_topic_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&shared_api_handler);
         let topic_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
+            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
                 interval.tick().await;
 
