@@ -21,6 +21,25 @@ impl DbHandler {
         Ok(Self { conn })
     }
 
+    pub async fn create_unknown_user(&self, dao_discourse_id: Uuid) -> Result<()> {
+        let unknown_user = User {
+            id: -1,
+            username: "unknown_user".to_string(),
+            name: Some("Unknown User".to_string()),
+            avatar_template: "".to_string(),
+            title: None,
+            likes_received: Some(0),
+            likes_given: Some(0),
+            topics_entered: Some(0),
+            topic_count: Some(0),
+            post_count: Some(0),
+            posts_read: Some(0),
+            days_visited: Some(0),
+        };
+
+        self.upsert_user(&unknown_user, dao_discourse_id).await
+    }
+
     pub async fn upsert_user(&self, user: &User, dao_discourse_id: Uuid) -> Result<()> {
         let existing_user = discourse_user::Entity::find()
             .filter(

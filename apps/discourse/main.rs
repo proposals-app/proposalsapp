@@ -34,6 +34,8 @@ async fn main() -> Result<()> {
 
     let mut handles = vec![];
     for dao_discourse in dao_discourses {
+        db_handler.create_unknown_user(dao_discourse.id).await?;
+
         // Spawn category fetcher thread
         let db_handler_category_clone = Arc::clone(&db_handler);
         let dao_discourse_category_clone = dao_discourse.clone();
