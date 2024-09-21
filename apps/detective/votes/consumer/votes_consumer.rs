@@ -426,50 +426,69 @@ async fn store_dao_votes(
         | DaoHandlerEnumV3::FraxAlphaMainnet
         | DaoHandlerEnumV3::FraxOmegaMainnet
         | DaoHandlerEnumV3::NounsProposalsMainnet
-        | DaoHandlerEnumV3::OpOptimismOld
-        | DaoHandlerEnumV3::OpOptimismType1
-        | DaoHandlerEnumV3::OpOptimismType2
-        | DaoHandlerEnumV3::OpOptimismType3
-        | DaoHandlerEnumV3::OpOptimismType4
         | DaoHandlerEnumV3::ArbCoreArbitrum
         | DaoHandlerEnumV3::ArbTreasuryArbitrum
         | DaoHandlerEnumV3::MakerExecutiveMainnet
         | DaoHandlerEnumV3::MakerPollMainnet
-        | DaoHandlerEnumV3::Snapshot => dao_handler.id,
+        | DaoHandlerEnumV3::Snapshot => vec![dao_handler.id],
         DaoHandlerEnumV3::AaveV3PolygonPos => {
-            dao_handler::Entity::find()
-                .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV3::AaveV3Mainnet))
-                .one(db)
-                .await
-                .context(DATABASE_ERROR)?
-                .context(DAOHANDLER_NOT_FOUND_ERROR)?
-                .id
+            vec![
+                dao_handler::Entity::find()
+                    .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV3::AaveV3Mainnet))
+                    .one(db)
+                    .await
+                    .context(DATABASE_ERROR)?
+                    .context(DAOHANDLER_NOT_FOUND_ERROR)?
+                    .id,
+            ]
         }
         DaoHandlerEnumV3::AaveV3Avalanche => {
-            dao_handler::Entity::find()
-                .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV3::AaveV3Mainnet))
-                .one(db)
-                .await
-                .context(DATABASE_ERROR)?
-                .context(DAOHANDLER_NOT_FOUND_ERROR)?
-                .id
+            vec![
+                dao_handler::Entity::find()
+                    .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV3::AaveV3Mainnet))
+                    .one(db)
+                    .await
+                    .context(DATABASE_ERROR)?
+                    .context(DAOHANDLER_NOT_FOUND_ERROR)?
+                    .id,
+            ]
         }
         DaoHandlerEnumV3::MakerPollArbitrum => {
-            dao_handler::Entity::find()
-                .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV3::MakerPollMainnet))
-                .one(db)
-                .await
-                .context(DATABASE_ERROR)?
-                .context(DAOHANDLER_NOT_FOUND_ERROR)?
-                .id
+            vec![
+                dao_handler::Entity::find()
+                    .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV3::MakerPollMainnet))
+                    .one(db)
+                    .await
+                    .context(DATABASE_ERROR)?
+                    .context(DAOHANDLER_NOT_FOUND_ERROR)?
+                    .id,
+            ]
         }
+        DaoHandlerEnumV3::OpOptimismOld
+        | DaoHandlerEnumV3::OpOptimismType1
+        | DaoHandlerEnumV3::OpOptimismType2
+        | DaoHandlerEnumV3::OpOptimismType3
+        | DaoHandlerEnumV3::OpOptimismType4 => dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.is_in([
+                DaoHandlerEnumV3::OpOptimismOld,
+                DaoHandlerEnumV3::OpOptimismType1,
+                DaoHandlerEnumV3::OpOptimismType2,
+                DaoHandlerEnumV3::OpOptimismType3,
+                DaoHandlerEnumV3::OpOptimismType4,
+            ]))
+            .all(db)
+            .await
+            .context(DATABASE_ERROR)?
+            .into_iter()
+            .map(|dh| dh.id)
+            .collect(),
     };
 
     let proposals = proposal::Entity::find()
         .filter(
             Condition::all()
                 .add(proposal::Column::ExternalId.is_in(proposal_external_ids.clone()))
-                .add(proposal::Column::DaoHandlerId.eq(proposal_handler_id)),
+                .add(proposal::Column::DaoHandlerId.is_in(proposal_handler_id)),
         )
         .all(db)
         .await
