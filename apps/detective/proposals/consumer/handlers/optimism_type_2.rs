@@ -260,7 +260,7 @@ async fn data_for_proposal_two(
             .map(|token| {
                 let tokens = token.into_tuple().unwrap();
                 ProposalOption {
-                    description: tokens[3].clone().into_string().unwrap(),
+                    description: tokens[4].clone().into_string().unwrap(),
                 }
             })
             .collect();
@@ -342,7 +342,7 @@ mod optimism_proposals {
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn optimism_type_2() {
+    async fn optimism_type_2_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
@@ -388,6 +388,62 @@ mod optimism_proposals {
                     time_start: "2024-01-18 19:45:51",
                     time_end: "2024-01-24 19:45:51",
                     metadata: Some(json!({"proposal_type": 2, "voting_module": String::from("0x27964c5f4F389B8399036e1076d84c6984576C33")}))
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_type_2_2() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 125283044,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+        };
+
+        match OptimismType2Handler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "21837554113321175128753313420738380328565785926226611271713131734865736260549",
+                    name: "Rolling Mission Requests: Voting Cycle 27",
+                    body_contains: vec!["Contingent on approval of the Rolling Mission Requests proposal, the Token House will approval rank rolling Mission Requests proposed under Intent 3A: Grow Application Developers on OP Mainnet. These Mission Requests should work towards the below target metric:"],
+                    url: "https://vote.optimism.io/proposals/21837554113321175128753313420738380328565785926226611271713131734865736260549",
+                    discussion_url:
+                        "",
+                    choices:  "[\"Subsidized Audit Grants V2\",\"Experimentation of Infrastructure Subsidies\",\" Superchain Borrow/Lend Aggregator\",\"Crosschain alert monitoring\",\"Optimism Dominance in Yield-Bearing Assets - DEX Liquidity for YBAs\",\"Decentralized Solvers and Aggregators on OP Mainnet / Superchain\",\"Targeted extension of Superfest\",\"Optimism Full Financial Audit\"]",
+                    scores: "[]",
+                    scores_total: 0.0,
+                    scores_quorum: 0.0,
+                    quorum: 28950510.79266291,
+                    proposal_state: ProposalStateEnum::Succeeded,
+                    block_created: Some(125283044),
+                    time_created: Some("2024-09-12 18:14:25"),
+                    time_start: "2024-09-12 18:14:25",
+                    time_end: "2024-09-18 18:14:25",
+                    metadata: Some(json!({"proposal_type": 0, "voting_module": String::from("0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df")}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
