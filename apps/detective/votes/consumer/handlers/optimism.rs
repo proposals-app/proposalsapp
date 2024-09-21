@@ -177,7 +177,7 @@ async fn get_votes_with_params(
         }
 
         let proposal_metadata: ProposalMetadata =
-            serde_json::from_value(proposal.metadata.unwrap())?;
+            serde_json::from_value(proposal.metadata.expect("bad proposal metadata"))?;
 
         if log.params.len() > 0 {
             if proposal_metadata.voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
