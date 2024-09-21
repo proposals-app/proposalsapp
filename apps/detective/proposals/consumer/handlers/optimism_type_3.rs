@@ -6,6 +6,7 @@ use chrono::NaiveDateTime;
 use contracts::gen::{
     optimism_gov_v_6::{optimism_gov_v_6::optimism_gov_v6, ProposalCreated3Filter},
     optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5,
+    optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df,
 };
 use ethers::{prelude::*, utils::to_checksum};
 use scanners::optimistic_scan::estimate_timestamp;
@@ -238,6 +239,70 @@ async fn data_for_proposal_three(
             .collect();
 
         scores_total = votes.0.as_u128() as f64 / (10.0f64.powi(18));
+    }
+
+    if voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
+        let voting_module =
+            optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df::optimism_votemodule_0xdd0229d72a414dc821dec66f3cc4ef6db2c7b7df::new(
+                log.voting_module,
+                rpc.clone(),
+            );
+
+        #[derive(Debug, Deserialize)]
+        struct ProposalOption {
+            description: String,
+        }
+
+        #[derive(Debug, Deserialize)]
+        struct ProposalData {
+            proposal_options: Vec<ProposalOption>,
+        }
+
+        // Define the expected types
+        let types: Vec<ParamType> = vec![
+            ParamType::Array(Box::new(ParamType::Tuple(vec![
+                ParamType::Uint(256),                             // budgetTokensSpent
+                ParamType::Array(Box::new(ParamType::Address)),   // targets
+                ParamType::Array(Box::new(ParamType::Uint(256))), // values
+                ParamType::Array(Box::new(ParamType::Bytes)),     // calldatas
+                ParamType::String,                                // description
+            ]))),
+            ParamType::Tuple(vec![
+                ParamType::Uint(8),   // maxApprovals
+                ParamType::Uint(8),   // criteria
+                ParamType::Address,   // budgetToken
+                ParamType::Uint(128), // criteriaValue
+                ParamType::Uint(128), // budgetAmount
+            ]),
+        ];
+
+        // Decode the bytes using the defined types
+        let decoded_proposal_data = decode(&types, &log.proposal_data)?;
+
+        // Extract the decoded data
+        let proposal_options_tokens = decoded_proposal_data[0].clone().into_array().unwrap();
+
+        // Parse proposal options
+        let proposal_options: Vec<ProposalOption> = proposal_options_tokens
+            .into_iter()
+            .map(|token| {
+                let tokens = token.into_tuple().unwrap();
+                ProposalOption {
+                    description: tokens[3].clone().into_string().unwrap(),
+                }
+            })
+            .collect();
+
+        // Construct the proposal data
+        let proposal_data = ProposalData { proposal_options };
+
+        choices_strings = proposal_data
+            .proposal_options
+            .iter()
+            .map(|o| o.description.clone())
+            .collect();
+
+        choices = choices_strings.iter().map(|s| s.as_str()).collect();
     }
 
     let scores_quorum = scores_total;
