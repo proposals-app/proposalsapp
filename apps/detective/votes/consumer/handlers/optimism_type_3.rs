@@ -11,7 +11,7 @@ use ethers::{
     types::Address,
     utils::to_checksum,
 };
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set};
+use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set};
 use seaorm::{dao, dao_handler, proposal, vote};
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -142,7 +142,11 @@ async fn get_votes_with_params(
         let mut choice = vec![];
 
         let proposal = proposal::Entity::find()
-            .filter(proposal::Column::ExternalId.eq(log.proposal_id.to_string()))
+            .filter(
+                Condition::all()
+                    .add(proposal::Column::ExternalId.eq(log.proposal_id.to_string()))
+                    .add(proposal::Column::DaoHandlerId.eq(dao_handler.id)),
+            )
             .one(db)
             .await
             .context(DATABASE_ERROR)?
