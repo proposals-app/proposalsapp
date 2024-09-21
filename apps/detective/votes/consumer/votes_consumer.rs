@@ -427,6 +427,10 @@ async fn store_dao_votes(
         | DaoHandlerEnumV3::FraxOmegaMainnet
         | DaoHandlerEnumV3::NounsProposalsMainnet
         | DaoHandlerEnumV3::OpOptimismOld
+        | DaoHandlerEnumV3::OpOptimismType1
+        | DaoHandlerEnumV3::OpOptimismType2
+        | DaoHandlerEnumV3::OpOptimismType3
+        | DaoHandlerEnumV3::OpOptimismType4
         | DaoHandlerEnumV3::ArbCoreArbitrum
         | DaoHandlerEnumV3::ArbTreasuryArbitrum
         | DaoHandlerEnumV3::MakerExecutiveMainnet
@@ -459,10 +463,6 @@ async fn store_dao_votes(
                 .context(DAOHANDLER_NOT_FOUND_ERROR)?
                 .id
         }
-        DaoHandlerEnumV3::OpOptimismType1 => todo!(),
-        DaoHandlerEnumV3::OpOptimismType2 => todo!(),
-        DaoHandlerEnumV3::OpOptimismType3 => todo!(),
-        DaoHandlerEnumV3::OpOptimismType4 => todo!(),
     };
 
     let proposals = proposal::Entity::find()
