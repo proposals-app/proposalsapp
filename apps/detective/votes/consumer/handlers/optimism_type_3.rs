@@ -184,7 +184,9 @@ async fn get_votes_with_params(
             serde_json::from_value(proposal.metadata.unwrap_or_else(|| json!({})))
                 .context("Failed to deserialize proposal metadata")?;
 
-        if proposal_metadata.voting_module == "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5" {
+        if log.params.len() > 0
+            && proposal_metadata.voting_module == "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5"
+        {
             let param_types = vec![ParamType::Array(Box::new(ParamType::Uint(256)))];
 
             let decoded = decode(&param_types, &log.params).context("Failed to decode params")?;
