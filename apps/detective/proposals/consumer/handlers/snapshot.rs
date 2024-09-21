@@ -203,7 +203,7 @@ mod snapshot_proposals {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV4};
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
@@ -212,7 +212,7 @@ mod snapshot_proposals {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV3::Snapshot),
+            handler_type: (DaoHandlerEnumV4::Snapshot),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,

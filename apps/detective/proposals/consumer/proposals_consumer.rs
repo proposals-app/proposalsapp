@@ -9,7 +9,7 @@ use sea_orm::{
 };
 use seaorm::{
     dao, dao_handler, job_queue, proposal,
-    sea_orm_active_enums::{DaoHandlerEnumV3, ProposalStateEnum},
+    sea_orm_active_enums::{DaoHandlerEnumV4, ProposalStateEnum},
 };
 use std::collections::HashSet;
 use tokio::time::{self, Duration};
@@ -238,7 +238,7 @@ async fn update_index(
     for proposal in sorted_proposals.iter() {
         if proposal.proposal_state.as_ref() == &ProposalStateEnum::Active
             || (proposal.proposal_state.as_ref() == &ProposalStateEnum::Pending
-                && dao_handler.handler_type == DaoHandlerEnumV3::Snapshot)
+                && dao_handler.handler_type == DaoHandlerEnumV4::Snapshot)
                 && proposal.index_created.is_set()
                 && proposal.index_created.clone().unwrap() < new_index
         {

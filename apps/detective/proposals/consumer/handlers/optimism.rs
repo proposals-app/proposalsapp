@@ -9,9 +9,10 @@ use contracts::gen::{
         ProposalCreated3Filter, ProposalCreated4Filter,
     },
     optimism_token::optimism_token::optimism_token,
-    optimism_votemodule_0x_2796_4c_5f_4f389b839903_6e_107_6d_8_4c_6984576c33,
     optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5,
+    optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df,
 };
+use ethers::prelude::*;
 use ethers::{prelude::*, utils::to_checksum};
 use scanners::optimistic_scan::estimate_timestamp;
 use sea_orm::{ActiveValue::NotSet, Set};
@@ -20,10 +21,10 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
-pub struct OptimismOldHandler;
+pub struct OptimismHandler;
 
 #[async_trait]
-impl ProposalHandler for OptimismOldHandler {
+impl ProposalHandler for OptimismHandler {
     async fn get_proposals(
         &self,
         dao_handler: &dao_handler::Model,
@@ -59,6 +60,8 @@ impl ProposalHandler for OptimismOldHandler {
 
         let op_token = optimism_token::new(token_address, op_rpc.clone());
 
+        let mut result = Vec::new();
+
         let proposal_events_one = gov_contract
             .proposal_created_1_filter()
             .from_block(from_block)
@@ -68,6 +71,13 @@ impl ProposalHandler for OptimismOldHandler {
             .await
             .context("query_with_meta")?;
 
+        for p in proposal_events_one.iter() {
+            let p = data_for_proposal_one(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
+                .await
+                .context("data_for_proposal_one")?;
+            result.push(p);
+        }
+
         let proposal_events_two = gov_contract
             .proposal_created_2_filter()
             .from_block(from_block)
@@ -76,33 +86,6 @@ impl ProposalHandler for OptimismOldHandler {
             .query_with_meta()
             .await
             .context("query_with_meta")?;
-
-        let proposal_events_three = gov_contract
-            .proposal_created_3_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
-            .await
-            .context("query_with_meta")?;
-
-        let proposal_events_four = gov_contract
-            .proposal_created_4_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
-            .await
-            .context("query_with_meta")?;
-
-        let mut result = Vec::new();
-
-        for p in proposal_events_one.iter() {
-            let p = data_for_proposal_one(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
-                .await
-                .context("data_for_proposal_one")?;
-            result.push(p);
-        }
 
         for p in proposal_events_two.iter() {
             let p = data_for_proposal_two(
@@ -117,12 +100,30 @@ impl ProposalHandler for OptimismOldHandler {
             result.push(p);
         }
 
+        let proposal_events_three = gov_contract
+            .proposal_created_3_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("query_with_meta")?;
+
         for p in proposal_events_three.iter() {
             let p = data_for_proposal_three(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
                 .await
                 .context("data_for_proposal_two")?;
             result.push(p);
         }
+
+        let proposal_events_four = gov_contract
+            .proposal_created_4_filter()
+            .from_block(from_block)
+            .to_block(to_block)
+            .address(address.into())
+            .query_with_meta()
+            .await
+            .context("query_with_meta")?;
 
         for p in proposal_events_four.iter() {
             let p = data_for_proposal_four(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
@@ -225,7 +226,7 @@ async fn data_for_proposal_one(
     let (against_votes, for_votes, abstain_votes) = gov_contract
         .proposal_votes(log.proposal_id)
         .await
-        .context("voting_module.proposal_votes")?;
+        .context("gov_contract.proposal_votes")?;
 
     let choices = vec!["For", "Against", "Abstain"];
 
@@ -289,7 +290,7 @@ async fn data_for_proposal_one(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
-        metadata: NotSet,
+        metadata: Set(json!({"proposal_type":1 , "voting_module":""}).into()),
     })
 }
 
@@ -359,25 +360,25 @@ async fn data_for_proposal_two(
 
     let proposal_external_id = log.proposal_id.to_string();
 
-    let mut supply = 0.0;
+    let voting_module = to_checksum(&log.voting_module, None);
+    let proposal_type = log.proposal_type;
 
-    if to_checksum(&log.voting_module, None) == "0x27964c5f4F389B8399036e1076d84c6984576C33" {
+    let mut choices: Vec<&str> = vec![];
+    let mut choices_strings: Vec<String> = vec![];
+    let mut scores: Vec<f64> = vec![];
+    let mut scores_total: f64 = 0.0;
+
+    if voting_module == "0x27964c5f4F389B8399036e1076d84c6984576C33" {
         #[derive(Debug, Deserialize)]
         struct ProposalSettings {
             against_threshold: U256,
             is_relative_to_votable_supply: bool,
         }
-
+        let mut supply = 0.0;
         let types: Vec<ParamType> = vec![ParamType::Tuple(vec![
             ParamType::Uint(256), // againstThreshold
             ParamType::Bool,      // isRelativeToVotableSupply
         ])];
-
-        let voting_module =
-            optimism_votemodule_0x_2796_4c_5f_4f389b839903_6e_107_6d_8_4c_6984576c33::optimism_votemodule_0x27964c5f4F389B8399036e1076d84c6984576C33::new(
-                log.voting_module,
-                rpc.clone(),
-            );
 
         let decoded_proposal_data =
             decode(&types, &log.proposal_data).context("Failed to decode proposal data")?;
@@ -402,20 +403,91 @@ async fn data_for_proposal_two(
 
             supply = total_supply.as_u128() as f64 / 10.0f64.powi(18);
         }
+
+        let (against_votes, _, _) = gov_contract.proposal_votes(log.proposal_id).await?;
+
+        let for_votes = supply - against_votes.as_u128() as f64 / 10.0f64.powi(18);
+
+        choices = vec!["Against", "For"];
+        scores = vec![against_votes.as_u128() as f64 / 10.0f64.powi(18), for_votes];
+        scores_total = scores.iter().sum();
     }
 
-    let (against_votes, _, _) = gov_contract.proposal_votes(log.proposal_id).await?;
+    if voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
+        let voting_module =
+            optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df::optimism_votemodule_0xdd0229d72a414dc821dec66f3cc4ef6db2c7b7df::new(
+                log.voting_module,
+                rpc.clone(),
+            );
 
-    let for_votes = supply - against_votes.as_u128() as f64 / 10.0f64.powi(18);
+        #[derive(Debug, Deserialize)]
+        struct ProposalOption {
+            description: String,
+        }
 
-    let choices: Vec<&str> = vec!["Against", "For"];
-    let scores: Vec<f64> = vec![against_votes.as_u128() as f64 / 10.0f64.powi(18), for_votes];
-    let scores_total: f64 = scores.iter().sum();
+        #[derive(Debug, Deserialize)]
+        struct ProposalData {
+            proposal_options: Vec<ProposalOption>,
+        }
+
+        // Define the expected types
+        let types: Vec<ParamType> = vec![
+            ParamType::Array(Box::new(ParamType::Tuple(vec![
+                ParamType::Uint(256),                             // budgetTokensSpent
+                ParamType::Array(Box::new(ParamType::Address)),   // targets
+                ParamType::Array(Box::new(ParamType::Uint(256))), // values
+                ParamType::Array(Box::new(ParamType::Bytes)),     // calldatas
+                ParamType::String,                                // description
+            ]))),
+            ParamType::Tuple(vec![
+                ParamType::Uint(8),   // maxApprovals
+                ParamType::Uint(8),   // criteria
+                ParamType::Address,   // budgetToken
+                ParamType::Uint(128), // criteriaValue
+                ParamType::Uint(128), // budgetAmount
+            ]),
+        ];
+
+        // Decode the bytes using the defined types
+        let decoded_proposal_data = decode(&types, &log.proposal_data)?;
+
+        // Extract the decoded data
+        let proposal_options_tokens = decoded_proposal_data[0].clone().into_array().unwrap();
+
+        // Parse proposal options
+        let proposal_options: Vec<ProposalOption> = proposal_options_tokens
+            .into_iter()
+            .map(|token| {
+                let tokens = token.into_tuple().unwrap();
+                ProposalOption {
+                    description: tokens[4].clone().into_string().unwrap(),
+                }
+            })
+            .collect();
+
+        // Construct the proposal data
+        let proposal_data = ProposalData { proposal_options };
+
+        choices_strings = proposal_data
+            .proposal_options
+            .iter()
+            .map(|o| o.description.clone())
+            .collect();
+
+        choices = choices_strings.iter().map(|s| s.as_str()).collect();
+    }
 
     let proposal_state = gov_contract
         .state(log.proposal_id)
         .await
         .context("gov_contract.state")?;
+
+    let quorum = gov_contract
+        .quorum(log.proposal_id)
+        .await
+        .context("gov_contract.quorum")?
+        .as_u128() as f64
+        / (10.0f64.powi(18));
 
     let state = match proposal_state {
         0 => ProposalStateEnum::Pending,
@@ -442,7 +514,7 @@ async fn data_for_proposal_two(
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
         scores_quorum: Set(0.0),
-        quorum: Set(0.0),
+        quorum: Set(quorum),
         proposal_state: Set(state),
         flagged: NotSet,
         block_created: Set(Some(created_block_number as i32)),
@@ -455,7 +527,9 @@ async fn data_for_proposal_two(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
-        metadata: NotSet,
+        metadata: Set(
+            json!({"proposal_type":proposal_type, "voting_module" : voting_module}).into(),
+        ),
     })
 }
 
@@ -535,12 +609,14 @@ async fn data_for_proposal_three(
 
     let proposal_external_id = log.proposal_id.to_string();
 
+    let voting_module = to_checksum(&log.voting_module, None);
+
     let mut choices: Vec<&str> = vec![];
     let mut choices_strings: Vec<String> = vec![];
     let mut scores: Vec<f64> = vec![];
     let mut scores_total: f64 = 0.0;
 
-    if to_checksum(&log.voting_module, None) == "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5" {
+    if voting_module == "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5" {
         let voting_module =
             optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5::optimism_votemodule_0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5::new(
                 log.voting_module,
@@ -668,7 +744,7 @@ async fn data_for_proposal_three(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
-        metadata: NotSet,
+        metadata: Set(json!({"proposal_type":3, "voting_module" : voting_module}).into()),
     })
 }
 
@@ -753,11 +829,11 @@ async fn data_for_proposal_four(
         .await
         .context("gov_contract.proposal_votes")?;
 
-    let choices = vec!["For", "Against", "Abstain"];
+    let choices = vec!["Against", "For", "Abstain"];
 
     let scores: Vec<f64> = vec![
-        for_votes.as_u128() as f64 / (10.0f64.powi(18)),
         against_votes.as_u128() as f64 / (10.0f64.powi(18)),
+        for_votes.as_u128() as f64 / (10.0f64.powi(18)),
         abstain_votes.as_u128() as f64 / (10.0f64.powi(18)),
     ];
 
@@ -815,7 +891,7 @@ async fn data_for_proposal_four(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
-        metadata: NotSet,
+        metadata: Set(json!({"proposal_type":4, "voting_module":""}).into()),
     })
 }
 
@@ -824,16 +900,16 @@ mod optimism_proposals {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV4};
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn optimism_old_1() {
+    async fn optimism_type_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
+            handler_type: (DaoHandlerEnumV4::OpOptimism),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -850,7 +926,7 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismOldHandler
+        match OptimismHandler
             .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
             .await
         {
@@ -873,7 +949,7 @@ mod optimism_proposals {
                     time_created: Some("2024-01-18 19:36:37"),
                     time_start: "2024-01-18 19:36:37",
                     time_end: "2024-01-24 19:36:37",
-                    metadata: None
+                    metadata: Some(json!({"proposal_type": 1, "voting_module":""}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -884,12 +960,12 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_old_2() {
+    async fn optimism_type_2_1() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
+            handler_type: (DaoHandlerEnumV4::OpOptimism),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -906,7 +982,7 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismOldHandler
+        match OptimismHandler
             .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
             .await
         {
@@ -929,7 +1005,7 @@ mod optimism_proposals {
                     time_created: Some("2024-01-18 19:45:51"),
                     time_start: "2024-01-18 19:45:51",
                     time_end: "2024-01-24 19:45:51",
-                    metadata: None
+                    metadata: Some(json!({"proposal_type": 2, "voting_module": String::from("0x27964c5f4F389B8399036e1076d84c6984576C33")}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -940,12 +1016,68 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_old_3() {
+    async fn optimism_type_2_2() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
+            handler_type: (DaoHandlerEnumV4::OpOptimism),
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 125283044,
+            votes_index: 0,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+        };
+
+        match OptimismHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "21837554113321175128753313420738380328565785926226611271713131734865736260549",
+                    name: "Rolling Mission Requests: Voting Cycle 27",
+                    body_contains: vec!["Contingent on approval of the Rolling Mission Requests proposal, the Token House will approval rank rolling Mission Requests proposed under Intent 3A: Grow Application Developers on OP Mainnet. These Mission Requests should work towards the below target metric:"],
+                    url: "https://vote.optimism.io/proposals/21837554113321175128753313420738380328565785926226611271713131734865736260549",
+                    discussion_url:
+                        "",
+                    choices:  "[\"Subsidized Audit Grants V2\",\"Experimentation of Infrastructure Subsidies\",\" Superchain Borrow/Lend Aggregator\",\"Crosschain alert monitoring\",\"Optimism Dominance in Yield-Bearing Assets - DEX Liquidity for YBAs\",\"Decentralized Solvers and Aggregators on OP Mainnet / Superchain\",\"Targeted extension of Superfest\",\"Optimism Full Financial Audit\"]",
+                    scores: "[]",
+                    scores_total: 0.0,
+                    scores_quorum: 0.0,
+                    quorum: 28950510.79266291,
+                    proposal_state: ProposalStateEnum::Succeeded,
+                    block_created: Some(125283044),
+                    time_created: Some("2024-09-12 18:14:25"),
+                    time_start: "2024-09-12 18:14:25",
+                    time_end: "2024-09-18 18:14:25",
+                    metadata: Some(json!({"proposal_type": 0, "voting_module": String::from("0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df")}))
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_type_3() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: (DaoHandlerEnumV4::OpOptimism),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -962,7 +1094,7 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismOldHandler
+        match OptimismHandler
             .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
             .await
         {
@@ -985,7 +1117,7 @@ mod optimism_proposals {
                     time_created: Some("2023-06-29 22:25:25"),
                     time_start: "2023-06-29 22:25:25",
                     time_end: "2023-07-13 22:25:25",
-                    metadata: None
+                    metadata: Some(json!({"proposal_type": 3, "voting_module": String::from("0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5")}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -996,12 +1128,12 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_old_4() {
+    async fn optimism_type_4() {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV3::OpOptimismOld),
+            handler_type: (DaoHandlerEnumV4::OpOptimism),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -1018,7 +1150,7 @@ mod optimism_proposals {
             hot: true,
         };
 
-        match OptimismOldHandler
+        match OptimismHandler
             .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
             .await
         {
@@ -1031,8 +1163,8 @@ mod optimism_proposals {
                     url: "https://vote.optimism.io/proposals/25353629475948605098820168047140307200589226219380649297323431722674892706917",
                     discussion_url:
                         "",
-                    choices: "[\"For\",\"Against\",\"Abstain\"]",
-                    scores: "[2250417.3066406273,15216557.165632907,27080684.7233773]",
+                    choices: "[\"Against\",\"For\",\"Abstain\"]",
+                    scores: "[15216557.165632907,2250417.3066406273,27080684.7233773]",
                     scores_total: 44547659.19565083,
                     scores_quorum: 44547659.19565083,
                     quorum: 21131239.096319277,
@@ -1041,7 +1173,7 @@ mod optimism_proposals {
                     time_created: Some("2023-10-12 19:08:55"),
                     time_start: "2023-10-12 19:08:55",
                     time_end: "2023-10-25 19:15:55",
-                    metadata: None
+                    metadata: Some(json!({"proposal_type": 4, "voting_module":""}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);

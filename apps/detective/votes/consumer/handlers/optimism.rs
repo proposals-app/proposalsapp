@@ -15,7 +15,7 @@ use sea_orm::{
     prelude::Uuid, ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
     Set,
 };
-use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnumV3, vote};
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnumV4, vote};
 use serde::Deserialize;
 use serde_json::Value;
 use std::sync::Arc;
@@ -146,13 +146,7 @@ async fn get_votes_with_params(
         let mut choice = vec![log.support.into()];
 
         let proposal_handler_id: Vec<Uuid> = dao_handler::Entity::find()
-            .filter(dao_handler::Column::HandlerType.is_in([
-                DaoHandlerEnumV3::OpOptimismOld,
-                DaoHandlerEnumV3::OpOptimismType1,
-                DaoHandlerEnumV3::OpOptimismType2,
-                DaoHandlerEnumV3::OpOptimismType3,
-                DaoHandlerEnumV3::OpOptimismType4,
-            ]))
+            .filter(dao_handler::Column::HandlerType.is_in([DaoHandlerEnumV4::OpOptimism]))
             .all(db)
             .await
             .context(DATABASE_ERROR)?
@@ -235,7 +229,7 @@ mod optimism_votes {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV4};
     use serde_json::json;
     use utils::test_utils::{assert_vote, ExpectedVote};
 
@@ -245,7 +239,7 @@ mod optimism_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            handler_type: DaoHandlerEnumV4::OpOptimism,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -281,7 +275,7 @@ mod optimism_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            handler_type: DaoHandlerEnumV4::OpOptimism,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -317,7 +311,7 @@ mod optimism_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            handler_type: DaoHandlerEnumV4::OpOptimism,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -353,7 +347,7 @@ mod optimism_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            handler_type: DaoHandlerEnumV4::OpOptimism,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -389,7 +383,7 @@ mod optimism_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            handler_type: DaoHandlerEnumV4::OpOptimism,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -425,7 +419,7 @@ mod optimism_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::OpOptimismType4,
+            handler_type: DaoHandlerEnumV4::OpOptimism,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,

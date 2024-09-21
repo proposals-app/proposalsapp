@@ -113,7 +113,7 @@ mod lido_votes {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV3};
+    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV4};
     use serde_json::json;
     use utils::test_utils::{assert_vote, ExpectedVote};
 
@@ -123,7 +123,7 @@ mod lido_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::AaveV3Mainnet,
+            handler_type: DaoHandlerEnumV4::AaveV3Mainnet,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 1,
@@ -158,7 +158,7 @@ mod lido_votes {
 
         let dao_handler = dao_handler::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: DaoHandlerEnumV3::AaveV3Mainnet,
+            handler_type: DaoHandlerEnumV4::AaveV3Mainnet,
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
             proposals_refresh_speed: 0,

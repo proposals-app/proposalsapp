@@ -40,38 +40,34 @@ use maker_poll::MakerPollHandler;
 use maker_poll_arbitrum::MakerPollArbitrumHandler;
 use nouns::NounsHandler;
 use optimism::OptimismHandler;
-use seaorm::sea_orm_active_enums::DaoHandlerEnumV3;
+use seaorm::sea_orm_active_enums::DaoHandlerEnumV4;
 use snapshot::SnapshotHandler;
 use uniswap::UniswapHandler;
 
 use crate::VotesHandler;
 
-pub fn get_handler(handler_type: &DaoHandlerEnumV3) -> Box<dyn VotesHandler> {
+pub fn get_handler(handler_type: &DaoHandlerEnumV4) -> Box<dyn VotesHandler> {
     match handler_type {
-        DaoHandlerEnumV3::AaveV2Mainnet => Box::new(AaveV2Handler),
-        DaoHandlerEnumV3::AaveV3Avalanche => Box::new(AaveV3AvalancheHandler),
-        DaoHandlerEnumV3::AaveV3Mainnet => Box::new(AaveV3MainnetHandler),
-        DaoHandlerEnumV3::AaveV3PolygonPos => Box::new(AaveV3PolygonHandler),
-        DaoHandlerEnumV3::ArbCoreArbitrum => Box::new(ArbitrumCoreHandler),
-        DaoHandlerEnumV3::ArbTreasuryArbitrum => Box::new(ArbitrumTreasuryHandler),
-        DaoHandlerEnumV3::CompoundMainnet => Box::new(CompoundHandler),
-        DaoHandlerEnumV3::DydxMainnet => Box::new(DydxHandler),
-        DaoHandlerEnumV3::EnsMainnet => Box::new(EnsHandler),
-        DaoHandlerEnumV3::FraxAlphaMainnet => Box::new(FraxAlphaHandler),
-        DaoHandlerEnumV3::FraxOmegaMainnet => Box::new(FraxOmegaHandler),
-        DaoHandlerEnumV3::GitcoinMainnet => Box::new(GitcoinV1Handler),
-        DaoHandlerEnumV3::GitcoinV2Mainnet => Box::new(GitcoinV2Handler),
-        DaoHandlerEnumV3::HopMainnet => Box::new(HopHandler),
-        DaoHandlerEnumV3::MakerExecutiveMainnet => Box::new(MakerExecutiveHandler),
-        DaoHandlerEnumV3::MakerPollArbitrum => Box::new(MakerPollArbitrumHandler),
-        DaoHandlerEnumV3::MakerPollMainnet => Box::new(MakerPollHandler),
-        DaoHandlerEnumV3::NounsProposalsMainnet => Box::new(NounsHandler),
-        DaoHandlerEnumV3::Snapshot => Box::new(SnapshotHandler),
-        DaoHandlerEnumV3::UniswapMainnet => Box::new(UniswapHandler),
-        DaoHandlerEnumV3::OpOptimismOld => Box::new(OptimismHandler),
-        DaoHandlerEnumV3::OpOptimismType1 => Box::new(OptimismHandler),
-        DaoHandlerEnumV3::OpOptimismType2 => Box::new(OptimismHandler),
-        DaoHandlerEnumV3::OpOptimismType3 => Box::new(OptimismHandler),
-        DaoHandlerEnumV3::OpOptimismType4 => Box::new(OptimismHandler),
+        DaoHandlerEnumV4::AaveV2Mainnet => Box::new(AaveV2Handler),
+        DaoHandlerEnumV4::AaveV3Avalanche => Box::new(AaveV3AvalancheHandler),
+        DaoHandlerEnumV4::AaveV3Mainnet => Box::new(AaveV3MainnetHandler),
+        DaoHandlerEnumV4::AaveV3PolygonPos => Box::new(AaveV3PolygonHandler),
+        DaoHandlerEnumV4::ArbCoreArbitrum => Box::new(ArbitrumCoreHandler),
+        DaoHandlerEnumV4::ArbTreasuryArbitrum => Box::new(ArbitrumTreasuryHandler),
+        DaoHandlerEnumV4::CompoundMainnet => Box::new(CompoundHandler),
+        DaoHandlerEnumV4::DydxMainnet => Box::new(DydxHandler),
+        DaoHandlerEnumV4::EnsMainnet => Box::new(EnsHandler),
+        DaoHandlerEnumV4::FraxAlphaMainnet => Box::new(FraxAlphaHandler),
+        DaoHandlerEnumV4::FraxOmegaMainnet => Box::new(FraxOmegaHandler),
+        DaoHandlerEnumV4::GitcoinMainnet => Box::new(GitcoinV1Handler),
+        DaoHandlerEnumV4::GitcoinV2Mainnet => Box::new(GitcoinV2Handler),
+        DaoHandlerEnumV4::HopMainnet => Box::new(HopHandler),
+        DaoHandlerEnumV4::MakerExecutiveMainnet => Box::new(MakerExecutiveHandler),
+        DaoHandlerEnumV4::MakerPollArbitrum => Box::new(MakerPollArbitrumHandler),
+        DaoHandlerEnumV4::MakerPollMainnet => Box::new(MakerPollHandler),
+        DaoHandlerEnumV4::NounsProposalsMainnet => Box::new(NounsHandler),
+        DaoHandlerEnumV4::Snapshot => Box::new(SnapshotHandler),
+        DaoHandlerEnumV4::UniswapMainnet => Box::new(UniswapHandler),
+        DaoHandlerEnumV4::OpOptimism => Box::new(OptimismHandler),
     }
 }

@@ -3,7 +3,7 @@ use dotenv::dotenv;
 use sea_orm::{
     ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter, Set,
 };
-use seaorm::{dao_handler, job_queue, proposal, sea_orm_active_enums::DaoHandlerEnumV3};
+use seaorm::{dao_handler, job_queue, proposal, sea_orm_active_enums::DaoHandlerEnumV4};
 use serde_json::json;
 use tokio::time::{self, Duration};
 use tracing::{error, instrument, warn};
@@ -87,7 +87,7 @@ fn split_dao_handlers(
 ) -> (Vec<&dao_handler::Model>, Vec<&dao_handler::Model>) {
     all_dao_handlers
         .iter()
-        .partition(|p| p.handler_type == DaoHandlerEnumV3::Snapshot)
+        .partition(|p| p.handler_type == DaoHandlerEnumV4::Snapshot)
 }
 
 #[instrument(skip(db))]
