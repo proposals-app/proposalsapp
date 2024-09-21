@@ -17,11 +17,7 @@ mod maker_executive;
 mod maker_poll;
 mod maker_poll_arbitrum;
 mod nouns;
-mod optimism_old;
-mod optimism_type_1;
-mod optimism_type_2;
-mod optimism_type_3;
-mod optimism_type_4;
+mod optimism;
 mod snapshot;
 mod uniswap;
 
@@ -43,11 +39,7 @@ use maker_executive::MakerExecutiveHandler;
 use maker_poll::MakerPollHandler;
 use maker_poll_arbitrum::MakerPollArbitrumHandler;
 use nouns::NounsHandler;
-use optimism_old::OptimismOldHandler;
-use optimism_type_1::OptimismType1Handler;
-use optimism_type_2::OptimismType2Handler;
-use optimism_type_3::OptimismType3Handler;
-use optimism_type_4::OptimismType4Handler;
+use optimism::OptimismHandler;
 use seaorm::sea_orm_active_enums::DaoHandlerEnumV3;
 use snapshot::SnapshotHandler;
 use uniswap::UniswapHandler;
@@ -74,12 +66,12 @@ pub fn get_handler(handler_type: &DaoHandlerEnumV3) -> Box<dyn VotesHandler> {
         DaoHandlerEnumV3::MakerPollArbitrum => Box::new(MakerPollArbitrumHandler),
         DaoHandlerEnumV3::MakerPollMainnet => Box::new(MakerPollHandler),
         DaoHandlerEnumV3::NounsProposalsMainnet => Box::new(NounsHandler),
-        DaoHandlerEnumV3::OpOptimismOld => Box::new(OptimismOldHandler),
         DaoHandlerEnumV3::Snapshot => Box::new(SnapshotHandler),
         DaoHandlerEnumV3::UniswapMainnet => Box::new(UniswapHandler),
-        DaoHandlerEnumV3::OpOptimismType1 => Box::new(OptimismType1Handler),
-        DaoHandlerEnumV3::OpOptimismType2 => Box::new(OptimismType2Handler),
-        DaoHandlerEnumV3::OpOptimismType3 => Box::new(OptimismType3Handler),
-        DaoHandlerEnumV3::OpOptimismType4 => Box::new(OptimismType4Handler),
+        DaoHandlerEnumV3::OpOptimismOld => Box::new(OptimismHandler),
+        DaoHandlerEnumV3::OpOptimismType1 => Box::new(OptimismHandler),
+        DaoHandlerEnumV3::OpOptimismType2 => Box::new(OptimismHandler),
+        DaoHandlerEnumV3::OpOptimismType3 => Box::new(OptimismHandler),
+        DaoHandlerEnumV3::OpOptimismType4 => Box::new(OptimismHandler),
     }
 }

@@ -17,14 +17,14 @@ use sea_orm::{
 };
 use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnumV3, vote};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::sync::Arc;
 use utils::errors::{DATABASE_ERROR, DATABASE_URL_NOT_SET, PROPOSAL_NOT_FOUND_ERROR};
 
-pub struct OptimismType2Handler;
+pub struct OptimismHandler;
 
 #[async_trait]
-impl VotesHandler for OptimismType2Handler {
+impl VotesHandler for OptimismHandler {
     async fn get_proposal_votes(
         &self,
         _dao_handler: &dao_handler::Model,
@@ -143,7 +143,7 @@ async fn get_votes_with_params(
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
     for (log, meta) in voter_logs {
-        let mut choice = vec![];
+        let mut choice = vec![log.support.into()];
 
         let proposal_handler_id: Vec<Uuid> = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.is_in([
@@ -173,29 +173,39 @@ async fn get_votes_with_params(
 
         #[derive(Deserialize)]
         struct ProposalMetadata {
-            #[serde(default = "default_voting_module")]
             voting_module: Value,
         }
 
-        fn default_voting_module() -> Value {
-            json!("0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df")
-        }
-
         let proposal_metadata: ProposalMetadata =
-            serde_json::from_value(proposal.metadata.unwrap_or_else(|| json!({})))
-                .context("Failed to deserialize proposal metadata")?;
+            serde_json::from_value(proposal.metadata.unwrap())?;
 
-        if log.params.len() > 0
-            && proposal_metadata.voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df"
-        {
-            let param_types = vec![ParamType::Array(Box::new(ParamType::Uint(256)))];
+        if log.params.len() > 0 {
+            if proposal_metadata.voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
+                let param_types = vec![ParamType::Array(Box::new(ParamType::Uint(256)))];
 
-            let decoded = decode(&param_types, &log.params).context("Failed to decode params")?;
+                let decoded =
+                    decode(&param_types, &log.params).context("Failed to decode params")?;
 
-            if let Some(ethers::abi::Token::Array(options)) = decoded.first() {
-                for option in options {
-                    if let ethers::abi::Token::Uint(value) = option {
-                        choice.push(value.as_u64() as i32);
+                if let Some(ethers::abi::Token::Array(options)) = decoded.first() {
+                    for option in options {
+                        if let ethers::abi::Token::Uint(value) = option {
+                            choice.push(value.as_u64() as i32);
+                        }
+                    }
+                }
+            }
+
+            if proposal_metadata.voting_module == "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5" {
+                let param_types = vec![ParamType::Array(Box::new(ParamType::Uint(256)))];
+
+                let decoded =
+                    decode(&param_types, &log.params).context("Failed to decode params")?;
+
+                if let Some(ethers::abi::Token::Array(options)) = decoded.first() {
+                    for option in options {
+                        if let ethers::abi::Token::Uint(value) = option {
+                            choice.push(value.as_u64() as i32);
+                        }
                     }
                 }
             }
@@ -230,6 +240,78 @@ mod optimism_votes {
     use utils::test_utils::{assert_vote, ExpectedVote};
 
     #[tokio::test]
+    async fn optimism_votes_type_1_1() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 0,
+            votes_index: 115004770,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        match OptimismHandler.get_dao_votes(&dao_handler).await {
+            Ok(result) => {
+                assert!(!result.votes.is_empty(), "No votes were fetched");
+                let expected_votes = [ExpectedVote {
+                    voter_address: "0xC776cBDDeA014889E8BaB4323C894C5c34DB214D",
+                    voting_power: 2.84234644277626,
+                    block_created: Some(115004770),
+                    choice: json!(1),
+                    proposal_external_id: "64861580915106728278960188313654044018229192803489945934331754023009986585740",
+                    reason: Some(String::from("I think this is a good feature")),
+                }];
+                for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
+                    assert_vote(vote, expected);
+                }
+                assert_eq!(result.to_index, Some(115004771));
+            }
+            Err(e) => panic!("Failed to get votes: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_votes_type_1_2() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 0,
+            votes_index: 115257697,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        match OptimismHandler.get_dao_votes(&dao_handler).await {
+            Ok(result) => {
+                assert!(!result.votes.is_empty(), "No votes were fetched");
+                let expected_votes = [ExpectedVote {
+                    voter_address: "0xB1F34669752D645F7fbf5B6f3E3CB9ADFf0528b2",
+                    voting_power: 1.91,
+                    block_created: Some(115257697),
+                    choice: json!(0),
+                    proposal_external_id: "64861580915106728278960188313654044018229192803489945934331754023009986585740",
+                    reason: Some(String::from("")),
+                }];
+                for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
+                    assert_vote(vote, expected);
+                }
+                assert_eq!(result.to_index, Some(115257698));
+            }
+            Err(e) => panic!("Failed to get votes: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
     async fn optimism_votes_type_2_1() {
         let _ = dotenv().ok();
 
@@ -245,7 +327,7 @@ mod optimism_votes {
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        match OptimismType2Handler.get_dao_votes(&dao_handler).await {
+        match OptimismHandler.get_dao_votes(&dao_handler).await {
             Ok(result) => {
                 assert!(!result.votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
@@ -281,14 +363,14 @@ mod optimism_votes {
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        match OptimismType2Handler.get_dao_votes(&dao_handler).await {
+        match OptimismHandler.get_dao_votes(&dao_handler).await {
             Ok(result) => {
                 assert!(!result.votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
                     voter_address: "0xa6e8772af29b29B9202a073f8E36f447689BEef6",
                     voting_power: 2347714.047381486,
                     block_created: Some(125536414),
-                    choice: json!([0, 4, 5, 6]),
+                    choice: json!([1, 0, 4, 5, 6]),
                     proposal_external_id: "21837554113321175128753313420738380328565785926226611271713131734865736260549",
                     reason: Some(String::from("These all are needs or experiments we find compelling – in particular the very successful and in-demand audit grants. The other Mission Requests are helpful for business development and attracting new users and protocols to Optimism.\n\nOthers simply seemed like they needed more clear scope or different budget sizing to be effective. Or were low priority because they are largely done but not easy to find in one place (e.g. auditing the financial holdings of governance), so don’t require an entire Mission Request.\n")),
                 }];
@@ -296,6 +378,78 @@ mod optimism_votes {
                     assert_vote(vote, expected);
                 }
                 assert_eq!(result.to_index, Some(125536415));
+            }
+            Err(e) => panic!("Failed to get votes: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_votes_type_3() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 0,
+            votes_index: 106787763,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        match OptimismHandler.get_dao_votes(&dao_handler).await {
+            Ok(result) => {
+                assert!(!result.votes.is_empty(), "No votes were fetched");
+                let expected_votes = [ExpectedVote {
+                    voter_address: "0x995013B47EF3A2B07b9e60dA6D1fFf8fa9C53Cf4",
+                    voting_power: 1001481.1043390606,
+                    block_created: Some(106787763),
+                    choice: json!([0,1,2,3,4,5,6,8,9,10]),
+                    proposal_external_id: "76298930109016961673734608568752969826843280855214969572559472848313136347131",
+                    reason: Some(String::from("Opinion in forum")),
+                }];
+                for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
+                    assert_vote(vote, expected);
+                }
+                assert_eq!(result.to_index, Some(106787764));
+            }
+            Err(e) => panic!("Failed to get votes: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_votes_type_4() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: DaoHandlerEnumV3::OpOptimismType4,
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 0,
+            votes_index: 110770895,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        match OptimismHandler.get_dao_votes(&dao_handler).await {
+            Ok(result) => {
+                assert!(!result.votes.is_empty(), "No votes were fetched");
+                let expected_votes = [ExpectedVote {
+                    voter_address: "0x4f41877773e44F2275dA1942FEe898556821bf66",
+                    voting_power: 1826137.2164138977,
+                    block_created: Some(110770895),
+                    choice: json!(0),
+                    proposal_external_id: "25353629475948605098820168047140307200589226219380649297323431722674892706917",
+                    reason: Some(String::from("Without commenting on the substance of his allegations or the related discussions, I believe what Carlos has posted in his response to the CoC notice with regard to whether there was intentional or malicious doxing. I take Carlos at his word that he was only invoking these people's identities because (1) they were already public in several different domains, as supported by his screenshots, and (2) they were relevant to the claims he was making regarding connections between different organizations. I would however remind Carlos that there is an extremely high bar of support and context needed to substantiate allegations like his. Zooming out, I'm glad a CoC council is being formed and encourage people to apply.")),
+                }];
+                for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
+                    assert_vote(vote, expected);
+                }
+                assert_eq!(result.to_index, Some(110770896));
             }
             Err(e) => panic!("Failed to get votes: {:?}", e),
         }

@@ -219,7 +219,7 @@ async fn data_for_proposal_four(
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
-        metadata: Set(json!({"proposal_type":4}).into()),
+        metadata: Set(json!({"proposal_type":4, "voting_module":{}}).into()),
     })
 }
 

@@ -6,7 +6,6 @@ use chrono::NaiveDateTime;
 use contracts::gen::{
     optimism_gov_v_6::{optimism_gov_v_6::optimism_gov_v6, ProposalCreated3Filter},
     optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5,
-    optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df,
 };
 use ethers::{prelude::*, utils::to_checksum};
 use scanners::optimistic_scan::estimate_timestamp;
