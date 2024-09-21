@@ -172,14 +172,17 @@ async fn get_votes_with_params(
 
         #[derive(Deserialize)]
         struct ProposalMetadata {
+            #[serde(default = "default_voting_module")]
             voting_module: Value,
         }
 
+        fn default_voting_module() -> Value {
+            json!("0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5")
+        }
+
         let proposal_metadata: ProposalMetadata =
-            serde_json::from_value(proposal.metadata.unwrap_or_else(
-                || json!({"voting_module": "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5"}),
-            ))
-            .unwrap();
+            serde_json::from_value(proposal.metadata.unwrap_or_else(|| json!({})))
+                .context("Failed to deserialize proposal metadata")?;
 
         if proposal_metadata.voting_module == "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5" {
             let param_types = vec![ParamType::Array(Box::new(ParamType::Uint(256)))];
