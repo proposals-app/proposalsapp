@@ -6,6 +6,7 @@ use chrono::NaiveDateTime;
 use contracts::gen::{
     optimism_gov_v_6::{optimism_gov_v_6::optimism_gov_v6, ProposalCreated2Filter},
     optimism_token::optimism_token::optimism_token,
+    optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df,
 };
 use ethers::{prelude::*, utils::to_checksum};
 use scanners::optimistic_scan::estimate_timestamp;
@@ -159,10 +160,13 @@ async fn data_for_proposal_two(
 
     let proposal_external_id = log.proposal_id.to_string();
 
-    let mut supply = 0.0;
-
     let voting_module = to_checksum(&log.voting_module, None);
     let proposal_type = log.proposal_type;
+
+    let mut choices: Vec<&str> = vec![];
+    let mut choices_strings: Vec<String> = vec![];
+    let mut scores: Vec<f64> = vec![];
+    let mut scores_total: f64 = 0.0;
 
     if voting_module == "0x27964c5f4F389B8399036e1076d84c6984576C33" {
         #[derive(Debug, Deserialize)]
@@ -170,7 +174,7 @@ async fn data_for_proposal_two(
             against_threshold: U256,
             is_relative_to_votable_supply: bool,
         }
-
+        let mut supply = 0.0;
         let types: Vec<ParamType> = vec![ParamType::Tuple(vec![
             ParamType::Uint(256), // againstThreshold
             ParamType::Bool,      // isRelativeToVotableSupply
@@ -199,15 +203,79 @@ async fn data_for_proposal_two(
 
             supply = total_supply.as_u128() as f64 / 10.0f64.powi(18);
         }
+
+        let (against_votes, _, _) = gov_contract.proposal_votes(log.proposal_id).await?;
+
+        let for_votes = supply - against_votes.as_u128() as f64 / 10.0f64.powi(18);
+
+        choices = vec!["Against", "For"];
+        scores = vec![against_votes.as_u128() as f64 / 10.0f64.powi(18), for_votes];
+        scores_total = scores.iter().sum();
     }
 
-    let (against_votes, _, _) = gov_contract.proposal_votes(log.proposal_id).await?;
+    if voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
+        let voting_module =
+            optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df::optimism_votemodule_0xdd0229d72a414dc821dec66f3cc4ef6db2c7b7df::new(
+                log.voting_module,
+                rpc.clone(),
+            );
 
-    let for_votes = supply - against_votes.as_u128() as f64 / 10.0f64.powi(18);
+        #[derive(Debug, Deserialize)]
+        struct ProposalOption {
+            description: String,
+        }
 
-    let choices: Vec<&str> = vec!["Against", "For"];
-    let scores: Vec<f64> = vec![against_votes.as_u128() as f64 / 10.0f64.powi(18), for_votes];
-    let scores_total: f64 = scores.iter().sum();
+        #[derive(Debug, Deserialize)]
+        struct ProposalData {
+            proposal_options: Vec<ProposalOption>,
+        }
+
+        // Define the expected types
+        let types: Vec<ParamType> = vec![
+            ParamType::Array(Box::new(ParamType::Tuple(vec![
+                ParamType::Uint(256),                             // budgetTokensSpent
+                ParamType::Array(Box::new(ParamType::Address)),   // targets
+                ParamType::Array(Box::new(ParamType::Uint(256))), // values
+                ParamType::Array(Box::new(ParamType::Bytes)),     // calldatas
+                ParamType::String,                                // description
+            ]))),
+            ParamType::Tuple(vec![
+                ParamType::Uint(8),   // maxApprovals
+                ParamType::Uint(8),   // criteria
+                ParamType::Address,   // budgetToken
+                ParamType::Uint(128), // criteriaValue
+                ParamType::Uint(128), // budgetAmount
+            ]),
+        ];
+
+        // Decode the bytes using the defined types
+        let decoded_proposal_data = decode(&types, &log.proposal_data)?;
+
+        // Extract the decoded data
+        let proposal_options_tokens = decoded_proposal_data[0].clone().into_array().unwrap();
+
+        // Parse proposal options
+        let proposal_options: Vec<ProposalOption> = proposal_options_tokens
+            .into_iter()
+            .map(|token| {
+                let tokens = token.into_tuple().unwrap();
+                ProposalOption {
+                    description: tokens[3].clone().into_string().unwrap(),
+                }
+            })
+            .collect();
+
+        // Construct the proposal data
+        let proposal_data = ProposalData { proposal_options };
+
+        choices_strings = proposal_data
+            .proposal_options
+            .iter()
+            .map(|o| o.description.clone())
+            .collect();
+
+        choices = choices_strings.iter().map(|s| s.as_str()).collect();
+    }
 
     let proposal_state = gov_contract
         .state(log.proposal_id)
