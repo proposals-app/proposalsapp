@@ -1,18 +1,25 @@
-use crate::{VotesHandler, VotesResult};
+use crate::{setup_database, VotesHandler, VotesResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use contracts::gen::optimism_gov_v_6::{
     optimism_gov_v_6::optimism_gov_v6, VoteCastFilter, VoteCastWithParamsFilter,
 };
 use ethers::{
+    abi::{decode, ParamType},
     prelude::{Http, LogMeta, Provider},
     providers::Middleware,
     types::Address,
     utils::to_checksum,
 };
-use sea_orm::{NotSet, Set};
-use seaorm::{dao, dao_handler, proposal, vote};
+use sea_orm::{
+    prelude::Uuid, ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
+    Set,
+};
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnumV3, vote};
+use serde::Deserialize;
+use serde_json::{json, Value};
 use std::sync::Arc;
+use utils::errors::{DATABASE_ERROR, DATABASE_URL_NOT_SET, PROPOSAL_NOT_FOUND_ERROR};
 
 pub struct OptimismType2Handler;
 
@@ -73,8 +80,13 @@ impl VotesHandler for OptimismType2Handler {
             .context("bad query")?;
 
         let votes = get_votes(logs.clone(), dao_handler).context("bad votes")?;
-        let votes_with_params =
-            get_votes_with_params(logs_with_params.clone(), dao_handler).context("bad votes")?;
+
+        let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
+        let db = setup_database(&database_url).await?;
+
+        let votes_with_params = get_votes_with_params(logs_with_params.clone(), dao_handler, &db)
+            .await
+            .context("bad votes")?;
 
         let all_votes = [votes, votes_with_params].concat();
 
@@ -121,22 +133,81 @@ fn get_votes(
     Ok(votes)
 }
 
-fn get_votes_with_params(
+async fn get_votes_with_params(
     logs: Vec<(VoteCastWithParamsFilter, LogMeta)>,
     dao_handler: &dao_handler::Model,
+    db: &DatabaseConnection,
 ) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCastWithParamsFilter, LogMeta)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
     for (log, meta) in voter_logs {
+        let mut choice = vec![];
+
+        let proposal_handler_id: Vec<Uuid> = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.is_in([
+                DaoHandlerEnumV3::OpOptimismOld,
+                DaoHandlerEnumV3::OpOptimismType1,
+                DaoHandlerEnumV3::OpOptimismType2,
+                DaoHandlerEnumV3::OpOptimismType3,
+                DaoHandlerEnumV3::OpOptimismType4,
+            ]))
+            .all(db)
+            .await
+            .context(DATABASE_ERROR)?
+            .into_iter()
+            .map(|dh| dh.id)
+            .collect();
+
+        let proposal = proposal::Entity::find()
+            .filter(
+                Condition::all()
+                    .add(proposal::Column::ExternalId.eq(log.proposal_id.to_string()))
+                    .add(proposal::Column::DaoHandlerId.is_in(proposal_handler_id)),
+            )
+            .one(db)
+            .await
+            .context(DATABASE_ERROR)?
+            .context(PROPOSAL_NOT_FOUND_ERROR)?;
+
+        #[derive(Deserialize)]
+        struct ProposalMetadata {
+            #[serde(default = "default_voting_module")]
+            voting_module: Value,
+        }
+
+        fn default_voting_module() -> Value {
+            json!("0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df")
+        }
+
+        let proposal_metadata: ProposalMetadata =
+            serde_json::from_value(proposal.metadata.unwrap_or_else(|| json!({})))
+                .context("Failed to deserialize proposal metadata")?;
+
+        if log.params.len() > 0
+            && proposal_metadata.voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df"
+        {
+            let param_types = vec![ParamType::Array(Box::new(ParamType::Uint(256)))];
+
+            let decoded = decode(&param_types, &log.params).context("Failed to decode params")?;
+
+            if let Some(ethers::abi::Token::Array(options)) = decoded.first() {
+                for option in options {
+                    if let ethers::abi::Token::Uint(value) = option {
+                        choice.push(value.as_u64() as i32);
+                    }
+                }
+            }
+        }
+
         votes.push(vote::ActiveModel {
             id: NotSet,
             index_created: Set(meta.block_number.as_u64() as i32),
             voter_address: Set(to_checksum(&log.voter, None)),
             voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
             block_created: Set(Some(meta.block_number.as_u64() as i32)),
-            choice: Set(log.support.into()),
+            choice: Set(choice.into()),
             proposal_id: NotSet,
             proposal_external_id: Set(log.proposal_id.to_string()),
             dao_id: Set(dao_handler.dao_id),
@@ -189,6 +260,42 @@ mod optimism_votes {
                     assert_vote(vote, expected);
                 }
                 assert_eq!(result.to_index, Some(115261442));
+            }
+            Err(e) => panic!("Failed to get votes: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_votes_type_2_2() {
+        let _ = dotenv().ok();
+
+        let dao_handler = dao_handler::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            handler_type: DaoHandlerEnumV3::OpOptimismOld,
+            governance_portal: "placeholder".into(),
+            refresh_enabled: true,
+            proposals_refresh_speed: 1,
+            votes_refresh_speed: 1,
+            proposals_index: 0,
+            votes_index: 125536414,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        match OptimismType2Handler.get_dao_votes(&dao_handler).await {
+            Ok(result) => {
+                assert!(!result.votes.is_empty(), "No votes were fetched");
+                let expected_votes = [ExpectedVote {
+                    voter_address: "0xa6e8772af29b29B9202a073f8E36f447689BEef6",
+                    voting_power: 2347714.047381486,
+                    block_created: Some(125536414),
+                    choice: json!([0, 4, 5, 6]),
+                    proposal_external_id: "21837554113321175128753313420738380328565785926226611271713131734865736260549",
+                    reason: Some(String::from("These all are needs or experiments we find compelling – in particular the very successful and in-demand audit grants. The other Mission Requests are helpful for business development and attracting new users and protocols to Optimism.\n\nOthers simply seemed like they needed more clear scope or different budget sizing to be effective. Or were low priority because they are largely done but not easy to find in one place (e.g. auditing the financial holdings of governance), so don’t require an entire Mission Request.\n")),
+                }];
+                for (vote, expected) in result.votes.iter().zip(expected_votes.iter()) {
+                    assert_vote(vote, expected);
+                }
+                assert_eq!(result.to_index, Some(125536415));
             }
             Err(e) => panic!("Failed to get votes: {:?}", e),
         }

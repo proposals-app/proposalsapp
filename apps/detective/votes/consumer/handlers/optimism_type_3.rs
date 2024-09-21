@@ -199,21 +199,6 @@ async fn get_votes_with_params(
                     }
                 }
             }
-
-            if proposal_metadata.voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
-                let param_types = vec![ParamType::Array(Box::new(ParamType::Uint(256)))];
-
-                let decoded =
-                    decode(&param_types, &log.params).context("Failed to decode params")?;
-
-                if let Some(ethers::abi::Token::Array(options)) = decoded.first() {
-                    for option in options {
-                        if let ethers::abi::Token::Uint(value) = option {
-                            choice.push(value.as_u64() as i32);
-                        }
-                    }
-                }
-            }
         }
 
         votes.push(vote::ActiveModel {
