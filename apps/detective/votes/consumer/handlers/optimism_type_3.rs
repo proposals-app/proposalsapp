@@ -175,12 +175,11 @@ async fn get_votes_with_params(
             voting_module: Value,
         }
 
-        let proposal_metadata: ProposalMetadata = serde_json::from_value(
-            proposal
-                .metadata
-                .unwrap_or(json!({"voting_module": "0x27964c5f4F389B8399036e1076d84c6984576C33"})),
-        )
-        .unwrap();
+        let proposal_metadata: ProposalMetadata =
+            serde_json::from_value(proposal.metadata.unwrap_or_else(
+                || json!({"voting_module": "0x27964c5f4F389B8399036e1076d84c6984576C33"}),
+            ))
+            .unwrap();
 
         if proposal_metadata.voting_module == "0x27964c5f4F389B8399036e1076d84c6984576C33" {
             let param_types = vec![ParamType::Array(Box::new(ParamType::Uint(256)))];
