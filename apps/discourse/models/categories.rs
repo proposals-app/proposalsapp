@@ -26,4 +26,5 @@ pub struct Category {
     pub topics_month: Option<i32>,
     pub topics_year: Option<i32>,
     pub topics_all_time: Option<i32>,
+    pub subcategory_list: Option<Vec<Category>>,
 }

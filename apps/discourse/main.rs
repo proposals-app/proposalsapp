@@ -34,40 +34,6 @@ async fn main() -> Result<()> {
 
     let mut handles = vec![];
     for dao_discourse in dao_discourses {
-        // Spawn user fetcher thread
-        let db_handler_users_clone = Arc::clone(&db_handler);
-        let dao_discourse_users_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&shared_api_handler);
-        let user_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
-            loop {
-                interval.tick().await;
-                let user_fetcher = UserFetcher::new(
-                    &dao_discourse_users_clone.discourse_base_url,
-                    Arc::clone(&api_handler),
-                );
-                match user_fetcher
-                    .update_all_users(&db_handler_users_clone, dao_discourse_users_clone.id)
-                    .await
-                {
-                    Ok(_) => {
-                        info!(
-                            "Successfully updated users for {}",
-                            dao_discourse_users_clone.discourse_base_url
-                        );
-                    }
-                    Err(e) => {
-                        error!(
-                            "Error updating users for {} (ID: {}): {}",
-                            dao_discourse_users_clone.discourse_base_url,
-                            dao_discourse_users_clone.id,
-                            e
-                        );
-                    }
-                }
-            }
-        });
-
         // Spawn category fetcher thread
         let db_handler_category_clone = Arc::clone(&db_handler);
         let dao_discourse_category_clone = dao_discourse.clone();
@@ -98,6 +64,40 @@ async fn main() -> Result<()> {
                             "Error updating categories for {} (ID: {}): {}",
                             dao_discourse_category_clone.discourse_base_url,
                             dao_discourse_category_clone.id,
+                            e
+                        );
+                    }
+                }
+            }
+        });
+
+        // Spawn user fetcher thread
+        let db_handler_users_clone = Arc::clone(&db_handler);
+        let dao_discourse_users_clone = dao_discourse.clone();
+        let api_handler = Arc::clone(&shared_api_handler);
+        let user_handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
+            loop {
+                interval.tick().await;
+                let user_fetcher = UserFetcher::new(
+                    &dao_discourse_users_clone.discourse_base_url,
+                    Arc::clone(&api_handler),
+                );
+                match user_fetcher
+                    .update_all_users(&db_handler_users_clone, dao_discourse_users_clone.id)
+                    .await
+                {
+                    Ok(_) => {
+                        info!(
+                            "Successfully updated users for {}",
+                            dao_discourse_users_clone.discourse_base_url
+                        );
+                    }
+                    Err(e) => {
+                        error!(
+                            "Error updating users for {} (ID: {}): {}",
+                            dao_discourse_users_clone.discourse_base_url,
+                            dao_discourse_users_clone.id,
                             e
                         );
                     }
@@ -191,8 +191,8 @@ async fn main() -> Result<()> {
             }
         });
 
-        handles.push(user_handle);
         handles.push(category_handle);
+        handles.push(user_handle);
         handles.push(topic_handle);
         handles.push(post_handle);
     }

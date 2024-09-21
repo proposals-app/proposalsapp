@@ -1,4 +1,5 @@
 use crate::api_handler::ApiHandler;
+use crate::models::categories::Category;
 use crate::models::categories::CategoryResponse;
 use crate::DbHandler;
 use anyhow::Result;
@@ -31,15 +32,21 @@ impl CategoryFetcher {
         let mut previous_response: Option<CategoryResponse> = None;
 
         loop {
-            let url = format!("{}/categories.json?page={}", self.base_url, page);
+            let url = format!(
+                "{}/categories.json?include_subcategories=true&page={}",
+                self.base_url, page
+            );
             let response: CategoryResponse = self.api_handler.fetch(&url).await?;
 
-            let num_categories = response.category_list.categories.len();
+            let mut all_categories = Vec::new();
+            self.flatten_categories(&response.category_list.categories, &mut all_categories);
+
+            let num_categories = all_categories.len();
             total_categories += num_categories;
 
-            for category in &response.category_list.categories {
+            for category in all_categories {
                 db_handler
-                    .upsert_category(category, dao_discourse_id)
+                    .upsert_category(&category, dao_discourse_id)
                     .await?;
             }
 
@@ -51,7 +58,7 @@ impl CategoryFetcher {
             );
 
             if response.category_list.categories.is_empty() {
-                tracing::info!("No more categories to fetch. Stopping.");
+                info!("No more categories to fetch. Stopping.");
                 break;
             }
 
@@ -73,5 +80,17 @@ impl CategoryFetcher {
             total_categories
         );
         Ok(())
+    }
+
+    fn flatten_categories(&self, categories: &[Category], result: &mut Vec<Category>) {
+        for category in categories {
+            let mut category_clone = category.clone();
+            category_clone.subcategory_list = None; // Remove subcategory_list to avoid redundancy
+            result.push(category_clone);
+
+            if let Some(subcategories) = &category.subcategory_list {
+                self.flatten_categories(subcategories, result);
+            }
+        }
     }
 }
