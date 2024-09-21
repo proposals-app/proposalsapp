@@ -11,8 +11,11 @@ use ethers::{
     types::Address,
     utils::to_checksum,
 };
-use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set};
-use seaorm::{dao, dao_handler, proposal, vote};
+use sea_orm::{
+    prelude::Uuid, ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
+    Set,
+};
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnumV3, vote};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -141,11 +144,26 @@ async fn get_votes_with_params(
     for (log, meta) in voter_logs {
         let mut choice = vec![];
 
+        let proposal_handler_id: Vec<Uuid> = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.is_in([
+                DaoHandlerEnumV3::OpOptimismOld,
+                DaoHandlerEnumV3::OpOptimismType1,
+                DaoHandlerEnumV3::OpOptimismType2,
+                DaoHandlerEnumV3::OpOptimismType3,
+                DaoHandlerEnumV3::OpOptimismType4,
+            ]))
+            .all(db)
+            .await
+            .context(DATABASE_ERROR)?
+            .into_iter()
+            .map(|dh| dh.id)
+            .collect();
+
         let proposal = proposal::Entity::find()
             .filter(
                 Condition::all()
                     .add(proposal::Column::ExternalId.eq(log.proposal_id.to_string()))
-                    .add(proposal::Column::DaoHandlerId.eq(dao_handler.id)),
+                    .add(proposal::Column::DaoHandlerId.is_in(proposal_handler_id)),
             )
             .one(db)
             .await
