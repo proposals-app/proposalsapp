@@ -1,5 +1,5 @@
 use crate::{setup_database, ProposalHandler, ProposalsResult};
-use ::utils::errors::{DATABASE_ERROR, DATABASE_URL_NOT_SET, PROPOSAL_NOT_FOUND_ERROR};
+use ::utils::errors::{DATABASE_ERROR, DATABASE_URL_NOT_SET};
 use abi::{decode, ParamType};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -16,7 +16,9 @@ use contracts::gen::{
 use ethers::prelude::*;
 use ethers::utils::to_checksum;
 use scanners::optimistic_scan::estimate_timestamp;
-use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set};
+use sea_orm::{
+    ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set, Value,
+};
 use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum, vote};
 use serde::Deserialize;
 use serde_json::json;
@@ -420,12 +422,6 @@ async fn data_for_proposal_two(
     }
 
     if voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
-        let voting_module =
-            optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df::optimism_votemodule_0xdd0229d72a414dc821dec66f3cc4ef6db2c7b7df::new(
-                log.voting_module,
-                rpc.clone(),
-            );
-
         #[derive(Debug, Deserialize)]
         struct ProposalOption {
             description: String,
@@ -484,22 +480,43 @@ async fn data_for_proposal_two(
 
         scores = choices_strings.iter().map(|_s| 0.0).collect();
 
-        for (i, choice) in choices_strings.iter().enumerate() {
-            let votes_scores = vote::Entity::find()
-                .filter(
-                    Condition::all()
-                        .add(vote::Column::Choice.contains(choice))
-                        .add(vote::Column::DaoHandlerId.eq(dao_handler.id))
-                        .add(vote::Column::ProposalExternalId.eq(proposal_external_id.clone())),
-                )
-                .all(db)
-                .await
-                .context(DATABASE_ERROR)?;
+        // Fetch all votes for this proposal
+        let votes = vote::Entity::find()
+            .filter(
+                Condition::all()
+                    .add(vote::Column::DaoHandlerId.eq(dao_handler.id))
+                    .add(vote::Column::ProposalExternalId.eq(proposal_external_id.clone())),
+            )
+            .all(db)
+            .await
+            .context(DATABASE_ERROR)?;
 
-            let sumscore = votes_scores.iter().map(|v| v.voting_power).sum::<f64>();
-            scores[i] = sumscore;
-            scores_total += sumscore;
+        println!("{:?}", votes.len());
+
+        println!("{:?}", dao_handler.id);
+        println!("{:?}", proposal_external_id.clone());
+        // Initialize a vector to store scores for each choice
+        let mut choice_scores: Vec<f64> = vec![0.0; choices_strings.len()];
+
+        // Process votes and accumulate scores
+        for vote in votes {
+            if let Some(index) = vote.choice.as_i64() {
+                if index >= 0 && (index as usize) < choice_scores.len() {
+                    choice_scores[index as usize] += vote.voting_power;
+                }
+            } else if let Some(indices) = vote.choice.as_array() {
+                for value in indices {
+                    if let Some(index) = value.as_i64() {
+                        if index >= 0 && (index as usize) < choice_scores.len() {
+                            choice_scores[index as usize] += vote.voting_power;
+                        }
+                    }
+                }
+            }
         }
+
+        scores = choice_scores;
+        scores_total = scores.iter().sum();
     }
 
     let proposal_state = gov_contract
@@ -1045,7 +1062,7 @@ mod optimism_proposals {
         let _ = dotenv().ok();
 
         let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            id: Uuid::parse_str("b2aa8bdf-05eb-408d-b4ad-4fa763e7381c").unwrap(),
             handler_type: (DaoHandlerEnumV4::OpOptimism),
             governance_portal: "placeholder".into(),
             refresh_enabled: true,
@@ -1053,11 +1070,11 @@ mod optimism_proposals {
             votes_refresh_speed: 1,
             proposals_index: 125283044,
             votes_index: 0,
-            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            dao_id: Uuid::parse_str("c5c825bf-f6e4-41da-929f-b877d9542d84").unwrap(),
         };
 
         let dao = dao::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            id: Uuid::parse_str("c5c825bf-f6e4-41da-929f-b877d9542d84").unwrap(),
             name: "placeholder".into(),
             slug: "placeholder".into(),
             hot: true,
