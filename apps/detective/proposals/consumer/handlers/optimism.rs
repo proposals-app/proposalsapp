@@ -1,4 +1,5 @@
-use crate::{ProposalHandler, ProposalsResult};
+use crate::{setup_database, ProposalHandler, ProposalsResult};
+use ::utils::errors::{DATABASE_ERROR, DATABASE_URL_NOT_SET, PROPOSAL_NOT_FOUND_ERROR};
 use abi::{decode, ParamType};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -15,8 +16,8 @@ use contracts::gen::{
 use ethers::prelude::*;
 use ethers::utils::to_checksum;
 use scanners::optimistic_scan::estimate_timestamp;
-use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
+use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set};
+use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum, vote};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -60,6 +61,9 @@ impl ProposalHandler for OptimismHandler {
 
         let op_token = optimism_token::new(token_address, op_rpc.clone());
 
+        let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
+        let db = setup_database(&database_url).await?;
+
         let mut result = Vec::new();
 
         let proposal_events_one = gov_contract
@@ -94,6 +98,7 @@ impl ProposalHandler for OptimismHandler {
                 dao_handler,
                 gov_contract.clone(),
                 op_token.clone(),
+                &db,
             )
             .await
             .context("data_for_proposal_two")?;
@@ -303,6 +308,7 @@ async fn data_for_proposal_two(
     dao_handler: &dao_handler::Model,
     gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
     op_token: optimism_token<ethers::providers::Provider<ethers::providers::Http>>,
+    db: &DatabaseConnection,
 ) -> Result<proposal::ActiveModel> {
     println!("ProposalCreated2Filter");
     let (log, meta): (ProposalCreated2Filter, LogMeta) = p.clone();
@@ -475,6 +481,25 @@ async fn data_for_proposal_two(
             .collect();
 
         choices = choices_strings.iter().map(|s| s.as_str()).collect();
+
+        scores = choices_strings.iter().map(|_s| 0.0).collect();
+
+        for (i, choice) in choices_strings.iter().enumerate() {
+            let votes_scores = vote::Entity::find()
+                .filter(
+                    Condition::all()
+                        .add(vote::Column::Choice.contains(choice))
+                        .add(vote::Column::DaoHandlerId.eq(dao_handler.id))
+                        .add(vote::Column::ProposalExternalId.eq(proposal_external_id.clone())),
+                )
+                .all(db)
+                .await
+                .context(DATABASE_ERROR)?;
+
+            let sumscore = votes_scores.iter().map(|v| v.voting_power).sum::<f64>();
+            scores[i] = sumscore;
+            scores_total += sumscore;
+        }
     }
 
     let proposal_state = gov_contract
