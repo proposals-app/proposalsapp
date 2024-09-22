@@ -119,7 +119,7 @@ impl ProposalHandler for OptimismHandler {
         for p in proposal_events_three.iter() {
             let p = data_for_proposal_three(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
                 .await
-                .context("data_for_proposal_two")?;
+                .context("data_for_proposal_three")?;
             result.push(p);
         }
 
@@ -135,7 +135,7 @@ impl ProposalHandler for OptimismHandler {
         for p in proposal_events_four.iter() {
             let p = data_for_proposal_four(p.clone(), &op_rpc, dao_handler, gov_contract.clone())
                 .await
-                .context("data_for_proposal_two")?;
+                .context("data_for_proposal_four")?;
             result.push(p);
         }
 
@@ -643,6 +643,23 @@ async fn data_for_proposal_three(
 
     let body = log.description.to_string();
 
+    let proposal_state = gov_contract
+        .state(log.proposal_id)
+        .await
+        .context("gov_contract.state")?;
+
+    let mut state = match proposal_state {
+        0 => ProposalStateEnum::Pending,
+        1 => ProposalStateEnum::Active,
+        2 => ProposalStateEnum::Canceled,
+        3 => ProposalStateEnum::Defeated,
+        4 => ProposalStateEnum::Succeeded,
+        5 => ProposalStateEnum::Queued,
+        6 => ProposalStateEnum::Expired,
+        7 => ProposalStateEnum::Executed,
+        _ => ProposalStateEnum::Unknown,
+    };
+
     let proposal_url = format!("https://vote.optimism.io/proposals/{}", log.proposal_id);
 
     let proposal_external_id = log.proposal_id.to_string();
@@ -732,29 +749,12 @@ async fn data_for_proposal_three(
 
     let scores_quorum = scores_total;
 
-    let proposal_state = gov_contract
-        .state(log.proposal_id)
-        .await
-        .context("gov_contract.state")?;
-
     let quorum = gov_contract
         .quorum(log.proposal_id)
         .await
         .context("gov_contract.quorum")?
         .as_u128() as f64
         / (10.0f64.powi(18));
-
-    let state = match proposal_state {
-        0 => ProposalStateEnum::Pending,
-        1 => ProposalStateEnum::Active,
-        2 => ProposalStateEnum::Canceled,
-        3 => ProposalStateEnum::Defeated,
-        4 => ProposalStateEnum::Succeeded,
-        5 => ProposalStateEnum::Queued,
-        6 => ProposalStateEnum::Expired,
-        7 => ProposalStateEnum::Executed,
-        _ => ProposalStateEnum::Unknown,
-    };
 
     let discussionurl = String::from("");
 
@@ -937,32 +937,33 @@ async fn data_for_proposal_four(
 mod optimism_proposals {
     use super::*;
     use dotenv::dotenv;
-    use sea_orm::prelude::Uuid;
     use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV4};
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn optimism_type_1() {
+    async fn optimism_1() {
         let _ = dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL")
+            .context(DATABASE_URL_NOT_SET)
+            .unwrap();
+        let db = setup_database(&database_url).await.unwrap();
 
-        let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV4::OpOptimism),
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 1,
-            votes_refresh_speed: 1,
-            proposals_index: 115003910,
-            votes_index: 0,
-            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-        };
+        let dao = dao::Entity::find()
+            .filter(dao::Column::Name.eq("Optimism"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
 
-        let dao = dao::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            name: "placeholder".into(),
-            slug: "placeholder".into(),
-            hot: true,
-        };
+        let mut dao_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        dao_handler.proposals_index = 72973366;
+        dao_handler.proposals_refresh_speed = 1;
 
         match OptimismHandler
             .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
@@ -971,23 +972,23 @@ mod optimism_proposals {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
-                    external_id: "64861580915106728278960188313654044018229192803489945934331754023009986585740",
-                    name: "Upgrade Proposal #3: Delta Network Upgrade ",
-                    body_contains: vec!["This upgrade (“Delta”) contains a single consensus-layer feature, Span Batches."],
-                    url: "https://vote.optimism.io/proposals/64861580915106728278960188313654044018229192803489945934331754023009986585740",
+                    external_id: "103606400798595803012644966342403441743733355496979747669804254618774477345292",
+                    name: "Test Vote 3: All Together Now -- Come try out the new vote.optimism.io!",
+                    body_contains: vec!["Test Vote 3: All Together Now -- Come try out the new vote.optimism.io!"],
+                    url: "https://vote.optimism.io/proposals/103606400798595803012644966342403441743733355496979747669804254618774477345292",
                     discussion_url:
                         "",
-                    choices:  "[\"For\",\"Against\",\"Abstain\"]",
-                    scores: "[47973168.65157966,17442.55720272951,4944.826909433364]",
-                    scores_total: 47995556.03569182,
-                    scores_quorum: 47995556.03569182,
-                    quorum: 25500000.000000004,
+                    choices:  "[\"Against\",\"For\",\"Abstain\"]",
+                    scores: "[125585.89585173706,8272364.31425079,1642587.183320581]",
+                    scores_total: 10040537.393423107,
+                    scores_quorum: 10040537.393423107,
+                    quorum: 6399501.27104,
                     proposal_state: ProposalStateEnum::Succeeded,
-                    block_created: Some(115003910),
-                    time_created: Some("2024-01-18 19:36:37"),
-                    time_start: "2024-01-18 19:36:37",
-                    time_end: "2024-01-24 19:36:37",
-                    metadata: Some(json!({"proposal_type": 1, "voting_module":""}))
+                    block_created: Some(72973366),
+                    time_created: Some("2023-02-08 16:12:11"),
+                    time_start: "2023-02-08 16:35:43",
+                    time_end: "2023-02-20 07:16:50",
+                    metadata: Some(json!({"proposal_type": 4, "voting_module":""}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -998,27 +999,203 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_type_2_1() {
+    async fn optimism_2() {
         let _ = dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL")
+            .context(DATABASE_URL_NOT_SET)
+            .unwrap();
+        let db = setup_database(&database_url).await.unwrap();
 
-        let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV4::OpOptimism),
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 1,
-            votes_refresh_speed: 1,
-            proposals_index: 115004187,
-            votes_index: 0,
-            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-        };
+        let dao = dao::Entity::find()
+            .filter(dao::Column::Name.eq("Optimism"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
 
-        let dao = dao::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            name: "placeholder".into(),
-            slug: "placeholder".into(),
-            hot: true,
-        };
+        let mut dao_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        dao_handler.proposals_index = 110769479;
+        dao_handler.proposals_refresh_speed = 1;
+
+        match OptimismHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "25353629475948605098820168047140307200589226219380649297323431722674892706917",
+                    name: " Code of Conduct Violation: Carlos Melgar",
+                    body_contains: vec!["All active delegates, badgeholders, Citizens, and grant recipients"],
+                    url: "https://vote.optimism.io/proposals/25353629475948605098820168047140307200589226219380649297323431722674892706917",
+                    discussion_url:
+                        "",
+                    choices:  "[\"Against\",\"For\",\"Abstain\"]",
+                    scores: "[15216557.165632907,2250417.3066406273,27080684.7233773]",
+                    scores_total: 44547659.19565083,
+                    scores_quorum: 44547659.19565083,
+                    quorum: 21131239.096319277,
+                    proposal_state: ProposalStateEnum::Defeated,
+                    block_created: Some(110769479),
+                    time_created: Some("2023-10-12 19:08:55"),
+                    time_start: "2023-10-12 19:08:55",
+                    time_end: "2023-10-25 19:15:55",
+                    metadata: Some(json!({"proposal_type": 4, "voting_module":""}))
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_3() {
+        let _ = dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL")
+            .context(DATABASE_URL_NOT_SET)
+            .unwrap();
+        let db = setup_database(&database_url).await.unwrap();
+
+        let dao = dao::Entity::find()
+            .filter(dao::Column::Name.eq("Optimism"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let mut dao_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        dao_handler.proposals_index = 99601892;
+        dao_handler.proposals_refresh_speed = 1;
+
+        match OptimismHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "2808108363564117434228597137832979672586627356483314020876637262618986508713",
+                    name: "Council Reviewer Elections: Builders Grants",
+                    body_contains: vec!["Following the approval of the Grants Council Intent Budget, the Token House will elect 3 Reviewers to the Builders sub-committee."],
+                    url: "https://vote.optimism.io/proposals/2808108363564117434228597137832979672586627356483314020876637262618986508713",
+                    discussion_url:
+                        "",
+                    choices:  "[\"Gonna.eth\",\"Jack Anorak\",\"Krzysztof Urbanski (kaereste or krst)\",\"Oxytocin\"]",
+                    scores: "[11142667.865487626,16494041.841187937,17058726.359085575,3335841.0624760245]",
+                    scores_total: 19550751.716870543,
+                    scores_quorum: 19550751.716870543,
+                    quorum: 11854109.73696,
+                    proposal_state: ProposalStateEnum::Defeated,
+                    block_created: Some(99601892),
+                    time_created: Some("2023-05-18 20:32:12"),
+                    time_start: "2023-05-18 20:32:12",
+                    time_end: "2023-05-31 23:43:30",
+                    metadata: Some(json!({"proposal_type": 3, "voting_module":String::from("0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5")}))
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_4() {
+        let _ = dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL")
+            .context(DATABASE_URL_NOT_SET)
+            .unwrap();
+        let db = setup_database(&database_url).await.unwrap();
+
+        let dao = dao::Entity::find()
+            .filter(dao::Column::Name.eq("Optimism"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let mut dao_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        dao_handler.proposals_index = 111677431;
+        dao_handler.proposals_refresh_speed = 1;
+
+        match OptimismHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "47209512763162691916934752283791420767969951049918368296503715012448877295335",
+                    name: "Elect Token House Code of Conduct Council Members",
+                    body_contains: vec!["Season 5 will further decentralize the Foundation's role in processing violations of the Code of Conduct and remove enforcement responsibility from Token House delegates by electing a Code of Conduct Council."],
+                    url: "https://vote.optimism.io/proposals/47209512763162691916934752283791420767969951049918368296503715012448877295335",
+                    discussion_url:
+                        "",
+                    choices: "[\"Juankbell\",\"Teresacd\",\"Oxytocin\",\"Axel_T\",\"Gene\",\"Juanbug_PGov\",\"Bubli.eth\",\"Ayohtunde\"]",
+                    scores: "[42170.51198003142,42170.51198003142,0.0,0.0,0.0,44259.10599675262,0.0,0.0]",
+                    scores_total: 44259.10599675262,
+                    scores_quorum: 44259.10599675262,
+                    quorum: 24094766.53055918,
+                    proposal_state: ProposalStateEnum::Canceled,
+                    block_created: Some(111677431),
+                    time_created: Some("2023-11-02 19:33:59"),
+                    time_start: "2023-11-02 19:33:59",
+                    time_end: "2023-11-15 19:53:59",
+                    metadata: Some(json!({"proposal_type": 3, "voting_module":String::from("0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5")}))
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_5() {
+        let _ = dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL")
+            .context(DATABASE_URL_NOT_SET)
+            .unwrap();
+        let db = setup_database(&database_url).await.unwrap();
+
+        let dao = dao::Entity::find()
+            .filter(dao::Column::Name.eq("Optimism"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let mut dao_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        dao_handler.proposals_index = 115004187;
+        dao_handler.proposals_refresh_speed = 1;
 
         match OptimismHandler
             .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
@@ -1033,7 +1210,7 @@ mod optimism_proposals {
                     url: "https://vote.optimism.io/proposals/114318499951173425640219752344574142419220609526557632733105006940618608635406",
                     discussion_url:
                         "",
-                    choices:  "[\"Against\",\"For\"]",
+                    choices: "[\"Against\",\"For\"]",
                     scores: "[2046807.8678072141,82953192.13219279]",
                     scores_total: 85000000.0,
                     scores_quorum: 0.0,
@@ -1043,7 +1220,7 @@ mod optimism_proposals {
                     time_created: Some("2024-01-18 19:45:51"),
                     time_start: "2024-01-18 19:45:51",
                     time_end: "2024-01-24 19:45:51",
-                    metadata: Some(json!({"proposal_type": 2, "voting_module": String::from("0x27964c5f4F389B8399036e1076d84c6984576C33")}))
+                    metadata: Some(json!({"proposal_type": 2, "voting_module":String::from("0x27964c5f4F389B8399036e1076d84c6984576C33")}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -1054,27 +1231,29 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_type_2_2() {
+    async fn optimism_6() {
         let _ = dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL")
+            .context(DATABASE_URL_NOT_SET)
+            .unwrap();
+        let db = setup_database(&database_url).await.unwrap();
 
-        let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("b2aa8bdf-05eb-408d-b4ad-4fa763e7381c").unwrap(),
-            handler_type: (DaoHandlerEnumV4::OpOptimism),
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 1,
-            votes_refresh_speed: 1,
-            proposals_index: 125283044,
-            votes_index: 0,
-            dao_id: Uuid::parse_str("c5c825bf-f6e4-41da-929f-b877d9542d84").unwrap(),
-        };
+        let dao = dao::Entity::find()
+            .filter(dao::Column::Name.eq("Optimism"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
 
-        let dao = dao::Model {
-            id: Uuid::parse_str("c5c825bf-f6e4-41da-929f-b877d9542d84").unwrap(),
-            name: "placeholder".into(),
-            slug: "placeholder".into(),
-            hot: true,
-        };
+        let mut dao_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        dao_handler.proposals_index = 115004502;
+        dao_handler.proposals_refresh_speed = 1;
 
         match OptimismHandler
             .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
@@ -1083,23 +1262,81 @@ mod optimism_proposals {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
-                    external_id: "21837554113321175128753313420738380328565785926226611271713131734865736260549",
-                    name: "Rolling Mission Requests: Voting Cycle 27",
-                    body_contains: vec!["Contingent on approval of the Rolling Mission Requests proposal, the Token House will approval rank rolling Mission Requests proposed under Intent 3A: Grow Application Developers on OP Mainnet. These Mission Requests should work towards the below target metric:"],
-                    url: "https://vote.optimism.io/proposals/21837554113321175128753313420738380328565785926226611271713131734865736260549",
+                    external_id: "85201803452801064488010899743776233282327928046183497710694797613625563092117",
+                    name: "Summary of Code of Conduct enforcement decisions",
+                    body_contains: vec!["The elected Token House Code of Conduct Council’s decisions are subject to optimistic approval by the Token House."],
+                    url: "https://vote.optimism.io/proposals/85201803452801064488010899743776233282327928046183497710694797613625563092117",
                     discussion_url:
                         "",
-                    choices:  "[\"Subsidized Audit Grants V2\",\"Experimentation of Infrastructure Subsidies\",\" Superchain Borrow/Lend Aggregator\",\"Crosschain alert monitoring\",\"Optimism Dominance in Yield-Bearing Assets - DEX Liquidity for YBAs\",\"Decentralized Solvers and Aggregators on OP Mainnet / Superchain\",\"Targeted extension of Superfest\",\"Optimism Full Financial Audit\"]",
-                    scores: "[31432007.991121158,75458948.64371598,23549100.93111132,17663853.612321213,24934885.948553964,28476520.06588073,23272402.85110226,21779420.495943263]",
+                    choices: "[\"Against\",\"For\"]",
+                    scores: "[107.67718007543513,84999892.32281992]",
+                    scores_total: 85000000.0,
+                    scores_quorum: 0.0,
+                    quorum: 0.0,
+                    proposal_state: ProposalStateEnum::Canceled,
+                    block_created: Some(115004502),
+                    time_created: Some("2024-01-18 19:56:21"),
+                    time_start: "2024-01-18 19:56:21",
+                    time_end: "2024-01-24 19:56:21",
+                    metadata: Some(json!({"proposal_type": 2, "voting_module":String::from("0x27964c5f4F389B8399036e1076d84c6984576C33")}))
+                }];
+                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn optimism_7() {
+        let _ = dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL")
+            .context(DATABASE_URL_NOT_SET)
+            .unwrap();
+        let db = setup_database(&database_url).await.unwrap();
+
+        let dao = dao::Entity::find()
+            .filter(dao::Column::Name.eq("Optimism"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let mut dao_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        dao_handler.proposals_index = 115911400;
+        dao_handler.proposals_refresh_speed = 1;
+
+        match OptimismHandler
+            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
+            .await
+        {
+            Ok(result) => {
+                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    external_id: "110421945337145674755337791449307926523882947474955336225598126770999669868176",
+                    name: "Mission Requests: Intent #1 1.33M OP",
+                    body_contains: vec!["In Season 5, the Token House will approval rank Mission Requests that work towards our Collective Intents. "],
+                    url: "https://vote.optimism.io/proposals/110421945337145674755337791449307926523882947474955336225598126770999669868176",
+                    discussion_url:
+                        "",
+                    choices: "[\"Request 1A: Alternative CL/EL client Mission Request\",\"Request 1B: Decentralized rollup-as-a-service\",\"Request 1C: Fraud Proof CTF Mission Request\",\"Request 1D: Implement a prototype of an OP stack chain with mempool encryption\",\"Request 1E: OP Stack Research and Implementation\",\"Request 1F: Open Source OP Stack Developer Tooling\"]",
+                    scores: "[0.0,0.0,0.0,0.0,0.0,0.0]",
                     scores_total: 0.0,
                     scores_quorum: 0.0,
-                    quorum: 28950510.79266291,
-                    proposal_state: ProposalStateEnum::Succeeded,
-                    block_created: Some(125283044),
-                    time_created: Some("2024-09-12 18:14:25"),
-                    time_start: "2024-09-12 18:14:25",
-                    time_end: "2024-09-18 18:14:25",
-                    metadata: Some(json!({"proposal_type": 0, "voting_module": String::from("0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df")}))
+                    quorum: 26571000.0,
+                    proposal_state: ProposalStateEnum::Canceled,
+                    block_created: Some(115911400),
+                    time_created: Some("2024-02-08 19:46:17"),
+                    time_start: "2024-02-08 19:46:17",
+                    time_end: "2024-02-14 19:46:17",
+                    metadata: Some(json!({"proposal_type": 0, "voting_module":String::from("0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df")}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
@@ -1110,27 +1347,29 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_type_3() {
+    async fn optimism_8() {
         let _ = dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL")
+            .context(DATABASE_URL_NOT_SET)
+            .unwrap();
+        let db = setup_database(&database_url).await.unwrap();
 
-        let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV4::OpOptimism),
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 1,
-            votes_refresh_speed: 1,
-            proposals_index: 106239374,
-            votes_index: 0,
-            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-        };
+        let dao = dao::Entity::find()
+            .filter(dao::Column::Name.eq("Optimism"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
 
-        let dao = dao::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            name: "placeholder".into(),
-            slug: "placeholder".into(),
-            hot: true,
-        };
+        let mut dao_handler = dao_handler::Entity::find()
+            .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+
+        dao_handler.proposals_index = 121357490;
+        dao_handler.proposals_refresh_speed = 1;
 
         match OptimismHandler
             .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
@@ -1139,79 +1378,23 @@ mod optimism_proposals {
             Ok(result) => {
                 assert!(!result.proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
-                    external_id: "76298930109016961673734608568752969826843280855214969572559472848313136347131",
-                    name: "Intent #3, 1M OP",
-                    body_contains: vec!["Missions are meant to be specific initiatives that can be completed start-to-finish by the end of Season 4. They are not meant to fund persistent teams to provide ongoing services."],
-                    url: "https://vote.optimism.io/proposals/76298930109016961673734608568752969826843280855214969572559472848313136347131",
+                    external_id: "14140470239376219798070786387548096572382469675815006174305459677010858217673",
+                    name: "Developer Advisory Board Elections",
+                    body_contains: vec!["Following the approval of the Developer Advisory Board Operating Budget, the Token House will elect 5 Developer Advisory Board members,"],
+                    url: "https://vote.optimism.io/proposals/14140470239376219798070786387548096572382469675815006174305459677010858217673",
                     discussion_url:
                         "",
-                    choices:   "[\"Proposal 3A: Fueling RetroPGF Growth through Education, Collaboration, and Active Marketing\",\"Proposal 3B: Velodrome: Spread Awareness Through Direct Outreach and Onboarding\",\"Proposal 3C: BanklessDAO’s Global Campaign to spread the Optimistic vision\",\"Proposal 3D: Create and Maintain the 'Optimism Vision Reservoir'\",\"Proposal 3E: Optimistic Womxn Shinning in Blockchain\",\"Proposal 3F: Let’s take the Optimistic Vision to LATAM with Espacio Cripto\",\"Proposal 3G: Spread Optimistic values across Latam with Solow\",\"Proposal 3H: Develop the most relevant and aligned audiovisual content for the Optimism Collective\",\"Proposal 3I: ‘Thank Optimism - powered by ThriveCoin’\",\"Proposal 3J: Web3xplorer - A curated web platform to discover useful web3 apps, resources and tools\",\"Proposal 3K: Rumbo Optimista - Hacia Ethereum Mexico The Event || Optimistic Road in the way to Ethereum México The Event\"]",
-                    scores: "[4211854.626345007,19951072.258246392,16735009.16762826,21950667.975205723,14387494.768303866,13984525.14221268,16591267.938347116,8759083.1631973,17442285.317520995,17172370.93850319,13763299.023214309]",
-                    scores_total: 24426303.53478304,
-                    scores_quorum: 24426303.53478304,
-                    quorum: 11596411.6992,
-                    proposal_state: ProposalStateEnum::Succeeded,
-                    block_created: Some(106239374),
-                    time_created: Some("2023-06-29 22:25:25"),
-                    time_start: "2023-06-29 22:25:25",
-                    time_end: "2023-07-13 22:25:25",
-                    metadata: Some(json!({"proposal_type": 3, "voting_module": String::from("0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5")}))
-                }];
-                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
-                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
-                }
-            }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
-        }
-    }
-
-    #[tokio::test]
-    async fn optimism_type_4() {
-        let _ = dotenv().ok();
-
-        let dao_handler = dao_handler::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV4::OpOptimism),
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 1,
-            votes_refresh_speed: 1,
-            proposals_index: 110769479,
-            votes_index: 0,
-            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-        };
-
-        let dao = dao::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            name: "placeholder".into(),
-            slug: "placeholder".into(),
-            hot: true,
-        };
-
-        match OptimismHandler
-            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
-            .await
-        {
-            Ok(result) => {
-                assert!(!result.proposals.is_empty(), "No proposals were fetched");
-                let expected_proposals = [ExpectedProposal {
-                    external_id: "25353629475948605098820168047140307200589226219380649297323431722674892706917",
-                    name: " Code of Conduct Violation: Carlos Melgar",
-                    body_contains: vec!["Severe code of conduct violations are subject to a three month suspension and are decided via Token House vote."],
-                    url: "https://vote.optimism.io/proposals/25353629475948605098820168047140307200589226219380649297323431722674892706917",
-                    discussion_url:
-                        "",
-                    choices: "[\"Against\",\"For\",\"Abstain\"]",
-                    scores: "[15216557.165632907,2250417.3066406273,27080684.7233773]",
-                    scores_total: 44547659.19565083,
-                    scores_quorum: 44547659.19565083,
-                    quorum: 21131239.096319277,
-                    proposal_state: ProposalStateEnum::Defeated,
-                    block_created: Some(110769479),
-                    time_created: Some("2023-10-12 19:08:55"),
-                    time_start: "2023-10-12 19:08:55",
-                    time_end: "2023-10-25 19:15:55",
-                    metadata: Some(json!({"proposal_type": 4, "voting_module":""}))
+                    choices: "[\"devtooligan\",\"wildmolasses\",\"wbnns\",\"bytes032\",\"Jepsen\",\"blockdev\",\"anika\",\"merklefruit\",\"gmhacker\",\"jtriley.eth\",\"shekhirin\",\"philogy\",\"noah.eth\",\"chom\",\"0xleastwood\",\"alextnetto.eth\"]",
+                    scores: "[36155472.21699661,81145116.25343801,22881016.78051788,1419736.9182661,6783434.125136962,31310623.187509555,19660002.04863005,6144795.035171971,1254269.9047496042,8428675.963217335,2553125.337825204,10421644.10687934,23506901.941835463,1251657.9060459754,156661.76426312415,18239800.25168079]",
+                    scores_total: 0.0,
+                    scores_quorum: 0.0,
+                    quorum: 26571000.0,
+                    proposal_state: ProposalStateEnum::Canceled,
+                    block_created: Some(115921332),
+                    time_created: Some("2024-02-08 19:46:17"),
+                    time_start: "2024-02-08 19:46:17",
+                    time_end: "2024-02-14 19:46:17",
+                    metadata: Some(json!({"proposal_type": 0, "voting_module":String::from("0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df")}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
