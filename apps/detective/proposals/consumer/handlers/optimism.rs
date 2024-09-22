@@ -13,7 +13,7 @@ use contracts::gen::{
     optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df,
 };
 use ethers::prelude::*;
-use ethers::{prelude::*, utils::to_checksum};
+use ethers::utils::to_checksum;
 use scanners::optimistic_scan::estimate_timestamp;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};

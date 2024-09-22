@@ -50,7 +50,7 @@ impl PostFetcher {
             total_posts += num_posts;
 
             for post in &response.post_stream.posts {
-                db_handler.upsert_post(&post, dao_discourse_id).await?;
+                db_handler.upsert_post(post, dao_discourse_id).await?;
             }
 
             info!(
