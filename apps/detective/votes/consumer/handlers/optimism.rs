@@ -154,7 +154,7 @@ async fn get_votes_with_params(
             .map(|dh| dh.id)
             .collect();
 
-        let proposal = proposal::Entity::find()
+        let mut proposal = proposal::Entity::find()
             .filter(
                 Condition::all()
                     .add(proposal::Column::ExternalId.eq(log.proposal_id.to_string()))
@@ -181,11 +181,31 @@ async fn get_votes_with_params(
                     decode(&param_types, &log.params).context("Failed to decode params")?;
 
                 if let Some(ethers::abi::Token::Array(options)) = decoded.first() {
-                    for option in options {
+                    let mut current_scores: Vec<f64> =
+                        serde_json::from_value(proposal.scores.clone())?;
+                    let voting_power = (log.weight.as_u128() as f64) / (10.0f64.powi(18));
+
+                    for (index, option) in options.iter().enumerate() {
                         if let ethers::abi::Token::Uint(value) = option {
-                            choice.push(value.as_u64() as i32);
+                            let choice_index = value.as_u64() as usize;
+                            if choice_index < current_scores.len() {
+                                current_scores[choice_index] += voting_power;
+                            }
+                            choice.push(choice_index as i32);
                         }
                     }
+
+                    // Update proposal scores
+                    proposal.scores = serde_json::to_value(current_scores)?;
+
+                    proposal::Entity::update(proposal::ActiveModel {
+                        id: Set(proposal.id),
+                        scores: Set(proposal.scores),
+                        ..Default::default()
+                    })
+                    .exec(db)
+                    .await
+                    .context(DATABASE_ERROR)?;
                 }
             }
 

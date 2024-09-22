@@ -491,10 +491,6 @@ async fn data_for_proposal_two(
             .await
             .context(DATABASE_ERROR)?;
 
-        println!("{:?}", votes.len());
-
-        println!("{:?}", dao_handler.id);
-        println!("{:?}", proposal_external_id.clone());
         // Initialize a vector to store scores for each choice
         let mut choice_scores: Vec<f64> = vec![0.0; choices_strings.len()];
 
@@ -1094,7 +1090,7 @@ mod optimism_proposals {
                     discussion_url:
                         "",
                     choices:  "[\"Subsidized Audit Grants V2\",\"Experimentation of Infrastructure Subsidies\",\" Superchain Borrow/Lend Aggregator\",\"Crosschain alert monitoring\",\"Optimism Dominance in Yield-Bearing Assets - DEX Liquidity for YBAs\",\"Decentralized Solvers and Aggregators on OP Mainnet / Superchain\",\"Targeted extension of Superfest\",\"Optimism Full Financial Audit\"]",
-                    scores: "[]",
+                    scores: "[31432007.991121158,75458948.64371598,23549100.93111132,17663853.612321213,24934885.948553964,28476520.06588073,23272402.85110226,21779420.495943263]",
                     scores_total: 0.0,
                     scores_quorum: 0.0,
                     quorum: 28950510.79266291,
