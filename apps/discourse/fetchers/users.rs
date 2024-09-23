@@ -157,6 +157,7 @@ impl UserFetcher {
         Ok(())
     }
 
+    #[instrument(skip(self, db_handler), fields(username = %username, dao_discourse_id = %dao_discourse_id))]
     pub async fn fetch_user_by_username(
         &self,
         username: &str,
@@ -164,6 +165,8 @@ impl UserFetcher {
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         let url = format!("{}/u/{}.json", self.base_url, username);
+
+        info!("Fetch user by username: {}", url);
 
         let response: UserDetailResponse = self.api_handler.fetch(&url).await?;
 
