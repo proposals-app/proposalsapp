@@ -164,6 +164,7 @@ impl UserFetcher {
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         let url = format!("{}/u/{}.json", self.base_url, username);
+
         let response: UserDetailResponse = self.api_handler.fetch(&url).await?;
 
         let user = User {
@@ -172,11 +173,11 @@ impl UserFetcher {
             name: response.user.name,
             avatar_template: self.process_avatar_url(&response.user.avatar_template),
             title: response.user.title,
-            likes_received: Some(response.user.likes_received),
-            likes_given: Some(response.user.likes_given),
+            likes_received: None,
+            likes_given: None,
             topics_entered: None,
             topic_count: None,
-            post_count: Some(response.user.post_count),
+            post_count: None,
             posts_read: None,
             days_visited: None,
         };

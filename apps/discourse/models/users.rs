@@ -12,9 +12,6 @@ pub struct UserDetail {
     pub name: Option<String>,
     pub avatar_template: String,
     pub title: Option<String>,
-    pub likes_received: u64,
-    pub likes_given: u64,
-    pub post_count: u64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

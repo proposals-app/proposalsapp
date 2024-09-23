@@ -1,49 +1,45 @@
-# Use the latest version of Rust
-FROM rust:latest as chef
+# Stage 1: Planner
+FROM rust:slim-bookworm as planner
 WORKDIR /app
-
-# Install cargo-chef
 RUN cargo install cargo-chef
 COPY . .
-
-# Prepare the build plan
 RUN cargo chef prepare --recipe-path recipe.json
 
-# Stage 1: Cacher
-FROM rust:latest as cacher
+# Stage 2: Cacher
+FROM rust:slim-bookworm as cacher
 WORKDIR /app
-
-# Install cargo-chef
 RUN cargo install cargo-chef
-
-# Copy the build plan
-COPY --from=chef /app/recipe.json recipe.json
-
-# Restore the dependencies cache
+COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
-# Stage 2: Builder
-FROM rust:latest as builder
+# Stage 3: Builder
+FROM rust:slim-bookworm as builder
 WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the source code
 COPY . .
-
-# Copy the cached dependencies
+# Copy over the cached dependencies
 COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 
 # Build the project
 RUN cargo build --release --package snapshot-sanity
 
-# Stage 3: Final
-FROM debian:stable-slim
+# Stage 4: Final
+FROM debian:bookworm
+
 WORKDIR /app
 
-# Install required dependencies
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
-    libssl-dev \
-    && apt-get clean \
+    ca-certificates \
+    libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
