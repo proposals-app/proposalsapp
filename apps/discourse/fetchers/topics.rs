@@ -1,3 +1,4 @@
+use crate::fetchers::posts::PostFetcher;
 use crate::models::topics::TopicResponse;
 use crate::{api_handler::ApiHandler, db_handler::DbHandler};
 use anyhow::Result;
@@ -66,6 +67,52 @@ impl TopicFetcher {
         }
 
         info!("Finished updating topics. Total topics: {}", total_topics);
+        Ok(())
+    }
+
+    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
+    pub async fn update_new_topics(
+        self,
+        db_handler: &DbHandler,
+        dao_discourse_id: Uuid,
+    ) -> Result<()> {
+        let mut page = 1;
+        let mut total_topics = 0;
+        let max_pages = 5;
+
+        while page <= max_pages {
+            let url = format!("{}/latest.json?order=created&page={}", self.base_url, page);
+            let response: TopicResponse = self.api_handler.fetch(&url).await?;
+
+            let num_topics = response.topic_list.topics.len();
+            total_topics += num_topics;
+
+            for topic in &response.topic_list.topics {
+                db_handler.upsert_topic(topic, dao_discourse_id).await?;
+
+                let post_fetcher = PostFetcher::new(&self.base_url, Arc::clone(&self.api_handler));
+                post_fetcher
+                    .update_posts_for_topic(db_handler, dao_discourse_id, topic.id)
+                    .await?;
+            }
+
+            info!(
+                "Fetched and upserted page {}: {} new topics (total topics so far: {})",
+                page, num_topics, total_topics
+            );
+
+            if response.topic_list.topics.is_empty() {
+                tracing::info!("No more new topics to fetch. Stopping.");
+                break;
+            }
+
+            page += 1;
+        }
+
+        info!(
+            "Finished updating new topics. Total topics: {}",
+            total_topics
+        );
         Ok(())
     }
 }

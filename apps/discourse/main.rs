@@ -146,7 +146,7 @@ async fn main() -> Result<()> {
         let dao_discourse_post_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&shared_api_handler);
         let post_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
+            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
                 interval.tick().await;
                 let post_fetcher = PostFetcher::new(
@@ -193,10 +193,77 @@ async fn main() -> Result<()> {
             }
         });
 
+        let db_handler_newcontent_clone = Arc::clone(&db_handler);
+        let dao_discourse_newcontent_clone = dao_discourse.clone();
+        let api_handler = Arc::clone(&shared_api_handler);
+        let newcontent_handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(5 * 60));
+            loop {
+                interval.tick().await;
+
+                let topic_fetcher = TopicFetcher::new(
+                    &dao_discourse_newcontent_clone.discourse_base_url,
+                    Arc::clone(&api_handler),
+                );
+
+                let user_fetcher = UserFetcher::new(
+                    &dao_discourse_newcontent_clone.discourse_base_url,
+                    Arc::clone(&api_handler),
+                );
+
+                match topic_fetcher
+                    .update_new_topics(
+                        &db_handler_newcontent_clone,
+                        dao_discourse_newcontent_clone.id,
+                    )
+                    .await
+                {
+                    Ok(_) => {
+                        info!(
+                            "Successfully updated new topics for {}",
+                            dao_discourse_newcontent_clone.discourse_base_url
+                        );
+                    }
+                    Err(e) => {
+                        error!(
+                            "Error updating new topics for {} (ID: {}): {}",
+                            dao_discourse_newcontent_clone.discourse_base_url,
+                            dao_discourse_topic_clone.id,
+                            e
+                        );
+                    }
+                }
+
+                match user_fetcher
+                    .update_new_users(
+                        &db_handler_newcontent_clone,
+                        dao_discourse_newcontent_clone.id,
+                    )
+                    .await
+                {
+                    Ok(_) => {
+                        info!(
+                            "Successfully updated new users for {}",
+                            dao_discourse_newcontent_clone.discourse_base_url
+                        );
+                    }
+                    Err(e) => {
+                        error!(
+                            "Error updating new users for {} (ID: {}): {}",
+                            dao_discourse_newcontent_clone.discourse_base_url,
+                            dao_discourse_newcontent_clone.id,
+                            e
+                        );
+                    }
+                }
+            }
+        });
+
         handles.push(category_handle);
         handles.push(user_handle);
         handles.push(topic_handle);
         handles.push(post_handle);
+        handles.push(newcontent_handle);
     }
 
     futures::future::join_all(handles).await;
