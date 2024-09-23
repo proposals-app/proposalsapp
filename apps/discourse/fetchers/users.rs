@@ -41,13 +41,13 @@ impl UserFetcher {
                 .iter()
                 .map(|item| {
                     let mut user = item.user.clone();
-                    user.likes_received = Some(item.likes_received);
-                    user.likes_given = Some(item.likes_given);
-                    user.topics_entered = Some(item.topics_entered);
-                    user.topic_count = Some(item.topic_count);
-                    user.post_count = Some(item.post_count);
-                    user.posts_read = Some(item.posts_read);
-                    user.days_visited = Some(item.days_visited);
+                    user.likes_received = item.likes_received;
+                    user.likes_given = item.likes_given;
+                    user.topics_entered = item.topics_entered;
+                    user.topic_count = item.topic_count;
+                    user.post_count = item.post_count;
+                    user.posts_read = item.posts_read;
+                    user.days_visited = item.days_visited;
                     user
                 })
                 .collect();
@@ -111,13 +111,13 @@ impl UserFetcher {
                 .iter()
                 .map(|item| {
                     let mut user = item.user.clone();
-                    user.likes_received = Some(item.likes_received);
-                    user.likes_given = Some(item.likes_given);
-                    user.topics_entered = Some(item.topics_entered);
-                    user.topic_count = Some(item.topic_count);
-                    user.post_count = Some(item.post_count);
-                    user.posts_read = Some(item.posts_read);
-                    user.days_visited = Some(item.days_visited);
+                    user.likes_received = item.likes_received;
+                    user.likes_given = item.likes_given;
+                    user.topics_entered = item.topics_entered;
+                    user.topic_count = item.topic_count;
+                    user.post_count = item.post_count;
+                    user.posts_read = item.posts_read;
+                    user.days_visited = item.days_visited;
                     user
                 })
                 .collect();

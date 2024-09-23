@@ -41,13 +41,13 @@ pub struct User {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DirectoryItem {
     pub id: u64,
-    pub likes_received: u64,
-    pub likes_given: u64,
-    pub topics_entered: u64,
-    pub topic_count: u64,
-    pub post_count: u64,
-    pub posts_read: u64,
-    pub days_visited: u64,
+    pub likes_received: Option<u64>,
+    pub likes_given: Option<u64>,
+    pub topics_entered: Option<u64>,
+    pub topic_count: Option<u64>,
+    pub post_count: Option<u64>,
+    pub posts_read: Option<u64>,
+    pub days_visited: Option<u64>,
     pub user: User,
 }
 
