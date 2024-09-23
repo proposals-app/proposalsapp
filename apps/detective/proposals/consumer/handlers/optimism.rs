@@ -479,6 +479,9 @@ async fn data_for_proposal_two(
             .map(|o| o.description.clone())
             .collect();
 
+        //TODO: this only considers for votes
+        //      against and abstain should be handled somehow as well
+
         choices = choices_strings.iter().map(|s| s.as_str()).collect();
 
         scores = choices_strings.iter().map(|_s| 0.0).collect();
@@ -501,11 +504,12 @@ async fn data_for_proposal_two(
         for vote in votes {
             let voting_power =
                 Decimal::from_f64(vote.voting_power).unwrap_or_else(|| Decimal::ZERO);
-            if let Some(index) = vote.choice.as_i64() {
-                if index >= 0 && (index as usize) < choice_scores.len() {
-                    choice_scores[index as usize] += voting_power;
-                }
-            } else if let Some(indices) = vote.choice.as_array() {
+            // if let Some(index) = vote.choice.as_i64() {
+            //     if index >= 0 && (index as usize) < choice_scores.len() {
+            //         choice_scores[index as usize] += voting_power;
+            //     }
+            // } else
+            if let Some(indices) = vote.choice.as_array() {
                 for value in indices {
                     if let Some(index) = value.as_i64() {
                         if index >= 0 && (index as usize) < choice_scores.len() {
@@ -750,6 +754,10 @@ async fn data_for_proposal_three(
             .await
             .context("voting_module.proposal_votes")?;
 
+        //TODO: this only considers for votes
+        //      against and abstain should be handled somehow as well
+        //      this happens in .0 and .1
+
         scores = votes
             .2
             .iter()
@@ -953,7 +961,7 @@ mod optimism_proposals {
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
-    async fn optimism_1() {
+    async fn optimism_proposals_1() {
         let _ = dotenv().ok();
         let database_url = std::env::var("DATABASE_URL")
             .context(DATABASE_URL_NOT_SET)
@@ -1011,7 +1019,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_2() {
+    async fn optimism_proposals_2() {
         let _ = dotenv().ok();
         let database_url = std::env::var("DATABASE_URL")
             .context(DATABASE_URL_NOT_SET)
@@ -1069,7 +1077,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_3() {
+    async fn optimism_proposals_3() {
         let _ = dotenv().ok();
         let database_url = std::env::var("DATABASE_URL")
             .context(DATABASE_URL_NOT_SET)
@@ -1127,7 +1135,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_4() {
+    async fn optimism_proposals_4() {
         let _ = dotenv().ok();
         let database_url = std::env::var("DATABASE_URL")
             .context(DATABASE_URL_NOT_SET)
@@ -1185,7 +1193,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_5() {
+    async fn optimism_proposals_5() {
         let _ = dotenv().ok();
         let database_url = std::env::var("DATABASE_URL")
             .context(DATABASE_URL_NOT_SET)
@@ -1243,7 +1251,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_6() {
+    async fn optimism_proposals_6() {
         let _ = dotenv().ok();
         let database_url = std::env::var("DATABASE_URL")
             .context(DATABASE_URL_NOT_SET)
@@ -1301,7 +1309,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_7() {
+    async fn optimism_proposals_7() {
         let _ = dotenv().ok();
         let database_url = std::env::var("DATABASE_URL")
             .context(DATABASE_URL_NOT_SET)
@@ -1359,7 +1367,7 @@ mod optimism_proposals {
     }
 
     #[tokio::test]
-    async fn optimism_8() {
+    async fn optimism_proposals_8() {
         let _ = dotenv().ok();
         let database_url = std::env::var("DATABASE_URL")
             .context(DATABASE_URL_NOT_SET)
