@@ -11,13 +11,11 @@ use contracts::gen::{
     },
     optimism_token::optimism_token::optimism_token,
     optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5,
-    optimism_votemodule_0xdd_022_9d_7_2a_41_4dc_82_1dec_6_6f_3cc_4ef_6db_2c_7b_7df,
 };
 use ethers::prelude::*;
 use ethers::utils::to_checksum;
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
-use rust_decimal_macros::dec;
 use scanners::optimistic_scan::estimate_timestamp;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set, Value,
@@ -1405,8 +1403,8 @@ mod optimism_proposals {
                     discussion_url:
                         "",
                     choices: "[\"devtooligan\",\"wildmolasses\",\"wbnns\",\"bytes032\",\"Jepsen\",\"blockdev\",\"anika\",\"merklefruit\",\"gmhacker\",\"jtriley.eth\",\"shekhirin\",\"philogy\",\"noah.eth\",\"chom\",\"0xleastwood\",\"alextnetto.eth\"]",
-                    scores: "[36155472.21699658,37768955.76294833,22881016.780517872,1419736.9182661003,6783434.125136958,31310623.187509544,19660002.048630036,6144795.035171971,1254269.9047496044,8428675.963217337,2553125.3378252042,10421644.106879342,23506901.941835452,1251657.9060459752,156661.76426312412,18239800.25168079]",
-                    scores_total: 227936773.25167426,
+                    scores: "[36155472.21699658,37768955.76294833,21597099.60182954,1419736.9182661003,6783434.125136958,31310623.187509544,19660002.048630036,6144795.035171971,1254269.9047496044,8428675.963217337,2553125.3378252042,10421644.106879342,23506901.941835452,1251657.9060459752,156661.76426312412,18239800.25168079]",
+                    scores_total: 226652856.0729859,
                     scores_quorum: 0.0,
                     quorum: 26226000.0,
                     proposal_state: ProposalStateEnum::Succeeded,
