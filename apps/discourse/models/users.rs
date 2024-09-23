@@ -1,5 +1,22 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Deserialize)]
+pub struct UserDetailResponse {
+    pub user: UserDetail,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UserDetail {
+    pub id: i32,
+    pub username: String,
+    pub name: Option<String>,
+    pub avatar_template: String,
+    pub title: Option<String>,
+    pub likes_received: u64,
+    pub likes_given: u64,
+    pub post_count: u64,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct User {
     pub id: i32,

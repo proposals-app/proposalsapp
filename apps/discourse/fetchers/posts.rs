@@ -1,5 +1,6 @@
 use crate::api_handler::ApiHandler;
 use crate::db_handler::DbHandler;
+use crate::fetchers::users::UserFetcher;
 use crate::models::posts::PostResponse;
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
@@ -50,7 +51,19 @@ impl PostFetcher {
             total_posts += num_posts;
 
             for post in &response.post_stream.posts {
-                db_handler.upsert_post(post, dao_discourse_id).await?;
+                match db_handler.upsert_post(post, dao_discourse_id).await {
+                    Ok(_) => {}
+                    Err(e) if e.to_string().contains("fk_discourse_post_user") => {
+                        let user_fetcher =
+                            UserFetcher::new(&self.base_url, Arc::clone(&self.api_handler));
+                        user_fetcher
+                            .fetch_user_by_username(&post.username, db_handler, dao_discourse_id)
+                            .await?;
+
+                        db_handler.upsert_post(post, dao_discourse_id).await?;
+                    }
+                    Err(e) => return Err(anyhow::anyhow!("Failed to upsert post: {}", e)),
+                }
             }
 
             info!(

@@ -1,6 +1,6 @@
 use crate::api_handler::ApiHandler;
 use crate::db_handler::DbHandler;
-use crate::models::users::{User, UserResponse};
+use crate::models::users::{User, UserDetailResponse, UserResponse};
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
@@ -154,6 +154,34 @@ impl UserFetcher {
             page += 1;
         }
 
+        Ok(())
+    }
+
+    pub async fn fetch_user_by_username(
+        &self,
+        username: &str,
+        db_handler: &DbHandler,
+        dao_discourse_id: Uuid,
+    ) -> Result<()> {
+        let url = format!("{}/u/{}.json", self.base_url, username);
+        let response: UserDetailResponse = self.api_handler.fetch(&url).await?;
+
+        let user = User {
+            id: response.user.id,
+            username: response.user.username,
+            name: response.user.name,
+            avatar_template: self.process_avatar_url(&response.user.avatar_template),
+            title: response.user.title,
+            likes_received: Some(response.user.likes_received),
+            likes_given: Some(response.user.likes_given),
+            topics_entered: None,
+            topic_count: None,
+            post_count: Some(response.user.post_count),
+            posts_read: None,
+            days_visited: None,
+        };
+
+        db_handler.upsert_user(&user, dao_discourse_id).await?;
         Ok(())
     }
 
