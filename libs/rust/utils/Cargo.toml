@@ -5,12 +5,22 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
+async-trait = { workspace = true }
+backtrace = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
-backtrace = { workspace = true }
-async-trait = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry-appender-tracing = { workspace = true }
+opentelemetry-contrib = { workspace = true }
+opentelemetry-http = { workspace = true }
+opentelemetry-otlp = { workspace = true, features = [
+    "logs",
+    "http-proto",
+    "reqwest-client",
+    "reqwest-rustls",
+] }
+opentelemetry-proto = { workspace = true }
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio", "logs"] }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
     "runtime-tokio-rustls",
@@ -21,22 +31,12 @@ sea-orm = { workspace = true, features = [
     "with-uuid",
 ] }
 seaorm = { path = "../seaorm" }
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 tokio = { workspace = true }
 
 tracing = { workspace = true }
+tracing-error = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["registry", "json"] }
-tracing-error = { workspace = true }
-opentelemetry = { workspace = true }
-opentelemetry_sdk = { workspace = true, features = ["rt-tokio", "logs"] }
-opentelemetry-http = { workspace = true }
-opentelemetry-otlp = { workspace = true, features = [
-    "logs",
-    "http-proto",
-    "reqwest-client",
-    "reqwest-rustls",
-] }
-opentelemetry-proto = { workspace = true }
-opentelemetry-contrib = { workspace = true }
-opentelemetry-appender-tracing = { workspace = true }

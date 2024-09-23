@@ -11,6 +11,8 @@ use ethers::{
     types::Address,
     utils::to_checksum,
 };
+use rust_decimal::prelude::*;
+use rust_decimal::Decimal;
 use sea_orm::{
     prelude::Uuid, ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
     Set,
@@ -181,9 +183,11 @@ async fn get_votes_with_params(
                     decode(&param_types, &log.params).context("Failed to decode params")?;
 
                 if let Some(ethers::abi::Token::Array(options)) = decoded.first() {
-                    let mut current_scores: Vec<f64> =
+                    let mut current_scores: Vec<Decimal> =
                         serde_json::from_value(proposal.scores.clone())?;
-                    let voting_power = (log.weight.as_u128() as f64) / (10.0f64.powi(18));
+                    let voting_power = Decimal::from_str(&log.weight.to_string())?
+                        .checked_div(Decimal::from(10u64.pow(18)))
+                        .unwrap_or(Decimal::ZERO);
 
                     choice = vec![];
                     for (index, option) in options.iter().enumerate() {
@@ -197,8 +201,12 @@ async fn get_votes_with_params(
                         }
                     }
 
-                    // Update proposal scores
-                    proposal.scores = serde_json::to_value(current_scores)?;
+                    let f64_scores: Vec<f64> = current_scores
+                        .iter()
+                        .map(|d| d.to_f64().unwrap_or(0.0))
+                        .collect();
+
+                    proposal.scores = serde_json::to_value(f64_scores)?;
 
                     proposal::Entity::update(proposal::ActiveModel {
                         id: Set(proposal.id),

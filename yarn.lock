@@ -417,10 +417,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@date-fns/tz@npm:^1.0.2":
-  version: 1.0.2
-  resolution: "@date-fns/tz@npm:1.0.2"
-  checksum: 10c0/d6939116dd64040517e4f19b72d535eac0e6d20d398a88a8353811e65c1d004fa18c34e4cb1fed727defcf008d61b2989e5261e51afe9aa62b38bdb0a9884ef7
+"@date-fns/tz@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "@date-fns/tz@npm:1.1.0"
+  checksum: 10c0/7bf877349b960a8c433782d6ba1413f85b41cf7d72faa68a76ff4906e92402ab96ce6f446dc54343262eebeeac998d839c000e1f4b77d6584fbf0754e3c9d7fb
   languageName: node
   linkType: hard
 
@@ -2491,7 +2491,7 @@ __metadata:
     prettier: "npm:3.3.3"
     prettier-plugin-tailwindcss: "npm:0.6.6"
     react: "npm:18.3.1"
-    react-day-picker: "npm:9.1.1"
+    react-day-picker: "npm:9.1.2"
     react-dom: "npm:18.3.1"
     react-hook-form: "npm:^7.53.0"
     react-icons: "npm:5.3.0"
@@ -2505,7 +2505,7 @@ __metadata:
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:5.6.2"
     vaul: "npm:^0.9.4"
-    viem: "npm:2.21.11"
+    viem: "npm:2.21.12"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -6341,12 +6341,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chokidar@npm:4.0.0":
-  version: 4.0.0
-  resolution: "chokidar@npm:4.0.0"
+"chokidar@npm:4.0.1":
+  version: 4.0.1
+  resolution: "chokidar@npm:4.0.1"
   dependencies:
     readdirp: "npm:^4.0.1"
-  checksum: 10c0/42d03c53b0ad200689e4fae7763133561480561cab8ba5304e8f2298ff45ff84bf0f6065c3f02b9e557b74b156813734439a1a2ff19a1ea6b35692395cd92738
+  checksum: 10c0/4bb7a3adc304059810bb6c420c43261a15bb44f610d77c35547addc84faa0374265c3adc67f25d06f363d9a4571962b02679268c40de07676d260de1986efea9
   languageName: node
   linkType: hard
 
@@ -12064,7 +12064,7 @@ __metadata:
     "@vercel/style-guide": "npm:6.0.0"
     autoprefixer: "npm:10.4.20"
     chalk: "npm:5.3.0"
-    chokidar: "npm:4.0.0"
+    chokidar: "npm:4.0.1"
     clsx: "npm:2.1.1"
     commander: "npm:12.1.0"
     debounce: "npm:2.1.1"
@@ -12267,15 +12267,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-day-picker@npm:9.1.1":
-  version: 9.1.1
-  resolution: "react-day-picker@npm:9.1.1"
+"react-day-picker@npm:9.1.2":
+  version: 9.1.2
+  resolution: "react-day-picker@npm:9.1.2"
   dependencies:
-    "@date-fns/tz": "npm:^1.0.2"
+    "@date-fns/tz": "npm:^1.1.0"
     date-fns: "npm:^4.1.0"
   peerDependencies:
     react: ">=16.8.0"
-  checksum: 10c0/3ff1a4ac3d7c8e32896a31489db2e481672a67350038efe0034b493cd4a39230e10bef74727e9e7d12ce4344fa31382beb51d95ee5402aa2d0aff9d86bb9c370
+  checksum: 10c0/0285b1e7478cc6d53ca88e263b1e45bd5d87acef02a74104b140157e7b308064101ef30d865595c3bf19df40be60fdff89a0d620027ba508ed137edb336074d5
   languageName: node
   linkType: hard
 
@@ -14451,9 +14451,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.11":
-  version: 2.21.11
-  resolution: "viem@npm:2.21.11"
+"viem@npm:2.21.12":
+  version: 2.21.12
+  resolution: "viem@npm:2.21.12"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.10.0"
     "@noble/curves": "npm:1.4.0"
@@ -14469,7 +14469,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/d263e245d1da165db50445119b2aa960c08bb658122e8d98eb8a7400d6ded296a69dbcad38df61e44e85051762bfe0130b2ce59ea5dde3a7918d6b02763bfb50
+  checksum: 10c0/f7727adae0f621dc6256cf6fdd4e7fc5f3b87392a683d22c87626d4499cb9813be914bb9f63b119226dae46090cb5fca7c4422af0fb0a21d26610c74322c4b4c
   languageName: node
   linkType: hard
 

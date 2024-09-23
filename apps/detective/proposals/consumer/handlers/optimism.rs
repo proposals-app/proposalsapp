@@ -15,6 +15,9 @@ use contracts::gen::{
 };
 use ethers::prelude::*;
 use ethers::utils::to_checksum;
+use rust_decimal::prelude::*;
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 use scanners::optimistic_scan::estimate_timestamp;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set, Value,
@@ -492,27 +495,36 @@ async fn data_for_proposal_two(
             .context(DATABASE_ERROR)?;
 
         // Initialize a vector to store scores for each choice
-        let mut choice_scores: Vec<f64> = vec![0.0; choices_strings.len()];
+        let mut choice_scores: Vec<Decimal> = vec![Decimal::ZERO; choices_strings.len()];
 
         // Process votes and accumulate scores
         for vote in votes {
+            let voting_power =
+                Decimal::from_f64(vote.voting_power).unwrap_or_else(|| Decimal::ZERO);
             if let Some(index) = vote.choice.as_i64() {
                 if index >= 0 && (index as usize) < choice_scores.len() {
-                    choice_scores[index as usize] += vote.voting_power;
+                    choice_scores[index as usize] += voting_power;
                 }
             } else if let Some(indices) = vote.choice.as_array() {
                 for value in indices {
                     if let Some(index) = value.as_i64() {
                         if index >= 0 && (index as usize) < choice_scores.len() {
-                            choice_scores[index as usize] += vote.voting_power;
+                            choice_scores[index as usize] += voting_power;
                         }
                     }
                 }
             }
         }
 
-        scores = choice_scores;
-        scores_total = scores.iter().sum();
+        scores = choice_scores
+            .iter()
+            .map(|&score| score.to_f64().unwrap_or(0.0))
+            .collect();
+        scores_total = choice_scores
+            .iter()
+            .sum::<Decimal>()
+            .to_f64()
+            .unwrap_or(0.0);
     }
 
     let proposal_state = gov_contract
@@ -1385,15 +1397,15 @@ mod optimism_proposals {
                     discussion_url:
                         "",
                     choices: "[\"devtooligan\",\"wildmolasses\",\"wbnns\",\"bytes032\",\"Jepsen\",\"blockdev\",\"anika\",\"merklefruit\",\"gmhacker\",\"jtriley.eth\",\"shekhirin\",\"philogy\",\"noah.eth\",\"chom\",\"0xleastwood\",\"alextnetto.eth\"]",
-                    scores: "[36155472.21699661,81145116.25343801,22881016.78051788,1419736.9182661,6783434.125136962,31310623.187509555,19660002.04863005,6144795.035171971,1254269.9047496042,8428675.963217335,2553125.337825204,10421644.10687934,23506901.941835463,1251657.9060459754,156661.76426312415,18239800.25168079]",
-                    scores_total: 0.0,
+                    scores: "[36155472.21699658,37768955.76294833,22881016.780517872,1419736.9182661003,6783434.125136958,31310623.187509544,19660002.048630036,6144795.035171971,1254269.9047496044,8428675.963217337,2553125.3378252042,10421644.106879342,23506901.941835452,1251657.9060459752,156661.76426312412,18239800.25168079]",
+                    scores_total: 227936773.25167426,
                     scores_quorum: 0.0,
-                    quorum: 26571000.0,
-                    proposal_state: ProposalStateEnum::Canceled,
-                    block_created: Some(115921332),
-                    time_created: Some("2024-02-08 19:46:17"),
-                    time_start: "2024-02-08 19:46:17",
-                    time_end: "2024-02-14 19:46:17",
+                    quorum: 26226000.0,
+                    proposal_state: ProposalStateEnum::Succeeded,
+                    block_created: Some(121357490),
+                    time_created: Some("2024-06-13 21:22:37"),
+                    time_start: "2024-06-13 21:22:37",
+                    time_end: "2024-06-19 21:22:37",
                     metadata: Some(json!({"proposal_type": 0, "voting_module":String::from("0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df")}))
                 }];
                 for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {

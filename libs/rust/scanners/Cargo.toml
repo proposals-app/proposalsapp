@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dotenv = { workspace = true }
 anyhow = { workspace = true, features = ["backtrace"] }
 chrono = { workspace = true }
+dotenv = { workspace = true }
 ethers = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware = { workspace = true }

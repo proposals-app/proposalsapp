@@ -3,6 +3,7 @@
 # Update rust dependencies
 cargo autoinherit
 cargo upgrade
+cargo sort -w
 
 # Update root dependencies
 ncu -u
