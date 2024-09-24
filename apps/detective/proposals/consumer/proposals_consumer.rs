@@ -51,8 +51,12 @@ async fn main() -> Result<()> {
     axum::serve(listener, app).await.unwrap();
     info!("Health check server running on {}", 3000);
 
-    let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
-    let db = setup_database(&database_url).await?;
+    let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+    let mut opt = ConnectOptions::new(database_url);
+    opt.sqlx_logging(false);
+    let db: DatabaseConnection = Database::connect(opt)
+        .await
+        .context(DATABASE_CONNECTION_FAILED)?;
 
     // Spawn the consumer task
     tokio::spawn(async move {

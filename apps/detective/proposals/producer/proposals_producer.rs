@@ -17,18 +17,6 @@ use utils::{
 const REGULAR_JOB_INTERVAL: Duration = Duration::from_secs(60 * 5);
 const BACKTRACK_JOB_INTERVAL: Duration = Duration::from_secs(3 * 60 * 60);
 
-struct Config {
-    database_url: String,
-}
-
-impl Config {
-    fn from_env() -> Result<Self> {
-        Ok(Self {
-            database_url: std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?,
-        })
-    }
-}
-
 #[tokio::main]
 #[instrument]
 async fn main() -> Result<()> {
@@ -73,23 +61,20 @@ async fn main() -> Result<()> {
 
 #[instrument]
 async fn produce_jobs(backtrack: bool) -> Result<()> {
-    let config = Config::from_env()?;
+    let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
 
-    let db = setup_database(&config.database_url).await?;
+    let mut opt = ConnectOptions::new(database_url);
+    opt.sqlx_logging(false);
+
+    let db: DatabaseConnection = Database::connect(opt)
+        .await
+        .context(DATABASE_CONNECTION_FAILED)?;
+
     let dao_handlers = fetch_dao_handlers(&db).await?;
 
     queue_dao_jobs(&db, &dao_handlers, backtrack).await?;
 
     Ok(())
-}
-
-#[instrument(skip(database_url))]
-async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
-    let mut opt = ConnectOptions::new(database_url.to_string());
-    opt.sqlx_logging(false);
-    Database::connect(opt)
-        .await
-        .context(DATABASE_CONNECTION_FAILED)
 }
 
 #[instrument(skip(db))]

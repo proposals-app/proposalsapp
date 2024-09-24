@@ -1,4 +1,4 @@
-use crate::{setup_database, VotesHandler, VotesResult};
+use crate::{VotesHandler, VotesResult};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use contracts::gen::optimism_gov_v_6::{
@@ -14,14 +14,16 @@ use ethers::{
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 use sea_orm::{
-    prelude::Uuid, ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
-    Set,
+    prelude::Uuid, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection,
+    EntityTrait, NotSet, QueryFilter, Set,
 };
 use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnumV4, vote};
 use serde::Deserialize;
 use serde_json::Value;
 use std::sync::Arc;
-use utils::errors::{DATABASE_ERROR, DATABASE_URL_NOT_SET, PROPOSAL_NOT_FOUND_ERROR};
+use utils::errors::{
+    DATABASE_CONNECTION_FAILED, DATABASE_ERROR, DATABASE_URL_NOT_SET, PROPOSAL_NOT_FOUND_ERROR,
+};
 
 pub struct OptimismHandler;
 
@@ -83,8 +85,12 @@ impl VotesHandler for OptimismHandler {
 
         let votes = get_votes(logs.clone(), dao_handler).context("bad votes")?;
 
-        let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
-        let db = setup_database(&database_url).await?;
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)?;
 
         let votes_with_params = get_votes_with_params(logs_with_params.clone(), dao_handler, &db)
             .await
@@ -194,7 +200,7 @@ async fn get_votes_with_params(
                         .unwrap_or(Decimal::ZERO);
 
                     choice = vec![];
-                    for (index, option) in options.iter().enumerate() {
+                    for (_index, option) in options.iter().enumerate() {
                         if let ethers::abi::Token::Uint(value) = option {
                             let choice_index = value.as_u64() as usize;
 

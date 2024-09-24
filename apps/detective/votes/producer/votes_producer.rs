@@ -16,18 +16,6 @@ use utils::{
 
 const JOB_INTERVAL: Duration = Duration::from_secs(60);
 
-struct Config {
-    database_url: String,
-}
-
-impl Config {
-    fn from_env() -> Result<Self> {
-        Ok(Self {
-            database_url: std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?,
-        })
-    }
-}
-
 #[tokio::main]
 #[instrument]
 async fn main() -> Result<()> {
@@ -57,9 +45,15 @@ async fn main() -> Result<()> {
 
 #[instrument]
 async fn produce_jobs() -> Result<()> {
-    let config = Config::from_env()?;
+    let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
 
-    let db = setup_database(&config.database_url).await?;
+    let mut opt = ConnectOptions::new(database_url);
+    opt.sqlx_logging(false);
+
+    let db: DatabaseConnection = Database::connect(opt)
+        .await
+        .context(DATABASE_CONNECTION_FAILED)?;
+
     let all_dao_handlers = fetch_dao_handlers(&db).await?;
     let (snapshot_dao_handlers, chain_dao_handlers) = split_dao_handlers(&all_dao_handlers);
 
@@ -68,15 +62,6 @@ async fn produce_jobs() -> Result<()> {
     queue_jobs(&db, &chain_dao_handlers, &snapshot_proposals).await?;
 
     Ok(())
-}
-
-#[instrument(skip(database_url))]
-async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
-    let mut opt = ConnectOptions::new(database_url.to_string());
-    opt.sqlx_logging(false);
-    Database::connect(opt)
-        .await
-        .context(DATABASE_CONNECTION_FAILED)
 }
 
 #[instrument(skip(db))]
