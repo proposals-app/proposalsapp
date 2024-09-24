@@ -24,7 +24,9 @@ async fn main() -> Result<()> {
 
     let app = Router::new().route("/", get("OK"));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
     info!("Health check server running on {}", 3000);
 
     tokio::spawn(async {
