@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use axum::{routing::get, Router};
 use chrono::{Duration, NaiveDateTime, Utc};
 use dotenv::dotenv;
 use sea_orm::{
@@ -11,7 +12,7 @@ use seaorm::{
 };
 use serde::Deserialize;
 use tokio::time;
-use tracing::instrument;
+use tracing::{info, instrument};
 use utils::{
     errors::{DATABASE_CONNECTION_FAILED, DATABASE_ERROR, DATABASE_URL_NOT_SET, SANITIZE_FAILED},
     tracing::setup_tracing,
@@ -35,8 +36,13 @@ struct GraphQLProposal {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-
     setup_tracing();
+
+    let app = Router::new().route("/", get("OK"));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+    info!("Health check server running on {}", 3000);
+
     let mut interval = time::interval(std::time::Duration::from_secs(60 * 15));
 
     tokio::spawn(async move {

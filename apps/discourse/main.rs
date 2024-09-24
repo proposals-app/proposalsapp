@@ -5,7 +5,6 @@ use axum::Router;
 use dotenv::dotenv;
 use fetchers::posts::PostFetcher;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{error, info};
@@ -21,10 +20,6 @@ use fetchers::categories::CategoryFetcher;
 use fetchers::topics::TopicFetcher;
 use fetchers::users::UserFetcher;
 
-async fn health_check() -> &'static str {
-    "OK"
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
@@ -33,11 +28,9 @@ async fn main() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
     let db_handler = Arc::new(DbHandler::new(&database_url).await?);
 
-    let app = Router::new().route("/", get(health_check));
-
+    let app = Router::new().route("/", get("OK"));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
-
     info!("Health check server running on {}", 3000);
 
     let dao_discourses = seaorm::dao_discourse::Entity::find()

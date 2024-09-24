@@ -1,5 +1,6 @@
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
+use axum::{routing::get, Router};
 use dotenv::dotenv;
 use sea_orm::{
     prelude::Uuid,
@@ -50,6 +51,11 @@ pub trait VotesHandler: Send + Sync {
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_tracing();
+
+    let app = Router::new().route("/", get("OK"));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+    info!("Health check server running on {}", 3000);
 
     let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
     let db = setup_database(&database_url).await?;

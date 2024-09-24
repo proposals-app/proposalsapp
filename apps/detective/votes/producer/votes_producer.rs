@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use axum::{routing::get, Router};
 use dotenv::dotenv;
 use sea_orm::{
     ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter, Set,
@@ -6,7 +7,7 @@ use sea_orm::{
 use seaorm::{dao_handler, job_queue, proposal, sea_orm_active_enums::DaoHandlerEnumV4};
 use serde_json::json;
 use tokio::time::{self, Duration};
-use tracing::{error, instrument, warn};
+use tracing::{error, info, instrument, warn};
 use utils::{
     errors::*,
     tracing::setup_tracing,
@@ -32,6 +33,11 @@ impl Config {
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_tracing();
+
+    let app = Router::new().route("/", get("OK"));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+    info!("Health check server running on {}", 3000);
 
     tokio::spawn(async {
         let mut interval = time::interval(JOB_INTERVAL);
