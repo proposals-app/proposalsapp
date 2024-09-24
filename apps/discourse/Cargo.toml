@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true, features = ["backtrace"] }
+axum = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
 futures = { workspace = true }
