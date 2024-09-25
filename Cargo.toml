@@ -16,7 +16,7 @@ resolver = "2"
 
 [workspace.dependencies]
 anyhow = "1.0.89"
-async-trait = "0.1.82"
+async-trait = "0.1.83"
 chrono = "0.4.38"
 dotenv = "0.15.0"
 ethers = "2.0.14"
