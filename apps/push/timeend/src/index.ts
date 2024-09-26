@@ -33,7 +33,7 @@ async function sendUptimePing() {
   }
 }
 
-setInterval(sendUptimePing, 30000);
+setInterval(sendUptimePing, 60000);
 
 async function processJobQueue() {
   try {

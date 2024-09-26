@@ -94,7 +94,7 @@ async fn main() -> Result<()> {
                 Ok(_) => info!("Uptime ping sent successfully"),
                 Err(e) => warn!("Failed to send uptime ping: {:?}", e),
             }
-            tokio::time::sleep(Duration::from_secs(30)).await;
+            tokio::time::sleep(Duration::from_secs(60)).await;
         }
     });
 
