@@ -276,10 +276,15 @@ mod optimism_votes {
     #[tokio::test]
     async fn optimism_votes_1() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)
             .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
 
         let mut dao_handler = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
@@ -314,10 +319,15 @@ mod optimism_votes {
     #[tokio::test]
     async fn optimism_votes_2() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)
             .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
 
         let mut dao_handler = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
@@ -352,10 +362,15 @@ mod optimism_votes {
     #[tokio::test]
     async fn optimism_votes_3() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)
             .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
 
         let mut dao_handler = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
@@ -390,10 +405,15 @@ mod optimism_votes {
     #[tokio::test]
     async fn optimism_votes_4() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)
             .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
 
         let mut dao_handler = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
@@ -428,10 +448,15 @@ mod optimism_votes {
     #[tokio::test]
     async fn optimism_votes_5() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)
             .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
 
         let mut dao_handler = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
@@ -466,10 +491,15 @@ mod optimism_votes {
     #[tokio::test]
     async fn optimism_votes_6() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)
             .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
 
         let mut dao_handler = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
@@ -504,10 +534,15 @@ mod optimism_votes {
     #[tokio::test]
     async fn optimism_votes_7() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)
             .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
 
         let mut dao_handler = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
@@ -542,10 +577,15 @@ mod optimism_votes {
     #[tokio::test]
     async fn optimism_votes_8() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)
             .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
 
         let mut dao_handler = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
@@ -580,10 +620,15 @@ mod optimism_votes {
     #[tokio::test]
     async fn optimism_votes_9() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
+        let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
+
+        let mut opt = ConnectOptions::new(database_url);
+        opt.sqlx_logging(false);
+
+        let db: DatabaseConnection = Database::connect(opt)
+            .await
+            .context(DATABASE_CONNECTION_FAILED)
             .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
 
         let mut dao_handler = dao_handler::Entity::find()
             .filter(dao_handler::Column::HandlerType.eq(DaoHandlerEnumV4::OpOptimism))
