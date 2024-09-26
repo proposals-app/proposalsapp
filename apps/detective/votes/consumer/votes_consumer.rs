@@ -95,14 +95,17 @@ async fn main() -> Result<()> {
         let client = Client::new();
         loop {
             match client
-                .get("https://oneuptime.com/heartbeat/0e65e6b0-7c28-11ef-b386-dd20e423dc24")
+                .get(format!(
+                    "https://oneuptime.com/heartbeat/{}",
+                    std::env::var("ONEUPTIME_KEY").expect("ONEUPTIME_KEY missing")
+                ))
                 .send()
                 .await
             {
                 Ok(_) => info!("Uptime ping sent successfully"),
                 Err(e) => warn!("Failed to send uptime ping: {:?}", e),
             }
-            tokio::time::sleep(Duration::from_secs(60)).await;
+            tokio::time::sleep(Duration::from_secs(10)).await;
         }
     });
 
