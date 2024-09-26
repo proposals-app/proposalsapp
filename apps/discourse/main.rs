@@ -269,29 +269,29 @@ async fn main() -> Result<()> {
             }
         });
 
-        let uptime_handle = tokio::spawn(async move {
-            let client = Client::new();
-            loop {
-                match client
-                    .get("https://uptime.proposals.app/api/push/nQX8wV77hb")
-                    .send()
-                    .await
-                {
-                    Ok(_) => info!("Uptime ping sent successfully"),
-                    Err(e) => warn!("Failed to send uptime ping: {:?}", e),
-                }
-                tokio::time::sleep(Duration::from_secs(60)).await;
-            }
-        });
-
         handles.push(category_handle);
         handles.push(user_handle);
         handles.push(topic_handle);
         handles.push(post_handle);
         handles.push(newcontent_handle);
-
-        handles.push(uptime_handle);
     }
+
+    let uptime_handle = tokio::spawn(async move {
+        let client = Client::new();
+        loop {
+            match client
+                .get("https://uptime.proposals.app/api/push/nQX8wV77hb")
+                .send()
+                .await
+            {
+                Ok(_) => info!("Uptime ping sent successfully"),
+                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+            }
+            tokio::time::sleep(Duration::from_secs(60)).await;
+        }
+    });
+
+    handles.push(uptime_handle);
 
     futures::future::join_all(handles).await;
 
