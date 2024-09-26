@@ -8,7 +8,7 @@ use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use utils::tracing::setup_tracing;
 
 mod api_handler;
@@ -269,16 +269,16 @@ async fn main() -> Result<()> {
             }
         });
 
-        let uptime_client = Client::new();
         let uptime_handle = tokio::spawn(async move {
+            let client = Client::new();
             loop {
-                match uptime_client
+                match client
                     .get("https://uptime.proposals.app/api/push/nQX8wV77hb")
                     .send()
                     .await
                 {
                     Ok(_) => info!("Uptime ping sent successfully"),
-                    Err(e) => error!("Failed to send uptime ping: {}", e),
+                    Err(e) => warn!("Failed to send uptime ping: {:?}", e),
                 }
                 tokio::time::sleep(Duration::from_secs(30)).await;
             }
