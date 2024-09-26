@@ -3,6 +3,7 @@ import { config as dotenv_config } from "dotenv";
 import express from "express";
 import cron from "node-cron";
 import { sendTimeend } from "./send_timeend";
+import axios from "axios";
 
 const JOB_TYPE = "push-timeend";
 
@@ -22,6 +23,19 @@ app.get("/", (_req, res) => {
 app.listen(3000, () => {
   console.log(`Healthcheck is running at http://localhost:3000`);
 });
+
+async function sendUptimePing() {
+  try {
+    await axios.get(
+      "https://uptime.proposals.app/api/push/WamAgspiAq?status=up&msg=OK&ping=",
+    );
+    console.log("Uptime ping sent successfully");
+  } catch (error) {
+    console.error("Failed to send uptime ping:", error);
+  }
+}
+
+setInterval(sendUptimePing, 30000);
 
 async function processJobQueue() {
   try {

@@ -4,6 +4,7 @@ use axum::routing::get;
 use axum::Router;
 use dotenv::dotenv;
 use fetchers::posts::PostFetcher;
+use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use std::sync::Arc;
 use std::time::Duration;
@@ -268,11 +269,29 @@ async fn main() -> Result<()> {
             }
         });
 
+        let uptime_client = Client::new();
+        let uptime_handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(30));
+            loop {
+                interval.tick().await;
+                match uptime_client
+                    .get("https://uptime.proposals.app/api/push/nQX8wV77hb?status=up&msg=OK&ping=")
+                    .send()
+                    .await
+                {
+                    Ok(_) => info!("Uptime ping sent successfully"),
+                    Err(e) => error!("Failed to send uptime ping: {}", e),
+                }
+            }
+        });
+
         handles.push(category_handle);
         handles.push(user_handle);
         handles.push(topic_handle);
         handles.push(post_handle);
         handles.push(newcontent_handle);
+
+        handles.push(uptime_handle);
     }
 
     futures::future::join_all(handles).await;

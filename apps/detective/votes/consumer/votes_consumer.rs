@@ -2,6 +2,7 @@ use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use axum::{routing::get, Router};
 use dotenv::dotenv;
+use reqwest::Client;
 use sea_orm::{
     prelude::Uuid,
     sea_query::{LockBehavior, LockType},
@@ -87,6 +88,21 @@ async fn main() -> Result<()> {
                     backoff = (backoff * 2).min(60);
                 }
             }
+        }
+    });
+
+    tokio::spawn(async move {
+        let client = Client::new();
+        loop {
+            match client
+                .get("https://uptime.proposals.app/api/push/jrsUnhR34G?status=up&msg=OK&ping=")
+                .send()
+                .await
+            {
+                Ok(_) => info!("Uptime ping sent successfully"),
+                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+            }
+            tokio::time::sleep(Duration::from_secs(30)).await;
         }
     });
 
