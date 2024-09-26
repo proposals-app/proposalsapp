@@ -1,5 +1,5 @@
 {
-  "name": "@proposalsapp/push-timeend",
+  "name": "@proposalsapp/push-service",
   "version": "1.0.0",
   "type": "module",
   "main": "./src/index.ts",

@@ -12,24 +12,21 @@
     "apps/emails/bulletin",
     "apps/emails/quorum",
     "apps/emails/timeend",
-    "apps/push/quorum",
-    "apps/push/timeend"
+    "apps/push-service"
   ],
   "scripts": {
     "build-db": "yarn workspace @proposalsapp/db run db:gen:ts",
     "build-email-bulletin": "yarn run build-db && yarn workspace @proposalsapp/email-bulletin run build",
     "build-email-quorum": "yarn run build-db && yarn workspace @proposalsapp/email-quorum run build",
     "build-email-timeend": "yarn run build-db && yarn workspace @proposalsapp/email-timeend run build",
-    "build-push-quorum": "yarn run build-db && yarn workspace @proposalsapp/push-quorum run build",
-    "build-push-timeend": "yarn run build-db && yarn workspace @proposalsapp/push-timeend run build",
+    "build-push-service": "yarn run build-db && yarn workspace @proposalsapp/push-service run build",
     "build-emails": "yarn workspace @proposalsapp/emails run build",
     "build-web": "yarn run build-db && yarn workspace @proposalsapp/web run build",
     "build-web-arbitrum": "yarn run build-db && yarn workspace @proposalsapp/web-arbitrum run build",
     "start-email-bulletin": "yarn workspace @proposalsapp/email-bulletin run start",
     "start-email-quorum": "yarn workspace @proposalsapp/email-quorum run start",
     "start-email-timeend": "yarn workspace @proposalsapp/email-timeend run start",
-    "start-push-quorum": "yarn workspace @proposalsapp/push-quorum run start",
-    "start-push-timeend": "yarn workspace @proposalsapp/push-timeend run start",
+    "start-push-service": "yarn workspace @proposalsapp/push-service run start",
     "start-web": "yarn workspace @proposalsapp/web run start",
     "start-web-arbitrum": "yarn workspace @proposalsapp/web-arbitrum run start",
     "update-deps": "./update-deps.sh"
