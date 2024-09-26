@@ -3,6 +3,7 @@ import { config as dotenv_config } from "dotenv";
 import express from "express";
 import cron from "node-cron";
 import { sendQuorum } from "./send_quorum";
+import axios from "axios";
 
 const JOB_TYPE = "push-quorum";
 
@@ -22,6 +23,19 @@ app.get("/", (_req, res) => {
 app.listen(3000, () => {
   console.log(`Healthcheck is running at http://localhost:3000`);
 });
+
+async function sendUptimePing() {
+  try {
+    await axios.get(
+      "https://oneuptime.com/heartbeat/32a0e963-0cf2-48eb-959f-853cbd23964d",
+    );
+    console.log("Uptime ping sent successfully");
+  } catch (error) {
+    console.error("Failed to send uptime ping:", error);
+  }
+}
+
+setInterval(sendUptimePing, 60000);
 
 async function processJobQueue() {
   try {

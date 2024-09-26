@@ -87,7 +87,7 @@ async fn main() -> Result<()> {
         let client = Client::new();
         loop {
             match client
-                .get("https://uptime.proposals.app/api/push/CC6jxaqwKE")
+                .get("https://oneuptime.com/heartbeat/d57de0a0-7c27-11ef-b386-dd20e423dc24")
                 .send()
                 .await
             {

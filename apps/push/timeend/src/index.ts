@@ -26,7 +26,9 @@ app.listen(3000, () => {
 
 async function sendUptimePing() {
   try {
-    await axios.get("https://uptime.proposals.app/api/push/WamAgspiAq");
+    await axios.get(
+      "https://oneuptime.com/heartbeat/6f5b5f90-7c28-11ef-8d9b-f36562aefa60",
+    );
     console.log("Uptime ping sent successfully");
   } catch (error) {
     console.error("Failed to send uptime ping:", error);
