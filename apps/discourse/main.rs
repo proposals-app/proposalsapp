@@ -271,9 +271,7 @@ async fn main() -> Result<()> {
 
         let uptime_client = Client::new();
         let uptime_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(30));
             loop {
-                interval.tick().await;
                 match uptime_client
                     .get("https://uptime.proposals.app/api/push/nQX8wV77hb")
                     .send()
@@ -282,6 +280,7 @@ async fn main() -> Result<()> {
                     Ok(_) => info!("Uptime ping sent successfully"),
                     Err(e) => error!("Failed to send uptime ping: {}", e),
                 }
+                tokio::time::sleep(Duration::from_secs(30)).await;
             }
         });
 
