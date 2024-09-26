@@ -34,7 +34,7 @@ async function sendUptimePing() {
   }
 }
 
-setInterval(sendUptimePing, 10 * 1000);
+//setInterval(sendUptimePing, 10 * 1000);
 
 // Function to process jobs from the job queue
 async function processJobQueue() {

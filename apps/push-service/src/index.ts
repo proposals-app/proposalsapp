@@ -30,7 +30,7 @@ const sendUptimePing = async () => {
   }
 };
 
-setInterval(sendUptimePing, 10 * 1000);
+//setInterval(sendUptimePing, 10 * 1000);
 
 const processJobQueue = async () => {
   try {

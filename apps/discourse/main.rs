@@ -276,25 +276,25 @@ async fn main() -> Result<()> {
         handles.push(newcontent_handle);
     }
 
-    let uptime_handle = tokio::spawn(async move {
-        let client = Client::new();
-        loop {
-            match client
-                .get(format!(
-                    "https://oneuptime.com/heartbeat/{}",
-                    std::env::var("ONEUPTIME_KEY").expect("ONEUPTIME_KEY missing")
-                ))
-                .send()
-                .await
-            {
-                Ok(_) => info!("Uptime ping sent successfully"),
-                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
-            }
-            tokio::time::sleep(Duration::from_secs(10)).await;
-        }
-    });
+    // let uptime_handle = tokio::spawn(async move {
+    //     let client = Client::new();
+    //     loop {
+    //         match client
+    //             .get(format!(
+    //                 "https://oneuptime.com/heartbeat/{}",
+    //                 std::env::var("ONEUPTIME_KEY").expect("ONEUPTIME_KEY missing")
+    //             ))
+    //             .send()
+    //             .await
+    //         {
+    //             Ok(_) => info!("Uptime ping sent successfully"),
+    //             Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+    //         }
+    //         tokio::time::sleep(Duration::from_secs(10)).await;
+    //     }
+    // });
 
-    handles.push(uptime_handle);
+    // handles.push(uptime_handle);
 
     futures::future::join_all(handles).await;
 

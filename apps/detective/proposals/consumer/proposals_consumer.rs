@@ -83,23 +83,23 @@ async fn main() -> Result<()> {
         }
     });
 
-    tokio::spawn(async move {
-        let client = Client::new();
-        loop {
-            match client
-                .get(format!(
-                    "https://oneuptime.com/heartbeat/{}",
-                    std::env::var("ONEUPTIME_KEY").expect("ONEUPTIME_KEY missing")
-                ))
-                .send()
-                .await
-            {
-                Ok(_) => info!("Uptime ping sent successfully"),
-                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
-            }
-            tokio::time::sleep(Duration::from_secs(10)).await;
-        }
-    });
+    // tokio::spawn(async move {
+    //     let client = Client::new();
+    //     loop {
+    //         match client
+    //             .get(format!(
+    //                 "https://oneuptime.com/heartbeat/{}",
+    //                 std::env::var("ONEUPTIME_KEY").expect("ONEUPTIME_KEY missing")
+    //             ))
+    //             .send()
+    //             .await
+    //         {
+    //             Ok(_) => info!("Uptime ping sent successfully"),
+    //             Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+    //         }
+    //         tokio::time::sleep(Duration::from_secs(10)).await;
+    //     }
+    // });
 
     tokio::signal::ctrl_c().await?;
     println!("Shutting down...");
