@@ -275,7 +275,7 @@ async fn main() -> Result<()> {
             loop {
                 interval.tick().await;
                 match uptime_client
-                    .get("https://uptime.proposals.app/api/push/nQX8wV77hb?status=up&msg=OK&ping=")
+                    .get("https://uptime.proposals.app/api/push/nQX8wV77hb")
                     .send()
                     .await
                 {
