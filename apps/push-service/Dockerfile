@@ -10,7 +10,7 @@ RUN corepack enable && corepack prepare yarn@4 --activate
 COPY package.json yarn.lock .yarnrc.yml ./
 
 # Copy project-specific package files
-COPY apps/push-service/package.json apps/push-service/quorum/
+COPY apps/push-service/package.json apps/push-service/
 COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
 
