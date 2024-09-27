@@ -97,7 +97,7 @@ impl ApiHandler {
         loop {
             match client
                 .get(url)
-                .header(USER_AGENT, "proposals.app Discourse Fetcher/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.11")
+                .header(USER_AGENT, "proposals.app Discourse Indexer/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12")
                 .send()
                 .await
             {
