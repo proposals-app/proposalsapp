@@ -104,7 +104,7 @@ impl ApiHandler {
         let mut delay = Duration::from_secs(2);
 
         loop {
-            sleep(Duration::from_millis(rng.gen_range(500..1500))).await;
+            sleep(Duration::from_millis(rng.gen_range(100..1000))).await;
 
             match client
                 .get(url)
