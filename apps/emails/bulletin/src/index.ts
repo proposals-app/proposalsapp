@@ -25,16 +25,14 @@ app.listen(3000, () => {
 
 async function sendUptimePing() {
   try {
-    await axios.get(
-      `https://oneuptime.com/heartbeat/${process.env.ONEUPTIME_KEY}`,
-    );
+    await axios.get(`${process.env.ONEUPTIME_KEY}`);
     console.log("Uptime ping sent successfully");
   } catch (error) {
     console.error("Failed to send uptime ping:", error);
   }
 }
 
-//setInterval(sendUptimePing, 10 * 1000);
+setInterval(sendUptimePing, 10 * 1000);
 
 // Function to process jobs from the job queue
 async function processJobQueue() {

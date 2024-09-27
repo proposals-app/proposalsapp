@@ -21,16 +21,14 @@ app.listen(3000, () =>
 
 const sendUptimePing = async () => {
   try {
-    await axios.get(
-      `https://oneuptime.com/heartbeat/${process.env.ONEUPTIME_KEY}`,
-    );
+    await axios.get(`${process.env.ONEUPTIME_KEY}`);
     console.log("Uptime ping sent successfully");
   } catch (error) {
     console.error("Failed to send uptime ping:", error);
   }
 };
 
-//setInterval(sendUptimePing, 10 * 1000);
+setInterval(sendUptimePing, 10 * 1000);
 
 const processJobQueue = async () => {
   try {
