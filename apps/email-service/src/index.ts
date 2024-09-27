@@ -30,7 +30,16 @@ async function sendUptimePing() {
 
 setInterval(sendUptimePing, 10 * 1000);
 
-async function processJobQueue(jobType: string, sendFunction: Function) {
+export type JobData = {
+  userId: string;
+  proposalId?: string;
+};
+type SendFunction = (job: JobData) => Promise<void>;
+
+async function processJobQueue(
+  jobType: NotificationTypeEnumV2,
+  sendFunction: SendFunction,
+) {
   try {
     const jobs = await db
       .selectFrom("jobQueue")
@@ -41,7 +50,7 @@ async function processJobQueue(jobType: string, sendFunction: Function) {
 
     for (const job of jobs) {
       try {
-        await sendFunction(job.job);
+        await sendFunction(job.job as JobData);
         await db
           .updateTable("jobQueue")
           .set({ processed: true })
@@ -56,11 +65,21 @@ async function processJobQueue(jobType: string, sendFunction: Function) {
   }
 }
 
+const typedSendBulletin: SendFunction = sendBulletin;
+const typedSendQuorum: SendFunction = sendQuorum;
+const typedSendTimeend: SendFunction = sendTimeend;
+
 // Process job queues every minute
 cron.schedule("* * * * *", async () => {
-  await processJobQueue("email-bulletin", sendBulletin);
-  await processJobQueue("email-quorum", sendQuorum);
-  await processJobQueue("email-timeend", sendTimeend);
+  await processJobQueue(
+    NotificationTypeEnumV2.EMAILBULLETIN,
+    typedSendBulletin,
+  );
+  await processJobQueue(
+    NotificationTypeEnumV2.EMAILQUORUMNOTREACHED,
+    typedSendQuorum,
+  );
+  await processJobQueue(NotificationTypeEnumV2.EMAILTIMEEND, typedSendTimeend);
 });
 
 // Schedule tasks to add jobs to the job queues

@@ -5,10 +5,14 @@ import {
 } from "@proposalsapp/db";
 import { QuorumData, QuorumEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
+import { JobData } from ".";
 
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
 
-export async function sendQuorum(userId: string, proposalId: string) {
+export async function sendQuorum(job: JobData) {
+  const { userId, proposalId } = job;
+  if (!proposalId) throw new Error("proposalId is required for sendQuorum");
+
   const existingNotification = await db
     .selectFrom("notification")
     .where("userId", "=", userId)
