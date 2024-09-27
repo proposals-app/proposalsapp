@@ -417,10 +417,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@date-fns/tz@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "@date-fns/tz@npm:1.1.0"
-  checksum: 10c0/7bf877349b960a8c433782d6ba1413f85b41cf7d72faa68a76ff4906e92402ab96ce6f446dc54343262eebeeac998d839c000e1f4b77d6584fbf0754e3c9d7fb
+"@date-fns/tz@npm:^1.1.2":
+  version: 1.1.2
+  resolution: "@date-fns/tz@npm:1.1.2"
+  checksum: 10c0/30c5e15f11ceb013fcba3fd05125571554b9a7cab4873c69969966f7ddb00ffa8c9277d2367012e72fd7a905e48a7252e1f914614532852f157d62b3f8d90034
   languageName: node
   linkType: hard
 
@@ -2417,7 +2417,7 @@ __metadata:
     "@radix-ui/react-toggle-group": "npm:^1.1.0"
     "@radix-ui/react-tooltip": "npm:^1.1.2"
     "@serwist/next": "npm:9.0.8"
-    "@types/node": "npm:22.7.2"
+    "@types/node": "npm:22.7.3"
     "@types/react": "npm:18.3.9"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:18.3.0"
@@ -2443,7 +2443,7 @@ __metadata:
     prettier: "npm:3.3.3"
     prettier-plugin-tailwindcss: "npm:0.6.8"
     react: "npm:18.3.1"
-    react-day-picker: "npm:9.1.2"
+    react-day-picker: "npm:9.1.3"
     react-dom: "npm:18.3.1"
     react-hook-form: "npm:^7.53.0"
     react-icons: "npm:5.3.0"
@@ -2456,7 +2456,7 @@ __metadata:
     tailwindcss: "npm:3.4.13"
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:5.6.2"
-    vaul: "npm:^0.9.9"
+    vaul: "npm:^1.0.0"
     viem: "npm:2.21.15"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
@@ -4906,15 +4906,6 @@ __metadata:
   dependencies:
     undici-types: "npm:~5.26.4"
   checksum: 10c0/5306becc0ff41d81b1e31524bd376e958d0741d1ce892dffd586b9ae0cb6553c62b0d62abd16da8bea6b9a2c17572d360450535d7c073794b0cef9cb4e39691e
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:22.7.2":
-  version: 22.7.2
-  resolution: "@types/node@npm:22.7.2"
-  dependencies:
-    undici-types: "npm:~6.19.2"
-  checksum: 10c0/987e4df034e4af0ce76b938c2c0d94373da376b228f1c93081a661c77e682795c599bcad47c93c70a25b8ea443587137cf23088fb7f62ef442955f13046eae3d
   languageName: node
   linkType: hard
 
@@ -12249,15 +12240,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-day-picker@npm:9.1.2":
-  version: 9.1.2
-  resolution: "react-day-picker@npm:9.1.2"
+"react-day-picker@npm:9.1.3":
+  version: 9.1.3
+  resolution: "react-day-picker@npm:9.1.3"
   dependencies:
-    "@date-fns/tz": "npm:^1.1.0"
+    "@date-fns/tz": "npm:^1.1.2"
     date-fns: "npm:^4.1.0"
   peerDependencies:
     react: ">=16.8.0"
-  checksum: 10c0/0285b1e7478cc6d53ca88e263b1e45bd5d87acef02a74104b140157e7b308064101ef30d865595c3bf19df40be60fdff89a0d620027ba508ed137edb336074d5
+  checksum: 10c0/f412033c0ec0e91305be0a22072f13d53115252a61228af3dcbcfa6f1cebc30b763c6a54e79c0880739c0984143d437a75317fe35ddb49fdf681786730616f63
   languageName: node
   linkType: hard
 
@@ -14399,15 +14390,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vaul@npm:^0.9.9":
-  version: 0.9.9
-  resolution: "vaul@npm:0.9.9"
+"vaul@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "vaul@npm:1.0.0"
   dependencies:
     "@radix-ui/react-dialog": "npm:^1.1.1"
   peerDependencies:
     react: ^16.8 || ^17.0 || ^18.0
     react-dom: ^16.8 || ^17.0 || ^18.0
-  checksum: 10c0/cd6b1f00efeab4c26abde3ac365f762bd922d5482725f88d1883c57c3e933d1f75e0feafb9ebfc2b5a66277c3fa492172d2a68965d79a54949540414469f5249
+  checksum: 10c0/7d5be0385044dc0952a3d3a2f1ee6eb7641b469e4e416f916fcced553a2fd8ed2f2bf9fde0cd9c41739fa1d626d5470b82bc9fde161663f4b1e31c8170ea7eb9
   languageName: node
   linkType: hard
 
