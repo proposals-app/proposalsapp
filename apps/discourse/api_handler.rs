@@ -1,4 +1,7 @@
 use anyhow::{anyhow, Result};
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
+use rand::{Rng, SeedableRng};
 use reqwest::header::USER_AGENT;
 use reqwest::Client;
 use serde::de::DeserializeOwned;
@@ -82,7 +85,8 @@ impl ApiHandler {
             let jobs_in_queue = self.jobs_in_queue.clone();
 
             tokio::spawn(async move {
-                let result = Self::execute_request(&client, &job.url, max_retries).await;
+                let mut rng = StdRng::from_entropy();
+                let result = Self::execute_request(&client, &job.url, max_retries, &mut rng).await;
                 let _ = job.response_sender.send(result);
                 jobs_in_queue.fetch_sub(1, Ordering::SeqCst);
                 drop(permit);
@@ -90,14 +94,21 @@ impl ApiHandler {
         }
     }
 
-    async fn execute_request(client: &Client, url: &str, max_retries: usize) -> Result<String> {
+    async fn execute_request(
+        client: &Client,
+        url: &str,
+        max_retries: usize,
+        rng: &mut StdRng,
+    ) -> Result<String> {
         let mut attempt = 0;
         let mut delay = Duration::from_secs(2);
 
         loop {
+            sleep(Duration::from_millis(rng.gen_range(500..1500))).await;
+
             match client
                 .get(url)
-                .header(USER_AGENT, "proposals.app Discourse Indexer/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12")
+                .header(USER_AGENT, get_random_user_agent(rng))
                 .header("Referer", "https://proposals.app")
                 .send()
                 .await
@@ -152,4 +163,21 @@ impl ApiHandler {
             }
         }
     }
+}
+
+fn get_random_user_agent(rng: &mut StdRng) -> &'static str {
+    const USER_AGENTS: &[&str] = &[
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/91.0.4472.80 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36",
+        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 OPR/77.0.4054.277",
+    ];
+
+    USER_AGENTS.choose(rng).unwrap_or(&"")
 }
