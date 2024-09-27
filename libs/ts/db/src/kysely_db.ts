@@ -93,6 +93,7 @@ export interface DaoDiscourse {
   daoId: string;
   discourseBaseUrl: string;
   id: Generated<string>;
+  refreshEnabled: Generated<boolean>;
 }
 
 export interface DaoHandler {

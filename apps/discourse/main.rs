@@ -6,6 +6,7 @@ use dotenv::dotenv;
 use fetchers::posts::PostFetcher;
 use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use seaorm::dao_discourse;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{error, info, warn};
@@ -37,6 +38,7 @@ async fn main() -> Result<()> {
     info!("Health check server running on {}", 3000);
 
     let dao_discourses = seaorm::dao_discourse::Entity::find()
+        .filter(dao_discourse::Column::RefreshEnabled.eq(true))
         .all(&db_handler.conn)
         .await?;
 

@@ -17,6 +17,7 @@ pub struct Model {
     pub id: Uuid,
     pub dao_id: Uuid,
     pub discourse_base_url: String,
+    pub refresh_enabled: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -24,6 +25,7 @@ pub enum Column {
     Id,
     DaoId,
     DiscourseBaseUrl,
+    RefreshEnabled,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -54,6 +56,7 @@ impl ColumnTrait for Column {
             Self::Id => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
             Self::DiscourseBaseUrl => ColumnType::Text.def(),
+            Self::RefreshEnabled => ColumnType::Boolean.def(),
         }
     }
 }
