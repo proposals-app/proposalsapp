@@ -5,10 +5,15 @@ import {
   db,
   jsonArrayFrom,
 } from "@proposalsapp/db";
-import { DailyBulletinData, render } from "@proposalsapp/emails";
-import DailyBulletinEmail, {
+import {
+  DailyBulletinData,
+  DailyBulletinEmail,
+  render,
+} from "@proposalsapp/emails";
+import {
   EndedProposal,
   EndingSoonProposal,
+  NewProposal,
 } from "@proposalsapp/emails/emails/daily-bulletin";
 import { ServerClient } from "postmark";
 
@@ -133,7 +138,7 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
   });
 }
 
-async function getNew(userId: string): Promise<EndingSoonProposal[]> {
+async function getNew(userId: string): Promise<NewProposal[]> {
   if (!userId || userId.trim() === "") {
     console.log("Invalid userId in getNew:", userId);
     return [];

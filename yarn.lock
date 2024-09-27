@@ -2295,9 +2295,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@proposalsapp/email-bulletin@workspace:apps/emails/bulletin":
+"@proposalsapp/email-service@workspace:apps/email-service":
   version: 0.0.0-use.local
-  resolution: "@proposalsapp/email-bulletin@workspace:apps/emails/bulletin"
+  resolution: "@proposalsapp/email-service@workspace:apps/email-service"
   dependencies:
     "@proposalsapp/db": "npm:*"
     "@proposalsapp/emails": "npm:*"
@@ -2306,44 +2306,6 @@ __metadata:
     "@types/express": "npm:^5.0.0"
     "@types/node-cron": "npm:^3.0.11"
     axios: "npm:^1.7.7"
-    dotenv: "npm:^16.4.5"
-    express: "npm:^4.21.0"
-    node-cron: "npm:^3.0.3"
-    postmark: "npm:^4.0.5"
-    tsx: "npm:^4.19.1"
-    typescript: "npm:^5.6.2"
-  languageName: unknown
-  linkType: soft
-
-"@proposalsapp/email-quorum@workspace:apps/emails/quorum":
-  version: 0.0.0-use.local
-  resolution: "@proposalsapp/email-quorum@workspace:apps/emails/quorum"
-  dependencies:
-    "@proposalsapp/db": "npm:*"
-    "@proposalsapp/emails": "npm:*"
-    "@tsconfig/recommended": "npm:^1.0.7"
-    "@types/dotenv": "npm:^8.2.0"
-    "@types/express": "npm:^5.0.0"
-    "@types/node-cron": "npm:^3.0.11"
-    dotenv: "npm:^16.4.5"
-    express: "npm:^4.21.0"
-    node-cron: "npm:^3.0.3"
-    postmark: "npm:^4.0.5"
-    tsx: "npm:^4.19.1"
-    typescript: "npm:^5.6.2"
-  languageName: unknown
-  linkType: soft
-
-"@proposalsapp/email-timeend@workspace:apps/emails/timeend":
-  version: 0.0.0-use.local
-  resolution: "@proposalsapp/email-timeend@workspace:apps/emails/timeend"
-  dependencies:
-    "@proposalsapp/db": "npm:*"
-    "@proposalsapp/emails": "npm:*"
-    "@tsconfig/recommended": "npm:^1.0.7"
-    "@types/dotenv": "npm:^8.2.0"
-    "@types/express": "npm:^5.0.0"
-    "@types/node-cron": "npm:^3.0.11"
     dotenv: "npm:^16.4.5"
     express: "npm:^4.21.0"
     node-cron: "npm:^3.0.3"
