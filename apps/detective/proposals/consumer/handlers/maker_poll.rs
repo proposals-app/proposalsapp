@@ -12,17 +12,20 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{sync::Arc, time::Duration};
 use tokio::time::sleep;
+use tracing::{info, instrument};
 
 pub struct MakerPollHandler;
 
 #[async_trait]
 impl ProposalHandler for MakerPollHandler {
+    #[instrument(skip(self, dao_handler, _dao,), fields(dao_handler_id = %dao_handler.id, from_index))]
     async fn get_proposals(
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
         from_index: i32,
     ) -> Result<ProposalsResult> {
+        info!("Fetching proposals for MakerPollHandler");
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 

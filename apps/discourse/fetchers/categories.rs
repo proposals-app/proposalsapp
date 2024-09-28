@@ -5,6 +5,7 @@ use crate::DbHandler;
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
+use tracing::error;
 use tracing::info;
 use tracing::instrument;
 
@@ -20,8 +21,7 @@ impl CategoryFetcher {
             base_url: base_url.to_string(),
         }
     }
-
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
+    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id, base_url = %self.base_url))]
     pub async fn update_all_categories(
         self,
         db_handler: &DbHandler,
@@ -47,14 +47,22 @@ impl CategoryFetcher {
             for category in all_categories {
                 db_handler
                     .upsert_category(&category, dao_discourse_id)
-                    .await?;
+                    .await
+                    .map_err(|e| {
+                        error!(
+                            error = %e,
+                            category_id = category.id,
+                            "Failed to upsert category"
+                        );
+                        e
+                    })?;
             }
 
             info!(
-                "Fetched and upserted page {}: {} categories (total categories so far: {})",
-                page + 1,
-                num_categories,
-                total_categories
+                page = page + 1,
+                categories_fetched = num_categories,
+                total_categories = total_categories,
+                "Fetched and upserted categories"
             );
 
             if response.category_list.categories.is_empty() {
@@ -76,8 +84,8 @@ impl CategoryFetcher {
         }
 
         info!(
-            "Finished updating categories. Total categories: {}",
-            total_categories
+            total_categories = total_categories,
+            "Finished updating categories"
         );
         Ok(())
     }

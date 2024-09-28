@@ -1,5 +1,5 @@
 use crate::{setup_database, ProposalHandler, ProposalsResult};
-use ::utils::errors::{DATABASE_ERROR, DATABASE_URL_NOT_SET};
+use ::utils::errors::DATABASE_ERROR;
 use abi::{decode, ParamType};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -17,24 +17,25 @@ use ethers::utils::to_checksum;
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 use scanners::optimistic_scan::estimate_timestamp;
-use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set, Value,
-};
+use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, Set};
 use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum, vote};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
+use tracing::{info, instrument};
 
 pub struct OptimismHandler;
 
 #[async_trait]
 impl ProposalHandler for OptimismHandler {
+    #[instrument(skip(self, dao_handler, _dao,), fields(dao_handler_id = %dao_handler.id, from_index))]
     async fn get_proposals(
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
         from_index: i32,
     ) -> Result<ProposalsResult> {
+        info!("Fetching proposals for OptimismHandler");
         let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
         let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
 
@@ -64,8 +65,7 @@ impl ProposalHandler for OptimismHandler {
 
         let op_token = optimism_token::new(token_address, op_rpc.clone());
 
-        let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
-        let db = setup_database(&database_url).await?;
+        let db = setup_database().await?;
 
         let mut result = Vec::new();
 
@@ -501,7 +501,7 @@ async fn data_for_proposal_two(
         // Process votes and accumulate scores
         for vote in votes {
             let voting_power =
-                Decimal::from_f64(vote.voting_power).unwrap_or_else(|| Decimal::ZERO);
+                Decimal::from_f64(vote.voting_power).unwrap_or(Decimal::ZERO);
             // if let Some(index) = vote.choice.as_i64() {
             //     if index >= 0 && (index as usize) < choice_scores.len() {
             //         choice_scores[index as usize] += voting_power;
@@ -662,7 +662,7 @@ async fn data_for_proposal_three(
         .await
         .context("gov_contract.state")?;
 
-    let mut state = match proposal_state {
+    let state = match proposal_state {
         0 => ProposalStateEnum::Pending,
         1 => ProposalStateEnum::Active,
         2 => ProposalStateEnum::Canceled,
@@ -961,10 +961,7 @@ mod optimism_proposals {
     #[tokio::test]
     async fn optimism_proposals_1() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
-            .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
+        let db = setup_database().await.unwrap();
 
         let dao = dao::Entity::find()
             .filter(dao::Column::Name.eq("Optimism"))
@@ -1019,10 +1016,7 @@ mod optimism_proposals {
     #[tokio::test]
     async fn optimism_proposals_2() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
-            .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
+        let db = setup_database().await.unwrap();
 
         let dao = dao::Entity::find()
             .filter(dao::Column::Name.eq("Optimism"))
@@ -1077,10 +1071,7 @@ mod optimism_proposals {
     #[tokio::test]
     async fn optimism_proposals_3() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
-            .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
+        let db = setup_database().await.unwrap();
 
         let dao = dao::Entity::find()
             .filter(dao::Column::Name.eq("Optimism"))
@@ -1135,10 +1126,7 @@ mod optimism_proposals {
     #[tokio::test]
     async fn optimism_proposals_4() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
-            .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
+        let db = setup_database().await.unwrap();
 
         let dao = dao::Entity::find()
             .filter(dao::Column::Name.eq("Optimism"))
@@ -1193,10 +1181,7 @@ mod optimism_proposals {
     #[tokio::test]
     async fn optimism_proposals_5() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
-            .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
+        let db = setup_database().await.unwrap();
 
         let dao = dao::Entity::find()
             .filter(dao::Column::Name.eq("Optimism"))
@@ -1251,10 +1236,7 @@ mod optimism_proposals {
     #[tokio::test]
     async fn optimism_proposals_6() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
-            .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
+        let db = setup_database().await.unwrap();
 
         let dao = dao::Entity::find()
             .filter(dao::Column::Name.eq("Optimism"))
@@ -1309,10 +1291,7 @@ mod optimism_proposals {
     #[tokio::test]
     async fn optimism_proposals_7() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
-            .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
+        let db = setup_database().await.unwrap();
 
         let dao = dao::Entity::find()
             .filter(dao::Column::Name.eq("Optimism"))
@@ -1367,10 +1346,7 @@ mod optimism_proposals {
     #[tokio::test]
     async fn optimism_proposals_8() {
         let _ = dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL")
-            .context(DATABASE_URL_NOT_SET)
-            .unwrap();
-        let db = setup_database(&database_url).await.unwrap();
+        let db = setup_database().await.unwrap();
 
         let dao = dao::Entity::find()
             .filter(dao::Column::Name.eq("Optimism"))

@@ -18,7 +18,6 @@ impl UserFetcher {
             base_url: base_url.to_string(),
         }
     }
-
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_all_users(
         self,
@@ -59,15 +58,15 @@ impl UserFetcher {
                 db_handler.upsert_user(&user, dao_discourse_id).await?;
             }
 
-            tracing::info!(
-                "Fetched and upserted page {}: {} users (total users so far: {})",
-                page + 1,
-                num_users,
-                total_users
+            info!(
+                page = page + 1,
+                num_users = num_users,
+                total_users = total_users,
+                "Fetched and upserted users"
             );
 
             if response.directory_items.is_empty() {
-                tracing::info!("No more users to fetch. Stopping.");
+                info!("No more users to fetch. Stopping.");
                 break;
             }
 
@@ -84,6 +83,7 @@ impl UserFetcher {
             page += 1;
         }
 
+        info!(total_users = total_users, "Finished updating all users");
         Ok(())
     }
 
@@ -129,7 +129,7 @@ impl UserFetcher {
                 db_handler.upsert_user(&user, dao_discourse_id).await?;
             }
 
-            tracing::info!(
+            info!(
                 "Fetched and upserted page {}: {} users (total users so far: {})",
                 page + 1,
                 num_users,
@@ -189,7 +189,7 @@ impl UserFetcher {
         Ok(())
     }
 
-    fn process_avatar_url(&self, avatar_template: &String) -> String {
+    fn process_avatar_url(&self, avatar_template: &str) -> String {
         if avatar_template.starts_with("http") {
             // It's already a full URL, just replace {size}
             avatar_template.replace("{size}", "120")

@@ -18,7 +18,6 @@ impl TopicFetcher {
             base_url: base_url.to_string(),
         }
     }
-
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_all_topics(
         self,
@@ -44,12 +43,14 @@ impl TopicFetcher {
             }
 
             info!(
-                "Fetched and upserted page {}: {} topics (total topics so far: {})",
-                page, num_topics, total_topics
+                page = page,
+                num_topics = num_topics,
+                total_topics = total_topics,
+                "Fetched and upserted topics"
             );
 
             if response.topic_list.topics.is_empty() {
-                tracing::info!("No more topics to fetch. Stopping.");
+                info!("No more topics to fetch. Stopping.");
                 break;
             }
 
@@ -66,7 +67,7 @@ impl TopicFetcher {
             page += 1;
         }
 
-        info!("Finished updating topics. Total topics: {}", total_topics);
+        info!(total_topics = total_topics, "Finished updating topics");
         Ok(())
     }
 

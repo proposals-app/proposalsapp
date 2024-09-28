@@ -11,18 +11,20 @@ use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde_json::json;
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::{info, instrument, warn};
 
 pub struct ArbitrumCoreHandler;
 
 #[async_trait]
 impl ProposalHandler for ArbitrumCoreHandler {
+    #[instrument(skip(self, dao_handler, _dao,), fields(dao_handler_id = %dao_handler.id, from_index))]
     async fn get_proposals(
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
         from_index: i32,
     ) -> Result<ProposalsResult> {
+        info!("Fetching proposals for ArbitrumCoreHandler");
         let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
         let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
 

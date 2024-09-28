@@ -5,6 +5,7 @@ use chrono::NaiveDateTime;
 use sea_orm::{NotSet, Set};
 use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
 use serde::Deserialize;
+use tracing::{info, instrument};
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponse {
@@ -39,12 +40,14 @@ pub struct SnapshotHandler;
 
 #[async_trait]
 impl ProposalHandler for SnapshotHandler {
+    #[instrument(skip(self, dao_handler, dao,), fields(dao_handler_id = %dao_handler.id, from_index))]
     async fn get_proposals(
         &self,
         dao_handler: &dao_handler::Model,
         dao: &dao::Model,
         from_index: i32,
     ) -> Result<ProposalsResult> {
+        info!("Fetching proposals for SnapshotHandler");
         let snapshot_space = match dao.name.as_str() {
             "Compound" => "comp-vote.eth",
             "Gitcoin" => "gitcoindao.eth",

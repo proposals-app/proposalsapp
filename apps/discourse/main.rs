@@ -28,14 +28,21 @@ async fn main() -> Result<()> {
     setup_tracing();
 
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
+    info!(database_url = %database_url, "Database URL loaded");
+
     let db_handler = Arc::new(DbHandler::new(&database_url).await?);
+    info!("Database handler initialized");
 
     let app = Router::new().route("/", get("OK"));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let addr = listener.local_addr().unwrap();
     tokio::spawn(async move {
-        axum::serve(listener, app).await.unwrap();
+        info!(address = %addr, "Starting health check server");
+        if let Err(e) = axum::serve(listener, app).await {
+            error!(error = %e, "Health check server error");
+        }
     });
-    info!("Health check server running on {}", 3000);
+    info!(port = 3000, "Health check server initialized");
 
     let dao_discourses = seaorm::dao_discourse::Entity::find()
         .filter(dao_discourse::Column::RefreshEnabled.eq(true))
@@ -282,10 +289,11 @@ async fn main() -> Result<()> {
         let client = Client::new();
         loop {
             match client
-                .get(format!(
-                    "{}",
-                    std::env::var("ONEUPTIME_KEY").expect("ONEUPTIME_KEY missing")
-                ))
+                .get(
+                    std::env::var("ONEUPTIME_KEY")
+                        .expect("ONEUPTIME_KEY missing")
+                        .to_string(),
+                )
                 .send()
                 .await
             {

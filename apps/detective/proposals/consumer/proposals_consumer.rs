@@ -15,11 +15,12 @@ use seaorm::{
 };
 use std::collections::HashSet;
 use tokio::time::{self, Duration};
+use tracing::error;
 use tracing::{info, instrument, warn};
 use utils::{
     errors::*,
     tracing::setup_tracing,
-    types::{JobType, ProposalsJob, ProposalsResponse},
+    types::{JobType, ProposalsJob},
 };
 
 mod handlers;
@@ -48,18 +49,18 @@ async fn main() -> Result<()> {
     setup_tracing();
 
     let app = Router::new().route("/", get("OK"));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    tokio::spawn(async move {
-        axum::serve(listener, app).await.unwrap();
-    });
-    info!("Health check server running on {}", 3000);
-
-    let database_url = std::env::var("DATABASE_URL").expect(DATABASE_URL_NOT_SET);
-    let mut opt = ConnectOptions::new(database_url);
-    opt.sqlx_logging(false);
-    let db: DatabaseConnection = Database::connect(opt)
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
-        .context(DATABASE_CONNECTION_FAILED)?;
+        .context("Failed to bind TCP listener")?;
+    tokio::spawn(async move {
+        info!("Starting health check server");
+        if let Err(e) = axum::serve(listener, app).await {
+            error!("Health check server error: {}", e);
+        }
+    });
+    info!(port = 3000, "Health check server running");
+
+    let db: DatabaseConnection = setup_database().await?;
 
     // Spawn the consumer task
     tokio::spawn(async move {
@@ -68,14 +69,15 @@ async fn main() -> Result<()> {
             match consume_jobs(&db).await {
                 Ok(true) => {
                     backoff = 1;
+                    info!("Jobs processed successfully");
                 }
                 Ok(false) => {
-                    // No jobs processed, apply exponential backoff
+                    info!(backoff_seconds = backoff, "No jobs to process, backing off");
                     time::sleep(Duration::from_secs(backoff)).await;
                     backoff = (backoff * 2).min(60);
                 }
                 Err(e) => {
-                    warn!("Failed to consume jobs: {:?}", e);
+                    error!(error = %e, backoff_seconds = backoff, "Failed to consume jobs");
                     time::sleep(Duration::from_secs(backoff)).await;
                     backoff = (backoff * 2).min(60);
                 }
@@ -85,30 +87,39 @@ async fn main() -> Result<()> {
 
     tokio::spawn(async move {
         let client = Client::new();
-        loop {
-            match client
-                .get(format!(
-                    "{}",
-                    std::env::var("ONEUPTIME_KEY").expect("ONEUPTIME_KEY missing")
-                ))
-                .send()
-                .await
-            {
-                Ok(_) => info!("Uptime ping sent successfully"),
-                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+        match std::env::var("ONEUPTIME_KEY") {
+            Ok(oneuptime_key) => loop {
+                let start_time = std::time::Instant::now();
+                match client.get(&oneuptime_key).send().await {
+                    Ok(response) => {
+                        let duration = start_time.elapsed();
+                        info!(
+                            status = %response.status(),
+                            duration_ms = duration.as_millis(),
+                            "Uptime ping sent successfully"
+                        );
+                    }
+                    Err(e) => {
+                        error!(error = %e, "Failed to send uptime ping");
+                    }
+                }
+                tokio::time::sleep(Duration::from_secs(10)).await;
+            },
+            Err(e) => {
+                error!("Failed to get ONEUPTIME_KEY: {}", e);
             }
-            tokio::time::sleep(Duration::from_secs(10)).await;
         }
     });
 
     tokio::signal::ctrl_c().await?;
-    println!("Shutting down...");
+    info!("Shutting down...");
 
     Ok(())
 }
 
-#[instrument(skip(database_url))]
-async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
+#[instrument]
+async fn setup_database() -> Result<DatabaseConnection> {
+    let database_url = std::env::var("DATABASE_URL").context(DATABASE_URL_NOT_SET)?;
     let mut opt = ConnectOptions::new(database_url.to_string());
     opt.sqlx_logging(false);
     Database::connect(opt)
@@ -116,12 +127,18 @@ async fn setup_database(database_url: &str) -> Result<DatabaseConnection> {
         .context(DATABASE_CONNECTION_FAILED)
 }
 
-#[instrument(skip(db))]
+#[instrument(skip(db), fields(job_count))]
 async fn consume_jobs(db: &DatabaseConnection) -> Result<bool> {
     let jobs = get_next_jobs(db).await?;
+    let job_count = jobs.len();
+    tracing::Span::current().record("job_count", job_count);
+
     if jobs.is_empty() {
+        info!("No jobs to process");
         return Ok(false);
     }
+
+    info!(job_count = job_count, "Processing jobs");
 
     let tasks: Vec<_> = jobs
         .into_iter()
@@ -134,16 +151,30 @@ async fn consume_jobs(db: &DatabaseConnection) -> Result<bool> {
                         let proposaljob: ProposalsJob =
                             serde_json::from_value(job.job).context(DESERIALIZE_JOB_FAILED)?;
                         if let Err(e) = process_proposals_job(&proposaljob, &db).await {
-                            warn!("Failed to process proposals job: {:?}", e);
+                            error!(
+                                error = %e,
+                                job_id = job.id,
+                                dao_handler_id = %proposaljob.dao_handler_id,
+                                "Failed to process proposals job"
+                            );
                             decrease_refresh_speed(&proposaljob, &db).await?;
                             mark_job_failed(job.id, &db).await?;
                         } else {
+                            info!(
+                                job_id = job.id,
+                                dao_handler_id = %proposaljob.dao_handler_id,
+                                "Proposals job processed successfully"
+                            );
                             increase_refresh_speed(&proposaljob, &db).await?;
                             mark_job_processed(job.id, &db).await?;
                         }
                     }
                     _ => {
-                        warn!("Unknown job type: {}", job.job_type);
+                        error!(
+                            job_type = %job.job_type,
+                            job_id = job.id,
+                            "Unknown job type"
+                        );
                         mark_job_failed(job.id, &db).await?;
                     }
                 }
@@ -152,12 +183,17 @@ async fn consume_jobs(db: &DatabaseConnection) -> Result<bool> {
         })
         .collect();
 
-    for task in tasks {
+    for (index, task) in tasks.into_iter().enumerate() {
         if let Err(e) = task.await {
-            warn!("Task failed: {:?}", e);
+            error!(
+                error = %e,
+                task_index = index,
+                "Task failed"
+            );
         }
     }
 
+    info!(job_count = job_count, "All jobs processed");
     Ok(true)
 }
 
@@ -207,8 +243,14 @@ async fn mark_job_failed(job_id: i32, db: &DatabaseConnection) -> Result<()> {
     Ok(())
 }
 
-#[instrument]
+#[instrument(skip(db), fields(dao_handler_id = %job.dao_handler_id, from_index = job.from_index))]
 async fn process_proposals_job(job: &ProposalsJob, db: &DatabaseConnection) -> Result<()> {
+    info!(
+        dao_handler_id = %job.dao_handler_id,
+        from_index = job.from_index,
+        "Processing proposals job"
+    );
+
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
         .one(db)
@@ -239,19 +281,15 @@ async fn process_proposals_job(job: &ProposalsJob, db: &DatabaseConnection) -> R
 
     let new_index = update_index(&proposals, &dao_handler, to_index, db).await?;
 
-    let response = ProposalsResponse {
-        inserted_proposals,
-        updated_proposals,
+    info!(
         new_index,
-        dao_handler_id: dao_handler.id,
-    };
-
-    info!("{:?}", response);
+        inserted_proposals, updated_proposals, "Proposals job processed successfully"
+    );
 
     Ok(())
 }
 
-#[instrument(skip(parsed_proposals, db))]
+#[instrument(skip(parsed_proposals, db), fields(dao_handler_id = %dao_handler.id, current_index = dao_handler.proposals_index))]
 async fn update_index(
     parsed_proposals: &[proposal::ActiveModel],
     dao_handler: &dao_handler::Model,
@@ -287,6 +325,12 @@ async fn update_index(
     .await
     .context(DATABASE_ERROR)?;
 
+    info!(
+        dao_handler_id = %dao_handler.id,
+        new_index,
+        "Index updated successfully"
+    );
+
     Ok(new_index)
 }
 
@@ -295,11 +339,13 @@ struct StoredProposals {
     updated_proposals: u32,
 }
 
-#[instrument(skip(db))]
+#[instrument(skip(db, parsed_proposals), fields(proposal_count = parsed_proposals.len()))]
 async fn store_proposals(
     parsed_proposals: &[proposal::ActiveModel],
     db: &DatabaseConnection,
 ) -> Result<StoredProposals> {
+    info!(proposal_count = parsed_proposals.len(), "Storing proposals");
+
     let mut inserted_proposals = 0;
     let mut updated_proposals = 0;
 
@@ -341,13 +387,18 @@ async fn store_proposals(
             .context(DATABASE_ERROR)?;
     }
 
+    info!(
+        inserted_proposals,
+        updated_proposals, "Proposals stored successfully"
+    );
+
     Ok(StoredProposals {
         inserted_proposals,
         updated_proposals,
     })
 }
 
-#[instrument]
+#[instrument(fields(dao_handler_id = job.dao_handler_id.to_string()))]
 async fn decrease_refresh_speed(job: &ProposalsJob, db: &DatabaseConnection) -> Result<()> {
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
@@ -363,6 +414,12 @@ async fn decrease_refresh_speed(job: &ProposalsJob, db: &DatabaseConnection) -> 
         new_refresh_speed = handler.min_refresh_speed();
     }
 
+    info!(
+        dao_handler_id = %job.dao_handler_id,
+        new_refresh_speed,
+        "Decreasing refresh speed for DAO handler"
+    );
+
     dao_handler::Entity::update(dao_handler::ActiveModel {
         id: Set(dao_handler.id),
         proposals_refresh_speed: Set(new_refresh_speed),
@@ -375,7 +432,7 @@ async fn decrease_refresh_speed(job: &ProposalsJob, db: &DatabaseConnection) -> 
     Ok(())
 }
 
-#[instrument]
+#[instrument(fields(dao_handler_id = job.dao_handler_id.to_string()))]
 async fn increase_refresh_speed(job: &ProposalsJob, db: &DatabaseConnection) -> Result<()> {
     let dao_handler = dao_handler::Entity::find()
         .filter(dao_handler::Column::Id.eq(job.dao_handler_id))
@@ -390,6 +447,12 @@ async fn increase_refresh_speed(job: &ProposalsJob, db: &DatabaseConnection) -> 
     if new_refresh_speed > handler.max_refresh_speed() {
         new_refresh_speed = handler.max_refresh_speed();
     }
+
+    info!(
+        dao_handler_id = %job.dao_handler_id,
+        new_refresh_speed,
+        "Increasing refresh speed for DAO handler"
+    );
 
     dao_handler::Entity::update(dao_handler::ActiveModel {
         id: Set(dao_handler.id),

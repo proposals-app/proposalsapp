@@ -7,7 +7,7 @@ use sea_orm::prelude::Uuid;
 use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter};
 use seaorm::discourse_post;
 use std::sync::Arc;
-use tracing::{info, instrument};
+use tracing::{error, info, instrument, warn};
 
 pub struct PostFetcher {
     api_handler: Arc<ApiHandler>,
@@ -21,7 +21,6 @@ impl PostFetcher {
             base_url: base_url.to_string(),
         }
     }
-
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id, topic_id = topic_id))]
     pub async fn update_posts_for_topic(
         &self,
@@ -38,12 +37,23 @@ impl PostFetcher {
             .count(&db_handler.conn)
             .await?;
 
+        info!(
+            topic_id = topic_id,
+            current_posts_count = current_posts_count,
+            "Starting to update posts for topic"
+        );
+
         loop {
             let url = format!("{}/t/{}.json?page={}", self.base_url, topic_id, page);
             let response: PostResponse = self.api_handler.fetch(&url).await?;
 
             if response.posts_count <= current_posts_count as i32 {
-                info!("No new posts to fetch for topic {}. Stopping.", topic_id);
+                info!(
+                    topic_id = topic_id,
+                    posts_count = response.posts_count,
+                    current_posts_count = current_posts_count,
+                    "No new posts to fetch for topic. Stopping."
+                );
                 break;
             }
 
@@ -52,8 +62,19 @@ impl PostFetcher {
 
             for post in &response.post_stream.posts {
                 match db_handler.upsert_post(post, dao_discourse_id).await {
-                    Ok(_) => {}
+                    Ok(_) => {
+                        info!(
+                            post_id = post.id,
+                            topic_id = topic_id,
+                            "Successfully upserted post"
+                        );
+                    }
                     Err(e) if e.to_string().contains("fk_discourse_post_user") => {
+                        warn!(
+                            post_id = post.id,
+                            username = post.username,
+                            "User not found, fetching user details"
+                        );
                         let user_fetcher =
                             UserFetcher::new(&self.base_url, Arc::clone(&self.api_handler));
                         user_fetcher
@@ -61,21 +82,37 @@ impl PostFetcher {
                             .await?;
 
                         db_handler.upsert_post(post, dao_discourse_id).await?;
+                        info!(
+                            post_id = post.id,
+                            username = post.username,
+                            "Successfully fetched user and upserted post"
+                        );
                     }
-                    Err(e) => return Err(anyhow::anyhow!("Failed to upsert post: {}", e)),
+                    Err(e) => {
+                        error!(
+                            error = %e,
+                            post_id = post.id,
+                            topic_id = topic_id,
+                            "Failed to upsert post"
+                        );
+                        return Err(anyhow::anyhow!("Failed to upsert post: {}", e));
+                    }
                 }
             }
 
             info!(
-                "Fetched and upserted page {} for topic {}: {} posts (total posts so far: {})",
-                page + 1,
-                topic_id,
-                num_posts,
-                total_posts
+                topic_id = topic_id,
+                page = page + 1,
+                num_posts = num_posts,
+                total_posts = total_posts,
+                "Fetched and upserted posts for topic"
             );
 
             if response.post_stream.posts.is_empty() {
-                info!("No more posts to fetch for topic {}. Stopping.", topic_id);
+                info!(
+                    topic_id = topic_id,
+                    "No more posts to fetch for topic. Stopping."
+                );
                 break;
             }
 
@@ -84,8 +121,8 @@ impl PostFetcher {
                     == serde_json::to_string(&response.post_stream.posts)?
                 {
                     info!(
-                        "Detected identical response for topic {}. Stopping fetch.",
-                        topic_id
+                        topic_id = topic_id,
+                        "Detected identical response for topic. Stopping fetch."
                     );
                     break;
                 }
@@ -96,8 +133,9 @@ impl PostFetcher {
         }
 
         info!(
-            "Finished updating posts for topic {}. Total posts: {}",
-            topic_id, total_posts
+            topic_id = topic_id,
+            total_posts = total_posts,
+            "Finished updating posts for topic"
         );
         Ok(())
     }

@@ -14,6 +14,7 @@ use num_bigint::BigInt;
 use sea_orm::{NotSet, Set};
 use seaorm::{dao, dao_handler, proposal, vote};
 use std::{str::FromStr, sync::Arc};
+use tracing::{info, instrument};
 
 pub struct MakerPollArbitrumHandler;
 
@@ -30,7 +31,9 @@ impl VotesHandler for MakerPollArbitrumHandler {
             to_index: None,
         })
     }
+    #[instrument(skip(self, dao_handler), fields(dao_handler_id = %dao_handler.id))]
     async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
+        info!("Fetching proposals for MakerPollArbitrumHandler");
         let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
         let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
 

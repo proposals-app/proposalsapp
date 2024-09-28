@@ -21,6 +21,7 @@ use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::DaoHandlerEnumV4,
 use serde::Deserialize;
 use serde_json::Value;
 use std::sync::Arc;
+use tracing::{info, instrument};
 use utils::errors::{
     DATABASE_CONNECTION_FAILED, DATABASE_ERROR, DATABASE_URL_NOT_SET, PROPOSAL_NOT_FOUND_ERROR,
 };
@@ -40,7 +41,9 @@ impl VotesHandler for OptimismHandler {
             to_index: None,
         })
     }
+    #[instrument(skip(self, dao_handler), fields(dao_handler_id = %dao_handler.id))]
     async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
+        info!("Fetching proposals for OptimismHandler");
         let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
         let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
 
@@ -200,7 +203,7 @@ async fn get_votes_with_params(
                         .unwrap_or(Decimal::ZERO);
 
                     choice = vec![];
-                    for (_index, option) in options.iter().enumerate() {
+                    for option in options.iter() {
                         if let ethers::abi::Token::Uint(value) = option {
                             let choice_index = value.as_u64() as usize;
 

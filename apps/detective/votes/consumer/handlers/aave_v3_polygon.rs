@@ -13,6 +13,7 @@ use ethers::{
 use sea_orm::{NotSet, Set};
 use seaorm::{dao, dao_handler, proposal, vote};
 use std::sync::Arc;
+use tracing::{info, instrument};
 
 pub struct AaveV3PolygonHandler;
 
@@ -29,7 +30,9 @@ impl VotesHandler for AaveV3PolygonHandler {
             to_index: None,
         })
     }
+    #[instrument(skip(self, dao_handler), fields(dao_handler_id = %dao_handler.id))]
     async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
+        info!("Fetching proposals for AaveV3PolygonHandler");
         let poly_rpc_url = std::env::var("POLYGON_NODE_URL").expect("Polygon node not set!");
         let poly_rpc = Arc::new(Provider::<Http>::try_from(poly_rpc_url).unwrap());
 

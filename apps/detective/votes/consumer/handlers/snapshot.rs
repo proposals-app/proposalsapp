@@ -6,6 +6,7 @@ use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_handler, proposal, vote};
 use serde::Deserialize;
 use serde_json::Value;
+use tracing::{info, instrument};
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponse {
@@ -37,12 +38,14 @@ impl VotesHandler for SnapshotHandler {
             to_index: None,
         })
     }
+    #[instrument(skip(self, dao), fields(dao = %dao.name))]
     async fn get_proposal_votes(
         &self,
         _dao_handler: &dao_handler::Model,
         dao: &dao::Model,
         proposal: &proposal::Model,
     ) -> Result<VotesResult> {
+        info!("Fetching proposals for SnapshotHandler");
         let snapshot_space = match dao.name.as_str() {
             "Compound" => "comp-vote.eth",
             "Gitcoin" => "gitcoindao.eth",

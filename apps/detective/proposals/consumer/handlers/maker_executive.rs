@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{collections::HashSet, sync::Arc, time::Duration};
 use tokio::time::sleep;
+use tracing::{info, instrument};
 
 const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
     "0xed08132900000000000000000000000000000000000000000000000000000000";
@@ -24,12 +25,14 @@ pub struct MakerExecutiveHandler;
 
 #[async_trait]
 impl ProposalHandler for MakerExecutiveHandler {
+    #[instrument(skip(self, dao_handler, _dao,), fields(dao_handler_id = %dao_handler.id, from_index))]
     async fn get_proposals(
         &self,
         dao_handler: &dao_handler::Model,
         _dao: &dao::Model,
         from_index: i32,
     ) -> Result<ProposalsResult> {
+        info!("Fetching proposals for MakerExecutiveHandler");
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 

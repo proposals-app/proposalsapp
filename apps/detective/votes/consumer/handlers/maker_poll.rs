@@ -12,6 +12,7 @@ use num_bigint::BigInt;
 use sea_orm::{NotSet, Set};
 use seaorm::{dao, dao_handler, proposal, vote};
 use std::{str::FromStr, sync::Arc};
+use tracing::{info, instrument};
 
 pub struct MakerPollHandler;
 
@@ -28,7 +29,9 @@ impl VotesHandler for MakerPollHandler {
             to_index: None,
         })
     }
+    #[instrument(skip(self, dao_handler), fields(dao_handler_id = %dao_handler.id))]
     async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
+        info!("Fetching proposals for MakerPollHandler");
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
