@@ -135,13 +135,14 @@ async fn setup_database() -> Result<DatabaseConnection> {
 #[instrument(skip(db), fields(job_count))]
 async fn consume_jobs(db: &DatabaseConnection) -> Result<bool> {
     let jobs = get_next_jobs(db).await?;
-    let job_count = jobs.len();
-    tracing::Span::current().record("job_count", job_count);
 
     if jobs.is_empty() {
         info!("No jobs to process");
         return Ok(false);
     }
+
+    let job_count = jobs.len();
+    tracing::Span::current().record("job_count", job_count);
 
     info!(job_count = job_count, "Processing jobs");
 
@@ -191,10 +192,11 @@ async fn consume_jobs(db: &DatabaseConnection) -> Result<bool> {
         })
         .collect();
 
-    for task in tasks {
+    for (index, task) in tasks.into_iter().enumerate() {
         if let Err(e) = task.await {
             error!(
                 error = %e,
+                task_index = index,
                 "Task failed"
             );
         }
