@@ -289,6 +289,15 @@ async fn process_votes_job(job: &VotesJob, db: &DatabaseConnection) -> Result<()
                 .get_proposal_votes(&dao_handler, &dao, &proposal)
                 .await?;
 
+            if votes.is_empty() {
+                info!(
+                    dao_handler_id = %dao_handler.id,
+                    proposal_id = ?proposal.id,
+                    "No votes found for proposal"
+                );
+                return Ok(());
+            }
+
             store_voters(&votes, db).await?;
 
             let StoredVotes {
@@ -310,6 +319,14 @@ async fn process_votes_job(job: &VotesJob, db: &DatabaseConnection) -> Result<()
         }
         None => {
             let VotesResult { votes, to_index } = handler.get_dao_votes(&dao_handler).await?;
+
+            if votes.is_empty() {
+                info!(
+                    dao_handler_id = %dao_handler.id,
+                    "No votes found for DAO"
+                );
+                return Ok(());
+            }
 
             store_voters(&votes, db).await?;
 
