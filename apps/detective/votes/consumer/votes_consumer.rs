@@ -191,11 +191,10 @@ async fn consume_jobs(db: &DatabaseConnection) -> Result<bool> {
         })
         .collect();
 
-    for (index, task) in tasks.into_iter().enumerate() {
+    for task in tasks {
         if let Err(e) = task.await {
             error!(
                 error = %e,
-                task_index = index,
                 "Task failed"
             );
         }
