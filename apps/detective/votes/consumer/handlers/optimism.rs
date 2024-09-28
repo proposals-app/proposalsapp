@@ -43,7 +43,7 @@ impl VotesHandler for OptimismHandler {
     }
     #[instrument(skip(self, dao_handler), fields(dao_handler_id = %dao_handler.id))]
     async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
-        info!("Fetching proposals for OptimismHandler");
+        info!("Fetching votes for OptimismHandler");
         let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
         let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
 

@@ -45,7 +45,7 @@ impl VotesHandler for SnapshotHandler {
         dao: &dao::Model,
         proposal: &proposal::Model,
     ) -> Result<VotesResult> {
-        info!("Fetching proposals for SnapshotHandler");
+        info!("Fetching votes for SnapshotHandler");
         let snapshot_space = match dao.name.as_str() {
             "Compound" => "comp-vote.eth",
             "Gitcoin" => "gitcoindao.eth",

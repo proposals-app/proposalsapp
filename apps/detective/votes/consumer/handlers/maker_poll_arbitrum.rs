@@ -33,7 +33,7 @@ impl VotesHandler for MakerPollArbitrumHandler {
     }
     #[instrument(skip(self, dao_handler), fields(dao_handler_id = %dao_handler.id))]
     async fn get_dao_votes(&self, dao_handler: &dao_handler::Model) -> Result<VotesResult> {
-        info!("Fetching proposals for MakerPollArbitrumHandler");
+        info!("Fetching votes for MakerPollArbitrumHandler");
         let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
         let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
 
