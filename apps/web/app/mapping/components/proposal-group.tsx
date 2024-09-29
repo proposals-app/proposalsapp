@@ -1,190 +1,253 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { saveGroups, searchItems } from "../actions";
+import React, { useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+import {
+  saveGroups,
+  fuzzySearchItems,
+  ProposalGroup,
+  ProposalGroupItem,
+  deleteGroup,
+  FuzzyItem,
+} from "../actions";
+import { Input } from "@/shadcn/ui/input";
+import { Button } from "@/shadcn/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/ui/card";
+import { Badge } from "@/shadcn/ui/badge";
 import Link from "next/link";
-
-interface ProposalGroupItem {
-  id: string;
-  type: "proposal" | "topic";
-  name: string;
-}
-
-interface ProposalGroup {
-  id?: string;
-  name: string;
-  items: ProposalGroupItem[];
-}
+import { ExternalLinkIcon, LinkIcon } from "lucide-react";
 
 interface GroupingInterfaceProps {
-  initialGroups: ProposalGroup[];
+  initialGroups?: ProposalGroup[];
 }
 
 export default function GroupingInterface({
-  initialGroups,
+  initialGroups = [],
 }: GroupingInterfaceProps) {
-  const [groups, setGroups] = useState<ProposalGroup[]>(initialGroups);
+  const [groups, setGroups] = useState<ProposalGroup[]>(() =>
+    [...initialGroups].sort(
+      (a, b) =>
+        new Date(b.createdAt || 0).getTime() -
+        new Date(a.createdAt || 0).getTime(),
+    ),
+  );
   const [newGroupName, setNewGroupName] = useState("");
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<FuzzyItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState<ProposalGroupItem[]>([]);
 
-  const itemsInGroups = useMemo(() => {
-    const itemSet = new Set<string>();
-    groups.forEach((group) => {
-      group.items.forEach((item) => itemSet.add(item.id));
-    });
-    return itemSet;
-  }, [groups]);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(async () => {
-      const results = await searchItems(searchTerm);
-      const filteredResults = results.filter(
-        (item) => !itemsInGroups.has(item.id),
-      );
-      setSearchResults(filteredResults);
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, itemsInGroups]);
-
-  const addGroup = () => {
+  const createNewGroup = () => {
     if (newGroupName.trim()) {
-      setGroups([...groups, { name: newGroupName, items: [] }]);
+      const newGroup: ProposalGroup = {
+        id: uuidv4(),
+        name: newGroupName,
+        items: [],
+        createdAt: new Date().toISOString(),
+      };
+      setGroups([newGroup, ...groups]);
       setNewGroupName("");
     }
   };
 
+  const handleSearch = async (value: string) => {
+    setSearchTerm(value);
+    if (value.trim()) {
+      const results = await fuzzySearchItems(value);
+      setSearchResults(results);
+    } else {
+      setSearchResults([]);
+    }
+  };
+
   const addItemToGroup = (groupId: string, item: ProposalGroupItem) => {
-    setGroups(
-      groups.map((group) =>
+    setGroups((prevGroups) =>
+      prevGroups.map((group) =>
         group.id === groupId
-          ? { ...group, items: [...group.items, item] }
+          ? { ...group, items: [item, ...group.items] }
           : group,
       ),
     );
-    setSearchResults(searchResults.filter((result) => result.id !== item.id));
+    setSearchResults((prevResults) =>
+      prevResults.filter((result) => result.id !== item.id),
+    );
   };
 
   const removeItemFromGroup = (groupId: string, itemId: string) => {
-    let removedItem: ProposalGroupItem | undefined;
     setGroups(
-      groups.map((group) => {
-        if (group.id === groupId) {
-          const newItems = group.items.filter((item) => {
-            if (item.id === itemId) {
-              removedItem = item;
-              return false;
+      groups.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              items: group.items.filter((item) => item.id !== itemId),
             }
-            return true;
-          });
-          return { ...group, items: newItems };
-        }
-        return group;
-      }),
+          : group,
+      ),
     );
-    if (removedItem) {
-      setSearchResults([...searchResults, removedItem]);
-    }
   };
 
   const handleSaveGroups = async () => {
     try {
       await saveGroups(groups);
-      alert("Groups saved successfully");
+      setGroups((prevGroups) =>
+        [...prevGroups].sort(
+          (a, b) =>
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime(),
+        ),
+      );
     } catch (error) {
+      console.error("Failed to save groups:", error);
       alert("Failed to save groups");
     }
   };
 
+  const handleDeleteGroup = async (groupId: string) => {
+    if (window.confirm("Are you sure you want to delete this group?")) {
+      try {
+        await deleteGroup(groupId);
+        setGroups(groups.filter((group) => group.id !== groupId));
+      } catch (error) {
+        console.error("Failed to delete group:", error);
+        alert("Failed to delete group");
+      }
+    }
+  };
+
   return (
-    <div>
-      <div className="mb-4">
-        <input
+    <div className="space-y-6">
+      <div className="flex space-x-4">
+        <Input
           type="text"
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
-          className="mr-2 border p-2"
           placeholder="New group name"
+          className="flex-grow"
         />
-        <button
-          onClick={addGroup}
-          className="rounded bg-blue-500 p-2 text-white"
-        >
-          Add Group
-        </button>
+        <Button onClick={createNewGroup}>Create Group</Button>
       </div>
 
-      <div className="mb-4">
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full border p-2"
-          placeholder="Search proposals and topics..."
-        />
-      </div>
-
-      <div className="flex flex-col">
-        {groups.map((group) => (
-          <div key={group.id} className="border p-4">
-            <h2 className="mb-2 text-xl font-bold">{group.name}</h2>
-
-            <ul>
-              {group.items.map((item) => (
-                <li
-                  key={item.id}
-                  className="mb-1 flex items-center justify-between"
-                >
-                  <span>
-                    {item.type === "proposal" ? "Proposal: " : "Topic: "}
-                    {item.name}
-                  </span>
-                  <button
-                    onClick={() => removeItemFromGroup(group.id!, item.id)}
-                    className="text-red-500"
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-2">
-              <select
-                onChange={(e) => {
-                  const selectedItem = JSON.parse(
-                    e.target.value,
-                  ) as ProposalGroupItem;
-                  addItemToGroup(group.id!, selectedItem);
-                }}
-                className="border p-1"
-              >
-                <option value="">Add item</option>
-                {searchResults.map((item) => (
-                  <option key={item.id} value={JSON.stringify(item)}>
-                    {item.type === "proposal" ? "Proposal: " : "Topic: "}{" "}
-                    {item.name.replace(/(.{100})..+/, "$1…")}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {group.id && (
+      {groups.map((group) => (
+        <Card key={group.id}>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
               <Link
-                href={`/proposal_group/${group.id}`}
-                className="mt-4 text-blue-300 underline"
+                href={`proposal_group/${group.id}`}
+                target="_blank"
+                className="flex gap-2"
               >
                 {group.name}
+                {initialGroups.map((g) => g.id).includes(group.id) && (
+                  <ExternalLinkIcon />
+                )}
               </Link>
+            </CardTitle>
+            <div className="space-x-2">
+              {editingGroupId === group.id ? (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setEditingGroupId(null);
+                    setSearchTerm("");
+                    setSearchResults([]);
+                    handleSaveGroups();
+                  }}
+                >
+                  Done Editing
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => setEditingGroupId(group.id!)}
+                  >
+                    Edit Group
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteGroup(group.id!)}
+                  >
+                    Delete Group
+                  </Button>
+                </>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {editingGroupId === group.id ? (
+              <>
+                <ul className="mb-4 space-y-2">
+                  {group.items.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center justify-between"
+                    >
+                      <span>
+                        {item.type === "proposal" ? "Proposal: " : "Topic: "}{" "}
+                        {item.name}
+                      </span>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeItemFromGroup(group.id!, item.id)}
+                      >
+                        Remove
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                <Input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Search proposals and topics..."
+                  className="mb-4"
+                />
+                <ul className="space-y-2">
+                  {searchResults.map((item) => (
+                    <li
+                      key={item.id}
+                      className="grid h-8 grid-cols-[auto,auto,1fr] items-center gap-2 hover:bg-gray-100"
+                      onClick={() => addItemToGroup(group.id!, item)}
+                    >
+                      {item.type === "proposal" ? (
+                        <Badge>Proposal</Badge>
+                      ) : (
+                        <Badge variant="secondary">Discussion</Badge>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className={`${item.indexerName == "SNAPSHOT" ? "bg-yellow-100" : item.indexerName.includes("http") ? "bg-blue-100" : "bg-green-100"}`}
+                      >
+                        {item.indexerName}
+                      </Badge>
+                      <label htmlFor={`item-${item.id}`}>{item.name}</label>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <>
+                <ul className="mb-4 space-y-2">
+                  {group.items.map((item) => (
+                    <li
+                      key={item.id}
+                      className="grid grid-cols-[auto,1fr] items-center gap-2"
+                    >
+                      {item.type === "proposal" ? (
+                        <Badge>Proposal</Badge>
+                      ) : (
+                        <Badge variant="secondary">Discussion</Badge>
+                      )}
+                      <span>{item.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
-          </div>
-        ))}
-      </div>
-      <button
-        onClick={handleSaveGroups}
-        className="mt-4 rounded bg-green-500 p-2 text-white"
-      >
-        Save Groups
-      </button>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

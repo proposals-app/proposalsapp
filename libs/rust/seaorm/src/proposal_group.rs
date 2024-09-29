@@ -17,6 +17,7 @@ pub struct Model {
     pub id: Uuid,
     pub name: String,
     pub items: Json,
+    pub created_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -24,6 +25,7 @@ pub enum Column {
     Id,
     Name,
     Items,
+    CreatedAt,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -48,6 +50,7 @@ impl ColumnTrait for Column {
             Self::Id => ColumnType::Uuid.def(),
             Self::Name => ColumnType::Text.def(),
             Self::Items => ColumnType::JsonBinary.def(),
+            Self::CreatedAt => ColumnType::DateTime.def(),
         }
     }
 }

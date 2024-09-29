@@ -258,6 +258,7 @@ export interface Proposal {
 }
 
 export interface ProposalGroup {
+  createdAt: Generated<Timestamp>;
   id: Generated<string>;
   items: Generated<Json>;
   name: string;
