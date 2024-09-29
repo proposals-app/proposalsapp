@@ -53,7 +53,17 @@ export default function GroupingInterface({
     setSearchTerm(value);
     if (value.trim()) {
       const results = await fuzzySearchItems(value);
-      setSearchResults(results);
+
+      const currentGroup = groups.find((group) => group.id === editingGroupId);
+
+      if (currentGroup) {
+        const filteredResults = results.filter(
+          (result) => !currentGroup.items.some((item) => item.id === result.id),
+        );
+        setSearchResults(filteredResults);
+      } else {
+        setSearchResults(results);
+      }
     } else {
       setSearchResults([]);
     }
@@ -207,7 +217,7 @@ export default function GroupingInterface({
                   {searchResults.map((item) => (
                     <li
                       key={item.id}
-                      className="grid h-8 grid-cols-[auto,auto,1fr] items-center gap-2 hover:bg-gray-100"
+                      className="flex h-8 items-center gap-2 hover:bg-gray-100"
                       onClick={() => addItemToGroup(group.id!, item)}
                     >
                       {item.type === "proposal" ? (
@@ -222,6 +232,7 @@ export default function GroupingInterface({
                         {item.indexerName}
                       </Badge>
                       <label htmlFor={`item-${item.id}`}>{item.name}</label>
+                      <Badge variant="destructive">{item.score}</Badge>
                     </li>
                   ))}
                 </ul>

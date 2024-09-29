@@ -73,9 +73,12 @@ export interface FuzzyItem {
   type: "proposal" | "topic";
   name: string;
   indexerName: string;
+  score: number;
 }
 
-export async function fuzzySearchItems(searchTerm: string) {
+export async function fuzzySearchItems(
+  searchTerm: string,
+): Promise<FuzzyItem[]> {
   const proposals = await db
     .selectFrom("proposal")
     .leftJoin("daoHandler", "daoHandler.id", "proposal.daoHandlerId")
@@ -98,12 +101,14 @@ export async function fuzzySearchItems(searchTerm: string) {
       name: p.name,
       type: "proposal" as const,
       indexerName: p.handlerType ?? "unknown",
+      score: 1,
     })),
     ...topics.map((t) => ({
       id: t.id.toString(),
       name: t.title,
       type: "topic" as const,
       indexerName: t.discourseBaseUrl ?? "unknown",
+      score: 1,
     })),
   ];
 
@@ -114,11 +119,16 @@ export async function fuzzySearchItems(searchTerm: string) {
   const fuse = new Fuse(allItems, {
     keys: ["name"],
     threshold: 0.5,
+    includeScore: true,
   });
 
   const searchResults = fuse.search(searchTerm);
 
-  const results = searchResults.slice(0, 100).map((result) => result.item);
+  console.log(searchResults);
+  const results = searchResults.slice(0, 100).map((result) => ({
+    ...result.item,
+    score: result.score,
+  }));
 
   return results;
 }
