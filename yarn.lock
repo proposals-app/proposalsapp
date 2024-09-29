@@ -2428,6 +2428,7 @@ __metadata:
     cmdk: "npm:^1.0.0"
     date-fns: "npm:^4.1.0"
     embla-carousel-react: "npm:^8.3.0"
+    fuse.js: "npm:^7.0.0"
     input-otp: "npm:^1.2.4"
     lucia: "npm:3.2.0"
     lucide-react: "npm:^0.446.0"
@@ -8842,6 +8843,13 @@ __metadata:
   version: 1.2.3
   resolution: "functions-have-names@npm:1.2.3"
   checksum: 10c0/33e77fd29bddc2d9bb78ab3eb854c165909201f88c75faa8272e35899e2d35a8a642a15e7420ef945e1f64a9670d6aa3ec744106b2aa42be68ca5114025954ca
+  languageName: node
+  linkType: hard
+
+"fuse.js@npm:^7.0.0":
+  version: 7.0.0
+  resolution: "fuse.js@npm:7.0.0"
+  checksum: 10c0/3574b7fc2e0ccb047e05dbe5f8f04e8f0754f62fa209669ef426ea1354a32ae7355620788af8f1d29f94e1fdecd513f1f3787f012848a31ec90bb4e0e6092504
   languageName: node
   linkType: hard
 
