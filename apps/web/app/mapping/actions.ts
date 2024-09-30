@@ -28,7 +28,7 @@ export async function fetchData() {
 
     const groupsWithItems = await Promise.all(
       proposalGroups.map(async (group) => {
-        const items = group.items as ProposalGroupItem[];
+        const items = group.items as unknown as ProposalGroupItem[];
         const itemsWithIndexerName = await Promise.all(
           items.map(async (item) => {
             let indexerName = "unknown";
