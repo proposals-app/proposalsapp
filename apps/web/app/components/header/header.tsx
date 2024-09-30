@@ -22,15 +22,16 @@ export default async function NavBar() {
           alt={"proposals.app"}
           style={{
             maxWidth: "100%",
-            height: "auto"
-          }} />
+            height: "auto",
+          }}
+        />
       </Link>
 
       <div className="flex w-full justify-center lg:w-fit">
         <Suspense>
           {!user && <SubscribeButton />}
           {user && <SettingsButton />}
-          {user && user.email_verified == false && (
+          {user && user.emailVerified == false && (
             <VerificationModal email={user.email} />
           )}
         </Suspense>

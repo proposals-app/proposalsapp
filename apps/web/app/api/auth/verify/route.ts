@@ -1,40 +1,35 @@
-import { db } from "@proposalsapp/db";
 import { lucia, verifyVerificationCode } from "@/lib/auth";
-import { cookies } from "next/headers";
+import { db } from "@proposalsapp/db";
 import { NextResponse } from "next/server";
-import { NextURL } from "next/dist/server/web/next-url";
 
 export async function POST(request: Request) {
-  const { otp } = await request.json();
+  const { email, otp } = await request.json();
 
-  if (!otp)
+  if (!email || !otp) {
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
+      { error: "Email and OTP are required" },
+      { status: 400 },
     );
+  }
 
-  const cookieStore = cookies();
-  const cookie = cookieStore.get("auth_session");
+  const user = await db
+    .selectFrom("user")
+    .select(["id", "email", "emailVerified"])
+    .where("user.email", "=", email)
+    .executeTakeFirst();
 
-  if (!cookie)
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
-
-  const { user } = await lucia.validateSession(cookie.value);
-
-  if (!user) return NextResponse.error();
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
   const validCode = await verifyVerificationCode(user, otp);
 
-  if (!validCode)
+  if (!validCode) {
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
+      { error: "Invalid or expired verification code" },
+      { status: 400 },
     );
-
-  // await lucia.invalidateUserSessions(user.id);
+  }
 
   await db
     .updateTable("user")
@@ -47,7 +42,10 @@ export async function POST(request: Request) {
   });
   const sessionCookie = lucia.createSessionCookie(session.id);
 
-  let response = NextResponse.redirect(new NextURL("/", request.url));
+  const response = NextResponse.json(
+    { message: "Verification successful" },
+    { status: 200 },
+  );
 
   response.cookies.set(
     sessionCookie.name,
