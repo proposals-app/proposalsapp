@@ -15,7 +15,7 @@ import { Button } from "@/shadcn/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/ui/card";
 import { Badge } from "@/shadcn/ui/badge";
 import Link from "next/link";
-import { ExternalLinkIcon, LinkIcon } from "lucide-react";
+import { ExternalLinkIcon } from "lucide-react";
 
 interface GroupingInterfaceProps {
   initialGroups?: ProposalGroup[];
@@ -46,6 +46,7 @@ export default function GroupingInterface({
       };
       setGroups([newGroup, ...groups]);
       setNewGroupName("");
+      setEditingGroupId(newGroup.id!);
     }
   };
 
@@ -193,7 +194,9 @@ export default function GroupingInterface({
                       className="flex items-center justify-between"
                     >
                       <span>
-                        {item.type === "proposal" ? "Proposal: " : "Topic: "}{" "}
+                        {item.type === "proposal"
+                          ? "Proposal: "
+                          : "Discussion: "}{" "}
                         {item.name}
                       </span>
                       <Button
@@ -210,7 +213,7 @@ export default function GroupingInterface({
                   type="text"
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search proposals and topics..."
+                  placeholder="Search proposals and discussions..."
                   className="mb-4"
                 />
                 <ul className="space-y-2">
@@ -241,15 +244,18 @@ export default function GroupingInterface({
               <>
                 <ul className="mb-4 space-y-2">
                   {group.items.map((item) => (
-                    <li
-                      key={item.id}
-                      className="grid grid-cols-[auto,1fr] items-center gap-2"
-                    >
+                    <li key={item.id} className="flex items-center gap-2">
                       {item.type === "proposal" ? (
                         <Badge>Proposal</Badge>
                       ) : (
                         <Badge variant="secondary">Discussion</Badge>
                       )}
+                      <Badge
+                        variant="outline"
+                        className={`${item.indexerName == "SNAPSHOT" ? "bg-yellow-100" : item.indexerName.includes("http") ? "bg-blue-100" : "bg-green-100"}`}
+                      >
+                        {item.indexerName}
+                      </Badge>
                       <span>{item.name}</span>
                     </li>
                   ))}

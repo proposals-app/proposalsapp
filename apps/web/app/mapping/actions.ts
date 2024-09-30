@@ -1,6 +1,6 @@
 "use server";
 
-import { db, sql } from "@proposalsapp/db";
+import { db, JsonArray } from "@proposalsapp/db";
 import { revalidatePath } from "next/cache";
 import Fuse from "fuse.js";
 
@@ -15,6 +15,7 @@ export interface ProposalGroupItem {
   id: string;
   type: "proposal" | "topic";
   name: string;
+  indexerName: string;
 }
 
 export async function fetchData() {
@@ -25,47 +26,57 @@ export async function fetchData() {
       .orderBy("createdAt", "desc")
       .execute();
 
-    return {
-      proposalGroups: proposalGroups.map((group) => {
-        const parsedItems = parseItems(group.items);
+    const groupsWithItems = await Promise.all(
+      proposalGroups.map(async (group) => {
+        const items = group.items as ProposalGroupItem[];
+        const itemsWithIndexerName = await Promise.all(
+          items.map(async (item) => {
+            let indexerName = "unknown";
+            if (item.type === "proposal") {
+              const proposal = await db
+                .selectFrom("proposal")
+                .leftJoin(
+                  "daoHandler",
+                  "daoHandler.id",
+                  "proposal.daoHandlerId",
+                )
+                .select("handlerType")
+                .where("proposal.id", "=", item.id)
+                .executeTakeFirst();
+              indexerName = proposal?.handlerType ?? "unknown";
+            } else if (item.type === "topic") {
+              const topic = await db
+                .selectFrom("discourseTopic")
+                .leftJoin(
+                  "daoDiscourse",
+                  "daoDiscourse.id",
+                  "discourseTopic.daoDiscourseId",
+                )
+                .select("daoDiscourse.discourseBaseUrl")
+                .where("discourseTopic.id", "=", item.id)
+                .executeTakeFirst();
+              indexerName = topic?.discourseBaseUrl ?? "unknown";
+            }
+            return { ...item, indexerName };
+          }),
+        );
 
         return {
           ...group,
           id: group.id.toString(),
-          items: parsedItems,
+          items: itemsWithIndexerName,
           createdAt: group.createdAt.toISOString(),
         };
       }),
+    );
+
+    return {
+      proposalGroups: groupsWithItems,
     };
   } catch (error) {
     console.error("Error fetching proposal groups:", error);
     throw new Error("Failed to fetch proposal groups");
   }
-}
-
-function parseItems(items: unknown): ProposalGroupItem[] {
-  let parsedItems: unknown;
-
-  if (typeof items === "string") {
-    try {
-      parsedItems = JSON.parse(items);
-    } catch (error) {
-      console.error("Failed to parse JSON string:", error);
-      return [];
-    }
-  } else {
-    parsedItems = items;
-  }
-
-  if (Array.isArray(parsedItems)) {
-    return parsedItems.map((item) => ({
-      id: item.id.toString(),
-      type: item.type as "proposal" | "topic",
-      name: item.name,
-    }));
-  }
-  console.warn("Invalid items data:", items);
-  return [];
 }
 
 export interface FuzzyItem {
@@ -127,7 +138,7 @@ export async function fuzzySearchItems(
   console.log(searchResults);
   const results = searchResults.slice(0, 100).map((result) => ({
     ...result.item,
-    score: result.score,
+    score: result.score ?? 1.0,
   }));
 
   return results;
