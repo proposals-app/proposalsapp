@@ -1,33 +1,35 @@
-use crate::{ProposalHandler, ProposalsResult};
+use crate::Indexer;
 use anyhow::{Context, Result};
-use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use contracts::gen::{
     aave_v_2_executor::aave_v2_executor,
     aave_v_2_gov::{aave_v2_gov, ProposalCreatedFilter},
     aave_v_2_strategy::aave_v2_strategy,
 };
-use ethers::{prelude::*, utils::hex};
+use ethers::{
+    abi::Address,
+    contract::LogMeta,
+    providers::{Http, Middleware, Provider},
+    types::U256,
+};
 use regex::Regex;
 use scanners::etherscan::estimate_timestamp;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_handler, proposal, sea_orm_active_enums::ProposalStateEnum};
+use seaorm::{dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-use tracing::{info, instrument, warn};
+use tracing::{info, warn};
 
-pub struct AaveV2Handler;
+pub struct AaveV2MainnetProposalsIndexer;
 
-#[async_trait]
-impl ProposalHandler for AaveV2Handler {
-    #[instrument(skip(self, dao_handler, _dao,), fields(dao_handler_id = %dao_handler.id, from_index))]
-    async fn get_proposals(
+#[async_trait::async_trait]
+impl Indexer for AaveV2MainnetProposalsIndexer {
+    async fn process(
         &self,
-        dao_handler: &dao_handler::Model,
-        _dao: &dao::Model,
-        from_index: i32,
-    ) -> Result<ProposalsResult> {
-        info!("Fetching proposals for AaveV2Handler");
+        indexer: &dao_indexer::Model,
+    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>)> {
+        println!("Processing Aave V2 Mainnet Proposals");
+
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
@@ -37,13 +39,12 @@ impl ProposalHandler for AaveV2Handler {
             .context("get_block_number")?
             .as_u64();
 
-        let from_block = from_index;
-        let to_block =
-            if from_index as u64 + dao_handler.proposals_refresh_speed as u64 > current_block {
-                current_block
-            } else {
-                from_index as u64 + dao_handler.proposals_refresh_speed as u64
-            };
+        let from_block = indexer.index;
+        let to_block = if indexer.index as u64 + indexer.speed as u64 > current_block {
+            current_block
+        } else {
+            indexer.index as u64 + indexer.speed as u64
+        };
 
         let address = "0xEC568fffba86c094cf06b22134B23074DFE2252c"
             .parse::<Address>()
@@ -60,25 +61,20 @@ impl ProposalHandler for AaveV2Handler {
             .await
             .context("query_with_meta")?;
 
-        let mut result = Vec::new();
+        let mut proposals = Vec::new();
 
         for p in proposal_events.iter() {
-            let p = data_for_proposal(p.clone(), &eth_rpc, dao_handler, gov_contract.clone())
+            let p = data_for_proposal(p.clone(), &eth_rpc, indexer, gov_contract.clone())
                 .await
                 .context("data_for_proposal")?;
-            result.push(p);
+            proposals.push(p);
         }
 
-        Ok(ProposalsResult {
-            proposals: result,
-            to_index: Some(to_block as i32),
-        })
+        Ok((proposals, Vec::new()))
     }
-
     fn min_refresh_speed(&self) -> i32 {
         10
     }
-
     fn max_refresh_speed(&self) -> i32 {
         1_000_000
     }
@@ -87,7 +83,7 @@ impl ProposalHandler for AaveV2Handler {
 async fn data_for_proposal(
     p: (contracts::gen::aave_v_2_gov::ProposalCreatedFilter, LogMeta),
     rpc: &Arc<Provider<Http>>,
-    dao_handler: &dao_handler::Model,
+    indexer: &dao_indexer::Model,
     gov_contract: aave_v2_gov<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
     let (log, meta): (ProposalCreatedFilter, LogMeta) = p.clone();
@@ -215,15 +211,15 @@ async fn data_for_proposal(
         }); //default to Unknown
 
     let state = match proposal_state {
-        0 => ProposalStateEnum::Pending,
-        1 => ProposalStateEnum::Canceled,
-        2 => ProposalStateEnum::Active,
-        3 => ProposalStateEnum::Defeated,
-        4 => ProposalStateEnum::Succeeded,
-        5 => ProposalStateEnum::Queued,
-        6 => ProposalStateEnum::Expired,
-        7 => ProposalStateEnum::Executed,
-        _ => ProposalStateEnum::Unknown,
+        0 => ProposalState::Pending,
+        1 => ProposalState::Canceled,
+        2 => ProposalState::Active,
+        3 => ProposalState::Defeated,
+        4 => ProposalState::Succeeded,
+        5 => ProposalState::Queued,
+        6 => ProposalState::Expired,
+        7 => ProposalState::Executed,
+        _ => ProposalState::Unknown,
     };
 
     Ok(proposal::ActiveModel {
@@ -239,18 +235,19 @@ async fn data_for_proposal(
         quorum: Set(quorum),
         scores_quorum: Set(scores_quorum),
         proposal_state: Set(state),
-        flagged: NotSet,
+        flagged_spam: NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(Some(created_block_timestamp)),
+        time_created: Set(created_block_timestamp),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
-        dao_handler_id: Set(dao_handler.clone().id),
-        dao_id: Set(dao_handler.clone().dao_id),
+        dao_indexer_id: Set(indexer.clone().id),
+        dao_id: Set(indexer.clone().dao_id),
         index_created: Set(created_block_number as i32),
         votes_index: NotSet,
         votes_fetched: NotSet,
         votes_refresh_speed: NotSet,
         metadata: NotSet,
+        txid: Set(Some(meta.transaction_hash.to_string())),
     })
 }
 
@@ -438,7 +435,7 @@ async fn get_body(hexhash: String) -> Result<String> {
 
 #[cfg(test)]
 mod aave_v2_content {
-    use crate::handlers::aave_v2::{get_body, get_discussion, get_title};
+    use crate::indexers::aave_v2_mainnet_proposals::{get_body, get_discussion, get_title};
 
     #[tokio::test]
     async fn get_markdown_title() {
@@ -561,94 +558,76 @@ mod aave_v2_proposals {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_handler, sea_orm_active_enums::DaoHandlerEnumV4};
+    use seaorm::sea_orm_active_enums::IndexerType;
+    use seaorm::sea_orm_active_enums::IndexerVariant;
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
     async fn aave_v2_1() {
         let _ = dotenv().ok();
 
-        let dao_handler = dao_handler::Model {
+        let dao_indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV4::AaveV2Mainnet),
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 1,
-            votes_refresh_speed: 1,
-            proposals_index: 11512328,
-            votes_index: 0,
+            indexer_variant: IndexerVariant::AaveV2MainnetProposals,
+            indexer_type: IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 11512328,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        let dao = dao::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            name: "placeholder".into(),
-            slug: "placeholder".into(),
-            hot: true,
-        };
-
-        match AaveV2Handler
-            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
-            .await
-        {
-            Ok(result) => {
-                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+        match AaveV2MainnetProposalsIndexer.process(&dao_indexer).await {
+            Ok((proposals, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
-                    external_id: "0",
-                    name: "AIP 5: Adding CRV to Aave",
-                    body_contains: vec!["Curve is an exchange liquidity pool on Ethereum designed for extremely efficient stablecoin trading. It is the second biggest DEX on Ethereum and the third biggest protocol by TVL."],
-                    url: "https://app.aave.com/governance/proposal/?proposalId=0",
-                    discussion_url:
-                        "Unknown",
-                    choices: "[\"For\",\"Against\"]",
-                    scores: "[414202.51861143525,100.20000140213439]",
-                    scores_total: 414302.7186128374,
-                    scores_quorum: 414202.51861143525,
-                    quorum: 0.0,
-                    proposal_state: ProposalStateEnum::Executed,
-                    block_created: Some(11512328),
-                    time_created: Some("2020-12-23 21:45:20"),
-                    time_start: "2020-12-23 21:45:20",
-                    time_end: "2020-12-26 20:38:38",
-                    metadata: None
-                }];
-                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
-                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                        external_id: "0",
+                        name: "AIP 5: Adding CRV to Aave",
+                        body_contains: vec!["Curve is an exchange liquidity pool on Ethereum designed for extremely efficient stablecoin trading. It is the second biggest DEX on Ethereum and the third biggest protocol by TVL."],
+                        url: "https://app.aave.com/governance/proposal/?proposalId=0",
+                        discussion_url: "Unknown",
+                        choices: "[\"For\",\"Against\"]",
+                        scores: "[414202.51861143525,100.20000140213439]",
+                        scores_total: 414302.7186128374,
+                        scores_quorum: 414202.51861143525,
+                        quorum: 0.0,
+                        proposal_state: ProposalState::Executed,
+                        block_created: Some(11512328),
+                        time_created: Some("2020-12-23 21:45:20"),
+                        time_start: "2020-12-23 21:45:20",
+                        time_end: "2020-12-26 20:38:38",
+                        metadata: None,
+                        index_created: 11512328,
+                        flagged_spam: None,
+                        votes_fetched: None,
+                        votes_refresh_speed: None,
+                        votes_index: None,
+                    }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_indexer.dao_id);
                 }
             }
             Err(e) => panic!("Failed to get proposals: {:?}", e),
         }
     }
-
     #[tokio::test]
     async fn aave_v2_2() {
         let _ = dotenv().ok();
 
-        let dao_handler = dao_handler::Model {
+        let dao_indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV4::AaveV2Mainnet),
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 18686736 - 18678972,
-            votes_refresh_speed: 1,
-            proposals_index: 18678972,
-            votes_index: 0,
+            indexer_variant: IndexerVariant::AaveV2MainnetProposals,
+            indexer_type: IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 18686736 - 18678972,
+            index: 18678972,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        let dao = dao::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            name: "placeholder".into(),
-            slug: "placeholder".into(),
-            hot: true,
-        };
-
-        match AaveV2Handler
-            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
-            .await
-        {
-            Ok(result) => {
-                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+        match AaveV2MainnetProposalsIndexer.process(&dao_indexer).await {
+            Ok((proposals, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     external_id: "388",
                     name: "GHO_Incident_Report",
@@ -661,12 +640,17 @@ mod aave_v2_proposals {
                     scores_total: 502888.9536269785,
                     scores_quorum: 502888.9536269785,
                     quorum: 0.0,
-                    proposal_state: ProposalStateEnum::Executed,
+                    proposal_state: ProposalState::Executed,
                     block_created: Some(18678972),
                     time_created: Some("2023-11-29 18:11:35"),
                     time_start: "2023-11-30 18:21:47",
                     time_end: "2023-12-03 10:49:11",
-                    metadata: None
+                    metadata: None,
+                    index_created: 18678972,
+                    flagged_spam: None,
+                    votes_fetched: None,
+                    votes_refresh_speed: None,
+                    votes_index: None,
                 },
                 ExpectedProposal {
                     external_id: "389",
@@ -680,50 +664,43 @@ mod aave_v2_proposals {
                     scores_total: 42312.786398795535,
                     scores_quorum: 42312.786398795535,
                     quorum: 0.0,
-                    proposal_state: ProposalStateEnum::Canceled,
+                    proposal_state: ProposalState::Canceled,
                     block_created: Some(18686736),
                     time_created: Some("2023-11-30 20:15:47"),
                     time_start: "2023-12-01 20:26:23",
                     time_end: "2023-12-04 12:55:47",
-                    metadata: None
+                    metadata: None,
+                    index_created: 18686736,
+                    flagged_spam: None,
+                    votes_fetched: None,
+                    votes_refresh_speed: None,
+                    votes_index: None,
                 }];
-                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
-                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_indexer.dao_id);
                 }
             }
             Err(e) => panic!("Failed to get proposals: {:?}", e),
         }
     }
-
     #[tokio::test]
     async fn aave_v2_3() {
         let _ = dotenv().ok();
 
-        let dao_handler = dao_handler::Model {
+        let dao_indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            handler_type: (DaoHandlerEnumV4::AaveV2Mainnet),
-            governance_portal: "placeholder".into(),
-            refresh_enabled: true,
-            proposals_refresh_speed: 1,
-            votes_refresh_speed: 1,
-            proposals_index: 18790604,
-            votes_index: 0,
+            indexer_variant: IndexerVariant::AaveV2MainnetProposals,
+            indexer_type: IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 18790604,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        let dao = dao::Model {
-            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-            name: "placeholder".into(),
-            slug: "placeholder".into(),
-            hot: true,
-        };
-
-        match AaveV2Handler
-            .get_proposals(&dao_handler, &dao, dao_handler.proposals_index)
-            .await
-        {
-            Ok(result) => {
-                assert!(!result.proposals.is_empty(), "No proposals were fetched");
+        match AaveV2MainnetProposalsIndexer.process(&dao_indexer).await {
+            Ok((proposals, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     external_id: "412",
                     name: "Transfer all CRV positions from Ethereum Mainnet Collector to GLC Safe",
@@ -736,15 +713,20 @@ mod aave_v2_proposals {
                     scores_total: 536551.6296395722,
                     scores_quorum: 536551.6296395722,
                     quorum: 0.0,
-                    proposal_state: ProposalStateEnum::Executed,
+                    proposal_state: ProposalState::Executed,
                     block_created: Some(18790604),
                     time_created: Some("2023-12-15 09:23:47"),
                     time_start: "2023-12-16 09:42:23",
                     time_end: "2023-12-19 02:20:59",
-                    metadata: None
+                    metadata: None,
+                    index_created: 18790604,
+                    flagged_spam: None,
+                    votes_fetched: None,
+                    votes_refresh_speed: None,
+                    votes_index: None,
                 }];
-                for (proposal, expected) in result.proposals.iter().zip(expected_proposals.iter()) {
-                    assert_proposal(proposal, expected, dao_handler.id, dao_handler.dao_id);
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected, dao_indexer.dao_id);
                 }
             }
             Err(e) => panic!("Failed to get proposals: {:?}", e),

@@ -18,8 +18,7 @@ pub struct Model {
     pub dao_id: Uuid,
     pub picture: String,
     pub background_color: String,
-    pub quorum_warning_email_support: bool,
-    pub twitter_account: Option<Json>,
+    pub email_quorum_warning_support: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -28,8 +27,7 @@ pub enum Column {
     DaoId,
     Picture,
     BackgroundColor,
-    QuorumWarningEmailSupport,
-    TwitterAccount,
+    EmailQuorumWarningSupport,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -57,8 +55,7 @@ impl ColumnTrait for Column {
             Self::DaoId => ColumnType::Uuid.def().unique(),
             Self::Picture => ColumnType::Text.def(),
             Self::BackgroundColor => ColumnType::Text.def(),
-            Self::QuorumWarningEmailSupport => ColumnType::Boolean.def(),
-            Self::TwitterAccount => ColumnType::Json.def().null(),
+            Self::EmailQuorumWarningSupport => ColumnType::Boolean.def(),
         }
     }
 }

@@ -4,10 +4,11 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
+    "db:migrate": "kysely migrate latest",
+    "db:seed": "yarn kysely seed run",
     "db:gen": "yarn db:gen:rust && yarn db:gen:ts",
     "db:gen:rust": "sea-orm-cli generate entity -v --lib --expanded-format --with-serde both --date-time-crate chrono -o ../../rust/seaorm/src",
-    "db:gen:ts": "kysely-codegen --camel-case --runtime-enums --out-file ./src/kysely_db.ts",
-    "db:migrate:latest": "kysely migrate latest"
+    "db:gen:ts": "kysely-codegen --camel-case --runtime-enums --out-file ./src/kysely_db.ts"
   },
   "dependencies": {
     "dotenv": "16.4.5",

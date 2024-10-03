@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
     info!(port = 3000, "Health check server initialized");
 
     let dao_discourses = seaorm::dao_discourse::Entity::find()
-        .filter(dao_discourse::Column::RefreshEnabled.eq(true))
+        .filter(dao_discourse::Column::Enabled.eq(true))
         .all(&db_handler.conn)
         .await?;
 

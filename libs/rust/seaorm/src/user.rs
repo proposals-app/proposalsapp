@@ -17,7 +17,7 @@ pub struct Model {
     pub id: Uuid,
     pub email: String,
     pub email_verified: bool,
-    pub onboarding_step: i32,
+    pub created_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -25,7 +25,7 @@ pub enum Column {
     Id,
     Email,
     EmailVerified,
-    OnboardingStep,
+    CreatedAt,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -58,7 +58,7 @@ impl ColumnTrait for Column {
             Self::Id => ColumnType::Uuid.def(),
             Self::Email => ColumnType::Text.def().unique(),
             Self::EmailVerified => ColumnType::Boolean.def(),
-            Self::OnboardingStep => ColumnType::Integer.def(),
+            Self::CreatedAt => ColumnType::DateTime.def(),
         }
     }
 }

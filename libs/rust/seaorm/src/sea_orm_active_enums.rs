@@ -4,84 +4,116 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(
-    rs_type = "String",
-    db_type = "Enum",
-    enum_name = "dao_handler_enum_v4"
-)]
-pub enum DaoHandlerEnumV4 {
-    #[sea_orm(string_value = "AAVE_V2_MAINNET")]
-    AaveV2Mainnet,
-    #[sea_orm(string_value = "AAVE_V3_AVALANCHE")]
-    AaveV3Avalanche,
-    #[sea_orm(string_value = "AAVE_V3_MAINNET")]
-    AaveV3Mainnet,
-    #[sea_orm(string_value = "AAVE_V3_POLYGON_POS")]
-    AaveV3PolygonPos,
-    #[sea_orm(string_value = "ARB_CORE_ARBITRUM")]
-    ArbCoreArbitrum,
-    #[sea_orm(string_value = "ARB_TREASURY_ARBITRUM")]
-    ArbTreasuryArbitrum,
-    #[sea_orm(string_value = "COMPOUND_MAINNET")]
-    CompoundMainnet,
-    #[sea_orm(string_value = "DYDX_MAINNET")]
-    DydxMainnet,
-    #[sea_orm(string_value = "ENS_MAINNET")]
-    EnsMainnet,
-    #[sea_orm(string_value = "FRAX_ALPHA_MAINNET")]
-    FraxAlphaMainnet,
-    #[sea_orm(string_value = "FRAX_OMEGA_MAINNET")]
-    FraxOmegaMainnet,
-    #[sea_orm(string_value = "GITCOIN_MAINNET")]
-    GitcoinMainnet,
-    #[sea_orm(string_value = "GITCOIN_V2_MAINNET")]
-    GitcoinV2Mainnet,
-    #[sea_orm(string_value = "HOP_MAINNET")]
-    HopMainnet,
-    #[sea_orm(string_value = "MAKER_EXECUTIVE_MAINNET")]
-    MakerExecutiveMainnet,
-    #[sea_orm(string_value = "MAKER_POLL_ARBITRUM")]
-    MakerPollArbitrum,
-    #[sea_orm(string_value = "MAKER_POLL_MAINNET")]
-    MakerPollMainnet,
-    #[sea_orm(string_value = "NOUNS_PROPOSALS_MAINNET")]
-    NounsProposalsMainnet,
-    #[sea_orm(string_value = "OP_OPTIMISM")]
-    OpOptimism,
-    #[sea_orm(string_value = "SNAPSHOT")]
-    Snapshot,
-    #[sea_orm(string_value = "UNISWAP_MAINNET")]
-    UniswapMainnet,
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "indexer_type")]
+pub enum IndexerType {
+    #[sea_orm(string_value = "PROPOSALS")]
+    Proposals,
+    #[sea_orm(string_value = "VOTES")]
+    Votes,
+}
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "indexer_variant")]
+pub enum IndexerVariant {
+    #[sea_orm(string_value = "AAVE_V2_MAINNET_PROPOSALS")]
+    AaveV2MainnetProposals,
+    #[sea_orm(string_value = "AAVE_V2_MAINNET_VOTES")]
+    AaveV2MainnetVotes,
+    #[sea_orm(string_value = "AAVE_V3_AVALANCHE_VOTES")]
+    AaveV3AvalancheVotes,
+    #[sea_orm(string_value = "AAVE_V3_MAINNET_PROPOSALS")]
+    AaveV3MainnetProposals,
+    #[sea_orm(string_value = "AAVE_V3_MAINNET_VOTES")]
+    AaveV3MainnetVotes,
+    #[sea_orm(string_value = "AAVE_V3_POLYGON_VOTES")]
+    AaveV3PolygonVotes,
+    #[sea_orm(string_value = "ARB_CORE_ARBITRUM_PROPOSALS")]
+    ArbCoreArbitrumProposals,
+    #[sea_orm(string_value = "ARB_CORE_ARBITRUM_VOTES")]
+    ArbCoreArbitrumVotes,
+    #[sea_orm(string_value = "ARB_TREASURY_ARBITRUM_PROPOSALS")]
+    ArbTreasuryArbitrumProposals,
+    #[sea_orm(string_value = "ARB_TREASURY_ARBITRUM_VOTES")]
+    ArbTreasuryArbitrumVotes,
+    #[sea_orm(string_value = "COMPOUND_MAINNET_PROPOSALS")]
+    CompoundMainnetProposals,
+    #[sea_orm(string_value = "COMPOUND_MAINNET_VOTES")]
+    CompoundMainnetVotes,
+    #[sea_orm(string_value = "DYDX_MAINNET_PROPOSALS")]
+    DydxMainnetProposals,
+    #[sea_orm(string_value = "DYDX_MAINNET_VOTES")]
+    DydxMainnetVotes,
+    #[sea_orm(string_value = "ENS_MAINNET_PROPOSALS")]
+    EnsMainnetProposals,
+    #[sea_orm(string_value = "ENS_MAINNET_VOTES")]
+    EnsMainnetVotes,
+    #[sea_orm(string_value = "FRAX_ALPHA_MAINNET_PROPOSALS")]
+    FraxAlphaMainnetProposals,
+    #[sea_orm(string_value = "FRAX_ALPHA_MAINNET_VOTES")]
+    FraxAlphaMainnetVotes,
+    #[sea_orm(string_value = "FRAX_OMEGA_MAINNET_PROPOSALS")]
+    FraxOmegaMainnetProposals,
+    #[sea_orm(string_value = "FRAX_OMEGA_MAINNET_VOTES")]
+    FraxOmegaMainnetVotes,
+    #[sea_orm(string_value = "GITCOIN_MAINNET_PROPOSALS")]
+    GitcoinMainnetProposals,
+    #[sea_orm(string_value = "GITCOIN_MAINNET_VOTES")]
+    GitcoinMainnetVotes,
+    #[sea_orm(string_value = "GITCOIN_V2_MAINNET_PROPOSALS")]
+    GitcoinV2MainnetProposals,
+    #[sea_orm(string_value = "GITCOIN_V2_MAINNET_VOTES")]
+    GitcoinV2MainnetVotes,
+    #[sea_orm(string_value = "HOP_MAINNET_PROPOSALS")]
+    HopMainnetProposals,
+    #[sea_orm(string_value = "HOP_MAINNET_VOTES")]
+    HopMainnetVotes,
+    #[sea_orm(string_value = "MAKER_EXECUTIVE_MAINNET_PROPOSALS")]
+    MakerExecutiveMainnetProposals,
+    #[sea_orm(string_value = "MAKER_EXECUTIVE_MAINNET_VOTES")]
+    MakerExecutiveMainnetVotes,
+    #[sea_orm(string_value = "MAKER_POLL_ARBITRUM_VOTES")]
+    MakerPollArbitrumVotes,
+    #[sea_orm(string_value = "MAKER_POLL_MAINNET_PROPOSALS")]
+    MakerPollMainnetProposals,
+    #[sea_orm(string_value = "MAKER_POLL_MAINNET_VOTES")]
+    MakerPollMainnetVotes,
+    #[sea_orm(string_value = "NOUNS_PROPOSALS_MAINNET_PROPOSALS")]
+    NounsProposalsMainnetProposals,
+    #[sea_orm(string_value = "NOUNS_PROPOSALS_MAINNET_VOTES")]
+    NounsProposalsMainnetVotes,
+    #[sea_orm(string_value = "OP_OPTIMISM_PROPOSALS")]
+    OpOptimismProposals,
+    #[sea_orm(string_value = "OP_OPTIMISM_VOTES")]
+    OpOptimismVotes,
+    #[sea_orm(string_value = "SNAPSHOT_PROPOSALS")]
+    SnapshotProposals,
+    #[sea_orm(string_value = "SNAPSHOT_VOTES")]
+    SnapshotVotes,
+    #[sea_orm(string_value = "UNISWAP_MAINNET_PROPOSALS")]
+    UniswapMainnetProposals,
+    #[sea_orm(string_value = "UNISWAP_MAINNET_VOTES")]
+    UniswapMainnetVotes,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
-    enum_name = "notification_dispatched_state_enum"
+    enum_name = "notification_dispatch_status_enum"
 )]
-pub enum NotificationDispatchedStateEnum {
-    #[sea_orm(string_value = "DELETED")]
-    Deleted,
+pub enum NotificationDispatchStatusEnum {
     #[sea_orm(string_value = "DISPATCHED")]
     Dispatched,
     #[sea_orm(string_value = "FAILED")]
     Failed,
-    #[sea_orm(string_value = "FIRST_RETRY")]
-    FirstRetry,
     #[sea_orm(string_value = "NOT_DISPATCHED")]
     NotDispatched,
-    #[sea_orm(string_value = "SECOND_RETRY")]
-    SecondRetry,
-    #[sea_orm(string_value = "THIRD_RETRY")]
-    ThirdRetry,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
-    enum_name = "notification_type_enum_v2"
+    enum_name = "notification_type_enum"
 )]
-pub enum NotificationTypeEnumV2 {
+pub enum NotificationTypeEnum {
     #[sea_orm(string_value = "EMAIL_BULLETIN")]
     EmailBulletin,
     #[sea_orm(string_value = "EMAIL_QUORUM_NOT_REACHED")]
@@ -94,12 +126,8 @@ pub enum NotificationTypeEnumV2 {
     PushTimeend,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(
-    rs_type = "String",
-    db_type = "Enum",
-    enum_name = "proposal_state_enum"
-)]
-pub enum ProposalStateEnum {
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "proposal_state")]
+pub enum ProposalState {
     #[sea_orm(string_value = "ACTIVE")]
     Active,
     #[sea_orm(string_value = "CANCELED")]

@@ -1,40 +1,59 @@
 import type { ColumnType } from "kysely";
 
-export enum DaoHandlerEnumV4 {
-  AAVEV2MAINNET = "AAVE_V2_MAINNET",
-  AAVEV3AVALANCHE = "AAVE_V3_AVALANCHE",
-  AAVEV3MAINNET = "AAVE_V3_MAINNET",
-  AAVEV3POLYGONPOS = "AAVE_V3_POLYGON_POS",
-  ARBCOREARBITRUM = "ARB_CORE_ARBITRUM",
-  ARBTREASURYARBITRUM = "ARB_TREASURY_ARBITRUM",
-  COMPOUNDMAINNET = "COMPOUND_MAINNET",
-  DYDXMAINNET = "DYDX_MAINNET",
-  ENSMAINNET = "ENS_MAINNET",
-  FRAXALPHAMAINNET = "FRAX_ALPHA_MAINNET",
-  FRAXOMEGAMAINNET = "FRAX_OMEGA_MAINNET",
-  GITCOINMAINNET = "GITCOIN_MAINNET",
-  GITCOINV2MAINNET = "GITCOIN_V2_MAINNET",
-  HOPMAINNET = "HOP_MAINNET",
-  MAKEREXECUTIVEMAINNET = "MAKER_EXECUTIVE_MAINNET",
-  MAKERPOLLARBITRUM = "MAKER_POLL_ARBITRUM",
-  MAKERPOLLMAINNET = "MAKER_POLL_MAINNET",
-  NOUNSPROPOSALSMAINNET = "NOUNS_PROPOSALS_MAINNET",
-  OPOPTIMISM = "OP_OPTIMISM",
-  SNAPSHOT = "SNAPSHOT",
-  UNISWAPMAINNET = "UNISWAP_MAINNET",
+export enum IndexerType {
+  PROPOSALS = "PROPOSALS",
+  VOTES = "VOTES",
 }
 
-export enum NotificationDispatchedStateEnum {
-  DELETED = "DELETED",
+export enum IndexerVariant {
+  AAVEV2MAINNETPROPOSALS = "AAVE_V2_MAINNET_PROPOSALS",
+  AAVEV2MAINNETVOTES = "AAVE_V2_MAINNET_VOTES",
+  AAVEV3AVALANCHEVOTES = "AAVE_V3_AVALANCHE_VOTES",
+  AAVEV3MAINNETPROPOSALS = "AAVE_V3_MAINNET_PROPOSALS",
+  AAVEV3MAINNETVOTES = "AAVE_V3_MAINNET_VOTES",
+  AAVEV3POLYGONVOTES = "AAVE_V3_POLYGON_VOTES",
+  ARBCOREARBITRUMPROPOSALS = "ARB_CORE_ARBITRUM_PROPOSALS",
+  ARBCOREARBITRUMVOTES = "ARB_CORE_ARBITRUM_VOTES",
+  ARBTREASURYARBITRUMPROPOSALS = "ARB_TREASURY_ARBITRUM_PROPOSALS",
+  ARBTREASURYARBITRUMVOTES = "ARB_TREASURY_ARBITRUM_VOTES",
+  COMPOUNDMAINNETPROPOSALS = "COMPOUND_MAINNET_PROPOSALS",
+  COMPOUNDMAINNETVOTES = "COMPOUND_MAINNET_VOTES",
+  DYDXMAINNETPROPOSALS = "DYDX_MAINNET_PROPOSALS",
+  DYDXMAINNETVOTES = "DYDX_MAINNET_VOTES",
+  ENSMAINNETPROPOSALS = "ENS_MAINNET_PROPOSALS",
+  ENSMAINNETVOTES = "ENS_MAINNET_VOTES",
+  FRAXALPHAMAINNETPROPOSALS = "FRAX_ALPHA_MAINNET_PROPOSALS",
+  FRAXALPHAMAINNETVOTES = "FRAX_ALPHA_MAINNET_VOTES",
+  FRAXOMEGAMAINNETPROPOSALS = "FRAX_OMEGA_MAINNET_PROPOSALS",
+  FRAXOMEGAMAINNETVOTES = "FRAX_OMEGA_MAINNET_VOTES",
+  GITCOINMAINNETPROPOSALS = "GITCOIN_MAINNET_PROPOSALS",
+  GITCOINMAINNETVOTES = "GITCOIN_MAINNET_VOTES",
+  GITCOINV2MAINNETPROPOSALS = "GITCOIN_V2_MAINNET_PROPOSALS",
+  GITCOINV2MAINNETVOTES = "GITCOIN_V2_MAINNET_VOTES",
+  HOPMAINNETPROPOSALS = "HOP_MAINNET_PROPOSALS",
+  HOPMAINNETVOTES = "HOP_MAINNET_VOTES",
+  MAKEREXECUTIVEMAINNETPROPOSALS = "MAKER_EXECUTIVE_MAINNET_PROPOSALS",
+  MAKEREXECUTIVEMAINNETVOTES = "MAKER_EXECUTIVE_MAINNET_VOTES",
+  MAKERPOLLARBITRUMVOTES = "MAKER_POLL_ARBITRUM_VOTES",
+  MAKERPOLLMAINNETPROPOSALS = "MAKER_POLL_MAINNET_PROPOSALS",
+  MAKERPOLLMAINNETVOTES = "MAKER_POLL_MAINNET_VOTES",
+  NOUNSPROPOSALSMAINNETPROPOSALS = "NOUNS_PROPOSALS_MAINNET_PROPOSALS",
+  NOUNSPROPOSALSMAINNETVOTES = "NOUNS_PROPOSALS_MAINNET_VOTES",
+  OPOPTIMISMPROPOSALS = "OP_OPTIMISM_PROPOSALS",
+  OPOPTIMISMVOTES = "OP_OPTIMISM_VOTES",
+  SNAPSHOTPROPOSALS = "SNAPSHOT_PROPOSALS",
+  SNAPSHOTVOTES = "SNAPSHOT_VOTES",
+  UNISWAPMAINNETPROPOSALS = "UNISWAP_MAINNET_PROPOSALS",
+  UNISWAPMAINNETVOTES = "UNISWAP_MAINNET_VOTES",
+}
+
+export enum NotificationDispatchStatusEnum {
   DISPATCHED = "DISPATCHED",
   FAILED = "FAILED",
-  FIRSTRETRY = "FIRST_RETRY",
   NOTDISPATCHED = "NOT_DISPATCHED",
-  SECONDRETRY = "SECOND_RETRY",
-  THIRDRETRY = "THIRD_RETRY",
 }
 
-export enum NotificationTypeEnumV2 {
+export enum NotificationTypeEnum {
   EMAILBULLETIN = "EMAIL_BULLETIN",
   EMAILQUORUMNOTREACHED = "EMAIL_QUORUM_NOT_REACHED",
   EMAILTIMEEND = "EMAIL_TIMEEND",
@@ -42,7 +61,7 @@ export enum NotificationTypeEnumV2 {
   PUSHTIMEEND = "PUSH_TIMEEND",
 }
 
-export enum ProposalStateEnum {
+export enum ProposalState {
   ACTIVE = "ACTIVE",
   CANCELED = "CANCELED",
   DEFEATED = "DEFEATED",
@@ -75,46 +94,32 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-export interface CountdownCache {
-  id: Generated<string>;
-  largeUrl: string;
-  smallUrl: string;
-  time: Timestamp;
-}
-
 export interface Dao {
+  backgroundColor: Generated<string>;
+  emailQuorumWarningSupport: Generated<boolean>;
   hot: Generated<boolean>;
   id: Generated<string>;
   name: string;
+  picture: string;
   slug: string;
 }
 
 export interface DaoDiscourse {
   daoId: string;
   discourseBaseUrl: string;
+  enabled: Generated<boolean>;
   id: Generated<string>;
-  refreshEnabled: Generated<boolean>;
 }
 
-export interface DaoHandler {
+export interface DaoIndexer {
   daoId: string;
-  governancePortal: Generated<string>;
-  handlerType: DaoHandlerEnumV4;
+  enabled: Generated<boolean>;
   id: Generated<string>;
-  proposalsIndex: Generated<number>;
-  proposalsRefreshSpeed: Generated<number>;
-  refreshEnabled: Generated<boolean>;
-  votesIndex: Generated<number>;
-  votesRefreshSpeed: Generated<number>;
-}
-
-export interface DaoSettings {
-  backgroundColor: Generated<string>;
-  daoId: string;
-  id: Generated<string>;
-  picture: string;
-  quorumWarningEmailSupport: Generated<boolean>;
-  twitterAccount: Json | null;
+  index: Generated<number>;
+  indexerType: IndexerType;
+  indexerVariant: IndexerVariant;
+  portalUrl: string | null;
+  speed: Generated<number>;
 }
 
 export interface DiscourseCategory {
@@ -206,51 +211,45 @@ export interface DiscourseUser {
 }
 
 export interface EmailVerification {
-  code: Generated<string>;
-  email: string;
+  code: string;
+  createdAt: Generated<Timestamp>;
   expiresAt: Timestamp;
   id: Generated<string>;
   userId: string;
 }
 
-export interface JobQueue {
-  createdAt: Generated<Timestamp | null>;
-  id: Generated<number>;
-  job: Json;
-  jobType: string;
-  processed: Generated<boolean | null>;
-}
-
 export interface Notification {
-  dispatchstatus: Generated<NotificationDispatchedStateEnum>;
+  dispatchedAt: Timestamp | null;
+  dispatchStatus: Generated<NotificationDispatchStatusEnum>;
   id: Generated<string>;
-  proposalId: string | null;
-  submittedAt: Timestamp;
-  type: NotificationTypeEnumV2 | null;
-  userId: string | null;
+  proposalId: string;
+  submittedAt: Generated<Timestamp>;
+  type: NotificationTypeEnum;
+  userId: string;
 }
 
 export interface Proposal {
   blockCreated: number | null;
   body: string;
   choices: Generated<Json>;
-  daoHandlerId: string;
   daoId: string;
+  daoIndexerId: string;
   discussionUrl: string;
   externalId: string;
-  flagged: Generated<boolean>;
+  flaggedSpam: Generated<boolean>;
   id: Generated<string>;
   indexCreated: Generated<number>;
   metadata: Json | null;
   name: string;
-  proposalState: ProposalStateEnum;
+  proposalState: ProposalState;
   quorum: number;
   scores: Generated<Json>;
-  scoresQuorum: Generated<number>;
+  scoresQuorum: number;
   scoresTotal: number;
-  timeCreated: Timestamp | null;
+  timeCreated: Timestamp;
   timeEnd: Timestamp;
   timeStart: Timestamp;
+  txid: string | null;
   url: string;
   votesFetched: Generated<boolean>;
   votesIndex: Generated<number>;
@@ -258,16 +257,17 @@ export interface Proposal {
 }
 
 export interface Subscription {
+  createdAt: Generated<Timestamp>;
   daoId: string;
   id: Generated<string>;
   userId: string;
 }
 
 export interface User {
+  createdAt: Generated<Timestamp>;
   email: string;
   emailVerified: Generated<boolean>;
   id: Generated<string>;
-  onboardingStep: Generated<number>;
 }
 
 export interface UserPushNotificationSubscription {
@@ -279,7 +279,7 @@ export interface UserPushNotificationSubscription {
 }
 
 export interface UserSession {
-  email: string;
+  createdAt: Generated<Timestamp>;
   expiresAt: Timestamp;
   id: string;
   userId: string;
@@ -303,14 +303,15 @@ export interface UserToVoter {
 export interface Vote {
   blockCreated: number | null;
   choice: Generated<Json>;
-  daoHandlerId: string;
   daoId: string;
   id: Generated<string>;
   indexCreated: Generated<number>;
+  indexerId: string;
   proposalExternalId: string;
   proposalId: string;
   reason: string | null;
   timeCreated: Timestamp | null;
+  txid: string | null;
   voterAddress: string;
   votingPower: number;
   vpState: string | null;
@@ -323,17 +324,14 @@ export interface Voter {
 }
 
 export interface DB {
-  countdownCache: CountdownCache;
   dao: Dao;
   daoDiscourse: DaoDiscourse;
-  daoHandler: DaoHandler;
-  daoSettings: DaoSettings;
+  daoIndexer: DaoIndexer;
   discourseCategory: DiscourseCategory;
   discoursePost: DiscoursePost;
   discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;
   emailVerification: EmailVerification;
-  jobQueue: JobQueue;
   notification: Notification;
   proposal: Proposal;
   subscription: Subscription;
