@@ -27,7 +27,7 @@ impl ApiHandler {
     pub fn new(max_retries: usize) -> Self {
         let client = Client::new();
         let semaphore = Arc::new(Semaphore::new(5));
-        let (sender, receiver) = mpsc::channel(100);
+        let (sender, receiver) = mpsc::channel(1000);
         let jobs_in_queue = Arc::new(AtomicUsize::new(0));
 
         let api_handler = Self {
