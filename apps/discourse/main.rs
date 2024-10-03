@@ -62,7 +62,6 @@ async fn main() -> Result<()> {
         let category_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
-                interval.tick().await;
                 let category_fetcher = CategoryFetcher::new(
                     &dao_discourse_category_clone.discourse_base_url,
                     Arc::clone(&api_handler),
@@ -89,6 +88,7 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+                interval.tick().await;
             }
         });
 
@@ -99,7 +99,6 @@ async fn main() -> Result<()> {
         let user_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
-                interval.tick().await;
                 let user_fetcher = UserFetcher::new(
                     &dao_discourse_users_clone.discourse_base_url,
                     Arc::clone(&api_handler),
@@ -123,6 +122,7 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+                interval.tick().await;
             }
         });
 
@@ -133,8 +133,6 @@ async fn main() -> Result<()> {
         let topic_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
-                interval.tick().await;
-
                 let topic_fetcher = TopicFetcher::new(
                     &dao_discourse_topic_clone.discourse_base_url,
                     Arc::clone(&api_handler),
@@ -158,6 +156,7 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+                interval.tick().await;
             }
         });
 
@@ -167,7 +166,6 @@ async fn main() -> Result<()> {
         let post_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
-                interval.tick().await;
                 let post_fetcher = PostFetcher::new(
                     &dao_discourse_post_clone.discourse_base_url,
                     Arc::clone(&api_handler),
@@ -209,6 +207,7 @@ async fn main() -> Result<()> {
                         }
                     }
                 }
+                interval.tick().await;
             }
         });
 
@@ -218,8 +217,6 @@ async fn main() -> Result<()> {
         let newcontent_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(5 * 60));
             loop {
-                interval.tick().await;
-
                 let topic_fetcher = TopicFetcher::new(
                     &dao_discourse_newcontent_clone.discourse_base_url,
                     Arc::clone(&api_handler),
@@ -275,6 +272,7 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+                interval.tick().await;
             }
         });
 
