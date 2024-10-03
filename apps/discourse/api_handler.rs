@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use reqwest::header::USER_AGENT;
+use reqwest::header::{RETRY_AFTER, USER_AGENT};
 use reqwest::Client;
 use serde::de::DeserializeOwned;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -121,7 +121,7 @@ impl ApiHandler {
 
                         let retry_after = response
                             .headers()
-                            .get("Retry-After")
+                            .get(RETRY_AFTER)
                             .and_then(|h| h.to_str().ok())
                             .and_then(|s| s.parse::<u64>().ok())
                             .map(Duration::from_secs)
