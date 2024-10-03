@@ -30,7 +30,7 @@ impl TopicFetcher {
 
         loop {
             let url = format!(
-                "{}/latest.json?order=created&ascending=true&page={}",
+                "{}/latest.json?order=created&ascending=false&page={}",
                 self.base_url, page
             );
             let response: TopicResponse = self.api_handler.fetch(&url).await?;
