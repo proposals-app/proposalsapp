@@ -1,4 +1,4 @@
-use crate::Indexer;
+use crate::indexer::Indexer;
 use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use contracts::gen::{

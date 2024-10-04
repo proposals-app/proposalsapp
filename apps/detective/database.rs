@@ -1,16 +1,15 @@
 use anyhow::{Context, Result};
 use sea_orm::{
-    prelude::Uuid,
-    sea_query::{LockBehavior, LockType},
-    ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, Order,
-    QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
+    prelude::Uuid, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection,
+    EntityTrait, QueryFilter, Set, TransactionTrait,
 };
 use seaorm::{dao_indexer, proposal, vote};
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
+use tracing::warn;
 
-pub struct DatabaseSetup;
+pub struct DatabaseStore;
 
-impl DatabaseSetup {
+impl DatabaseStore {
     pub async fn connect() -> Result<DatabaseConnection> {
         let database_url =
             std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
@@ -61,17 +60,65 @@ pub async fn store_proposals(
     Ok(())
 }
 
-pub async fn store_votes(db: &DatabaseConnection, votes: Vec<vote::ActiveModel>) -> Result<()> {
+pub async fn store_votes(
+    db: &DatabaseConnection,
+    indexer_id: Uuid,
+    votes: Vec<vote::ActiveModel>,
+) -> Result<()> {
+    if votes.is_empty() {
+        return Ok(());
+    }
+
+    let txn = db.begin().await?;
+
+    // Group votes by proposal_external_id
+    let mut votes_by_proposal: HashMap<String, Vec<vote::ActiveModel>> = HashMap::new();
     for vote in votes {
-        vote::Entity::insert(vote)
+        votes_by_proposal
+            .entry(vote.proposal_external_id.clone().unwrap())
+            .or_insert_with(Vec::new)
+            .push(vote);
+    }
+
+    let proposal_external_ids: Vec<String> = votes_by_proposal.keys().cloned().collect();
+    let proposals: Vec<proposal::Model> = proposal::Entity::find()
+        .filter(proposal::Column::ExternalId.is_in(proposal_external_ids.clone()))
+        .filter(proposal::Column::DaoIndexerId.eq(indexer_id))
+        .all(&txn)
+        .await?;
+
+    let proposal_id_map: HashMap<String, Uuid> = proposals
+        .into_iter()
+        .map(|p| (p.external_id, p.id))
+        .collect();
+
+    let mut votes_to_insert: Vec<vote::ActiveModel> = Vec::new();
+    for (external_id, mut votes_for_proposal) in votes_by_proposal {
+        if let Some(&proposal_id) = proposal_id_map.get(&external_id) {
+            for vote in &mut votes_for_proposal {
+                vote.proposal_id = Set(proposal_id);
+            }
+            votes_to_insert.extend(votes_for_proposal);
+        } else {
+            warn!(
+                "No matching proposal found for external_id: {}",
+                external_id
+            );
+        }
+    }
+
+    if !votes_to_insert.is_empty() {
+        vote::Entity::insert_many(votes_to_insert)
             .on_conflict(
                 sea_orm::sea_query::OnConflict::column(vote::Column::Id)
-                    .update_column(vote::Column::Choice)
+                    .do_nothing()
                     .to_owned(),
             )
-            .exec(db)
+            .exec(&txn)
             .await?;
     }
+
+    txn.commit().await?;
     Ok(())
 }
 

@@ -2,8 +2,9 @@ use anyhow::Result;
 use axum::routing::get;
 use axum::Router;
 use dotenv::dotenv;
-use indexer::Indexer;
+use indexer::{Indexer, IndexerImpl};
 use indexers::aave_v2_mainnet_proposals::AaveV2MainnetProposalsIndexer;
+use indexers::aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer;
 use sea_orm::DatabaseConnection;
 use seaorm::sea_orm_active_enums::IndexerVariant;
 use std::sync::Arc;
@@ -20,8 +21,8 @@ mod indexer;
 mod indexers;
 
 use database::{
-    fetch_dao_indexers, store_proposals, update_indexer_speed, update_indexer_speed_and_index,
-    DatabaseSetup,
+    fetch_dao_indexers, store_proposals, store_votes, update_indexer_speed,
+    update_indexer_speed_and_index, DatabaseStore,
 };
 
 static MAX_JOBS: usize = 100;
@@ -34,7 +35,7 @@ static JOB_TIMEOUT: Duration = Duration::from_secs(30);
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_tracing();
-    let db: DatabaseConnection = DatabaseSetup::connect().await?;
+    let db: DatabaseConnection = DatabaseStore::connect().await?;
 
     // Create a channel for the job queue
     let (tx, mut rx) = mpsc::channel::<(seaorm::dao_indexer::Model, String)>(MAX_JOBS);
@@ -116,9 +117,12 @@ async fn main() -> Result<()> {
                     .await;
 
                     match result {
-                        Ok(Ok((proposals, _votes))) => {
+                        Ok(Ok((proposals, votes))) => {
                             if let Err(e) = store_proposals(&db, indexer.id, proposals).await {
                                 error!("Failed to store proposals: {:?}", e);
+                            }
+                            if let Err(e) = store_votes(&db, indexer.id, votes).await {
+                                error!("Failed to store votes: {:?}", e);
                             }
                             let new_speed =
                                 indexer_implementation.adjust_speed(indexer.speed, true);
@@ -184,59 +188,15 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer + Send + Sync> {
+pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
     match indexer_variant {
-        IndexerVariant::AaveV2MainnetProposals => Box::new(AaveV2MainnetProposalsIndexer),
-        IndexerVariant::AaveV2MainnetVotes => todo!(),
-
-        IndexerVariant::AaveV3MainnetProposals => todo!(),
-        IndexerVariant::AaveV3MainnetVotes => todo!(),
-        IndexerVariant::AaveV3PolygonVotes => todo!(),
-        IndexerVariant::AaveV3AvalancheVotes => todo!(),
-
-        IndexerVariant::ArbCoreArbitrumProposals => todo!(),
-        IndexerVariant::ArbCoreArbitrumVotes => todo!(),
-        IndexerVariant::ArbTreasuryArbitrumProposals => todo!(),
-        IndexerVariant::ArbTreasuryArbitrumVotes => todo!(),
-
-        IndexerVariant::CompoundMainnetProposals => todo!(),
-        IndexerVariant::CompoundMainnetVotes => todo!(),
-
-        IndexerVariant::DydxMainnetProposals => todo!(),
-        IndexerVariant::DydxMainnetVotes => todo!(),
-
-        IndexerVariant::EnsMainnetProposals => todo!(),
-        IndexerVariant::EnsMainnetVotes => todo!(),
-
-        IndexerVariant::FraxAlphaMainnetProposals => todo!(),
-        IndexerVariant::FraxAlphaMainnetVotes => todo!(),
-        IndexerVariant::FraxOmegaMainnetProposals => todo!(),
-        IndexerVariant::FraxOmegaMainnetVotes => todo!(),
-
-        IndexerVariant::GitcoinMainnetProposals => todo!(),
-        IndexerVariant::GitcoinMainnetVotes => todo!(),
-        IndexerVariant::GitcoinV2MainnetProposals => todo!(),
-        IndexerVariant::GitcoinV2MainnetVotes => todo!(),
-
-        IndexerVariant::HopMainnetProposals => todo!(),
-        IndexerVariant::HopMainnetVotes => todo!(),
-
-        IndexerVariant::MakerExecutiveMainnetProposals => todo!(),
-        IndexerVariant::MakerExecutiveMainnetVotes => todo!(),
-        IndexerVariant::MakerPollArbitrumVotes => todo!(),
-        IndexerVariant::MakerPollMainnetProposals => todo!(),
-        IndexerVariant::MakerPollMainnetVotes => todo!(),
-
-        IndexerVariant::NounsProposalsMainnetProposals => todo!(),
-        IndexerVariant::NounsProposalsMainnetVotes => todo!(),
-
-        IndexerVariant::OpOptimismProposals => todo!(),
-        IndexerVariant::OpOptimismVotes => todo!(),
-
-        IndexerVariant::SnapshotProposals => todo!(),
-        IndexerVariant::SnapshotVotes => todo!(),
-
-        IndexerVariant::UniswapMainnetProposals => todo!(),
-        IndexerVariant::UniswapMainnetVotes => todo!(),
+        IndexerVariant::AaveV2MainnetProposals => Box::new(IndexerImpl::AaveV2MainnetProposals(
+            AaveV2MainnetProposalsIndexer,
+        )),
+        IndexerVariant::AaveV2MainnetVotes => {
+            Box::new(IndexerImpl::AaveV2MainnetVotes(AaveV2MainnetVotesIndexer))
+        }
+        // Add other matches as needed
+        _ => todo!("Implement other indexer variants"),
     }
 }

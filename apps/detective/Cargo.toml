@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true, features = ["backtrace"] }
-async-trait = { workspace = true }
+async-trait = "0.1.83"
 axum = { workspace = true }
 chrono = { workspace = true }
 contracts = { path = "../../libs/rust/contracts" }
