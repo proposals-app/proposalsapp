@@ -24,7 +24,7 @@ impl TopicFetcher {
         db_handler: &DbHandler,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        let mut page = 1;
+        let mut page = 0;
         let mut total_topics = 0;
         let mut previous_response: Option<TopicResponse> = None;
 
@@ -77,7 +77,7 @@ impl TopicFetcher {
         db_handler: &DbHandler,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        let mut page = 1;
+        let mut page = 0;
         let mut total_topics = 0;
         let max_pages = 5;
 

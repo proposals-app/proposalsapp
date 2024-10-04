@@ -226,7 +226,7 @@ export interface Notification {
   id: Generated<string>;
   proposalId: string | null;
   submittedAt: Timestamp;
-  type: NotificationTypeEnumV2 | null;
+  type: NotificationTypeEnumV2;
   userId: string | null;
 }
 

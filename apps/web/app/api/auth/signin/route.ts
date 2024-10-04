@@ -1,20 +1,17 @@
 import { db } from "@proposalsapp/db";
 import { NextResponse } from "next/server";
-import { NextURL } from "next/dist/server/web/next-url";
 import { ServerClient } from "postmark";
 import { AuthCodeEmail, render } from "@proposalsapp/emails";
-import { generateEmailVerificationCode, lucia } from "@/lib/auth";
+import { generateEmailVerificationCode } from "@/lib/auth";
 
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
 
 export async function POST(request: Request) {
   const { email } = await request.json();
 
-  if (!email)
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
+  if (!email) {
+    return NextResponse.json({ error: "Email is required" }, { status: 400 });
+  }
 
   let user = await db
     .selectFrom("user")
@@ -23,9 +20,6 @@ export async function POST(request: Request) {
     .executeTakeFirst();
 
   if (!user) {
-    //use this opportunity to do some cleanup
-    await lucia.deleteExpiredSessions();
-
     await db
       .insertInto("user")
       .values({
@@ -58,18 +52,8 @@ export async function POST(request: Request) {
 
   await client.sendEmail(options);
 
-  const session = await lucia.createSession(user.id, {
-    email: email,
-  });
-  const sessionCookie = lucia.createSessionCookie(session.id);
-
-  let response = NextResponse.redirect(new NextURL("/", request.url));
-
-  response.cookies.set(
-    sessionCookie.name,
-    sessionCookie.value,
-    sessionCookie.attributes,
+  return NextResponse.json(
+    { message: "Verification code sent" },
+    { status: 200 },
   );
-
-  return response;
 }

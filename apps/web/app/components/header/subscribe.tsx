@@ -71,6 +71,7 @@ export const SubscribeButton = () => {
   const [termsAgreed, setTermsAgreed] = useState(false);
   const router = useRouter();
   const [page, setPage] = useState(Page.EMAIL);
+  const [email, setEmail] = useState("");
 
   const emailForm = useForm<z.infer<typeof EmailFormSchema>>({
     resolver: zodResolver(EmailFormSchema),
@@ -88,14 +89,21 @@ export const SubscribeButton = () => {
 
   const signIn = async (data: z.infer<typeof EmailFormSchema>) => {
     try {
-      setPage(Page.CODE);
-      await fetch("/api/auth/signin", {
+      const response = await fetch("/api/auth/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
+
+      if (response.ok) {
+        setEmail(data.email);
+        setPage(Page.CODE);
+      } else {
+        // Handle error
+        console.error("Error sending verification code");
+      }
     } catch (error) {
       console.error("Error signing in:", error);
     }
@@ -103,15 +111,22 @@ export const SubscribeButton = () => {
 
   const verify = async (data: z.infer<typeof OtpFormSchema>) => {
     try {
-      await fetch("/api/auth/verify", {
+      const response = await fetch("/api/auth/verify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
-      }).then(() => router.refresh());
+        body: JSON.stringify({ email, otp: data.otp }),
+      });
+
+      if (response.ok) {
+        router.refresh();
+      } else {
+        // Handle error
+        console.error("Error verifying code");
+      }
     } catch (error) {
-      console.error("Error signing in:", error);
+      console.error("Error verifying:", error);
     }
   };
 

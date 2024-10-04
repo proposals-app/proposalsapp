@@ -9,7 +9,7 @@ export const PostHogIdentifier = () => {
   const { user } = useSession();
 
   useEffect(() => {
-    if (user && user?.email_verified) posthog.identify(user.email);
+    if (user && user?.emailVerified) posthog.identify(user.email);
   }, [user]);
 
   return <></>;

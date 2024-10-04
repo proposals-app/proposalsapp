@@ -22,7 +22,7 @@ export const lucia = new Lucia(adapter, {
   getUserAttributes: (attributes) => {
     return {
       email: attributes.email,
-      email_verified: attributes.email_verified,
+      emailVerified: attributes.email_verified,
     };
   },
 });
@@ -80,7 +80,7 @@ export async function generateEmailVerificationCode(
       userId: userId,
       email: email,
       code: code,
-      expiresAt: createDate(new TimeSpan(5, "m")),
+      expiresAt: createDate(new TimeSpan(15, "m")), // Increase expiration time to 15 minutes
     })
     .execute();
 
@@ -91,25 +91,23 @@ export async function verifyVerificationCode(
   user: User,
   code: string,
 ): Promise<boolean> {
-  return await db.transaction().execute(async (tx) => {
-    const databaseCode = await db
-      .selectFrom("emailVerification")
-      .selectAll()
-      .where("userId", "=", user.id)
-      .executeTakeFirst();
+  const databaseCode = await db
+    .selectFrom("emailVerification")
+    .selectAll()
+    .where("userId", "=", user.id)
+    .executeTakeFirst();
 
-    if (!databaseCode || databaseCode.code != code) return false;
+  if (!databaseCode || databaseCode.code !== code) return false;
 
-    await db
-      .deleteFrom("emailVerification")
-      .where("id", "=", databaseCode.id)
-      .execute();
+  await db
+    .deleteFrom("emailVerification")
+    .where("id", "=", databaseCode.id)
+    .execute();
 
-    if (!isWithinExpirationDate(databaseCode.expiresAt)) return false;
-    if (databaseCode.email != user.email) return false;
+  if (!isWithinExpirationDate(databaseCode.expiresAt)) return false;
+  if (databaseCode.email !== user.email) return false;
 
-    return true;
-  });
+  return true;
 }
 
 declare module "lucia" {
