@@ -30,44 +30,6 @@ const sendUptimePing = async () => {
 
 setInterval(sendUptimePing, 10 * 1000);
 
-const processJobQueue = async () => {
-  try {
-    const jobs = await db
-      .selectFrom("jobQueue")
-      .selectAll()
-      .where("processed", "=", false)
-      .where("jobType", "in", [
-        NotificationTypeEnumV2.PUSHTIMEEND,
-        NotificationTypeEnumV2.PUSHQUORUMNOTREACHED,
-      ])
-      .execute();
-
-    for (const job of jobs) {
-      const message = job.job as {
-        userId: string;
-        proposalId: string;
-        type: NotificationTypeEnumV2;
-      };
-      try {
-        await sendPushNotification(
-          message.userId,
-          message.proposalId,
-          message.type,
-        );
-        await db
-          .updateTable("jobQueue")
-          .set({ processed: true })
-          .where("id", "=", job.id)
-          .execute();
-      } catch (e) {
-        console.log(e);
-      }
-    }
-  } catch (err) {
-    console.error("Error processing job queue:", err);
-  }
-};
-
 const checkProposalsAndCreateJobs = async () => {
   const proposals = await db
     .selectFrom("proposal")
@@ -77,6 +39,7 @@ const checkProposalsAndCreateJobs = async () => {
     .execute();
 
   const daos = proposals.map((p) => p.daoId);
+  if (!proposals.length) return;
   if (!daos.length) return;
 
   const users = await db
@@ -89,7 +52,6 @@ const checkProposalsAndCreateJobs = async () => {
     .distinct()
     .execute();
 
-  if (proposals.length == 0) return;
   console.log(`${proposals.length} proposals for ${users.length} users`);
 
   for (const user of users) {
@@ -155,6 +117,44 @@ const checkProposalsAndCreateJobs = async () => {
   }
 };
 
+const processJobQueue = async () => {
+  try {
+    const jobs = await db
+      .selectFrom("jobQueue")
+      .selectAll()
+      .where("processed", "=", false)
+      .where("jobType", "in", [
+        NotificationTypeEnumV2.PUSHTIMEEND,
+        NotificationTypeEnumV2.PUSHQUORUMNOTREACHED,
+      ])
+      .execute();
+
+    for (const job of jobs) {
+      const message = job.job as {
+        userId: string;
+        proposalId: string;
+        type: NotificationTypeEnumV2;
+      };
+      try {
+        await sendPushNotification(
+          message.userId,
+          message.proposalId,
+          message.type,
+        );
+        await db
+          .updateTable("jobQueue")
+          .set({ processed: true })
+          .where("id", "=", job.id)
+          .execute();
+      } catch (e) {
+        console.log(e);
+      }
+    }
+  } catch (err) {
+    console.error("Error processing job queue:", err);
+  }
+};
+
 const sendPushNotification = async (
   userId: string,
   proposalId: string,
@@ -202,6 +202,8 @@ const sendPushNotification = async (
         JSON.stringify({ title: "Your Vote is Needed!", message: message }),
       );
 
+      console.log(JSON.stringify(result));
+
       if (result.statusCode === 201) {
         await db
           .insertInto("notification")
@@ -213,24 +215,12 @@ const sendPushNotification = async (
             submittedAt: new Date(),
           })
           .execute();
+        console.log(`Sent push notification for ${proposalId} to ${userId}`);
       }
     } catch (e) {
       console.log(e);
     }
   }
-
-  await db
-    .insertInto("notification")
-    .values({
-      userId,
-      proposalId,
-      type: notificationType,
-      dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
-      submittedAt: new Date(),
-    })
-    .execute();
-
-  console.log(`Sent push notification for ${proposalId} to ${userId}`);
 };
 
 cron.schedule("* * * * *", processJobQueue);
