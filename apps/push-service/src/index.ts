@@ -160,6 +160,7 @@ const sendPushNotification = async (
   proposalId: string,
   notificationType: NotificationTypeEnumV2,
 ) => {
+  console.log(notificationType);
   const [userPushSubscriptions, dao] = await Promise.all([
     db
       .selectFrom("userPushNotificationSubscription")
