@@ -202,9 +202,7 @@ const sendPushNotification = async (
         JSON.stringify({ title: "Your Vote is Needed!", message: message }),
       );
 
-      console.log(JSON.stringify(result));
-
-      if (result.statusCode === 201) {
+      if (result.statusCode == 201) {
         await db
           .insertInto("notification")
           .values({
