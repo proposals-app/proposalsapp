@@ -21,7 +21,7 @@ pub struct Model {
     pub proposal_id: Option<Uuid>,
     pub dispatchstatus: NotificationDispatchedStateEnum,
     pub submitted_at: DateTime,
-    pub r#type: Option<NotificationTypeEnumV2>,
+    pub r#type: NotificationTypeEnumV2,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -61,7 +61,7 @@ impl ColumnTrait for Column {
             Self::ProposalId => ColumnType::Uuid.def().null(),
             Self::Dispatchstatus => NotificationDispatchedStateEnum::db_type().def(),
             Self::SubmittedAt => ColumnType::DateTime.def(),
-            Self::Type => NotificationTypeEnumV2::db_type().def().null(),
+            Self::Type => NotificationTypeEnumV2::db_type().def(),
         }
     }
 }
