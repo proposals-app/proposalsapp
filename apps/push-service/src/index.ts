@@ -141,16 +141,17 @@ const sendPushNotification = async (
     .selectFrom("notification")
     .where("userId", "=", userId)
     .where("proposalId", "=", proposalId)
-    .where("notification.type", "=", notificationType)
-    .where(
-      "notification.dispatchstatus",
-      "=",
-      NotificationDispatchedStateEnum.DISPATCHED,
-    )
+    .where("type", "=", notificationType)
+    .where("dispatchstatus", "=", NotificationDispatchedStateEnum.DISPATCHED)
     .selectAll()
     .executeTakeFirst();
 
-  if (existingNotification) return;
+  if (existingNotification) {
+    console.log(
+      `Notification already sent for user ${userId} and proposal ${proposalId}`,
+    );
+    return;
+  }
 
   const [userPushSubscriptions, dao] = await Promise.all([
     db
@@ -211,7 +212,18 @@ const sendPushNotification = async (
     }
   }
 
-  console.log(`send push notification for ${proposalId} to ${userId}`);
+  await db
+    .insertInto("notification")
+    .values({
+      userId,
+      proposalId,
+      type: notificationType,
+      dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
+      submittedAt: new Date(),
+    })
+    .execute();
+
+  console.log(`Sent push notification for ${proposalId} to ${userId}`);
 };
 
 cron.schedule("* * * * *", processJobQueue);
