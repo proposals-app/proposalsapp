@@ -133,13 +133,12 @@ const processJobQueue = async () => {
       const message = job.job as {
         userId: string;
         proposalId: string;
-        type: NotificationTypeEnumV2;
       };
       try {
         await sendPushNotification(
           message.userId,
           message.proposalId,
-          message.type,
+          job.jobType as NotificationTypeEnumV2,
         );
         await db
           .updateTable("jobQueue")
