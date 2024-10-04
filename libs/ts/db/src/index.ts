@@ -23,7 +23,7 @@ const createDbInstance = () => {
       pool: db_pool,
     }),
     plugins: [
-      // new CamelCasePlugin(),
+      new CamelCasePlugin(),
       new DeduplicateJoinsPlugin(),
       new ParseJSONResultsPlugin(),
     ],
