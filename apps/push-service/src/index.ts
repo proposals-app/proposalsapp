@@ -114,6 +114,31 @@ const checkProposalsAndCreateJobs = async () => {
       if (votes.length > 0) continue;
 
       const quorumNotReached = proposal.quorum > proposal.scoresQuorum;
+      const notificationType = quorumNotReached
+        ? NotificationTypeEnumV2.PUSHQUORUMNOTREACHED
+        : NotificationTypeEnumV2.PUSHTIMEEND;
+
+      // Check if a notification has already been sent
+      const existingNotification = await db
+        .selectFrom("notification")
+        .where("userId", "=", user.id)
+        .where("proposalId", "=", proposal.id)
+        .where("type", "=", notificationType)
+        .where(
+          "dispatchstatus",
+          "=",
+          NotificationDispatchedStateEnum.DISPATCHED,
+        )
+        .select("id")
+        .executeTakeFirst();
+
+      if (existingNotification) {
+        console.log(
+          `Notification already sent for user ${user.id} and proposal ${proposal.id}`,
+        );
+        continue;
+      }
+
       const message = {
         userId: user.id,
         proposalId: proposal.id,
@@ -123,9 +148,7 @@ const checkProposalsAndCreateJobs = async () => {
         .insertInto("jobQueue")
         .values({
           job: message,
-          jobType: quorumNotReached
-            ? NotificationTypeEnumV2.PUSHQUORUMNOTREACHED
-            : NotificationTypeEnumV2.PUSHTIMEEND,
+          jobType: notificationType,
         })
         .execute();
     }
@@ -137,22 +160,6 @@ const sendPushNotification = async (
   proposalId: string,
   notificationType: NotificationTypeEnumV2,
 ) => {
-  const existingNotification = await db
-    .selectFrom("notification")
-    .where("userId", "=", userId)
-    .where("proposalId", "=", proposalId)
-    .where("type", "=", notificationType)
-    .where("dispatchstatus", "=", NotificationDispatchedStateEnum.DISPATCHED)
-    .selectAll()
-    .executeTakeFirst();
-
-  if (existingNotification) {
-    console.log(
-      `Notification already sent for user ${userId} and proposal ${proposalId}`,
-    );
-    return;
-  }
-
   const [userPushSubscriptions, dao] = await Promise.all([
     db
       .selectFrom("userPushNotificationSubscription")
