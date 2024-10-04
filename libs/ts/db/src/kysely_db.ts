@@ -257,6 +257,13 @@ export interface Proposal {
   votesRefreshSpeed: Generated<number>;
 }
 
+export interface ProposalGroup {
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  items: Generated<Json>;
+  name: string;
+}
+
 export interface Subscription {
   daoId: string;
   id: Generated<string>;
@@ -336,6 +343,7 @@ export interface DB {
   jobQueue: JobQueue;
   notification: Notification;
   proposal: Proposal;
+  proposalGroup: ProposalGroup;
   subscription: Subscription;
   user: User;
   userPushNotificationSubscription: UserPushNotificationSubscription;
