@@ -8,6 +8,7 @@ pub use super::discourse_post::Entity as DiscoursePost;
 pub use super::discourse_topic::Entity as DiscourseTopic;
 pub use super::discourse_user::Entity as DiscourseUser;
 pub use super::email_verification::Entity as EmailVerification;
+pub use super::job_queue::Entity as JobQueue;
 pub use super::kysely_migration::Entity as KyselyMigration;
 pub use super::kysely_migration_lock::Entity as KyselyMigrationLock;
 pub use super::notification::Entity as Notification;

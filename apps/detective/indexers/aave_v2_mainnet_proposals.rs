@@ -15,7 +15,7 @@ use ethers::{
 use regex::Regex;
 use scanners::etherscan::estimate_timestamp;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
+use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tracing::{info, warn};
@@ -27,8 +27,9 @@ impl Indexer for AaveV2MainnetProposalsIndexer {
     async fn process(
         &self,
         indexer: &dao_indexer::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>)> {
-        println!("Processing Aave V2 Mainnet Proposals");
+        _dao: &dao::Model,
+    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, u64)> {
+        info!("Processing Aave V2 Mainnet Proposals");
 
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
@@ -40,7 +41,7 @@ impl Indexer for AaveV2MainnetProposalsIndexer {
             .as_u64();
 
         let from_block = indexer.index;
-        let to_block = if indexer.index as u64 + indexer.speed as u64 > current_block {
+        let to_block = if indexer.index as u64 + indexer.speed as u64 >= current_block {
             current_block
         } else {
             indexer.index as u64 + indexer.speed as u64
@@ -70,7 +71,7 @@ impl Indexer for AaveV2MainnetProposalsIndexer {
             proposals.push(p);
         }
 
-        Ok((proposals, Vec::new()))
+        Ok((proposals, Vec::new(), to_block))
     }
     fn min_refresh_speed(&self) -> i32 {
         10
@@ -243,11 +244,9 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(created_block_number as i32),
-        votes_index: NotSet,
-        votes_fetched: NotSet,
-        votes_refresh_speed: NotSet,
         metadata: NotSet,
-        txid: Set(Some(meta.transaction_hash.to_string())),
+        txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+        snapshot_votes_fetched: NotSet,
     })
 }
 
@@ -577,8 +576,21 @@ mod aave_v2_proposals {
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        match AaveV2MainnetProposalsIndexer.process(&dao_indexer).await {
-            Ok((proposals, _)) => {
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match AaveV2MainnetProposalsIndexer
+            .process(&dao_indexer, &dao)
+            .await
+        {
+            Ok((proposals, _, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                         external_id: "0",
@@ -625,8 +637,21 @@ mod aave_v2_proposals {
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        match AaveV2MainnetProposalsIndexer.process(&dao_indexer).await {
-            Ok((proposals, _)) => {
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match AaveV2MainnetProposalsIndexer
+            .process(&dao_indexer, &dao)
+            .await
+        {
+            Ok((proposals, _, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     external_id: "388",
@@ -698,8 +723,21 @@ mod aave_v2_proposals {
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
         };
 
-        match AaveV2MainnetProposalsIndexer.process(&dao_indexer).await {
-            Ok((proposals, _)) => {
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match AaveV2MainnetProposalsIndexer
+            .process(&dao_indexer, &dao)
+            .await
+        {
+            Ok((proposals, _, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     external_id: "412",

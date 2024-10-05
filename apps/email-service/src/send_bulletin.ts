@@ -1,7 +1,7 @@
 import {
   Generated,
   Json,
-  ProposalStateEnum,
+  ProposalState,
   db,
   jsonArrayFrom,
 } from "@proposalsapp/db";
@@ -98,14 +98,12 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
       "in",
       subscriptions.map((sub) => sub.daoId),
     )
-    .where("proposalState", "!=", ProposalStateEnum.CANCELED)
-    .where("flagged", "=", false)
+    .where("proposalState", "!=", ProposalState.CANCELED)
+    .where("flaggedSpam", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
-    .select("dao.name as daoName")
-    .leftJoin("daoSettings", "proposal.daoId", "daoSettings.daoId")
-    .select("daoSettings.picture as daoPicture")
-    .leftJoin("daoHandler", "proposal.daoHandlerId", "daoHandler.id")
-    .select("daoHandler.handlerType as daoHandlerType")
+    .select(["dao.name as daoName", "dao.picture as daoPicture"])
+    .leftJoin("daoIndexer", "proposal.daoIndexerId", "daoIndexer.id")
+    .select("indexerVariant")
     .select((eb) => [
       jsonArrayFrom(
         eb
@@ -122,7 +120,7 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
     .execute();
 
   return proposals.map((p) => {
-    const chainLogoUrl = getChainLogoUrl(p.daoHandlerType!);
+    const chainLogoUrl = getChainLogoUrl(p.indexerVariant!);
     const voted = p.vote.length > 0;
 
     return {
@@ -172,14 +170,12 @@ async function getNew(userId: string): Promise<NewProposal[]> {
       "in",
       subscriptions.map((sub) => sub.daoId),
     )
-    .where("proposalState", "=", ProposalStateEnum.ACTIVE)
-    .where("flagged", "=", false)
+    .where("proposalState", "=", ProposalState.ACTIVE)
+    .where("flaggedSpam", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
-    .select("dao.name as daoName")
-    .leftJoin("daoSettings", "proposal.daoId", "daoSettings.daoId")
-    .select("daoSettings.picture as daoPicture")
-    .leftJoin("daoHandler", "proposal.daoHandlerId", "daoHandler.id")
-    .select("daoHandler.handlerType as daoHandlerType")
+    .select(["dao.name as daoName", "dao.picture as daoPicture"])
+    .leftJoin("daoIndexer", "proposal.daoIndexerId", "daoIndexer.id")
+    .select("indexerVariant")
     .select((eb) => [
       jsonArrayFrom(
         eb
@@ -196,7 +192,7 @@ async function getNew(userId: string): Promise<NewProposal[]> {
     .execute();
 
   return proposals.map((p) => {
-    const chainLogoUrl = getChainLogoUrl(p.daoHandlerType!);
+    const chainLogoUrl = getChainLogoUrl(p.indexerVariant!);
     const voted = p.vote.length > 0;
 
     return {
@@ -248,14 +244,12 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
       "in",
       subscriptions.map((sub) => sub.daoId),
     )
-    .where("proposalState", "!=", ProposalStateEnum.CANCELED)
-    .where("flagged", "=", false)
+    .where("proposalState", "!=", ProposalState.CANCELED)
+    .where("flaggedSpam", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
-    .select("dao.name as daoName")
-    .leftJoin("daoSettings", "proposal.daoId", "daoSettings.daoId")
-    .select("daoSettings.picture as daoPicture")
-    .leftJoin("daoHandler", "proposal.daoHandlerId", "daoHandler.id")
-    .select("daoHandler.handlerType as daoHandlerType")
+    .select(["dao.name as daoName", "dao.picture as daoPicture"])
+    .leftJoin("daoIndexer", "proposal.daoIndexerId", "daoIndexer.id")
+    .select("indexerVariant")
     .select((eb) => [
       jsonArrayFrom(
         eb
@@ -296,7 +290,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
   }
 
   return proposals.map((p) => {
-    const chainLogoUrl = getChainLogoUrl(p.daoHandlerType!);
+    const chainLogoUrl = getChainLogoUrl(p.indexerVariant!);
     const voted = p.vote.length > 0;
 
     const choices = parseJsonField<string[]>(p.choices as Generated<Json>);
@@ -304,10 +298,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
 
     let result;
     let makerResult;
-    if (
-      p.scoresTotal > p.quorum &&
-      p.proposalState !== ProposalStateEnum.HIDDEN
-    ) {
+    if (p.scoresTotal > p.quorum && p.proposalState !== ProposalState.HIDDEN) {
       if (p.daoName !== "MakerDAO" && choices && scores) {
         const choiceIndex = getMaxScoreIndex(scores);
         result = {
@@ -336,7 +327,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
         : "assets/email/did-not-vote.png",
       voteStatus: voted ? "Voted" : "Did not vote",
       quorumReached: p.scoresQuorum > p.quorum,
-      hiddenResult: p.proposalState === ProposalStateEnum.HIDDEN,
+      hiddenResult: p.proposalState === ProposalState.HIDDEN,
       result,
       makerResult,
     };

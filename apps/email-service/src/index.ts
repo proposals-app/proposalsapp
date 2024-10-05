@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { config as dotenvConfig } from "dotenv";
 import express from "express";
-import { db, NotificationTypeEnumV2 } from "@proposalsapp/db";
+import { db, NotificationTypeEnum } from "@proposalsapp/db";
 import axios from "axios";
 import { sendBulletin } from "./send_bulletin";
 import { sendQuorum } from "./send_quorum";
@@ -37,7 +37,7 @@ export type JobData = {
 type SendFunction = (job: JobData) => Promise<void>;
 
 async function processJobQueue(
-  jobType: NotificationTypeEnumV2,
+  jobType: NotificationTypeEnum,
   sendFunction: SendFunction,
 ) {
   try {
@@ -71,15 +71,12 @@ const typedSendTimeend: SendFunction = sendTimeend;
 
 // Process job queues every minute
 cron.schedule("* * * * *", async () => {
+  await processJobQueue(NotificationTypeEnum.EMAILBULLETIN, typedSendBulletin);
   await processJobQueue(
-    NotificationTypeEnumV2.EMAILBULLETIN,
-    typedSendBulletin,
-  );
-  await processJobQueue(
-    NotificationTypeEnumV2.EMAILQUORUMNOTREACHED,
+    NotificationTypeEnum.EMAILQUORUMNOTREACHED,
     typedSendQuorum,
   );
-  await processJobQueue(NotificationTypeEnumV2.EMAILTIMEEND, typedSendTimeend);
+  await processJobQueue(NotificationTypeEnum.EMAILTIMEEND, typedSendTimeend);
 });
 
 // Schedule tasks to add jobs to the job queues
@@ -101,7 +98,7 @@ cron.schedule("0 8 * * *", async () => {
         .insertInto("jobQueue")
         .values({
           job: { userId: user.id },
-          jobType: NotificationTypeEnumV2.EMAILBULLETIN,
+          jobType: NotificationTypeEnum.EMAILBULLETIN,
         })
         .execute();
     }

@@ -1,34 +1,50 @@
 use anyhow::Result;
 use axum::routing::get;
 use axum::Router;
+use database::{
+    fetch_dao_indexers, store_proposals, store_votes, update_indexer_speed,
+    update_indexer_speed_and_index, DatabaseStore,
+};
 use dotenv::dotenv;
-use indexer::{Indexer, IndexerImpl};
+use indexer::Indexer;
 use indexers::aave_v2_mainnet_proposals::AaveV2MainnetProposalsIndexer;
 use indexers::aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer;
+use indexers::snapshot_proposals::SnapshotProposalsIndexer;
+use indexers::snapshot_votes::SnapshotVotesIndexer;
 use sea_orm::DatabaseConnection;
-use seaorm::sea_orm_active_enums::IndexerVariant;
+use seaorm::sea_orm_active_enums::{IndexerType, IndexerVariant};
+use seaorm::{dao, dao_indexer};
+use snapshot_api::{SnapshotApiConfig, SnapshotApiHandler};
+
 use std::sync::Arc;
 use std::{collections::HashSet, time::Duration};
 use tokio::{
     sync::{mpsc, Mutex},
     time::sleep,
 };
-use tracing::{error, info, instrument};
+use tracing::{debug, error, info, instrument};
 use utils::tracing::setup_tracing;
 
 mod database;
 mod indexer;
 mod indexers;
-
-use database::{
-    fetch_dao_indexers, store_proposals, store_votes, update_indexer_speed,
-    update_indexer_speed_and_index, DatabaseStore,
-};
+mod snapshot_api;
 
 static MAX_JOBS: usize = 100;
 static CONCURRENT_JOBS: usize = 5;
-static JOB_PRODUCE_INTERVAL: Duration = Duration::from_secs(1);
-static JOB_TIMEOUT: Duration = Duration::from_secs(30);
+static JOB_PRODUCE_INTERVAL: Duration = Duration::from_secs(5);
+static JOB_TIMEOUT: Duration = Duration::from_secs(10 * 60);
+static SNAPSHOT_MAX_RETRIES: usize = 5;
+static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
+static SNAPSHOT_MAX_QUEUE: usize = 100;
+
+lazy_static::lazy_static! {
+    static ref SNAPSHOT_API_HANDLER: Arc<SnapshotApiHandler> = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig {
+        max_retries: SNAPSHOT_MAX_RETRIES,
+        concurrency: SNAPSHOT_MAX_CONCURRENT_REQUESTS,
+        queue_size: SNAPSHOT_MAX_QUEUE,
+    }));
+}
 
 #[tokio::main]
 #[instrument]
@@ -38,7 +54,7 @@ async fn main() -> Result<()> {
     let db: DatabaseConnection = DatabaseStore::connect().await?;
 
     // Create a channel for the job queue
-    let (tx, mut rx) = mpsc::channel::<(seaorm::dao_indexer::Model, String)>(MAX_JOBS);
+    let (tx, mut rx) = mpsc::channel::<(dao_indexer::Model, dao::Model)>(MAX_JOBS);
 
     // Create a shared set to keep track of indexers in the queue
     let queued_indexers = Arc::new(Mutex::new(HashSet::new()));
@@ -58,28 +74,25 @@ async fn main() -> Result<()> {
                 for (indexer, dao) in dao_indexers {
                     let indexer_id = indexer.id;
                     let indexer_type = indexer.indexer_type.clone();
-                    let dao_name = dao
-                        .as_ref()
-                        .map(|d| d.name.clone())
-                        .unwrap_or_else(|| "Unknown DAO".to_string());
+                    let dao_name = dao.name.clone();
 
                     // Check if the indexer is already in the queue
                     let mut queue = queued_indexers.lock().await;
                     if !queue.contains(&indexer_id) {
-                        if tx.send((indexer, dao_name.clone())).await.is_err() {
+                        if tx.send((indexer, dao)).await.is_err() {
                             break;
                         }
                         queue.insert(indexer_id);
 
                         info!(
                             indexer_type = ?indexer_type,
-                            dao_name = %dao_name,
+                            dao_name = ?dao_name,
                             "Added indexer to queue"
                         );
                     } else {
-                        info!(
+                        debug!(
                             indexer_type = ?indexer_type,
-                            dao_name = %dao_name,
+                            dao_name = ?dao_name,
                             "Indexer already in queue, skipping"
                         );
                     }
@@ -98,40 +111,62 @@ async fn main() -> Result<()> {
         async move {
             let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(CONCURRENT_JOBS));
 
-            while let Some((indexer, dao_name)) = rx.recv().await {
+            while let Some((indexer, dao)) = rx.recv().await {
                 let permit = semaphore.clone().acquire_owned().await.unwrap();
                 let queued_indexers = queued_indexers.clone();
                 let db = db.clone();
                 tokio::spawn(async move {
                     info!(
                         indexer_variant = ?indexer.indexer_variant,
-                        dao_name = %dao_name,
+                         dao_name = ?dao.name,
                         "Processing indexer"
                     );
 
                     let indexer_implementation = get_indexer(&indexer.indexer_variant);
 
                     let result = tokio::time::timeout(JOB_TIMEOUT, async {
-                        indexer_implementation.process(&indexer).await
+                        indexer_implementation.process(&indexer, &dao).await
                     })
                     .await;
 
                     match result {
-                        Ok(Ok((proposals, votes))) => {
-                            if let Err(e) = store_proposals(&db, indexer.id, proposals).await {
-                                error!("Failed to store proposals: {:?}", e);
+                        Ok(Ok((proposals, votes, to_index))) => {
+                            let mut store_success = true;
+
+                            if indexer.indexer_type == IndexerType::Proposals {
+                                if let Err(e) = store_proposals(&db, indexer.id, proposals).await {
+                                    error!("Failed to store proposals: {:?}", e);
+                                    store_success = false;
+                                }
                             }
-                            if let Err(e) = store_votes(&db, indexer.id, votes).await {
-                                error!("Failed to store votes: {:?}", e);
+
+                            if indexer.indexer_type == IndexerType::Votes {
+                                if let Err(e) = store_votes(&db, &indexer, votes).await {
+                                    error!("Failed to store votes: {:?}", e);
+                                    store_success = false;
+                                }
                             }
+
                             let new_speed =
-                                indexer_implementation.adjust_speed(indexer.speed, true);
-                            let new_index = indexer.index + indexer.speed;
-                            if let Err(e) =
-                                update_indexer_speed_and_index(&db, &indexer, new_speed, new_index)
-                                    .await
+                                indexer_implementation.adjust_speed(indexer.speed, store_success);
+                            if store_success {
+                                // Use to_index as the new index
+                                let new_index = to_index as i32;
+
+                                if let Err(e) = update_indexer_speed_and_index(
+                                    &db, &indexer, new_speed, new_index,
+                                )
+                                .await
+                                {
+                                    error!("Failed to update indexer speed and index: {:?}", e);
+                                }
+                            } else if let Err(e) =
+                                update_indexer_speed(&db, &indexer, new_speed).await
                             {
-                                error!("Failed to update indexer speed and index: {:?}", e);
+                                error!(
+                                    "Failed to update indexer speed after storage failure: {:?}",
+                                    e
+                                );
                             }
                         }
                         Ok(Err(e)) => {
@@ -155,7 +190,7 @@ async fn main() -> Result<()> {
 
                     info!(
                         indexer_variant = ?indexer.indexer_variant,
-                        dao_name = %dao_name,
+                        dao_name = ?dao.name,
                         "Completed processing indexer"
                     );
 
@@ -190,12 +225,16 @@ async fn main() -> Result<()> {
 
 pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
     match indexer_variant {
-        IndexerVariant::AaveV2MainnetProposals => Box::new(IndexerImpl::AaveV2MainnetProposals(
-            AaveV2MainnetProposalsIndexer,
-        )),
-        IndexerVariant::AaveV2MainnetVotes => {
-            Box::new(IndexerImpl::AaveV2MainnetVotes(AaveV2MainnetVotesIndexer))
+        IndexerVariant::SnapshotProposals => {
+            Box::new(SnapshotProposalsIndexer::new(SNAPSHOT_API_HANDLER.clone()))
         }
+        IndexerVariant::SnapshotVotes => {
+            Box::new(SnapshotVotesIndexer::new(SNAPSHOT_API_HANDLER.clone()))
+        }
+
+        IndexerVariant::AaveV2MainnetProposals => Box::new(AaveV2MainnetProposalsIndexer),
+        IndexerVariant::AaveV2MainnetVotes => Box::new(AaveV2MainnetVotesIndexer),
+
         // Add other matches as needed
         _ => todo!("Implement other indexer variants"),
     }

@@ -9,6 +9,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await createVoteTables(db);
   await createSubscriptionTables(db);
   await createNotificationTables(db);
+  await createJobTables(db);
   await createDiscourseTables(db);
 }
 
@@ -324,9 +325,7 @@ async function createProposalTables(db: Kysely<any>): Promise<void> {
     .addColumn("block_created", "integer")
     .addColumn("txid", "text")
     .addColumn("metadata", "jsonb")
-    .addColumn("votes_fetched", "boolean", (col) => col.defaultTo(false))
-    .addColumn("votes_refresh_speed", "integer", (col) => col.defaultTo(1000))
-    .addColumn("votes_index", "integer", (col) => col.defaultTo(0))
+    .addColumn("snapshot_votes_fetched", "boolean")
     .addColumn("dao_indexer_id", "uuid", (col) => col.notNull())
     .addColumn("dao_id", "uuid", (col) => col.notNull())
     .addForeignKeyConstraint(
@@ -385,7 +384,6 @@ async function createVoteTables(db: Kysely<any>): Promise<void> {
     .addColumn("proposal_external_id", "text", (col) => col.notNull())
     .addColumn("time_created", "timestamp")
     .addColumn("block_created", "integer")
-    .addColumn("vp_state", "text")
     .addColumn("txid", "text")
     .addColumn("proposal_id", "uuid", (col) => col.notNull())
     .addColumn("dao_id", "uuid", (col) => col.notNull())
@@ -511,9 +509,6 @@ async function createNotificationTables(db: Kysely<any>): Promise<void> {
       sql`notification_dispatch_status_enum`,
       (col) => col.defaultTo("NOT_DISPATCHED").notNull(),
     )
-    .addColumn("submitted_at", "timestamp", (col) =>
-      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
-    )
     .addColumn("dispatched_at", "timestamp")
     .addForeignKeyConstraint(
       "fk_notification_user_id",
@@ -552,6 +547,31 @@ async function createNotificationTables(db: Kysely<any>): Promise<void> {
     .createIndex("idx_notification_dispatch_status")
     .on("notification")
     .column("dispatch_status")
+    .execute();
+}
+
+async function createJobTables(db: Kysely<any>): Promise<void> {
+  await db.schema
+    .createTable("job_queue")
+    .addColumn("id", "serial", (col) => col.primaryKey())
+    .addColumn("job", "jsonb", (col) => col.notNull())
+    .addColumn("job_type", "varchar", (col) => col.notNull())
+    .addColumn("created_at", "timestamp", (col) =>
+      col.defaultTo(sql`CURRENT_TIMESTAMP`),
+    )
+    .addColumn("processed", "boolean", (col) => col.defaultTo(false))
+    .execute();
+
+  await db.schema
+    .createIndex("idx_job_queue_job_type")
+    .on("job_queue")
+    .column("job_type")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_job_queue_processed")
+    .on("job_queue")
+    .column("processed")
     .execute();
 }
 
@@ -816,6 +836,7 @@ export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable("discourse_user").execute();
   await db.schema.dropTable("dao_discourse").execute();
 
+  await db.schema.dropTable("job_queue").execute();
   await db.schema.dropTable("notification").execute();
   await db.schema.dropTable("subscription").execute();
   await db.schema.dropTable("vote").execute();

@@ -218,12 +218,19 @@ export interface EmailVerification {
   userId: string;
 }
 
+export interface JobQueue {
+  createdAt: Generated<Timestamp | null>;
+  id: Generated<number>;
+  job: Json;
+  jobType: string;
+  processed: Generated<boolean | null>;
+}
+
 export interface Notification {
   dispatchedAt: Timestamp | null;
   dispatchStatus: Generated<NotificationDispatchStatusEnum>;
   id: Generated<string>;
   proposalId: string;
-  submittedAt: Generated<Timestamp>;
   type: NotificationTypeEnum;
   userId: string;
 }
@@ -246,14 +253,12 @@ export interface Proposal {
   scores: Generated<Json>;
   scoresQuorum: number;
   scoresTotal: number;
+  snapshotVotesFetched: boolean | null;
   timeCreated: Timestamp;
   timeEnd: Timestamp;
   timeStart: Timestamp;
   txid: string | null;
   url: string;
-  votesFetched: Generated<boolean>;
-  votesIndex: Generated<number>;
-  votesRefreshSpeed: Generated<number>;
 }
 
 export interface Subscription {
@@ -314,7 +319,6 @@ export interface Vote {
   txid: string | null;
   voterAddress: string;
   votingPower: number;
-  vpState: string | null;
 }
 
 export interface Voter {
@@ -332,6 +336,7 @@ export interface DB {
   discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;
   emailVerification: EmailVerification;
+  jobQueue: JobQueue;
   notification: Notification;
   proposal: Proposal;
   subscription: Subscription;

@@ -182,30 +182,6 @@ pub fn assert_proposal(
     );
 
     assert_eq!(
-        proposal.votes_fetched.clone().take(),
-        expected.votes_fetched,
-        "Votes fetched does not match: expected {:?}, got {:?}",
-        expected.votes_fetched,
-        proposal.votes_fetched.clone().take()
-    );
-
-    assert_eq!(
-        proposal.votes_refresh_speed.clone().take(),
-        expected.votes_refresh_speed,
-        "Votes refresh speed does not match: expected {:?}, got {:?}",
-        expected.votes_refresh_speed,
-        proposal.votes_refresh_speed.clone().take()
-    );
-
-    assert_eq!(
-        proposal.votes_index.clone().take(),
-        expected.votes_index,
-        "Votes index does not match: expected {:?}, got {:?}",
-        expected.votes_index,
-        proposal.votes_index.clone().take()
-    );
-
-    assert_eq!(
         proposal.dao_id.clone().take(),
         Some(dao_id),
         "DAO ID does not match: expected {}, got {:?}",

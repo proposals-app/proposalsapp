@@ -1,11 +1,17 @@
 use anyhow::{Context, Result};
 use sea_orm::{
-    prelude::Uuid, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection,
-    EntityTrait, QueryFilter, Set, TransactionTrait,
+    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
+    DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait,
 };
-use seaorm::{dao_indexer, proposal, vote};
-use std::{collections::HashMap, time::Duration};
-use tracing::warn;
+use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote, voter};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
+
+use crate::indexers::{
+    aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer, snapshot_votes::SnapshotVotesIndexer,
+};
 
 pub struct DatabaseStore;
 
@@ -34,35 +40,50 @@ pub async fn store_proposals(
     indexer: Uuid,
     proposals: Vec<proposal::ActiveModel>,
 ) -> Result<()> {
-    for proposal in proposals {
-        let existing = proposal::Entity::find()
-            .filter(
-                Condition::all()
-                    .add(proposal::Column::ExternalId.eq(proposal.external_id.clone().take()))
-                    .add(proposal::Column::DaoIndexerId.eq(indexer.clone())),
-            )
-            .one(db)
-            .await?;
+    let txn = db.begin().await?;
 
-        if let Some(existing) = existing {
-            // Update existing proposal
-            let mut updated_proposal = proposal.clone();
-            updated_proposal.id = Set(existing.id);
+    let external_ids: Vec<String> = proposals
+        .iter()
+        .map(|p| p.external_id.clone().unwrap())
+        .collect();
 
-            proposal::Entity::update(updated_proposal.clone())
-                .exec(db)
-                .await?;
-        } else {
-            // Insert new proposal
-            proposal::Entity::insert(proposal).exec(db).await?;
-        }
+    let existing_proposals: HashMap<String, proposal::Model> = proposal::Entity::find()
+        .filter(
+            Condition::all()
+                .add(proposal::Column::ExternalId.is_in(external_ids.clone()))
+                .add(proposal::Column::DaoIndexerId.eq(indexer)),
+        )
+        .all(&txn)
+        .await?
+        .into_iter()
+        .map(|p| (p.external_id.clone(), p))
+        .collect();
+
+    let (to_insert, to_update): (Vec<_>, Vec<_>) = proposals
+        .into_iter()
+        .partition(|p| !existing_proposals.contains_key(&p.external_id.clone().unwrap()));
+
+    // Batch insert
+    if !to_insert.is_empty() {
+        proposal::Entity::insert_many(to_insert).exec(&txn).await?;
     }
+
+    // Batch update
+    for mut p in to_update {
+        let existing = existing_proposals
+            .get(&p.external_id.clone().unwrap())
+            .unwrap();
+        p.id = Set(existing.id);
+        proposal::Entity::update(p).exec(&txn).await?;
+    }
+
+    txn.commit().await?;
     Ok(())
 }
 
 pub async fn store_votes(
     db: &DatabaseConnection,
-    indexer_id: Uuid,
+    indexer: &dao_indexer::Model,
     votes: Vec<vote::ActiveModel>,
 ) -> Result<()> {
     if votes.is_empty() {
@@ -71,19 +92,25 @@ pub async fn store_votes(
 
     let txn = db.begin().await?;
 
-    // Group votes by proposal_external_id
-    let mut votes_by_proposal: HashMap<String, Vec<vote::ActiveModel>> = HashMap::new();
-    for vote in votes {
-        votes_by_proposal
-            .entry(vote.proposal_external_id.clone().unwrap())
-            .or_insert_with(Vec::new)
-            .push(vote);
-    }
+    let proposal_external_ids: Vec<String> = votes
+        .iter()
+        .map(|v| v.proposal_external_id.clone().unwrap())
+        .collect();
 
-    let proposal_external_ids: Vec<String> = votes_by_proposal.keys().cloned().collect();
+    // Fetch the corresponding proposal indexer variant
+    let proposal_indexer_variant = match indexer.indexer_variant {
+        IndexerVariant::AaveV2MainnetVotes => AaveV2MainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::SnapshotVotes => SnapshotVotesIndexer::proposal_indexer_variant(),
+        // Add other matches as needed
+        _ => return Err(anyhow::anyhow!("Unsupported votes indexer variant")),
+    };
+
+    // Fetch all proposals for this DAO with matching external IDs and the correct indexer variant
     let proposals: Vec<proposal::Model> = proposal::Entity::find()
         .filter(proposal::Column::ExternalId.is_in(proposal_external_ids.clone()))
-        .filter(proposal::Column::DaoIndexerId.eq(indexer_id))
+        .filter(proposal::Column::DaoId.eq(indexer.dao_id))
+        .inner_join(dao_indexer::Entity)
+        .filter(dao_indexer::Column::IndexerVariant.eq(proposal_indexer_variant))
         .all(&txn)
         .await?;
 
@@ -93,32 +120,87 @@ pub async fn store_votes(
         .collect();
 
     let mut votes_to_insert: Vec<vote::ActiveModel> = Vec::new();
-    for (external_id, mut votes_for_proposal) in votes_by_proposal {
-        if let Some(&proposal_id) = proposal_id_map.get(&external_id) {
-            for vote in &mut votes_for_proposal {
-                vote.proposal_id = Set(proposal_id);
-            }
-            votes_to_insert.extend(votes_for_proposal);
+    let mut missing_proposals = Vec::new();
+    let mut voter_addresses: HashSet<String> = HashSet::new();
+
+    for mut vote in votes {
+        if let Some(&proposal_id) = proposal_id_map.get(&vote.proposal_external_id.clone().unwrap())
+        {
+            vote.proposal_id = Set(proposal_id);
+            voter_addresses.insert(vote.voter_address.clone().unwrap());
+            votes_to_insert.push(vote);
         } else {
-            warn!(
-                "No matching proposal found for external_id: {}",
-                external_id
-            );
+            missing_proposals.push(vote.proposal_external_id.clone().unwrap());
         }
     }
 
-    if !votes_to_insert.is_empty() {
-        vote::Entity::insert_many(votes_to_insert)
+    if !missing_proposals.is_empty() {
+        return Err(anyhow::anyhow!(
+            "Some proposals were not found: {:?}",
+            missing_proposals
+        ));
+    }
+
+    // Fetch existing voters
+    let existing_voters: Vec<voter::Model> = voter::Entity::find()
+        .filter(voter::Column::Address.is_in(voter_addresses.iter().cloned().collect::<Vec<_>>()))
+        .all(&txn)
+        .await?;
+
+    let existing_voter_addresses: HashSet<String> =
+        existing_voters.into_iter().map(|v| v.address).collect();
+
+    // Create new voters
+    let new_voters: Vec<voter::ActiveModel> = voter_addresses
+        .difference(&existing_voter_addresses)
+        .map(|address| voter::ActiveModel {
+            id: NotSet,
+            address: Set(address.clone()),
+            ens: NotSet,
+        })
+        .collect();
+
+    // Insert new voters
+    if !new_voters.is_empty() {
+        voter::Entity::insert_many(new_voters).exec(&txn).await?;
+    }
+
+    // Deduplicate votes
+    let mut deduplicated_votes: HashMap<(Uuid, String), vote::ActiveModel> = HashMap::new();
+    for vote in votes_to_insert {
+        let key = (
+            vote.proposal_id.clone().unwrap(),
+            vote.voter_address.clone().unwrap(),
+        );
+        deduplicated_votes.insert(key, vote);
+    }
+
+    let final_votes: Vec<vote::ActiveModel> = deduplicated_votes.into_values().collect();
+
+    // Insert votes
+    if !final_votes.is_empty() {
+        vote::Entity::insert_many(final_votes)
             .on_conflict(
-                sea_orm::sea_query::OnConflict::column(vote::Column::Id)
-                    .do_nothing()
-                    .to_owned(),
+                sea_orm::sea_query::OnConflict::columns([
+                    vote::Column::ProposalId,
+                    vote::Column::VoterAddress,
+                ])
+                .update_columns([
+                    vote::Column::Choice,
+                    vote::Column::VotingPower,
+                    vote::Column::Reason,
+                    vote::Column::TimeCreated,
+                    vote::Column::BlockCreated,
+                    vote::Column::Txid,
+                ])
+                .to_owned(),
             )
             .exec(&txn)
             .await?;
     }
 
     txn.commit().await?;
+
     Ok(())
 }
 
@@ -156,10 +238,14 @@ pub async fn update_indexer_speed(
 
 pub async fn fetch_dao_indexers(
     db: &DatabaseConnection,
-) -> Result<Vec<(dao_indexer::Model, Option<seaorm::dao::Model>)>> {
-    dao_indexer::Entity::find()
+) -> Result<Vec<(dao_indexer::Model, dao::Model)>> {
+    Ok(dao_indexer::Entity::find()
         .find_also_related(seaorm::dao::Entity)
+        .filter(dao_indexer::Column::Enabled.eq(true))
         .all(db)
         .await
-        .context("Failed to fetch indexers with daos")
+        .context("Failed to fetch indexers with daos")?
+        .into_iter()
+        .filter_map(|(indexer, dao)| dao.map(|d| (indexer, d)))
+        .collect())
 }

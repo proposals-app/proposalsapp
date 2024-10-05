@@ -10,6 +10,7 @@ pub mod discourse_post;
 pub mod discourse_topic;
 pub mod discourse_user;
 pub mod email_verification;
+pub mod job_queue;
 pub mod kysely_migration;
 pub mod kysely_migration_lock;
 pub mod notification;

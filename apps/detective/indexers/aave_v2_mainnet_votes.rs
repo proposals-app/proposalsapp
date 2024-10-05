@@ -8,18 +8,26 @@ use ethers::{
     utils::to_checksum,
 };
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao_indexer, proposal, vote};
+use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use std::sync::Arc;
+use tracing::info;
 
 pub struct AaveV2MainnetVotesIndexer;
+
+impl AaveV2MainnetVotesIndexer {
+    pub fn proposal_indexer_variant() -> IndexerVariant {
+        IndexerVariant::AaveV2MainnetProposals
+    }
+}
 
 #[async_trait::async_trait]
 impl Indexer for AaveV2MainnetVotesIndexer {
     async fn process(
         &self,
         indexer: &dao_indexer::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>)> {
-        println!("Processing Aave V2 Mainnet Votes");
+        _dao: &dao::Model,
+    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, u64)> {
+        info!("Processing Aave V2 Mainnet Votes");
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
@@ -40,7 +48,7 @@ impl Indexer for AaveV2MainnetVotesIndexer {
             .parse::<Address>()
             .context("bad address")?;
 
-        let gov_contract = aave_v2_gov::new(address, eth_rpc);
+        let gov_contract = aave_v2_gov::new(address, eth_rpc.clone());
 
         let logs = gov_contract
             .vote_emitted_filter()
@@ -51,8 +59,11 @@ impl Indexer for AaveV2MainnetVotesIndexer {
             .await
             .context("bad query")?;
 
-        let votes = get_votes(logs.clone(), indexer).context("bad votes")?;
-        Ok((Vec::new(), votes))
+        let votes = get_votes(logs.clone(), indexer, eth_rpc.clone())
+            .await
+            .context("bad votes")?;
+
+        Ok((Vec::new(), votes, to_block))
     }
     fn min_refresh_speed(&self) -> i32 {
         10
@@ -62,30 +73,40 @@ impl Indexer for AaveV2MainnetVotesIndexer {
     }
 }
 
-fn get_votes(
+async fn get_votes(
     logs: Vec<(VoteEmittedFilter, LogMeta)>,
-    dao_indexer: &dao_indexer::Model,
+    indexer: &dao_indexer::Model,
+    rpc: Arc<Provider<Http>>,
 ) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteEmittedFilter, LogMeta)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
     for (log, meta) in voter_logs {
+        let created_block_number = meta.block_number.as_u64();
+        let created_block = rpc
+            .get_block(meta.block_number)
+            .await
+            .context("rpc.getblock")?;
+        let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+
         votes.push(vote::ActiveModel {
             id: NotSet,
             index_created: Set(meta.block_number.as_u64() as i32),
             voter_address: Set(to_checksum(&log.voter, None)),
-            voting_power: Set((log.voting_power.as_u128() as f64) / (10.0f64.powi(18))),
-            block_created: Set(Some(meta.block_number.as_u64() as i32)),
             choice: Set(match log.support {
                 true => 0.into(),
                 false => 1.into(),
             }),
+            voting_power: Set((log.voting_power.as_u128() as f64) / (10.0f64.powi(18))),
+            reason: NotSet,
+            block_created: Set(Some(created_block_number as i32)),
+            time_created: Set(Some(created_block_timestamp)),
             proposal_id: NotSet,
             proposal_external_id: Set(log.id.to_string()),
-            dao_id: Set(dao_indexer.dao_id),
-            indexer_id: Set(dao_indexer.id),
-            ..Default::default()
+            dao_id: Set(indexer.dao_id),
+            indexer_id: Set(indexer.id),
+            txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
         })
     }
 

@@ -21,7 +21,6 @@ pub struct Model {
     pub proposal_id: Uuid,
     pub r#type: NotificationTypeEnum,
     pub dispatch_status: NotificationDispatchStatusEnum,
-    pub submitted_at: DateTime,
     pub dispatched_at: Option<DateTime>,
 }
 
@@ -32,7 +31,6 @@ pub enum Column {
     ProposalId,
     Type,
     DispatchStatus,
-    SubmittedAt,
     DispatchedAt,
 }
 
@@ -63,7 +61,6 @@ impl ColumnTrait for Column {
             Self::ProposalId => ColumnType::Uuid.def(),
             Self::Type => NotificationTypeEnum::db_type().def(),
             Self::DispatchStatus => NotificationDispatchStatusEnum::db_type().def(),
-            Self::SubmittedAt => ColumnType::DateTime.def(),
             Self::DispatchedAt => ColumnType::DateTime.def().null(),
         }
     }
