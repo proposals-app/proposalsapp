@@ -54,7 +54,7 @@ impl Indexer for SnapshotProposalsIndexer {
         &self,
         indexer: &dao_indexer::Model,
         dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, u64)> {
+    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Snapshot Proposals");
 
         let snapshot_space = match dao.slug.as_str() {
@@ -127,7 +127,7 @@ impl Indexer for SnapshotProposalsIndexer {
             .max()
             .unwrap_or(indexer.index);
 
-        Ok((proposals, vec![], highest_index as u64))
+        Ok((proposals, vec![], highest_index))
     }
 
     fn min_refresh_speed(&self) -> i32 {

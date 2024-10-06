@@ -29,7 +29,7 @@ COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 
 # Build the project
-RUN cargo build --release --package proposals-consumer
+RUN cargo build --release --package detective
 
 # Stage 4: Final
 FROM debian:bookworm
@@ -44,10 +44,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
-COPY --from=builder /app/target/release/proposals-consumer /usr/local/bin/proposals-consumer
+COPY --from=builder /app/target/release/detective /usr/local/bin/detective
 
 # Set the environment variable
-ENV PROPOSALS_BIN=proposals-consumer
+ENV PROPOSALS_BIN=detective
 
 # Set the default command
 CMD ["proposals-consumer"]

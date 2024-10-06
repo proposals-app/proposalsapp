@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use ethers::providers::{Http, Middleware, Provider};
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
@@ -41,8 +41,11 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Block not found"))?;
 
-        return NaiveDateTime::from_timestamp_millis(block.timestamp.as_u64() as i64 * 1000)
-            .context("Invalid timestamp");
+        return Ok(
+            DateTime::<Utc>::from_timestamp(block.timestamp.as_u64() as i64 * 1000, 0)
+                .expect("Invalid timestamp")
+                .naive_utc(),
+        );
     }
 
     let retry_policy = ExponentialBackoff::builder().build_with_max_retries(5);
@@ -70,8 +73,9 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                 let estimated_time = Utc::now().timestamp() * 1000
                     + data.result.estimate_time_in_sec.parse::<f64>()? as i64 * 1000;
 
-                return NaiveDateTime::from_timestamp_millis(estimated_time)
-                    .context("Invalid estimated timestamp");
+                return Ok(DateTime::<Utc>::from_timestamp(estimated_time, 0)
+                    .expect("Invalid timestamp")
+                    .naive_utc());
             }
             Err(_) if retries < 5 => {
                 retries += 1;
@@ -79,8 +83,11 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                 sleep(backoff_duration).await;
             }
             Err(_) => {
-                return NaiveDateTime::from_timestamp_millis(Utc::now().timestamp() * 1000)
-                    .context("Failed to estimate timestamp after retries");
+                return Ok(
+                    DateTime::<Utc>::from_timestamp(Utc::now().timestamp() * 1000, 0)
+                        .expect("Invalid timestamp")
+                        .naive_utc(),
+                );
             }
         }
     }

@@ -8,7 +8,7 @@ pub trait Indexer: Send + Sync {
         &self,
         indexer: &dao_indexer::Model,
         dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, u64)>;
+    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)>;
 
     fn min_refresh_speed(&self) -> i32;
     fn max_refresh_speed(&self) -> i32;

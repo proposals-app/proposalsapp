@@ -60,13 +60,13 @@ impl Indexer for SnapshotVotesIndexer {
         &self,
         indexer: &dao_indexer::Model,
         dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, u64)> {
+    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Snapshot Votes");
 
         let db = DatabaseStore::connect().await?;
 
         let proposals = proposal::Entity::find()
-            .filter(proposal::Column::DaoId.eq(dao.id))
+            .filter(proposal::Column::DaoId.eq(indexer.dao_id))
             .filter(proposal::Column::SnapshotVotesFetched.eq(false))
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
@@ -165,14 +165,13 @@ impl Indexer for SnapshotVotesIndexer {
             if oldest_proposal_without_votes.proposal_state != ProposalState::Active
                 && oldest_proposal_without_votes.proposal_state != ProposalState::Pending
             {
-                proposal::Entity::update_many()
-                    .filter(proposal::Column::Id.eq(oldest_proposal_without_votes.id))
-                    .set(proposal::ActiveModel {
-                        snapshot_votes_fetched: Set(Some(true)),
-                        ..Default::default()
-                    })
-                    .exec(&db)
-                    .await?;
+                proposal::Entity::update(proposal::ActiveModel {
+                    id: Set(oldest_proposal_without_votes.id),
+                    snapshot_votes_fetched: Set(Some(true)),
+                    ..Default::default()
+                })
+                .exec(&db)
+                .await?;
 
                 info!(
                     "Marked proposal {} as fetched (no new votes)",
@@ -181,7 +180,7 @@ impl Indexer for SnapshotVotesIndexer {
             }
         }
 
-        Ok((vec![], votes, highest_index as u64))
+        Ok((vec![], votes, highest_index))
     }
 
     fn min_refresh_speed(&self) -> i32 {

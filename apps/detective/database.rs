@@ -105,7 +105,7 @@ pub async fn store_votes(
         _ => return Err(anyhow::anyhow!("Unsupported votes indexer variant")),
     };
 
-    // Fetch all proposals for this DAO with matching external IDs and the correct indexer variant
+    // Fetch all proposals for this DAO with matching external IDs and the corresponding indexer variant
     let proposals: Vec<proposal::Model> = proposal::Entity::find()
         .filter(proposal::Column::ExternalId.is_in(proposal_external_ids.clone()))
         .filter(proposal::Column::DaoId.eq(indexer.dao_id))

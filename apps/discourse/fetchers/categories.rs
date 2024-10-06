@@ -39,7 +39,7 @@ impl CategoryFetcher {
             let response: CategoryResponse = self.api_handler.fetch(&url).await?;
 
             let mut all_categories = Vec::new();
-            self.flatten_categories(&response.category_list.categories, &mut all_categories);
+            flatten_categories(&response.category_list.categories, &mut all_categories);
 
             let num_categories = all_categories.len();
             total_categories += num_categories;
@@ -89,16 +89,16 @@ impl CategoryFetcher {
         );
         Ok(())
     }
+}
 
-    fn flatten_categories(&self, categories: &[Category], result: &mut Vec<Category>) {
-        for category in categories {
-            let mut category_clone = category.clone();
-            category_clone.subcategory_list = None; // Remove subcategory_list to avoid redundancy
-            result.push(category_clone);
+fn flatten_categories(categories: &[Category], result: &mut Vec<Category>) {
+    for category in categories {
+        let mut category_clone = category.clone();
+        category_clone.subcategory_list = None; // Remove subcategory_list to avoid redundancy
+        result.push(category_clone);
 
-            if let Some(subcategories) = &category.subcategory_list {
-                self.flatten_categories(subcategories, result);
-            }
+        if let Some(subcategories) = &category.subcategory_list {
+            flatten_categories(subcategories, result);
         }
     }
 }

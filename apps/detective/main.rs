@@ -151,7 +151,7 @@ async fn main() -> Result<()> {
                                 indexer_implementation.adjust_speed(indexer.speed, store_success);
                             if store_success {
                                 // Use to_index as the new index
-                                let new_index = to_index as i32;
+                                let new_index = to_index;
 
                                 if let Err(e) = update_indexer_speed_and_index(
                                     &db, &indexer, new_speed, new_index,

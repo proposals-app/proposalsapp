@@ -26,7 +26,7 @@ impl Indexer for AaveV2MainnetVotesIndexer {
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, u64)> {
+    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Aave V2 Mainnet Votes");
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
@@ -35,13 +35,13 @@ impl Indexer for AaveV2MainnetVotesIndexer {
             .get_block_number()
             .await
             .context("bad current block")?
-            .as_u64();
+            .as_u32() as i32;
 
-        let from_block = indexer.index as u64;
-        let to_block = if indexer.index as u64 + indexer.speed as u64 > current_block {
+        let from_block = indexer.index;
+        let to_block = if indexer.index + indexer.speed > current_block {
             current_block
         } else {
-            indexer.index as u64 + indexer.speed as u64
+            indexer.index + indexer.speed
         };
 
         let address = "0xEC568fffba86c094cf06b22134B23074DFE2252c"
