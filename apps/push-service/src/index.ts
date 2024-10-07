@@ -5,7 +5,6 @@ import {
 } from "@proposalsapp/db";
 import { config as dotenv_config } from "dotenv";
 import express from "express";
-import cron from "node-cron";
 import axios from "axios";
 import webPush from "web-push";
 
@@ -221,7 +220,7 @@ const sendPushNotification = async (
   }
 };
 
-cron.schedule("* * * * *", processJobQueue);
-cron.schedule("* * * * *", checkProposalsAndCreateJobs);
+setInterval(checkProposalsAndCreateJobs, 60 * 1000);
+setInterval(processJobQueue, 10 * 1000);
 
 module.exports = {};
