@@ -50,4 +50,4 @@ COPY --from=builder /app/target/release/detective /usr/local/bin/detective
 ENV PROPOSALS_BIN=detective
 
 # Set the default command
-CMD ["proposals-consumer"]
+CMD ["detective"]
