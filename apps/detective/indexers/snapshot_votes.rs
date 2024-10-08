@@ -65,7 +65,11 @@ impl Indexer for SnapshotVotesIndexer {
 
         let proposals = proposal::Entity::find()
             .filter(proposal::Column::DaoId.eq(indexer.dao_id))
-            .filter(proposal::Column::TimeEnd.gt(indexer.index))
+            .filter(
+                proposal::Column::TimeEnd.gt(DateTime::from_timestamp(indexer.index as i64, 0)
+                    .unwrap()
+                    .naive_utc()),
+            )
             // .filter(proposal::Column::SnapshotVotesFetched.eq(false))
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))

@@ -1,6 +1,6 @@
 use crate::indexer::Indexer;
 use anyhow::{Context, Result};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use contracts::gen::arbitrum_treasury_gov::{
     arbitrum_treasury_gov::arbitrum_treasury_gov, ProposalCreatedFilter,
 };
@@ -94,7 +94,9 @@ async fn data_for_proposal(
         .context("bad block")?;
 
     let created_block_timestamp = created_block.timestamp.as_u64() as i64;
-    let created_block_naive_datetime = NaiveDateTime::from_timestamp(created_block_timestamp, 0);
+    let created_block_datetime = DateTime::<Utc>::from_timestamp(created_block_timestamp, 0)
+        .context("bad timestamp")?
+        .naive_utc();
 
     let created_block_ethereum = etherscan::estimate_block(created_block_timestamp as u64).await?;
 
@@ -241,7 +243,7 @@ async fn data_for_proposal(
         proposal_state: Set(state),
         flagged_spam: NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(created_block_naive_datetime),
+        time_created: Set(created_block_datetime),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
