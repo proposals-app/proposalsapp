@@ -154,33 +154,33 @@ impl Indexer for SnapshotVotesIndexer {
             .max()
             .unwrap_or(indexer.index);
 
-        let proposals_with_votes: HashSet<String> = votes
-            .iter()
-            .map(|v| v.proposal_external_id.clone().unwrap())
-            .collect();
+        // let proposals_with_votes: HashSet<String> = votes
+        //     .iter()
+        //     .map(|v| v.proposal_external_id.clone().unwrap())
+        //     .collect();
 
-        // Find the oldest proposal without new votes
-        if let Some(oldest_proposal_without_votes) = proposals
-            .iter()
-            .find(|p| !proposals_with_votes.contains(&p.external_id))
-        {
-            if oldest_proposal_without_votes.proposal_state != ProposalState::Active
-                && oldest_proposal_without_votes.proposal_state != ProposalState::Pending
-            {
-                proposal::Entity::update(proposal::ActiveModel {
-                    id: Set(oldest_proposal_without_votes.id),
-                    snapshot_votes_fetched: Set(Some(true)),
-                    ..Default::default()
-                })
-                .exec(&db)
-                .await?;
+        // // Find the oldest proposal without new votes
+        // if let Some(oldest_proposal_without_votes) = proposals
+        //     .iter()
+        //     .find(|p| !proposals_with_votes.contains(&p.external_id))
+        // {
+        //     if oldest_proposal_without_votes.proposal_state != ProposalState::Active
+        //         && oldest_proposal_without_votes.proposal_state != ProposalState::Pending
+        //     {
+        //         proposal::Entity::update(proposal::ActiveModel {
+        //             id: Set(oldest_proposal_without_votes.id),
+        //             snapshot_votes_fetched: Set(Some(true)),
+        //             ..Default::default()
+        //         })
+        //         .exec(&db)
+        //         .await?;
 
-                info!(
-                    "Marked proposal {} as fetched (no new votes)",
-                    oldest_proposal_without_votes.external_id
-                );
-            }
-        }
+        //         info!(
+        //             "Marked proposal {} as fetched (no new votes)",
+        //             oldest_proposal_without_votes.external_id
+        //         );
+        //     }
+        // }
 
         Ok((vec![], votes, highest_index))
     }
