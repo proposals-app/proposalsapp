@@ -38,6 +38,8 @@ use indexers::maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer;
 use indexers::maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer;
 use indexers::maker_poll_mainnet_proposals::MakerPollMainnetProposalsIndexer;
 use indexers::maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer;
+use indexers::nouns_mainnet_proposals::NounsProposalsIndexer;
+use indexers::nouns_mainnet_votes::NounsVotesIndexer;
 use indexers::snapshot_proposals::SnapshotProposalsIndexer;
 use indexers::snapshot_votes::SnapshotVotesIndexer;
 use sea_orm::DatabaseConnection;
@@ -299,6 +301,9 @@ pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
         IndexerVariant::MakerPollMainnetProposals => Box::new(MakerPollMainnetProposalsIndexer),
         IndexerVariant::MakerPollMainnetVotes => Box::new(MakerPollMainnetVotesIndexer),
         IndexerVariant::MakerPollArbitrumVotes => Box::new(MakerPollArbitrumVotesIndexer),
+
+        IndexerVariant::NounsProposalsMainnetProposals => Box::new(NounsProposalsIndexer),
+        IndexerVariant::NounsProposalsMainnetVotes => Box::new(NounsVotesIndexer),
 
         IndexerVariant::ArbCoreArbitrumProposals => Box::new(ArbitrumCoreProposalsIndexer),
         IndexerVariant::ArbCoreArbitrumVotes => Box::new(ArbitrumCoreVotesIndexer),

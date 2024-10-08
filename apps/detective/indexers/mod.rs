@@ -31,5 +31,7 @@ pub mod maker_executive_mainnet_votes;
 pub mod maker_poll_arbitrum_votes;
 pub mod maker_poll_mainnet_proposals;
 pub mod maker_poll_mainnet_votes;
+pub mod nouns_mainnet_proposals;
+pub mod nouns_mainnet_votes;
 pub mod snapshot_proposals;
 pub mod snapshot_votes;

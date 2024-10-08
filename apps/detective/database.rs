@@ -14,7 +14,8 @@ use crate::indexers::{
     hop_mainnet_votes::HopMainnetVotesIndexer,
     maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer,
     maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer,
-    maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer, snapshot_votes::SnapshotVotesIndexer,
+    maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer, nouns_mainnet_votes::NounsVotesIndexer,
+    snapshot_votes::SnapshotVotesIndexer,
 };
 use anyhow::{Context, Result};
 use sea_orm::{
@@ -152,6 +153,7 @@ pub async fn store_votes(
         IndexerVariant::MakerPollArbitrumVotes => {
             MakerPollArbitrumVotesIndexer::proposal_indexer_variant()
         }
+        IndexerVariant::NounsProposalsMainnetVotes => NounsVotesIndexer::proposal_indexer_variant(),
 
         IndexerVariant::SnapshotVotes => SnapshotVotesIndexer::proposal_indexer_variant(),
         // Add other matches as needed

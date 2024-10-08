@@ -71,7 +71,7 @@ impl Indexer for SnapshotVotesIndexer {
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
             .order_by(proposal::Column::TimeEnd, sea_orm::Order::Asc)
-            .limit(10)
+            .limit(25)
             .all(&db)
             .await?;
 
