@@ -1,9 +1,7 @@
 use crate::{database::DatabaseStore, indexer::Indexer, snapshot_api::SnapshotApiHandler};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
-};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use seaorm::{
     dao, dao_indexer, proposal,
     sea_orm_active_enums::{IndexerVariant, ProposalState},

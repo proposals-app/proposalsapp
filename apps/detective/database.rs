@@ -1,3 +1,11 @@
+use crate::indexers::{
+    aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer,
+    aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer,
+    aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer,
+    aave_v3_polygon_votes::AaveV3PolygonVotesIndexer,
+    arbitrum_core_votes::ArbitrumCoreVotesIndexer,
+    arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer, snapshot_votes::SnapshotVotesIndexer,
+};
 use anyhow::{Context, Result};
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
@@ -7,10 +15,6 @@ use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, v
 use std::{
     collections::{HashMap, HashSet},
     time::Duration,
-};
-
-use crate::indexers::{
-    aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer, snapshot_votes::SnapshotVotesIndexer,
 };
 
 pub struct DatabaseStore;
@@ -100,6 +104,19 @@ pub async fn store_votes(
     // Fetch the corresponding proposal indexer variant
     let proposal_indexer_variant = match indexer.indexer_variant {
         IndexerVariant::AaveV2MainnetVotes => AaveV2MainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::AaveV3MainnetVotes => AaveV3MainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::AaveV3PolygonVotes => AaveV3PolygonVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::AaveV3AvalancheVotes => {
+            AaveV3AvalancheVotesIndexer::proposal_indexer_variant()
+        }
+
+        IndexerVariant::ArbCoreArbitrumVotes => {
+            ArbitrumCoreVotesIndexer::proposal_indexer_variant()
+        }
+        IndexerVariant::ArbTreasuryArbitrumVotes => {
+            ArbitrumTreasuryVotesIndexer::proposal_indexer_variant()
+        }
+
         IndexerVariant::SnapshotVotes => SnapshotVotesIndexer::proposal_indexer_variant(),
         // Add other matches as needed
         _ => return Err(anyhow::anyhow!("Unsupported votes indexer variant")),

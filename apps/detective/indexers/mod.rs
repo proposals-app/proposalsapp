@@ -1,4 +1,12 @@
 pub mod aave_v2_mainnet_proposals;
 pub mod aave_v2_mainnet_votes;
+pub mod aave_v3_avalanche_votes;
+pub mod aave_v3_mainnet_proposals;
+pub mod aave_v3_mainnet_votes;
+pub mod aave_v3_polygon_votes;
+pub mod arbitrum_core_proposals;
+pub mod arbitrum_core_votes;
+pub mod arbitrum_treasury_proposals;
+pub mod arbitrum_treasury_votes;
 pub mod snapshot_proposals;
 pub mod snapshot_votes;

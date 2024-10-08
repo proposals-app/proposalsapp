@@ -9,6 +9,14 @@ use dotenv::dotenv;
 use indexer::Indexer;
 use indexers::aave_v2_mainnet_proposals::AaveV2MainnetProposalsIndexer;
 use indexers::aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer;
+use indexers::aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer;
+use indexers::aave_v3_mainnet_proposals::AaveV3MainnetProposalsIndexer;
+use indexers::aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer;
+use indexers::aave_v3_polygon_votes::AaveV3PolygonVotesIndexer;
+use indexers::arbitrum_core_proposals::ArbitrumCoreProposalsIndexer;
+use indexers::arbitrum_core_votes::ArbitrumCoreVotesIndexer;
+use indexers::arbitrum_treasury_proposals::ArbitrumTreasuryProposalsIndexer;
+use indexers::arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer;
 use indexers::snapshot_proposals::SnapshotProposalsIndexer;
 use indexers::snapshot_votes::SnapshotVotesIndexer;
 use sea_orm::DatabaseConnection;
@@ -235,6 +243,15 @@ pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
         IndexerVariant::AaveV2MainnetProposals => Box::new(AaveV2MainnetProposalsIndexer),
         IndexerVariant::AaveV2MainnetVotes => Box::new(AaveV2MainnetVotesIndexer),
 
+        IndexerVariant::AaveV3MainnetProposals => Box::new(AaveV3MainnetProposalsIndexer),
+        IndexerVariant::AaveV3MainnetVotes => Box::new(AaveV3MainnetVotesIndexer),
+        IndexerVariant::AaveV3PolygonVotes => Box::new(AaveV3PolygonVotesIndexer),
+        IndexerVariant::AaveV3AvalancheVotes => Box::new(AaveV3AvalancheVotesIndexer),
+
+        IndexerVariant::ArbCoreArbitrumProposals => Box::new(ArbitrumCoreProposalsIndexer),
+        IndexerVariant::ArbCoreArbitrumVotes => Box::new(ArbitrumCoreVotesIndexer),
+        IndexerVariant::ArbTreasuryArbitrumProposals => Box::new(ArbitrumTreasuryProposalsIndexer),
+        IndexerVariant::ArbTreasuryArbitrumVotes => Box::new(ArbitrumTreasuryVotesIndexer),
         // Add other matches as needed
         _ => todo!("Implement other indexer variants"),
     }
