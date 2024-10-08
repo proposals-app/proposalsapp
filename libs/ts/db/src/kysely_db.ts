@@ -243,9 +243,9 @@ export interface Proposal {
   daoIndexerId: string;
   discussionUrl: string;
   externalId: string;
-  flaggedSpam: Generated<boolean>;
   id: Generated<string>;
   indexCreated: Generated<number>;
+  markedSpam: Generated<boolean>;
   metadata: Json | null;
   name: string;
   proposalState: ProposalState;

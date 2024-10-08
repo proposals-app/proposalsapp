@@ -316,7 +316,7 @@ async function createProposalTables(db: Kysely<any>): Promise<void> {
     .addColumn("quorum", "float8", (col) => col.notNull())
     .addColumn("scores_quorum", "float8", (col) => col.notNull())
     .addColumn("proposal_state", sql`proposal_state`, (col) => col.notNull())
-    .addColumn("flagged_spam", "boolean", (col) =>
+    .addColumn("marked_spam", "boolean", (col) =>
       col.defaultTo(false).notNull(),
     )
     .addColumn("time_created", "timestamp", (col) => col.notNull())

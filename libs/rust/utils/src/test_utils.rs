@@ -134,11 +134,11 @@ pub fn assert_proposal(
     );
 
     assert_eq!(
-        proposal.flagged_spam.clone().take(),
+        proposal.marked_spam.clone().take(),
         expected.flagged_spam,
         "Flagged spam does not match: expected {:?}, got {:?}",
         expected.flagged_spam,
-        proposal.flagged_spam.clone().take()
+        proposal.marked_spam.clone().take()
     );
 
     if let Some(block_created) = proposal.block_created.clone().take() {

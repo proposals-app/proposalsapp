@@ -236,7 +236,7 @@ async fn data_for_proposal(
         quorum: Set(quorum),
         scores_quorum: Set(scores_quorum),
         proposal_state: Set(state),
-        flagged_spam: NotSet,
+        marked_spam: NotSet,
         block_created: Set(Some(created_block_number as i32)),
         time_created: Set(created_block_timestamp),
         time_start: Set(voting_starts_timestamp),

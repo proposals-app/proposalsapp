@@ -182,7 +182,7 @@ fn parse_proposals(
                 quorum: Set(p.quorum),
                 scores_quorum: Set(p.scores_total),
                 proposal_state: Set(state),
-                flagged_spam: Set(p.flagged.unwrap_or(false)),
+                marked_spam: Set(p.flagged.unwrap_or(false)),
                 block_created: NotSet,
                 time_created: Set(time_created),
                 time_start: Set(time_start),
