@@ -17,6 +17,27 @@ use indexers::arbitrum_core_proposals::ArbitrumCoreProposalsIndexer;
 use indexers::arbitrum_core_votes::ArbitrumCoreVotesIndexer;
 use indexers::arbitrum_treasury_proposals::ArbitrumTreasuryProposalsIndexer;
 use indexers::arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer;
+use indexers::compound_mainnet_proposals::CompoundMainnetProposalsIndexer;
+use indexers::compound_mainnet_votes::CompoundMainnetVotesIndexer;
+use indexers::dydx_mainnet_proposals::DydxMainnetProposalsIndexer;
+use indexers::dydx_mainnet_votes::DydxMainnetVotesIndexer;
+use indexers::ens_mainnnet_proposals::EnsMainnetProposalsIndexer;
+use indexers::ens_vote_indexer::EnsMainnetVotesIndexer;
+use indexers::frax_alpha_mainnet_proposals::FraxAlphaMainnetProposalsIndexer;
+use indexers::frax_alpha_mainnet_votes::FraxAlphaMainnetVotesIndexer;
+use indexers::frax_omega_mainnet_proposals::FraxOmegaMainnetProposalsIndexer;
+use indexers::frax_omega_mainnet_votes::FraxOmegaMainnetVotesIndexer;
+use indexers::gitcoin_v1_mainnet_proposals::GitcoinV1MainnetProposalsIndexer;
+use indexers::gitcoin_v1_mainnet_votes::GitcoinV1MainnetVotesIndexer;
+use indexers::gitcoin_v2_mainnet_proposals::GitcoinV2MainnetProposalsIndexer;
+use indexers::gitcoin_v2_mainnet_votes::GitcoinV2MainnetVotesIndexer;
+use indexers::hop_mainnet_proposals::HopMainnetProposalsIndexer;
+use indexers::hop_mainnet_votes::HopMainnetVotesIndexer;
+use indexers::maker_executive_mainnet_proposals::MakerExecutiveMainnetProposalsIndexer;
+use indexers::maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer;
+use indexers::maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer;
+use indexers::maker_poll_mainnet_proposals::MakerPollMainnetProposalsIndexer;
+use indexers::maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer;
 use indexers::snapshot_proposals::SnapshotProposalsIndexer;
 use indexers::snapshot_votes::SnapshotVotesIndexer;
 use sea_orm::DatabaseConnection;
@@ -247,6 +268,37 @@ pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
         IndexerVariant::AaveV3MainnetVotes => Box::new(AaveV3MainnetVotesIndexer),
         IndexerVariant::AaveV3PolygonVotes => Box::new(AaveV3PolygonVotesIndexer),
         IndexerVariant::AaveV3AvalancheVotes => Box::new(AaveV3AvalancheVotesIndexer),
+
+        IndexerVariant::CompoundMainnetProposals => Box::new(CompoundMainnetProposalsIndexer),
+        IndexerVariant::CompoundMainnetVotes => Box::new(CompoundMainnetVotesIndexer),
+
+        IndexerVariant::DydxMainnetProposals => Box::new(DydxMainnetProposalsIndexer),
+        IndexerVariant::DydxMainnetVotes => Box::new(DydxMainnetVotesIndexer),
+
+        IndexerVariant::EnsMainnetProposals => Box::new(EnsMainnetProposalsIndexer),
+        IndexerVariant::EnsMainnetVotes => Box::new(EnsMainnetVotesIndexer),
+
+        IndexerVariant::FraxAlphaMainnetProposals => Box::new(FraxAlphaMainnetProposalsIndexer),
+        IndexerVariant::FraxAlphaMainnetVotes => Box::new(FraxAlphaMainnetVotesIndexer),
+        IndexerVariant::FraxOmegaMainnetProposals => Box::new(FraxOmegaMainnetProposalsIndexer),
+        IndexerVariant::FraxOmegaMainnetVotes => Box::new(FraxOmegaMainnetVotesIndexer),
+
+        IndexerVariant::GitcoinMainnetProposals => Box::new(GitcoinV1MainnetProposalsIndexer),
+        IndexerVariant::GitcoinMainnetVotes => Box::new(GitcoinV1MainnetVotesIndexer),
+        IndexerVariant::GitcoinV2MainnetProposals => Box::new(GitcoinV2MainnetProposalsIndexer),
+        IndexerVariant::GitcoinV2MainnetVotes => Box::new(GitcoinV2MainnetVotesIndexer),
+
+        IndexerVariant::HopMainnetProposals => Box::new(HopMainnetProposalsIndexer),
+        IndexerVariant::HopMainnetVotes => Box::new(HopMainnetVotesIndexer),
+
+        IndexerVariant::MakerExecutiveMainnetProposals => {
+            Box::new(MakerExecutiveMainnetProposalsIndexer)
+        }
+        IndexerVariant::MakerExecutiveMainnetVotes => Box::new(MakerExecutiveMainnetVotesIndexer),
+
+        IndexerVariant::MakerPollMainnetProposals => Box::new(MakerPollMainnetProposalsIndexer),
+        IndexerVariant::MakerPollMainnetVotes => Box::new(MakerPollMainnetVotesIndexer),
+        IndexerVariant::MakerPollArbitrumVotes => Box::new(MakerPollArbitrumVotesIndexer),
 
         IndexerVariant::ArbCoreArbitrumProposals => Box::new(ArbitrumCoreProposalsIndexer),
         IndexerVariant::ArbCoreArbitrumVotes => Box::new(ArbitrumCoreVotesIndexer),

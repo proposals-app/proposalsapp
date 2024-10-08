@@ -1,29 +1,35 @@
 use crate::indexer::Indexer;
 use anyhow::{Context, Result};
 use chrono::DateTime;
-use contracts::gen::aave_v_3_gov_mainnet::{aave_v3_gov_mainnet, ProposalCreatedFilter};
+use contracts::gen::{
+    dydx_executor::dydx_executor::dydx_executor,
+    dydx_gov::{dydx_gov::dydx_gov, ProposalCreatedFilter},
+    dydx_strategy::dydx_strategy::dydx_strategy,
+};
 use ethers::{
     abi::Address,
     contract::LogMeta,
     providers::{Http, Middleware, Provider},
+    types::U256,
 };
 use regex::Regex;
+use scanners::etherscan::estimate_timestamp;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, warn};
 
-pub struct AaveV3MainnetProposalsIndexer;
+pub struct DydxMainnetProposalsIndexer;
 
 #[async_trait::async_trait]
-impl Indexer for AaveV3MainnetProposalsIndexer {
+impl Indexer for DydxMainnetProposalsIndexer {
     async fn process(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
-        info!("Processing Aave V3 Mainnet Proposals");
+        info!("Processing Dydx Proposals");
 
         let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
         let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
@@ -41,11 +47,11 @@ impl Indexer for AaveV3MainnetProposalsIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0x9AEE0B04504CeF83A65AC3f0e838D0593BCb2BC7"
+        let address = "0x7E9B1672616FF6D6629Ef2879419aaE79A9018D2"
             .parse::<Address>()
             .context("bad address")?;
 
-        let gov_contract = aave_v3_gov_mainnet::new(address, eth_rpc.clone());
+        let gov_contract = dydx_gov::new(address, eth_rpc.clone());
 
         let proposal_events = gov_contract
             .proposal_created_filter()
@@ -76,72 +82,106 @@ impl Indexer for AaveV3MainnetProposalsIndexer {
 }
 
 async fn data_for_proposal(
-    p: (
-        contracts::gen::aave_v_3_gov_mainnet::ProposalCreatedFilter,
-        LogMeta,
-    ),
-    _rpc: &Arc<Provider<Http>>,
+    p: (ProposalCreatedFilter, LogMeta),
+    rpc: &Arc<Provider<Http>>,
     indexer: &dao_indexer::Model,
-    gov_contract: aave_v3_gov_mainnet<ethers::providers::Provider<ethers::providers::Http>>,
+    gov_contract: dydx_gov<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
     let (log, meta): (ProposalCreatedFilter, LogMeta) = p.clone();
 
     let created_block_number = meta.block_number.as_u64();
+    let created_block = rpc
+        .get_block(meta.block_number)
+        .await
+        .context("rpc.get_block")?;
+    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+
+    let voting_start_block_number = log.start_block.as_u64();
+    let voting_end_block_number = log.end_block.as_u64();
+
+    let average_block_time_millis = 12_200;
+
+    let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis(
+                (created_block_timestamp.and_utc().timestamp() * 1000)
+                    + (voting_start_block_number as i64 - created_block_number as i64)
+                        * average_block_time_millis,
+            )
+            .context("bad timestamp")?
+            .naive_utc();
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_start_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
+
+    let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis(
+                created_block_timestamp.and_utc().timestamp() * 1000
+                    + (voting_end_block_number - created_block_number) as i64
+                        * average_block_time_millis,
+            )
+            .context("bad timestamp")?
+            .naive_utc();
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
+
+    let proposal_url = format!("https://dydx.community/dashboard/proposal/{}", log.id);
+
+    let proposal_external_id = log.id.to_string();
+
+    let executor_contract = dydx_executor::new(log.executor, rpc.clone());
+
+    let strategy_contract = dydx_strategy::new(log.strategy, rpc.clone());
+
+    let total_voting_power = strategy_contract
+        .get_total_voting_supply_at(U256::from(meta.block_number.as_u64()))
+        .await
+        .context("strategy_contract.get_total_voting_supply_at")
+        .unwrap_or_default();
+
+    let min_quorum = executor_contract
+        .minimum_quorum()
+        .await
+        .context("executor_contract.minimum_quorum")?;
+
+    let one_hunded_with_precision = executor_contract
+        .one_hundred_with_precision()
+        .await
+        .context("executor_contract.one_hundred_with_precision")?;
+
+    let quorum = ((total_voting_power * min_quorum) / one_hunded_with_precision).as_u128() as f64
+        / (10.0f64.powi(18));
 
     let onchain_proposal = gov_contract
-        .get_proposal(log.proposal_id)
+        .get_proposal_by_id(log.id)
         .call()
         .await
-        .context("gov_contract.get_proposal")?;
-
-    let created_block_timestamp = DateTime::from_timestamp_millis(
-        (onchain_proposal.creation_time * 1000).try_into().unwrap(),
-    )
-    .context("bad timestamp")?
-    .naive_utc();
-
-    let voting_starts_timestamp = DateTime::from_timestamp_millis(
-        (onchain_proposal.voting_activation_time * 1000)
-            .try_into()
-            .unwrap(),
-    )
-    .context("bad timestamp")?
-    .naive_utc();
-
-    let voting_ends_timestamp = DateTime::from_timestamp_millis(
-        ((onchain_proposal.voting_activation_time + onchain_proposal.voting_duration as u64)
-            * 1000)
-            .try_into()
-            .unwrap(),
-    )
-    .context("bad timestamp")?
-    .naive_utc();
-
-    let proposal_url = format!(
-        "https://app.aave.com/governance/v3/proposal/?proposalId={}",
-        log.proposal_id
-    );
-
-    let proposal_external_id = log.proposal_id.to_string();
+        .context("gov_contract.get_proposal_by_id")?;
 
     let choices = vec!["For", "Against"];
 
     let scores = vec![
-        onchain_proposal.for_votes as f64 / (10.0f64.powi(18)),
-        onchain_proposal.against_votes as f64 / (10.0f64.powi(18)),
+        onchain_proposal.for_votes.as_u128() as f64 / (10.0f64.powi(18)),
+        onchain_proposal.against_votes.as_u128() as f64 / (10.0f64.powi(18)),
     ];
 
     let scores_total = scores.iter().sum();
 
-    let voting_config = gov_contract
-        .get_voting_config(log.access_level)
-        .call()
-        .await
-        .context("gov_contract.get_voting_config")?;
-
-    let quorum = voting_config.yes_threshold as f64;
-
-    let scores_quorum = onchain_proposal.for_votes as f64 / (10.0f64.powi(18));
+    let scores_quorum = onchain_proposal.for_votes.as_u128() as f64 / (10.0f64.powi(18));
 
     let hash: Vec<u8> = log.ipfs_hash.into();
 
@@ -152,26 +192,26 @@ async fn data_for_proposal(
     let body = get_body(hex::encode(hash.clone()))
         .await
         .context("get_body")?;
-
     let discussionurl = get_discussion(hex::encode(hash.clone()))
         .await
         .context("get_discussion")?;
 
     let proposal_state = gov_contract
-        .get_proposal_state(log.proposal_id)
+        .get_proposal_state(log.id)
+        .call()
         .await
         .context("gov_contract.get_proposal_state")
         .unwrap_or(99); //default to Unknown
 
     let state = match proposal_state {
-        0 => ProposalState::Unknown,
-        1 => ProposalState::Pending,
+        0 => ProposalState::Pending,
+        1 => ProposalState::Canceled,
         2 => ProposalState::Active,
-        3 => ProposalState::Queued,
-        4 => ProposalState::Executed,
-        5 => ProposalState::Defeated,
-        6 => ProposalState::Canceled,
-        7 => ProposalState::Expired,
+        3 => ProposalState::Defeated,
+        4 => ProposalState::Succeeded,
+        5 => ProposalState::Queued,
+        6 => ProposalState::Expired,
+        7 => ProposalState::Executed,
         _ => ProposalState::Unknown,
     };
 
@@ -185,8 +225,8 @@ async fn data_for_proposal(
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
-        quorum: Set(quorum),
         scores_quorum: Set(scores_quorum),
+        quorum: Set(quorum),
         proposal_state: Set(state),
         flagged_spam: NotSet,
         block_created: Set(Some(created_block_number as i32)),
@@ -378,7 +418,7 @@ async fn get_body(hexhash: String) -> Result<String> {
             let backoff_duration = Duration::from_millis(2u64.pow(retries as u32));
             tokio::time::sleep(backoff_duration).await;
         } else {
-            return Ok("Unknown".to_string());
+            return Ok("Unknown".to_string()); // Exit after 12 retries
         }
     }
 }

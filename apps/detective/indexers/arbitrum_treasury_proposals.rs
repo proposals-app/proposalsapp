@@ -1,6 +1,6 @@
 use crate::indexer::Indexer;
 use anyhow::{Context, Result};
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use contracts::gen::arbitrum_treasury_gov::{
     arbitrum_treasury_gov::arbitrum_treasury_gov, ProposalCreatedFilter,
 };
@@ -26,7 +26,7 @@ impl Indexer for ArbitrumTreasuryProposalsIndexer {
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
-        info!("Processing ArbitrumCore Proposals");
+        info!("Processing Arbitrum Treasury Proposals");
 
         let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
         let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
@@ -118,13 +118,13 @@ async fn data_for_proposal(
         match etherscan::estimate_timestamp(voting_start_block_number).await {
             Ok(r) => r,
             Err(_) => {
-                #[allow(deprecated)]
-                let fallback = NaiveDateTime::from_timestamp_millis(
+                let fallback = DateTime::from_timestamp_millis(
                     (created_block_timestamp * 1000)
                         + (voting_start_block_number as i64 - created_block_ethereum as i64)
                             * average_block_time_millis,
                 )
-                .context("bad timestamp")?;
+                .context("bad timestamp")?
+                .naive_utc();
                 warn!(
                     "Could not estimate timestamp for {:?}",
                     voting_start_block_number
@@ -137,13 +137,13 @@ async fn data_for_proposal(
     let voting_ends_timestamp = match etherscan::estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            #[allow(deprecated)]
-            let fallback = NaiveDateTime::from_timestamp_millis(
+            let fallback = DateTime::from_timestamp_millis(
                 (created_block_timestamp * 1000)
                     + (voting_end_block_number as i64 - created_block_ethereum as i64)
                         * average_block_time_millis,
             )
-            .context("bad timestamp")?;
+            .context("bad timestamp")?
+            .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_end_block_number

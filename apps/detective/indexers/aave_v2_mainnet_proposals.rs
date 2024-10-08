@@ -1,6 +1,6 @@
 use crate::indexer::Indexer;
 use anyhow::{Context, Result};
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use contracts::gen::{
     aave_v_2_executor::aave_v2_executor,
     aave_v_2_gov::{aave_v2_gov, ProposalCreatedFilter},
@@ -104,13 +104,13 @@ async fn data_for_proposal(
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            #[allow(deprecated)]
-            let fallback = NaiveDateTime::from_timestamp_millis(
+            let fallback = DateTime::from_timestamp_millis(
                 (created_block_timestamp.and_utc().timestamp() * 1000)
                     + (voting_start_block_number as i64 - created_block_number as i64)
                         * average_block_time_millis,
             )
-            .context("bad timestamp")?;
+            .context("bad timestamp")?
+            .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_start_block_number
@@ -123,13 +123,13 @@ async fn data_for_proposal(
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            #[allow(deprecated)]
-            let fallback = NaiveDateTime::from_timestamp_millis(
+            let fallback = DateTime::from_timestamp_millis(
                 created_block_timestamp.and_utc().timestamp() * 1000
                     + (voting_end_block_number - created_block_number) as i64
                         * average_block_time_millis,
             )
-            .context("bad timestamp")?;
+            .context("bad timestamp")?
+            .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_end_block_number

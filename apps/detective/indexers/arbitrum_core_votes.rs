@@ -29,7 +29,7 @@ impl Indexer for ArbitrumCoreVotesIndexer {
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
-        info!("Processing Aave V3 Mainnet Votes");
+        info!("Processing Arbitrum Core Votes");
         let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
         let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
 

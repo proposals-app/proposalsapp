@@ -1,8 +1,6 @@
 use crate::indexer::Indexer;
 use anyhow::{Context, Result};
-use contracts::gen::arbitrum_treasury_gov::{
-    arbitrum_treasury_gov::arbitrum_treasury_gov, VoteCastFilter, VoteCastWithParamsFilter,
-};
+use contracts::gen::gitcoin_v_2_gov::{gitcoin_v2_gov, VoteCastFilter, VoteCastWithParamsFilter};
 use ethers::{
     abi::Address,
     contract::LogMeta,
@@ -14,26 +12,26 @@ use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, v
 use std::sync::Arc;
 use tracing::info;
 
-pub struct ArbitrumTreasuryVotesIndexer;
+pub struct GitcoinV2MainnetVotesIndexer;
 
-impl ArbitrumTreasuryVotesIndexer {
+impl GitcoinV2MainnetVotesIndexer {
     pub fn proposal_indexer_variant() -> IndexerVariant {
-        IndexerVariant::ArbTreasuryArbitrumProposals
+        IndexerVariant::GitcoinV2MainnetProposals
     }
 }
 
 #[async_trait::async_trait]
-impl Indexer for ArbitrumTreasuryVotesIndexer {
+impl Indexer for GitcoinV2MainnetVotesIndexer {
     async fn process(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
-        info!("Processing Arbitrum Treasury Votes");
-        let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
-        let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
+        info!("Processing Gitcoin V2 Votes");
+        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
+        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
-        let current_block = arb_rpc
+        let current_block = eth_rpc
             .get_block_number()
             .await
             .context("bad current block")?
@@ -46,11 +44,11 @@ impl Indexer for ArbitrumTreasuryVotesIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0x789fC99093B09aD01C34DC7251D0C89ce743e5a4"
+        let address = "0x9D4C63565D5618310271bF3F3c01b2954C1D1639"
             .parse::<Address>()
             .context("bad address")?;
 
-        let gov_contract = arbitrum_treasury_gov::new(address, arb_rpc.clone());
+        let gov_contract = gitcoin_v2_gov::new(address, eth_rpc.clone());
 
         let logs = gov_contract
             .vote_cast_filter()
@@ -80,7 +78,7 @@ impl Indexer for ArbitrumTreasuryVotesIndexer {
         Ok((Vec::new(), all_votes, to_block))
     }
     fn min_refresh_speed(&self) -> i32 {
-        10
+        100
     }
     fn max_refresh_speed(&self) -> i32 {
         1_000_000

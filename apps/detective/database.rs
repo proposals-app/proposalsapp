@@ -4,7 +4,17 @@ use crate::indexers::{
     aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer,
     aave_v3_polygon_votes::AaveV3PolygonVotesIndexer,
     arbitrum_core_votes::ArbitrumCoreVotesIndexer,
-    arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer, snapshot_votes::SnapshotVotesIndexer,
+    arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer,
+    compound_mainnet_votes::CompoundMainnetVotesIndexer,
+    dydx_mainnet_votes::DydxMainnetVotesIndexer, ens_vote_indexer::EnsMainnetVotesIndexer,
+    frax_alpha_mainnet_votes::FraxAlphaMainnetVotesIndexer,
+    frax_omega_mainnet_votes::FraxOmegaMainnetVotesIndexer,
+    gitcoin_v1_mainnet_votes::GitcoinV1MainnetVotesIndexer,
+    gitcoin_v2_mainnet_votes::GitcoinV2MainnetVotesIndexer,
+    hop_mainnet_votes::HopMainnetVotesIndexer,
+    maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer,
+    maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer,
+    maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer, snapshot_votes::SnapshotVotesIndexer,
 };
 use anyhow::{Context, Result};
 use sea_orm::{
@@ -109,12 +119,38 @@ pub async fn store_votes(
         IndexerVariant::AaveV3AvalancheVotes => {
             AaveV3AvalancheVotesIndexer::proposal_indexer_variant()
         }
-
         IndexerVariant::ArbCoreArbitrumVotes => {
             ArbitrumCoreVotesIndexer::proposal_indexer_variant()
         }
         IndexerVariant::ArbTreasuryArbitrumVotes => {
             ArbitrumTreasuryVotesIndexer::proposal_indexer_variant()
+        }
+        IndexerVariant::CompoundMainnetVotes => {
+            CompoundMainnetVotesIndexer::proposal_indexer_variant()
+        }
+        IndexerVariant::DydxMainnetVotes => DydxMainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::EnsMainnetVotes => EnsMainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::FraxAlphaMainnetVotes => {
+            FraxAlphaMainnetVotesIndexer::proposal_indexer_variant()
+        }
+        IndexerVariant::FraxOmegaMainnetVotes => {
+            FraxOmegaMainnetVotesIndexer::proposal_indexer_variant()
+        }
+        IndexerVariant::GitcoinMainnetVotes => {
+            GitcoinV1MainnetVotesIndexer::proposal_indexer_variant()
+        }
+        IndexerVariant::GitcoinV2MainnetVotes => {
+            GitcoinV2MainnetVotesIndexer::proposal_indexer_variant()
+        }
+        IndexerVariant::HopMainnetVotes => HopMainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::MakerExecutiveMainnetVotes => {
+            MakerExecutiveMainnetVotesIndexer::proposal_indexer_variant()
+        }
+        IndexerVariant::MakerPollMainnetVotes => {
+            MakerPollMainnetVotesIndexer::proposal_indexer_variant()
+        }
+        IndexerVariant::MakerPollArbitrumVotes => {
+            MakerPollArbitrumVotesIndexer::proposal_indexer_variant()
         }
 
         IndexerVariant::SnapshotVotes => SnapshotVotesIndexer::proposal_indexer_variant(),

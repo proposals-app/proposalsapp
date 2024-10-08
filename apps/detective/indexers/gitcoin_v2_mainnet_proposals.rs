@@ -1,37 +1,34 @@
 use crate::indexer::Indexer;
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
-use contracts::gen::arbitrum_core_gov::{
-    arbitrum_core_gov::arbitrum_core_gov, ProposalCreatedFilter,
-};
+use chrono::DateTime;
+use contracts::gen::gitcoin_v_2_gov::{gitcoin_v2_gov, ProposalCreatedFilter};
 use ethers::{
     abi::Address,
     contract::LogMeta,
     providers::{Http, Middleware, Provider},
-    types::U256,
 };
-use scanners::etherscan;
+use scanners::etherscan::estimate_timestamp;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde_json::json;
 use std::sync::Arc;
 use tracing::{info, warn};
 
-pub struct ArbitrumCoreProposalsIndexer;
+pub struct GitcoinV2MainnetProposalsIndexer;
 
 #[async_trait::async_trait]
-impl Indexer for ArbitrumCoreProposalsIndexer {
+impl Indexer for GitcoinV2MainnetProposalsIndexer {
     async fn process(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
-        info!("Processing Arbitrum Core Proposals");
+        info!("Processing Gitcoin V2 Proposals");
 
-        let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
-        let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
+        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
+        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
 
-        let current_block = arb_rpc
+        let current_block = eth_rpc
             .get_block_number()
             .await
             .context("get_block_number")?
@@ -44,11 +41,11 @@ impl Indexer for ArbitrumCoreProposalsIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9"
+        let address = "0x9D4C63565D5618310271bF3F3c01b2954C1D1639"
             .parse::<Address>()
             .context("bad address")?;
 
-        let gov_contract = arbitrum_core_gov::new(address, arb_rpc.clone());
+        let gov_contract = gitcoin_v2_gov::new(address, eth_rpc.clone());
 
         let proposal_events = gov_contract
             .proposal_created_filter()
@@ -62,7 +59,7 @@ impl Indexer for ArbitrumCoreProposalsIndexer {
         let mut proposals = Vec::new();
 
         for p in proposal_events.iter() {
-            let p = data_for_proposal(p.clone(), &arb_rpc, indexer, gov_contract.clone())
+            let p = data_for_proposal(p.clone(), &eth_rpc, indexer, gov_contract.clone())
                 .await
                 .context("data_for_proposal")?;
             proposals.push(p);
@@ -79,13 +76,10 @@ impl Indexer for ArbitrumCoreProposalsIndexer {
 }
 
 async fn data_for_proposal(
-    p: (
-        contracts::gen::arbitrum_core_gov::ProposalCreatedFilter,
-        LogMeta,
-    ),
+    p: (ProposalCreatedFilter, LogMeta),
     rpc: &Arc<Provider<Http>>,
     indexer: &dao_indexer::Model,
-    gov_contract: arbitrum_core_gov<ethers::providers::Provider<ethers::providers::Http>>,
+    gov_contract: gitcoin_v2_gov<ethers::providers::Provider<ethers::providers::Http>>,
 ) -> Result<proposal::ActiveModel> {
     let (log, meta): (ProposalCreatedFilter, LogMeta) = p.clone();
 
@@ -93,56 +87,39 @@ async fn data_for_proposal(
     let created_block = rpc
         .get_block(meta.block_number)
         .await
-        .context("rpc.get_block")?
-        .context("bad block")?;
-
-    let created_block_timestamp = created_block.timestamp.as_u64() as i64;
-    let created_block_datetime = DateTime::<Utc>::from_timestamp(created_block_timestamp, 0)
-        .context("bad timestamp")?
-        .naive_utc();
-
-    let created_block_ethereum = etherscan::estimate_block(created_block_timestamp as u64).await?;
+        .context("rpc.get_block")?;
+    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
 
     let voting_start_block_number = log.start_block.as_u64();
-    let mut voting_end_block_number = log.end_block.as_u64();
-
-    let gov_contract_end_block_number = gov_contract
-        .proposal_deadline(log.proposal_id)
-        .await?
-        .as_u64();
-
-    if gov_contract_end_block_number > voting_end_block_number {
-        voting_end_block_number = gov_contract_end_block_number;
-    }
+    let voting_end_block_number = log.end_block.as_u64();
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp =
-        match etherscan::estimate_timestamp(voting_start_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (created_block_timestamp * 1000)
-                        + (voting_start_block_number as i64 - created_block_ethereum as i64)
-                            * average_block_time_millis,
-                )
-                .context("bad timestamp")?
-                .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_start_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
-
-    let voting_ends_timestamp = match etherscan::estimate_timestamp(voting_end_block_number).await {
+    let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
             let fallback = DateTime::from_timestamp_millis(
-                (created_block_timestamp * 1000)
-                    + (voting_end_block_number as i64 - created_block_ethereum as i64)
+                (created_block_timestamp.and_utc().timestamp() * 1000)
+                    + (voting_start_block_number as i64 - created_block_number as i64)
+                        * average_block_time_millis,
+            )
+            .context("bad timestamp")?
+            .naive_utc();
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_start_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
+
+    let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis(
+                created_block_timestamp.and_utc().timestamp() * 1000
+                    + (voting_end_block_number - created_block_number) as i64
                         * average_block_time_millis,
             )
             .context("bad timestamp")?
@@ -155,13 +132,6 @@ async fn data_for_proposal(
             fallback
         }
     };
-
-    let proposal_url = format!(
-        "https://www.tally.xyz/gov/arbitrum/proposal/{}",
-        log.proposal_id
-    );
-
-    let proposal_external_id = log.proposal_id.to_string();
 
     let mut title = format!(
         "{:.120}",
@@ -182,37 +152,39 @@ async fn data_for_proposal(
 
     let body = log.description.to_string();
 
-    let onchain_proposal = gov_contract
+    let proposal_url = format!(
+        "https://www.tally.xyz/gov/gitcoin/proposal/{}",
+        log.proposal_id
+    );
+
+    let proposal_external_id = log.proposal_id.to_string();
+
+    let choices = vec!["For", "Against", "Abstain"];
+
+    let proposal_votes = gov_contract
         .proposal_votes(log.proposal_id)
         .call()
         .await
         .context("gov_contract.proposal_votes")?;
 
-    let choices = vec!["For", "Against", "Abstain"];
-
     let scores = vec![
-        onchain_proposal.1.as_u128() as f64 / (10.0f64.powi(18)),
-        onchain_proposal.0.as_u128() as f64 / (10.0f64.powi(18)),
-        onchain_proposal.2.as_u128() as f64 / (10.0f64.powi(18)),
+        proposal_votes.1.as_u128() as f64 / (10.0f64.powi(18)),
+        proposal_votes.0.as_u128() as f64 / (10.0f64.powi(18)),
+        proposal_votes.2.as_u128() as f64 / (10.0f64.powi(18)),
     ];
 
     let scores_total = scores.iter().sum();
 
-    let scores_quorum = onchain_proposal.1.as_u128() as f64 / (10.0f64.powi(18))
-        + onchain_proposal.2.as_u128() as f64 / (10.0f64.powi(18));
+    let scores_quorum = proposal_votes.1.as_u128() as f64 / (10.0f64.powi(18))
+        + proposal_votes.2.as_u128() as f64 / (10.0f64.powi(18));
 
-    let proposal_snapshot_block = gov_contract
-        .proposal_snapshot(log.proposal_id)
+    let quorum = gov_contract
+        .quorum(log.proposal_id)
+        .call()
         .await
-        .context(
-            "gov_contract
-        .proposal_snapshot",
-        )?;
-
-    let quorum = match gov_contract.quorum(proposal_snapshot_block).await {
-        Ok(r) => r.as_u128() as f64 / (10.0f64.powi(18)),
-        Err(_) => U256::from(0).as_u128() as f64 / (10.0f64.powi(18)),
-    };
+        .context("gov_contract.quorum")?
+        .as_u128() as f64
+        / (10.0f64.powi(18));
 
     let proposal_state = gov_contract
         .state(log.proposal_id)
@@ -249,7 +221,7 @@ async fn data_for_proposal(
         proposal_state: Set(state),
         flagged_spam: NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(created_block_datetime),
+        time_created: Set(created_block_timestamp),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
