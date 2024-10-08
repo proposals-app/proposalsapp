@@ -40,8 +40,12 @@ use indexers::maker_poll_mainnet_proposals::MakerPollMainnetProposalsIndexer;
 use indexers::maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer;
 use indexers::nouns_mainnet_proposals::NounsProposalsIndexer;
 use indexers::nouns_mainnet_votes::NounsVotesIndexer;
+use indexers::optimism_proposals::OptimismProposalsIndexer;
+use indexers::optimism_votes::OptimismVotesIndexer;
 use indexers::snapshot_proposals::SnapshotProposalsIndexer;
 use indexers::snapshot_votes::SnapshotVotesIndexer;
+use indexers::uniswap_mainnet_proposals::UniswapMainnetProposalsIndexer;
+use indexers::uniswap_mainnet_votes::UniswapMainnetVotesIndexer;
 use sea_orm::DatabaseConnection;
 use seaorm::sea_orm_active_enums::{IndexerType, IndexerVariant};
 use seaorm::{dao, dao_indexer};
@@ -304,6 +308,12 @@ pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
 
         IndexerVariant::NounsProposalsMainnetProposals => Box::new(NounsProposalsIndexer),
         IndexerVariant::NounsProposalsMainnetVotes => Box::new(NounsVotesIndexer),
+
+        IndexerVariant::OpOptimismProposals => Box::new(OptimismProposalsIndexer),
+        IndexerVariant::OpOptimismVotes => Box::new(OptimismVotesIndexer),
+
+        IndexerVariant::UniswapMainnetProposals => Box::new(UniswapMainnetProposalsIndexer),
+        IndexerVariant::UniswapMainnetVotes => Box::new(UniswapMainnetVotesIndexer),
 
         IndexerVariant::ArbCoreArbitrumProposals => Box::new(ArbitrumCoreProposalsIndexer),
         IndexerVariant::ArbCoreArbitrumVotes => Box::new(ArbitrumCoreVotesIndexer),
