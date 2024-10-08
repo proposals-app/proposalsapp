@@ -65,7 +65,8 @@ impl Indexer for SnapshotVotesIndexer {
 
         let proposals = proposal::Entity::find()
             .filter(proposal::Column::DaoId.eq(indexer.dao_id))
-            .filter(proposal::Column::SnapshotVotesFetched.eq(false))
+            .filter(proposal::Column::TimeEnd.gt(indexer.index))
+            // .filter(proposal::Column::SnapshotVotesFetched.eq(false))
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
             .order_by(proposal::Column::TimeEnd, sea_orm::Order::Asc)
