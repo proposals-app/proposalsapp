@@ -1,15 +1,13 @@
 use crate::{database::DatabaseStore, indexer::Indexer, snapshot_api::SnapshotApiHandler};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
-use seaorm::{
-    dao, dao_indexer, proposal,
-    sea_orm_active_enums::{IndexerVariant, ProposalState},
-    vote,
+use sea_orm::{
+    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
+use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use serde::Deserialize;
 use serde_json::Value;
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 use tracing::{error, info};
 
 #[derive(Debug, Deserialize)]
@@ -70,10 +68,10 @@ impl Indexer for SnapshotVotesIndexer {
                     .unwrap()
                     .naive_utc()),
             )
-            // .filter(proposal::Column::SnapshotVotesFetched.eq(false))
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
             .order_by(proposal::Column::TimeEnd, sea_orm::Order::Asc)
+            .limit(10)
             .all(&db)
             .await?;
 
@@ -153,34 +151,6 @@ impl Indexer for SnapshotVotesIndexer {
             .map(|v| v.index_created.clone().unwrap())
             .max()
             .unwrap_or(indexer.index);
-
-        // let proposals_with_votes: HashSet<String> = votes
-        //     .iter()
-        //     .map(|v| v.proposal_external_id.clone().unwrap())
-        //     .collect();
-
-        // // Find the oldest proposal without new votes
-        // if let Some(oldest_proposal_without_votes) = proposals
-        //     .iter()
-        //     .find(|p| !proposals_with_votes.contains(&p.external_id))
-        // {
-        //     if oldest_proposal_without_votes.proposal_state != ProposalState::Active
-        //         && oldest_proposal_without_votes.proposal_state != ProposalState::Pending
-        //     {
-        //         proposal::Entity::update(proposal::ActiveModel {
-        //             id: Set(oldest_proposal_without_votes.id),
-        //             snapshot_votes_fetched: Set(Some(true)),
-        //             ..Default::default()
-        //         })
-        //         .exec(&db)
-        //         .await?;
-
-        //         info!(
-        //             "Marked proposal {} as fetched (no new votes)",
-        //             oldest_proposal_without_votes.external_id
-        //         );
-        //     }
-        // }
 
         Ok((vec![], votes, highest_index))
     }
