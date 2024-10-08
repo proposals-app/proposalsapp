@@ -257,6 +257,5 @@ async fn data_for_proposal(
         index_created: Set(created_block_number as i32),
         metadata: NotSet,
         txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
-        snapshot_votes_fetched: NotSet,
     })
 }

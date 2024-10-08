@@ -35,7 +35,6 @@ pub struct Model {
     pub block_created: Option<i32>,
     pub txid: Option<String>,
     pub metadata: Option<Json>,
-    pub snapshot_votes_fetched: Option<bool>,
     pub dao_indexer_id: Uuid,
     pub dao_id: Uuid,
 }
@@ -62,7 +61,6 @@ pub enum Column {
     BlockCreated,
     Txid,
     Metadata,
-    SnapshotVotesFetched,
     DaoIndexerId,
     DaoId,
 }
@@ -111,7 +109,6 @@ impl ColumnTrait for Column {
             Self::BlockCreated => ColumnType::Integer.def().null(),
             Self::Txid => ColumnType::Text.def().null(),
             Self::Metadata => ColumnType::JsonBinary.def().null(),
-            Self::SnapshotVotesFetched => ColumnType::Boolean.def().null(),
             Self::DaoIndexerId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
         }

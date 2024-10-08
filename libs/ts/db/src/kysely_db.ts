@@ -253,7 +253,6 @@ export interface Proposal {
   scores: Generated<Json>;
   scoresQuorum: number;
   scoresTotal: number;
-  snapshotVotesFetched: boolean | null;
   timeCreated: Timestamp;
   timeEnd: Timestamp;
   timeStart: Timestamp;

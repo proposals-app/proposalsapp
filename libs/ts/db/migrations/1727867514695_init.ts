@@ -325,7 +325,6 @@ async function createProposalTables(db: Kysely<any>): Promise<void> {
     .addColumn("block_created", "integer")
     .addColumn("txid", "text")
     .addColumn("metadata", "jsonb")
-    .addColumn("snapshot_votes_fetched", "boolean")
     .addColumn("dao_indexer_id", "uuid", (col) => col.notNull())
     .addColumn("dao_id", "uuid", (col) => col.notNull())
     .addForeignKeyConstraint(

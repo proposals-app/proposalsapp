@@ -192,7 +192,6 @@ fn parse_proposals(
                 index_created: Set(p.created),
                 metadata: NotSet,
                 txid: Set(Some(p.ipfs)),
-                snapshot_votes_fetched: Set(Some(false)),
             }
         })
         .collect()
