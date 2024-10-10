@@ -21,7 +21,7 @@ use crate::indexers::{
 use anyhow::{Context, Result};
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
-    DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait,
+    DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
 };
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote, voter};
 use std::{
@@ -201,45 +201,17 @@ pub async fn store_votes(
         ));
     }
 
-    // Fetch existing voters
-    let existing_voters: Vec<voter::Model> = voter::Entity::find()
-        .filter(voter::Column::Address.is_in(voter_addresses.iter().cloned().collect::<Vec<_>>()))
-        .all(&txn)
-        .await?;
-
-    let existing_voter_addresses: HashSet<String> =
-        existing_voters.into_iter().map(|v| v.address).collect();
-
-    // Create new voters
-    let new_voters: Vec<voter::ActiveModel> = voter_addresses
-        .difference(&existing_voter_addresses)
-        .map(|address| voter::ActiveModel {
-            id: NotSet,
-            address: Set(address.clone()),
-            ens: NotSet,
-        })
+    let voter_addresses: HashSet<String> = votes_to_insert
+        .iter()
+        .map(|v| v.voter_address.clone().unwrap())
         .collect();
 
-    // Insert new voters
-    if !new_voters.is_empty() {
-        voter::Entity::insert_many(new_voters).exec(&txn).await?;
-    }
+    ensure_voters_exist(&txn, voter_addresses).await?;
 
-    // Deduplicate votes
-    let mut deduplicated_votes: HashMap<(Uuid, String), vote::ActiveModel> = HashMap::new();
-    for vote in votes_to_insert {
-        let key = (
-            vote.proposal_id.clone().unwrap(),
-            vote.voter_address.clone().unwrap(),
-        );
-        deduplicated_votes.insert(key, vote);
-    }
-
-    let final_votes: Vec<vote::ActiveModel> = deduplicated_votes.into_values().collect();
-
-    // Insert votes
-    if !final_votes.is_empty() {
-        vote::Entity::insert_many(final_votes)
+    // Insert votes in batches
+    const BATCH_SIZE: usize = 1000; // Adjust this value based on your database performance
+    for chunk in votes_to_insert.chunks(BATCH_SIZE) {
+        vote::Entity::insert_many(chunk.to_vec())
             .on_conflict(
                 sea_orm::sea_query::OnConflict::columns([
                     vote::Column::ProposalId,
@@ -260,6 +232,43 @@ pub async fn store_votes(
     }
 
     txn.commit().await?;
+
+    Ok(())
+}
+
+async fn ensure_voters_exist(
+    txn: &DatabaseTransaction,
+    voter_addresses: HashSet<String>,
+) -> Result<()> {
+    const BATCH_SIZE: usize = 1000; // Adjust based on database performance
+
+    for addresses_chunk in voter_addresses
+        .into_iter()
+        .collect::<Vec<_>>()
+        .chunks(BATCH_SIZE)
+    {
+        let existing_voters: HashSet<String> = voter::Entity::find()
+            .filter(voter::Column::Address.is_in(addresses_chunk.to_vec()))
+            .all(txn)
+            .await?
+            .into_iter()
+            .map(|v| v.address)
+            .collect();
+
+        let new_voters: Vec<voter::ActiveModel> = addresses_chunk
+            .iter()
+            .filter(|&address| !existing_voters.contains(address))
+            .map(|address| voter::ActiveModel {
+                id: NotSet,
+                address: Set(address.clone()),
+                ens: NotSet,
+            })
+            .collect();
+
+        if !new_voters.is_empty() {
+            voter::Entity::insert_many(new_voters).exec(txn).await?;
+        }
+    }
 
     Ok(())
 }
