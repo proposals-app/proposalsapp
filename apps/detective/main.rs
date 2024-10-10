@@ -109,6 +109,7 @@ async fn main() -> Result<()> {
                 for (indexer, dao) in dao_indexers {
                     let indexer_id = indexer.id;
                     let indexer_type = indexer.indexer_type.clone();
+                    let indexer_variant = indexer.indexer_variant.clone();
                     let dao_name = dao.name.clone();
 
                     // Check if the indexer is already in the queue
@@ -121,12 +122,14 @@ async fn main() -> Result<()> {
 
                         info!(
                             indexer_type = ?indexer_type,
+                            indexer_variant = ?indexer_variant,
                             dao_name = ?dao_name,
                             "Added indexer to queue"
                         );
                     } else {
                         debug!(
                             indexer_type = ?indexer_type,
+                            indexer_variant = ?indexer_variant,
                             dao_name = ?dao_name,
                             "Indexer already in queue, skipping"
                         );
@@ -152,8 +155,9 @@ async fn main() -> Result<()> {
                 let db = db.clone();
                 tokio::spawn(async move {
                     info!(
+                        indexer_type = ?indexer.indexer_type,
                         indexer_variant = ?indexer.indexer_variant,
-                         dao_name = ?dao.name,
+                        dao_name = ?dao.name,
                         "Processing indexer"
                     );
 
@@ -319,7 +323,5 @@ pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
         IndexerVariant::ArbCoreArbitrumVotes => Box::new(ArbitrumCoreVotesIndexer),
         IndexerVariant::ArbTreasuryArbitrumProposals => Box::new(ArbitrumTreasuryProposalsIndexer),
         IndexerVariant::ArbTreasuryArbitrumVotes => Box::new(ArbitrumTreasuryVotesIndexer),
-        // Add other matches as needed
-        _ => todo!("Implement other indexer variants"),
     }
 }
