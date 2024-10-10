@@ -102,7 +102,10 @@ async fn get_votes(
             indexer_id: Set(indexer.id),
             time_created: NotSet,
             reason: NotSet,
-            txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+            txid: Set(Some(format!(
+                "0x{}",
+                hex::encode(meta.transaction_hash.as_bytes())
+            ))),
         })
     }
 

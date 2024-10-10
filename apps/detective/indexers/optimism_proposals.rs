@@ -295,7 +295,10 @@ async fn data_for_proposal_one(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(created_block_number as i32),
-        txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+        txid: Set(Some(format!(
+            "0x{}",
+            hex::encode(meta.transaction_hash.as_bytes())
+        ))),
         metadata: Set(json!({"proposal_type":1 , "voting_module":""}).into()),
     })
 }
@@ -574,7 +577,10 @@ async fn data_for_proposal_two(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(created_block_number as i32),
-        txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+        txid: Set(Some(format!(
+            "0x{}",
+            hex::encode(meta.transaction_hash.as_bytes())
+        ))),
         metadata: Set(
             json!({"proposal_type":proposal_type, "voting_module" : voting_module}).into(),
         ),
@@ -795,7 +801,10 @@ async fn data_for_proposal_three(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(created_block_number as i32),
-        txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+        txid: Set(Some(format!(
+            "0x{}",
+            hex::encode(meta.transaction_hash.as_bytes())
+        ))),
         metadata: Set(json!({"proposal_type":3, "voting_module" : voting_module}).into()),
     })
 }
@@ -940,7 +949,10 @@ async fn data_for_proposal_four(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(created_block_number as i32),
-        txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+        txid: Set(Some(format!(
+            "0x{}",
+            hex::encode(meta.transaction_hash.as_bytes())
+        ))),
         metadata: Set(json!({"proposal_type":4, "voting_module":""}).into()),
     })
 }

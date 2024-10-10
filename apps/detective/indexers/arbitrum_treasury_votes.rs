@@ -113,7 +113,11 @@ fn get_votes(
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
             reason: Set(Some(log.reason)),
-            ..Default::default()
+            time_created: NotSet,
+            txid: Set(Some(format!(
+                "0x{}",
+                hex::encode(meta.transaction_hash.as_bytes())
+            ))),
         })
     }
 
@@ -145,7 +149,12 @@ fn get_votes_with_params(
             proposal_external_id: Set(log.proposal_id.to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
-            ..Default::default()
+            time_created: NotSet,
+            txid: Set(Some(format!(
+                "0x{}",
+                hex::encode(meta.transaction_hash.as_bytes())
+            ))),
+            reason: NotSet,
         })
     }
 

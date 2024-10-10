@@ -121,7 +121,10 @@ fn get_votes(
             indexer_id: Set(indexer.id),
             reason: Set(Some(log.reason)),
             time_created: NotSet,
-            txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+            txid: Set(Some(format!(
+                "0x{}",
+                hex::encode(meta.transaction_hash.as_bytes())
+            ))),
         })
     }
 
@@ -248,7 +251,10 @@ async fn get_votes_with_params(
             indexer_id: Set(indexer.id),
             reason: Set(Some(log.reason)),
             time_created: NotSet,
-            txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+            txid: Set(Some(format!(
+                "0x{}",
+                hex::encode(meta.transaction_hash.as_bytes())
+            ))),
         })
     }
 

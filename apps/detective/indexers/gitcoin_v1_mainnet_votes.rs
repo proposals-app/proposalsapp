@@ -94,7 +94,12 @@ fn get_votes(
             proposal_external_id: Set(log.proposal_id.to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
-            ..Default::default()
+            txid: Set(Some(format!(
+                "0x{}",
+                hex::encode(meta.transaction_hash.as_bytes())
+            ))),
+            reason: NotSet,
+            time_created: NotSet,
         })
     }
 

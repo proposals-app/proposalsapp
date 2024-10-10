@@ -220,6 +220,9 @@ async fn data_for_proposal(
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(created_block_number as i32),
         metadata: NotSet,
-        txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+        txid: Set(Some(format!(
+            "0x{}",
+            hex::encode(meta.transaction_hash.as_bytes())
+        ))),
     })
 }

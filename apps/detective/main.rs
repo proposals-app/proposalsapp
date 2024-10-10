@@ -68,7 +68,7 @@ mod snapshot_api;
 
 static MAX_JOBS: usize = 100;
 static CONCURRENT_JOBS: usize = 5;
-static JOB_PRODUCE_INTERVAL: Duration = Duration::from_secs(5);
+static JOB_PRODUCE_INTERVAL: Duration = Duration::from_secs(60);
 static JOB_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 static SNAPSHOT_MAX_RETRIES: usize = 5;
 static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
@@ -90,9 +90,8 @@ async fn main() -> Result<()> {
     let db: DatabaseConnection = DatabaseStore::connect().await?;
 
     // Create channels for the job queues
-    let (snapshot_tx, mut snapshot_rx) =
-        mpsc::channel::<(dao_indexer::Model, dao::Model)>(MAX_JOBS);
-    let (other_tx, mut other_rx) = mpsc::channel::<(dao_indexer::Model, dao::Model)>(MAX_JOBS);
+    let (snapshot_tx, snapshot_rx) = mpsc::channel::<(dao_indexer::Model, dao::Model)>(MAX_JOBS);
+    let (other_tx, other_rx) = mpsc::channel::<(dao_indexer::Model, dao::Model)>(MAX_JOBS);
 
     // Create shared sets to keep track of indexers in the queues
     let snapshot_queued_indexers = Arc::new(Mutex::new(HashSet::new()));

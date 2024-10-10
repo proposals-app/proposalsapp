@@ -106,7 +106,10 @@ async fn get_votes(
             proposal_external_id: Set(log.vote_id.to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
-            txid: Set(Some(format!("{:#x}", meta.transaction_hash))),
+            txid: Set(Some(format!(
+                "0x{}",
+                hex::encode(meta.transaction_hash.as_bytes())
+            ))),
         })
     }
 
