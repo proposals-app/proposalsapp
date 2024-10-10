@@ -1,7 +1,9 @@
 use crate::{database::DatabaseStore, indexer::Indexer, snapshot_api::SnapshotApiHandler};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
+use sea_orm::{
+    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use serde::Deserialize;
 use serde_json::Value;
@@ -69,8 +71,9 @@ impl Indexer for SnapshotVotesIndexer {
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
             .order_by(proposal::Column::TimeEnd, sea_orm::Order::Asc)
-            .all(&db)
-            .await?;
+            .limit(indexer.speed as u64) // hacky way to get around too many proposals in the query
+            .all(&db) // indexer.speed is used both for the number of votes to pull and the number of proposals to use
+            .await?; // if the query fails, they both decrease until the query works
 
         let proposals_ext_ids: Vec<String> =
             proposals.iter().map(|p| p.external_id.clone()).collect();
