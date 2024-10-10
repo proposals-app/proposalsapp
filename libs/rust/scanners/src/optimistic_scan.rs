@@ -41,11 +41,9 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Block not found"))?;
 
-        return Ok(
-            DateTime::<Utc>::from_timestamp(block.timestamp.as_u64() as i64 * 1000, 0)
-                .expect("Invalid timestamp")
-                .naive_utc(),
-        );
+        return Ok(DateTime::from_timestamp(block.timestamp.as_u64() as i64, 0)
+            .expect("Invalid timestamp")
+            .naive_utc());
     }
 
     let retry_policy = ExponentialBackoff::builder().build_with_max_retries(5);
@@ -73,7 +71,7 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                 let estimated_time = Utc::now().timestamp() * 1000
                     + data.result.estimate_time_in_sec.parse::<f64>()? as i64 * 1000;
 
-                return Ok(DateTime::<Utc>::from_timestamp(estimated_time, 0)
+                return Ok(DateTime::from_timestamp(estimated_time, 0)
                     .expect("Invalid timestamp")
                     .naive_utc());
             }
@@ -83,11 +81,9 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                 sleep(backoff_duration).await;
             }
             Err(_) => {
-                return Ok(
-                    DateTime::<Utc>::from_timestamp(Utc::now().timestamp() * 1000, 0)
-                        .expect("Invalid timestamp")
-                        .naive_utc(),
-                );
+                return Ok(DateTime::from_timestamp(Utc::now().timestamp() * 1000, 0)
+                    .expect("Invalid timestamp")
+                    .naive_utc());
             }
         }
     }
@@ -149,7 +145,7 @@ pub async fn estimate_block(timestamp: u64) -> Result<u64> {
 }
 
 #[cfg(test)]
-mod tests {
+mod optimisticscan {
     use super::*;
     use chrono::Utc;
     use dotenv::dotenv;
