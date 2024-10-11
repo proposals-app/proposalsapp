@@ -1,12 +1,7 @@
 use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use contracts::gen::gitcoin_v_2_gov::{gitcoin_v2_gov, VoteCastFilter, VoteCastWithParamsFilter};
-use ethers::{
-    abi::Address,
-    contract::LogMeta,
-    providers::Middleware,
-    utils::to_checksum,
-};
+use ethers::{abi::Address, contract::LogMeta, providers::Middleware, utils::to_checksum};
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use tracing::info;
@@ -77,7 +72,7 @@ impl Indexer for GitcoinV2MainnetVotesIndexer {
         Ok((Vec::new(), all_votes, to_block))
     }
     fn min_refresh_speed(&self) -> i32 {
-        100
+        1
     }
     fn max_refresh_speed(&self) -> i32 {
         1_000_000

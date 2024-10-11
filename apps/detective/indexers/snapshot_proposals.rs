@@ -131,7 +131,7 @@ impl Indexer for SnapshotProposalsIndexer {
     }
 
     fn min_refresh_speed(&self) -> i32 {
-        10
+        1
     }
 
     fn max_refresh_speed(&self) -> i32 {

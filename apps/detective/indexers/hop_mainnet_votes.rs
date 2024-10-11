@@ -66,7 +66,7 @@ impl Indexer for HopMainnetVotesIndexer {
         Ok((Vec::new(), votes, to_block))
     }
     fn min_refresh_speed(&self) -> i32 {
-        10
+        1
     }
     fn max_refresh_speed(&self) -> i32 {
         1_000_000

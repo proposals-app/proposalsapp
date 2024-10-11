@@ -1,12 +1,7 @@
 use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use contracts::gen::maker_poll_vote::{maker_poll_vote::maker_poll_vote, VotedFilter};
-use ethers::{
-    prelude::LogMeta,
-    providers::Middleware,
-    types::Address,
-    utils::to_checksum,
-};
+use ethers::{prelude::LogMeta, providers::Middleware, types::Address, utils::to_checksum};
 use num_bigint::BigInt;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
@@ -68,7 +63,7 @@ impl Indexer for MakerPollMainnetVotesIndexer {
     }
 
     fn min_refresh_speed(&self) -> i32 {
-        100
+        1
     }
 
     fn max_refresh_speed(&self) -> i32 {

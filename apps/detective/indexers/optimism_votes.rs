@@ -90,7 +90,7 @@ impl Indexer for OptimismVotesIndexer {
     }
 
     fn min_refresh_speed(&self) -> i32 {
-        100
+        1
     }
 
     fn max_refresh_speed(&self) -> i32 {
