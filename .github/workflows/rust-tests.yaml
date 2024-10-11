@@ -53,4 +53,4 @@ jobs:
         with:
           name: test-results
           path: target/nextest/default/junit.xml
-          reporter: jest-junit
+          reporter: java-junit
