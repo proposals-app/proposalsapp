@@ -216,6 +216,7 @@ pub async fn store_votes(
                 sea_orm::sea_query::OnConflict::columns([
                     vote::Column::ProposalId,
                     vote::Column::VoterAddress,
+                    vote::Column::Txid,
                 ])
                 .update_columns([
                     vote::Column::Choice,
@@ -223,21 +224,8 @@ pub async fn store_votes(
                     vote::Column::Reason,
                     vote::Column::TimeCreated,
                     vote::Column::BlockCreated,
-                    vote::Column::Txid,
                 ])
                 .to_owned(),
-            )
-            .on_conflict(
-                sea_orm::sea_query::OnConflict::columns([vote::Column::Txid])
-                    .update_columns([
-                        vote::Column::Choice,
-                        vote::Column::VotingPower,
-                        vote::Column::Reason,
-                        vote::Column::TimeCreated,
-                        vote::Column::BlockCreated,
-                        vote::Column::Txid,
-                    ])
-                    .to_owned(),
             )
             .exec(&txn)
             .await?;
