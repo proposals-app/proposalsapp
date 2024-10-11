@@ -48,7 +48,7 @@ jobs:
         run: cargo nextest run
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: dorny/test-reporter@v1
         if: always()
         with:
           name: test-results

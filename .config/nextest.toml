@@ -2,7 +2,7 @@
 dir = "target/nextest"
 
 [profile.default]
-retries = { backoff = "exponential", count = 5, delay = "5s" }
+retries = { backoff = "exponential", count = 3, delay = "5s" }
 slow-timeout = { period = "30s", terminate-after = 4 }
 test-threads = 5
 
