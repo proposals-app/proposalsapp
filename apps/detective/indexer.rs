@@ -15,7 +15,10 @@ pub trait Indexer: Send + Sync {
 
     fn adjust_speed(&self, current_speed: i32, success: bool) -> i32 {
         if success {
-            std::cmp::min(current_speed * 5 / 4, self.max_refresh_speed())
+            std::cmp::min(
+                std::cmp::max(current_speed + 1, (current_speed * 5 + 3) / 4),
+                self.max_refresh_speed(),
+            )
         } else {
             std::cmp::max(current_speed * 3 / 4, self.min_refresh_speed())
         }
