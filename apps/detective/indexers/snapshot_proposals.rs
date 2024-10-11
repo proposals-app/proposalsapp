@@ -196,3 +196,76 @@ fn parse_proposals(
         })
         .collect()
 }
+
+#[cfg(test)]
+mod snapshot_proposals {
+    use crate::snapshot_api::SnapshotApiConfig;
+
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use serde_json::json;
+    use std::sync::Arc;
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+
+    #[tokio::test]
+    async fn snapshot_aave() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::SnapshotProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 1725263866,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "Aave".into(),
+            slug: "aave".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        let snapshot_api_handler = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig::default()));
+        let snapshot_indexer = SnapshotProposalsIndexer::new(snapshot_api_handler);
+
+        match snapshot_indexer.process(&indexer, &dao).await {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 1725263866,
+                    external_id: "0xf87cf0761b27becf6c8d18bbb457c9e6bf6b7aa436cdb0d197ad2d93a495ed04",
+                    name: "[TEMP CHECK] Onboard cbBTC to Aave v3 on Base",
+                    body_contains: Some(vec!["The proposal aims to onboard Coinbase’s cbBTC, to the Aave v3 protocol on Base."]),
+                    url: "https://snapshot.org/#/aave.eth/proposal/0xf87cf0761b27becf6c8d18bbb457c9e6bf6b7aa436cdb0d197ad2d93a495ed04",
+                    discussion_url: "https://governance.aave.com/t/temp-check-onboard-cbbtc-to-aave-v3-on-base/18805/1",
+                    choices: json!(["YAE", "NAY", "Abstain"]),
+                    scores: json!([802818.335753119, 1430.6269857913692, 0.10106163035550476]),
+                    scores_total: 804249.0638005408,
+                    scores_quorum: 804249.0638005408,
+                    quorum: 0.0,
+                    proposal_state: ProposalState::Executed,
+                    marked_spam: Some(false),
+                    block_created: None,
+                    time_created: parse_datetime("2024-09-02 07:57:46"),
+                    time_start: parse_datetime("2024-09-03 07:57:46"),
+                    time_end: parse_datetime("2024-09-06 07:57:46"),
+                    txid: Some("bafkreifbwvrbt4gg4sbzckidwzowhreg2t7hxcytwmgkp42fdgtt6h57bm"),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+}

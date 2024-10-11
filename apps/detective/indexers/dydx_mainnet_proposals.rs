@@ -442,3 +442,150 @@ async fn get_body(hexhash: String) -> Result<String> {
         }
     }
 }
+
+#[cfg(test)]
+mod dydx_mainnet_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use serde_json::json;
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+
+    #[tokio::test]
+    async fn dydx_1() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::DydxMainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 13628320,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match DydxMainnetProposalsIndexer.process(&indexer, &dao).await {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 13628320,
+                    external_id: "4",
+                    name: "Upgrade the StarkProxy smart contract",
+                    body_contains: Some(vec!["Upgrade StarkProxy smart contracts to support deposit cancellation and recovery."]),
+                    url: "https://dydx.community/dashboard/proposal/4",
+                    discussion_url: "https://forums.dydx.community/proposal/discussion/2437-drc-smart-contract-upgrade-for-market-maker-borrowers-from-liquidity-staking-pool/",
+                    choices: json!(["For", "Against"]),
+                    scores: json!([69606482.29966135, 0.0]),
+                    scores_total: 69606482.29966135,
+                    scores_quorum: 69606482.29966135,
+                    quorum: 20000000.0,
+                    proposal_state: ProposalState::Executed,
+                    marked_spam: None,
+                    time_created: parse_datetime("2021-11-16 19:03:13"),
+                    time_start: parse_datetime("2021-11-17 19:36:19"),
+                    time_end: parse_datetime("2021-11-21 23:51:38"),
+                    block_created: Some(13628320),
+                    txid: Some("0xd4a22490da1b095a5418186fd82268242fde6f231272ce038e03a5b27e539898"),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn dydx_2() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::DydxMainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 17477983 - 17076736,
+            index: 17076736,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match DydxMainnetProposalsIndexer.process(&indexer, &dao).await {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [
+                    ExpectedProposal {
+                        index_created: 17076736,
+                        external_id: "12",
+                        name: "Increase Maximum Funding Rates (8h) to 4% and Fix Data Bug in the V3 Perp Contract",
+                        body_contains: Some(vec!["Increase the maximum 8h funding rate from 0.75% to 4% across all markets, and deploy a fix to the relevant dYdX V3 perpetual smart contracts to fix a data availability issue. Due to efficiencies on testing and deployment with recommendation from the Starkware team, the changes from these 2 separate proposals are bundled into one single on-chain DIP for implementation."]),
+                        url: "https://dydx.community/dashboard/proposal/12",
+                        discussion_url: "https://commonwealth.im/dydx/discussion/10234-drc-increase-the-maximum-funding-rate & https://commonwealth.im/dydx/discussion/10634-v3-starkware-contract-data-availability-bug",
+                        choices: json!(["For", "Against"]),
+                        scores: json!([78580770.00636643, 682.59]),
+                        scores_total: 78581452.59636644,
+                        scores_quorum: 78580770.00636643,
+                        quorum: 20000000.0,
+                        proposal_state: ProposalState::Executed,
+                        marked_spam: None,
+                        time_created: parse_datetime("2023-04-18 23:13:35"),
+                        time_start: parse_datetime("2023-04-19 21:28:35"),
+                        time_end: parse_datetime("2023-04-23 14:23:59"),
+                        block_created: Some(17076736),
+                        txid: Some("0x193769203351daa7184463744f130c39ee0df05e6a711e2a5905e79ebe72aba7"),
+                        metadata: None,
+                    },
+                    ExpectedProposal {
+                        index_created: 17477983,
+                        external_id: "13",
+                        name: "Launch the dYdX Operations subDAO V2",
+                        body_contains: Some(vec!["Important Notice: This proposal is being sponsored by Wintermute Governance’s DYDX proposal/voting power on behalf of the dYdX Operations Trust."]),
+                        url: "https://dydx.community/dashboard/proposal/13",
+                        discussion_url: "https://dydx.forum/t/dydx-operations-subdao-v2/274",
+                        choices: json!(["For", "Against"]),
+                        scores: json!([73712919.43043149, 1002.9911152402094]),
+                        scores_total: 73713922.42154673,
+                        scores_quorum: 73712919.43043149,
+                        quorum: 20000000.0,
+                        proposal_state: ProposalState::Executed,
+                        marked_spam: None,
+                        time_created: parse_datetime("2023-06-14 11:48:35"),
+                        time_start: parse_datetime("2023-06-15 10:00:23"),
+                        time_end: parse_datetime("2023-06-19 02:30:47"),
+                        block_created: Some(17477983),
+                        txid: Some("0xdde79a41786a5331830cba25c50c3e8eef166c4913e72939c8d7116702db9bcf"),
+                        metadata: None,
+                    }
+                ];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+}

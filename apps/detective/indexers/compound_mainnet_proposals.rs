@@ -256,3 +256,216 @@ async fn data_for_proposal(
         ))),
     })
 }
+
+#[cfg(test)]
+mod compound_mainnet_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use serde_json::json;
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+
+    #[tokio::test]
+    async fn compound_1() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::CompoundMainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 12235671,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match CompoundMainnetProposalsIndexer
+            .process(&indexer, &dao)
+            .await
+        {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 12235671,
+                    external_id: "43",
+                    name: "Governance Analysis Period",
+                    body_contains: Some(vec!["This would allow the community and developers additional time to audit new contracts and proposals for errors, and users the opportunity to move COMP or delegations prior to a vote commencing."]),
+                    url: "https://compound.finance/governance/proposals/43",
+                    discussion_url: "",
+                    choices: json!(["For", "Against", "Abstain"]),
+                    scores: json!([1367841.9649007607, 5000.0, 0.0]),
+                    scores_total: 1372841.9649007607,
+                    scores_quorum: 1367841.9649007607,
+                    quorum: 399999.99999999994,
+                    proposal_state: ProposalState::Executed,
+                    marked_spam: None,
+                    time_created: parse_datetime("2021-04-14 03:00:21"),
+                    time_start: parse_datetime("2021-04-14 03:00:23"),
+                    time_end: parse_datetime("2021-04-16 19:13:09"),
+                    block_created: Some(12235671),
+                    txid: Some("0xe34419e8d64845b5fb920ce265d23c14def48de2bc09e4159fce5e09a819a56e"),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn compound_2() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::CompoundMainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 20215251 - 20214270,
+            index: 20214270,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match CompoundMainnetProposalsIndexer
+            .process(&indexer, &dao)
+            .await
+        {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [
+                    ExpectedProposal {
+                        index_created: 20214270,
+                        external_id: "271",
+                        name: "[Gauntlet] - WETH Arbitrum v3 Global Param Updates",
+                        body_contains: Some(vec!["Gauntlet recommends to adjust these params to match the setting on Base WETH Comet. The adjustment to lower BASE Borrow Min will allow users to borrow lower amounts of WETH and Base Min Rewards the adjustment will allow the incentives to kick off earlier within the market."]),
+                        url: "https://compound.finance/governance/proposals/271",
+                        discussion_url: "",
+                        choices: json!(["For", "Against", "Abstain"]),
+                        scores: json!([381721.9323550018, 0.0, 50007.948335668865]),
+                        scores_total: 431729.8806906707,
+                        scores_quorum: 381721.9323550018,
+                        quorum: 399999.99999999994,
+                        proposal_state: ProposalState::Defeated,
+                        marked_spam: None,
+                        time_created: parse_datetime("2024-07-01 21:10:47"),
+                        time_start: parse_datetime("2024-07-03 17:15:35"),
+                        time_end: parse_datetime("2024-07-06 11:18:59"),
+                        block_created: Some(20214270),
+                        txid: Some("0x486fa2537df83e619f600d4da86955c571715f4816199573b1add1e101a9ee7d"),
+                        metadata: None,
+                    },
+                    ExpectedProposal {
+                        index_created: 20215251,
+                        external_id: "272",
+                        name: "[Gauntlet] Polygon USDC.e and Scroll USDC - Risk and Incentive Recommendations",
+                        body_contains: Some(vec!["Gauntlet recommends adjusting Polygon USDC.e Comet's supply caps to risk off under utilized caps and reducing incentives to account for the higher costs per USDC.e within the protocol."]),
+                        url: "https://compound.finance/governance/proposals/272",
+                        discussion_url: "",
+                        choices: json!(["For", "Against", "Abstain"]),
+                        scores: json!([475671.1200245885, 0.0, 0.0]),
+                        scores_total: 475671.1200245885,
+                        scores_quorum: 475671.1200245885,
+                        quorum: 399999.99999999994,
+                        proposal_state: ProposalState::Executed,
+                        marked_spam: None,
+                        time_created: parse_datetime("2024-07-02 00:27:59"),
+                        time_start: parse_datetime("2024-07-03 20:31:59"),
+                        time_end: parse_datetime("2024-07-06 14:35:47"),
+                        block_created: Some(20215251),
+                        txid: Some("0x17bab3c0096c127192d4da5af370b216d5cb3fe5c700c7d409421ea26f50b890"),
+                        metadata: None,
+                    }
+                ];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn compound_3() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::CompoundMainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 20355844,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match CompoundMainnetProposalsIndexer
+            .process(&indexer, &dao)
+            .await
+        {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 20355844,
+                    external_id: "284",
+                    name: "Add wstETH as collateral into cUSDCv3 on Optimism",
+                    body_contains: Some(vec!["Compound Growth Program [AlphaGrowth] proposes to add wstETH into cUSDCv3 on Optimism network."]),
+                    url: "https://compound.finance/governance/proposals/284",
+                    discussion_url: "",
+                    choices: json!(["For", "Against", "Abstain"]),
+                    scores: json!([560578.7289136582, 0.0, 0.0]),
+                    scores_total: 560578.7289136582,
+                    scores_quorum: 560578.7289136582,
+                    quorum: 399999.99999999994,
+                    proposal_state: ProposalState::Executed,
+                    marked_spam: None,
+                    time_created: parse_datetime("2024-07-21 15:35:59"),
+                    time_start: parse_datetime("2024-07-23 11:38:35"),
+                    time_end: parse_datetime("2024-07-26 05:40:47"),
+                    block_created: Some(20355844),
+                    txid: Some("0xdbf9ea5cd4404d9e47f5aa1f61701f6f83af7f6e619efcc578ac7340aedeac3e"),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+}
