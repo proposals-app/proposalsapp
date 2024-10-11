@@ -48,11 +48,11 @@ jobs:
           OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
           POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
           AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
-        run: cargo nextest run
+        run: cargo t
 
       - name: Upload test results
         uses: actions/upload-artifact@v3
         with:
           name: test-results
-          path: junit.xml
+          path: target/nextest/default/junit.xml
         if: always()
