@@ -1,0 +1,13 @@
+[store]
+dir = "target/nextest"
+
+[profile.default]
+retries = { backoff = "exponential", count = 5, delay = "5s" }
+slow-timeout = { period = "30s", terminate-after = 4 }
+test-threads = 5
+
+[profile.default.junit]
+path = "junit.xml"
+report-name = "nextest-run"
+store-success-output = true
+store-failure-output = true

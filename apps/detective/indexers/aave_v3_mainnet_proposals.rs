@@ -385,3 +385,207 @@ async fn get_body(hexhash: String) -> Result<String> {
         }
     }
 }
+
+#[cfg(test)]
+mod aave_v3_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use serde_json::json;
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+
+    #[tokio::test]
+    async fn aave_v3_1() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::AaveV3MainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 18959200,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match AaveV3MainnetProposalsIndexer.process(&indexer, &dao).await {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 18959200,
+                    external_id: "1",
+                    name: "Polygon V2 Reserve Factor Updates",
+                    body_contains: Some(vec!["This AIP is a continuation of AIP-284 and increases the Reserve Factor (RF) for assets on Polygon v2 by 5.00%, up to a maximum of 99.99%.","TokenLogic and karpatkey receive no compensation beyond Aave protocol for the creation of this proposal. TokenLogic and karpatkey are both delegates within the Aave ecosystem."]),
+                    url: "https://app.aave.com/governance/v3/proposal/?proposalId=1",
+                    discussion_url: "https://governance.aave.com/t/arfc-reserve-factor-updates-polygon-aave-v2/13937",
+                    choices: json!(["For", "Against"]),
+                    scores: json!([368222.2477753108, 445.092704273313]),
+                    scores_total: 368667.3404795841,
+                    scores_quorum: 368222.2477753108,
+                    quorum: 320000.0,
+                    proposal_state: ProposalState::Executed,
+                    marked_spam: None,
+                    time_created: parse_datetime("2024-01-08 01:57:59"),
+                    time_start: parse_datetime("2024-01-09 02:00:59"),
+                    time_end: parse_datetime("2024-01-12 02:00:59"),
+                    block_created: Some(18959200),
+                    txid: Some("0xd5c3f2e3879fe7b5429df9068877cf41d3e18eeca7a064ce8ba7399bacc86d5d"),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn aave_v3_2() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::AaveV3MainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 19819808 - 19812127,
+            index: 19812127,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match AaveV3MainnetProposalsIndexer.process(&indexer, &dao).await {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [
+                    ExpectedProposal {
+                        index_created: 19812127,
+                        external_id: "100",
+                        name: "Generalized LT/LTV Reductions on Aave V3 Step 2",
+                        body_contains: Some(vec!["Reduce stablecoin LTs and LTVs across all markets.","adjust DAI and sDAI risk parameters, it has been excluded from this proposal."]),
+                        url: "https://app.aave.com/governance/v3/proposal/?proposalId=100",
+                        discussion_url: "https://governance.aave.com/t/arfc-generalized-lt-ltv-reductions-on-aave-v3-step-2-04-23-2024/17455",
+                        choices: json!(["For", "Against"]),
+                        scores: json!([673483.6390054198, 0.0]),
+                        scores_total: 673483.6390054198,
+                        scores_quorum: 673483.6390054198,
+                        quorum: 320000.0,
+                        proposal_state: ProposalState::Executed,
+                        marked_spam: None,
+                        time_created: parse_datetime("2024-05-06 16:07:11"),
+                        time_start: parse_datetime("2024-05-07 16:07:47"),
+                        time_end: parse_datetime("2024-05-10 16:07:47"),
+                        block_created: Some(19812127),
+                        txid: Some("0xb45582da92bbd8b471871655b15142482e9233ef5edabd88f57ffe82287f43b2"),
+                        metadata: None,
+                    },
+                    ExpectedProposal {
+                        index_created: 19819808,
+                        external_id: "101",
+                        name: "weETH Onbaording",
+                        body_contains: Some(vec!["The intention behind this initiative is to enhance the diversity of assets on Aave and bolster liquidity within the ecosystem."]),
+                        url: "https://app.aave.com/governance/v3/proposal/?proposalId=101",
+                        discussion_url: "https://governance.aave.com/t/arfc-onboard-weeth-to-aave-v3-on-ethereum/16758",
+                        choices: json!(["For", "Against"]),
+                        scores: json!([0.0, 0.0]),
+                        scores_total: 0.0,
+                        scores_quorum: 0.0,
+                        quorum: 320000.0,
+                        proposal_state: ProposalState::Canceled,
+                        marked_spam: None,
+                        time_created: parse_datetime("2024-05-07 17:54:23"),
+                        time_start: parse_datetime("1970-01-01 00:00:00"),
+                        time_end: parse_datetime("1970-01-01 00:00:00"),
+                        block_created: Some(19819808),
+                        txid: Some("0x9ec89471c1272a72e14db68ee2813f81eeb403a384c24ad79d3efe18d2f105b6"),
+                        metadata: None,
+                    }
+                ];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn aave_v3_3() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::AaveV3MainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 19412601,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match AaveV3MainnetProposalsIndexer.process(&indexer, &dao).await {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 19412601,
+                    external_id: "47",
+                    name: "Activation of A-C Prime Foundation",
+                    body_contains: Some(vec!["giving mandate to Centrifuge to create a Association to represent the Aave DAO off-chain, this AIP proposes the activation of the A-C Prime Foundation.","References"]),
+                    url: "https://app.aave.com/governance/v3/proposal/?proposalId=47",
+                    discussion_url: "https://governance.aave.com/t/arfc-aave-treasury-rwa-allocation/14790",
+                    choices: json!(["For", "Against"]),
+                    scores: json!([69575.82853768951, 425389.02729258186]),
+                    scores_total: 494964.8558302714,
+                    scores_quorum: 69575.82853768951,
+                    quorum: 320000.0,
+                    proposal_state: ProposalState::Defeated,
+                    marked_spam: None,
+                    time_created: parse_datetime("2024-03-11 14:58:23"),
+                    time_start: parse_datetime("2024-03-12 17:34:59"),
+                    time_end: parse_datetime("2024-03-15 17:34:59"),
+                    block_created: Some(19412601),
+                    txid: Some("0xfa2a20615e1ff91d9fcb4cd4f5dd5488f41ec6b762d0e9ebbc9b04038db1bb37"),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+}

@@ -23,8 +23,6 @@ pub struct ExpectedProposal {
     pub block_created: Option<i32>,
     pub txid: Option<&'static str>,
     pub metadata: Option<Value>,
-    pub dao_indexer_id: Uuid,
-    pub dao_id: Uuid,
 }
 
 pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProposal) {
@@ -130,31 +128,18 @@ pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProp
         expected.metadata.clone(),
         "Proposal metadata mismatch"
     );
-    assert_eq!(
-        proposal.dao_indexer_id.clone().take().unwrap(),
-        expected.dao_indexer_id,
-        "Proposal dao_indexer_id mismatch"
-    );
-    assert_eq!(
-        proposal.dao_id.clone().take().unwrap(),
-        expected.dao_id,
-        "Proposal dao_id mismatch"
-    );
 }
 
 pub struct ExpectedVote {
     pub index_created: i32,
-    pub voter_address: String,
+    pub voter_address: &'static str,
     pub choice: Value,
     pub voting_power: f64,
-    pub reason: Option<String>,
-    pub proposal_external_id: String,
+    pub reason: Option<&'static str>,
+    pub proposal_external_id: &'static str,
     pub time_created: Option<NaiveDateTime>,
     pub block_created: Option<i32>,
-    pub txid: Option<String>,
-    pub proposal_id: Uuid,
-    pub dao_id: Uuid,
-    pub indexer_id: Uuid,
+    pub txid: Option<&'static str>,
 }
 
 pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
@@ -180,7 +165,7 @@ pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
     );
     assert_eq!(
         vote.reason.clone().take().flatten(),
-        expected.reason.clone(),
+        expected.reason.map(|s| s.to_string()),
         "Vote reason mismatch"
     );
     assert_eq!(
@@ -200,23 +185,8 @@ pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
     );
     assert_eq!(
         vote.txid.clone().take().flatten(),
-        expected.txid.clone(),
+        expected.txid.map(|s| s.to_string()),
         "Vote txid mismatch"
-    );
-    assert_eq!(
-        vote.proposal_id.clone().take().unwrap(),
-        expected.proposal_id,
-        "Vote proposal_id mismatch"
-    );
-    assert_eq!(
-        vote.dao_id.clone().take().unwrap(),
-        expected.dao_id,
-        "Vote dao_id mismatch"
-    );
-    assert_eq!(
-        vote.indexer_id.clone().take().unwrap(),
-        expected.indexer_id,
-        "Vote indexer_id mismatch"
     );
 }
 

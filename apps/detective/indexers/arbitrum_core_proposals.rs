@@ -266,12 +266,11 @@ async fn data_for_proposal(
 #[cfg(test)]
 mod arbitrum_core_proposals {
     use super::*;
-    use chrono::NaiveDateTime;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::sea_orm_active_enums::IndexerVariant;
     use serde_json::json;
-    use utils::test_utils::{assert_proposal, ExpectedProposal};
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
 
     #[tokio::test]
     async fn arbitrum_core_1() {
@@ -315,14 +314,12 @@ mod arbitrum_core_proposals {
                     quorum: 143344589.07709968,
                     proposal_state: ProposalState::Executed,
                     marked_spam: None,
-                    time_created: NaiveDateTime::parse_from_str("2023-06-06 15:56:32", "%Y-%m-%d %H:%M:%S").unwrap(),
-                    time_start: NaiveDateTime::parse_from_str("2023-06-09 17:04:35", "%Y-%m-%d %H:%M:%S").unwrap(),
-                    time_end: NaiveDateTime::parse_from_str("2023-06-23 21:05:35", "%Y-%m-%d %H:%M:%S").unwrap(),
+                    time_created: parse_datetime("2023-06-06 15:56:32"),
+                    time_start: parse_datetime("2023-06-09 17:04:35"),
+                    time_end: parse_datetime("2023-06-23 21:05:35"),
                     block_created: Some(98424027),
                     txid: Some("0xea591d2cba10b1e386791334ba528bd3dde79bdc38c4b3ba69c4eb639b08eb0e"),
                     metadata: None,
-                    dao_indexer_id: indexer.id,
-                    dao_id: indexer.dao_id,
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -375,14 +372,12 @@ mod arbitrum_core_proposals {
                         quorum: 124807585.7770997,
                         proposal_state: ProposalState::Executed,
                         marked_spam: None,
-                        time_created: NaiveDateTime::parse_from_str("2023-12-22 00:25:34", "%Y-%m-%d %H:%M:%S").unwrap(),
-                        time_start: NaiveDateTime::parse_from_str("2023-12-25 01:11:35", "%Y-%m-%d %H:%M:%S").unwrap(),
-                        time_end: NaiveDateTime::parse_from_str("2024-01-08 05:23:47", "%Y-%m-%d %H:%M:%S").unwrap(),
+                        time_created: parse_datetime("2023-12-22 00:25:34"),
+                        time_start: parse_datetime("2023-12-25 01:11:35"),
+                        time_end: parse_datetime("2024-01-08 05:23:47"),
                         block_created: Some(162413941),
                         txid: Some("0x9314b7fe649633dace3294c0d90a208010c954f593a42dedc10939c681437420"),
                         metadata: None,
-                        dao_indexer_id: indexer.id,
-                        dao_id: indexer.dao_id,
                     },
                     ExpectedProposal {
                         index_created: 166717878,
@@ -398,14 +393,12 @@ mod arbitrum_core_proposals {
                         quorum: 124807585.7770997,
                         proposal_state: ProposalState::Defeated,
                         marked_spam: None,
-                        time_created: NaiveDateTime::parse_from_str("2024-01-03 16:30:40", "%Y-%m-%d %H:%M:%S").unwrap(),
-                        time_start: NaiveDateTime::parse_from_str("2024-01-06 17:29:11", "%Y-%m-%d %H:%M:%S").unwrap(),
-                        time_end: NaiveDateTime::parse_from_str("2024-01-20 20:21:35", "%Y-%m-%d %H:%M:%S").unwrap(),
+                        time_created: parse_datetime("2024-01-03 16:30:40"),
+                        time_start: parse_datetime("2024-01-06 17:29:11"),
+                        time_end: parse_datetime("2024-01-20 20:21:35"),
                         block_created: Some(166717878),
                         txid: Some("0x2e267411550d7b284f81ee77f4b210adbe21f73b34a04ff3c7cebe61225abd64"),
                         metadata: None,
-                        dao_indexer_id: indexer.id,
-                        dao_id: indexer.dao_id,
                     }
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -458,14 +451,12 @@ mod arbitrum_core_proposals {
                     quorum: 175916805.40235552,
                     proposal_state: ProposalState::Executed,
                     marked_spam: None,
-                    time_created: NaiveDateTime::parse_from_str("2024-05-23 13:19:47", "%Y-%m-%d %H:%M:%S").unwrap(),
-                    time_start: NaiveDateTime::parse_from_str("2024-05-26 13:47:11", "%Y-%m-%d %H:%M:%S").unwrap(),
-                    time_end: NaiveDateTime::parse_from_str("2024-06-09 15:44:11", "%Y-%m-%d %H:%M:%S").unwrap(),
+                    time_created: parse_datetime("2024-05-23 13:19:47"),
+                    time_start: parse_datetime("2024-05-26 13:47:11"),
+                    time_end: parse_datetime("2024-06-09 15:44:11"),
                     block_created: Some(214219081),
                     txid: Some("0x14e95b41165dca8abbcfe9b1ffdbc2e1df849b29ccfc279cf6b42b52d7f026d1"),
                     metadata: None,
-                    dao_indexer_id: indexer.id,
-                    dao_id: indexer.dao_id,
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

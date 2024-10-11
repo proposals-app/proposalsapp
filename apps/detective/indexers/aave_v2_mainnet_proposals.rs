@@ -557,12 +557,12 @@ mod aave_v2_content {
 #[cfg(test)]
 mod aave_v2_proposals {
     use super::*;
-    use chrono::NaiveDateTime;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::sea_orm_active_enums::IndexerType;
     use seaorm::sea_orm_active_enums::IndexerVariant;
     use serde_json::json;
+    use utils::test_utils::parse_datetime;
     use utils::test_utils::{assert_proposal, ExpectedProposal};
 
     #[tokio::test]
@@ -612,28 +612,14 @@ mod aave_v2_proposals {
                     scores_quorum: 414202.51861143525,
                     proposal_state: ProposalState::Executed,
                     marked_spam: None,
-                    time_created: NaiveDateTime::parse_from_str(
-                        "2020-12-23 21:45:20",
-                        "%Y-%m-%d %H:%M:%S",
-                    )
-                    .unwrap(),
-                    time_start: NaiveDateTime::parse_from_str(
-                        "2020-12-23 21:45:20",
-                        "%Y-%m-%d %H:%M:%S",
-                    )
-                    .unwrap(),
-                    time_end: NaiveDateTime::parse_from_str(
-                        "2020-12-26 20:38:38",
-                        "%Y-%m-%d %H:%M:%S",
-                    )
-                    .unwrap(),
+                    time_created: parse_datetime("2020-12-23 21:45:20"),
+                    time_start: parse_datetime("2020-12-23 21:45:20"),
+                    time_end: parse_datetime("2020-12-26 20:38:38"),
                     block_created: Some(11512328),
                     txid: Some(
                         "0x26b2272e31c44dd009487e66eecf1319422476967ebac7a05b39f86d1ce9fd21",
                     ),
                     metadata: None,
-                    dao_indexer_id: dao_indexer.id,
-                    dao_id: dao_indexer.dao_id,
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -689,14 +675,12 @@ mod aave_v2_proposals {
                         scores_quorum: 502888.9536269785,
                         proposal_state: ProposalState::Executed,
                         marked_spam: None,
-                        time_created: NaiveDateTime::parse_from_str("2023-11-29 18:11:35", "%Y-%m-%d %H:%M:%S").unwrap(),
-                        time_start: NaiveDateTime::parse_from_str("2023-11-30 18:21:47", "%Y-%m-%d %H:%M:%S").unwrap(),
-                        time_end: NaiveDateTime::parse_from_str("2023-12-03 10:49:11", "%Y-%m-%d %H:%M:%S").unwrap(),
+                        time_created: parse_datetime("2023-11-29 18:11:35"),
+                        time_start: parse_datetime("2023-11-30 18:21:47"),
+                        time_end: parse_datetime("2023-12-03 10:49:11"),
                         block_created: Some(18678972),
                         txid: Some("0x013917ed90ec91ee11e34d3983b02617966c9dec7e9889e5bea74714d99317f1"),
                         metadata: None,
-                        dao_indexer_id: dao_indexer.id,
-                        dao_id: dao_indexer.dao_id,
                     },
                     ExpectedProposal {
                         index_created: 18686736,
@@ -712,14 +696,12 @@ mod aave_v2_proposals {
                         scores_quorum: 42312.786398795535,
                         proposal_state: ProposalState::Canceled,
                         marked_spam: None,
-                        time_created: NaiveDateTime::parse_from_str("2023-11-30 20:15:47", "%Y-%m-%d %H:%M:%S").unwrap(),
-                        time_start: NaiveDateTime::parse_from_str("2023-12-01 20:26:23", "%Y-%m-%d %H:%M:%S").unwrap(),
-                        time_end: NaiveDateTime::parse_from_str("2023-12-04 12:55:47", "%Y-%m-%d %H:%M:%S").unwrap(),
+                        time_created: parse_datetime("2023-11-30 20:15:47"),
+                        time_start: parse_datetime("2023-12-01 20:26:23"),
+                        time_end: parse_datetime("2023-12-04 12:55:47"),
                         block_created: Some(18686736),
                         txid: Some("0xff7553c76f8df8086e4d594b3468f25f21c729e6b7cc29887ad8299d5498298f"),
                         metadata: None,
-                        dao_indexer_id: dao_indexer.id,
-                        dao_id: dao_indexer.dao_id,
                     }
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -775,14 +757,12 @@ mod aave_v2_proposals {
                     scores_quorum: 536551.6296395722,
                     proposal_state: ProposalState::Executed,
                     marked_spam: None,
-                    time_created: NaiveDateTime::parse_from_str("2023-12-15 09:23:47", "%Y-%m-%d %H:%M:%S").unwrap(),
-                    time_start: NaiveDateTime::parse_from_str("2023-12-16 09:42:23", "%Y-%m-%d %H:%M:%S").unwrap(),
-                    time_end: NaiveDateTime::parse_from_str("2023-12-19 02:20:59", "%Y-%m-%d %H:%M:%S").unwrap(),
+                    time_created: parse_datetime("2023-12-15 09:23:47"),
+                    time_start: parse_datetime("2023-12-16 09:42:23"),
+                    time_end: parse_datetime("2023-12-19 02:20:59"),
                     block_created: Some(18790604),
                     txid: Some("0xe80efe71357574155c123b43f08d32bc32191a3d7a8593787749c5b491f7c3ae"),
                     metadata: None,
-                    dao_indexer_id: dao_indexer.id,
-                    dao_id: dao_indexer.dao_id,
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
