@@ -1,10 +1,7 @@
 name: Rust Tests
-
 on:
-  push:
-    branches:
-      - "**"
   pull_request:
+  push:
     branches:
       - "**"
 
@@ -12,11 +9,11 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
-    name: Run Rust Tests
+  build-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -51,16 +48,8 @@ jobs:
         run: cargo nextest run
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: test-results
           path: target/nextest/default/junit.xml
-        if: always()
-
-      - name: Test Reporter
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Rust Tests
-          path: target/nextest/default/junit.xml
-          reporter: jest-junit
