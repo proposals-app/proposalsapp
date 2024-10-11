@@ -11,7 +11,10 @@ use ethers::{
     types::U256,
 };
 use scanners::etherscan;
-use sea_orm::{ActiveValue::NotSet, Set};
+use sea_orm::{
+    ActiveValue::{self, NotSet},
+    Set,
+};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde_json::json;
 use std::sync::Arc;
@@ -67,7 +70,22 @@ impl Indexer for ArbitrumCoreProposalsIndexer {
             proposals.push(p);
         }
 
-        Ok((proposals, Vec::new(), to_block))
+        let new_index = proposals
+            .iter()
+            .filter(|p| {
+                matches!(
+                    p.proposal_state.as_ref(),
+                    ProposalState::Active | ProposalState::Pending
+                )
+            })
+            .filter_map(|p| match &p.index_created {
+                ActiveValue::Set(value) => Some(*value),
+                _ => None,
+            })
+            .min()
+            .unwrap_or(to_block);
+
+        Ok((proposals, Vec::new(), new_index))
     }
     fn min_refresh_speed(&self) -> i32 {
         1

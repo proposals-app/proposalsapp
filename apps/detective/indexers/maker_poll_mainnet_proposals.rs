@@ -5,7 +5,10 @@ use contracts::gen::maker_poll_create::{maker_poll_create::maker_poll_create, Po
 use ethers::prelude::*;
 use regex::Regex;
 use reqwest::StatusCode;
-use sea_orm::{ActiveValue::NotSet, Set};
+use sea_orm::{
+    ActiveValue::{self, NotSet},
+    Set,
+};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -63,7 +66,22 @@ impl Indexer for MakerPollMainnetProposalsIndexer {
             proposals.push(p);
         }
 
-        Ok((proposals, Vec::new(), to_block))
+        let new_index = proposals
+            .iter()
+            .filter(|p| {
+                matches!(
+                    p.proposal_state.as_ref(),
+                    ProposalState::Active | ProposalState::Pending
+                )
+            })
+            .filter_map(|p| match &p.index_created {
+                ActiveValue::Set(value) => Some(*value),
+                _ => None,
+            })
+            .min()
+            .unwrap_or(to_block);
+
+        Ok((proposals, Vec::new(), new_index))
     }
 
     fn min_refresh_speed(&self) -> i32 {

@@ -213,6 +213,7 @@ export interface DiscourseUser {
 export interface EmailVerification {
   code: string;
   createdAt: Generated<Timestamp>;
+  email: string;
   expiresAt: Timestamp;
   id: Generated<string>;
   userId: string;
@@ -272,6 +273,7 @@ export interface User {
   email: string;
   emailVerified: Generated<boolean>;
   id: Generated<string>;
+  onboardingStep: Generated<number>;
 }
 
 export interface UserPushNotificationSubscription {

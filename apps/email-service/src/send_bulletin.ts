@@ -99,7 +99,7 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
       subscriptions.map((sub) => sub.daoId),
     )
     .where("proposalState", "!=", ProposalState.CANCELED)
-    .where("flaggedSpam", "=", false)
+    .where("markedSpam", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
     .select(["dao.name as daoName", "dao.picture as daoPicture"])
     .leftJoin("daoIndexer", "proposal.daoIndexerId", "daoIndexer.id")
@@ -171,7 +171,7 @@ async function getNew(userId: string): Promise<NewProposal[]> {
       subscriptions.map((sub) => sub.daoId),
     )
     .where("proposalState", "=", ProposalState.ACTIVE)
-    .where("flaggedSpam", "=", false)
+    .where("markedSpam", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
     .select(["dao.name as daoName", "dao.picture as daoPicture"])
     .leftJoin("daoIndexer", "proposal.daoIndexerId", "daoIndexer.id")
@@ -245,7 +245,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
       subscriptions.map((sub) => sub.daoId),
     )
     .where("proposalState", "!=", ProposalState.CANCELED)
-    .where("flaggedSpam", "=", false)
+    .where("markedSpam", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
     .select(["dao.name as daoName", "dao.picture as daoPicture"])
     .leftJoin("daoIndexer", "proposal.daoIndexerId", "daoIndexer.id")

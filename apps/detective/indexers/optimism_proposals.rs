@@ -18,6 +18,7 @@ use ethers::utils::to_checksum;
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 use scanners::optimistic_scan::estimate_timestamp;
+use sea_orm::ActiveValue;
 use sea_orm::ColumnTrait;
 use sea_orm::Condition;
 use sea_orm::DatabaseConnection;
@@ -143,7 +144,22 @@ impl Indexer for OptimismProposalsIndexer {
             proposals.push(p);
         }
 
-        Ok((proposals, Vec::new(), to_block))
+        let new_index = proposals
+            .iter()
+            .filter(|p| {
+                matches!(
+                    p.proposal_state.as_ref(),
+                    ProposalState::Active | ProposalState::Pending
+                )
+            })
+            .filter_map(|p| match &p.index_created {
+                ActiveValue::Set(value) => Some(*value),
+                _ => None,
+            })
+            .min()
+            .unwrap_or(to_block);
+
+        Ok((proposals, Vec::new(), new_index))
     }
 
     fn min_refresh_speed(&self) -> i32 {

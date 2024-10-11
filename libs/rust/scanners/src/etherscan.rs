@@ -68,10 +68,10 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                 let data: EstimateTimestamp = serde_json::from_str(&contents)
                     .context("Failed to deserialize etherscan response")?;
 
-                let estimated_time = Utc::now().timestamp() * 1000
-                    + data.result.estimate_time_in_sec.parse::<f64>()? as i64 * 1000;
+                let estimated_time = Utc::now().timestamp()
+                    + data.result.estimate_time_in_sec.parse::<f64>()? as i64;
 
-                return Ok(DateTime::<Utc>::from_timestamp(estimated_time, 0)
+                return Ok(DateTime::from_timestamp(estimated_time, 0)
                     .expect("Invalid timestamp")
                     .naive_utc());
             }
@@ -81,11 +81,9 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                 sleep(backoff_duration).await;
             }
             Err(_) => {
-                return Ok(
-                    DateTime::<Utc>::from_timestamp(Utc::now().timestamp() * 1000, 0)
-                        .expect("Invalid timestamp")
-                        .naive_utc(),
-                );
+                return Ok(DateTime::from_timestamp(Utc::now().timestamp(), 0)
+                    .expect("Invalid timestamp")
+                    .naive_utc());
             }
         }
     }
