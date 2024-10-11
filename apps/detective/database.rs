@@ -216,7 +216,6 @@ pub async fn store_votes(
                 sea_orm::sea_query::OnConflict::columns([
                     vote::Column::ProposalId,
                     vote::Column::VoterAddress,
-                    vote::Column::Txid,
                 ])
                 .update_columns([
                     vote::Column::Choice,
