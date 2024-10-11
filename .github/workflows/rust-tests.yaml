@@ -56,3 +56,11 @@ jobs:
           name: test-results
           path: target/nextest/default/junit.xml
         if: always()
+
+      - name: Test Reporter
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Rust Tests
+          path: target/nextest/default/junit.xml
+          reporter: jest-junit
