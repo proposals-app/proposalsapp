@@ -51,9 +51,13 @@ jobs:
         run: cargo nextest run
 
       - name: Upload test results
-        uses: dorny/test-reporter@v1
+        uses: phoenix-actions/test-reporting@v8
         if: always()
         with:
           name: test-results
           path: target/nextest/default/junit.xml
           reporter: java-junit
+
+      - name: Read output variables
+        run: |
+          echo "url is ${{ steps.test-report.outputs.runHtmlUrl }}"
