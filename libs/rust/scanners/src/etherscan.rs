@@ -146,7 +146,7 @@ pub async fn estimate_block(timestamp: u64) -> Result<u64> {
 }
 
 #[cfg(test)]
-mod etherscan {
+mod etherscan_tests {
     use super::*;
     use chrono::Utc;
     use dotenv::dotenv;

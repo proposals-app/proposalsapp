@@ -64,6 +64,7 @@ use utils::tracing::setup_tracing;
 mod database;
 mod indexer;
 mod indexers;
+mod rpc_providers;
 mod snapshot_api;
 
 static MAX_JOBS: usize = 100;

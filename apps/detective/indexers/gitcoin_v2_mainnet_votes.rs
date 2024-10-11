@@ -1,15 +1,14 @@
-use crate::indexer::Indexer;
+use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use contracts::gen::gitcoin_v_2_gov::{gitcoin_v2_gov, VoteCastFilter, VoteCastWithParamsFilter};
 use ethers::{
     abi::Address,
     contract::LogMeta,
-    providers::{Http, Middleware, Provider},
+    providers::Middleware,
     utils::to_checksum,
 };
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
-use std::sync::Arc;
 use tracing::info;
 
 pub struct GitcoinV2MainnetVotesIndexer;
@@ -28,8 +27,8 @@ impl Indexer for GitcoinV2MainnetVotesIndexer {
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Gitcoin V2 Votes");
-        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
+
+        let eth_rpc = rpc_providers::get_provider("ethereum")?;
 
         let current_block = eth_rpc
             .get_block_number()

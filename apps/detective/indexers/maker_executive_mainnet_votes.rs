@@ -1,10 +1,10 @@
-use crate::indexer::Indexer;
+use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use contracts::gen::maker_executive_gov::{
     maker_executive_gov::maker_executive_gov, LogNoteFilter,
 };
 use ethers::{
-    prelude::{Http, LogMeta, Provider},
+    prelude::LogMeta,
     providers::Middleware,
     types::{Address, H256, U256},
     utils::to_checksum,
@@ -12,7 +12,6 @@ use ethers::{
 use itertools::Itertools;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
-use std::sync::Arc;
 use tracing::info;
 
 const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
@@ -36,8 +35,8 @@ impl Indexer for MakerExecutiveMainnetVotesIndexer {
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Maker Executive Votes");
-        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
+
+        let eth_rpc = rpc_providers::get_provider("ethereum")?;
 
         let current_block = eth_rpc
             .get_block_number()

@@ -1,4 +1,4 @@
-use crate::indexer::Indexer;
+use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Datelike, Utc};
 use contracts::gen::maker_poll_create::{maker_poll_create::maker_poll_create, PollCreatedFilter};
@@ -24,8 +24,7 @@ impl Indexer for MakerPollMainnetProposalsIndexer {
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Maker Poll Proposals");
 
-        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
+        let eth_rpc = rpc_providers::get_provider("ethereum")?;
 
         let current_block = eth_rpc
             .get_block_number()

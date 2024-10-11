@@ -1,4 +1,4 @@
-use crate::indexer::Indexer;
+use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use contracts::gen::arbitrum_treasury_gov::{
     arbitrum_treasury_gov::arbitrum_treasury_gov, VoteCastFilter, VoteCastWithParamsFilter,
@@ -30,8 +30,8 @@ impl Indexer for ArbitrumTreasuryVotesIndexer {
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Arbitrum Treasury Votes");
-        let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
-        let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
+
+        let arb_rpc = rpc_providers::get_provider("arbitrum")?;
 
         let current_block = arb_rpc
             .get_block_number()

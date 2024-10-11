@@ -1,4 +1,4 @@
-use crate::indexer::Indexer;
+use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use chrono::DateTime;
 use contracts::gen::aave_v_3_gov_mainnet::{aave_v3_gov_mainnet, ProposalCreatedFilter};
@@ -25,8 +25,7 @@ impl Indexer for AaveV3MainnetProposalsIndexer {
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Aave V3 Mainnet Proposals");
 
-        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
+        let eth_rpc = rpc_providers::get_provider("ethereum")?;
 
         let current_block = eth_rpc
             .get_block_number()

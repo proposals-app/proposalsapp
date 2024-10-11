@@ -117,3 +117,62 @@ async fn get_votes(
 
     Ok(votes)
 }
+
+#[cfg(test)]
+mod aave_v3_polygon_votes {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::sea_orm_active_enums::IndexerVariant;
+    use serde_json::json;
+    use utils::test_utils::{assert_vote, parse_datetime, ExpectedVote};
+
+    #[tokio::test]
+    async fn aave_v3_polygon_1() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::ArbCoreArbitrumProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 52020671,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match AaveV3PolygonVotesIndexer.process(&indexer, &dao).await {
+            Ok((_, votes, _)) => {
+                assert!(!votes.is_empty(), "No votes were fetched");
+                let expected_votes = [ExpectedVote {
+                    index_created: 52020671,
+                    voter_address: "0x4f86A75764710683DAC3833dF49c72de3ec65465",
+                    choice: json!(0),
+                    voting_power: 0.01,
+                    reason: None,
+                    proposal_external_id: "0",
+                    time_created: Some(parse_datetime("2024-01-06 21:21:58")),
+                    block_created: Some(52020671),
+                    txid: Some(
+                        "0xacca98f5c86c5098ffb85c878c755873cfbfcc85e7fc0e4ae1076f7d02e64810",
+                    ),
+                }];
+                for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
+                    assert_vote(vote, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+}

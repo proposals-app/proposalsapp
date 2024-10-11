@@ -1,5 +1,6 @@
 use crate::database::DatabaseStore;
 use crate::indexer::Indexer;
+use crate::rpc_providers;
 use ::utils::errors::DATABASE_ERROR;
 use abi::decode;
 use abi::ParamType;
@@ -40,8 +41,7 @@ impl Indexer for OptimismProposalsIndexer {
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Optimism Proposals");
 
-        let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
-        let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
+        let op_rpc = rpc_providers::get_provider("optimism")?;
 
         let current_block = op_rpc
             .get_block_number()

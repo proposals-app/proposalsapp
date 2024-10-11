@@ -144,7 +144,7 @@ pub async fn estimate_block(timestamp: u64) -> Result<u64> {
 }
 
 #[cfg(test)]
-mod arbiscan {
+mod arbiscan_tests {
     use super::*;
     use chrono::Utc;
     use dotenv::dotenv;

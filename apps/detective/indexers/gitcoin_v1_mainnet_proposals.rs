@@ -1,4 +1,4 @@
-use crate::indexer::Indexer;
+use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use chrono::DateTime;
 use contracts::gen::gitcoin_v_1_gov::{gitcoin_v1_gov, ProposalCreatedFilter};
@@ -25,8 +25,7 @@ impl Indexer for GitcoinV1MainnetProposalsIndexer {
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Gitcoin V1 Proposals");
 
-        let eth_rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-        let eth_rpc = Arc::new(Provider::<Http>::try_from(eth_rpc_url).unwrap());
+        let eth_rpc = rpc_providers::get_provider("ethereum")?;
 
         let current_block = eth_rpc
             .get_block_number()

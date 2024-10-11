@@ -145,7 +145,7 @@ pub async fn estimate_block(timestamp: u64) -> Result<u64> {
 }
 
 #[cfg(test)]
-mod optimisticscan {
+mod optimisticscan_tests {
     use super::*;
     use chrono::Utc;
     use dotenv::dotenv;

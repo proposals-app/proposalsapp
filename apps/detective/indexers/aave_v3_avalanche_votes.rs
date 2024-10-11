@@ -1,4 +1,4 @@
-use crate::indexer::Indexer;
+use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use contracts::gen::aave_v_3_voting_machine_avalanche::{
     aave_v3_voting_machine_avalanche, VoteEmittedFilter,
@@ -30,8 +30,8 @@ impl Indexer for AaveV3AvalancheVotesIndexer {
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Aave V3 Avalanche Votes");
-        let ava_rpc_url = std::env::var("AVALANCHE_NODE_URL").expect("Avalanche node not set!");
-        let ava_rpc = Arc::new(Provider::<Http>::try_from(ava_rpc_url).unwrap());
+
+        let ava_rpc = rpc_providers::get_provider("avalanche")?;
 
         let current_block = ava_rpc
             .get_block_number()

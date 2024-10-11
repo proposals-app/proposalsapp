@@ -1,10 +1,10 @@
-use crate::indexer::Indexer;
+use crate::{indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use contracts::gen::maker_poll_vote_arbitrum::{
     maker_poll_vote_arbitrum::maker_poll_vote_arbitrum, VotedFilter,
 };
 use ethers::{
-    prelude::{Http, LogMeta, Provider},
+    prelude::LogMeta,
     providers::Middleware,
     types::Address,
     utils::to_checksum,
@@ -12,7 +12,7 @@ use ethers::{
 use num_bigint::BigInt;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
 use tracing::info;
 
 pub struct MakerPollArbitrumVotesIndexer;
@@ -31,8 +31,8 @@ impl Indexer for MakerPollArbitrumVotesIndexer {
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Maker Poll Arbitrum Votes");
-        let arb_rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Arbitrum node not set!");
-        let arb_rpc = Arc::new(Provider::<Http>::try_from(arb_rpc_url).unwrap());
+
+        let arb_rpc = rpc_providers::get_provider("arbitrum")?;
 
         let current_block = arb_rpc
             .get_block_number()

@@ -1,9 +1,9 @@
-use crate::{database::DatabaseStore, indexer::Indexer};
+use crate::{database::DatabaseStore, indexer::Indexer, rpc_providers};
 use anyhow::{Context, Result};
 use contracts::gen::optimism_gov_v_6::{optimism_gov_v6, VoteCastFilter, VoteCastWithParamsFilter};
 use ethers::{
     abi::{decode, ParamType},
-    prelude::{Http, LogMeta, Provider},
+    prelude::LogMeta,
     providers::Middleware,
     types::Address,
     utils::to_checksum,
@@ -17,7 +17,6 @@ use sea_orm::{
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use serde::Deserialize;
 use serde_json::Value;
-use std::sync::Arc;
 use tracing::info;
 use utils::errors::{DATABASE_ERROR, PROPOSAL_NOT_FOUND_ERROR};
 
@@ -37,8 +36,8 @@ impl Indexer for OptimismVotesIndexer {
         _dao: &dao::Model,
     ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
         info!("Processing Optimism Votes");
-        let op_rpc_url = std::env::var("OPTIMISM_NODE_URL").expect("Optimism node not set!");
-        let op_rpc = Arc::new(Provider::<Http>::try_from(op_rpc_url).unwrap());
+
+        let op_rpc = rpc_providers::get_provider("optimism")?;
 
         let current_block = op_rpc
             .get_block_number()
