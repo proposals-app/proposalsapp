@@ -1,0 +1,58 @@
+name: Rust Tests
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Run Rust Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest
+
+      - name: Run tests
+        env:
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
+          OPTIMISTIC_SCAN_API_KEY: ${{ secrets.OPTIMISTIC_SCAN_API_KEY }}
+          ARBITRUM_NODE_URL: ${{ secrets.ARBITRUM_NODE_URL }}
+          ETHEREUM_NODE_URL: ${{ secrets.ETHEREUM_NODE_URL }}
+          OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
+          POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+          AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
+        run: cargo nextest run
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: junit.xml
+        if: always()
