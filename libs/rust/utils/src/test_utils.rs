@@ -1,5 +1,4 @@
 use chrono::NaiveDateTime;
-use sea_orm::prelude::Uuid;
 use seaorm::{proposal, sea_orm_active_enums::ProposalState, vote};
 use serde_json::Value;
 

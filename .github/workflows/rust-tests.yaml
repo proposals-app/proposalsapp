@@ -48,7 +48,7 @@ jobs:
           OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
           POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
           AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
-        run: cargo t
+        run: cargo nextest run
 
       - name: Upload test results
         uses: actions/upload-artifact@v3
