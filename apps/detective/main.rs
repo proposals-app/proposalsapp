@@ -68,7 +68,7 @@ mod snapshot_api;
 
 static MAX_JOBS: usize = 100;
 static CONCURRENT_JOBS: usize = 5;
-static JOB_PRODUCE_INTERVAL: Duration = Duration::from_secs(60);
+static JOB_PRODUCE_INTERVAL: Duration = Duration::from_secs(1);
 static JOB_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 static SNAPSHOT_MAX_RETRIES: usize = 5;
 static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;

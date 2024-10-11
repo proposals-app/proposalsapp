@@ -107,7 +107,7 @@ impl ColumnTrait for Column {
             Self::TimeStart => ColumnType::DateTime.def(),
             Self::TimeEnd => ColumnType::DateTime.def(),
             Self::BlockCreated => ColumnType::Integer.def().null(),
-            Self::Txid => ColumnType::Text.def().null().unique(),
+            Self::Txid => ColumnType::Text.def().null(),
             Self::Metadata => ColumnType::JsonBinary.def().null(),
             Self::DaoIndexerId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),

@@ -223,6 +223,7 @@ pub async fn store_votes(
                     vote::Column::Reason,
                     vote::Column::TimeCreated,
                     vote::Column::BlockCreated,
+                    vote::Column::Txid,
                 ])
                 .to_owned(),
             )

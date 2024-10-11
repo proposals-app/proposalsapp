@@ -79,7 +79,7 @@ impl ColumnTrait for Column {
             Self::ProposalExternalId => ColumnType::Text.def(),
             Self::TimeCreated => ColumnType::DateTime.def().null(),
             Self::BlockCreated => ColumnType::Integer.def().null(),
-            Self::Txid => ColumnType::Text.def().null().unique(),
+            Self::Txid => ColumnType::Text.def().null(),
             Self::ProposalId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
             Self::IndexerId => ColumnType::Uuid.def(),
