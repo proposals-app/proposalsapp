@@ -179,16 +179,20 @@ pub async fn store_votes(
         .map(|p| (p.external_id, p.id))
         .collect();
 
-    let mut votes_to_insert: Vec<vote::ActiveModel> = Vec::new();
+    let mut votes_to_insert: HashMap<(Uuid, String), vote::ActiveModel> = HashMap::new();
     let mut missing_proposals = Vec::new();
     let mut voter_addresses: HashSet<String> = HashSet::new();
 
-    for mut vote in votes {
+    for vote in votes {
         if let Some(&proposal_id) = proposal_id_map.get(&vote.proposal_external_id.clone().unwrap())
         {
-            vote.proposal_id = Set(proposal_id);
+            let key = (proposal_id, vote.voter_address.clone().unwrap());
+            votes_to_insert.entry(key).or_insert_with(|| {
+                let mut v = vote.clone();
+                v.proposal_id = Set(proposal_id);
+                v
+            });
             voter_addresses.insert(vote.voter_address.clone().unwrap());
-            votes_to_insert.push(vote);
         } else {
             missing_proposals.push(vote.proposal_external_id.clone().unwrap());
         }
@@ -201,16 +205,15 @@ pub async fn store_votes(
         ));
     }
 
-    let voter_addresses: HashSet<String> = votes_to_insert
-        .iter()
-        .map(|v| v.voter_address.clone().unwrap())
-        .collect();
-
     ensure_voters_exist(&txn, voter_addresses).await?;
 
     // Insert votes in batches
     const BATCH_SIZE: usize = 1000; // Adjust this value based on your database performance
-    for chunk in votes_to_insert.chunks(BATCH_SIZE) {
+    for chunk in votes_to_insert
+        .into_values()
+        .collect::<Vec<_>>()
+        .chunks(BATCH_SIZE)
+    {
         vote::Entity::insert_many(chunk.to_vec())
             .on_conflict(
                 sea_orm::sea_query::OnConflict::columns([
