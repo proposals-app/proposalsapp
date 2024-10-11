@@ -96,8 +96,6 @@ impl Indexer for OptimismProposalsIndexer {
             .await
             .context("query_with_meta")?;
 
-        let db = DatabaseStore::connect().await?;
-
         for p in proposal_events_two.iter() {
             let p = data_for_proposal_two(
                 p.clone(),
@@ -105,7 +103,6 @@ impl Indexer for OptimismProposalsIndexer {
                 indexer,
                 gov_contract.clone(),
                 op_token.clone(),
-                &db,
             )
             .await
             .context("data_for_proposal_two")?;
@@ -328,9 +325,9 @@ async fn data_for_proposal_two(
     indexer: &dao_indexer::Model,
     gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
     op_token: optimism_token<ethers::providers::Provider<ethers::providers::Http>>,
-    db: &DatabaseConnection,
 ) -> Result<proposal::ActiveModel> {
     println!("ProposalCreated2Filter");
+    let db = DatabaseStore::connect().await?;
     let (log, meta): (ProposalCreated2Filter, LogMeta) = p.clone();
 
     let created_block_number = meta.block_number.as_u64();
@@ -509,7 +506,7 @@ async fn data_for_proposal_two(
                     .add(vote::Column::IndexerId.eq(indexer.id))
                     .add(vote::Column::ProposalExternalId.eq(proposal_external_id.clone())),
             )
-            .all(db)
+            .all(&db)
             .await
             .context(DATABASE_ERROR)?;
 
