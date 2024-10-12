@@ -1207,6 +1207,7 @@ mod optimism_proposals {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_proposals_5() {
         let _ = dotenv().ok();
@@ -1264,6 +1265,7 @@ mod optimism_proposals {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_proposals_6() {
         let _ = dotenv().ok();
@@ -1321,6 +1323,7 @@ mod optimism_proposals {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_proposals_7() {
         let _ = dotenv().ok();
