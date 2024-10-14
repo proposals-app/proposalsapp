@@ -231,3 +231,94 @@ impl SnapshotApiHandler {
         }
     }
 }
+
+#[cfg(test)]
+mod snapshot_api_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_fetch_space() {
+        let config = SnapshotApiConfig::default();
+        let handler = SnapshotApiHandler::new(config);
+
+        let query = r#"
+            query {
+                space(id: "yam.eth") {
+                    id
+                    name
+                    about
+                    network
+                    symbol
+                    members
+                }
+            }
+        "#
+        .to_string();
+
+        let result: serde_json::Value = handler
+            .fetch("https://hub.snapshot.org/graphql", query)
+            .await
+            .unwrap();
+
+        assert_eq!(result["data"]["space"]["id"], "yam.eth");
+        assert_eq!(result["data"]["space"]["name"], String::from("Yam"));
+        assert_eq!(result["data"]["space"]["network"], "1");
+        assert_eq!(result["data"]["space"]["symbol"], "YAM");
+    }
+
+    #[tokio::test]
+    async fn test_fetch_proposal() {
+        let config = SnapshotApiConfig::default();
+        let handler = SnapshotApiHandler::new(config);
+
+        let query = r#"
+            query {
+                proposal(id:"QmWbpCtwdLzxuLKnMW4Vv4MPFd2pdPX71YBKPasfZxqLUS") {
+                    id
+                    title
+                    body
+                    choices
+                    start
+                    end
+                    snapshot
+                    state
+                    author
+                    space {
+                        id
+                        name
+                    }
+                }
+            }
+        "#
+        .to_string();
+
+        let result: serde_json::Value = handler
+            .fetch("https://hub.snapshot.org/graphql", query)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            result["data"]["proposal"]["id"],
+            "QmWbpCtwdLzxuLKnMW4Vv4MPFd2pdPX71YBKPasfZxqLUS"
+        );
+        assert_eq!(
+            result["data"]["proposal"]["title"],
+            "Select Initial Umbrella Metapool"
+        );
+        assert_eq!(result["data"]["proposal"]["state"], "closed");
+        assert_eq!(result["data"]["proposal"]["space"]["id"], "yam.eth");
+    }
+
+    #[tokio::test]
+    async fn test_error_handling() {
+        let config = SnapshotApiConfig::default();
+        let handler = SnapshotApiHandler::new(config);
+
+        let query = "invalid query".to_string();
+
+        let result = handler
+            .fetch::<serde_json::Value>("https://hub.snapshot.org/graphql", query)
+            .await;
+        assert!(result.is_err(), "Should return an error for invalid query");
+    }
+}

@@ -52,6 +52,9 @@ jobs:
           AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
         run: |
           cargo llvm-cov nextest --lcov --output-path lcov.info
+          # Count the number of tests
+          TEST_COUNT=$(grep -c "name=" target/nextest/default/junit.xml)
+          echo "TEST_COUNT=$TEST_COUNT" >> $GITHUB_ENV
 
       - name: Upload test results
         uses: codecov/test-results-action@v1
@@ -69,3 +72,13 @@ jobs:
           name: codecov-rust
           fail_ci_if_error: true
           verbose: true
+
+      - name: Create test count badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: <YOUR_GIST_ID>
+          filename: proposalsapp_test_count.json
+          label: tests
+          message: ${{ env.TEST_COUNT }}
+          color: brightgreen
