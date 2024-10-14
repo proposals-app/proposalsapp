@@ -54,16 +54,16 @@ jobs:
           cargo llvm-cov nextest --lcov --output-path lcov.info
 
       - name: Upload test results
-        uses: dorny/test-reporter@v1
-        if: always()
+        uses: codecov/test-results-action@v1
         with:
-          name: test-results
-          path: target/nextest/default/junit.xml
-          reporter: java-junit
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: target/nextest/default/junit.xml
+          format: junit
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./lcov.info
           flags: unittests
           name: codecov-rust
