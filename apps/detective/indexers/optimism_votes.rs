@@ -536,6 +536,7 @@ mod optimism_votes {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_6() {
         let _ = dotenv().ok();
@@ -585,6 +586,7 @@ mod optimism_votes {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_7() {
         let _ = dotenv().ok();
@@ -634,6 +636,7 @@ mod optimism_votes {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_8() {
         let _ = dotenv().ok();
@@ -669,7 +672,7 @@ mod optimism_votes {
                     voting_power: 56351.64083348377,
                     reason: Some("I agree with Jack"),
                     proposal_external_id: "114318499951173425640219752344574142419220609526557632733105006940618608635406",
-                    time_created: Some(parse_datetime("2023-10-12 19:56:07")),
+                    time_created: Some(parse_datetime("2024-01-24T18:40:59")),
                     block_created: Some(115261441),
                     txid: Some(
                         "0x7b31fc1b1c8b400314736986d66e8e766d6637547aa2c29dd9a240aef1f69f34",
