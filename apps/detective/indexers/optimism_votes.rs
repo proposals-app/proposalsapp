@@ -342,6 +342,7 @@ mod optimism_votes {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_2() {
         let _ = dotenv().ok();
@@ -391,6 +392,7 @@ mod optimism_votes {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_3() {
         let _ = dotenv().ok();
