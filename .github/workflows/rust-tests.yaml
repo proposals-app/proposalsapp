@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           profile: minimal
           toolchain: stable
@@ -61,8 +61,8 @@ jobs:
           path: target/nextest/default/junit.xml
           reporter: java-junit
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+      - name: Lcov coverage report
+        uses: romeovs/lcov-reporter-action@v0.3.1
         with:
-          files: lcov.info
-          fail_ci_if_error: true
+          lcov-file: ./lcov.info
+          title: "Coverage Report"
