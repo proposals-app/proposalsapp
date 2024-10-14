@@ -291,6 +291,7 @@ mod optimism_votes {
     use serde_json::json;
     use utils::test_utils::{assert_vote, parse_datetime, ExpectedVote};
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_1() {
         let _ = dotenv().ok();
@@ -340,6 +341,7 @@ mod optimism_votes {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_2() {
         let _ = dotenv().ok();
@@ -389,6 +391,7 @@ mod optimism_votes {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_3() {
         let _ = dotenv().ok();
@@ -438,6 +441,7 @@ mod optimism_votes {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_4() {
         let _ = dotenv().ok();
@@ -487,6 +491,7 @@ mod optimism_votes {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_5() {
         let _ = dotenv().ok();
