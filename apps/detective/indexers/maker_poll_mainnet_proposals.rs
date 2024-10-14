@@ -1,20 +1,32 @@
 use crate::{indexer::Indexer, rpc_providers};
+use alloy::{
+    primitives::address,
+    providers::{Provider, ReqwestProvider},
+    rpc::types::Log,
+    sol,
+};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Datelike, Utc};
-use contracts::gen::maker_poll_create::{maker_poll_create::maker_poll_create, PollCreatedFilter};
-use ethers::prelude::*;
 use regex::Regex;
 use reqwest::StatusCode;
+use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tokio::time::sleep;
 use tracing::info;
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    maker_poll_create,
+    "./abis/maker_poll_create.json"
+);
 
 pub struct MakerPollMainnetProposalsIndexer;
 
@@ -32,8 +44,7 @@ impl Indexer for MakerPollMainnetProposalsIndexer {
         let current_block = eth_rpc
             .get_block_number()
             .await
-            .context("get_block_number")?
-            .as_u32() as i32;
+            .context("get_block_number")? as i32;
 
         let from_block = indexer.index;
         let to_block = if indexer.index + indexer.speed >= current_block {
@@ -42,20 +53,18 @@ impl Indexer for MakerPollMainnetProposalsIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0xf9be8f0945acddeedaa64dfca5fe9629d0cf8e5d"
-            .parse::<Address>()
-            .context("bad address")?;
+        let address = address!("f9be8f0945acddeedaa64dfca5fe9629d0cf8e5d");
 
         let gov_contract = maker_poll_create::new(address, eth_rpc.clone());
 
         let proposal_events = gov_contract
-            .poll_created_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .PollCreated_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
-            .context("query_with_meta")?;
+            .context("query")?;
 
         let mut proposals = Vec::new();
 
@@ -94,26 +103,27 @@ impl Indexer for MakerPollMainnetProposalsIndexer {
 }
 
 async fn data_for_proposal(
-    p: (PollCreatedFilter, LogMeta),
-    rpc: &Arc<Provider<Http>>,
+    p: (maker_poll_create::PollCreated, Log),
+    rpc: &Arc<ReqwestProvider>,
     indexer: &dao_indexer::Model,
 ) -> Result<proposal::ActiveModel> {
-    let (log, meta): (PollCreatedFilter, LogMeta) = p.clone();
+    let (log, meta): (maker_poll_create::PollCreated, Log) = p.clone();
 
-    let created_block_number = meta.block_number.as_u64();
+    let created_block_number = meta.block_number.unwrap();
     let created_block = rpc
-        .get_block(meta.block_number)
+        .get_block_by_number(created_block_number.into(), false)
         .await
-        .context("rpc.get_block")?;
-    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+        .context("get_block_by_number")?
+        .unwrap();
+    let created_block_timestamp = created_block.header.timestamp as i64;
 
     let mut voting_starts_timestamp =
-        DateTime::from_timestamp_millis((log.start_date.as_u64() * 1000) as i64)
+        DateTime::from_timestamp_millis((log.startDate.to::<u64>() * 1000) as i64)
             .context("voting_starts_timestamp")?
             .naive_utc();
 
     let mut voting_ends_timestamp =
-        DateTime::from_timestamp_millis((log.end_date.as_u64() * 1000) as i64)
+        DateTime::from_timestamp_millis((log.endDate.to::<u64>() * 1000) as i64)
             .context("voting_ends_timestamp")?
             .naive_utc();
 
@@ -127,12 +137,12 @@ async fn data_for_proposal(
 
     let proposal_url = format!(
         "https://vote.makerdao.com/polling/{}",
-        log.multi_hash.chars().take(8).collect::<String>()
+        log.multiHash.chars().take(8).collect::<String>()
     );
 
-    let proposal_external_id = log.poll_id.to_string();
+    let proposal_external_id = log.pollId.to_string();
 
-    let title = get_title(log.url).await.context("get_title")?;
+    let title = get_title(log.url.clone()).await.context("get_title")?;
 
     let body = String::new();
 
@@ -142,7 +152,7 @@ async fn data_for_proposal(
     let mut scores: Vec<f64> = vec![];
     let mut scores_total: f64 = 0.0;
 
-    let mut results_data = get_results_data(log.poll_id.to_string()).await?.results;
+    let mut results_data = get_results_data(log.pollId.to_string()).await?.results;
 
     results_data.sort_by(|a, b| {
         a.optionId
@@ -153,8 +163,8 @@ async fn data_for_proposal(
 
     for res in results_data {
         let choice = match res.optionName {
-            Value::String(s) => s,
-            Value::Number(n) => n.to_string(),
+            serde_json::Value::String(s) => s,
+            serde_json::Value::Number(n) => n.to_string(),
             _ => "Unknown".to_string(),
         };
         choices.push(choice);
@@ -183,7 +193,9 @@ async fn data_for_proposal(
         proposal_state: Set(state),
         marked_spam: NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(created_block_timestamp),
+        time_created: Set(DateTime::from_timestamp(created_block_timestamp, 0)
+            .unwrap()
+            .naive_utc()),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
@@ -192,7 +204,7 @@ async fn data_for_proposal(
         metadata: NotSet,
         txid: Set(Some(format!(
             "0x{}",
-            hex::encode(meta.transaction_hash.as_bytes())
+            hex::encode(meta.transaction_hash.unwrap())
         ))),
     })
 }
@@ -200,9 +212,9 @@ async fn data_for_proposal(
 #[allow(non_snake_case)]
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ResultData {
-    mkrSupport: Value,
-    optionName: Value,
-    optionId: Value,
+    mkrSupport: serde_json::Value,
+    optionName: serde_json::Value,
+    optionId: serde_json::Value,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

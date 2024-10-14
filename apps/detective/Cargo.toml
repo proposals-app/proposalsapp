@@ -4,13 +4,12 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+alloy = { workspace = true, features = ["full"] }
 anyhow = { workspace = true, features = ["backtrace"] }
 async-trait = { workspace = true }
 axum = { workspace = true }
 chrono = { workspace = true }
-contracts = { path = "../../libs/rust/contracts" }
 dotenv = { workspace = true }
-ethers = { workspace = true }
 futures = { workspace = true }
 hex = { workspace = true }
 itertools = { workspace = true }

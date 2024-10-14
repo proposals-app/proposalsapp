@@ -1,18 +1,15 @@
 use crate::{indexer::Indexer, rpc_providers};
+use alloy::{
+    primitives::{address, U256},
+    providers::{Provider, ReqwestProvider},
+    rpc::types::Log,
+    sol,
+    transports::http::Http,
+};
 use anyhow::{Context, Result};
 use chrono::DateTime;
-use contracts::gen::{
-    dydx_executor::dydx_executor::dydx_executor,
-    dydx_gov::{dydx_gov::dydx_gov, ProposalCreatedFilter},
-    dydx_strategy::dydx_strategy::dydx_strategy,
-};
-use ethers::{
-    abi::Address,
-    contract::LogMeta,
-    providers::{Http, Middleware, Provider},
-    types::U256,
-};
 use regex::Regex;
+use rust_decimal::prelude::ToPrimitive;
 use scanners::etherscan::estimate_timestamp;
 use sea_orm::{
     ActiveValue::{self, NotSet},
@@ -22,6 +19,27 @@ use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vo
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tracing::{info, warn};
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    dydx_gov,
+    "./abis/dydx_gov.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    dydx_executor,
+    "./abis/dydx_executor.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    dydx_strategy,
+    "./abis/dydx_strategy.json"
+);
 
 pub struct DydxMainnetProposalsIndexer;
 
@@ -39,8 +57,7 @@ impl Indexer for DydxMainnetProposalsIndexer {
         let current_block = eth_rpc
             .get_block_number()
             .await
-            .context("get_block_number")?
-            .as_u32() as i32;
+            .context("get_block_number")? as i32;
 
         let from_block = indexer.index;
         let to_block = if indexer.index + indexer.speed >= current_block {
@@ -49,20 +66,18 @@ impl Indexer for DydxMainnetProposalsIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0x7E9B1672616FF6D6629Ef2879419aaE79A9018D2"
-            .parse::<Address>()
-            .context("bad address")?;
+        let address = address!("7E9B1672616FF6D6629Ef2879419aaE79A9018D2");
 
         let gov_contract = dydx_gov::new(address, eth_rpc.clone());
 
         let proposal_events = gov_contract
-            .proposal_created_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .ProposalCreated_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
-            .context("query_with_meta")?;
+            .context("query")?;
 
         let mut proposals = Vec::new();
 
@@ -99,22 +114,25 @@ impl Indexer for DydxMainnetProposalsIndexer {
 }
 
 async fn data_for_proposal(
-    p: (ProposalCreatedFilter, LogMeta),
-    rpc: &Arc<Provider<Http>>,
+    p: (dydx_gov::ProposalCreated, Log),
+    rpc: &Arc<ReqwestProvider>,
     indexer: &dao_indexer::Model,
-    gov_contract: dydx_gov<ethers::providers::Provider<ethers::providers::Http>>,
+    gov_contract: dydx_gov::dydx_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>,
 ) -> Result<proposal::ActiveModel> {
-    let (log, meta): (ProposalCreatedFilter, LogMeta) = p.clone();
+    let (event, log): (dydx_gov::ProposalCreated, Log) = p.clone();
 
-    let created_block_number = meta.block_number.as_u64();
     let created_block = rpc
-        .get_block(meta.block_number)
+        .get_block_by_number(log.block_number.unwrap().into(), false)
         .await
-        .context("rpc.get_block")?;
-    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+        .context("get_block_by_number")?
+        .unwrap();
+    let created_block_timestamp =
+        DateTime::from_timestamp(created_block.header.timestamp as i64, 0)
+            .context("bad timestamp")?
+            .naive_utc();
 
-    let voting_start_block_number = log.start_block.as_u64();
-    let voting_end_block_number = log.end_block.as_u64();
+    let voting_start_block_number = event.startBlock.to::<u64>();
+    let voting_end_block_number = event.endBlock.to::<u64>();
 
     let average_block_time_millis = 12_200;
 
@@ -122,9 +140,9 @@ async fn data_for_proposal(
         Ok(r) => r,
         Err(_) => {
             let fallback = DateTime::from_timestamp_millis(
-                (created_block_timestamp.and_utc().timestamp() * 1000)
-                    + (voting_start_block_number as i64 - created_block_number as i64)
-                        * average_block_time_millis,
+                (log.block_timestamp.unwrap()
+                    + (voting_start_block_number - log.block_number.unwrap())
+                        * average_block_time_millis) as i64,
             )
             .context("bad timestamp")?
             .naive_utc();
@@ -141,9 +159,9 @@ async fn data_for_proposal(
         Ok(r) => r,
         Err(_) => {
             let fallback = DateTime::from_timestamp_millis(
-                created_block_timestamp.and_utc().timestamp() * 1000
-                    + (voting_end_block_number - created_block_number) as i64
-                        * average_block_time_millis,
+                (log.block_timestamp.unwrap()
+                    + (voting_end_block_number - log.block_number.unwrap())
+                        * average_block_time_millis) as i64,
             )
             .context("bad timestamp")?
             .naive_utc();
@@ -156,51 +174,59 @@ async fn data_for_proposal(
         }
     };
 
-    let proposal_url = format!("https://dydx.community/dashboard/proposal/{}", log.id);
+    let proposal_url = format!("https://dydx.community/dashboard/proposal/{}", event.id);
 
-    let proposal_external_id = log.id.to_string();
+    let proposal_external_id = event.id.to_string();
 
-    let executor_contract = dydx_executor::new(log.executor, rpc.clone());
+    let executor_contract = dydx_executor::new(event.executor, rpc.clone());
 
-    let strategy_contract = dydx_strategy::new(log.strategy, rpc.clone());
+    let strategy_contract = dydx_strategy::new(event.strategy, rpc.clone());
 
     let total_voting_power = strategy_contract
-        .get_total_voting_supply_at(U256::from(meta.block_number.as_u64()))
+        .getTotalVotingSupplyAt(U256::from(log.block_number.unwrap()))
+        .call()
         .await
-        .context("strategy_contract.get_total_voting_supply_at")
-        .unwrap_or_default();
+        .context("strategy_contract.getTotalVotingSupplyAt")
+        .map(|result| result._0)
+        .unwrap_or(U256::from(0));
 
     let min_quorum = executor_contract
-        .minimum_quorum()
+        .MINIMUM_QUORUM()
+        .call()
         .await
-        .context("executor_contract.minimum_quorum")?;
+        .context("executor_contract.MINIMUM_QUORUM")?
+        ._0;
 
     let one_hunded_with_precision = executor_contract
-        .one_hundred_with_precision()
+        .ONE_HUNDRED_WITH_PRECISION()
+        .call()
         .await
-        .context("executor_contract.one_hundred_with_precision")?;
+        .context("executor_contract.ONE_HUNDRED_WITH_PRECISION")?
+        ._0;
 
-    let quorum = ((total_voting_power * min_quorum) / one_hunded_with_precision).as_u128() as f64
+    let quorum = ((total_voting_power * min_quorum) / one_hunded_with_precision).to::<u128>()
+        as f64
         / (10.0f64.powi(18));
 
     let onchain_proposal = gov_contract
-        .get_proposal_by_id(log.id)
+        .getProposalById(event.id)
         .call()
         .await
-        .context("gov_contract.get_proposal_by_id")?;
+        .context("gov_contract.getProposalById")?
+        ._0;
 
     let choices = vec!["For", "Against"];
 
     let scores = vec![
-        onchain_proposal.for_votes.as_u128() as f64 / (10.0f64.powi(18)),
-        onchain_proposal.against_votes.as_u128() as f64 / (10.0f64.powi(18)),
+        onchain_proposal.forVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
+        onchain_proposal.againstVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
     ];
 
     let scores_total = scores.iter().sum();
 
-    let scores_quorum = onchain_proposal.for_votes.as_u128() as f64 / (10.0f64.powi(18));
+    let scores_quorum = onchain_proposal.forVotes.to::<u128>() as f64 / (10.0f64.powi(18));
 
-    let hash: Vec<u8> = log.ipfs_hash.into();
+    let hash: Vec<u8> = event.ipfsHash.to_vec();
 
     let title = get_title(hex::encode(hash.clone()))
         .await
@@ -214,10 +240,11 @@ async fn data_for_proposal(
         .context("get_discussion")?;
 
     let proposal_state = gov_contract
-        .get_proposal_state(log.id)
+        .getProposalState(event.id)
         .call()
         .await
-        .context("gov_contract.get_proposal_state")
+        .context("gov_contract.getProposalState")
+        .map(|result| result._0)
         .unwrap_or(99); //default to Unknown
 
     let state = match proposal_state {
@@ -246,17 +273,17 @@ async fn data_for_proposal(
         quorum: Set(quorum),
         proposal_state: Set(state),
         marked_spam: NotSet,
-        block_created: Set(Some(created_block_number as i32)),
+        block_created: Set(Some(log.block_number.unwrap().to_i32().unwrap())),
         time_created: Set(created_block_timestamp),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
-        index_created: Set(created_block_number as i32),
+        index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
         metadata: NotSet,
         txid: Set(Some(format!(
             "0x{}",
-            hex::encode(meta.transaction_hash.as_bytes())
+            hex::encode(log.transaction_hash.unwrap())
         ))),
     })
 }

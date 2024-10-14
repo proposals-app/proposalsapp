@@ -1,18 +1,25 @@
 use crate::{indexer::Indexer, rpc_providers};
+use alloy::{
+    primitives::address,
+    providers::{Provider, ReqwestProvider},
+    rpc::types::Log,
+    sol,
+};
 use anyhow::{Context, Result};
-use contracts::gen::arbitrum_core_gov::{
-    arbitrum_core_gov::arbitrum_core_gov, VoteCastFilter, VoteCastWithParamsFilter,
-};
-use ethers::{
-    abi::Address,
-    contract::LogMeta,
-    providers::{Http, Middleware, Provider},
-    utils::to_checksum,
-};
+use arbitrum_core_gov::{VoteCast, VoteCastWithParams};
+use chrono::DateTime;
+use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use std::sync::Arc;
 use tracing::info;
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    arbitrum_core_gov,
+    "./abis/arbitrum_core_gov.json"
+);
 
 pub struct ArbitrumCoreVotesIndexer;
 
@@ -36,8 +43,7 @@ impl Indexer for ArbitrumCoreVotesIndexer {
         let current_block = arb_rpc
             .get_block_number()
             .await
-            .context("bad current block")?
-            .as_u32() as i32;
+            .context("get_block_number")? as i32;
 
         let from_block = indexer.index;
         let to_block = if indexer.index + indexer.speed > current_block {
@@ -46,36 +52,34 @@ impl Indexer for ArbitrumCoreVotesIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9"
-            .parse::<Address>()
-            .context("bad address")?;
+        let address = address!("f07DeD9dC292157749B6Fd268E37DF6EA38395B9");
 
         let gov_contract = arbitrum_core_gov::new(address, arb_rpc.clone());
 
         let logs = gov_contract
-            .vote_cast_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .VoteCast_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
-            .context("bad query")?;
+            .context("query")?;
 
         let logs_with_params = gov_contract
-            .vote_cast_with_params_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .VoteCastWithParams_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
-            .context("bad query")?;
+            .context("query")?;
 
-        let votes = get_votes(logs.clone(), indexer, arb_rpc.clone())
+        let votes = get_votes(logs.clone(), indexer, &arb_rpc.clone())
             .await
             .context("bad votes")?;
 
         let votes_with_params =
-            get_votes_with_params(logs_with_params.clone(), indexer, arb_rpc.clone())
+            get_votes_with_params(logs_with_params.clone(), indexer, &arb_rpc.clone())
                 .await
                 .context("bad votes")?;
 
@@ -92,43 +96,50 @@ impl Indexer for ArbitrumCoreVotesIndexer {
 }
 
 async fn get_votes(
-    logs: Vec<(VoteCastFilter, LogMeta)>,
+    logs: Vec<(VoteCast, Log)>,
     indexer: &dao_indexer::Model,
-    rpc: Arc<Provider<Http>>,
+    rpc: &Arc<ReqwestProvider>,
 ) -> Result<Vec<vote::ActiveModel>> {
-    let voter_logs: Vec<(VoteCastFilter, LogMeta)> = logs.into_iter().collect();
+    let voter_logs: Vec<(VoteCast, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
-    for (log, meta) in voter_logs {
-        let created_block_number = meta.block_number.as_u64();
-        let created_block = rpc
-            .get_block(meta.block_number)
+    for (event, log) in voter_logs {
+        let created_block_number = log.block_number.unwrap();
+        let created_block_timestamp = rpc
+            .get_block_by_number(log.block_number.unwrap().into(), false)
             .await
-            .context("rpc.getblock")?;
-        let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+            .context("get_block_by_number")?
+            .unwrap()
+            .header
+            .timestamp;
+
+        let created_block_timestamp =
+            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+                .unwrap()
+                .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i32),
-            voter_address: Set(to_checksum(&log.voter, None)),
-            voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
+            index_created: Set(created_block_number as i32),
+            voter_address: Set(event.voter.to_string()),
+            voting_power: Set((event.weight.to::<u128>() as f64) / (10.0f64.powi(18))),
             block_created: Set(Some(created_block_number as i32)),
             time_created: Set(Some(created_block_timestamp)),
-            choice: Set(match log.support {
+            choice: Set(match event.support {
                 0 => 1.into(),
                 1 => 0.into(),
                 2 => 2.into(),
                 _ => 2.into(),
             }),
             proposal_id: NotSet,
-            proposal_external_id: Set(log.proposal_id.to_string()),
+            proposal_external_id: Set(event.proposalId.to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
-            reason: Set(Some(log.reason)),
+            reason: Set(Some(event.reason)),
             txid: Set(Some(format!(
                 "0x{}",
-                hex::encode(meta.transaction_hash.as_bytes())
+                hex::encode(log.transaction_hash.unwrap())
             ))),
         })
     }
@@ -137,42 +148,49 @@ async fn get_votes(
 }
 
 async fn get_votes_with_params(
-    logs: Vec<(VoteCastWithParamsFilter, LogMeta)>,
+    logs: Vec<(VoteCastWithParams, Log)>,
     indexer: &dao_indexer::Model,
-    rpc: Arc<Provider<Http>>,
+    rpc: &Arc<ReqwestProvider>,
 ) -> Result<Vec<vote::ActiveModel>> {
-    let voter_logs: Vec<(VoteCastWithParamsFilter, LogMeta)> = logs.into_iter().collect();
+    let voter_logs: Vec<(VoteCastWithParams, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
-    for (log, meta) in voter_logs {
-        let created_block_number = meta.block_number.as_u64();
-        let created_block = rpc
-            .get_block(meta.block_number)
+    for (event, log) in voter_logs {
+        let created_block_number = log.block_number.unwrap();
+        let created_block_timestamp = rpc
+            .get_block_by_number(log.block_number.unwrap().into(), false)
             .await
-            .context("rpc.getblock")?;
-        let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+            .context("get_block_by_number")?
+            .unwrap()
+            .header
+            .timestamp;
+
+        let created_block_timestamp =
+            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+                .unwrap()
+                .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i32),
-            voter_address: Set(to_checksum(&log.voter, None)),
-            voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
+            index_created: Set(created_block_number as i32),
+            voter_address: Set(event.voter.to_string()),
+            voting_power: Set((event.weight.to::<u128>() as f64) / (10.0f64.powi(18))),
             block_created: Set(Some(created_block_number as i32)),
             time_created: Set(Some(created_block_timestamp)),
-            choice: Set(match log.support {
+            choice: Set(match event.support {
                 0 => 1.into(),
                 1 => 0.into(),
                 2 => 2.into(),
                 _ => 2.into(),
             }),
             proposal_id: NotSet,
-            proposal_external_id: Set(log.proposal_id.to_string()),
+            proposal_external_id: Set(event.proposalId.to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
             txid: Set(Some(format!(
                 "0x{}",
-                hex::encode(meta.transaction_hash.as_bytes())
+                hex::encode(log.transaction_hash.unwrap())
             ))),
             reason: NotSet,
         })

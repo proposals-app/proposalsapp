@@ -2557,7 +2557,7 @@ __metadata:
     "@types/pg": "npm:8"
     dotenv: "npm:16.4.5"
     kysely: "npm:0.27.4"
-    kysely-codegen: "npm:0.15.0"
+    kysely-codegen: "npm:0.16.8"
     kysely-ctl: "npm:0.9.0"
     pg: "npm:8.13.0"
     typescript: "npm:5.6.3"
@@ -2725,8 +2725,8 @@ __metadata:
     tailwindcss: "npm:3.4.13"
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:5.6.3"
-    vaul: "npm:^1.0.0"
-    viem: "npm:2.21.22"
+    vaul: "npm:^1.1.0"
+    viem: "npm:2.21.24"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -10392,26 +10392,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely-codegen@npm:0.15.0":
-  version: 0.15.0
-  resolution: "kysely-codegen@npm:0.15.0"
+"kysely-codegen@npm:0.16.8":
+  version: 0.16.8
+  resolution: "kysely-codegen@npm:0.16.8"
   dependencies:
     chalk: "npm:4.1.2"
     dotenv: "npm:^16.4.5"
     dotenv-expand: "npm:^11.0.6"
     git-diff: "npm:^2.0.6"
-    micromatch: "npm:^4.0.5"
+    micromatch: "npm:^4.0.8"
     minimist: "npm:^1.2.8"
+    pluralize: "npm:^8.0.0"
   peerDependencies:
     "@libsql/kysely-libsql": ^0.3.0
     "@tediousjs/connection-string": ^0.5.0
     better-sqlite3: ">=7.6.2"
     kysely: ^0.27.0
+    kysely-bun-sqlite: ^0.3.2
     kysely-bun-worker: ^0.5.3
     mysql2: ^2.3.3 || ^3.0.0
     pg: ^8.8.0
     tarn: ^3.0.0
-    tedious: ^16.6.0 || ^17.0.0
+    tedious: ^18.0.0
   peerDependenciesMeta:
     "@libsql/kysely-libsql":
       optional: true
@@ -10421,6 +10423,8 @@ __metadata:
       optional: true
     kysely:
       optional: false
+    kysely-bun-sqlite:
+      optional: true
     kysely-bun-worker:
       optional: true
     mysql2:
@@ -10433,7 +10437,7 @@ __metadata:
       optional: true
   bin:
     kysely-codegen: dist/cli/bin.js
-  checksum: 10c0/3519fe5b7a3f23e739309819ed70b6731b6dc6424b0c8b9869d48f872a00e3b70e306ae8dd4e66531a605cc6336bdc51f311937191136dd3b767661e5ad7f5f4
+  checksum: 10c0/617ad8db6ecb62f447201790f409d6d4f4f65a54fad90d6afb8bd763adea7e1a011b0ba0cfeb4dc7fd774823a6016af25a9bc8b9a61f30a93bf469991f372b33
   languageName: node
   linkType: hard
 
@@ -10784,6 +10788,16 @@ __metadata:
     braces: "npm:^3.0.3"
     picomatch: "npm:^2.3.1"
   checksum: 10c0/58fa99bc5265edec206e9163a1d2cec5fabc46a5b473c45f4a700adce88c2520456ae35f2b301e4410fb3afb27e9521fb2813f6fc96be0a48a89430e0916a772
+  languageName: node
+  linkType: hard
+
+"micromatch@npm:^4.0.8":
+  version: 4.0.8
+  resolution: "micromatch@npm:4.0.8"
+  dependencies:
+    braces: "npm:^3.0.3"
+    picomatch: "npm:^2.3.1"
+  checksum: 10c0/166fa6eb926b9553f32ef81f5f531d27b4ce7da60e5baf8c021d043b27a388fb95e46a8038d5045877881e673f8134122b59624d5cecbd16eb50a42e7a6b5ca8
   languageName: node
   linkType: hard
 
@@ -14658,15 +14672,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vaul@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "vaul@npm:1.0.0"
+"vaul@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "vaul@npm:1.1.0"
   dependencies:
     "@radix-ui/react-dialog": "npm:^1.1.1"
   peerDependencies:
     react: ^16.8 || ^17.0 || ^18.0
     react-dom: ^16.8 || ^17.0 || ^18.0
-  checksum: 10c0/7d5be0385044dc0952a3d3a2f1ee6eb7641b469e4e416f916fcced553a2fd8ed2f2bf9fde0cd9c41739fa1d626d5470b82bc9fde161663f4b1e31c8170ea7eb9
+  checksum: 10c0/87c77a129e7b414480742e70763ea484df102505143e5c241db459df29655a164a3737b09f00cf116355af117fd9200fc9d0eead0ba98a2b9e6adbcfb684be38
   languageName: node
   linkType: hard
 
@@ -14692,9 +14706,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.22":
-  version: 2.21.22
-  resolution: "viem@npm:2.21.22"
+"viem@npm:2.21.24":
+  version: 2.21.24
+  resolution: "viem@npm:2.21.24"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.11.0"
     "@noble/curves": "npm:1.6.0"
@@ -14710,7 +14724,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/eab8b5df1fc630552b81ae784b9618138d39d9303d49312a271709d17c04adb75d6b4a5d6c212d250bfe0041df79f052ff7cbd9cc68c0b9b3a0f44ae76808b92
+  checksum: 10c0/f63b36aefbe7cb87b9a154f58af03924388df0ee68067e1bfdbf78d9ded34111cf7a809c076783f7009373a1fa9daaeea7c7badcfaa85da2e2cd952c1da44c0d
   languageName: node
   linkType: hard
 

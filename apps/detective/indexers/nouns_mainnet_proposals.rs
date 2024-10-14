@@ -1,11 +1,14 @@
 use crate::{indexer::Indexer, rpc_providers};
+use alloy::{
+    primitives::address,
+    providers::{Provider, ReqwestProvider},
+    rpc::types::Log,
+    sol,
+    transports::http::Http,
+};
 use anyhow::{Context, Result};
 use chrono::DateTime;
-use contracts::gen::nouns_proposals_gov::{
-    nouns_proposals_gov::nouns_proposals_gov, NounsDAOStorageV2ProposalCondensed,
-    ProposalCreatedFilter,
-};
-use ethers::prelude::*;
+use rust_decimal::prelude::ToPrimitive;
 use scanners::etherscan::estimate_timestamp;
 use sea_orm::{
     ActiveValue::{self, NotSet},
@@ -16,10 +19,17 @@ use serde_json::json;
 use std::sync::Arc;
 use tracing::{info, warn};
 
-pub struct NounsProposalsIndexer;
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    nouns_proposals_gov,
+    "./abis/nouns_proposals_gov.json"
+);
+
+pub struct NounsMainnetProposalsIndexer;
 
 #[async_trait::async_trait]
-impl Indexer for NounsProposalsIndexer {
+impl Indexer for NounsMainnetProposalsIndexer {
     async fn process(
         &self,
         indexer: &dao_indexer::Model,
@@ -32,8 +42,7 @@ impl Indexer for NounsProposalsIndexer {
         let current_block = eth_rpc
             .get_block_number()
             .await
-            .context("get_block_number")?
-            .as_u32() as i32;
+            .context("get_block_number")? as i32;
 
         let from_block = indexer.index;
         let to_block = if indexer.index + indexer.speed >= current_block {
@@ -42,20 +51,18 @@ impl Indexer for NounsProposalsIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0x6f3E6272A167e8AcCb32072d08E0957F9c79223d"
-            .parse::<Address>()
-            .context("bad address")?;
+        let address = address!("6f3E6272A167e8AcCb32072d08E0957F9c79223d");
 
         let gov_contract = nouns_proposals_gov::new(address, eth_rpc.clone());
 
         let proposal_events = gov_contract
-            .proposal_created_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .ProposalCreated_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
-            .context("query_with_meta")?;
+            .context("query")?;
 
         let mut proposals = Vec::new();
 
@@ -94,22 +101,26 @@ impl Indexer for NounsProposalsIndexer {
 }
 
 async fn data_for_proposal(
-    p: (ProposalCreatedFilter, LogMeta),
-    rpc: &Arc<Provider<Http>>,
+    p: (nouns_proposals_gov::ProposalCreated, Log),
+    rpc: &Arc<ReqwestProvider>,
     indexer: &dao_indexer::Model,
-    gov_contract: nouns_proposals_gov<ethers::providers::Provider<ethers::providers::Http>>,
+    gov_contract: nouns_proposals_gov::nouns_proposals_govInstance<
+        Http<reqwest::Client>,
+        Arc<ReqwestProvider>,
+    >,
 ) -> Result<proposal::ActiveModel> {
-    let (log, meta): (ProposalCreatedFilter, LogMeta) = p.clone();
+    let (event, log): (nouns_proposals_gov::ProposalCreated, Log) = p.clone();
 
-    let created_block_number = meta.block_number.as_u64();
+    let created_block_number = log.block_number.unwrap();
     let created_block = rpc
-        .get_block(meta.block_number)
+        .get_block_by_number(created_block_number.into(), false)
         .await
-        .context("rpc.get_block")?;
-    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+        .context("get_block_by_number")?
+        .unwrap();
+    let created_block_timestamp = created_block.header.timestamp as i64;
 
-    let voting_start_block_number = log.start_block.as_u64();
-    let voting_end_block_number = log.end_block.as_u64();
+    let voting_start_block_number = event.startBlock.to::<u64>();
+    let voting_end_block_number = event.endBlock.to::<u64>();
 
     let average_block_time_millis = 12_200;
 
@@ -117,7 +128,7 @@ async fn data_for_proposal(
         Ok(r) => r,
         Err(_) => {
             let fallback = DateTime::from_timestamp_millis(
-                (created_block_timestamp.and_utc().timestamp() * 1000)
+                (created_block_timestamp * 1000)
                     + (voting_start_block_number as i64 - created_block_number as i64)
                         * average_block_time_millis,
             )
@@ -136,7 +147,7 @@ async fn data_for_proposal(
         Ok(r) => r,
         Err(_) => {
             let fallback = DateTime::from_timestamp_millis(
-                created_block_timestamp.and_utc().timestamp() * 1000
+                created_block_timestamp * 1000
                     + (voting_end_block_number - created_block_number) as i64
                         * average_block_time_millis,
             )
@@ -151,18 +162,21 @@ async fn data_for_proposal(
         }
     };
 
-    let proposal_url = format!("https://nouns.wtf/vote/{}", log.id);
+    let proposal_url = format!("https://nouns.wtf/vote/{}", event.id);
 
-    let proposal_external_id = log.id.to_string();
+    let proposal_external_id = event.id.to_string();
 
-    let onchain_proposal: NounsDAOStorageV2ProposalCondensed = gov_contract
-        .proposals(log.id)
+    let onchain_proposal = gov_contract
+        .proposals(event.id)
+        .call()
         .await
-        .context("gov_contract.proposals")?;
+        .context("gov_contract.proposals")?
+        ._0;
 
     let mut title = format!(
         "{:.120}",
-        log.description
+        event
+            .description
             .split('\n')
             .next()
             .unwrap_or("Unknown")
@@ -177,29 +191,29 @@ async fn data_for_proposal(
         title = "Unknown".into()
     }
 
-    let body = log.description.to_string();
+    let body = event.description.to_string();
 
     let choices = vec!["For", "Against", "Abstain"];
 
     let scores = vec![
-        onchain_proposal.for_votes.as_u128() as f64,
-        onchain_proposal.against_votes.as_u128() as f64,
-        onchain_proposal.abstain_votes.as_u128() as f64,
+        onchain_proposal.forVotes.to::<u128>() as f64,
+        onchain_proposal.againstVotes.to::<u128>() as f64,
+        onchain_proposal.abstainVotes.to::<u128>() as f64,
     ];
 
     let scores_total: f64 = scores.iter().sum();
 
-    let quorum = onchain_proposal.quorum_votes.as_u128() as f64;
+    let quorum = onchain_proposal.quorumVotes.to::<u128>() as f64;
 
-    let scores_quorum = onchain_proposal.for_votes.as_u128() as f64
-        + onchain_proposal.against_votes.as_u128() as f64;
+    let scores_quorum = onchain_proposal.forVotes.to::<u128>() as f64
+        + onchain_proposal.againstVotes.to::<u128>() as f64;
 
     let proposal_state = gov_contract
-        .state(log.id)
+        .state(event.id)
         .call()
         .await
-        .context("gov_contract.state")
-        .unwrap_or(99); //default to Unknown
+        .context("gov_contract.state")?
+        ._0;
 
     let state = match proposal_state {
         0 => ProposalState::Pending,
@@ -230,7 +244,9 @@ async fn data_for_proposal(
         proposal_state: Set(state),
         marked_spam: NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(created_block_timestamp),
+        time_created: Set(DateTime::from_timestamp(created_block_timestamp, 0)
+            .unwrap()
+            .naive_utc()),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
@@ -239,7 +255,7 @@ async fn data_for_proposal(
         metadata: NotSet,
         txid: Set(Some(format!(
             "0x{}",
-            hex::encode(meta.transaction_hash.as_bytes())
+            hex::encode(log.transaction_hash.unwrap())
         ))),
     })
 }

@@ -1,3 +1,14 @@
+use anyhow::{Context, Result};
+use sea_orm::{
+    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
+    DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
+};
+use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote, voter};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
+
 use crate::indexers::{
     aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer,
     aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer,
@@ -14,19 +25,9 @@ use crate::indexers::{
     hop_mainnet_votes::HopMainnetVotesIndexer,
     maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer,
     maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer,
-    maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer, nouns_mainnet_votes::NounsVotesIndexer,
-    optimism_votes::OptimismVotesIndexer, snapshot_votes::SnapshotVotesIndexer,
-    uniswap_mainnet_votes::UniswapMainnetVotesIndexer,
-};
-use anyhow::{Context, Result};
-use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
-    DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
-};
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote, voter};
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
+    maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer,
+    nouns_mainnet_votes::NounsMainnetVotesIndexer, optimism_votes::OptimismVotesIndexer,
+    snapshot_votes::SnapshotVotesIndexer, uniswap_mainnet_votes::UniswapMainnetVotesIndexer,
 };
 
 pub struct DatabaseStore;
@@ -154,7 +155,9 @@ pub async fn store_votes(
         IndexerVariant::MakerPollArbitrumVotes => {
             MakerPollArbitrumVotesIndexer::proposal_indexer_variant()
         }
-        IndexerVariant::NounsProposalsMainnetVotes => NounsVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::NounsProposalsMainnetVotes => {
+            NounsMainnetVotesIndexer::proposal_indexer_variant()
+        }
         IndexerVariant::OpOptimismVotes => OptimismVotesIndexer::proposal_indexer_variant(),
         IndexerVariant::UniswapMainnetVotes => {
             UniswapMainnetVotesIndexer::proposal_indexer_variant()

@@ -1,6 +1,6 @@
 use crate::api_handler::ApiHandler;
 use crate::db_handler::DbHandler;
-use crate::fetchers::users::UserFetcher;
+use crate::indexers::users::UserIndexer;
 use crate::models::posts::PostResponse;
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
@@ -9,12 +9,12 @@ use seaorm::discourse_post;
 use std::sync::Arc;
 use tracing::{error, info, instrument, warn};
 
-pub struct PostFetcher {
+pub struct PostIndexer {
     api_handler: Arc<ApiHandler>,
     base_url: String,
 }
 
-impl PostFetcher {
+impl PostIndexer {
     pub fn new(base_url: &str, api_handler: Arc<ApiHandler>) -> Self {
         Self {
             api_handler,
@@ -76,7 +76,7 @@ impl PostFetcher {
                             "User not found, fetching user details"
                         );
                         let user_fetcher =
-                            UserFetcher::new(&self.base_url, Arc::clone(&self.api_handler));
+                            UserIndexer::new(&self.base_url, Arc::clone(&self.api_handler));
                         user_fetcher
                             .fetch_user_by_username(&post.username, db_handler, dao_discourse_id)
                             .await?;

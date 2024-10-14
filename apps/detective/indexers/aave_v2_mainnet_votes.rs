@@ -1,12 +1,14 @@
 use crate::{indexer::Indexer, rpc_providers};
-use anyhow::{Context, Result};
-use contracts::gen::aave_v_2_gov::{aave_v2_gov, VoteEmittedFilter};
-use ethers::{
-    abi::Address,
-    contract::LogMeta,
-    providers::{Http, Middleware, Provider},
-    utils::to_checksum,
+use aave_v2_gov::VoteEmitted;
+use alloy::{
+    primitives::address,
+    providers::{Provider, ReqwestProvider},
+    rpc::types::Log,
+    sol,
 };
+use anyhow::{Context, Result};
+use chrono::DateTime;
+use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use std::sync::Arc;
@@ -19,6 +21,13 @@ impl AaveV2MainnetVotesIndexer {
         IndexerVariant::AaveV2MainnetProposals
     }
 }
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    aave_v2_gov,
+    "./abis/aave_v2_gov.json"
+);
 
 #[async_trait::async_trait]
 impl Indexer for AaveV2MainnetVotesIndexer {
@@ -34,8 +43,7 @@ impl Indexer for AaveV2MainnetVotesIndexer {
         let current_block = eth_rpc
             .get_block_number()
             .await
-            .context("bad current block")?
-            .as_u32() as i32;
+            .context("get_block_number")? as i32;
 
         let from_block = indexer.index;
         let to_block = if indexer.index + indexer.speed > current_block {
@@ -44,22 +52,20 @@ impl Indexer for AaveV2MainnetVotesIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0xEC568fffba86c094cf06b22134B23074DFE2252c"
-            .parse::<Address>()
-            .context("bad address")?;
+        let address = address!("EC568fffba86c094cf06b22134B23074DFE2252c");
 
         let gov_contract = aave_v2_gov::new(address, eth_rpc.clone());
 
         let logs = gov_contract
-            .vote_emitted_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .VoteEmitted_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
             .context("bad query")?;
 
-        let votes = get_votes(logs.clone(), indexer, eth_rpc.clone())
+        let votes = get_votes(logs.clone(), indexer, &eth_rpc)
             .await
             .context("bad votes")?;
 
@@ -74,41 +80,48 @@ impl Indexer for AaveV2MainnetVotesIndexer {
 }
 
 async fn get_votes(
-    logs: Vec<(VoteEmittedFilter, LogMeta)>,
+    logs: Vec<(VoteEmitted, Log)>,
     indexer: &dao_indexer::Model,
-    rpc: Arc<Provider<Http>>,
+    rpc: &Arc<ReqwestProvider>,
 ) -> Result<Vec<vote::ActiveModel>> {
-    let voter_logs: Vec<(VoteEmittedFilter, LogMeta)> = logs.into_iter().collect();
+    let voter_logs: Vec<(VoteEmitted, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
-    for (log, meta) in voter_logs {
-        let created_block_number = meta.block_number.as_u64();
-        let created_block = rpc
-            .get_block(meta.block_number)
+    for (event, log) in voter_logs {
+        let created_block_number = log.block_number.unwrap();
+        let created_block_timestamp = rpc
+            .get_block_by_number(log.block_number.unwrap().into(), false)
             .await
-            .context("rpc.getblock")?;
-        let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+            .context("get_block_by_number")?
+            .unwrap()
+            .header
+            .timestamp;
+
+        let created_block_timestamp =
+            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+                .unwrap()
+                .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i32),
-            voter_address: Set(to_checksum(&log.voter, None)),
-            choice: Set(match log.support {
+            index_created: Set(created_block_number as i32),
+            voter_address: Set(event.voter.to_string()),
+            choice: Set(match event.support {
                 true => 0.into(),
                 false => 1.into(),
             }),
-            voting_power: Set((log.voting_power.as_u128() as f64) / (10.0f64.powi(18))),
+            voting_power: Set((event.votingPower.to::<u128>() as f64) / (10.0f64.powi(18))),
             reason: NotSet,
             block_created: Set(Some(created_block_number as i32)),
             time_created: Set(Some(created_block_timestamp)),
             proposal_id: NotSet,
-            proposal_external_id: Set(log.id.to_string()),
+            proposal_external_id: Set(event.id.to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
             txid: Set(Some(format!(
                 "0x{}",
-                hex::encode(meta.transaction_hash.as_bytes())
+                hex::encode(log.transaction_hash.unwrap())
             ))),
         })
     }

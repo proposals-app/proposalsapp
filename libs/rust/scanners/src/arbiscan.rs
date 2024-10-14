@@ -1,6 +1,6 @@
+use alloy::providers::{Provider, ProviderBuilder};
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
-use ethers::providers::{Http, Middleware, Provider};
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::Deserialize;
@@ -31,17 +31,17 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
     let arbiscan_api_key = std::env::var("ARBISCAN_API_KEY").expect("Etherscan key not set!");
     let arb_url = std::env::var("ARBITRUM_NODE_URL").expect("Ethereum node not set!");
 
-    let provider = Provider::<Http>::try_from(arb_url)?;
+    let provider = ProviderBuilder::new().on_http(arb_url.parse()?);
 
     let current_block = provider.get_block_number().await?;
 
-    if block_number < current_block.as_u64() {
+    if block_number < current_block {
         let block = provider
-            .get_block(block_number)
+            .get_block_by_number(block_number.into(), true)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Block not found"))?;
 
-        return Ok(DateTime::from_timestamp(block.timestamp.as_u64() as i64, 0)
+        return Ok(DateTime::from_timestamp(block.header.timestamp as i64, 0)
             .expect("Invalid timestamp")
             .naive_utc());
     }
@@ -170,11 +170,11 @@ mod arbiscan_tests {
 
         // Test with a block number likely to be in the future
         let rpc_url = std::env::var("ARBITRUM_NODE_URL").expect("Optimism node not set!");
-        let provider = Provider::<Http>::try_from(rpc_url).unwrap();
+        let provider = ProviderBuilder::new().on_http(rpc_url.parse().unwrap());
 
         let current_block = provider.get_block_number().await.unwrap();
 
-        let block_number = current_block.as_u64() + 100;
+        let block_number = current_block + 100;
         let result = estimate_timestamp(block_number).await.unwrap();
 
         // Since we can't predict the future block time, just ensure we got a valid result

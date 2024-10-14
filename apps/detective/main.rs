@@ -38,8 +38,8 @@ use indexers::maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer;
 use indexers::maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer;
 use indexers::maker_poll_mainnet_proposals::MakerPollMainnetProposalsIndexer;
 use indexers::maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer;
-use indexers::nouns_mainnet_proposals::NounsProposalsIndexer;
-use indexers::nouns_mainnet_votes::NounsVotesIndexer;
+use indexers::nouns_mainnet_proposals::NounsMainnetProposalsIndexer;
+use indexers::nouns_mainnet_votes::NounsMainnetVotesIndexer;
 use indexers::optimism_proposals::OptimismProposalsIndexer;
 use indexers::optimism_votes::OptimismVotesIndexer;
 use indexers::snapshot_proposals::SnapshotProposalsIndexer;
@@ -289,6 +289,7 @@ pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
         IndexerVariant::SnapshotVotes => {
             Box::new(SnapshotVotesIndexer::new(SNAPSHOT_API_HANDLER.clone()))
         }
+
         IndexerVariant::AaveV2MainnetProposals => Box::new(AaveV2MainnetProposalsIndexer),
         IndexerVariant::AaveV2MainnetVotes => Box::new(AaveV2MainnetVotesIndexer),
         IndexerVariant::AaveV3MainnetProposals => Box::new(AaveV3MainnetProposalsIndexer),
@@ -318,8 +319,8 @@ pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
         IndexerVariant::MakerPollMainnetProposals => Box::new(MakerPollMainnetProposalsIndexer),
         IndexerVariant::MakerPollMainnetVotes => Box::new(MakerPollMainnetVotesIndexer),
         IndexerVariant::MakerPollArbitrumVotes => Box::new(MakerPollArbitrumVotesIndexer),
-        IndexerVariant::NounsProposalsMainnetProposals => Box::new(NounsProposalsIndexer),
-        IndexerVariant::NounsProposalsMainnetVotes => Box::new(NounsVotesIndexer),
+        IndexerVariant::NounsProposalsMainnetProposals => Box::new(NounsMainnetProposalsIndexer),
+        IndexerVariant::NounsProposalsMainnetVotes => Box::new(NounsMainnetVotesIndexer),
         IndexerVariant::OpOptimismProposals => Box::new(OptimismProposalsIndexer),
         IndexerVariant::OpOptimismVotes => Box::new(OptimismVotesIndexer),
         IndexerVariant::UniswapMainnetProposals => Box::new(UniswapMainnetProposalsIndexer),

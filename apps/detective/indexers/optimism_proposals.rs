@@ -1,35 +1,58 @@
-use crate::database::DatabaseStore;
-use crate::indexer::Indexer;
-use crate::rpc_providers;
-use ::utils::errors::DATABASE_ERROR;
-use abi::decode;
-use abi::ParamType;
+use crate::{database::DatabaseStore, indexer::Indexer, rpc_providers};
+use alloy::{
+    dyn_abi::{DynSolType, DynSolValue},
+    primitives::{address, U256},
+    providers::{Provider, ReqwestProvider},
+    rpc::types::Log,
+    sol,
+    transports::http::Http,
+};
 use anyhow::{Context, Result};
 use chrono::DateTime;
-use contracts::gen::optimism_gov_v_6::ProposalCreated3Filter;
-use contracts::gen::optimism_gov_v_6::ProposalCreated4Filter;
-use contracts::gen::optimism_gov_v_6::{ProposalCreated1Filter, ProposalCreated2Filter};
-use contracts::gen::optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5;
-use contracts::gen::{
-    optimism_gov_v_6::optimism_gov_v6, optimism_token::optimism_token::optimism_token,
-};
-use ethers::prelude::*;
-use ethers::utils::to_checksum;
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 use scanners::optimistic_scan::estimate_timestamp;
-use sea_orm::ActiveValue;
-use sea_orm::ColumnTrait;
-use sea_orm::Condition;
-use sea_orm::DatabaseConnection;
-use sea_orm::EntityTrait;
-use sea_orm::QueryFilter;
-use sea_orm::{ActiveValue::NotSet, Set};
+use sea_orm::{ActiveValue, ColumnTrait, Condition, EntityTrait, QueryFilter, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 use tracing::info;
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    optimism_gov_v_6,
+    "./abis/optimism_gov_v6.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    optimism_token,
+    "./abis/optimism_token.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    optimism_votemodule_0x27964c5f4F389B8399036e1076d84c6984576C33,
+    "./abis/optimism_votemodule_0x27964c5f4F389B8399036e1076d84c6984576C33.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    optimism_votemodule_0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5,
+    "./abis/optimism_votemodule_0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    optimism_votemodule_0xdd0229d72a414dc821dec66f3cc4ef6db2c7b7df,
+    "./abis/optimism_votemodule_0xdd0229d72a414dc821dec66f3cc4ef6db2c7b7df.json"
+);
 
 pub struct OptimismProposalsIndexer;
 
@@ -47,8 +70,7 @@ impl Indexer for OptimismProposalsIndexer {
         let current_block = op_rpc
             .get_block_number()
             .await
-            .context("get_block_number")?
-            .as_u32() as i32;
+            .context("get_block_number")? as i32;
 
         let from_block = indexer.index;
         let to_block = if indexer.index + indexer.speed >= current_block {
@@ -57,30 +79,26 @@ impl Indexer for OptimismProposalsIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0xcDF27F107725988f2261Ce2256bDfCdE8B382B10"
-            .parse::<Address>()
-            .context("bad address")?;
+        let address = address!("cDF27F107725988f2261Ce2256bDfCdE8B382B10");
 
-        let gov_contract = optimism_gov_v6::new(address, op_rpc.clone());
+        let gov_contract = optimism_gov_v_6::new(address, op_rpc.clone());
 
-        let token_address = "0x4200000000000000000000000000000000000042"
-            .parse::<Address>()
-            .context("bad address")?;
+        let token_address = address!("4200000000000000000000000000000000000042");
 
         let op_token = optimism_token::new(token_address, op_rpc.clone());
 
         let mut proposals = Vec::new();
 
         // Process ProposalCreated1 events
-        let proposal_events_one = gov_contract
-            .proposal_created_1_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .query_with_meta()
+        let proposal_events_zero = gov_contract
+            .ProposalCreated_0_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .query()
             .await
-            .context("query_with_meta")?;
+            .context("query")?;
 
-        for p in proposal_events_one.iter() {
+        for p in proposal_events_zero.iter() {
             let p = data_for_proposal_one(p.clone(), &op_rpc, indexer, gov_contract.clone())
                 .await
                 .context("data_for_proposal_one")?;
@@ -89,12 +107,12 @@ impl Indexer for OptimismProposalsIndexer {
 
         // Process ProposalCreated2 events
         let proposal_events_two = gov_contract
-            .proposal_created_2_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .query_with_meta()
+            .ProposalCreated_1_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .query()
             .await
-            .context("query_with_meta")?;
+            .context("query")?;
 
         for p in proposal_events_two.iter() {
             let p = data_for_proposal_two(
@@ -111,12 +129,12 @@ impl Indexer for OptimismProposalsIndexer {
 
         // Process ProposalCreated3 events
         let proposal_events_three = gov_contract
-            .proposal_created_3_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .query_with_meta()
+            .ProposalCreated_2_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .query()
             .await
-            .context("query_with_meta")?;
+            .context("query")?;
 
         for p in proposal_events_three.iter() {
             let p = data_for_proposal_three(p.clone(), &op_rpc, indexer, gov_contract.clone())
@@ -127,12 +145,12 @@ impl Indexer for OptimismProposalsIndexer {
 
         // Process ProposalCreated4 events
         let proposal_events_four = gov_contract
-            .proposal_created_4_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .query_with_meta()
+            .ProposalCreated_3_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .query()
             .await
-            .context("query_with_meta")?;
+            .context("query")?;
 
         for p in proposal_events_four.iter() {
             let p = data_for_proposal_four(p.clone(), &op_rpc, indexer, gov_contract.clone())
@@ -169,42 +187,44 @@ impl Indexer for OptimismProposalsIndexer {
 }
 
 async fn data_for_proposal_one(
-    p: (
-        contracts::gen::optimism_gov_v_6::ProposalCreated1Filter,
-        LogMeta,
-    ),
-    rpc: &Arc<Provider<Http>>,
+    p: (optimism_gov_v_6::ProposalCreated_0, Log),
+    rpc: &Arc<ReqwestProvider>,
     indexer: &dao_indexer::Model,
-    gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
+    gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<
+        Http<reqwest::Client>,
+        Arc<ReqwestProvider>,
+    >,
 ) -> Result<proposal::ActiveModel> {
-    println!("ProposalCreated1Filter");
-    let (log, meta): (ProposalCreated1Filter, LogMeta) = p.clone();
+    let (event, log) = p;
 
-    let created_block_number = meta.block_number.as_u64();
+    let created_block_number = log.block_number.unwrap();
     let created_block = rpc
-        .get_block(meta.block_number)
+        .get_block_by_number(created_block_number.into(), false)
         .await
-        .context("rpc.get_block")?;
-    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+        .context("get_block_by_number")?
+        .unwrap();
+    let created_block_timestamp = created_block.header.timestamp as i64;
 
     let voting_start_block_number = gov_contract
-        .proposal_snapshot(log.proposal_id)
+        .proposalSnapshot(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.proposal_snapshot")
-        .unwrap()
-        .as_u64();
+        .context("gov_contract.proposal_snapshot")?
+        ._0
+        .to::<u64>();
 
     let voting_end_block_number = gov_contract
-        .proposal_deadline(log.proposal_id)
+        .proposalDeadline(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.proposal_deadline")
-        .unwrap()
-        .as_u64();
+        .context("gov_contract.proposal_deadline")?
+        ._0
+        .to::<u64>();
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => DateTime::from_timestamp_millis(
-            (created_block_timestamp.and_utc().timestamp() * 1000)
+            (created_block_timestamp * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
         )
         .context("bad timestamp")?
@@ -214,7 +234,7 @@ async fn data_for_proposal_one(
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
         Err(_) => DateTime::from_timestamp_millis(
-            created_block_timestamp.and_utc().timestamp() * 1000
+            created_block_timestamp * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
         )
         .context("bad timestamp")?
@@ -223,7 +243,8 @@ async fn data_for_proposal_one(
 
     let mut title = format!(
         "{:.120}",
-        log.description
+        event
+            .description
             .split('\n')
             .next()
             .unwrap_or("Unknown")
@@ -238,39 +259,44 @@ async fn data_for_proposal_one(
         title = "Unknown".into()
     }
 
-    let body = log.description.to_string();
+    let body = event.description.to_string();
 
-    let proposal_url = format!("https://vote.optimism.io/proposals/{}", log.proposal_id);
+    let proposal_url = format!("https://vote.optimism.io/proposals/{}", event.proposalId);
 
-    let proposal_external_id = log.proposal_id.to_string();
+    let proposal_external_id = event.proposalId.to_string();
 
-    let (against_votes, for_votes, abstain_votes) = gov_contract
-        .proposal_votes(log.proposal_id)
+    let votes = gov_contract
+        .proposalVotes(event.proposalId)
+        .call()
         .await
         .context("gov_contract.proposal_votes")?;
 
     let choices = vec!["For", "Against", "Abstain"];
 
     let scores: Vec<f64> = vec![
-        for_votes.as_u128() as f64 / (10.0f64.powi(18)),
-        against_votes.as_u128() as f64 / (10.0f64.powi(18)),
-        abstain_votes.as_u128() as f64 / (10.0f64.powi(18)),
+        votes.forVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
+        votes.againstVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
+        votes.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
     ];
 
     let proposal_state = gov_contract
-        .state(log.proposal_id)
+        .state(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.state")?;
+        .context("gov_contract.state")?
+        ._0;
 
     let scores_total: f64 = scores.iter().sum();
 
     let scores_quorum = scores_total;
 
     let quorum = gov_contract
-        .quorum(log.proposal_id)
+        .quorum(event.proposalId)
+        .call()
         .await
         .context("gov_contract.quorum")?
-        .as_u128() as f64
+        ._0
+        .to::<u128>() as f64
         / (10.0f64.powi(18));
 
     let state = match proposal_state {
@@ -288,7 +314,7 @@ async fn data_for_proposal_one(
     let discussionurl = String::from("");
 
     Ok(proposal::ActiveModel {
-        id: NotSet,
+        id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),
@@ -300,9 +326,11 @@ async fn data_for_proposal_one(
         scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
-        marked_spam: NotSet,
+        marked_spam: ActiveValue::NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(created_block_timestamp),
+        time_created: Set(DateTime::from_timestamp(created_block_timestamp, 0)
+            .unwrap()
+            .naive_utc()),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
@@ -310,40 +338,40 @@ async fn data_for_proposal_one(
         index_created: Set(created_block_number as i32),
         txid: Set(Some(format!(
             "0x{}",
-            hex::encode(meta.transaction_hash.as_bytes())
+            hex::encode(log.transaction_hash.unwrap())
         ))),
         metadata: Set(json!({"proposal_type":1 , "voting_module":""}).into()),
     })
 }
 
 async fn data_for_proposal_two(
-    p: (
-        contracts::gen::optimism_gov_v_6::ProposalCreated2Filter,
-        LogMeta,
-    ),
-    rpc: &Arc<Provider<Http>>,
+    p: (optimism_gov_v_6::ProposalCreated_1, Log),
+    rpc: &Arc<ReqwestProvider>,
     indexer: &dao_indexer::Model,
-    gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
-    op_token: optimism_token<ethers::providers::Provider<ethers::providers::Http>>,
+    gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<
+        Http<reqwest::Client>,
+        Arc<ReqwestProvider>,
+    >,
+    op_token: optimism_token::optimism_tokenInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>,
 ) -> Result<proposal::ActiveModel> {
-    println!("ProposalCreated2Filter");
     let db = DatabaseStore::connect().await?;
-    let (log, meta): (ProposalCreated2Filter, LogMeta) = p.clone();
+    let (event, log) = p;
 
-    let created_block_number = meta.block_number.as_u64();
+    let created_block_number = log.block_number.unwrap();
     let created_block = rpc
-        .get_block(meta.block_number)
+        .get_block_by_number(created_block_number.into(), false)
         .await
-        .context("rpc.get_block")?;
-    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+        .context("get_block_by_number")?
+        .unwrap();
+    let created_block_timestamp = created_block.header.timestamp as i64;
 
-    let voting_start_block_number = log.start_block.as_u64();
-    let voting_end_block_number = log.end_block.as_u64();
+    let voting_start_block_number = event.startBlock.to::<u64>();
+    let voting_end_block_number = event.endBlock.to::<u64>();
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => DateTime::from_timestamp_millis(
-            (created_block_timestamp.and_utc().timestamp() * 1000)
+            (created_block_timestamp * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 12 * 1000,
         )
         .context("bad timestamp")?
@@ -352,9 +380,8 @@ async fn data_for_proposal_two(
 
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
-
         Err(_) => DateTime::from_timestamp_millis(
-            created_block_timestamp.and_utc().timestamp() * 1000
+            created_block_timestamp * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 12 * 1000,
         )
         .context("bad timestamp")?
@@ -363,7 +390,8 @@ async fn data_for_proposal_two(
 
     let mut title = format!(
         "{:.120}",
-        log.description
+        event
+            .description
             .split('\n')
             .next()
             .unwrap_or("Unknown")
@@ -378,149 +406,119 @@ async fn data_for_proposal_two(
         title = "Unknown".into()
     }
 
-    let body = log.description.to_string();
+    let body = event.description.to_string();
 
-    let proposal_url = format!("https://vote.optimism.io/proposals/{}", log.proposal_id);
+    let proposal_url = format!("https://vote.optimism.io/proposals/{}", event.proposalId);
 
-    let proposal_external_id = log.proposal_id.to_string();
+    let proposal_external_id = event.proposalId.to_string();
 
-    let voting_module = to_checksum(&log.voting_module, None);
-    let proposal_type = log.proposal_type;
+    let voting_module = event.votingModule;
+    let proposal_type = event.proposalType;
 
     let mut choices: Vec<&str> = vec![];
     let mut choices_strings: Vec<String> = vec![];
     let mut scores: Vec<f64> = vec![];
     let mut scores_total: f64 = 0.0;
 
-    if voting_module == "0x27964c5f4F389B8399036e1076d84c6984576C33" {
+    if voting_module == address!("27964c5f4F389B8399036e1076d84c6984576C33") {
         #[derive(Debug, Deserialize)]
         struct ProposalSettings {
             against_threshold: U256,
             is_relative_to_votable_supply: bool,
         }
-        let mut supply = 0.0;
-        let types: Vec<ParamType> = vec![ParamType::Tuple(vec![
-            ParamType::Uint(256), // againstThreshold
-            ParamType::Bool,      // isRelativeToVotableSupply
-        ])];
-
-        let decoded_proposal_data =
-            decode(&types, &log.proposal_data).context("Failed to decode proposal data")?;
-
-        let proposal_tokens = decoded_proposal_data[0].clone().into_tuple().unwrap();
-
-        let proposal_settings = ProposalSettings {
-            against_threshold: proposal_tokens[0].clone().into_uint().unwrap(),
-            is_relative_to_votable_supply: proposal_tokens[1].clone().into_bool().unwrap(),
+        let mut proposal_settings = ProposalSettings {
+            against_threshold: U256::from(0),
+            is_relative_to_votable_supply: false,
         };
+
+        #[allow(unused_assignments)]
+        let mut supply = 0.0;
+
+        let proposal_data_type = DynSolType::Tuple(vec![DynSolType::Uint(256), DynSolType::Bool]);
+        let decoded: DynSolValue = proposal_data_type.abi_decode(&event.proposalData).unwrap();
+
+        if let DynSolValue::Tuple(values) = decoded {
+            proposal_settings.against_threshold = values[0].as_uint().unwrap().0;
+            proposal_settings.is_relative_to_votable_supply = values[1].as_bool().unwrap();
+        }
 
         if proposal_settings.is_relative_to_votable_supply {
             let votable_supply = gov_contract
-                .votable_supply_with_block_number(ethers::types::U256::from(
-                    meta.block_number.as_u64(),
-                ))
-                .await?;
+                .votableSupply_1(U256::from(created_block_number))
+                .call()
+                .await?
+                ._0;
 
-            supply = votable_supply.as_u128() as f64 / 10.0f64.powi(18);
+            supply = votable_supply.to::<u128>() as f64 / 10.0f64.powi(18);
         } else {
-            let total_supply = op_token.total_supply().await?;
+            let total_supply = op_token.totalSupply().call().await?._0;
 
-            supply = total_supply.as_u128() as f64 / 10.0f64.powi(18);
+            supply = total_supply.to::<u128>() as f64 / 10.0f64.powi(18);
         }
 
-        let (against_votes, _, _) = gov_contract.proposal_votes(log.proposal_id).await?;
+        let votes = gov_contract.proposalVotes(event.proposalId).call().await?;
 
-        let for_votes = supply - against_votes.as_u128() as f64 / 10.0f64.powi(18);
+        let for_votes = supply - votes.againstVotes.to::<u128>() as f64 / 10.0f64.powi(18);
 
         choices = vec!["Against", "For"];
-        scores = vec![against_votes.as_u128() as f64 / 10.0f64.powi(18), for_votes];
+        scores = vec![
+            votes.againstVotes.to::<u128>() as f64 / 10.0f64.powi(18),
+            for_votes,
+        ];
         scores_total = scores.iter().sum();
     }
 
-    if voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
-        #[derive(Debug, Deserialize)]
-        struct ProposalOption {
-            description: String,
-        }
-
-        #[derive(Debug, Deserialize)]
-        struct ProposalData {
-            proposal_options: Vec<ProposalOption>,
-        }
-
-        // Define the expected types
-        let types: Vec<ParamType> = vec![
-            ParamType::Array(Box::new(ParamType::Tuple(vec![
-                ParamType::Uint(256),                             // budgetTokensSpent
-                ParamType::Array(Box::new(ParamType::Address)),   // targets
-                ParamType::Array(Box::new(ParamType::Uint(256))), // values
-                ParamType::Array(Box::new(ParamType::Bytes)),     // calldatas
-                ParamType::String,                                // description
+    if voting_module == address!("dd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df") {
+        let proposal_data_type = DynSolType::Tuple(vec![
+            DynSolType::Array(Box::new(DynSolType::Tuple(vec![
+                DynSolType::Uint(256),                              // budgetTokensSpent
+                DynSolType::Array(Box::new(DynSolType::Address)),   // targets
+                DynSolType::Array(Box::new(DynSolType::Uint(256))), // values
+                DynSolType::Array(Box::new(DynSolType::Bytes)),     // calldatas
+                DynSolType::String,                                 // description (choices)
             ]))),
-            ParamType::Tuple(vec![
-                ParamType::Uint(8),   // maxApprovals
-                ParamType::Uint(8),   // criteria
-                ParamType::Address,   // budgetToken
-                ParamType::Uint(128), // criteriaValue
-                ParamType::Uint(128), // budgetAmount
+            DynSolType::Tuple(vec![
+                DynSolType::Uint(8),   // maxApprovals
+                DynSolType::Uint(8),   // criteria
+                DynSolType::Address,   // budgetToken
+                DynSolType::Uint(128), // criteriaValue
+                DynSolType::Uint(128), // budgetAmount
             ]),
-        ];
+        ]);
 
-        // Decode the bytes using the defined types
-        let decoded_proposal_data = decode(&types, &log.proposal_data)?;
+        let decoded = proposal_data_type
+            .abi_decode_sequence(&event.proposalData)
+            .map_err(|e| anyhow::anyhow!("Failed to decode proposal data: {:?}", e))?;
 
-        // Extract the decoded data
-        let proposal_options_tokens = decoded_proposal_data[0].clone().into_array().unwrap();
-
-        // Parse proposal options
-        let proposal_options: Vec<ProposalOption> = proposal_options_tokens
-            .into_iter()
-            .map(|token| {
-                let tokens = token.into_tuple().unwrap();
-                ProposalOption {
-                    description: tokens[4].clone().into_string().unwrap(),
+        if let DynSolValue::Tuple(outer_values) = decoded {
+            if outer_values.len() == 2 {
+                if let DynSolValue::Array(proposal_options) = &outer_values[0] {
+                    for option in proposal_options {
+                        if let DynSolValue::Tuple(option_values) = option {
+                            if let DynSolValue::String(description) = &option_values[4] {
+                                choices_strings.push(description.clone());
+                            }
+                        }
+                    }
+                    choices = choices_strings.iter().map(|s| s.as_str()).collect();
                 }
-            })
-            .collect();
+            }
+        }
 
-        // Construct the proposal data
-        let proposal_data = ProposalData { proposal_options };
-
-        choices_strings = proposal_data
-            .proposal_options
-            .iter()
-            .map(|o| o.description.clone())
-            .collect();
-
-        //TODO: this only considers for votes
-        //      against and abstain should be handled somehow as well
-
-        choices = choices_strings.iter().map(|s| s.as_str()).collect();
-
-        scores = choices_strings.iter().map(|_s| 0.0).collect();
-
-        // Fetch all votes for this proposal
+        // Fetch votes and calculate scores
         let votes = vote::Entity::find()
             .filter(
                 Condition::all()
                     .add(vote::Column::IndexerId.eq(indexer.id))
-                    .add(vote::Column::ProposalExternalId.eq(proposal_external_id.clone())),
+                    .add(vote::Column::ProposalExternalId.eq(event.proposalId.to_string())),
             )
             .all(&db)
-            .await
-            .context(DATABASE_ERROR)?;
+            .await?;
 
-        // Initialize a vector to store scores for each choice
-        let mut choice_scores: Vec<Decimal> = vec![Decimal::ZERO; choices_strings.len()];
+        let mut choice_scores: Vec<Decimal> = vec![Decimal::ZERO; choices.len()];
 
-        // Process votes and accumulate scores
         for vote in votes {
             let voting_power = Decimal::from_f64(vote.voting_power).unwrap_or(Decimal::ZERO);
-            // if let Some(index) = vote.choice.as_i64() {
-            //     if index >= 0 && (index as usize) < choice_scores.len() {
-            //         choice_scores[index as usize] += voting_power;
-            //     }
-            // } else
             if let Some(indices) = vote.choice.as_array() {
                 for value in indices {
                     if let Some(index) = value.as_i64() {
@@ -544,15 +542,19 @@ async fn data_for_proposal_two(
     }
 
     let proposal_state = gov_contract
-        .state(log.proposal_id)
+        .state(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.state")?;
+        .context("gov_contract.state")?
+        ._0;
 
     let quorum = gov_contract
-        .quorum(log.proposal_id)
+        .quorum(event.proposalId)
+        .call()
         .await
         .context("gov_contract.quorum")?
-        .as_u128() as f64
+        ._0
+        .to::<u128>() as f64
         / (10.0f64.powi(18));
 
     let state = match proposal_state {
@@ -570,7 +572,7 @@ async fn data_for_proposal_two(
     let discussionurl = String::from("");
 
     Ok(proposal::ActiveModel {
-        id: NotSet,
+        id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),
@@ -582,9 +584,11 @@ async fn data_for_proposal_two(
         scores_quorum: Set(0.0),
         quorum: Set(quorum),
         proposal_state: Set(state),
-        marked_spam: NotSet,
+        marked_spam: ActiveValue::NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(created_block_timestamp),
+        time_created: Set(DateTime::from_timestamp(created_block_timestamp, 0)
+            .unwrap()
+            .naive_utc()),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
@@ -592,7 +596,7 @@ async fn data_for_proposal_two(
         index_created: Set(created_block_number as i32),
         txid: Set(Some(format!(
             "0x{}",
-            hex::encode(meta.transaction_hash.as_bytes())
+            hex::encode(log.transaction_hash.unwrap())
         ))),
         metadata: Set(
             json!({"proposal_type":proposal_type, "voting_module" : voting_module}).into(),
@@ -601,43 +605,44 @@ async fn data_for_proposal_two(
 }
 
 async fn data_for_proposal_three(
-    p: (
-        contracts::gen::optimism_gov_v_6::ProposalCreated3Filter,
-        LogMeta,
-    ),
-    rpc: &Arc<Provider<Http>>,
+    p: (optimism_gov_v_6::ProposalCreated_2, Log),
+    rpc: &Arc<ReqwestProvider>,
     indexer: &dao_indexer::Model,
-    gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
+    gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<
+        Http<reqwest::Client>,
+        Arc<ReqwestProvider>,
+    >,
 ) -> Result<proposal::ActiveModel> {
-    println!("ProposalCreated3Filter");
-    let (log, meta): (ProposalCreated3Filter, LogMeta) = p.clone();
+    let (event, log) = p;
 
-    let created_block_number = meta.block_number.as_u64();
+    let created_block_number = log.block_number.unwrap();
     let created_block = rpc
-        .get_block(meta.block_number)
+        .get_block_by_number(created_block_number.into(), false)
         .await
-        .context("rpc.get_block")?;
-    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+        .context("get_block_by_number")?
+        .unwrap();
+    let created_block_timestamp = created_block.header.timestamp as i64;
 
     let voting_start_block_number = gov_contract
-        .proposal_snapshot(log.proposal_id)
+        .proposalSnapshot(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.proposal_snapshot")
-        .unwrap()
-        .as_u64();
+        .context("gov_contract.proposal_snapshot")?
+        ._0
+        .to::<u64>();
 
     let voting_end_block_number = gov_contract
-        .proposal_deadline(log.proposal_id)
+        .proposalDeadline(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.proposal_deadline")
-        .unwrap()
-        .as_u64();
+        .context("gov_contract.proposal_deadline")?
+        ._0
+        .to::<u64>();
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
-
         Err(_) => DateTime::from_timestamp_millis(
-            (created_block_timestamp.and_utc().timestamp() * 1000)
+            (created_block_timestamp * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
         )
         .context("bad timestamp")?
@@ -646,9 +651,8 @@ async fn data_for_proposal_three(
 
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
-
         Err(_) => DateTime::from_timestamp_millis(
-            created_block_timestamp.and_utc().timestamp() * 1000
+            created_block_timestamp * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
         )
         .context("bad timestamp")?
@@ -657,7 +661,8 @@ async fn data_for_proposal_three(
 
     let mut title = format!(
         "{:.120}",
-        log.description
+        event
+            .description
             .split('\n')
             .next()
             .unwrap_or("Unknown")
@@ -672,12 +677,14 @@ async fn data_for_proposal_three(
         title = "Unknown".into()
     }
 
-    let body = log.description.to_string();
+    let body = event.description.to_string();
 
     let proposal_state = gov_contract
-        .state(log.proposal_id)
+        .state(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.state")?;
+        .context("gov_contract.state")?
+        ._0;
 
     let state = match proposal_state {
         0 => ProposalState::Pending,
@@ -691,110 +698,87 @@ async fn data_for_proposal_three(
         _ => ProposalState::Unknown,
     };
 
-    let proposal_url = format!("https://vote.optimism.io/proposals/{}", log.proposal_id);
+    let proposal_url = format!("https://vote.optimism.io/proposals/{}", event.proposalId);
 
-    let proposal_external_id = log.proposal_id.to_string();
+    let proposal_external_id = event.proposalId.to_string();
 
-    let voting_module = to_checksum(&log.voting_module, None);
+    let voting_module = event.votingModule;
 
     let mut choices: Vec<&str> = vec![];
     let mut choices_strings: Vec<String> = vec![];
     let mut scores: Vec<f64> = vec![];
     let mut scores_total: f64 = 0.0;
 
-    if voting_module == "0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5" {
-        let voting_module =
-            optimism_votemodule_0x_54a_8f_cb_bf_0_5ac_1_4b_ef_78_2a_2060a8c752c7cc1_3a_5::optimism_votemodule_0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5::new(
-                log.voting_module,
-                rpc.clone(),
-            );
+    if voting_module == address!("54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5") {
+        let voting_module = optimism_votemodule_0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5::new(
+            event.votingModule,
+            rpc.clone(),
+        );
 
-        #[derive(Debug, Deserialize)]
-        struct ProposalOption {
-            description: String,
-        }
-
-        #[derive(Debug, Deserialize)]
-        struct ProposalData {
-            proposal_options: Vec<ProposalOption>,
-        }
-
-        // Define the expected types
-        let types: Vec<ParamType> = vec![
-            ParamType::Array(Box::new(ParamType::Tuple(vec![
-                ParamType::Array(Box::new(ParamType::Address)), // targets
-                ParamType::Array(Box::new(ParamType::Uint(256))), // values
-                ParamType::Array(Box::new(ParamType::Bytes)),   // calldatas
-                ParamType::String,                              // description
+        let proposal_data_type = DynSolType::Tuple(vec![
+            DynSolType::Array(Box::new(DynSolType::Tuple(vec![
+                DynSolType::Array(Box::new(DynSolType::Address)), // targets
+                DynSolType::Array(Box::new(DynSolType::Uint(256))), // values
+                DynSolType::Array(Box::new(DynSolType::Bytes)),   // calldatas
+                DynSolType::String,                               // description (choices)
             ]))),
-            ParamType::Tuple(vec![
-                ParamType::Uint(8),   // maxApprovals
-                ParamType::Uint(8),   // criteria
-                ParamType::Address,   // budgetToken
-                ParamType::Uint(128), // criteriaValue
-                ParamType::Uint(128), // budgetAmount
+            DynSolType::Tuple(vec![
+                DynSolType::Uint(8),   // maxApprovals
+                DynSolType::Uint(8),   // criteria
+                DynSolType::Address,   // budgetToken
+                DynSolType::Uint(128), // criteriaValue
+                DynSolType::Uint(128), // budgetAmount
             ]),
-        ];
+        ]);
 
-        // Decode the bytes using the defined types
-        let decoded_proposal_data = decode(&types, &log.proposal_data)?;
+        let decoded = proposal_data_type
+            .abi_decode_sequence(&event.proposalData)
+            .map_err(|e| anyhow::anyhow!("Failed to decode proposal data: {:?}", e))?;
 
-        // Extract the decoded data
-        let proposal_options_tokens = decoded_proposal_data[0].clone().into_array().unwrap();
-
-        // Parse proposal options
-        let proposal_options: Vec<ProposalOption> = proposal_options_tokens
-            .into_iter()
-            .map(|token| {
-                let tokens = token.into_tuple().unwrap();
-                ProposalOption {
-                    description: tokens[3].clone().into_string().unwrap(),
+        if let DynSolValue::Tuple(outer_values) = decoded {
+            if outer_values.len() == 2 {
+                if let DynSolValue::Array(proposal_options) = &outer_values[0] {
+                    for option in proposal_options {
+                        if let DynSolValue::Tuple(option_values) = option {
+                            if let DynSolValue::String(description) = &option_values[3] {
+                                choices_strings.push(description.clone());
+                            }
+                        }
+                    }
+                    choices = choices_strings.iter().map(|s| s.as_str()).collect();
                 }
-            })
-            .collect();
+            }
+        }
 
-        // Construct the proposal data
-        let proposal_data = ProposalData { proposal_options };
-
-        choices_strings = proposal_data
-            .proposal_options
-            .iter()
-            .map(|o| o.description.clone())
-            .collect();
-
-        choices = choices_strings.iter().map(|s| s.as_str()).collect();
-
-        let votes = voting_module
-            .proposal_votes(log.proposal_id)
-            .await
-            .context("voting_module.proposal_votes")?;
-
-        //TODO: this only considers for votes
-        //      against and abstain should be handled somehow as well
-        //      this happens in .0 and .1
-
-        scores = votes
-            .2
-            .iter()
-            .map(|o| *o as f64 / (10.0f64.powi(18)))
-            .collect();
-
-        scores_total = votes.0.as_u128() as f64 / (10.0f64.powi(18));
+        // Attempt to get votes
+        match voting_module.proposalVotes(event.proposalId).call().await {
+            Ok(votes) => {
+                scores = votes
+                    .optionVotes
+                    .iter()
+                    .map(|o| *o as f64 / (10.0f64.powi(18)))
+                    .collect();
+                scores_total = votes.forVotes.to::<u128>() as f64 / (10.0f64.powi(18));
+            }
+            Err(e) => println!("Failed to get proposal votes: {:?}", e),
+        }
     }
 
     let scores_quorum = scores_total;
 
     let quorum = gov_contract
-        .quorum(log.proposal_id)
+        .quorum(event.proposalId)
+        .call()
         .await
         .context("gov_contract.quorum")?
-        .as_u128() as f64
+        ._0
+        .to::<u128>() as f64
         / (10.0f64.powi(18));
 
     let discussionurl = String::from("");
 
     Ok(proposal::ActiveModel {
-        id: NotSet,
+        id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),
@@ -806,9 +790,11 @@ async fn data_for_proposal_three(
         scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
-        marked_spam: NotSet,
+        marked_spam: ActiveValue::NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(created_block_timestamp),
+        time_created: Set(DateTime::from_timestamp(created_block_timestamp, 0)
+            .unwrap()
+            .naive_utc()),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
@@ -816,49 +802,51 @@ async fn data_for_proposal_three(
         index_created: Set(created_block_number as i32),
         txid: Set(Some(format!(
             "0x{}",
-            hex::encode(meta.transaction_hash.as_bytes())
+            hex::encode(log.transaction_hash.unwrap())
         ))),
         metadata: Set(json!({"proposal_type":3, "voting_module" : voting_module}).into()),
     })
 }
 
 async fn data_for_proposal_four(
-    p: (
-        contracts::gen::optimism_gov_v_6::ProposalCreated4Filter,
-        LogMeta,
-    ),
-    rpc: &Arc<Provider<Http>>,
+    p: (optimism_gov_v_6::ProposalCreated_3, Log),
+    rpc: &Arc<ReqwestProvider>,
     indexer: &dao_indexer::Model,
-    gov_contract: optimism_gov_v6<ethers::providers::Provider<ethers::providers::Http>>,
+    gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<
+        Http<reqwest::Client>,
+        Arc<ReqwestProvider>,
+    >,
 ) -> Result<proposal::ActiveModel> {
-    println!("ProposalCreated4Filter");
-    let (log, meta): (ProposalCreated4Filter, LogMeta) = p.clone();
+    let (event, log) = p;
 
-    let created_block_number = meta.block_number.as_u64();
+    let created_block_number = log.block_number.unwrap();
     let created_block = rpc
-        .get_block(meta.block_number)
+        .get_block_by_number(created_block_number.into(), false)
         .await
-        .context("rpc.get_block")?;
-    let created_block_timestamp = created_block.context("bad block")?.time()?.naive_utc();
+        .context("get_block_by_number")?
+        .unwrap();
+    let created_block_timestamp = created_block.header.timestamp as i64;
 
     let voting_start_block_number = gov_contract
-        .proposal_snapshot(log.proposal_id)
+        .proposalSnapshot(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.proposal_snapshot")
-        .unwrap()
-        .as_u64();
+        .context("gov_contract.proposal_snapshot")?
+        ._0
+        .to::<u64>();
 
     let voting_end_block_number = gov_contract
-        .proposal_deadline(log.proposal_id)
+        .proposalDeadline(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.proposal_deadline")
-        .unwrap()
-        .as_u64();
+        .context("gov_contract.proposal_deadline")?
+        ._0
+        .to::<u64>();
 
     let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => DateTime::from_timestamp_millis(
-            (created_block_timestamp.and_utc().timestamp() * 1000)
+            (created_block_timestamp * 1000)
                 + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
         )
         .context("bad timestamp")?
@@ -868,7 +856,7 @@ async fn data_for_proposal_four(
     let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
         Ok(r) => r,
         Err(_) => DateTime::from_timestamp_millis(
-            created_block_timestamp.and_utc().timestamp() * 1000
+            created_block_timestamp * 1000
                 + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
         )
         .context("bad timestamp")?
@@ -877,7 +865,8 @@ async fn data_for_proposal_four(
 
     let mut title = format!(
         "{:.120}",
-        log.description
+        event
+            .description
             .split('\n')
             .next()
             .unwrap_or("Unknown")
@@ -892,23 +881,24 @@ async fn data_for_proposal_four(
         title = "Unknown".into()
     }
 
-    let body = log.description.to_string();
+    let body = event.description.to_string();
 
-    let proposal_url = format!("https://vote.optimism.io/proposals/{}", log.proposal_id);
+    let proposal_url = format!("https://vote.optimism.io/proposals/{}", event.proposalId);
 
-    let proposal_external_id = log.proposal_id.to_string();
+    let proposal_external_id = event.proposalId.to_string();
 
-    let (against_votes, for_votes, abstain_votes) = gov_contract
-        .proposal_votes(log.proposal_id)
+    let votes = gov_contract
+        .proposalVotes(event.proposalId)
+        .call()
         .await
         .context("gov_contract.proposal_votes")?;
 
     let choices = vec!["Against", "For", "Abstain"];
 
     let scores: Vec<f64> = vec![
-        against_votes.as_u128() as f64 / (10.0f64.powi(18)),
-        for_votes.as_u128() as f64 / (10.0f64.powi(18)),
-        abstain_votes.as_u128() as f64 / (10.0f64.powi(18)),
+        votes.againstVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
+        votes.forVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
+        votes.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
     ];
 
     let scores_total: f64 = scores.iter().sum();
@@ -916,16 +906,20 @@ async fn data_for_proposal_four(
     let scores_quorum = scores_total;
 
     let quorum = gov_contract
-        .quorum(log.proposal_id)
+        .quorum(event.proposalId)
+        .call()
         .await
         .context("gov_contract.quorum")?
-        .as_u128() as f64
+        ._0
+        .to::<u128>() as f64
         / (10.0f64.powi(18));
 
     let proposal_state = gov_contract
-        .state(log.proposal_id)
+        .state(event.proposalId)
+        .call()
         .await
-        .context("gov_contract.state")?;
+        .context("gov_contract.state")?
+        ._0;
 
     let state = match proposal_state {
         0 => ProposalState::Pending,
@@ -942,7 +936,7 @@ async fn data_for_proposal_four(
     let discussionurl = String::from("");
 
     Ok(proposal::ActiveModel {
-        id: NotSet,
+        id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),
@@ -954,9 +948,11 @@ async fn data_for_proposal_four(
         scores_quorum: Set(scores_quorum),
         quorum: Set(quorum),
         proposal_state: Set(state),
-        marked_spam: NotSet,
+        marked_spam: ActiveValue::NotSet,
         block_created: Set(Some(created_block_number as i32)),
-        time_created: Set(created_block_timestamp),
+        time_created: Set(DateTime::from_timestamp(created_block_timestamp, 0)
+            .unwrap()
+            .naive_utc()),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
@@ -964,7 +960,7 @@ async fn data_for_proposal_four(
         index_created: Set(created_block_number as i32),
         txid: Set(Some(format!(
             "0x{}",
-            hex::encode(meta.transaction_hash.as_bytes())
+            hex::encode(log.transaction_hash.unwrap())
         ))),
         metadata: Set(json!({"proposal_type":4, "voting_module":""}).into()),
     })
@@ -1140,7 +1136,7 @@ mod optimism_proposals {
                     time_end: parse_datetime("2023-05-31 23:43:30"),
                     block_created: Some(99601892),
                     txid: Some("0x466d42503a7158c027c6b3073b07af2addf14ab05e3400208e2344482f10da67"),
-                    metadata: Some(json!({"proposal_type": 3, "voting_module":"0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5"})),
+                    metadata: Some(json!({"proposal_type": 3, "voting_module":"0x54a8fcbbf05ac14bef782a2060a8c752c7cc13a5"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1197,7 +1193,7 @@ mod optimism_proposals {
                     time_end: parse_datetime("2023-11-15 19:53:59"),
                     block_created: Some(111677431),
                     txid: Some("0x2afa238e1a4928980781fabf2bca2229a8b860d217f21e8b904bc23a7d124bec"),
-                    metadata: Some(json!({"proposal_type": 3, "voting_module":"0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5"})),
+                    metadata: Some(json!({"proposal_type": 3, "voting_module":"0x54a8fcbbf05ac14bef782a2060a8c752c7cc13a5"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1255,7 +1251,7 @@ mod optimism_proposals {
                     time_end: parse_datetime("2024-01-24 19:45:51"),
                     block_created: Some(115004187),
                     txid: Some("0x614f36d22c7d5a84262628c28d191abccf80f41f91778562ad4a23e42e3dd916"),
-                    metadata: Some(json!({"proposal_type": 2, "voting_module":"0x27964c5f4F389B8399036e1076d84c6984576C33"})),
+                    metadata: Some(json!({"proposal_type": 2, "voting_module":"0x27964c5f4f389b8399036e1076d84c6984576c33"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1313,7 +1309,7 @@ mod optimism_proposals {
                     time_end: parse_datetime("2024-01-24 19:56:21"),
                     block_created: Some(115004502),
                     txid: Some("0xe9e68c1ca2c4e4678d3e6afc397fa56c8c1dc25359818f0ca7e4b7775e64a55a"),
-                    metadata: Some(json!({"proposal_type": 2, "voting_module":"0x27964c5f4F389B8399036e1076d84c6984576C33"})),
+                    metadata: Some(json!({"proposal_type": 2, "voting_module":"0x27964c5f4f389b8399036e1076d84c6984576c33"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1371,7 +1367,7 @@ mod optimism_proposals {
                     time_end: parse_datetime("2024-02-14 19:46:17"),
                     block_created: Some(115911400),
                     txid: Some("0x53426a899aea57645c3205f927f6e26fe6c2e64659a0788e46d5f57fb0175dee"),
-                    metadata: Some(json!({"proposal_type": 0, "voting_module":"0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df"})),
+                    metadata: Some(json!({"proposal_type": 0, "voting_module":"0xdd0229d72a414dc821dec66f3cc4ef6db2c7b7df"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

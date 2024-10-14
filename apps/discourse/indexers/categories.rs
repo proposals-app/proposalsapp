@@ -9,12 +9,12 @@ use tracing::error;
 use tracing::info;
 use tracing::instrument;
 
-pub struct CategoryFetcher {
+pub struct CategoryIndexer {
     api_handler: Arc<ApiHandler>,
     base_url: String,
 }
 
-impl CategoryFetcher {
+impl CategoryIndexer {
     pub fn new(base_url: &str, api_handler: Arc<ApiHandler>) -> Self {
         Self {
             api_handler,

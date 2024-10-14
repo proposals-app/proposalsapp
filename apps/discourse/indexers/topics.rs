@@ -1,4 +1,4 @@
-use crate::fetchers::posts::PostFetcher;
+use crate::indexers::posts::PostIndexer;
 use crate::models::topics::TopicResponse;
 use crate::{api_handler::ApiHandler, db_handler::DbHandler};
 use anyhow::Result;
@@ -6,12 +6,12 @@ use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tracing::{info, instrument};
 
-pub struct TopicFetcher {
+pub struct TopicIndexer {
     api_handler: Arc<ApiHandler>,
     base_url: String,
 }
 
-impl TopicFetcher {
+impl TopicIndexer {
     pub fn new(base_url: &str, api_handler: Arc<ApiHandler>) -> Self {
         Self {
             api_handler,
@@ -91,7 +91,7 @@ impl TopicFetcher {
             for topic in &response.topic_list.topics {
                 db_handler.upsert_topic(topic, dao_discourse_id).await?;
 
-                let post_fetcher = PostFetcher::new(&self.base_url, Arc::clone(&self.api_handler));
+                let post_fetcher = PostIndexer::new(&self.base_url, Arc::clone(&self.api_handler));
                 post_fetcher
                     .update_posts_for_topic(db_handler, dao_discourse_id, topic.id)
                     .await?;

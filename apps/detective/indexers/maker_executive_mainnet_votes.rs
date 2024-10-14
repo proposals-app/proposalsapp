@@ -1,23 +1,27 @@
+use std::sync::Arc;
+
 use crate::{indexer::Indexer, rpc_providers};
+use alloy::{
+    primitives::{address, b256, U256},
+    providers::{Provider, ReqwestProvider},
+    rpc::types::Log,
+    sol,
+    transports::http::Http,
+};
 use anyhow::{Context, Result};
-use contracts::gen::maker_executive_gov::{
-    maker_executive_gov::maker_executive_gov, LogNoteFilter,
-};
-use ethers::{
-    prelude::LogMeta,
-    providers::Middleware,
-    types::{Address, H256, U256},
-    utils::to_checksum,
-};
 use itertools::Itertools;
+use maker_executive_gov::LogNote;
+use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use tracing::info;
 
-const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
-    "0xed08132900000000000000000000000000000000000000000000000000000000";
-const VOTE_SINGLE_ACTION_TOPIC: &str =
-    "0xa69beaba00000000000000000000000000000000000000000000000000000000";
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    maker_executive_gov,
+    "./abis/maker_executive_gov.json"
+);
 
 pub struct MakerExecutiveMainnetVotesIndexer;
 
@@ -41,8 +45,7 @@ impl Indexer for MakerExecutiveMainnetVotesIndexer {
         let current_block = eth_rpc
             .get_block_number()
             .await
-            .context("bad current block")?
-            .as_u32() as i32;
+            .context("get_block_number")? as i32;
 
         let from_block = indexer.index;
         let to_block = if indexer.index + indexer.speed > current_block {
@@ -51,29 +54,32 @@ impl Indexer for MakerExecutiveMainnetVotesIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0x0a3f6849f78076aefaDf113F5BED87720274dDC0"
-            .parse::<Address>()
-            .context("bad address")?;
+        let address = address!("0a3f6849f78076aefaDf113F5BED87720274dDC0");
 
         let gov_contract = maker_executive_gov::new(address, eth_rpc);
 
+        let vote_single_action_topic =
+            b256!("a69beaba00000000000000000000000000000000000000000000000000000000");
+        let vote_multiple_actions_topic =
+            b256!("ed08132900000000000000000000000000000000000000000000000000000000");
+
         let single_spell_events = gov_contract
-            .log_note_filter()
-            .topic0(vec![VOTE_SINGLE_ACTION_TOPIC.parse::<H256>()?])
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .LogNote_filter()
+            .event_signature(vote_single_action_topic)
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
             .context("bad query")?;
 
         let multi_spell_events = gov_contract
-            .log_note_filter()
-            .topic0(vec![VOTE_MULTIPLE_ACTIONS_TOPIC.parse::<H256>()?])
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .LogNote_filter()
+            .event_signature(vote_multiple_actions_topic)
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
             .context("bad query")?;
 
@@ -173,8 +179,11 @@ pub struct SpellCast {
 }
 
 pub async fn get_single_spell_addresses(
-    logs: Vec<(LogNoteFilter, LogMeta)>,
-    gov_contract: maker_executive_gov<ethers::providers::Provider<ethers::providers::Http>>,
+    logs: Vec<(LogNote, Log)>,
+    gov_contract: maker_executive_gov::maker_executive_govInstance<
+        Http<reqwest::Client>,
+        Arc<ReqwestProvider>,
+    >,
 ) -> Result<Vec<SpellCast>> {
     let mut spells: Vec<SpellCast> = vec![];
 
@@ -184,12 +193,12 @@ pub async fn get_single_spell_addresses(
         let mut count: U256 = U256::from(0);
 
         loop {
-            let address = gov_contract.slates(slate, count).await;
+            let address = gov_contract.slates(slate.into(), count).call().await;
             match address {
                 Ok(addr) => {
                     spells.push(SpellCast {
-                        voter: to_checksum(&log.0.guy, None),
-                        spell: to_checksum(&addr, None),
+                        voter: format!("0x{}", hex::encode(log.0.guy)),
+                        spell: format!("0x{}", hex::encode(addr._0)),
                     });
                     count += U256::from(1);
                 }
@@ -203,19 +212,16 @@ pub async fn get_single_spell_addresses(
     Ok(spells)
 }
 
-pub async fn get_multi_spell_addresses(
-    logs: Vec<(LogNoteFilter, LogMeta)>,
-) -> Result<Vec<SpellCast>> {
+pub async fn get_multi_spell_addresses(logs: Vec<(LogNote, Log)>) -> Result<Vec<SpellCast>> {
     let mut spells: Vec<SpellCast> = vec![];
 
     for log in logs.clone() {
         let slates = extract_desired_bytes(&log.0.fax);
 
         for slate in slates {
-            let spell_address = Address::from(H256::from(slate));
             spells.push(SpellCast {
-                voter: to_checksum(&log.0.guy, None),
-                spell: to_checksum(&spell_address, None),
+                voter: format!("0x{}", hex::encode(log.0.guy)),
+                spell: format!("0x{}", hex::encode(slate)),
             });
         }
     }

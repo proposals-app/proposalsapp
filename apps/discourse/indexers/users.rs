@@ -6,12 +6,12 @@ use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tracing::{info, instrument};
 
-pub struct UserFetcher {
+pub struct UserIndexer {
     api_handler: Arc<ApiHandler>,
     base_url: String,
 }
 
-impl UserFetcher {
+impl UserIndexer {
     pub fn new(base_url: &str, api_handler: Arc<ApiHandler>) -> Self {
         Self {
             api_handler,

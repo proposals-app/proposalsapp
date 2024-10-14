@@ -1,10 +1,25 @@
 use crate::{indexer::Indexer, rpc_providers};
+use alloy::{
+    primitives::address,
+    providers::{Provider, ReqwestProvider},
+    rpc::types::Log,
+    sol,
+};
 use anyhow::{Context, Result};
-use contracts::gen::gitcoin_v_2_gov::{gitcoin_v2_gov, VoteCastFilter, VoteCastWithParamsFilter};
-use ethers::{abi::Address, contract::LogMeta, providers::Middleware, utils::to_checksum};
+use chrono::DateTime;
+use gitcoin_v2_gov::{VoteCast, VoteCastWithParams};
+use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
+use std::sync::Arc;
 use tracing::info;
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    gitcoin_v2_gov,
+    "./abis/gitcoin_v2_gov.json"
+);
 
 pub struct GitcoinV2MainnetVotesIndexer;
 
@@ -28,8 +43,7 @@ impl Indexer for GitcoinV2MainnetVotesIndexer {
         let current_block = eth_rpc
             .get_block_number()
             .await
-            .context("bad current block")?
-            .as_u32() as i32;
+            .context("get_block_number")? as i32;
 
         let from_block = indexer.index;
         let to_block = if indexer.index + indexer.speed > current_block {
@@ -38,34 +52,36 @@ impl Indexer for GitcoinV2MainnetVotesIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0x9D4C63565D5618310271bF3F3c01b2954C1D1639"
-            .parse::<Address>()
-            .context("bad address")?;
+        let address = address!("9D4C63565D5618310271bF3F3c01b2954C1D1639");
 
         let gov_contract = gitcoin_v2_gov::new(address, eth_rpc.clone());
 
         let logs = gov_contract
-            .vote_cast_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .VoteCast_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
             .context("bad query")?;
 
         let logs_with_params = gov_contract
-            .vote_cast_with_params_filter()
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .VoteCastWithParams_filter()
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
             .context("bad query")?;
 
-        let votes = get_votes(logs.clone(), indexer).context("bad votes")?;
+        let votes = get_votes(logs.clone(), indexer, &eth_rpc.clone())
+            .await
+            .context("bad votes")?;
 
         let votes_with_params =
-            get_votes_with_params(logs_with_params.clone(), indexer).context("bad votes")?;
+            get_votes_with_params(logs_with_params.clone(), indexer, &eth_rpc.clone())
+                .await
+                .context("bad votes")?;
 
         let all_votes = [votes, votes_with_params].concat();
 
@@ -79,76 +95,165 @@ impl Indexer for GitcoinV2MainnetVotesIndexer {
     }
 }
 
-fn get_votes(
-    logs: Vec<(VoteCastFilter, LogMeta)>,
+async fn get_votes(
+    logs: Vec<(VoteCast, Log)>,
     indexer: &dao_indexer::Model,
+    rpc: &Arc<ReqwestProvider>,
 ) -> Result<Vec<vote::ActiveModel>> {
-    let voter_logs: Vec<(VoteCastFilter, LogMeta)> = logs.into_iter().collect();
+    let voter_logs: Vec<(VoteCast, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
-    for (log, meta) in voter_logs {
+    for (event, log) in voter_logs {
+        let created_block_number = log.block_number.unwrap();
+        let created_block_timestamp = rpc
+            .get_block_by_number(log.block_number.unwrap().into(), false)
+            .await
+            .context("get_block_by_number")?
+            .unwrap()
+            .header
+            .timestamp;
+
+        let created_block_timestamp =
+            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+                .unwrap()
+                .naive_utc();
+
         votes.push(vote::ActiveModel {
             id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i32),
-            voter_address: Set(to_checksum(&log.voter, None)),
-            voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
-            block_created: Set(Some(meta.block_number.as_u64() as i32)),
-            choice: Set(match log.support {
+            index_created: Set(created_block_number as i32),
+            voter_address: Set(event.voter.to_string()),
+            voting_power: Set((event.weight.to::<u128>() as f64) / (10.0f64.powi(18))),
+            block_created: Set(Some(created_block_number as i32)),
+            time_created: Set(Some(created_block_timestamp)),
+            choice: Set(match event.support {
                 0 => 1.into(),
                 1 => 0.into(),
                 2 => 2.into(),
                 _ => 2.into(),
             }),
             proposal_id: NotSet,
-            proposal_external_id: Set(log.proposal_id.to_string()),
+            proposal_external_id: Set(event.proposalId.to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
-            reason: Set(Some(log.reason)),
+            reason: Set(Some(event.reason)),
             txid: Set(Some(format!(
                 "0x{}",
-                hex::encode(meta.transaction_hash.as_bytes())
+                hex::encode(log.transaction_hash.unwrap())
             ))),
-            time_created: NotSet,
         })
     }
 
     Ok(votes)
 }
 
-fn get_votes_with_params(
-    logs: Vec<(VoteCastWithParamsFilter, LogMeta)>,
+async fn get_votes_with_params(
+    logs: Vec<(VoteCastWithParams, Log)>,
     indexer: &dao_indexer::Model,
+    rpc: &Arc<ReqwestProvider>,
 ) -> Result<Vec<vote::ActiveModel>> {
-    let voter_logs: Vec<(VoteCastWithParamsFilter, LogMeta)> = logs.into_iter().collect();
+    let voter_logs: Vec<(VoteCastWithParams, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
-    for (log, meta) in voter_logs {
+    for (event, log) in voter_logs {
+        let created_block_number = log.block_number.unwrap();
+        let created_block_timestamp = rpc
+            .get_block_by_number(log.block_number.unwrap().into(), false)
+            .await
+            .context("get_block_by_number")?
+            .unwrap()
+            .header
+            .timestamp;
+
+        let created_block_timestamp =
+            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+                .unwrap()
+                .naive_utc();
+
         votes.push(vote::ActiveModel {
             id: NotSet,
-            index_created: Set(meta.block_number.as_u64() as i32),
-            voter_address: Set(to_checksum(&log.voter, None)),
-            voting_power: Set((log.weight.as_u128() as f64) / (10.0f64.powi(18))),
-            block_created: Set(Some(meta.block_number.as_u64() as i32)),
-            choice: Set(match log.support {
+            index_created: Set(created_block_number as i32),
+            voter_address: Set(event.voter.to_string()),
+            voting_power: Set((event.weight.to::<u128>() as f64) / (10.0f64.powi(18))),
+            block_created: Set(Some(created_block_number as i32)),
+            time_created: Set(Some(created_block_timestamp)),
+            choice: Set(match event.support {
                 0 => 1.into(),
                 1 => 0.into(),
                 2 => 2.into(),
                 _ => 2.into(),
             }),
             proposal_id: NotSet,
-            proposal_external_id: Set(log.proposal_id.to_string()),
+            proposal_external_id: Set(event.proposalId.to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
             txid: Set(Some(format!(
                 "0x{}",
-                hex::encode(meta.transaction_hash.as_bytes())
+                hex::encode(log.transaction_hash.unwrap())
             ))),
             reason: NotSet,
-            time_created: NotSet,
         })
     }
 
     Ok(votes)
+}
+
+#[cfg(test)]
+mod gitcoin_v2_mainnet_votes {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::sea_orm_active_enums::IndexerVariant;
+    use serde_json::json;
+    use utils::test_utils::{assert_vote, parse_datetime, ExpectedVote};
+
+    #[tokio::test]
+    async fn gitcoin_v2_mainnet_1() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::ArbCoreArbitrumProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 20830599,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match GitcoinV2MainnetVotesIndexer.process(&indexer, &dao).await {
+            Ok((_, votes, _)) => {
+                assert!(!votes.is_empty(), "No votes were fetched");
+                let expected_votes = [ExpectedVote {
+                    index_created: 20830599,
+                    voter_address: "0xb35659cbac913D5E4119F2Af47fD490A45e2c826",
+                    choice: json!(0),
+                    voting_power: 154024.18940502,
+                    reason: Some("The Event Horizon Community Voted to Support this Proposal ehGIT-7: EventHorizon.vote/vote/gitcoin/ehGIT-7"),
+                    proposal_external_id: "91206216187624661213440609842845871701519838219118270345394850357083328797074",
+                    time_created: Some(parse_datetime("2024-09-25 22:27:35")),
+                    block_created: Some(20830599),
+                    txid: Some(
+                        "0xfdb65b9f1598f1d4881fb206a5807e6d9e08c3cf89e40f7ed253b013ec2ac2e2",
+                    ),
+                }];
+                for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
+                    assert_vote(vote, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
 }

@@ -1,27 +1,29 @@
 use crate::{indexer::Indexer, rpc_providers};
+use alloy::{
+    primitives::{address, b256, U256},
+    providers::{Provider, ReqwestProvider},
+    rpc::types::Log,
+    sol,
+    transports::http::Http,
+};
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
-use contracts::gen::maker_executive_gov::{
-    maker_executive_gov::maker_executive_gov, LogNoteFilter,
-};
-use ethers::{prelude::*, utils::to_checksum};
-use itertools::Itertools;
-use scanners::etherscan::estimate_block;
+use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use std::{collections::HashSet, time::Duration};
-use tokio::time::sleep;
+use serde_json::json;
+use std::{collections::HashSet, sync::Arc, time::Duration};
 use tracing::info;
 
-const VOTE_MULTIPLE_ACTIONS_TOPIC: &str =
-    "0xed08132900000000000000000000000000000000000000000000000000000000";
-const VOTE_SINGLE_ACTION_TOPIC: &str =
-    "0xa69beaba00000000000000000000000000000000000000000000000000000000";
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    maker_executive_gov,
+    "./abis/maker_executive_gov.json"
+);
 
 pub struct MakerExecutiveMainnetProposalsIndexer;
 
@@ -39,8 +41,7 @@ impl Indexer for MakerExecutiveMainnetProposalsIndexer {
         let current_block = eth_rpc
             .get_block_number()
             .await
-            .context("get_block_number")?
-            .as_u32() as i32;
+            .context("get_block_number")? as i32;
 
         let from_block = indexer.index;
         let to_block = if indexer.index + indexer.speed >= current_block {
@@ -49,29 +50,31 @@ impl Indexer for MakerExecutiveMainnetProposalsIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = "0x0a3f6849f78076aefaDf113F5BED87720274dDC0"
-            .parse::<Address>()
-            .context("bad address")?;
+        let address = address!("0a3f6849f78076aefaDf113F5BED87720274dDC0");
+        let vote_single_action_topic =
+            b256!("a69beaba00000000000000000000000000000000000000000000000000000000");
+        let vote_multiple_actions_topic =
+            b256!("ed08132900000000000000000000000000000000000000000000000000000000");
 
         let gov_contract = maker_executive_gov::new(address, eth_rpc.clone());
 
         let single_spell_events = gov_contract
-            .log_note_filter()
-            .topic0(vec![VOTE_SINGLE_ACTION_TOPIC.parse::<H256>()?])
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .LogNote_filter()
+            .event_signature(vote_single_action_topic)
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
             .context("single_spell_events")?;
 
         let multi_spell_events = gov_contract
-            .log_note_filter()
-            .topic0(vec![VOTE_MULTIPLE_ACTIONS_TOPIC.parse::<H256>()?])
-            .from_block(from_block)
-            .to_block(to_block)
-            .address(address.into())
-            .query_with_meta()
+            .LogNote_filter()
+            .event_signature(vote_multiple_actions_topic)
+            .from_block(from_block.to_u64().unwrap())
+            .to_block(to_block.to_u64().unwrap())
+            .address(address)
+            .query()
             .await
             .context("multi_spell_events")?;
 
@@ -85,15 +88,22 @@ impl Indexer for MakerExecutiveMainnetProposalsIndexer {
         let spell_addresses: Vec<String> = [single_spells, multi_spells]
             .concat()
             .into_iter()
-            .unique()
+            .collect::<HashSet<_>>()
+            .into_iter()
             .collect();
 
         let mut proposals = Vec::new();
 
         for p in spell_addresses.iter() {
-            let p = data_for_proposal(&p.clone(), indexer).await?;
+            let p = data_for_proposal(p, indexer).await?;
             proposals.push(p);
         }
+
+        proposals.sort_by(|a, b| {
+            let time_a = a.time_created.as_ref();
+            let time_b = b.time_created.as_ref();
+            time_a.cmp(time_b)
+        });
 
         let new_index = proposals
             .iter()
@@ -162,10 +172,6 @@ async fn data_for_proposal(
         .unwrap() as f64
         / (10.0f64.powi(18));
 
-    let block_created = estimate_block(created_timestamp.and_utc().timestamp() as u64)
-        .await
-        .unwrap_or(0);
-
     let state = if proposal_data.spellData.hasBeenCast {
         ProposalState::Executed
     } else if proposal_data.active {
@@ -208,25 +214,20 @@ async fn data_for_proposal(
         quorum: Set(0.0),
         proposal_state: Set(state),
         marked_spam: NotSet,
-        block_created: Set(Some(block_created as i32)),
+        block_created: Set(None),
         time_created: Set(created_timestamp),
         time_start: Set(voting_starts_timestamp),
         time_end: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
-        index_created: Set(block_created as i32),
+        index_created: Set(0),
         txid: Set(None),
         metadata: NotSet,
     })
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-struct TimeData {
-    height: Value,
-}
-
 #[allow(non_snake_case)]
-#[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, Debug, Clone)]
 struct SpellData {
     hasBeenCast: bool,
     hasBeenScheduled: bool,
@@ -237,7 +238,7 @@ struct SpellData {
 }
 
 #[allow(non_snake_case)]
-#[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, Debug, Clone)]
 struct ProposalData {
     title: String,
     about: String,
@@ -269,12 +270,12 @@ async fn get_proposal_data(spell_address: String) -> Result<ProposalData> {
             Ok(response) => match response.json::<ProposalData>().await {
                 Ok(data) => return Ok(data),
                 Err(_) if retries < MAX_RETRIES - 1 => {
-                    sleep(backoff_duration).await;
+                    tokio::time::sleep(backoff_duration).await;
                 }
                 Err(_) => break,
             },
             Err(_) if retries < MAX_RETRIES - 1 => {
-                sleep(backoff_duration).await;
+                tokio::time::sleep(backoff_duration).await;
             }
             Err(_) => break,
         }
@@ -297,35 +298,30 @@ async fn get_proposal_data(spell_address: String) -> Result<ProposalData> {
     })
 }
 
-//this takes out the first 4 bytes because that's the method being called
-//after that, it builds a vec of 32 byte chunks for as long as the input is
-
 fn extract_desired_bytes(bytes: &[u8]) -> Vec<[u8; 32]> {
-    let mut iterration = 0;
-
+    let mut iteration = 0;
     let mut result_vec = vec![];
 
     loop {
-        let start_index = 4 + iterration * 32;
-
+        let start_index = 4 + iteration * 32;
         if bytes.len() < start_index + 32 {
             break;
         }
         let mut result: [u8; 32] = [0; 32];
-
-        for (i, byte) in bytes[start_index..(start_index + 32)].iter().enumerate() {
-            result[i] = *byte;
-        }
+        result.copy_from_slice(&bytes[start_index..(start_index + 32)]);
         result_vec.push(result);
-        iterration += 1;
+        iteration += 1;
     }
 
     result_vec
 }
 
 pub async fn get_single_spell_addresses(
-    logs: Vec<(LogNoteFilter, LogMeta)>,
-    gov_contract: maker_executive_gov<ethers::providers::Provider<ethers::providers::Http>>,
+    logs: Vec<(maker_executive_gov::LogNote, Log)>,
+    gov_contract: maker_executive_gov::maker_executive_govInstance<
+        Http<reqwest::Client>,
+        Arc<ReqwestProvider>,
+    >,
 ) -> Result<Vec<String>> {
     let mut spell_addresses = HashSet::new();
 
@@ -335,10 +331,10 @@ pub async fn get_single_spell_addresses(
         let mut count: U256 = U256::from(0);
 
         loop {
-            let address = gov_contract.slates(slate, count).await;
+            let address = gov_contract.slates(slate.into(), count).call().await;
             match address {
                 Ok(addr) => {
-                    spell_addresses.insert(to_checksum(&addr, None));
+                    spell_addresses.insert(addr._0.to_string());
                     count += U256::from(1);
                 }
                 Err(_) => {
@@ -356,16 +352,17 @@ pub async fn get_single_spell_addresses(
     Ok(result)
 }
 
-pub async fn get_multi_spell_addresses(logs: Vec<(LogNoteFilter, LogMeta)>) -> Result<Vec<String>> {
+pub async fn get_multi_spell_addresses(
+    logs: Vec<(maker_executive_gov::LogNote, Log)>,
+) -> Result<Vec<String>> {
     let mut spell_addresses = HashSet::new();
 
     for log in logs {
         let slates = extract_desired_bytes(&log.0.fax);
 
         for slate in slates {
-            let spell_address = Address::from(H256::from(slate));
-
-            spell_addresses.insert(to_checksum(&spell_address, None));
+            let spell_address = format!("0x{}", hex::encode(slate));
+            spell_addresses.insert(spell_address.to_string());
         }
     }
 
@@ -375,4 +372,75 @@ pub async fn get_multi_spell_addresses(logs: Vec<(LogNoteFilter, LogMeta)>) -> R
         .collect::<Vec<String>>();
 
     Ok(result)
+}
+
+#[cfg(test)]
+mod maker_executive_mainnet_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use serde_json::json;
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+
+    #[tokio::test]
+    async fn maker_executive() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::MakerExecutiveMainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 7000,
+            index: 19372410,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match MakerExecutiveMainnetProposalsIndexer
+            .process(&indexer, &dao)
+            .await
+        {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 0,
+                    external_id: "0xdB2C426173e5a9c10af3CD834B87DEAad40525Ff",
+                    name: "Stability Fee Changes, Spark Protocol D3M Parameter Changes, Housekeeping Actions, Spark Proxy Spell - February 22, 2024",
+                    body_contains: Some(vec!["The Governance Facilitators, Sidestream, and Dewiz have placed an executive proposal into the voting system. MKR Holders should vote for this proposal if they support the following alterations to the Maker Protocol."]),
+                    url: "https://vote.makerdao.com/executive/template-executive-vote-stability-fee-changes-spark-protocol-d3m-parameter-changes-housekeeping-actions-spark-proxy-spell-february-22-2024",
+                    discussion_url: "",
+                    choices: json!(["Yes"]),
+                    scores: json!(0.0),
+                    scores_total: 0.0,
+                    scores_quorum: 0.0,
+                    quorum: 0.0,
+                    proposal_state: ProposalState::Executed,
+                    marked_spam: None,
+                    time_created: parse_datetime("2024-02-22 00:00:00"),
+                    time_start: parse_datetime("2024-02-22 00:00:00"),
+                    time_end: parse_datetime("2024-02-28 15:26:59"),
+                    block_created: None,
+                    txid: None,
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
 }
