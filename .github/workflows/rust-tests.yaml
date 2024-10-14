@@ -66,6 +66,6 @@ jobs:
         with:
           files: ./lcov.info
           flags: unittests
-          name: codecov-proposalsapp
+          name: codecov-rust
           fail_ci_if_error: true
           verbose: true
