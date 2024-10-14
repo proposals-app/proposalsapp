@@ -9,8 +9,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-test:
-    name: Build & Test
+  build-test-coverage:
+    name: Build, Test & Coverage
     permissions:
       checks: write
       contents: read
@@ -35,10 +35,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Install cargo-nextest
-        run: cargo install cargo-nextest --locked
+      - name: Install cargo-nextest and cargo-llvm-cov
+        run: |
+          cargo install cargo-nextest --locked
+          cargo install cargo-llvm-cov
 
-      - name: Run tests
+      - name: Run tests with coverage
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
@@ -48,7 +50,8 @@ jobs:
           OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
           POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
           AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
-        run: cargo nextest run
+        run: |
+          cargo llvm-cov nextest --lcov --output-path lcov.info
 
       - name: Upload test results
         uses: dorny/test-reporter@v1
@@ -57,3 +60,9 @@ jobs:
           name: test-results
           path: target/nextest/default/junit.xml
           reporter: java-junit
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
+          fail_ci_if_error: true

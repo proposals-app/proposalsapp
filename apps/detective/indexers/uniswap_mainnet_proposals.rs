@@ -261,3 +261,70 @@ async fn data_for_proposal(
         ))),
     })
 }
+
+#[cfg(test)]
+mod uniswap_mainnet_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use serde_json::json;
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+
+    #[tokio::test]
+    async fn uniswap_mainnet_1() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::AaveV3MainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 20529031,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match UniswapMainnetProposalsIndexer.process(&indexer, &dao).await {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 20529031,
+                    external_id: "67",
+                    name: "Deploy Uniswap v3 on X Layer",
+                    body_contains: Some(vec!["This proposal proposes deploying Uniswap v3 on X Layer. GFX Labs is sponsoring this proposal on behalf of X Layer."]),
+                    url: "https://app.uniswap.org/#/vote/67",
+                    discussion_url: "",
+                    choices: json!(["For", "Against", "Abstain"]),
+                    scores: json!([43618795.38760202, 9.554697539678713, 0.23141129971594382]),
+                    scores_total: 43618805.17371086,
+                    scores_quorum: 43618795.38760202,
+                    quorum: 40000000.0,
+                    proposal_state: ProposalState::Executed,
+                    marked_spam: None,
+                    time_created: parse_datetime("2024-08-14 19:42:47"),
+                    time_start: parse_datetime("2024-08-16 15:44:47"),
+                    time_end: parse_datetime("2024-08-22 06:55:11"),
+                    block_created: Some(20529031),
+                    txid: Some("0x23ea669518d73d54f7cdb9320cd9b7408e086a84de2852652078ac813739c319"),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+}
