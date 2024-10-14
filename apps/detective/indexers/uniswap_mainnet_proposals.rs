@@ -210,12 +210,13 @@ async fn data_for_proposal(
         .to::<u128>() as f64
         / (10.0f64.powi(18));
 
-    let proposal_state = gov_contract
-        .state(event.id)
-        .call()
-        .await
-        .context("gov_contract.state")?
-        ._0;
+    let proposal_state = gov_contract.state(event.id).call().await.map_or_else(
+        |e| {
+            warn!("Failed to get proposal state: {:?}", e);
+            8 // Default value in case of error
+        },
+        |state| state._0,
+    );
 
     let state = match proposal_state {
         0 => ProposalState::Pending,
@@ -318,6 +319,65 @@ mod uniswap_mainnet_proposals {
                     time_end: parse_datetime("2024-08-22 06:55:11"),
                     block_created: Some(20529031),
                     txid: Some("0x23ea669518d73d54f7cdb9320cd9b7408e086a84de2852652078ac813739c319"),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn uniswap_mainnet_2() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::AaveV3MainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 13129515,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match UniswapMainnetProposalsIndexer.process(&indexer, &dao).await {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 13129516,
+                    external_id: "1",
+                    name: "\"\"",
+                    body_contains: None,
+                    url: "https://app.uniswap.org/#/vote/1",
+                    discussion_url: "",
+                    choices: json!(["For", "Against", "Abstain"]),
+                    scores: json!([0.0, 0.0, 0.0]),
+                    scores_total: 0.0,
+                    scores_quorum: 0.0,
+                    quorum: 40000000.0,
+                    proposal_state: ProposalState::Unknown,
+                    marked_spam: None,
+                    time_created: parse_datetime("2021-08-30 22:16:12"),
+                    time_start: parse_datetime("2021-09-01 23:09:37"),
+                    time_end: parse_datetime("2021-09-08 04:43:51"),
+                    block_created: Some(13129516),
+                    txid: Some(
+                        "0x52371bf3cc7dc7169203e70e2e914c31408021d38c6b44d8c8652099e2fa5c12",
+                    ),
                     metadata: None,
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
