@@ -82,12 +82,9 @@ impl Indexer for OptimismVotesIndexer {
             .await
             .context("bad votes")?;
 
-        let db = DatabaseStore::connect().await?;
-
-        let votes_with_params =
-            get_votes_with_params(logs_with_params.clone(), indexer, &db, &op_rpc)
-                .await
-                .context("bad votes")?;
+        let votes_with_params = get_votes_with_params(logs_with_params.clone(), indexer, &op_rpc)
+            .await
+            .context("bad votes")?;
 
         let all_votes = [votes, votes_with_params].concat();
 
@@ -153,9 +150,10 @@ async fn get_votes(
 async fn get_votes_with_params(
     logs: Vec<(optimism_gov_v_6::VoteCastWithParams, Log)>,
     indexer: &dao_indexer::Model,
-    db: &sea_orm::DatabaseConnection,
     rpc: &Arc<ReqwestProvider>,
 ) -> Result<Vec<vote::ActiveModel>> {
+    let db = DatabaseStore::connect().await?;
+
     let voter_logs: Vec<(optimism_gov_v_6::VoteCastWithParams, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -181,7 +179,7 @@ async fn get_votes_with_params(
             .filter(
                 dao_indexer::Column::IndexerVariant.is_in([IndexerVariant::OpOptimismProposals]),
             )
-            .all(db)
+            .all(&db)
             .await?
             .into_iter()
             .map(|dh| dh.id)
@@ -193,7 +191,7 @@ async fn get_votes_with_params(
                     .add(proposal::Column::ExternalId.eq(event.proposalId.to_string()))
                     .add(proposal::Column::DaoIndexerId.is_in(proposal_handler_id)),
             )
-            .one(db)
+            .one(&db)
             .await?
             .unwrap();
 
@@ -242,7 +240,7 @@ async fn get_votes_with_params(
                         scores: Set(proposal.scores),
                         ..Default::default()
                     })
-                    .exec(db)
+                    .exec(&db)
                     .await?;
                 }
             }
@@ -342,7 +340,6 @@ mod optimism_votes {
         }
     }
 
-    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_2() {
         let _ = dotenv().ok();
@@ -392,7 +389,6 @@ mod optimism_votes {
         }
     }
 
-    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_3() {
         let _ = dotenv().ok();
@@ -540,7 +536,6 @@ mod optimism_votes {
         }
     }
 
-    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_6() {
         let _ = dotenv().ok();
@@ -590,7 +585,6 @@ mod optimism_votes {
         }
     }
 
-    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_7() {
         let _ = dotenv().ok();
@@ -640,7 +634,6 @@ mod optimism_votes {
         }
     }
 
-    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_votes_8() {
         let _ = dotenv().ok();
