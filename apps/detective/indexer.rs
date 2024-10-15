@@ -26,3 +26,69 @@ pub trait Indexer: Send + Sync {
         }
     }
 }
+
+#[cfg(test)]
+mod indexer_tests {
+    use super::*;
+    use std::sync::Arc;
+
+    struct MockIndexer;
+
+    #[async_trait]
+    impl Indexer for MockIndexer {
+        async fn process(
+            &self,
+            _indexer: &dao_indexer::Model,
+            _dao: &dao::Model,
+        ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+            unimplemented!()
+        }
+
+        fn min_refresh_speed(&self) -> i32 {
+            10
+        }
+
+        fn max_refresh_speed(&self) -> i32 {
+            100
+        }
+    }
+
+    #[test]
+    fn test_adjust_speed_success() {
+        let indexer = Arc::new(MockIndexer);
+
+        assert_eq!(indexer.adjust_speed(50, true), 55);
+        assert_eq!(indexer.adjust_speed(90, true), 99);
+        assert_eq!(indexer.adjust_speed(95, true), 100);
+        assert_eq!(indexer.adjust_speed(100, true), 100);
+    }
+
+    #[test]
+    fn test_adjust_speed_failure() {
+        let indexer = Arc::new(MockIndexer);
+
+        assert_eq!(indexer.adjust_speed(50, false), 25);
+        assert_eq!(indexer.adjust_speed(30, false), 15);
+        assert_eq!(indexer.adjust_speed(15, false), 10);
+        assert_eq!(indexer.adjust_speed(10, false), 10);
+    }
+
+    #[test]
+    fn test_adjust_speed_min_increase() {
+        let indexer = Arc::new(MockIndexer);
+
+        assert_eq!(indexer.adjust_speed(11, true), 12);
+        assert_eq!(indexer.adjust_speed(10, true), 11);
+    }
+
+    #[test]
+    fn test_adjust_speed_bounds() {
+        let indexer = Arc::new(MockIndexer);
+
+        // Test lower bound
+        assert_eq!(indexer.adjust_speed(5, false), 10);
+
+        // Test upper bound
+        assert_eq!(indexer.adjust_speed(110, true), 100);
+    }
+}
