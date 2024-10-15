@@ -10,6 +10,13 @@ FROM rust:slim-bookworm as cacher
 WORKDIR /app
 RUN cargo install cargo-chef
 COPY --from=planner /app/recipe.json recipe.json
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # Stage 3: Builder
