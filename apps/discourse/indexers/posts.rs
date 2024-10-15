@@ -34,6 +34,7 @@ impl PostIndexer {
 
         let current_posts_count = discourse_post::Entity::find()
             .filter(discourse_post::Column::TopicId.eq(topic_id))
+            .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
             .count(&db_handler.conn)
             .await?;
 
@@ -52,7 +53,7 @@ impl PostIndexer {
                     topic_id = topic_id,
                     posts_count = response.posts_count,
                     current_posts_count = current_posts_count,
-                    "No new posts to fetch for topic. Stopping."
+                    "No new posts to fetch for topic. Skipping.",
                 );
                 break;
             }
