@@ -62,6 +62,7 @@ impl UserIndexer {
                 page = page + 1,
                 num_users = num_users,
                 total_users = total_users,
+                url = url,
                 "Fetched and upserted users"
             );
 

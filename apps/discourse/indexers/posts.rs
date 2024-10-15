@@ -32,31 +32,9 @@ impl PostIndexer {
         let mut total_posts = 0;
         let mut previous_response: Option<PostResponse> = None;
 
-        let current_posts_count = discourse_post::Entity::find()
-            .filter(discourse_post::Column::TopicId.eq(topic_id))
-            .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
-            .count(&db_handler.conn)
-            .await?;
-
-        info!(
-            topic_id = topic_id,
-            current_posts_count = current_posts_count,
-            "Starting to update posts for topic"
-        );
-
         loop {
             let url = format!("{}/t/{}.json?page={}", self.base_url, topic_id, page);
             let response: PostResponse = self.api_handler.fetch(&url).await?;
-
-            if response.posts_count <= current_posts_count as i32 {
-                info!(
-                    topic_id = topic_id,
-                    posts_count = response.posts_count,
-                    current_posts_count = current_posts_count,
-                    "No new posts to fetch for topic. Skipping.",
-                );
-                break;
-            }
 
             let num_posts = response.post_stream.posts.len();
             total_posts += num_posts;
@@ -106,6 +84,7 @@ impl PostIndexer {
                 page = page + 1,
                 num_posts = num_posts,
                 total_posts = total_posts,
+                url = url,
                 "Fetched and upserted posts for topic"
             );
 

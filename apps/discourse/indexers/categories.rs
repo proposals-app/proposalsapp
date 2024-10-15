@@ -62,6 +62,7 @@ impl CategoryIndexer {
                 page = page + 1,
                 categories_fetched = num_categories,
                 total_categories = total_categories,
+                url = url,
                 "Fetched and upserted categories"
             );
 

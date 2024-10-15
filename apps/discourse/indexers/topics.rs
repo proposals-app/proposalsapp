@@ -79,7 +79,7 @@ impl TopicIndexer {
     ) -> Result<()> {
         let mut page = 0;
         let mut total_topics = 0;
-        let max_pages = 10;
+        let max_pages = 5;
 
         while page <= max_pages {
             let url = format!("{}/latest.json?order=created&page={}", self.base_url, page);
@@ -98,8 +98,11 @@ impl TopicIndexer {
             }
 
             info!(
+                url = url,
                 "Fetched and upserted page {}: {} new topics (total topics so far: {})",
-                page, num_topics, total_topics
+                page,
+                num_topics,
+                total_topics
             );
 
             if response.topic_list.topics.is_empty() {
