@@ -32,74 +32,100 @@ impl PostIndexer {
 
         loop {
             let url = format!("{}/t/{}.json?page={}", self.base_url, topic_id, page);
-            let response: PostResponse = self.api_handler.fetch(&url).await?;
+            match self.api_handler.fetch::<PostResponse>(&url).await {
+                Ok(response) => {
+                    if total_posts_count == 0 {
+                        total_posts_count = response.posts_count;
+                    }
 
-            if total_posts_count == 0 {
-                total_posts_count = response.posts_count;
-            }
+                    let num_posts = response.post_stream.posts.len() as i32;
+                    total_posts_fetched += num_posts;
 
-            let num_posts = response.post_stream.posts.len() as i32;
-            total_posts_fetched += num_posts;
+                    for post in &response.post_stream.posts {
+                        match db_handler.upsert_post(post, dao_discourse_id).await {
+                            Ok(_) => {
+                                info!(
+                                    post_id = post.id,
+                                    topic_id = topic_id,
+                                    "Successfully upserted post"
+                                );
+                            }
+                            Err(e) if e.to_string().contains("fk_discourse_post_user") => {
+                                warn!(
+                                    post_id = post.id,
+                                    username = post.username,
+                                    "User not found, fetching user details"
+                                );
+                                let user_fetcher =
+                                    UserIndexer::new(&self.base_url, Arc::clone(&self.api_handler));
+                                user_fetcher
+                                    .fetch_user_by_username(
+                                        &post.username,
+                                        db_handler,
+                                        dao_discourse_id,
+                                    )
+                                    .await?;
 
-            for post in &response.post_stream.posts {
-                match db_handler.upsert_post(post, dao_discourse_id).await {
-                    Ok(_) => {
+                                db_handler.upsert_post(post, dao_discourse_id).await?;
+                                info!(
+                                    post_id = post.id,
+                                    username = post.username,
+                                    "Successfully fetched user and upserted post"
+                                );
+                            }
+                            Err(e) => {
+                                error!(
+                                    error = %e,
+                                    post_id = post.id,
+                                    topic_id = topic_id,
+                                    "Failed to upsert post"
+                                );
+                                return Err(anyhow::anyhow!("Failed to upsert post: {}", e));
+                            }
+                        }
+                    }
+
+                    info!(
+                        topic_id = topic_id,
+                        page = page + 1,
+                        num_posts = num_posts,
+                        total_posts_fetched = total_posts_fetched,
+                        total_posts_count = total_posts_count,
+                        url = url,
+                        "Fetched and upserted posts for topic"
+                    );
+
+                    if total_posts_fetched >= total_posts_count
+                        || response.post_stream.posts.is_empty()
+                    {
                         info!(
-                            post_id = post.id,
                             topic_id = topic_id,
-                            "Successfully upserted post"
+                            "Finished fetching all posts for topic. Stopping."
                         );
+                        break;
                     }
-                    Err(e) if e.to_string().contains("fk_discourse_post_user") => {
-                        warn!(
-                            post_id = post.id,
-                            username = post.username,
-                            "User not found, fetching user details"
-                        );
-                        let user_fetcher =
-                            UserIndexer::new(&self.base_url, Arc::clone(&self.api_handler));
-                        user_fetcher
-                            .fetch_user_by_username(&post.username, db_handler, dao_discourse_id)
-                            .await?;
 
-                        db_handler.upsert_post(post, dao_discourse_id).await?;
+                    page += 1;
+                }
+                Err(e) => {
+                    if e.to_string().contains("404") {
                         info!(
-                            post_id = post.id,
-                            username = post.username,
-                            "Successfully fetched user and upserted post"
+                            topic_id = topic_id,
+                            page = page,
+                            "Reached end of pages (404 error). Stopping."
                         );
-                    }
-                    Err(e) => {
+                        break;
+                    } else {
                         error!(
                             error = %e,
-                            post_id = post.id,
                             topic_id = topic_id,
-                            "Failed to upsert post"
+                            page = page,
+                            "Failed to fetch posts for topic"
                         );
-                        return Err(anyhow::anyhow!("Failed to upsert post: {}", e));
+                        return Err(anyhow::anyhow!("Failed to fetch posts for topic: {}", e));
                     }
                 }
             }
-
-            info!(
-                topic_id = topic_id,
-                page = page + 1,
-                num_posts = num_posts,
-                total_posts_fetched = total_posts_fetched,
-                total_posts_count = total_posts_count,
-                url = url,
-                "Fetched and upserted posts for topic"
-            );
-
-            if total_posts_fetched >= total_posts_count || response.post_stream.posts.is_empty() {
-                info!(
-                    topic_id = topic_id,
-                    "Finished fetching all posts for topic. Stopping."
-                );
-                break;
-            }
-
-            page += 1;
         }
 
         info!(
