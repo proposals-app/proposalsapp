@@ -5,6 +5,7 @@ import {
   db,
   DiscoursePost,
   DiscourseTopic,
+  IndexerVariant,
   JsonArray,
   Proposal,
   Selectable,
@@ -37,15 +38,20 @@ export async function getGroupDetails(groupId: string) {
     )
     .map((item) => item.id);
 
-  const proposals: (Selectable<Proposal> & { votes: Selectable<Vote>[] })[] =
+  const proposals: (Selectable<Proposal> & {
+    votes: Selectable<Vote>[];
+    indexerVariant: IndexerVariant | null;
+  })[] =
     proposalIds.length > 0
       ? await db
           .selectFrom("proposal")
           .where("proposal.id", "in", proposalIds)
           .leftJoin("vote", "vote.proposalId", "proposal.id")
+          .leftJoin("daoIndexer", "daoIndexer.id", "proposal.daoIndexerId")
           .selectAll("proposal")
+          .select("daoIndexer.indexerVariant")
           .select(db.fn.jsonAgg("vote").as("votes"))
-          .groupBy("proposal.id")
+          .groupBy(["proposal.id", "daoIndexer.indexerVariant"])
           .execute()
       : [];
 

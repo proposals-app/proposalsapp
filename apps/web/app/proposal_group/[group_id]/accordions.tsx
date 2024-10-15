@@ -8,6 +8,7 @@ import {
   AccordionTrigger,
 } from "@/shadcn/ui/accordion";
 import { Button } from "@/shadcn/ui/button";
+import { Badge } from "@/shadcn/ui/badge";
 
 export function ProposalAccordion({ proposals }: { proposals: any[] }) {
   return (
@@ -25,9 +26,20 @@ export function ProposalAccordion({ proposals }: { proposals: any[] }) {
               <Link
                 href={proposal.url}
                 target="_blank"
-                className="text-blue-500 hover:underline"
+                className="flex items-center gap-2"
                 onClick={(e) => e.stopPropagation()}
               >
+                <Badge>Proposal</Badge>
+                <Badge
+                  variant="outline"
+                  className={
+                    proposal.indexerVariant === "SNAPSHOT"
+                      ? "bg-yellow-100"
+                      : "bg-green-100"
+                  }
+                >
+                  {proposal.indexerVariant}
+                </Badge>
                 {proposal.name}
               </Link>
             </AccordionTrigger>
@@ -76,9 +88,13 @@ export function TopicAccordion({ topics }: { topics: any[] }) {
               <Link
                 href={`${topic.discourseBaseUrl}/t/${topic.externalId}`}
                 target="_blank"
-                className="text-blue-500 hover:underline"
+                className="flex items-center gap-2"
                 onClick={(e) => e.stopPropagation()}
               >
+                <Badge variant="secondary">Discussion</Badge>
+                <Badge variant="outline" className="bg-blue-100">
+                  {new URL(topic.discourseBaseUrl).hostname}
+                </Badge>
                 {topic.title}
               </Link>
             </AccordionTrigger>

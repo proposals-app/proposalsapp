@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   saveGroups,
@@ -33,22 +33,10 @@ export default function GroupingInterface({
   );
   const [newGroupName, setNewGroupName] = useState("");
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupName, setEditingGroupName] = useState<string>("");
   const [searchResults, setSearchResults] = useState<FuzzyItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-
-  const createNewGroup = () => {
-    if (newGroupName.trim()) {
-      const newGroup: ProposalGroup = {
-        id: uuidv4(),
-        name: newGroupName,
-        items: [],
-        createdAt: new Date().toISOString(),
-      };
-      setGroups([newGroup, ...groups]);
-      setNewGroupName("");
-      setEditingGroupId(newGroup.id!);
-    }
-  };
+  const [shouldSaveGroups, setShouldSaveGroups] = useState(false);
 
   const handleSearch = async (value: string) => {
     setSearchTerm(value);
@@ -70,6 +58,21 @@ export default function GroupingInterface({
     }
   };
 
+  const createNewGroup = () => {
+    if (newGroupName.trim()) {
+      const newGroup: ProposalGroup = {
+        id: uuidv4(),
+        name: newGroupName,
+        items: [],
+        createdAt: new Date().toISOString(),
+      };
+      setGroups([newGroup, ...groups]);
+      setNewGroupName("");
+      setEditingGroupId(newGroup.id!);
+      setShouldSaveGroups(true);
+    }
+  };
+
   const addItemToGroup = (groupId: string, item: ProposalGroupItem) => {
     setGroups((prevGroups) =>
       prevGroups.map((group) =>
@@ -81,6 +84,7 @@ export default function GroupingInterface({
     setSearchResults((prevResults) =>
       prevResults.filter((result) => result.id !== item.id),
     );
+    setShouldSaveGroups(true);
   };
 
   const removeItemFromGroup = (groupId: string, itemId: string) => {
@@ -94,18 +98,30 @@ export default function GroupingInterface({
           : group,
       ),
     );
+    setShouldSaveGroups(true);
   };
+
+  const editGroup = (groupId: string, newName: string) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) =>
+        group.id === groupId
+          ? { ...group, name: newName.trim() || group.name }
+          : group,
+      ),
+    );
+    setShouldSaveGroups(true);
+  };
+
+  useEffect(() => {
+    if (shouldSaveGroups) {
+      handleSaveGroups();
+      setShouldSaveGroups(false);
+    }
+  }, [groups, shouldSaveGroups]);
 
   const handleSaveGroups = async () => {
     try {
       await saveGroups(groups);
-      setGroups((prevGroups) =>
-        [...prevGroups].sort(
-          (a, b) =>
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime(),
-        ),
-      );
     } catch (error) {
       console.error("Failed to save groups:", error);
       alert("Failed to save groups");
@@ -141,26 +157,38 @@ export default function GroupingInterface({
         <Card key={group.id}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>
-              <Link
-                href={`proposal_group/${group.id}`}
-                target="_blank"
-                className="flex gap-2"
-              >
-                {group.name}
-                {initialGroups.map((g) => g.id).includes(group.id) && (
-                  <ExternalLinkIcon />
-                )}
-              </Link>
+              {editingGroupId === group.id ? (
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="text"
+                    value={editingGroupName}
+                    onChange={(e) => setEditingGroupName(e.target.value)}
+                    className="w-64"
+                  />
+                </div>
+              ) : (
+                <Link
+                  href={`proposal_group/${group.id}`}
+                  target="_blank"
+                  className="flex gap-2"
+                >
+                  {group.name}
+                  {initialGroups.map((g) => g.id).includes(group.id) && (
+                    <ExternalLinkIcon />
+                  )}
+                </Link>
+              )}
             </CardTitle>
             <div className="space-x-2">
               {editingGroupId === group.id ? (
                 <Button
                   size="sm"
                   onClick={() => {
+                    editGroup(editingGroupId, editingGroupName);
                     setEditingGroupId(null);
+                    setEditingGroupName("");
                     setSearchTerm("");
                     setSearchResults([]);
-                    handleSaveGroups();
                   }}
                 >
                   Done Editing
@@ -169,7 +197,10 @@ export default function GroupingInterface({
                 <>
                   <Button
                     size="sm"
-                    onClick={() => setEditingGroupId(group.id!)}
+                    onClick={() => {
+                      setEditingGroupName(group.name);
+                      setEditingGroupId(group.id!);
+                    }}
                   >
                     Edit Group
                   </Button>
@@ -193,12 +224,22 @@ export default function GroupingInterface({
                       key={item.id}
                       className="flex items-center justify-between"
                     >
-                      <span>
-                        {item.type === "proposal"
-                          ? "Proposal: "
-                          : "Discussion: "}{" "}
+                      <span className="flex gap-2">
+                        {item.type === "proposal" ? (
+                          <Badge>Proposal</Badge>
+                        ) : (
+                          <Badge variant="secondary">Discussion</Badge>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={`${item.indexerName == "SNAPSHOT" ? "bg-yellow-100" : item.indexerName.includes("http") ? "bg-blue-100" : "bg-green-100"}`}
+                        >
+                          {item.indexerName}
+                        </Badge>
+
                         {item.name}
                       </span>
+
                       <Button
                         variant="destructive"
                         size="sm"
