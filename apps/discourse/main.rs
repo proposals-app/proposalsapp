@@ -22,7 +22,7 @@ use indexers::categories::CategoryIndexer;
 use indexers::topics::TopicIndexer;
 use indexers::users::UserIndexer;
 
-const WAIT_FIRST: bool = true;
+const WAIT_FIRST: bool = false;
 
 #[tokio::main]
 async fn main() -> Result<()> {
