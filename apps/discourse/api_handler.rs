@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use reqwest::header::USER_AGENT;
+use reqwest::header::{RETRY_AFTER, USER_AGENT};
 use reqwest::Client;
 use serde::de::DeserializeOwned;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -27,7 +27,7 @@ impl ApiHandler {
     pub fn new(max_retries: usize) -> Self {
         let client = Client::new();
         let semaphore = Arc::new(Semaphore::new(5));
-        let (sender, receiver) = mpsc::channel(100);
+        let (sender, receiver) = mpsc::channel(1000);
         let jobs_in_queue = Arc::new(AtomicUsize::new(0));
 
         let api_handler = Self {
@@ -121,7 +121,7 @@ impl ApiHandler {
 
                         let retry_after = response
                             .headers()
-                            .get("Retry-After")
+                            .get(RETRY_AFTER)
                             .and_then(|h| h.to_str().ok())
                             .and_then(|s| s.parse::<u64>().ok())
                             .map(Duration::from_secs)

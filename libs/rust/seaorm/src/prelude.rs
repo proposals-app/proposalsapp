@@ -13,6 +13,7 @@ pub use super::kysely_migration::Entity as KyselyMigration;
 pub use super::kysely_migration_lock::Entity as KyselyMigrationLock;
 pub use super::notification::Entity as Notification;
 pub use super::proposal::Entity as Proposal;
+pub use super::proposal_group::Entity as ProposalGroup;
 pub use super::subscription::Entity as Subscription;
 pub use super::user::Entity as User;
 pub use super::user_push_notification_subscription::Entity as UserPushNotificationSubscription;
