@@ -93,7 +93,7 @@ export function TopicAccordion({ topics }: { topics: any[] }) {
               >
                 <Badge variant="secondary">Discussion</Badge>
                 <Badge variant="outline" className="bg-blue-100">
-                  {new URL(topic.discourseBaseUrl).hostname}
+                  {topic.discourseBaseUrl}
                 </Badge>
                 {topic.title}
               </Link>
