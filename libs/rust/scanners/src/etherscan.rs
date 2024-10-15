@@ -1,6 +1,6 @@
+use alloy::providers::{Provider, ProviderBuilder};
 use anyhow::{Context, Result};
-use chrono::{NaiveDateTime, Utc};
-use ethers::providers::{Http, Middleware, Provider};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::Deserialize;
@@ -31,18 +31,19 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
     let etherscan_api_key = std::env::var("ETHERSCAN_API_KEY").context("Etherscan key not set")?;
     let rpc_url = std::env::var("ETHEREUM_NODE_URL").context("Ethereum node not set")?;
 
-    let provider = Provider::<Http>::try_from(rpc_url)?;
+    let provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
 
     let current_block = provider.get_block_number().await?;
 
-    if block_number < current_block.as_u64() {
+    if block_number < current_block {
         let block = provider
-            .get_block(block_number)
+            .get_block_by_number(block_number.into(), true)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Block not found"))?;
 
-        return NaiveDateTime::from_timestamp_millis(block.timestamp.as_u64() as i64 * 1000)
-            .context("Invalid timestamp");
+        return Ok(DateTime::from_timestamp(block.header.timestamp as i64, 0)
+            .expect("Invalid timestamp")
+            .naive_utc());
     }
 
     let retry_policy = ExponentialBackoff::builder().build_with_max_retries(5);
@@ -67,11 +68,12 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                 let data: EstimateTimestamp = serde_json::from_str(&contents)
                     .context("Failed to deserialize etherscan response")?;
 
-                let estimated_time = Utc::now().timestamp() * 1000
-                    + data.result.estimate_time_in_sec.parse::<f64>()? as i64 * 1000;
+                let estimated_time = Utc::now().timestamp()
+                    + data.result.estimate_time_in_sec.parse::<f64>()? as i64;
 
-                return NaiveDateTime::from_timestamp_millis(estimated_time)
-                    .context("Invalid estimated timestamp");
+                return Ok(DateTime::from_timestamp(estimated_time, 0)
+                    .expect("Invalid timestamp")
+                    .naive_utc());
             }
             Err(_) if retries < 5 => {
                 retries += 1;
@@ -79,8 +81,9 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
                 sleep(backoff_duration).await;
             }
             Err(_) => {
-                return NaiveDateTime::from_timestamp_millis(Utc::now().timestamp() * 1000)
-                    .context("Failed to estimate timestamp after retries");
+                return Ok(DateTime::from_timestamp(Utc::now().timestamp(), 0)
+                    .expect("Invalid timestamp")
+                    .naive_utc());
             }
         }
     }
@@ -141,7 +144,7 @@ pub async fn estimate_block(timestamp: u64) -> Result<u64> {
 }
 
 #[cfg(test)]
-mod tests {
+mod etherscan_tests {
     use super::*;
     use chrono::Utc;
     use dotenv::dotenv;
@@ -167,11 +170,11 @@ mod tests {
 
         // Test with a block number likely to be in the future
         let rpc_url = std::env::var("ETHEREUM_NODE_URL").expect("Ethereum node not set!");
-        let provider = Provider::<Http>::try_from(rpc_url).unwrap();
+        let provider = ProviderBuilder::new().on_http(rpc_url.parse().unwrap());
 
         let current_block = provider.get_block_number().await.unwrap();
 
-        let block_number = current_block.as_u64() + 100;
+        let block_number = current_block + 100;
 
         let result = estimate_timestamp(block_number).await.unwrap();
 

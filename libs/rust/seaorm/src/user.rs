@@ -17,6 +17,7 @@ pub struct Model {
     pub id: Uuid,
     pub email: String,
     pub email_verified: bool,
+    pub created_at: DateTime,
     pub onboarding_step: i32,
 }
 
@@ -25,6 +26,7 @@ pub enum Column {
     Id,
     Email,
     EmailVerified,
+    CreatedAt,
     OnboardingStep,
 }
 
@@ -58,6 +60,7 @@ impl ColumnTrait for Column {
             Self::Id => ColumnType::Uuid.def(),
             Self::Email => ColumnType::Text.def().unique(),
             Self::EmailVerified => ColumnType::Boolean.def(),
+            Self::CreatedAt => ColumnType::DateTime.def(),
             Self::OnboardingStep => ColumnType::Integer.def(),
         }
     }

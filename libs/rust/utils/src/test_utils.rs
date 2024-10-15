@@ -1,239 +1,195 @@
 use chrono::NaiveDateTime;
-use sea_orm::prelude::Uuid;
-use seaorm::{proposal, sea_orm_active_enums::ProposalStateEnum, vote};
+use seaorm::{proposal, sea_orm_active_enums::ProposalState, vote};
 use serde_json::Value;
 
 pub struct ExpectedProposal {
+    pub index_created: i32,
     pub external_id: &'static str,
     pub name: &'static str,
-    pub body_contains: Vec<&'static str>,
+    pub body_contains: Option<Vec<&'static str>>,
     pub url: &'static str,
     pub discussion_url: &'static str,
-    pub choices: &'static str,
-    pub scores: &'static str,
+    pub choices: Value,
+    pub scores: Value,
     pub scores_total: f64,
     pub quorum: f64,
     pub scores_quorum: f64,
-    pub proposal_state: ProposalStateEnum,
+    pub proposal_state: ProposalState,
+    pub marked_spam: Option<bool>,
+    pub time_created: NaiveDateTime,
+    pub time_start: NaiveDateTime,
+    pub time_end: NaiveDateTime,
     pub block_created: Option<i32>,
-    pub time_created: Option<&'static str>,
-    pub time_start: &'static str,
-    pub time_end: &'static str,
+    pub txid: Option<&'static str>,
     pub metadata: Option<Value>,
 }
 
-pub fn assert_proposal(
-    proposal: &proposal::ActiveModel,
-    expected: &ExpectedProposal,
-    dao_handler_id: Uuid,
-    dao_id: Uuid,
-) {
+pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProposal) {
+    assert_eq!(
+        proposal.index_created.clone().take().unwrap(),
+        expected.index_created,
+        "Proposal index_created mismatch"
+    );
     assert_eq!(
         proposal.external_id.clone().take().unwrap(),
         expected.external_id,
-        "Proposal id does not match: expected {}, got {}",
-        expected.external_id,
-        proposal.external_id.clone().take().unwrap()
+        "Proposal external_id mismatch"
     );
     assert_eq!(
         proposal.name.clone().take().unwrap(),
         expected.name,
-        "Proposal name does not match: expected {}, got {}",
-        expected.name,
-        proposal.name.clone().take().unwrap()
+        "Proposal name mismatch"
     );
 
-    for body in &expected.body_contains {
-        assert!(
-            proposal.body.clone().take().unwrap().contains(body),
-            "Proposal body does not contain expected text: expected to find {}, got {}",
-            body,
-            proposal.body.clone().take().unwrap()
-        );
+    if let Some(body_contains) = &expected.body_contains {
+        let body = proposal.body.clone().take().unwrap();
+        for &expected_str in body_contains {
+            assert!(
+                body.contains(expected_str),
+                "Proposal body does not contain expected string: {}",
+                expected_str
+            );
+        }
     }
 
     assert_eq!(
         proposal.url.clone().take().unwrap(),
         expected.url,
-        "Proposal URL does not match: expected {}, got {}",
-        expected.url,
-        proposal.url.clone().take().unwrap()
+        "Proposal URL mismatch"
     );
     assert_eq!(
         proposal.discussion_url.clone().take().unwrap(),
         expected.discussion_url,
-        "Discussion URL does not match: expected {}, got {}",
-        expected.discussion_url,
-        proposal.discussion_url.clone().take().unwrap()
+        "Proposal discussion URL mismatch"
     );
-
-    let choices_json = proposal.choices.clone().take().unwrap().to_string();
     assert_eq!(
-        choices_json, expected.choices,
-        "Choices do not match: expected {}, got {}",
-        expected.choices, choices_json
+        proposal.choices.clone().take().unwrap(),
+        expected.choices,
+        "Proposal choices mismatch"
     );
-
-    let scores_json = proposal.scores.clone().take().unwrap().to_string();
     assert_eq!(
-        scores_json, expected.scores,
-        "Scores do not match: expected {}, got {}",
-        expected.scores, scores_json
+        proposal.scores.clone().take().unwrap(),
+        expected.scores,
+        "Proposal scores mismatch"
     );
-
     assert_eq!(
         proposal.scores_total.clone().take().unwrap(),
         expected.scores_total,
-        "Scores total does not match: expected {}, got {}",
-        expected.scores_total,
-        proposal.scores_total.clone().take().unwrap()
+        "Proposal scores_total mismatch"
     );
-
     assert_eq!(
         proposal.quorum.clone().take().unwrap(),
         expected.quorum,
-        "Quorum does not match: expected {}, got {}",
-        expected.quorum,
-        proposal.quorum.clone().take().unwrap()
+        "Proposal quorum mismatch"
     );
-
     assert_eq!(
         proposal.scores_quorum.clone().take().unwrap(),
         expected.scores_quorum,
-        "Scores quorum does not match: expected {}, got {}",
-        expected.scores_quorum,
-        proposal.scores_quorum.clone().take().unwrap()
+        "Proposal scores_quorum mismatch"
     );
-
     assert_eq!(
         proposal.proposal_state.clone().take().unwrap(),
         expected.proposal_state,
-        "Proposal state does not match: expected {:?}, got {:?}",
-        expected.proposal_state,
-        proposal.proposal_state.clone().take().unwrap()
+        "Proposal state mismatch"
     );
-
-    if proposal.block_created.clone().take().is_some() {
-        assert_eq!(
-            proposal.block_created.clone().take().unwrap(),
-            expected.block_created,
-            "Block created does not match: expected {:?}, got {:?}",
-            expected.block_created,
-            proposal.block_created.clone().take().unwrap()
-        );
-    }
-
-    if let Some(time_created_str) = expected.time_created {
-        let expected_time_created =
-            NaiveDateTime::parse_from_str(time_created_str, "%Y-%m-%d %H:%M:%S").unwrap();
-        assert_eq!(
-            proposal.time_created.clone().take().unwrap(),
-            Some(expected_time_created),
-            "Time created does not match: expected {:?}, got {:?}",
-            Some(expected_time_created),
-            proposal.time_created.clone().take().unwrap()
-        );
-    }
-
-    let expected_time_start =
-        NaiveDateTime::parse_from_str(expected.time_start, "%Y-%m-%d %H:%M:%S").unwrap();
+    assert_eq!(
+        proposal.marked_spam.clone().take(),
+        expected.marked_spam,
+        "Proposal marked_spam mismatch"
+    );
+    assert_eq!(
+        proposal.time_created.clone().take().unwrap(),
+        expected.time_created,
+        "Proposal time_created mismatch"
+    );
     assert_eq!(
         proposal.time_start.clone().take().unwrap(),
-        expected_time_start,
-        "Time start does not match: expected {:?}, got {:?}",
-        expected_time_start,
-        proposal.time_start.clone().take().unwrap()
+        expected.time_start,
+        "Proposal time_start mismatch"
     );
-
-    let expected_time_end =
-        NaiveDateTime::parse_from_str(expected.time_end, "%Y-%m-%d %H:%M:%S").unwrap();
     assert_eq!(
         proposal.time_end.clone().take().unwrap(),
-        expected_time_end,
-        "Time end does not match: expected {:?}, got {:?}",
-        expected_time_end,
-        proposal.time_end.clone().take().unwrap()
+        expected.time_end,
+        "Proposal time_end mismatch"
     );
-
     assert_eq!(
-        proposal.dao_handler_id.clone().take().unwrap(),
-        dao_handler_id,
-        "DAO handler ID does not match: expected {}, got {}",
-        dao_handler_id,
-        proposal.dao_handler_id.clone().take().unwrap()
+        proposal.block_created.clone().take().flatten(),
+        expected.block_created,
+        "Proposal block_created mismatch"
     );
-
     assert_eq!(
-        proposal.dao_id.clone().take().unwrap(),
-        dao_id,
-        "DAO ID does not match: expected {}, got {}",
-        dao_id,
-        proposal.dao_id.clone().take().unwrap()
+        proposal.txid.clone().take().flatten(),
+        expected.txid.map(|s| s.to_string()),
+        "Proposal txid mismatch"
     );
-
-    let metadata_json = proposal.metadata.clone().take();
-
-    if metadata_json.is_some() {
-        let unwrapped_metadata = metadata_json.unwrap();
-        assert_eq!(
-            unwrapped_metadata, expected.metadata,
-            "Metadata do not match: expected {:?}, got {:?}",
-            expected.metadata, unwrapped_metadata
-        );
-    }
+    assert_eq!(
+        proposal.metadata.clone().take().flatten(),
+        expected.metadata.clone(),
+        "Proposal metadata mismatch"
+    );
 }
 
 pub struct ExpectedVote {
+    pub index_created: i32,
     pub voter_address: &'static str,
-    pub voting_power: f64,
-    pub block_created: Option<i32>,
     pub choice: Value,
+    pub voting_power: f64,
+    pub reason: Option<&'static str>,
     pub proposal_external_id: &'static str,
-    pub reason: Option<String>,
+    pub time_created: Option<NaiveDateTime>,
+    pub block_created: Option<i32>,
+    pub txid: Option<&'static str>,
 }
 
 pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
     assert_eq!(
+        vote.index_created.clone().take().unwrap(),
+        expected.index_created,
+        "Vote index_created mismatch"
+    );
+    assert_eq!(
         vote.voter_address.clone().take().unwrap(),
         expected.voter_address,
-        "Voter address mismatch: expected {}, got {}",
-        expected.voter_address,
-        vote.voter_address.clone().take().unwrap()
+        "Vote voter_address mismatch"
+    );
+    assert_eq!(
+        vote.choice.clone().take().unwrap(),
+        expected.choice,
+        "Vote choice mismatch"
     );
     assert_eq!(
         vote.voting_power.clone().take().unwrap(),
         expected.voting_power,
-        "Voting power mismatch: expected {}, got {}",
-        expected.voting_power,
-        vote.voting_power.clone().take().unwrap()
+        "Vote voting_power mismatch"
     );
     assert_eq!(
-        vote.block_created.clone().take().unwrap(),
-        expected.block_created,
-        "Block created mismatch: expected {:?}, got {:?}",
-        expected.block_created,
-        vote.block_created.clone().take().unwrap()
-    );
-
-    let choices_json = vote.choice.clone().take().unwrap();
-    assert_eq!(
-        choices_json, expected.choice,
-        "Choice do not match: expected {}, got {}",
-        expected.choice, choices_json
-    );
-
-    assert_eq!(
-        vote.reason.clone().take().unwrap(),
-        expected.reason,
-        "Reason mismatch: expected {:?}, got {:?}",
-        expected.reason,
-        vote.reason.clone().take().unwrap()
+        vote.reason.clone().take().flatten(),
+        expected.reason.map(|s| s.to_string()),
+        "Vote reason mismatch"
     );
     assert_eq!(
         vote.proposal_external_id.clone().take().unwrap(),
         expected.proposal_external_id,
-        "Proposal external ID mismatch: expected {}, got {}",
-        expected.proposal_external_id,
-        vote.proposal_external_id.clone().take().unwrap()
+        "Vote proposal_external_id mismatch"
     );
+    assert_eq!(
+        vote.time_created.clone().take().flatten(),
+        expected.time_created,
+        "Vote time_created mismatch"
+    );
+    assert_eq!(
+        vote.block_created.clone().take().flatten(),
+        expected.block_created,
+        "Vote block_created mismatch"
+    );
+    assert_eq!(
+        vote.txid.clone().take().flatten(),
+        expected.txid.map(|s| s.to_string()),
+        "Vote txid mismatch"
+    );
+}
+
+// Helper function to parse datetime strings
+pub fn parse_datetime(datetime_str: &str) -> NaiveDateTime {
+    NaiveDateTime::parse_from_str(datetime_str, "%Y-%m-%d %H:%M:%S").unwrap()
 }

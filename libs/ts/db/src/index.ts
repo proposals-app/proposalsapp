@@ -42,4 +42,5 @@ export const db = global.db || createDbInstance();
 export { db_pool };
 export * from "./kysely_db";
 export { Kysely };
+export { sql, type Selectable, type Insertable } from "kysely";
 export { jsonArrayFrom } from "kysely/helpers/postgres";

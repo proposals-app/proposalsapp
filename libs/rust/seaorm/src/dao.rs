@@ -17,7 +17,10 @@ pub struct Model {
     pub id: Uuid,
     pub name: String,
     pub slug: String,
+    pub picture: String,
+    pub background_color: String,
     pub hot: bool,
+    pub email_quorum_warning_support: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -25,7 +28,10 @@ pub enum Column {
     Id,
     Name,
     Slug,
+    Picture,
+    BackgroundColor,
     Hot,
+    EmailQuorumWarningSupport,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -43,8 +49,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     DaoDiscourse,
-    DaoHandler,
-    DaoSettings,
+    DaoIndexer,
     Proposal,
     Subscription,
     Vote,
@@ -57,7 +62,10 @@ impl ColumnTrait for Column {
             Self::Id => ColumnType::Uuid.def(),
             Self::Name => ColumnType::Text.def().unique(),
             Self::Slug => ColumnType::Text.def().unique(),
+            Self::Picture => ColumnType::Text.def(),
+            Self::BackgroundColor => ColumnType::Text.def(),
             Self::Hot => ColumnType::Boolean.def(),
+            Self::EmailQuorumWarningSupport => ColumnType::Boolean.def(),
         }
     }
 }
@@ -66,8 +74,7 @@ impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
             Self::DaoDiscourse => Entity::has_many(super::dao_discourse::Entity).into(),
-            Self::DaoHandler => Entity::has_many(super::dao_handler::Entity).into(),
-            Self::DaoSettings => Entity::has_one(super::dao_settings::Entity).into(),
+            Self::DaoIndexer => Entity::has_many(super::dao_indexer::Entity).into(),
             Self::Proposal => Entity::has_many(super::proposal::Entity).into(),
             Self::Subscription => Entity::has_many(super::subscription::Entity).into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
@@ -81,15 +88,9 @@ impl Related<super::dao_discourse::Entity> for Entity {
     }
 }
 
-impl Related<super::dao_handler::Entity> for Entity {
+impl Related<super::dao_indexer::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::DaoHandler.def()
-    }
-}
-
-impl Related<super::dao_settings::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::DaoSettings.def()
+        Relation::DaoIndexer.def()
     }
 }
 

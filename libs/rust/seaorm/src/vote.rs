@@ -21,12 +21,12 @@ pub struct Model {
     pub voting_power: f64,
     pub reason: Option<String>,
     pub proposal_external_id: String,
-    pub block_created: Option<i32>,
     pub time_created: Option<DateTime>,
-    pub vp_state: Option<String>,
+    pub block_created: Option<i32>,
+    pub txid: Option<String>,
     pub proposal_id: Uuid,
     pub dao_id: Uuid,
-    pub dao_handler_id: Uuid,
+    pub indexer_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -38,12 +38,12 @@ pub enum Column {
     VotingPower,
     Reason,
     ProposalExternalId,
-    BlockCreated,
     TimeCreated,
-    VpState,
+    BlockCreated,
+    Txid,
     ProposalId,
     DaoId,
-    DaoHandlerId,
+    IndexerId,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -61,7 +61,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     Dao,
-    DaoHandler,
+    DaoIndexer,
     Proposal,
     Voter,
 }
@@ -73,16 +73,16 @@ impl ColumnTrait for Column {
             Self::Id => ColumnType::Uuid.def(),
             Self::IndexCreated => ColumnType::Integer.def(),
             Self::VoterAddress => ColumnType::Text.def(),
-            Self::Choice => ColumnType::Json.def(),
+            Self::Choice => ColumnType::JsonBinary.def(),
             Self::VotingPower => ColumnType::Double.def(),
             Self::Reason => ColumnType::Text.def().null(),
             Self::ProposalExternalId => ColumnType::Text.def(),
-            Self::BlockCreated => ColumnType::Integer.def().null(),
             Self::TimeCreated => ColumnType::DateTime.def().null(),
-            Self::VpState => ColumnType::Text.def().null(),
+            Self::BlockCreated => ColumnType::Integer.def().null(),
+            Self::Txid => ColumnType::Text.def().null(),
             Self::ProposalId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
-            Self::DaoHandlerId => ColumnType::Uuid.def(),
+            Self::IndexerId => ColumnType::Uuid.def(),
         }
     }
 }
@@ -94,9 +94,9 @@ impl RelationTrait for Relation {
                 .from(Column::DaoId)
                 .to(super::dao::Column::Id)
                 .into(),
-            Self::DaoHandler => Entity::belongs_to(super::dao_handler::Entity)
-                .from(Column::DaoHandlerId)
-                .to(super::dao_handler::Column::Id)
+            Self::DaoIndexer => Entity::belongs_to(super::dao_indexer::Entity)
+                .from(Column::IndexerId)
+                .to(super::dao_indexer::Column::Id)
                 .into(),
             Self::Proposal => Entity::belongs_to(super::proposal::Entity)
                 .from(Column::ProposalId)
@@ -116,9 +116,9 @@ impl Related<super::dao::Entity> for Entity {
     }
 }
 
-impl Related<super::dao_handler::Entity> for Entity {
+impl Related<super::dao_indexer::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::DaoHandler.def()
+        Relation::DaoIndexer.def()
     }
 }
 

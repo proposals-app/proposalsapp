@@ -17,6 +17,7 @@ pub struct Model {
     pub id: Uuid,
     pub user_id: Uuid,
     pub dao_id: Uuid,
+    pub created_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -24,6 +25,7 @@ pub enum Column {
     Id,
     UserId,
     DaoId,
+    CreatedAt,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -51,6 +53,7 @@ impl ColumnTrait for Column {
             Self::Id => ColumnType::Uuid.def(),
             Self::UserId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
+            Self::CreatedAt => ColumnType::DateTime.def(),
         }
     }
 }

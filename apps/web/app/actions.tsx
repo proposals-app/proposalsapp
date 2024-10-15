@@ -2,7 +2,7 @@
 
 import { validateRequest } from "@/lib/auth";
 import { AsyncReturnType } from "@/lib/utils";
-import { db, ProposalStateEnum } from "@proposalsapp/db";
+import { db, ProposalState } from "@proposalsapp/db";
 
 export const getSubscripions = async () => {
   let { user } = await validateRequest();
@@ -47,11 +47,9 @@ export const getGuestProposals = async (
       "proposal.url",
       "proposal.timeEnd",
     ])
-    .where("proposal.flagged", "=", false)
+    .where("markedSpam", "=", false)
     .leftJoin("dao", "proposal.daoId", "dao.id")
-    .select("dao.name as daoName")
-    .leftJoin("daoSettings", "proposal.daoId", "daoSettings.daoId")
-    .select("daoSettings.picture as daoPicture")
+    .select(["dao.name as daoName", "picture as daoPicture"])
     .offset(page * 25)
     .limit(25)
     .where(
@@ -62,13 +60,13 @@ export const getGuestProposals = async (
 
   if (active == StateFilterEnum.ALL) {
     proposals_query = proposals_query.where("proposal.proposalState", "in", [
-      ProposalStateEnum.QUEUED,
-      ProposalStateEnum.DEFEATED,
-      ProposalStateEnum.EXECUTED,
-      ProposalStateEnum.EXPIRED,
-      ProposalStateEnum.SUCCEEDED,
-      ProposalStateEnum.HIDDEN,
-      ProposalStateEnum.ACTIVE,
+      ProposalState.QUEUED,
+      ProposalState.DEFEATED,
+      ProposalState.EXECUTED,
+      ProposalState.EXPIRED,
+      ProposalState.SUCCEEDED,
+      ProposalState.HIDDEN,
+      ProposalState.ACTIVE,
     ]);
     proposals_query = proposals_query.orderBy("proposal.timeEnd", "desc");
   }
@@ -77,19 +75,19 @@ export const getGuestProposals = async (
     proposals_query = proposals_query.where(
       "proposal.proposalState",
       "=",
-      ProposalStateEnum.ACTIVE,
+      ProposalState.ACTIVE,
     );
     proposals_query = proposals_query.orderBy("timeEnd", "asc");
   }
 
   if (active == StateFilterEnum.CLOSED) {
     proposals_query = proposals_query.where("proposal.proposalState", "in", [
-      ProposalStateEnum.QUEUED,
-      ProposalStateEnum.DEFEATED,
-      ProposalStateEnum.EXECUTED,
-      ProposalStateEnum.EXPIRED,
-      ProposalStateEnum.SUCCEEDED,
-      ProposalStateEnum.HIDDEN,
+      ProposalState.QUEUED,
+      ProposalState.DEFEATED,
+      ProposalState.EXECUTED,
+      ProposalState.EXPIRED,
+      ProposalState.SUCCEEDED,
+      ProposalState.HIDDEN,
     ]);
     proposals_query = proposals_query.orderBy("timeEnd", "desc");
   }
@@ -107,7 +105,6 @@ export const getHotDaos = async () => {
   const daosList = await db
     .selectFrom("dao")
     .where("dao.hot", "=", true)
-    .innerJoin("daoSettings", "dao.id", "daoSettings.daoId")
     .orderBy("dao.name", "asc")
     .selectAll()
     .execute();

@@ -1,0 +1,71 @@
+name: Rust Tests
+on:
+  pull_request:
+  push:
+    branches:
+      - "**"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-test-coverage:
+    name: Build, Test & Coverage
+    permissions:
+      checks: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install cargo-nextest and cargo-llvm-cov
+        run: |
+          cargo install cargo-nextest --locked
+          cargo install cargo-llvm-cov
+
+      - name: Run tests with coverage
+        env:
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
+          OPTIMISTIC_SCAN_API_KEY: ${{ secrets.OPTIMISTIC_SCAN_API_KEY }}
+          ARBITRUM_NODE_URL: ${{ secrets.ARBITRUM_NODE_URL }}
+          ETHEREUM_NODE_URL: ${{ secrets.ETHEREUM_NODE_URL }}
+          OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
+          POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+          AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
+        run: |
+          cargo llvm-cov nextest --lcov --output-path lcov.info
+
+      - name: Upload test results
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: target/nextest/default/junit.xml
+          format: junit
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./lcov.info
+          flags: unittests
+          name: codecov-rust
+          fail_ci_if_error: true
+          verbose: true

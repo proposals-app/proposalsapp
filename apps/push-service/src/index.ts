@@ -1,12 +1,12 @@
-import {
-  db,
-  NotificationDispatchedStateEnum,
-  NotificationTypeEnumV2,
-} from "@proposalsapp/db";
 import { config as dotenv_config } from "dotenv";
 import express from "express";
 import axios from "axios";
 import webPush from "web-push";
+import {
+  db,
+  NotificationDispatchStatusEnum,
+  NotificationTypeEnum,
+} from "@proposalsapp/db";
 
 dotenv_config();
 
@@ -76,8 +76,8 @@ const checkProposalsAndCreateJobs = async () => {
 
       const quorumNotReached = proposal.quorum > proposal.scoresQuorum;
       const notificationType = quorumNotReached
-        ? NotificationTypeEnumV2.PUSHQUORUMNOTREACHED
-        : NotificationTypeEnumV2.PUSHTIMEEND;
+        ? NotificationTypeEnum.PUSHQUORUMNOTREACHED
+        : NotificationTypeEnum.PUSHTIMEEND;
 
       // Check if a notification has already been sent
       const existingNotification = await db
@@ -85,11 +85,7 @@ const checkProposalsAndCreateJobs = async () => {
         .where("userId", "=", user.id)
         .where("proposalId", "=", proposal.id)
         .where("type", "=", notificationType)
-        .where(
-          "dispatchstatus",
-          "=",
-          NotificationDispatchedStateEnum.DISPATCHED,
-        )
+        .where("dispatchStatus", "=", NotificationDispatchStatusEnum.DISPATCHED)
         .select("id")
         .executeTakeFirst();
 
@@ -123,8 +119,8 @@ const processJobQueue = async () => {
       .selectAll()
       .where("processed", "=", false)
       .where("jobType", "in", [
-        NotificationTypeEnumV2.PUSHTIMEEND,
-        NotificationTypeEnumV2.PUSHQUORUMNOTREACHED,
+        NotificationTypeEnum.PUSHTIMEEND,
+        NotificationTypeEnum.PUSHQUORUMNOTREACHED,
       ])
       .execute();
 
@@ -137,7 +133,7 @@ const processJobQueue = async () => {
         await sendPushNotification(
           message.userId,
           message.proposalId,
-          job.jobType as NotificationTypeEnumV2,
+          job.jobType as NotificationTypeEnum,
         );
         await db
           .updateTable("jobQueue")
@@ -156,7 +152,7 @@ const processJobQueue = async () => {
 const sendPushNotification = async (
   userId: string,
   proposalId: string,
-  notificationType: NotificationTypeEnumV2,
+  notificationType: NotificationTypeEnum,
 ) => {
   console.log(notificationType);
   const [userPushSubscriptions, dao] = await Promise.all([
@@ -173,7 +169,6 @@ const sendPushNotification = async (
         "=",
         db.selectFrom("proposal").where("id", "=", proposalId).select("daoId"),
       )
-      .innerJoin("daoSettings", "daoSettings.daoId", "dao.id")
       .selectAll()
       .executeTakeFirstOrThrow(),
   ]);
@@ -185,7 +180,7 @@ const sendPushNotification = async (
   );
 
   const message =
-    notificationType === NotificationTypeEnumV2.PUSHQUORUMNOTREACHED
+    notificationType === NotificationTypeEnum.PUSHQUORUMNOTREACHED
       ? `${dao.name} proposal is nearing its deadline and hasn't reached quorum yet. Don't forget to cast your vote!`
       : `${dao.name} proposal is nearing its deadline and you didn't vote yet. Don't forget to cast your vote!`;
 
@@ -208,8 +203,8 @@ const sendPushNotification = async (
             userId,
             proposalId,
             type: notificationType,
-            dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
-            submittedAt: new Date(),
+            dispatchStatus: NotificationDispatchStatusEnum.DISPATCHED,
+            dispatchedAt: new Date(),
           })
           .execute();
         console.log(`Sent push notification for ${proposalId} to ${userId}`);

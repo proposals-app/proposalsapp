@@ -3,7 +3,7 @@ use api_handler::ApiHandler;
 use axum::routing::get;
 use axum::Router;
 use dotenv::dotenv;
-use fetchers::posts::PostFetcher;
+use indexers::posts::PostIndexer;
 use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::dao_discourse;
@@ -14,13 +14,13 @@ use utils::tracing::setup_tracing;
 
 mod api_handler;
 mod db_handler;
-mod fetchers;
+mod indexers;
 mod models;
 
 use db_handler::DbHandler;
-use fetchers::categories::CategoryFetcher;
-use fetchers::topics::TopicFetcher;
-use fetchers::users::UserFetcher;
+use indexers::categories::CategoryIndexer;
+use indexers::topics::TopicIndexer;
+use indexers::users::UserIndexer;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
     info!(port = 3000, "Health check server initialized");
 
     let dao_discourses = seaorm::dao_discourse::Entity::find()
-        .filter(dao_discourse::Column::RefreshEnabled.eq(true))
+        .filter(dao_discourse::Column::Enabled.eq(true))
         .all(&db_handler.conn)
         .await?;
 
@@ -62,7 +62,8 @@ async fn main() -> Result<()> {
         let category_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
-                let category_fetcher = CategoryFetcher::new(
+                interval.tick().await;
+                let category_fetcher = CategoryIndexer::new(
                     &dao_discourse_category_clone.discourse_base_url,
                     Arc::clone(&api_handler),
                 );
@@ -88,7 +89,6 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-                interval.tick().await;
             }
         });
 
@@ -99,7 +99,8 @@ async fn main() -> Result<()> {
         let user_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
-                let user_fetcher = UserFetcher::new(
+                interval.tick().await;
+                let user_fetcher = UserIndexer::new(
                     &dao_discourse_users_clone.discourse_base_url,
                     Arc::clone(&api_handler),
                 );
@@ -122,7 +123,6 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-                interval.tick().await;
             }
         });
 
@@ -133,7 +133,9 @@ async fn main() -> Result<()> {
         let topic_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
-                let topic_fetcher = TopicFetcher::new(
+                interval.tick().await;
+
+                let topic_fetcher = TopicIndexer::new(
                     &dao_discourse_topic_clone.discourse_base_url,
                     Arc::clone(&api_handler),
                 );
@@ -156,7 +158,6 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-                interval.tick().await;
             }
         });
 
@@ -166,7 +167,8 @@ async fn main() -> Result<()> {
         let post_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
-                let post_fetcher = PostFetcher::new(
+                interval.tick().await;
+                let post_fetcher = PostIndexer::new(
                     &dao_discourse_post_clone.discourse_base_url,
                     Arc::clone(&api_handler),
                 );
@@ -207,7 +209,6 @@ async fn main() -> Result<()> {
                         }
                     }
                 }
-                interval.tick().await;
             }
         });
 
@@ -217,12 +218,14 @@ async fn main() -> Result<()> {
         let newcontent_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(5 * 60));
             loop {
-                let topic_fetcher = TopicFetcher::new(
+                interval.tick().await;
+
+                let topic_fetcher = TopicIndexer::new(
                     &dao_discourse_newcontent_clone.discourse_base_url,
                     Arc::clone(&api_handler),
                 );
 
-                let user_fetcher = UserFetcher::new(
+                let user_fetcher = UserIndexer::new(
                     &dao_discourse_newcontent_clone.discourse_base_url,
                     Arc::clone(&api_handler),
                 );
@@ -272,7 +275,6 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-                interval.tick().await;
             }
         });
 

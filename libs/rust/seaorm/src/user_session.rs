@@ -16,16 +16,16 @@ impl EntityName for Entity {
 pub struct Model {
     pub id: String,
     pub user_id: Uuid,
-    pub email: String,
     pub expires_at: DateTime,
+    pub created_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
     UserId,
-    Email,
     ExpiresAt,
+    CreatedAt,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -51,8 +51,8 @@ impl ColumnTrait for Column {
         match self {
             Self::Id => ColumnType::Text.def(),
             Self::UserId => ColumnType::Uuid.def(),
-            Self::Email => ColumnType::Text.def(),
             Self::ExpiresAt => ColumnType::DateTime.def(),
+            Self::CreatedAt => ColumnType::DateTime.def(),
         }
     }
 }

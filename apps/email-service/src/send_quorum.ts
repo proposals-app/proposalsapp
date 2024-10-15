@@ -1,7 +1,7 @@
 import {
   db,
-  NotificationDispatchedStateEnum,
-  NotificationTypeEnumV2,
+  NotificationDispatchStatusEnum,
+  NotificationTypeEnum,
 } from "@proposalsapp/db";
 import { QuorumData, QuorumEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
@@ -17,16 +17,8 @@ export async function sendQuorum(job: JobData) {
     .selectFrom("notification")
     .where("userId", "=", userId)
     .where("proposalId", "=", proposalId)
-    .where(
-      "notification.type",
-      "=",
-      NotificationTypeEnumV2.EMAILQUORUMNOTREACHED,
-    )
-    .where(
-      "notification.dispatchstatus",
-      "=",
-      NotificationDispatchedStateEnum.DISPATCHED,
-    )
+    .where("notification.type", "=", NotificationTypeEnum.EMAILQUORUMNOTREACHED)
+    .where("dispatchStatus", "=", NotificationDispatchStatusEnum.DISPATCHED)
     .selectAll()
     .executeTakeFirst();
 
@@ -47,29 +39,28 @@ export async function sendQuorum(job: JobData) {
   const dao = await db
     .selectFrom("dao")
     .where("dao.id", "=", proposal.daoId)
-    .innerJoin("daoSettings", "daoSettings.daoId", "dao.id")
     .selectAll()
     .executeTakeFirstOrThrow();
 
   const daoHandler = await db
-    .selectFrom("daoHandler")
-    .where("daoHandler.id", "=", proposal.daoHandlerId)
+    .selectFrom("daoIndexer")
+    .where("daoIndexer.id", "=", proposal.daoIndexerId)
     .selectAll()
     .executeTakeFirstOrThrow();
 
   let chainLogoUrl = "";
 
-  if (daoHandler.handlerType.includes("SNAPSHOT"))
+  if (daoHandler.indexerVariant.includes("SNAPSHOT"))
     chainLogoUrl = "assets/email/chains/snapshot.png";
-  else if (daoHandler.handlerType.includes("MAINNET"))
+  else if (daoHandler.indexerVariant.includes("MAINNET"))
     chainLogoUrl = "assets/email/chains/ethereum.png";
-  else if (daoHandler.handlerType.includes("ARBITRUM"))
+  else if (daoHandler.indexerVariant.includes("ARBITRUM"))
     chainLogoUrl = "assets/email/chains/arbitrum.png";
-  else if (daoHandler.handlerType.includes("OPTIMISM"))
+  else if (daoHandler.indexerVariant.includes("OPTIMISM"))
     chainLogoUrl = "assets/email/chains/optimism.png";
-  else if (daoHandler.handlerType.includes("AVALANCHE"))
+  else if (daoHandler.indexerVariant.includes("AVALANCHE"))
     chainLogoUrl = "assets/email/chains/avalanche.png";
-  else if (daoHandler.handlerType.includes("POLYGON"))
+  else if (daoHandler.indexerVariant.includes("POLYGON"))
     chainLogoUrl = "assets/email/chains/polygon.png";
 
   let { countdownSmall, countdownLarge } = {
@@ -106,9 +97,9 @@ export async function sendQuorum(job: JobData) {
     .values({
       userId: userId,
       proposalId: proposalId,
-      type: NotificationTypeEnumV2.EMAILQUORUMNOTREACHED,
-      dispatchstatus: NotificationDispatchedStateEnum.DISPATCHED,
-      submittedAt: new Date(res.SubmittedAt),
+      type: NotificationTypeEnum.EMAILQUORUMNOTREACHED,
+      dispatchStatus: NotificationDispatchStatusEnum.DISPATCHED,
+      dispatchedAt: new Date(res.SubmittedAt),
     })
     .execute();
 

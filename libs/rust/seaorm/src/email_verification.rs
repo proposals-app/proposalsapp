@@ -15,19 +15,21 @@ impl EntityName for Entity {
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
     pub id: Uuid,
-    pub user_id: Uuid,
     pub code: String,
-    pub email: String,
+    pub user_id: Uuid,
     pub expires_at: DateTime,
+    pub created_at: DateTime,
+    pub email: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
-    UserId,
     Code,
-    Email,
+    UserId,
     ExpiresAt,
+    CreatedAt,
+    Email,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -52,10 +54,11 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::Uuid.def(),
-            Self::UserId => ColumnType::Uuid.def().unique(),
             Self::Code => ColumnType::Text.def(),
-            Self::Email => ColumnType::Text.def(),
+            Self::UserId => ColumnType::Uuid.def().unique(),
             Self::ExpiresAt => ColumnType::DateTime.def(),
+            Self::CreatedAt => ColumnType::DateTime.def(),
+            Self::Email => ColumnType::Text.def(),
         }
     }
 }
