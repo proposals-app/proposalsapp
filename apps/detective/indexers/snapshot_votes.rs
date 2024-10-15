@@ -214,6 +214,7 @@ mod snapshot_votes {
     use std::sync::Arc;
     use utils::test_utils::{assert_vote, parse_datetime, ExpectedVote};
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn snapshot_aave() {
         let _ = dotenv().ok();
