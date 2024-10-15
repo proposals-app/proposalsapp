@@ -290,8 +290,8 @@ async fn main() -> Result<()> {
         loop {
             match client
                 .get(
-                    std::env::var("ONEUPTIME_KEY")
-                        .expect("ONEUPTIME_KEY missing")
+                    std::env::var("BETTERSTACK_KEY")
+                        .expect("BETTERSTACK_KEY missing")
                         .to_string(),
                 )
                 .send()

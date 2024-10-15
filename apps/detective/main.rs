@@ -46,19 +46,19 @@ use indexers::snapshot_proposals::SnapshotProposalsIndexer;
 use indexers::snapshot_votes::SnapshotVotesIndexer;
 use indexers::uniswap_mainnet_proposals::UniswapMainnetProposalsIndexer;
 use indexers::uniswap_mainnet_votes::UniswapMainnetVotesIndexer;
+use reqwest::Client;
 use sea_orm::prelude::Uuid;
 use sea_orm::DatabaseConnection;
 use seaorm::sea_orm_active_enums::{IndexerType, IndexerVariant};
 use seaorm::{dao, dao_indexer};
 use snapshot_api::{SnapshotApiConfig, SnapshotApiHandler};
-
 use std::sync::Arc;
 use std::{collections::HashSet, time::Duration};
 use tokio::{
     sync::{mpsc, Mutex},
     time::sleep,
 };
-use tracing::{debug, error, info, instrument};
+use tracing::{debug, error, info, instrument, warn};
 use utils::tracing::setup_tracing;
 
 mod database;
@@ -89,6 +89,20 @@ async fn main() -> Result<()> {
     dotenv().ok();
     setup_tracing();
     let db: DatabaseConnection = DatabaseStore::connect().await?;
+
+    // Heartbeat task
+    let uptime_handle = tokio::spawn(async move {
+        let client = Client::new();
+        let betterstack_key = std::env::var("BETTERSTACK_KEY").expect("BETTERSTACK_KEY missing");
+
+        loop {
+            match client.get(&betterstack_key).send().await {
+                Ok(_) => info!("Uptime ping sent successfully"),
+                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+            }
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
+    });
 
     // Create channels for the job queues
     let (snapshot_tx, snapshot_rx) = mpsc::channel::<(dao_indexer::Model, dao::Model)>(MAX_JOBS);
@@ -180,6 +194,7 @@ async fn main() -> Result<()> {
     snapshot_job_consumer.abort();
     other_job_consumer.abort();
     server.abort();
+    uptime_handle.abort();
 
     Ok(())
 }

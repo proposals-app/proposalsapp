@@ -20,7 +20,7 @@ app.listen(3000, () =>
 
 const sendUptimePing = async () => {
   try {
-    await axios.get(`${process.env.ONEUPTIME_KEY}`);
+    await axios.get(`${process.env.BETTERSTACK_KEY}`);
     console.log("Uptime ping sent successfully");
   } catch (error) {
     console.error("Failed to send uptime ping:", error);
