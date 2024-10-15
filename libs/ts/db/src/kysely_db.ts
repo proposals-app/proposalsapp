@@ -293,6 +293,7 @@ export interface UserPushNotificationSubscription {
 
 export interface UserSession {
   createdAt: Generated<Timestamp>;
+  email: string | null;
   expiresAt: Timestamp;
   id: string;
   userId: string;
