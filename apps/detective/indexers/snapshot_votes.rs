@@ -201,3 +201,67 @@ async fn parse_votes(
         })
         .collect()
 }
+
+#[cfg(test)]
+mod snapshot_votes {
+    use crate::snapshot_api::SnapshotApiConfig;
+
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use serde_json::json;
+    use std::sync::Arc;
+    use utils::test_utils::{assert_vote, parse_datetime, ExpectedVote};
+
+    #[tokio::test]
+    async fn snapshot_aave() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("08b12b74-33fa-43a7-963e-2ca5f54b1a45").unwrap(),
+            indexer_variant: IndexerVariant::SnapshotProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 1718819228,
+            dao_id: Uuid::parse_str("d86b6b16-9a0f-40ef-82cf-4f2d9e946612").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("d86b6b16-9a0f-40ef-82cf-4f2d9e946612").unwrap(),
+            name: "Aave".into(),
+            slug: "aave".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        let snapshot_api_handler = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig::default()));
+        let snapshot_indexer = SnapshotVotesIndexer::new(snapshot_api_handler);
+
+        match snapshot_indexer.process(&indexer, &dao).await {
+            Ok((_, votes, _)) => {
+                assert!(!votes.is_empty(), "No votes were fetched");
+                let expected_votes = [ExpectedVote {
+                    index_created: 1718821336,
+                    voter_address: "0xECC2a9240268BC7a26386ecB49E1Befca2706AC9",
+                    choice: json!(0),
+                    voting_power: 39804.49649036,
+                    reason: Some(""),
+                    proposal_external_id:
+                        "0xb74537a0528f484e9cc76d8c7931eedef7b6290e7d2dc725b2c98e623a214f95",
+                    time_created: Some(parse_datetime("2024-06-19 18:22:16")),
+                    block_created: None,
+                    txid: Some("bafkreibcyk5ej57kvosdepk3yd5skuul7hzd5yiwhrqyzx4zeybiwn2axy"),
+                }];
+                for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
+                    assert_vote(vote, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
+}

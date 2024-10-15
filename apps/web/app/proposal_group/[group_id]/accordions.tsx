@@ -32,8 +32,9 @@ export function ProposalAccordion({ proposals }: { proposals: any[] }) {
             <ul className="list-disc pl-5">
               {proposal.votes.map((vote: any) => (
                 <li key={vote.id}>
-                  Address: {vote.voterAddress}, Choice:{" "}
-                  {JSON.stringify(vote.choice)}, Power: {vote.votingPower}
+                  Timestamp: {vote.timeCreated}, Address: {vote.voterAddress},
+                  Choice: {JSON.stringify(vote.choice)}, Power:{" "}
+                  {vote.votingPower}
                 </li>
               ))}
             </ul>
