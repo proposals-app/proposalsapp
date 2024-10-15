@@ -137,13 +137,9 @@ impl TopicIndexer {
                     page += 1;
                 }
                 Err(e) => {
-                    if let Some(status) =
-                        e.downcast_ref::<reqwest::Error>().and_then(|e| e.status())
-                    {
-                        if status == StatusCode::NOT_FOUND {
-                            info!("Received 404 error. No more pages available. Stopping.");
-                            break;
-                        }
+                    if e.to_string().contains("404") {
+                        info!(page = page, "Reached end of pages (404 error). Stopping.");
+                        break;
                     }
                     // If it's not a 404 error, propagate the error
                     return Err(e);
