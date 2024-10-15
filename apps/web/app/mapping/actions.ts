@@ -1,6 +1,6 @@
 "use server";
 
-import { db, JsonArray } from "@proposalsapp/db";
+import { db } from "@proposalsapp/db";
 import { revalidatePath } from "next/cache";
 import Fuse from "fuse.js";
 
@@ -36,14 +36,14 @@ export async function fetchData() {
               const proposal = await db
                 .selectFrom("proposal")
                 .leftJoin(
-                  "daoHandler",
-                  "daoHandler.id",
-                  "proposal.daoHandlerId",
+                  "daoIndexer",
+                  "daoIndexer.id",
+                  "proposal.daoIndexerId",
                 )
-                .select("handlerType")
+                .select("indexerVariant")
                 .where("proposal.id", "=", item.id)
                 .executeTakeFirst();
-              indexerName = proposal?.handlerType ?? "unknown";
+              indexerName = proposal?.indexerVariant ?? "unknown";
             } else if (item.type === "topic") {
               const topic = await db
                 .selectFrom("discourseTopic")
@@ -92,8 +92,8 @@ export async function fuzzySearchItems(
 ): Promise<FuzzyItem[]> {
   const proposals = await db
     .selectFrom("proposal")
-    .leftJoin("daoHandler", "daoHandler.id", "proposal.daoHandlerId")
-    .select(["proposal.id", "proposal.name", "handlerType"])
+    .leftJoin("daoIndexer", "daoIndexer.id", "proposal.daoIndexerId")
+    .select(["proposal.id", "proposal.name", "daoIndexer.indexerVariant"])
     .execute();
 
   const topics = await db
@@ -111,7 +111,7 @@ export async function fuzzySearchItems(
       id: p.id.toString(),
       name: p.name,
       type: "proposal" as const,
-      indexerName: p.handlerType ?? "unknown",
+      indexerName: p.indexerVariant ?? "unknown",
       score: 1,
     })),
     ...topics.map((t) => ({

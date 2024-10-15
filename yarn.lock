@@ -2690,6 +2690,7 @@ __metadata:
     "@types/react": "npm:18.3.11"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:18.3.1"
+    "@types/uuid": "npm:^10"
     "@types/web-push": "npm:3.6.3"
     autoprefixer: "npm:10.4.20"
     class-variance-authority: "npm:0.7.0"
@@ -2697,6 +2698,7 @@ __metadata:
     cmdk: "npm:^1.0.0"
     date-fns: "npm:^4.1.0"
     embla-carousel-react: "npm:^8.3.0"
+    fuse.js: "npm:^7.0.0"
     input-otp: "npm:^1.2.4"
     lucia: "npm:3.2.1"
     lucide-react: "npm:^0.453.0"
@@ -2725,6 +2727,7 @@ __metadata:
     tailwindcss: "npm:3.4.13"
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:5.6.3"
+    uuid: "npm:^10.0.0"
     vaul: "npm:^1.1.0"
     viem: "npm:2.21.26"
     web-push: "npm:3.6.7"
@@ -5318,6 +5321,13 @@ __metadata:
   version: 2.0.7
   resolution: "@types/trusted-types@npm:2.0.7"
   checksum: 10c0/4c4855f10de7c6c135e0d32ce462419d8abbbc33713b31d294596c0cc34ae1fa6112a2f9da729c8f7a20707782b0d69da3b1f8df6645b0366d08825ca1522e0c
+  languageName: node
+  linkType: hard
+
+"@types/uuid@npm:^10":
+  version: 10.0.0
+  resolution: "@types/uuid@npm:10.0.0"
+  checksum: 10c0/9a1404bf287164481cb9b97f6bb638f78f955be57c40c6513b7655160beb29df6f84c915aaf4089a1559c216557dc4d2f79b48d978742d3ae10b937420ddac60
   languageName: node
   linkType: hard
 
@@ -9154,6 +9164,13 @@ __metadata:
   version: 1.2.3
   resolution: "functions-have-names@npm:1.2.3"
   checksum: 10c0/33e77fd29bddc2d9bb78ab3eb854c165909201f88c75faa8272e35899e2d35a8a642a15e7420ef945e1f64a9670d6aa3ec744106b2aa42be68ca5114025954ca
+  languageName: node
+  linkType: hard
+
+"fuse.js@npm:^7.0.0":
+  version: 7.0.0
+  resolution: "fuse.js@npm:7.0.0"
+  checksum: 10c0/3574b7fc2e0ccb047e05dbe5f8f04e8f0754f62fa209669ef426ea1354a32ae7355620788af8f1d29f94e1fdecd513f1f3787f012848a31ec90bb4e0e6092504
   languageName: node
   linkType: hard
 
@@ -14629,6 +14646,15 @@ __metadata:
   bin:
     uuid: dist/bin/uuid
   checksum: 10c0/bcbb807a917d374a49f475fae2e87fdca7da5e5530820ef53f65ba1d12131bd81a92ecf259cc7ce317cbe0f289e7d79fdfebcef9bfa3087c8c8a2fa304c9be54
+  languageName: node
+  linkType: hard
+
+"uuid@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "uuid@npm:10.0.0"
+  bin:
+    uuid: dist/bin/uuid
+  checksum: 10c0/eab18c27fe4ab9fb9709a5d5f40119b45f2ec8314f8d4cf12ce27e4c6f4ffa4a6321dc7db6c515068fa373c075b49691ba969f0010bf37f44c37ca40cd6bf7fe
   languageName: node
   linkType: hard
 

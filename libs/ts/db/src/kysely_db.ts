@@ -261,6 +261,13 @@ export interface Proposal {
   url: string;
 }
 
+export interface ProposalGroup {
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  items: Generated<Json>;
+  name: string;
+}
+
 export interface Subscription {
   createdAt: Generated<Timestamp>;
   daoId: string;
@@ -340,6 +347,7 @@ export interface DB {
   jobQueue: JobQueue;
   notification: Notification;
   proposal: Proposal;
+  proposalGroup: ProposalGroup;
   subscription: Subscription;
   user: User;
   userPushNotificationSubscription: UserPushNotificationSubscription;
