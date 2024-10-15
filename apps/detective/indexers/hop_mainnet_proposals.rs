@@ -162,7 +162,7 @@ async fn data_for_proposal(
     };
 
     let proposal_url = format!(
-        "https://app.hop.exchange/#/governance/proposal/{}",
+        "https://www.tally.xyz/gov/hop/proposal/{}",
         event.proposalId
     );
 
@@ -264,4 +264,73 @@ async fn data_for_proposal(
             hex::encode(log.transaction_hash.unwrap())
         ))),
     })
+}
+
+#[cfg(test)]
+mod hop_mainnet_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use serde_json::json;
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+
+    #[tokio::test]
+    async fn hop_proposals() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::DydxMainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 20134626,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match HopMainnetProposalsIndexer.process(&indexer, &dao).await {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 20134626,
+                    external_id: "51305966013437649942436285826738882927850963257079969027071347095796508382089",
+                    name: "[HIP-39] Community Multisig Refill (6)",
+                    body_contains: Some(vec!["The Hop Community Multisig has continued to distribute payments for the Hop DAO to delegates, multisig signers, bonders, and AMM reward contracts (liquidity incentives)."]),
+                    url: "https://www.tally.xyz/gov/hop/proposal/51305966013437649942436285826738882927850963257079969027071347095796508382089",
+                    discussion_url: "",
+                    choices: json!(["For", "Against", "Abstain"]),
+                    scores: json!([6133710.747652273, 1478.6211328143681, 0.0]),
+                    scores_total: 6135189.368785087,
+                    scores_quorum: 6133710.747652273,
+                    quorum: 3000000.0,
+                    proposal_state: ProposalState::Executed,
+                    marked_spam: None,
+                    time_created: parse_datetime("2024-06-20 18:08:11"),
+                    time_start: parse_datetime("2024-06-20 18:08:23"),
+                    time_end: parse_datetime("2024-06-27 03:49:59"),
+                    block_created: Some(20134626),
+                    txid: Some(
+                        "0xee04eb4dd4ff429ae485dd21b7ea0890a607f5b8e788b1f40c03f21b24daec57",
+                    ),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
 }

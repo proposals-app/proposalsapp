@@ -168,8 +168,8 @@ async fn data_for_proposal(
             _ => "Unknown".to_string(),
         };
         choices.push(choice);
-        scores.push(res.mkrSupport.as_str().unwrap().parse::<f64>()? / (10.0f64.powi(18)));
-        scores_total += res.mkrSupport.as_str().unwrap().parse::<f64>()? / (10.0f64.powi(18));
+        scores.push(res.mkrSupport.as_str().unwrap().parse::<f64>()?);
+        scores_total += res.mkrSupport.as_str().unwrap().parse::<f64>()?;
     }
 
     let state = if voting_ends_timestamp < Utc::now().naive_utc() {
@@ -303,4 +303,76 @@ async fn get_title(url: String) -> Result<String> {
     }
 
     Ok("Unknown".to_string())
+}
+
+#[cfg(test)]
+mod maker_poll_mainnet_proposals {
+    use super::*;
+    use dotenv::dotenv;
+    use sea_orm::prelude::Uuid;
+    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use serde_json::json;
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+
+    #[tokio::test]
+    async fn maker_poll_proposals() {
+        let _ = dotenv().ok();
+
+        let indexer = dao_indexer::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            indexer_variant: IndexerVariant::DydxMainnetProposals,
+            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            portal_url: Some("placeholder".into()),
+            enabled: true,
+            speed: 1,
+            index: 20814312,
+            dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+        };
+
+        let dao = dao::Model {
+            id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            name: "placeholder".into(),
+            slug: "placeholder".into(),
+            hot: true,
+            picture: "placeholder".into(),
+            background_color: "placeholder".into(),
+            email_quorum_warning_support: true,
+        };
+
+        match MakerPollMainnetProposalsIndexer
+            .process(&indexer, &dao)
+            .await
+        {
+            Ok((proposals, _, _)) => {
+                assert!(!proposals.is_empty(), "No proposals were fetched");
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 20814312,
+                    external_id: "1143",
+                    name: "LITE-PSM-USDC-A Phase 3 (Final Migration) Parameter Proposal - September 23, 2024",
+                    body_contains: Some(vec![""]),
+                    url: "https://vote.makerdao.com/polling/QmRjrFYG",
+                    discussion_url: "",
+                    choices: json!(["Abstain", "Yes", "No"]),
+                    scores: json!([0.0, 87700.50889104782, 0.0]),
+                    scores_total: 87700.50889104782,
+                    scores_quorum: 0.0,
+                    quorum: 0.0,
+                    proposal_state: ProposalState::Executed,
+                    marked_spam: None,
+                    time_created: parse_datetime("2024-09-23 15:55:23"),
+                    time_start: parse_datetime("2024-09-23 16:00:00"),
+                    time_end: parse_datetime("2024-09-26 16:00:00"),
+                    block_created: Some(20814312),
+                    txid: Some(
+                        "0x7ee3d65211b36ea87a3f10672018ed6e1a1e6fb1f4cf95076a8bb610d6b27b4a",
+                    ),
+                    metadata: None,
+                }];
+                for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
+                    assert_proposal(proposal, expected);
+                }
+            }
+            Err(e) => panic!("Failed to get proposals: {:?}", e),
+        }
+    }
 }
