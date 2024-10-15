@@ -25,7 +25,7 @@ pub struct FraxAlphaMainnetVotesIndexer;
 
 impl FraxAlphaMainnetVotesIndexer {
     pub fn proposal_indexer_variant() -> IndexerVariant {
-        IndexerVariant::FraxAlphaMainnetVotes
+        IndexerVariant::FraxAlphaMainnetProposals
     }
 }
 
