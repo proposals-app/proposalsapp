@@ -24,8 +24,9 @@ struct Job {
 }
 
 impl ApiHandler {
-    pub fn new(max_retries: usize) -> Self {
+    pub fn new() -> Self {
         let client = Client::new();
+        let max_retries = 10;
         let semaphore = Arc::new(Semaphore::new(5));
         let (sender, receiver) = mpsc::channel(1000);
         let jobs_in_queue = Arc::new(AtomicUsize::new(0));

@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
         .all(&db_handler.conn)
         .await?;
 
-    let shared_api_handler = Arc::new(ApiHandler::new(5));
+    let shared_api_handler = Arc::new(ApiHandler::new());
 
     let mut handles = vec![];
     for dao_discourse in dao_discourses {
