@@ -79,7 +79,7 @@ impl TopicIndexer {
     ) -> Result<()> {
         let mut page = 0;
         let mut total_topics = 0;
-        let max_pages = 5;
+        let max_pages = 10;
 
         while page <= max_pages {
             let url = format!("{}/latest.json?order=created&page={}", self.base_url, page);

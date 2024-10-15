@@ -22,6 +22,8 @@ use indexers::categories::CategoryIndexer;
 use indexers::topics::TopicIndexer;
 use indexers::users::UserIndexer;
 
+const WAIT_FIRST: bool = true;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
@@ -62,6 +64,9 @@ async fn main() -> Result<()> {
         let category_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
+                if WAIT_FIRST {
+                    interval.tick().await;
+                }
                 let category_fetcher = CategoryIndexer::new(
                     &dao_discourse_category_clone.discourse_base_url,
                     Arc::clone(&api_handler),
@@ -88,7 +93,9 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-                interval.tick().await;
+                if !WAIT_FIRST {
+                    interval.tick().await;
+                }
             }
         });
 
@@ -99,6 +106,9 @@ async fn main() -> Result<()> {
         let user_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
+                if WAIT_FIRST {
+                    interval.tick().await;
+                }
                 let user_fetcher = UserIndexer::new(
                     &dao_discourse_users_clone.discourse_base_url,
                     Arc::clone(&api_handler),
@@ -122,7 +132,9 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-                interval.tick().await;
+                if !WAIT_FIRST {
+                    interval.tick().await;
+                }
             }
         });
 
@@ -133,6 +145,9 @@ async fn main() -> Result<()> {
         let topic_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
+                if WAIT_FIRST {
+                    interval.tick().await;
+                }
                 let topic_fetcher = TopicIndexer::new(
                     &dao_discourse_topic_clone.discourse_base_url,
                     Arc::clone(&api_handler),
@@ -156,7 +171,9 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-                interval.tick().await;
+                if !WAIT_FIRST {
+                    interval.tick().await;
+                }
             }
         });
 
@@ -166,6 +183,9 @@ async fn main() -> Result<()> {
         let post_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
+                if WAIT_FIRST {
+                    interval.tick().await;
+                }
                 let post_fetcher = PostIndexer::new(
                     &dao_discourse_post_clone.discourse_base_url,
                     Arc::clone(&api_handler),
@@ -207,7 +227,9 @@ async fn main() -> Result<()> {
                         }
                     }
                 }
-                interval.tick().await;
+                if !WAIT_FIRST {
+                    interval.tick().await;
+                }
             }
         });
 
