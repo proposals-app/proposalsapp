@@ -9,6 +9,7 @@ pub struct TopicResponse {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TopicList {
     pub topics: Vec<Topic>,
+    pub per_page: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

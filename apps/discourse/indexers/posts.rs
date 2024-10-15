@@ -4,8 +4,6 @@ use crate::indexers::users::UserIndexer;
 use crate::models::posts::PostResponse;
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
-use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter};
-use seaorm::discourse_post;
 use std::sync::Arc;
 use tracing::{error, info, instrument, warn};
 
@@ -29,15 +27,19 @@ impl PostIndexer {
         topic_id: i32,
     ) -> Result<()> {
         let mut page = 0;
-        let mut total_posts = 0;
-        let mut previous_response: Option<PostResponse> = None;
+        let mut total_posts_fetched: i32 = 0;
+        let mut total_posts_count: i32 = 0;
 
         loop {
             let url = format!("{}/t/{}.json?page={}", self.base_url, topic_id, page);
             let response: PostResponse = self.api_handler.fetch(&url).await?;
 
-            let num_posts = response.post_stream.posts.len();
-            total_posts += num_posts;
+            if total_posts_count == 0 {
+                total_posts_count = response.posts_count;
+            }
+
+            let num_posts = response.post_stream.posts.len() as i32;
+            total_posts_fetched += num_posts;
 
             for post in &response.post_stream.posts {
                 match db_handler.upsert_post(post, dao_discourse_id).await {
@@ -83,38 +85,27 @@ impl PostIndexer {
                 topic_id = topic_id,
                 page = page + 1,
                 num_posts = num_posts,
-                total_posts = total_posts,
+                total_posts_fetched = total_posts_fetched,
+                total_posts_count = total_posts_count,
                 url = url,
                 "Fetched and upserted posts for topic"
             );
 
-            if response.post_stream.posts.is_empty() {
+            if total_posts_fetched >= total_posts_count || response.post_stream.posts.is_empty() {
                 info!(
                     topic_id = topic_id,
-                    "No more posts to fetch for topic. Stopping."
+                    "Finished fetching all posts for topic. Stopping."
                 );
                 break;
             }
 
-            if let Some(prev) = &previous_response {
-                if serde_json::to_string(&prev.post_stream.posts)?
-                    == serde_json::to_string(&response.post_stream.posts)?
-                {
-                    info!(
-                        topic_id = topic_id,
-                        "Detected identical response for topic. Stopping fetch."
-                    );
-                    break;
-                }
-            }
-
-            previous_response = Some(response);
             page += 1;
         }
 
         info!(
             topic_id = topic_id,
-            total_posts = total_posts,
+            total_posts_fetched = total_posts_fetched,
+            total_posts_count = total_posts_count,
             "Finished updating posts for topic"
         );
         Ok(())

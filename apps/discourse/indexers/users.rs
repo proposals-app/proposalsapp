@@ -27,7 +27,7 @@ impl UserIndexer {
         let mut page = 0;
         let mut total_users = 0;
         let mut previous_response: Option<UserResponse> = None;
-
+        let mut previous_repeat = 0;
         loop {
             let url = format!(
                 "{}/directory_items.json?page={}&order=asc&period=all",
@@ -76,7 +76,10 @@ impl UserIndexer {
                     == serde_json::to_string(&response.directory_items)?
                 {
                     info!("Detected identical response. Stopping fetch.");
-                    break;
+                    previous_repeat = previous_repeat + 1;
+                    if previous_repeat == 3 {
+                        break;
+                    }
                 }
             }
 

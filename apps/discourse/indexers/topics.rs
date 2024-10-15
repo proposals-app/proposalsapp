@@ -24,9 +24,8 @@ impl TopicIndexer {
         db_handler: &DbHandler,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        let mut page = 0;
         let mut total_topics = 0;
-        let mut previous_response: Option<TopicResponse> = None;
+        let mut page = 0;
 
         loop {
             let url = format!(
@@ -35,7 +34,8 @@ impl TopicIndexer {
             );
             let response: TopicResponse = self.api_handler.fetch(&url).await?;
 
-            let num_topics = response.topic_list.topics.len();
+            let per_page = response.topic_list.per_page;
+            let num_topics = response.topic_list.topics.len() as i32;
             total_topics += num_topics;
 
             for topic in &response.topic_list.topics {
@@ -54,16 +54,11 @@ impl TopicIndexer {
                 break;
             }
 
-            if let Some(prev) = &previous_response {
-                if serde_json::to_string(&prev.topic_list.topics)?
-                    == serde_json::to_string(&response.topic_list.topics)?
-                {
-                    info!("Detected identical response. Stopping fetch.");
-                    break;
-                }
+            if num_topics < per_page {
+                info!("Reached last page. Stopping.");
+                break;
             }
 
-            previous_response = Some(response);
             page += 1;
         }
 
@@ -77,15 +72,18 @@ impl TopicIndexer {
         db_handler: &DbHandler,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        let mut page = 0;
         let mut total_topics = 0;
-        let max_pages = 5;
+        let mut page = 0;
 
-        while page <= max_pages {
-            let url = format!("{}/latest.json?order=created&page={}", self.base_url, page);
+        loop {
+            let url = format!(
+                "{}/latest.json?order=created&ascending=true&page={}",
+                self.base_url, page
+            );
             let response: TopicResponse = self.api_handler.fetch(&url).await?;
 
-            let num_topics = response.topic_list.topics.len();
+            let per_page = response.topic_list.per_page;
+            let num_topics = response.topic_list.topics.len() as i32;
             total_topics += num_topics;
 
             for topic in &response.topic_list.topics {
@@ -106,7 +104,12 @@ impl TopicIndexer {
             );
 
             if response.topic_list.topics.is_empty() {
-                tracing::info!("No more new topics to fetch. Stopping.");
+                info!("No more new topics to fetch. Stopping.");
+                break;
+            }
+
+            if num_topics < per_page {
+                info!("Reached last page. Stopping.");
                 break;
             }
 
