@@ -64,7 +64,7 @@ impl PostIndexer {
                                         .await
                                     {
                                         Ok(_) => {
-                                            // Try to upsert the post again with the fetched (or unknown) user
+                                            // Try to upsert the post again with the fetched user
                                             if let Err(e) =
                                                 db_handler.upsert_post(post, dao_discourse_id).await
                                             {

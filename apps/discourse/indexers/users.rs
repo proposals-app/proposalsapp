@@ -162,40 +162,25 @@ impl UserIndexer {
 
         info!("Fetch user by username: {}", url);
 
-        match self.api_handler.fetch::<UserDetailResponse>(&url).await {
-            Ok(response) => {
-                let user = User {
-                    id: response.user.id,
-                    username: response.user.username,
-                    name: response.user.name,
-                    avatar_template: self.process_avatar_url(&response.user.avatar_template),
-                    title: response.user.title,
-                    likes_received: None,
-                    likes_given: None,
-                    topics_entered: None,
-                    topic_count: None,
-                    post_count: None,
-                    posts_read: None,
-                    days_visited: None,
-                };
+        let response = self.api_handler.fetch::<UserDetailResponse>(&url).await?;
 
-                db_handler.upsert_user(&user, dao_discourse_id).await?;
-                Ok(())
-            }
-            Err(e) => {
-                warn!(
-                    "Failed to fetch user {}: {}. Using unknown user.",
-                    username, e
-                );
-                let unknown_user = db_handler
-                    .get_or_create_unknown_user(dao_discourse_id)
-                    .await?;
-                db_handler
-                    .upsert_user(&unknown_user, dao_discourse_id)
-                    .await?;
-                Ok(())
-            }
-        }
+        let user = User {
+            id: response.user.id,
+            username: response.user.username,
+            name: response.user.name,
+            avatar_template: self.process_avatar_url(&response.user.avatar_template),
+            title: response.user.title,
+            likes_received: None,
+            likes_given: None,
+            topics_entered: None,
+            topic_count: None,
+            post_count: None,
+            posts_read: None,
+            days_visited: None,
+        };
+
+        db_handler.upsert_user(&user, dao_discourse_id).await?;
+        Ok(())
     }
 
     fn process_avatar_url(&self, avatar_template: &str) -> String {
