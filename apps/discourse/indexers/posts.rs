@@ -5,6 +5,7 @@ use crate::models::posts::{Post, PostResponse};
 use anyhow::Result;
 use futures::stream::{self, StreamExt};
 use sea_orm::prelude::Uuid;
+use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::task;
 use tracing::{error, info, instrument, warn};
@@ -26,8 +27,9 @@ impl PostIndexer {
         topic_id: i32,
     ) -> Result<()> {
         let mut page = 0;
-        let mut total_posts_fetched: i32 = 0;
         let mut total_posts_count: i32 = 0;
+        let mut total_unique_posts_fetched: i32 = 0;
+        let mut seen_post_ids: HashSet<i32> = HashSet::new();
 
         loop {
             let url = format!("/t/{}.json?page={}", topic_id, page);
@@ -37,40 +39,52 @@ impl PostIndexer {
                         total_posts_count = response.posts_count;
                     }
 
-                    let num_posts = response.post_stream.posts.len() as i32;
-                    total_posts_fetched += num_posts;
-
                     let posts = response.post_stream.posts;
+                    let num_posts = posts.len() as i32;
                     let is_empty = posts.is_empty();
 
-                    // Process posts in parallel
-                    stream::iter(posts)
-                        .map(|post| {
-                            let db_handler = Arc::clone(&db_handler);
-                            let api_handler = Arc::clone(&self.api_handler);
-                            task::spawn(async move {
-                                Self::process_post(post, db_handler, dao_discourse_id, api_handler)
-                                    .await
-                            })
-                        })
-                        .buffer_unordered(10) // Process up to 10 posts concurrently
-                        .for_each(|_| async { () })
-                        .await;
+                    let new_unique_posts: Vec<&Post> = posts
+                        .iter()
+                        .filter(|post| seen_post_ids.insert(post.id))
+                        .collect();
 
+                    let num_new_unique_posts = new_unique_posts.len() as i32;
+                    total_unique_posts_fetched += num_new_unique_posts;
+
+                    if !is_empty {
+                        stream::iter(posts)
+                            .map(|post| {
+                                let db_handler = Arc::clone(&db_handler);
+                                let api_handler = Arc::clone(&self.api_handler);
+                                task::spawn(async move {
+                                    Self::process_post(
+                                        post,
+                                        db_handler,
+                                        dao_discourse_id,
+                                        api_handler,
+                                    )
+                                    .await
+                                })
+                            })
+                            .buffer_unordered(10)
+                            .for_each(|_| async { () })
+                            .await;
+                    }
                     info!(
                         topic_id = topic_id,
                         page = page + 1,
+                        num_new_unique_posts = num_new_unique_posts,
                         num_posts = num_posts,
-                        total_posts_fetched = total_posts_fetched,
+                        total_unique_posts_fetched = total_unique_posts_fetched,
                         total_posts_count = total_posts_count,
                         url = url,
-                        "Fetched and upserted posts for topic"
+                        "Fetched and processed posts for topic"
                     );
 
-                    if total_posts_fetched >= total_posts_count || is_empty {
+                    if total_unique_posts_fetched >= total_posts_count {
                         info!(
                             topic_id = topic_id,
-                            "Finished fetching all posts for topic. Stopping."
+                            "Finished fetching all unique posts for topic. Stopping."
                         );
                         break;
                     }
@@ -100,7 +114,7 @@ impl PostIndexer {
 
         info!(
             topic_id = topic_id,
-            total_posts_fetched = total_posts_fetched,
+            total_unique_posts_fetched = total_unique_posts_fetched,
             total_posts_count = total_posts_count,
             "Finished updating posts for topic"
         );
