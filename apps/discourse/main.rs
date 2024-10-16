@@ -24,6 +24,8 @@ use indexers::topics::TopicIndexer;
 use indexers::users::UserIndexer;
 
 const WAIT_FIRST: bool = true;
+const FAST_INDEX: Duration = Duration::from_secs(5 * 60);
+const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -64,7 +66,7 @@ async fn main() -> Result<()> {
         let dao_discourse_category_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let category_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(6 * 60 * 60));
+            let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
@@ -103,7 +105,7 @@ async fn main() -> Result<()> {
         let dao_discourse_users_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let user_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(6 * 60 * 60));
+            let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
@@ -142,7 +144,7 @@ async fn main() -> Result<()> {
         let dao_discourse_topic_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let topic_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(6 * 60 * 60));
+            let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
@@ -180,7 +182,7 @@ async fn main() -> Result<()> {
         let dao_discourse_revision_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let revision_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(6 * 60 * 60));
+            let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
@@ -220,7 +222,7 @@ async fn main() -> Result<()> {
         let dao_discourse_newcontent_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let newcontent_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(5 * 60));
+            let mut interval = tokio::time::interval(FAST_INDEX);
             loop {
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
