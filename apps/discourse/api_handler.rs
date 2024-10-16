@@ -1,21 +1,21 @@
 use anyhow::{anyhow, Result};
-use reqwest::header::{RETRY_AFTER, USER_AGENT};
-use reqwest::Client;
+use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT};
+use reqwest::{Client, StatusCode};
 use serde::de::DeserializeOwned;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{mpsc, Semaphore};
+use tokio::sync::mpsc;
 use tokio::time::sleep;
-use tracing::{info, warn};
+use tracing::{debug, error, warn};
+
+const DEFAULT_QUEUE_SIZE: usize = 1000;
+const DEFAULT_MAX_RETRIES: usize = 10;
+const DEFAULT_INITIAL_BACKOFF: Duration = Duration::from_secs(2);
 
 #[derive(Clone)]
 pub struct ApiHandler {
     client: Client,
     max_retries: usize,
-    semaphore: Arc<Semaphore>,
     sender: mpsc::Sender<Job>,
-    jobs_in_queue: Arc<AtomicUsize>,
     base_url: String,
 }
 
@@ -26,24 +26,34 @@ struct Job {
 
 impl ApiHandler {
     pub fn new(base_url: String) -> Self {
-        let client = Client::new();
-        let max_retries = 10;
-        let semaphore = Arc::new(Semaphore::new(5));
-        let (sender, receiver) = mpsc::channel(1000);
-        let jobs_in_queue = Arc::new(AtomicUsize::new(0));
+        Self::new_with_config(base_url, DEFAULT_QUEUE_SIZE, DEFAULT_MAX_RETRIES)
+    }
+
+    pub fn new_with_config(base_url: String, queue_size: usize, max_retries: usize) -> Self {
+        let client = Client::builder()
+            .default_headers(Self::default_headers())
+            .build()
+            .expect("Failed to build HTTP client");
+
+        let (sender, receiver) = mpsc::channel(queue_size);
 
         let api_handler = Self {
             client,
             max_retries,
-            semaphore: semaphore.clone(),
             sender,
-            jobs_in_queue,
             base_url,
         };
 
         tokio::spawn(api_handler.clone().run_queue(receiver));
 
         api_handler
+    }
+
+    fn default_headers() -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(USER_AGENT, HeaderValue::from_static("proposals.app Discourse Indexer/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12"));
+        headers.insert("Referer", HeaderValue::from_static("https://proposals.app"));
+        headers
     }
 
     pub async fn fetch<T>(&self, endpoint: &str) -> Result<T>
@@ -53,7 +63,7 @@ impl ApiHandler {
         let (response_sender, response_receiver) = oneshot::channel();
         let url = format!("{}{}", self.base_url, endpoint);
         let job = Job {
-            url: url.to_string(),
+            url,
             response_sender,
         };
 
@@ -62,15 +72,7 @@ impl ApiHandler {
             .await
             .map_err(|e| anyhow!("Failed to send job: {}", e))?;
 
-        self.jobs_in_queue.fetch_add(1, Ordering::SeqCst);
-
-        let jobs_in_queue = self.jobs_in_queue.load(Ordering::SeqCst);
-        let available_permits = self.semaphore.available_permits();
-
-        info!(
-            "Job queue status: {} jobs in queue, {} available permits",
-            jobs_in_queue, available_permits
-        );
+        debug!("Job added to queue: {}", endpoint);
 
         let response = response_receiver
             .await
@@ -80,73 +82,68 @@ impl ApiHandler {
 
     async fn run_queue(self, mut receiver: mpsc::Receiver<Job>) {
         while let Some(job) = receiver.recv().await {
-            let permit = self.semaphore.clone().acquire_owned().await.unwrap();
-            let client = self.client.clone();
-            let max_retries = self.max_retries;
-            let jobs_in_queue = self.jobs_in_queue.clone();
-
-            tokio::spawn(async move {
-                let result = Self::execute_request(&client, &job.url, max_retries).await;
-                let _ = job.response_sender.send(result);
-                jobs_in_queue.fetch_sub(1, Ordering::SeqCst);
-                drop(permit);
-            });
+            let result = self.execute_request(&job.url).await;
+            if let Err(e) = &result {
+                error!("Request failed: {}", e);
+            }
+            let _ = job.response_sender.send(result);
         }
     }
 
-    async fn execute_request(client: &Client, url: &str, max_retries: usize) -> Result<String> {
+    async fn execute_request(&self, url: &str) -> Result<String> {
         let mut attempt = 0;
-        let mut delay = Duration::from_secs(2);
+        let mut delay = DEFAULT_INITIAL_BACKOFF;
 
         loop {
-            match client
-                .get(url)
-                .header(USER_AGENT, "proposals.app Discourse Indexer/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12")
-                .header("Referer", "https://proposals.app")
-                .send()
-                .await
-            {
-                Ok(response) => {
-                    if response.status().is_success() {
+            match self.client.get(url).send().await {
+                Ok(response) => match response.status() {
+                    StatusCode::OK => {
                         return response
                             .text()
                             .await
                             .map_err(|e| anyhow!("Failed to get response text: {}", e));
-                    } else if response.status().is_server_error()
-                        || response.status().as_u16() == 429
-                    {
+                    }
+                    StatusCode::TOO_MANY_REQUESTS => {
                         attempt += 1;
-                        if attempt > max_retries {
+                        if attempt > self.max_retries {
                             return Err(anyhow!(
                                 "Max retries reached. Last error: HTTP {}",
                                 response.status()
                             ));
                         }
 
-                        let retry_after = response
-                            .headers()
-                            .get(RETRY_AFTER)
-                            .and_then(|h| h.to_str().ok())
-                            .and_then(|s| s.parse::<u64>().ok())
-                            .map(Duration::from_secs)
-                            .unwrap_or(delay);
-
+                        let retry_after = Self::get_retry_after(&response, delay);
                         warn!(
-                            "Rate limited or server error {}. Waiting for {:?} before retrying...",
-                            response.status(),
+                            "Rate limited (429). Waiting for {:?} before retrying...",
                             retry_after
                         );
                         sleep(retry_after).await;
                         delay = delay.max(retry_after) * 2;
-                    } else {
-                        let status = response.status();
+                    }
+                    status if status.is_server_error() => {
+                        attempt += 1;
+                        if attempt > self.max_retries {
+                            return Err(anyhow!(
+                                "Max retries reached. Last error: HTTP {}",
+                                status
+                            ));
+                        }
+
+                        warn!(
+                            "Server error {}. Waiting for {:?} before retrying...",
+                            status, delay
+                        );
+                        sleep(delay).await;
+                        delay *= 2;
+                    }
+                    status => {
                         let body = response.text().await.unwrap_or_default();
                         return Err(anyhow!("Request failed with status {}: {}", status, body));
                     }
-                }
+                },
                 Err(e) => {
                     attempt += 1;
-                    if attempt > max_retries {
+                    if attempt > self.max_retries {
                         return Err(anyhow!("Max retries reached. Last error: {}", e));
                     }
                     warn!("Request error: {}. Retrying in {:?}...", e, delay);
@@ -155,5 +152,15 @@ impl ApiHandler {
                 }
             }
         }
+    }
+
+    fn get_retry_after(response: &reqwest::Response, default: Duration) -> Duration {
+        response
+            .headers()
+            .get(RETRY_AFTER)
+            .and_then(|h| h.to_str().ok())
+            .and_then(|s| s.parse::<u64>().ok())
+            .map(Duration::from_secs)
+            .unwrap_or(default)
     }
 }
