@@ -124,11 +124,11 @@ impl RevisionIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<Vec<seaorm::discourse_post::Model>> {
-        let one_day_ago = Utc::now() - Duration::days(1);
+        let six_hours_ago = Utc::now() - Duration::hours(6);
         Ok(seaorm::discourse_post::Entity::find()
             .filter(discourse_post::Column::Version.gte(2))
             .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
-            .filter(seaorm::discourse_post::Column::UpdatedAt.gte(one_day_ago.naive_utc()))
+            .filter(seaorm::discourse_post::Column::UpdatedAt.gte(six_hours_ago.naive_utc()))
             .all(&db_handler.conn)
             .await?)
     }
