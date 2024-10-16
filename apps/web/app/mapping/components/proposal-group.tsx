@@ -68,6 +68,7 @@ export default function GroupingInterface({
       };
       setGroups([newGroup, ...groups]);
       setNewGroupName("");
+      setEditingGroupName(newGroupName);
       setEditingGroupId(newGroup.id!);
       setShouldSaveGroups(true);
     }
