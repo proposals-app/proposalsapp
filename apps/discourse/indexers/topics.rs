@@ -32,7 +32,7 @@ impl TopicIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        const MAX_PAGES: usize = 5;
+        const MAX_PAGES: usize = 3;
         self.update_topics(db_handler, dao_discourse_id, false, Some(MAX_PAGES))
             .await
     }

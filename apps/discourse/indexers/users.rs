@@ -31,7 +31,7 @@ impl UserIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        const MAX_PAGES: usize = 5;
+        const MAX_PAGES: usize = 3;
         self.update_users(db_handler, dao_discourse_id, "daily", Some(MAX_PAGES))
             .await
     }

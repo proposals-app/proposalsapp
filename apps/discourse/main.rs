@@ -223,14 +223,25 @@ async fn main() -> Result<()> {
             let mut interval = tokio::time::interval(Duration::from_secs(5 * 60));
             loop {
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
+                let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
+                let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
 
-                match user_fetcher
-                    .update_new_users(
+                let (user_result, topic_result, revision_result) = tokio::join!(
+                    user_fetcher.update_new_users(
+                        Arc::clone(&db_handler_newcontent_clone),
+                        dao_discourse_newcontent_clone.id,
+                    ),
+                    topic_fetcher.update_new_topics(
+                        Arc::clone(&db_handler_newcontent_clone),
+                        dao_discourse_newcontent_clone.id,
+                    ),
+                    revision_fetcher.update_recent_revisions(
                         Arc::clone(&db_handler_newcontent_clone),
                         dao_discourse_newcontent_clone.id,
                     )
-                    .await
-                {
+                );
+
+                match user_result {
                     Ok(_) => {
                         info!(
                             "Successfully updated new users for {}",
@@ -247,15 +258,7 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
-
-                match topic_fetcher
-                    .update_new_topics(
-                        Arc::clone(&db_handler_newcontent_clone),
-                        dao_discourse_newcontent_clone.id,
-                    )
-                    .await
-                {
+                match topic_result {
                     Ok(_) => {
                         info!(
                             "Successfully updated new topics for {}",
@@ -266,20 +269,13 @@ async fn main() -> Result<()> {
                         error!(
                             "Error updating new topics for {} (ID: {}): {}",
                             dao_discourse_newcontent_clone.discourse_base_url,
-                            dao_discourse_topic_clone.id,
+                            dao_discourse_newcontent_clone.id,
                             e
                         );
                     }
                 }
 
-                let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
-                match revision_fetcher
-                    .update_recent_revisions(
-                        Arc::clone(&db_handler_newcontent_clone),
-                        dao_discourse_revision_clone.id,
-                    )
-                    .await
-                {
+                match revision_result {
                     Ok(_) => {
                         info!(
                             "Successfully updated recent revisions for {}",
@@ -290,11 +286,12 @@ async fn main() -> Result<()> {
                         error!(
                             "Error updating recent revisions for {} (ID: {}): {}",
                             dao_discourse_newcontent_clone.discourse_base_url,
-                            dao_discourse_topic_clone.id,
+                            dao_discourse_newcontent_clone.id,
                             e
                         );
                     }
                 }
+
                 interval.tick().await;
             }
         });
