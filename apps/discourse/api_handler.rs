@@ -7,13 +7,14 @@ use tokio::sync::mpsc;
 use tokio::time::sleep;
 use tracing::{debug, error, warn};
 
-const DEFAULT_QUEUE_SIZE: usize = 1000;
-const DEFAULT_MAX_RETRIES: usize = 10;
+const DEFAULT_QUEUE_SIZE: usize = 100_000;
+const DEFAULT_MAX_RETRIES: usize = 5;
 const DEFAULT_INITIAL_BACKOFF: Duration = Duration::from_secs(2);
 
 #[derive(Clone)]
 pub struct ApiHandler {
     client: Client,
+    queue_size: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     base_url: String,
@@ -37,16 +38,32 @@ impl ApiHandler {
 
         let (sender, receiver) = mpsc::channel(queue_size);
 
+        let queue_size_counter = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+
         let api_handler = Self {
             client,
             max_retries,
             sender,
             base_url,
+            queue_size: queue_size_counter.clone(),
         };
 
         tokio::spawn(api_handler.clone().run_queue(receiver));
+        tokio::spawn(api_handler.clone().log_queue_size());
 
         api_handler
+    }
+
+    async fn log_queue_size(self) {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            let size = self.queue_size.load(std::sync::atomic::Ordering::Relaxed);
+            debug!(
+                "{} - Current API request queue size: {}",
+                self.base_url, size
+            );
+        }
     }
 
     fn default_headers() -> HeaderMap {
@@ -67,6 +84,8 @@ impl ApiHandler {
             response_sender,
         };
 
+        self.queue_size
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         self.sender
             .send(job)
             .await
@@ -82,6 +101,8 @@ impl ApiHandler {
 
     async fn run_queue(self, mut receiver: mpsc::Receiver<Job>) {
         while let Some(job) = receiver.recv().await {
+            self.queue_size
+                .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
             let result = self.execute_request(&job.url).await;
             if let Err(e) = &result {
                 error!("Request failed: {}", e);
