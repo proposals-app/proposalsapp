@@ -5,7 +5,7 @@ use serde::de::DeserializeOwned;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
 const DEFAULT_QUEUE_SIZE: usize = 100_000;
 const DEFAULT_MAX_RETRIES: usize = 5;
@@ -58,7 +58,7 @@ impl ApiHandler {
         let mut interval = tokio::time::interval(Duration::from_secs(60));
         loop {
             let size = self.queue_size.load(std::sync::atomic::Ordering::Relaxed);
-            debug!(
+            info!(
                 "{} - Current API request queue size: {}",
                 self.base_url, size
             );
