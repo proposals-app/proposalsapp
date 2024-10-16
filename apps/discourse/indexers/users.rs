@@ -126,7 +126,7 @@ impl UserIndexer {
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         let url = format!("/u/{}.json", username);
-        info!("Fetch user by username: {}", url);
+        info!("Fetch user by username: {}", username);
 
         let response = self.api_handler.fetch::<UserDetailResponse>(&url).await?;
 
