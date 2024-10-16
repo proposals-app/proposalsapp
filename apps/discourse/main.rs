@@ -22,7 +22,7 @@ use indexers::categories::CategoryIndexer;
 use indexers::topics::TopicIndexer;
 use indexers::users::UserIndexer;
 
-const WAIT_FIRST: bool = false;
+const WAIT_FIRST: bool = true;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
         let dao_discourse_category_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let category_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
+            let mut interval = tokio::time::interval(Duration::from_secs(6 * 60 * 60));
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
@@ -102,7 +102,7 @@ async fn main() -> Result<()> {
         let dao_discourse_users_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let user_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
+            let mut interval = tokio::time::interval(Duration::from_secs(6 * 60 * 60));
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
@@ -141,7 +141,7 @@ async fn main() -> Result<()> {
         let dao_discourse_topic_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let topic_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
+            let mut interval = tokio::time::interval(Duration::from_secs(6 * 60 * 60));
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
