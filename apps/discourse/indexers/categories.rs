@@ -20,7 +20,7 @@ impl CategoryIndexer {
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_all_categories(
         self,
-        db_handler: &DbHandler,
+        db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         let mut page = 0;

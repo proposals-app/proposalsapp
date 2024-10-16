@@ -19,7 +19,7 @@ impl TopicIndexer {
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_all_topics(
         self,
-        db_handler: &DbHandler,
+        db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         let mut total_topics = 0;
@@ -80,7 +80,7 @@ impl TopicIndexer {
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_new_topics(
         self,
-        db_handler: &DbHandler,
+        db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         let mut total_topics = 0;
@@ -106,7 +106,11 @@ impl TopicIndexer {
 
                         let post_fetcher = PostIndexer::new(Arc::clone(&self.api_handler));
                         post_fetcher
-                            .update_posts_for_topic(db_handler, dao_discourse_id, topic.id)
+                            .update_posts_for_topic(
+                                Arc::clone(&db_handler),
+                                dao_discourse_id,
+                                topic.id,
+                            )
                             .await?;
                     }
 

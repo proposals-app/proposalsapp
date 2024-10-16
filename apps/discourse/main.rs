@@ -72,7 +72,7 @@ async fn main() -> Result<()> {
                 let category_fetcher = CategoryIndexer::new(Arc::clone(&api_handler));
                 match category_fetcher
                     .update_all_categories(
-                        &db_handler_category_clone,
+                        Arc::clone(&db_handler_category_clone),
                         dao_discourse_category_clone.id,
                     )
                     .await
@@ -110,7 +110,10 @@ async fn main() -> Result<()> {
                 }
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 match user_fetcher
-                    .update_all_users(&db_handler_users_clone, dao_discourse_users_clone.id)
+                    .update_all_users(
+                        Arc::clone(&db_handler_users_clone),
+                        dao_discourse_users_clone.id,
+                    )
                     .await
                 {
                     Ok(_) => {
@@ -146,7 +149,10 @@ async fn main() -> Result<()> {
                 }
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
                 match topic_fetcher
-                    .update_all_topics(&db_handler_topic_clone, dao_discourse_topic_clone.id)
+                    .update_all_topics(
+                        Arc::clone(&db_handler_topic_clone),
+                        dao_discourse_topic_clone.id,
+                    )
                     .await
                 {
                     Ok(_) => {
@@ -194,7 +200,7 @@ async fn main() -> Result<()> {
                 for topic in topics {
                     match post_fetcher
                         .update_posts_for_topic(
-                            &db_handler_post_clone,
+                            Arc::clone(&db_handler_post_clone),
                             dao_discourse_post_clone.id,
                             topic.external_id,
                         )
@@ -234,7 +240,7 @@ async fn main() -> Result<()> {
 
                 match user_fetcher
                     .update_new_users(
-                        &db_handler_newcontent_clone,
+                        Arc::clone(&db_handler_newcontent_clone),
                         dao_discourse_newcontent_clone.id,
                     )
                     .await
@@ -259,7 +265,7 @@ async fn main() -> Result<()> {
 
                 match topic_fetcher
                     .update_new_topics(
-                        &db_handler_newcontent_clone,
+                        Arc::clone(&db_handler_newcontent_clone),
                         dao_discourse_newcontent_clone.id,
                     )
                     .await

@@ -1,10 +1,12 @@
 use crate::api_handler::ApiHandler;
 use crate::db_handler::DbHandler;
 use crate::indexers::users::UserIndexer;
-use crate::models::posts::PostResponse;
+use crate::models::posts::{Post, PostResponse};
 use anyhow::Result;
+use futures::stream::{self, StreamExt};
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
+use tokio::task;
 use tracing::{error, info, instrument, warn};
 
 pub struct PostIndexer {
@@ -15,10 +17,11 @@ impl PostIndexer {
     pub fn new(api_handler: Arc<ApiHandler>) -> Self {
         Self { api_handler }
     }
+
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id, topic_id = topic_id))]
     pub async fn update_posts_for_topic(
         &self,
-        db_handler: &DbHandler,
+        db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         topic_id: i32,
     ) -> Result<()> {
@@ -37,87 +40,22 @@ impl PostIndexer {
                     let num_posts = response.post_stream.posts.len() as i32;
                     total_posts_fetched += num_posts;
 
-                    for post in &response.post_stream.posts {
-                        match db_handler.upsert_post(post, dao_discourse_id).await {
-                            Ok(_) => {
-                                info!(
-                                    post_id = post.id,
-                                    topic_id = topic_id,
-                                    "Successfully upserted post"
-                                );
-                            }
-                            Err(e) => {
-                                if e.to_string().contains("fk_discourse_post_user") {
-                                    warn!(
-                                        post_id = post.id,
-                                        username = post.username,
-                                        "User not found, fetching user details"
-                                    );
-                                    let user_fetcher =
-                                        UserIndexer::new(Arc::clone(&self.api_handler));
-                                    match user_fetcher
-                                        .fetch_user_by_username(
-                                            &post.username,
-                                            db_handler,
-                                            dao_discourse_id,
-                                        )
-                                        .await
-                                    {
-                                        Ok(_) => {
-                                            // Try to upsert the post again with the fetched user
-                                            if let Err(e) =
-                                                db_handler.upsert_post(post, dao_discourse_id).await
-                                            {
-                                                error!(
-                                                    error = %e,
-                                                    post_id = post.id,
-                                                    topic_id = topic_id,
-                                                    "Failed to upsert post after fetching user"
-                                                );
-                                            }
-                                        }
-                                        Err(e) => {
-                                            warn!(
-                                                error = %e,
-                                                post_id = post.id,
-                                                username = post.username,
-                                                "Failed to fetch user, using unknown user"
-                                            );
-                                            // Get or create the unknown user
-                                            let unknown_user = db_handler
-                                                .get_or_create_unknown_user(dao_discourse_id)
-                                                .await?;
+                    let posts = response.post_stream.posts;
+                    let is_empty = posts.is_empty();
 
-                                            // Create a new post with the unknown user
-                                            let mut unknown_post = post.clone();
-                                            unknown_post.user_id = unknown_user.id;
-                                            unknown_post.username = unknown_user.username.clone();
-
-                                            // Upsert the post with the unknown user
-                                            if let Err(e) = db_handler
-                                                .upsert_post(&unknown_post, dao_discourse_id)
-                                                .await
-                                            {
-                                                error!(
-                                                    error = %e,
-                                                    post_id = post.id,
-                                                    topic_id = topic_id,
-                                                    "Failed to upsert post with unknown user"
-                                                );
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    error!(
-                                        error = %e,
-                                        post_id = post.id,
-                                        topic_id = topic_id,
-                                        "Failed to upsert post"
-                                    );
-                                }
-                            }
-                        }
-                    }
+                    // Process posts in parallel
+                    stream::iter(posts)
+                        .map(|post| {
+                            let db_handler = Arc::clone(&db_handler);
+                            let api_handler = Arc::clone(&self.api_handler);
+                            task::spawn(async move {
+                                Self::process_post(post, db_handler, dao_discourse_id, api_handler)
+                                    .await
+                            })
+                        })
+                        .buffer_unordered(10) // Process up to 10 posts concurrently
+                        .for_each(|_| async { () })
+                        .await;
 
                     info!(
                         topic_id = topic_id,
@@ -129,9 +67,7 @@ impl PostIndexer {
                         "Fetched and upserted posts for topic"
                     );
 
-                    if total_posts_fetched >= total_posts_count
-                        || response.post_stream.posts.is_empty()
-                    {
+                    if total_posts_fetched >= total_posts_count || is_empty {
                         info!(
                             topic_id = topic_id,
                             "Finished fetching all posts for topic. Stopping."
@@ -169,5 +105,88 @@ impl PostIndexer {
             "Finished updating posts for topic"
         );
         Ok(())
+    }
+
+    async fn process_post(
+        post: Post,
+        db_handler: Arc<DbHandler>,
+        dao_discourse_id: Uuid,
+        api_handler: Arc<ApiHandler>,
+    ) {
+        match db_handler.upsert_post(&post, dao_discourse_id).await {
+            Ok(_) => {
+                info!(post_id = post.id, "Successfully upserted post");
+            }
+            Err(e) => {
+                if e.to_string().contains("fk_discourse_post_user") {
+                    warn!(
+                        post_id = post.id,
+                        username = post.username,
+                        "User not found, fetching user details"
+                    );
+                    let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
+                    match user_fetcher
+                        .fetch_user_by_username(&post.username, &db_handler, dao_discourse_id)
+                        .await
+                    {
+                        Ok(_) => {
+                            // Try to upsert the post again with the fetched user
+                            if let Err(e) = db_handler.upsert_post(&post, dao_discourse_id).await {
+                                error!(
+                                    error = %e,
+                                    post_id = post.id,
+                                    "Failed to upsert post after fetching user"
+                                );
+                            }
+                        }
+                        Err(e) => {
+                            warn!(
+                                error = %e,
+                                post_id = post.id,
+                                username = post.username,
+                                "Failed to fetch user, using unknown user"
+                            );
+                            // Get or create the unknown user
+                            match db_handler
+                                .get_or_create_unknown_user(dao_discourse_id)
+                                .await
+                            {
+                                Ok(unknown_user) => {
+                                    // Create a new post with the unknown user
+                                    let mut unknown_post = post.clone();
+                                    unknown_post.user_id = unknown_user.id;
+                                    unknown_post.username = unknown_user.username.clone();
+
+                                    // Upsert the post with the unknown user
+                                    if let Err(e) = db_handler
+                                        .upsert_post(&unknown_post, dao_discourse_id)
+                                        .await
+                                    {
+                                        error!(
+                                            error = %e,
+                                            post_id = post.id,
+                                            "Failed to upsert post with unknown user"
+                                        );
+                                    }
+                                }
+                                Err(e) => {
+                                    error!(
+                                        error = %e,
+                                        post_id = post.id,
+                                        "Failed to get or create unknown user"
+                                    );
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    error!(
+                        error = %e,
+                        post_id = post.id,
+                        "Failed to upsert post"
+                    );
+                }
+            }
+        }
     }
 }
