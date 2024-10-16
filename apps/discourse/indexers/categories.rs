@@ -11,17 +11,13 @@ use tracing::instrument;
 
 pub struct CategoryIndexer {
     api_handler: Arc<ApiHandler>,
-    base_url: String,
 }
 
 impl CategoryIndexer {
-    pub fn new(base_url: &str, api_handler: Arc<ApiHandler>) -> Self {
-        Self {
-            api_handler,
-            base_url: base_url.to_string(),
-        }
+    pub fn new(api_handler: Arc<ApiHandler>) -> Self {
+        Self { api_handler }
     }
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id, base_url = %self.base_url))]
+    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_all_categories(
         self,
         db_handler: &DbHandler,
@@ -32,10 +28,7 @@ impl CategoryIndexer {
         let mut previous_response: Option<CategoryResponse> = None;
 
         loop {
-            let url = format!(
-                "{}/categories.json?include_subcategories=true&page={}",
-                self.base_url, page
-            );
+            let url = format!("/categories.json?include_subcategories=true&page={}", page);
             let response: CategoryResponse = self.api_handler.fetch(&url).await?;
 
             let mut all_categories = Vec::new();

@@ -7,6 +7,7 @@ use indexers::posts::PostIndexer;
 use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::dao_discourse;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{error, info, warn};
@@ -51,26 +52,26 @@ async fn main() -> Result<()> {
         .all(&db_handler.conn)
         .await?;
 
-    let shared_api_handler = Arc::new(ApiHandler::new());
-
     let mut handles = vec![];
+    let mut api_handlers = HashMap::new();
+
     for dao_discourse in dao_discourses {
+        let api_handler = Arc::new(ApiHandler::new(dao_discourse.discourse_base_url.clone()));
+        api_handlers.insert(dao_discourse.id, Arc::clone(&api_handler));
+
         db_handler.create_unknown_user(dao_discourse.id).await?;
 
         // Spawn category fetcher thread
         let db_handler_category_clone = Arc::clone(&db_handler);
         let dao_discourse_category_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&shared_api_handler);
+        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let category_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
                 }
-                let category_fetcher = CategoryIndexer::new(
-                    &dao_discourse_category_clone.discourse_base_url,
-                    Arc::clone(&api_handler),
-                );
+                let category_fetcher = CategoryIndexer::new(Arc::clone(&api_handler));
                 match category_fetcher
                     .update_all_categories(
                         &db_handler_category_clone,
@@ -102,17 +103,14 @@ async fn main() -> Result<()> {
         // Spawn user fetcher thread
         let db_handler_users_clone = Arc::clone(&db_handler);
         let dao_discourse_users_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&shared_api_handler);
+        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let user_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
                 }
-                let user_fetcher = UserIndexer::new(
-                    &dao_discourse_users_clone.discourse_base_url,
-                    Arc::clone(&api_handler),
-                );
+                let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 match user_fetcher
                     .update_all_users(&db_handler_users_clone, dao_discourse_users_clone.id)
                     .await
@@ -141,17 +139,14 @@ async fn main() -> Result<()> {
         // Spawn topic fetcher thread
         let db_handler_topic_clone = Arc::clone(&db_handler);
         let dao_discourse_topic_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&shared_api_handler);
+        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let topic_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
                 }
-                let topic_fetcher = TopicIndexer::new(
-                    &dao_discourse_topic_clone.discourse_base_url,
-                    Arc::clone(&api_handler),
-                );
+                let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
                 match topic_fetcher
                     .update_all_topics(&db_handler_topic_clone, dao_discourse_topic_clone.id)
                     .await
@@ -179,17 +174,14 @@ async fn main() -> Result<()> {
 
         let db_handler_post_clone = Arc::clone(&db_handler);
         let dao_discourse_post_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&shared_api_handler);
+        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let post_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
                 }
-                let post_fetcher = PostIndexer::new(
-                    &dao_discourse_post_clone.discourse_base_url,
-                    Arc::clone(&api_handler),
-                );
+                let post_fetcher = PostIndexer::new(Arc::clone(&api_handler));
 
                 // Fetch topics first
                 let topics = seaorm::discourse_topic::Entity::find()
@@ -235,15 +227,12 @@ async fn main() -> Result<()> {
 
         let db_handler_newcontent_clone = Arc::clone(&db_handler);
         let dao_discourse_newcontent_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&shared_api_handler);
+        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let newcontent_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(5 * 60));
             loop {
                 interval.tick().await;
-                let user_fetcher = UserIndexer::new(
-                    &dao_discourse_newcontent_clone.discourse_base_url,
-                    Arc::clone(&api_handler),
-                );
+                let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
 
                 match user_fetcher
                     .update_new_users(
@@ -268,10 +257,7 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                let topic_fetcher = TopicIndexer::new(
-                    &dao_discourse_newcontent_clone.discourse_base_url,
-                    Arc::clone(&api_handler),
-                );
+                let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
 
                 match topic_fetcher
                     .update_new_topics(

@@ -8,15 +8,11 @@ use tracing::{info, instrument};
 
 pub struct UserIndexer {
     api_handler: Arc<ApiHandler>,
-    base_url: String,
 }
 
 impl UserIndexer {
-    pub fn new(base_url: &str, api_handler: Arc<ApiHandler>) -> Self {
-        Self {
-            api_handler,
-            base_url: base_url.to_string(),
-        }
+    pub fn new(api_handler: Arc<ApiHandler>) -> Self {
+        Self { api_handler }
     }
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_all_users(
@@ -29,10 +25,7 @@ impl UserIndexer {
         let mut previous_response: Option<UserResponse> = None;
         let mut previous_repeat = 0;
         loop {
-            let url = format!(
-                "{}/directory_items.json?page={}&order=asc&period=all",
-                self.base_url, page
-            );
+            let url = format!("/directory_items.json?page={}&order=asc&period=all", page);
             let response: UserResponse = self.api_handler.fetch(&url).await?;
 
             let page_users: Vec<User> = response
@@ -104,10 +97,7 @@ impl UserIndexer {
         let mut previous_response: Option<UserResponse> = None;
 
         while page < max_pages {
-            let url = format!(
-                "{}/directory_items.json?page={}&period=daily",
-                self.base_url, page
-            );
+            let url = format!("/directory_items.json?page={}&period=daily", page);
             let response: UserResponse = self.api_handler.fetch(&url).await?;
 
             let page_users: Vec<User> = response
@@ -168,7 +158,7 @@ impl UserIndexer {
         db_handler: &DbHandler,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        let url = format!("{}/u/{}.json", self.base_url, username);
+        let url = format!("/u/{}.json", username);
 
         info!("Fetch user by username: {}", url);
 
@@ -199,11 +189,7 @@ impl UserIndexer {
             avatar_template.replace("{size}", "120")
         } else {
             // It's a relative URL, prepend the base URL and replace {size}
-            format!(
-                "{}{}",
-                self.base_url,
-                avatar_template.replace("{size}", "120")
-            )
+            format!("{}", avatar_template.replace("{size}", "120"))
         }
     }
 }

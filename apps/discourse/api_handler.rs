@@ -16,6 +16,7 @@ pub struct ApiHandler {
     semaphore: Arc<Semaphore>,
     sender: mpsc::Sender<Job>,
     jobs_in_queue: Arc<AtomicUsize>,
+    base_url: String,
 }
 
 struct Job {
@@ -24,7 +25,7 @@ struct Job {
 }
 
 impl ApiHandler {
-    pub fn new() -> Self {
+    pub fn new(base_url: String) -> Self {
         let client = Client::new();
         let max_retries = 10;
         let semaphore = Arc::new(Semaphore::new(5));
@@ -37,6 +38,7 @@ impl ApiHandler {
             semaphore: semaphore.clone(),
             sender,
             jobs_in_queue,
+            base_url,
         };
 
         tokio::spawn(api_handler.clone().run_queue(receiver));
@@ -44,11 +46,12 @@ impl ApiHandler {
         api_handler
     }
 
-    pub async fn fetch<T>(&self, url: &str) -> Result<T>
+    pub async fn fetch<T>(&self, endpoint: &str) -> Result<T>
     where
         T: DeserializeOwned,
     {
         let (response_sender, response_receiver) = oneshot::channel();
+        let url = format!("{}{}", self.base_url, endpoint);
         let job = Job {
             url: url.to_string(),
             response_sender,

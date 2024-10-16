@@ -9,15 +9,11 @@ use tracing::{error, info, instrument, warn};
 
 pub struct PostIndexer {
     api_handler: Arc<ApiHandler>,
-    base_url: String,
 }
 
 impl PostIndexer {
-    pub fn new(base_url: &str, api_handler: Arc<ApiHandler>) -> Self {
-        Self {
-            api_handler,
-            base_url: base_url.to_string(),
-        }
+    pub fn new(api_handler: Arc<ApiHandler>) -> Self {
+        Self { api_handler }
     }
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id, topic_id = topic_id))]
     pub async fn update_posts_for_topic(
@@ -31,7 +27,7 @@ impl PostIndexer {
         let mut total_posts_count: i32 = 0;
 
         loop {
-            let url = format!("{}/t/{}.json?page={}", self.base_url, topic_id, page);
+            let url = format!("/t/{}.json?page={}", topic_id, page);
             match self.api_handler.fetch::<PostResponse>(&url).await {
                 Ok(response) => {
                     if total_posts_count == 0 {
@@ -56,8 +52,7 @@ impl PostIndexer {
                                     username = post.username,
                                     "User not found, fetching user details"
                                 );
-                                let user_fetcher =
-                                    UserIndexer::new(&self.base_url, Arc::clone(&self.api_handler));
+                                let user_fetcher = UserIndexer::new(Arc::clone(&self.api_handler));
                                 user_fetcher
                                     .fetch_user_by_username(
                                         &post.username,

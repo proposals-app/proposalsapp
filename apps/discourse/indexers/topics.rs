@@ -5,19 +5,15 @@ use anyhow::{Context, Result};
 use reqwest::StatusCode;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use tracing::{info, instrument, warn};
+use tracing::{info, instrument};
 
 pub struct TopicIndexer {
     api_handler: Arc<ApiHandler>,
-    base_url: String,
 }
 
 impl TopicIndexer {
-    pub fn new(base_url: &str, api_handler: Arc<ApiHandler>) -> Self {
-        Self {
-            api_handler,
-            base_url: base_url.to_string(),
-        }
+    pub fn new(api_handler: Arc<ApiHandler>) -> Self {
+        Self { api_handler }
     }
 
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
@@ -30,10 +26,7 @@ impl TopicIndexer {
         let mut page = 0;
 
         loop {
-            let url = format!(
-                "{}/latest.json?order=created&ascending=true&page={}",
-                self.base_url, page
-            );
+            let url = format!("/latest.json?order=created&ascending=true&page={}", page);
 
             let response: Result<TopicResponse> = self
                 .api_handler
@@ -94,10 +87,7 @@ impl TopicIndexer {
         let mut page = 0;
 
         loop {
-            let url = format!(
-                "{}/latest.json?order=created&ascending=true&page={}",
-                self.base_url, page
-            );
+            let url = format!("/latest.json?order=created&ascending=true&page={}", page);
 
             let response: Result<TopicResponse> = self
                 .api_handler
@@ -114,8 +104,7 @@ impl TopicIndexer {
                     for topic in &response.topic_list.topics {
                         db_handler.upsert_topic(topic, dao_discourse_id).await?;
 
-                        let post_fetcher =
-                            PostIndexer::new(&self.base_url, Arc::clone(&self.api_handler));
+                        let post_fetcher = PostIndexer::new(Arc::clone(&self.api_handler));
                         post_fetcher
                             .update_posts_for_topic(db_handler, dao_discourse_id, topic.id)
                             .await?;
