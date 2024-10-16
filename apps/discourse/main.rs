@@ -2,8 +2,12 @@ use anyhow::{Context, Result};
 use api_handler::ApiHandler;
 use axum::routing::get;
 use axum::Router;
+use db_handler::DbHandler;
 use dotenv::dotenv;
+use indexers::categories::CategoryIndexer;
 use indexers::revisions::RevisionIndexer;
+use indexers::topics::TopicIndexer;
+use indexers::users::UserIndexer;
 use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::dao_discourse;
@@ -18,12 +22,7 @@ mod db_handler;
 mod indexers;
 mod models;
 
-use db_handler::DbHandler;
-use indexers::categories::CategoryIndexer;
-use indexers::topics::TopicIndexer;
-use indexers::users::UserIndexer;
-
-const WAIT_FIRST: bool = true;
+const WAIT_FIRST: bool = false;
 const FAST_INDEX: Duration = Duration::from_secs(5 * 60);
 const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 

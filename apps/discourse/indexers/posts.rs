@@ -67,7 +67,7 @@ impl PostIndexer {
                                 })
                             })
                             .buffer_unordered(10)
-                            .for_each(|_| async { () })
+                            .for_each(|_| async {  })
                             .await;
                     }
                     info!(

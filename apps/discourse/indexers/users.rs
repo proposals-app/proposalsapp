@@ -96,7 +96,7 @@ impl UserIndexer {
                     == serde_json::to_string(&response.directory_items)?
                 {
                     info!("Detected identical response. Stopping fetch.");
-                    previous_repeat = previous_repeat + 1;
+                    previous_repeat += 1;
                     if previous_repeat == 3 {
                         break;
                     }

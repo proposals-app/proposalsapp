@@ -8,7 +8,7 @@ use sea_orm::{
     prelude::Uuid, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
     QueryFilter, Set,
 };
-use seaorm::discourse_user;
+use seaorm::{discourse_post_revision, discourse_user};
 
 pub struct DbHandler {
     pub conn: DatabaseConnection,
@@ -391,36 +391,27 @@ impl DbHandler {
         dao_discourse_id: Uuid,
         discourse_post_id: Uuid,
     ) -> Result<()> {
-        let existing_revision = seaorm::discourse_post_revision::Entity::find()
-            .filter(
-                sea_orm::Condition::all()
-                    .add(
-                        seaorm::discourse_post_revision::Column::ExternalPostId
-                            .eq(revision.post_id),
-                    )
-                    .add(seaorm::discourse_post_revision::Column::Version.eq(revision.version))
-                    .add(
-                        seaorm::discourse_post_revision::Column::DaoDiscourseId
-                            .eq(dao_discourse_id),
-                    ),
-            )
+        let existing_revision = discourse_post_revision::Entity::find()
+            .filter(discourse_post_revision::Column::ExternalPostId.eq(revision.post_id))
+            .filter(discourse_post_revision::Column::Version.eq(revision.version))
+            .filter(discourse_post_revision::Column::DaoDiscourseId.eq(dao_discourse_id))
             .one(&self.conn)
             .await?;
 
         if let Some(existing_revision) = existing_revision {
             // Update existing revision
-            let mut revision_update: seaorm::discourse_post_revision::ActiveModel =
+            let mut revision_update: discourse_post_revision::ActiveModel =
                 existing_revision.into();
             revision_update.created_at = Set(revision.created_at.naive_utc());
             revision_update.username = Set(revision.username.clone());
             revision_update.body_changes = Set(revision.body_changes.clone());
             revision_update.edit_reason = Set(revision.edit_reason.clone());
-            seaorm::discourse_post_revision::Entity::update(revision_update)
+            discourse_post_revision::Entity::update(revision_update)
                 .exec(&self.conn)
                 .await?;
         } else {
             // Insert new revision
-            let revision_model = seaorm::discourse_post_revision::ActiveModel {
+            let revision_model = discourse_post_revision::ActiveModel {
                 external_post_id: Set(revision.post_id),
                 version: Set(revision.version),
                 created_at: Set(revision.created_at.naive_utc()),
@@ -431,7 +422,7 @@ impl DbHandler {
                 discourse_post_id: Set(discourse_post_id),
                 ..Default::default()
             };
-            seaorm::discourse_post_revision::Entity::insert(revision_model)
+            discourse_post_revision::Entity::insert(revision_model)
                 .exec(&self.conn)
                 .await?;
         }
