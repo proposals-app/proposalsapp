@@ -171,6 +171,18 @@ export interface DiscoursePost {
   version: number;
 }
 
+export interface DiscoursePostRevision {
+  bodyChanges: string;
+  createdAt: Timestamp;
+  daoDiscourseId: string;
+  discoursePostId: string;
+  editReason: string | null;
+  externalPostId: number;
+  id: Generated<string>;
+  username: string;
+  version: number;
+}
+
 export interface DiscourseTopic {
   archived: boolean;
   bumpedAt: Timestamp;
@@ -342,6 +354,7 @@ export interface DB {
   daoIndexer: DaoIndexer;
   discourseCategory: DiscourseCategory;
   discoursePost: DiscoursePost;
+  discoursePostRevision: DiscoursePostRevision;
   discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;
   emailVerification: EmailVerification;

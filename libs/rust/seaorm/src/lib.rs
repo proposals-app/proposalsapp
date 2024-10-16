@@ -7,6 +7,7 @@ pub mod dao_discourse;
 pub mod dao_indexer;
 pub mod discourse_category;
 pub mod discourse_post;
+pub mod discourse_post_revision;
 pub mod discourse_topic;
 pub mod discourse_user;
 pub mod email_verification;

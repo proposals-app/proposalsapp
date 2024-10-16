@@ -89,6 +89,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     DaoDiscourse,
+    DiscoursePostRevision,
     DiscourseTopic,
     DiscourseUser,
 }
@@ -135,6 +136,9 @@ impl RelationTrait for Relation {
                 .from(Column::DaoDiscourseId)
                 .to(super::dao_discourse::Column::Id)
                 .into(),
+            Self::DiscoursePostRevision => {
+                Entity::has_many(super::discourse_post_revision::Entity).into()
+            }
             Self::DiscourseTopic => Entity::belongs_to(super::discourse_topic::Entity)
                 .from((Column::TopicId, Column::DaoDiscourseId))
                 .to((
@@ -156,6 +160,12 @@ impl RelationTrait for Relation {
 impl Related<super::dao_discourse::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DaoDiscourse.def()
+    }
+}
+
+impl Related<super::discourse_post_revision::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DiscoursePostRevision.def()
     }
 }
 

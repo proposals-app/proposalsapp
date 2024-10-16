@@ -45,6 +45,7 @@ pub enum Relation {
     Dao,
     DiscourseCategory,
     DiscoursePost,
+    DiscoursePostRevision,
     DiscourseTopic,
     DiscourseUser,
 }
@@ -70,6 +71,9 @@ impl RelationTrait for Relation {
                 .into(),
             Self::DiscourseCategory => Entity::has_many(super::discourse_category::Entity).into(),
             Self::DiscoursePost => Entity::has_many(super::discourse_post::Entity).into(),
+            Self::DiscoursePostRevision => {
+                Entity::has_many(super::discourse_post_revision::Entity).into()
+            }
             Self::DiscourseTopic => Entity::has_many(super::discourse_topic::Entity).into(),
             Self::DiscourseUser => Entity::has_many(super::discourse_user::Entity).into(),
         }
@@ -91,6 +95,12 @@ impl Related<super::discourse_category::Entity> for Entity {
 impl Related<super::discourse_post::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DiscoursePost.def()
+    }
+}
+
+impl Related<super::discourse_post_revision::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DiscoursePostRevision.def()
     }
 }
 

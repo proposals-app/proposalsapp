@@ -3,6 +3,7 @@ use api_handler::ApiHandler;
 use axum::routing::get;
 use axum::Router;
 use dotenv::dotenv;
+use indexers::revisions::RevisionIndexer;
 use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::dao_discourse;
@@ -175,13 +176,52 @@ async fn main() -> Result<()> {
             }
         });
 
+        let db_handler_revision_clone = Arc::clone(&db_handler);
+        let dao_discourse_revision_clone = dao_discourse.clone();
+        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
+        let revision_handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(6 * 60 * 60));
+            loop {
+                if WAIT_FIRST {
+                    interval.tick().await;
+                }
+                let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
+
+                // Update all revisions every 6 hours
+                match revision_fetcher
+                    .update_all_revisions(
+                        Arc::clone(&db_handler_revision_clone),
+                        dao_discourse_revision_clone.id,
+                    )
+                    .await
+                {
+                    Ok(_) => {
+                        info!(
+                            "Successfully updated all revisions for {}",
+                            dao_discourse_revision_clone.discourse_base_url
+                        );
+                    }
+                    Err(e) => {
+                        error!(
+                            "Error updating all revisions for {} (ID: {}): {}",
+                            dao_discourse_revision_clone.discourse_base_url,
+                            dao_discourse_revision_clone.id,
+                            e
+                        );
+                    }
+                }
+                if !WAIT_FIRST {
+                    interval.tick().await;
+                }
+            }
+        });
+
         let db_handler_newcontent_clone = Arc::clone(&db_handler);
         let dao_discourse_newcontent_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
         let newcontent_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(5 * 60));
             loop {
-                interval.tick().await;
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
 
                 match user_fetcher
@@ -231,12 +271,38 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+
+                let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
+                match revision_fetcher
+                    .update_recent_revisions(
+                        Arc::clone(&db_handler_newcontent_clone),
+                        dao_discourse_revision_clone.id,
+                    )
+                    .await
+                {
+                    Ok(_) => {
+                        info!(
+                            "Successfully updated recent revisions for {}",
+                            dao_discourse_newcontent_clone.discourse_base_url
+                        );
+                    }
+                    Err(e) => {
+                        error!(
+                            "Error updating recent revisions for {} (ID: {}): {}",
+                            dao_discourse_newcontent_clone.discourse_base_url,
+                            dao_discourse_topic_clone.id,
+                            e
+                        );
+                    }
+                }
+                interval.tick().await;
             }
         });
 
         handles.push(category_handle);
         handles.push(user_handle);
         handles.push(topic_handle);
+        handles.push(revision_handle);
         handles.push(newcontent_handle);
     }
 
