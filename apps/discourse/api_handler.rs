@@ -106,16 +106,15 @@ impl ApiHandler {
                     StatusCode::TOO_MANY_REQUESTS => {
                         attempt += 1;
                         if attempt > self.max_retries {
-                            return Err(anyhow!(
-                                "Max retries reached. Last error: HTTP {}",
-                                response.status()
-                            ));
+                            error!(url = url, "Max retries reached. Last error: HTTP 429");
+                            return Err(anyhow!("Max retries reached. Last error: HTTP 429"));
                         }
 
                         let retry_after = Self::get_retry_after(&response, delay);
                         warn!(
-                            "Rate limited (429). Waiting for {:?} before retrying...",
-                            retry_after
+                            url = url,
+                            retry_after = ?retry_after,
+                            "Rate limited (429). Waiting before retrying..."
                         );
                         sleep(retry_after).await;
                         delay = delay.max(retry_after) * 2;
@@ -123,6 +122,7 @@ impl ApiHandler {
                     status if status.is_server_error() => {
                         attempt += 1;
                         if attempt > self.max_retries {
+                            error!(url = url, status = %status, "Max retries reached. Server error");
                             return Err(anyhow!(
                                 "Max retries reached. Last error: HTTP {}",
                                 status
@@ -130,23 +130,27 @@ impl ApiHandler {
                         }
 
                         warn!(
-                            "Server error {}. Waiting for {:?} before retrying...",
-                            status, delay
+                            url = url,
+                            status = %status,
+                            delay = ?delay,
+                            "Server error. Waiting before retrying..."
                         );
                         sleep(delay).await;
                         delay *= 2;
                     }
                     status => {
                         let body = response.text().await.unwrap_or_default();
+                        error!(url = url, status = %status, body = body, "Request failed");
                         return Err(anyhow!("Request failed with status {}: {}", status, body));
                     }
                 },
                 Err(e) => {
                     attempt += 1;
                     if attempt > self.max_retries {
+                        error!(url = url, error = %e, "Max retries reached");
                         return Err(anyhow!("Max retries reached. Last error: {}", e));
                     }
-                    warn!("Request error: {}. Retrying in {:?}...", e, delay);
+                    warn!(url = url, error = %e, delay = ?delay, "Request error. Retrying...");
                     sleep(delay).await;
                     delay *= 2; // Exponential backoff
                 }
