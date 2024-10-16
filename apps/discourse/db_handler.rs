@@ -21,7 +21,7 @@ impl DbHandler {
         Ok(Self { conn })
     }
 
-    pub async fn create_unknown_user(&self, dao_discourse_id: Uuid) -> Result<()> {
+    pub async fn get_or_create_unknown_user(&self, dao_discourse_id: Uuid) -> Result<User> {
         let unknown_user = User {
             id: -1,
             username: "unknown_user".to_string(),
@@ -37,7 +37,10 @@ impl DbHandler {
             days_visited: Some(0),
         };
 
-        self.upsert_user(&unknown_user, dao_discourse_id).await
+        match self.upsert_user(&unknown_user, dao_discourse_id).await {
+            Ok(_) => Ok(unknown_user),
+            Err(e) => Err(anyhow::anyhow!("Failed to create unknown user: {}", e)),
+        }
     }
 
     pub async fn upsert_user(&self, user: &User, dao_discourse_id: Uuid) -> Result<()> {

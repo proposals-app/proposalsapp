@@ -59,8 +59,6 @@ async fn main() -> Result<()> {
         let api_handler = Arc::new(ApiHandler::new(dao_discourse.discourse_base_url.clone()));
         api_handlers.insert(dao_discourse.id, Arc::clone(&api_handler));
 
-        db_handler.create_unknown_user(dao_discourse.id).await?;
-
         // Spawn category fetcher thread
         let db_handler_category_clone = Arc::clone(&db_handler);
         let dao_discourse_category_clone = dao_discourse.clone();

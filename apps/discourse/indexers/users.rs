@@ -4,7 +4,7 @@ use crate::models::users::{User, UserDetailResponse, UserResponse};
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use tracing::{info, instrument};
+use tracing::{info, instrument, warn};
 
 pub struct UserIndexer {
     api_handler: Arc<ApiHandler>,
@@ -162,25 +162,40 @@ impl UserIndexer {
 
         info!("Fetch user by username: {}", url);
 
-        let response: UserDetailResponse = self.api_handler.fetch(&url).await?;
+        match self.api_handler.fetch::<UserDetailResponse>(&url).await {
+            Ok(response) => {
+                let user = User {
+                    id: response.user.id,
+                    username: response.user.username,
+                    name: response.user.name,
+                    avatar_template: self.process_avatar_url(&response.user.avatar_template),
+                    title: response.user.title,
+                    likes_received: None,
+                    likes_given: None,
+                    topics_entered: None,
+                    topic_count: None,
+                    post_count: None,
+                    posts_read: None,
+                    days_visited: None,
+                };
 
-        let user = User {
-            id: response.user.id,
-            username: response.user.username,
-            name: response.user.name,
-            avatar_template: self.process_avatar_url(&response.user.avatar_template),
-            title: response.user.title,
-            likes_received: None,
-            likes_given: None,
-            topics_entered: None,
-            topic_count: None,
-            post_count: None,
-            posts_read: None,
-            days_visited: None,
-        };
-
-        db_handler.upsert_user(&user, dao_discourse_id).await?;
-        Ok(())
+                db_handler.upsert_user(&user, dao_discourse_id).await?;
+                Ok(())
+            }
+            Err(e) => {
+                warn!(
+                    "Failed to fetch user {}: {}. Using unknown user.",
+                    username, e
+                );
+                let unknown_user = db_handler
+                    .get_or_create_unknown_user(dao_discourse_id)
+                    .await?;
+                db_handler
+                    .upsert_user(&unknown_user, dao_discourse_id)
+                    .await?;
+                Ok(())
+            }
+        }
     }
 
     fn process_avatar_url(&self, avatar_template: &str) -> String {
