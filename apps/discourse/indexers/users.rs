@@ -4,7 +4,7 @@ use crate::models::users::{User, UserDetailResponse, UserResponse};
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use tracing::{info, instrument, warn};
+use tracing::{info, instrument};
 
 pub struct UserIndexer {
     api_handler: Arc<ApiHandler>,
