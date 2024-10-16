@@ -3,7 +3,6 @@ use api_handler::ApiHandler;
 use axum::routing::get;
 use axum::Router;
 use dotenv::dotenv;
-use indexers::posts::PostIndexer;
 use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::dao_discourse;
