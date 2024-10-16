@@ -2,9 +2,9 @@ use crate::indexers::posts::PostIndexer;
 use crate::models::topics::TopicResponse;
 use crate::{api_handler::ApiHandler, db_handler::DbHandler};
 use anyhow::{Context, Result};
-use reqwest::StatusCode;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
+use tokio::task::JoinSet;
 use tracing::{info, instrument};
 
 pub struct TopicIndexer {
@@ -22,59 +22,8 @@ impl TopicIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        let mut total_topics = 0;
-        let mut page = 0;
-
-        loop {
-            let url = format!("/latest.json?order=created&ascending=true&page={}", page);
-
-            let response: Result<TopicResponse> = self
-                .api_handler
-                .fetch(&url)
-                .await
-                .context("Failed to fetch topics");
-
-            match response {
-                Ok(response) => {
-                    let per_page = response.topic_list.per_page;
-                    let num_topics = response.topic_list.topics.len() as i32;
-                    total_topics += num_topics;
-
-                    for topic in &response.topic_list.topics {
-                        db_handler.upsert_topic(topic, dao_discourse_id).await?;
-                    }
-
-                    info!(
-                        page = page,
-                        num_topics = num_topics,
-                        total_topics = total_topics,
-                        "Fetched and upserted topics"
-                    );
-
-                    if response.topic_list.topics.is_empty() || num_topics < per_page {
-                        info!("Reached last page or no more topics. Stopping.");
-                        break;
-                    }
-
-                    page += 1;
-                }
-                Err(e) => {
-                    if let Some(status) =
-                        e.downcast_ref::<reqwest::Error>().and_then(|e| e.status())
-                    {
-                        if status == StatusCode::NOT_FOUND {
-                            info!("Received 404 error. No more pages available. Stopping.");
-                            break;
-                        }
-                    }
-                    // If it's not a 404 error, propagate the error
-                    return Err(e);
-                }
-            }
-        }
-
-        info!(total_topics = total_topics, "Finished updating topics");
-        Ok(())
+        self.update_topics(db_handler, dao_discourse_id, true, None)
+            .await
     }
 
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
@@ -83,11 +32,28 @@ impl TopicIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
+        const MAX_PAGES: usize = 5;
+        self.update_topics(db_handler, dao_discourse_id, false, Some(MAX_PAGES))
+            .await
+    }
+
+    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
+    pub async fn update_topics(
+        self,
+        db_handler: Arc<DbHandler>,
+        dao_discourse_id: Uuid,
+        ascending: bool,
+        max_pages: Option<usize>,
+    ) -> Result<()> {
         let mut total_topics = 0;
         let mut page = 0;
+        let mut join_set = JoinSet::new();
 
         loop {
-            let url = format!("/latest.json?order=created&ascending=true&page={}", page);
+            let url = format!(
+                "/latest.json?order=created&ascending={}&page={}",
+                ascending, page
+            );
 
             let response: Result<TopicResponse> = self
                 .api_handler
@@ -105,13 +71,22 @@ impl TopicIndexer {
                         db_handler.upsert_topic(topic, dao_discourse_id).await?;
 
                         let post_fetcher = PostIndexer::new(Arc::clone(&self.api_handler));
-                        post_fetcher
-                            .update_posts_for_topic(
-                                Arc::clone(&db_handler),
-                                dao_discourse_id,
-                                topic.id,
-                            )
-                            .await?;
+                        let db_handler_clone = Arc::clone(&db_handler);
+                        let dao_discourse_id_clone = dao_discourse_id;
+                        let topic_id = topic.id;
+
+                        join_set.spawn(async move {
+                            if let Err(e) = post_fetcher
+                                .update_posts_for_topic(
+                                    db_handler_clone,
+                                    dao_discourse_id_clone,
+                                    topic_id,
+                                )
+                                .await
+                            {
+                                eprintln!("Error updating posts for topic {}: {:?}", topic_id, e);
+                            }
+                        });
                     }
 
                     info!(
@@ -128,6 +103,13 @@ impl TopicIndexer {
                     }
 
                     page += 1;
+
+                    if let Some(max) = max_pages {
+                        if page >= max {
+                            info!("Reached maximum number of pages ({}). Stopping.", max);
+                            break;
+                        }
+                    }
                 }
                 Err(e) => {
                     if e.to_string().contains("404") {
@@ -144,6 +126,13 @@ impl TopicIndexer {
             "Finished updating new topics. Total topics: {}",
             total_topics
         );
+
+        while let Some(result) = join_set.join_next().await {
+            if let Err(e) = result {
+                eprintln!("Error in topic tasks: {:?}", e);
+            }
+        }
+
         Ok(())
     }
 }

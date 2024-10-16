@@ -17,7 +17,7 @@ pub struct ApiHandler {
     queue_size: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
-    base_url: String,
+    pub base_url: String,
 }
 
 struct Job {

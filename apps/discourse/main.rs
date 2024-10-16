@@ -176,59 +176,6 @@ async fn main() -> Result<()> {
             }
         });
 
-        let db_handler_post_clone = Arc::clone(&db_handler);
-        let dao_discourse_post_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
-        let post_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(3 * 60 * 60));
-            loop {
-                if WAIT_FIRST {
-                    interval.tick().await;
-                }
-                let post_fetcher = PostIndexer::new(Arc::clone(&api_handler));
-
-                // Fetch topics first
-                let topics = seaorm::discourse_topic::Entity::find()
-                    .filter(
-                        seaorm::discourse_topic::Column::DaoDiscourseId
-                            .eq(dao_discourse_post_clone.id),
-                    )
-                    .all(&db_handler_post_clone.conn)
-                    .await
-                    .unwrap_or_default();
-
-                for topic in topics {
-                    match post_fetcher
-                        .update_posts_for_topic(
-                            Arc::clone(&db_handler_post_clone),
-                            dao_discourse_post_clone.id,
-                            topic.external_id,
-                        )
-                        .await
-                    {
-                        Ok(_) => {
-                            info!(
-                                "Successfully updated posts for topic {} in {}",
-                                topic.external_id, dao_discourse_post_clone.discourse_base_url
-                            );
-                        }
-                        Err(e) => {
-                            error!(
-                                "Error updating posts for topic {} in {} (ID: {}): {}",
-                                topic.external_id,
-                                dao_discourse_post_clone.discourse_base_url,
-                                dao_discourse_post_clone.id,
-                                e
-                            );
-                        }
-                    }
-                }
-                if !WAIT_FIRST {
-                    interval.tick().await;
-                }
-            }
-        });
-
         let db_handler_newcontent_clone = Arc::clone(&db_handler);
         let dao_discourse_newcontent_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
@@ -291,7 +238,6 @@ async fn main() -> Result<()> {
         handles.push(category_handle);
         handles.push(user_handle);
         handles.push(topic_handle);
-        handles.push(post_handle);
         handles.push(newcontent_handle);
     }
 

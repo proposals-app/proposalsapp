@@ -14,18 +14,45 @@ impl UserIndexer {
     pub fn new(api_handler: Arc<ApiHandler>) -> Self {
         Self { api_handler }
     }
+
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_all_users(
-        self,
+        &self,
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
+    ) -> Result<()> {
+        self.update_users(db_handler, dao_discourse_id, "all", None)
+            .await
+    }
+
+    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
+    pub async fn update_new_users(
+        &self,
+        db_handler: Arc<DbHandler>,
+        dao_discourse_id: Uuid,
+    ) -> Result<()> {
+        const MAX_PAGES: usize = 5;
+        self.update_users(db_handler, dao_discourse_id, "daily", Some(MAX_PAGES))
+            .await
+    }
+
+    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
+    pub async fn update_users(
+        &self,
+        db_handler: Arc<DbHandler>,
+        dao_discourse_id: Uuid,
+        period: &str,
+        max_pages: Option<usize>,
     ) -> Result<()> {
         let mut page = 0;
         let mut total_users = 0;
         let mut previous_response: Option<UserResponse> = None;
         let mut previous_repeat = 0;
         loop {
-            let url = format!("/directory_items.json?page={}&order=asc&period=all", page);
+            let url = format!(
+                "/directory_items.json?page={}&order=asc&period={}",
+                page, period
+            );
             let response: UserResponse = self.api_handler.fetch(&url).await?;
 
             let page_users: Vec<User> = response
@@ -78,76 +105,16 @@ impl UserIndexer {
 
             previous_response = Some(response);
             page += 1;
-        }
 
-        info!(total_users = total_users, "Finished updating all users");
-        Ok(())
-    }
-
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_new_users(
-        self,
-        db_handler: Arc<DbHandler>,
-        dao_discourse_id: Uuid,
-    ) -> Result<()> {
-        let mut page = 0;
-        let mut total_users = 0;
-        let max_pages = 5;
-
-        let mut previous_response: Option<UserResponse> = None;
-
-        while page < max_pages {
-            let url = format!("/directory_items.json?page={}&period=daily", page);
-            let response: UserResponse = self.api_handler.fetch(&url).await?;
-
-            let page_users: Vec<User> = response
-                .directory_items
-                .iter()
-                .map(|item| {
-                    let mut user = item.user.clone();
-                    user.likes_received = item.likes_received;
-                    user.likes_given = item.likes_given;
-                    user.topics_entered = item.topics_entered;
-                    user.topic_count = item.topic_count;
-                    user.post_count = item.post_count;
-                    user.posts_read = item.posts_read;
-                    user.days_visited = item.days_visited;
-                    user
-                })
-                .collect();
-            let num_users = page_users.len();
-            total_users += num_users;
-
-            for mut user in page_users {
-                user.avatar_template = self.process_avatar_url(&user.avatar_template);
-                db_handler.upsert_user(&user, dao_discourse_id).await?;
-            }
-
-            info!(
-                "Fetched and upserted page {}: {} users (total users so far: {})",
-                page + 1,
-                num_users,
-                total_users
-            );
-
-            if response.directory_items.is_empty() {
-                tracing::info!("No more users to fetch. Stopping.");
-                break;
-            }
-
-            if let Some(prev) = &previous_response {
-                if serde_json::to_string(&prev.directory_items)?
-                    == serde_json::to_string(&response.directory_items)?
-                {
-                    info!("Detected identical response. Stopping fetch.");
+            if let Some(max) = max_pages {
+                if page >= max {
+                    info!("Reached maximum number of pages ({}). Stopping.", max);
                     break;
                 }
             }
-
-            previous_response = Some(response);
-            page += 1;
         }
 
+        info!(total_users = total_users, "Finished updating all users");
         Ok(())
     }
 
@@ -159,7 +126,6 @@ impl UserIndexer {
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         let url = format!("/u/{}.json", username);
-
         info!("Fetch user by username: {}", url);
 
         let response = self.api_handler.fetch::<UserDetailResponse>(&url).await?;
@@ -179,8 +145,7 @@ impl UserIndexer {
             days_visited: None,
         };
 
-        db_handler.upsert_user(&user, dao_discourse_id).await?;
-        Ok(())
+        db_handler.upsert_user(&user, dao_discourse_id).await
     }
 
     fn process_avatar_url(&self, avatar_template: &str) -> String {
@@ -189,7 +154,11 @@ impl UserIndexer {
             avatar_template.replace("{size}", "120")
         } else {
             // It's a relative URL, prepend the base URL and replace {size}
-            format!("{}", avatar_template.replace("{size}", "120"))
+            format!(
+                "{}{}",
+                self.api_handler.base_url,
+                avatar_template.replace("{size}", "120")
+            )
         }
     }
 }
