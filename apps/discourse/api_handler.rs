@@ -58,10 +58,7 @@ impl ApiHandler {
         let mut interval = tokio::time::interval(Duration::from_secs(60));
         loop {
             let size = self.queue_size.load(std::sync::atomic::Ordering::Relaxed);
-            info!(
-                "{} - Current API request queue size: {}",
-                self.base_url, size
-            );
+            info!("{} request queue size: {}", self.base_url, size);
             interval.tick().await;
         }
     }
