@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{indexer::Indexer, rpc_providers};
 use alloy::{
-    primitives::{address, b256, U256},
+    primitives::{address, b256, Address, U256},
     providers::{Provider, ReqwestProvider},
     rpc::types::Log,
     sol,
@@ -198,7 +198,7 @@ pub async fn get_single_spell_addresses(
                 Ok(addr) => {
                     spells.push(SpellCast {
                         voter: format!("0x{}", hex::encode(log.0.guy)),
-                        spell: format!("0x{}", hex::encode(addr._0)),
+                        spell: addr._0.to_checksum(Some(1)),
                     });
                     count += U256::from(1);
                 }
@@ -219,9 +219,10 @@ pub async fn get_multi_spell_addresses(logs: Vec<(LogNote, Log)>) -> Result<Vec<
         let slates = extract_desired_bytes(&log.0.fax);
 
         for slate in slates {
+            let slate_address = Address::from_slice(&slate[12..]);
             spells.push(SpellCast {
                 voter: format!("0x{}", hex::encode(log.0.guy)),
-                spell: format!("0x{}", hex::encode(slate)),
+                spell: slate_address.to_checksum(Some(1)),
             });
         }
     }
