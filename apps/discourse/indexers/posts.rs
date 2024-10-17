@@ -25,6 +25,7 @@ impl PostIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         topic_id: i32,
+        priority: bool,
     ) -> Result<()> {
         let mut page = 0;
         let mut total_posts_count: i32 = 0;
@@ -62,6 +63,7 @@ impl PostIndexer {
                                         db_handler,
                                         dao_discourse_id,
                                         api_handler,
+                                        priority,
                                     )
                                     .await
                                 })
@@ -126,6 +128,7 @@ impl PostIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         api_handler: Arc<ApiHandler>,
+        priority: bool,
     ) {
         match db_handler.upsert_post(&post, dao_discourse_id).await {
             Ok(_) => {
@@ -140,7 +143,12 @@ impl PostIndexer {
                     );
                     let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                     match user_fetcher
-                        .fetch_user_by_username(&post.username, &db_handler, dao_discourse_id)
+                        .fetch_user_by_username(
+                            &post.username,
+                            &db_handler,
+                            dao_discourse_id,
+                            priority,
+                        )
                         .await
                     {
                         Ok(_) => {

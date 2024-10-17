@@ -125,11 +125,15 @@ impl UserIndexer {
         username: &str,
         db_handler: &DbHandler,
         dao_discourse_id: Uuid,
+        priority: bool,
     ) -> Result<()> {
         let url = format!("/u/{}.json", username);
         info!("Fetch user by username: {}", username);
 
-        let response = self.api_handler.fetch::<UserDetailResponse>(&url).await?;
+        let response = self
+            .api_handler
+            .fetch::<UserDetailResponse>(&url, priority)
+            .await?;
 
         let user = User {
             id: response.user.id,

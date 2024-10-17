@@ -2686,7 +2686,7 @@ __metadata:
     "@radix-ui/react-toggle-group": "npm:^1.1.0"
     "@radix-ui/react-tooltip": "npm:^1.1.3"
     "@serwist/next": "npm:9.0.9"
-    "@types/node": "npm:22.7.5"
+    "@types/node": "npm:22.7.6"
     "@types/react": "npm:18.3.11"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:18.3.1"
@@ -2709,7 +2709,7 @@ __metadata:
     pg: "npm:8.13.0"
     pino-pretty: "npm:11.3.0"
     postcss: "npm:8.4.47"
-    posthog-js: "npm:1.170.1"
+    posthog-js: "npm:1.171.0"
     postmark: "npm:4.0.5"
     prettier: "npm:3.3.3"
     prettier-plugin-tailwindcss: "npm:0.6.8"
@@ -2729,7 +2729,7 @@ __metadata:
     typescript: "npm:5.6.3"
     uuid: "npm:^10.0.0"
     vaul: "npm:^1.1.0"
-    viem: "npm:2.21.27"
+    viem: "npm:2.21.28"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -5189,12 +5189,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:22.7.5":
-  version: 22.7.5
-  resolution: "@types/node@npm:22.7.5"
+"@types/node@npm:22.7.6":
+  version: 22.7.6
+  resolution: "@types/node@npm:22.7.6"
   dependencies:
     undici-types: "npm:~6.19.2"
-  checksum: 10c0/cf11f74f1a26053ec58066616e3a8685b6bcd7259bc569738b8f752009f9f0f7f85a1b2d24908e5b0f752482d1e8b6babdf1fbb25758711ec7bb9500bfcd6e60
+  checksum: 10c0/d4406a63afce981c363fb1d1954aaf1759ad2d487c0833ebf667565ea4e45ff217d6fab4b5343badbdeccdf9d2e4a0841d633e0c929ceabcb33c288663dd0c73
   languageName: node
   linkType: hard
 
@@ -12202,14 +12202,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.170.1":
-  version: 1.170.1
-  resolution: "posthog-js@npm:1.170.1"
+"posthog-js@npm:1.171.0":
+  version: 1.171.0
+  resolution: "posthog-js@npm:1.171.0"
   dependencies:
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
-    web-vitals: "npm:^4.0.1"
-  checksum: 10c0/8ef70f79c8e101bee13a738d9813458467c538af543bbd52725cfeedb543ce716005a3c30e889277b8892427d0a44c84771d0f0c1a007aa4f58227d9a56623c5
+    web-vitals: "npm:^4.2.0"
+  checksum: 10c0/3faf898cee11499bb34b1d63409f8d89bbeb7dab2dce50923cb32082f1b95445a9e768f28f1ab2608fceb31eda021d4a14857375a21e800e34088d96bfcf1151
   languageName: node
   linkType: hard
 
@@ -12341,7 +12341,7 @@ __metadata:
     "@types/babel__core": "npm:7.20.5"
     "@types/fs-extra": "npm:11.0.4"
     "@types/mime-types": "npm:2.1.4"
-    "@types/node": "npm:22.7.5"
+    "@types/node": "npm:22.7.6"
     "@types/normalize-path": "npm:3.0.2"
     "@types/react": "npm:^18.3.11"
     "@types/react-dom": "npm:^18.3.1"
@@ -14708,9 +14708,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.27":
-  version: 2.21.27
-  resolution: "viem@npm:2.21.27"
+"viem@npm:2.21.28":
+  version: 2.21.28
+  resolution: "viem@npm:2.21.28"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.11.0"
     "@noble/curves": "npm:1.6.0"
@@ -14726,7 +14726,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/4f8e856cd8e09eddab2ac634127d32b8d3fe86dace4f8529f13642908a32f25b0d1fa72e9d69383db048e7a2485260093e67ef46e85faaae34e6157dec8faa0f
+  checksum: 10c0/32bd6981029dd7ed035e51c6bbe12390cdc6c6148960011e2dbdea57462fdd8b51588ec45817e8210a4f197cb156ebde13de0d355cddc2ebb628e3cb9c9a27de
   languageName: node
   linkType: hard
 
@@ -14870,10 +14870,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"web-vitals@npm:^4.0.1":
-  version: 4.2.2
-  resolution: "web-vitals@npm:4.2.2"
-  checksum: 10c0/0e41d016a80d8f48e00c95f3d8405a4cb8c6a12a83ac6677ce49447c85ca6fb2325f40915ae5460bb59f07d1b7d65b66b8b42ea50135594ae7dc892453775004
+"web-vitals@npm:^4.2.0":
+  version: 4.2.3
+  resolution: "web-vitals@npm:4.2.3"
+  checksum: 10c0/905bdb9434f365435c3c00e5f473ce088980fcd61068906e20a575bae9590e1cc28dab0f90958c66717591e2f4c9b809ec8025cef5796fa4bc1304d50332f125
   languageName: node
   linkType: hard
 

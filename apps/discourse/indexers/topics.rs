@@ -82,6 +82,7 @@ impl TopicIndexer {
                                     db_handler_clone,
                                     dao_discourse_id_clone,
                                     topic_id,
+                                    priority,
                                 )
                                 .await
                             {
