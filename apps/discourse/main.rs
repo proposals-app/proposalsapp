@@ -32,7 +32,6 @@ async fn main() -> Result<()> {
     setup_tracing();
 
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
-    info!(database_url = %database_url, "Database URL loaded");
 
     let db_handler = Arc::new(DbHandler::new(&database_url).await?);
     info!("Database handler initialized");
@@ -80,16 +79,16 @@ async fn main() -> Result<()> {
                 {
                     Ok(_) => {
                         info!(
-                            "Successfully updated categories for {}",
-                            dao_discourse_category_clone.discourse_base_url
+                            discourse_url = %dao_discourse_category_clone.discourse_base_url,
+                            "Successfully updated categories"
                         );
                     }
                     Err(e) => {
                         error!(
-                            "Error updating categories for {} (ID: {}): {}",
-                            dao_discourse_category_clone.discourse_base_url,
-                            dao_discourse_category_clone.id,
-                            e
+                            error = %e,
+                            discourse_url = %dao_discourse_category_clone.discourse_base_url,
+                            discourse_id = %dao_discourse_category_clone.id,
+                            "Error updating categories"
                         );
                     }
                 }
@@ -119,16 +118,16 @@ async fn main() -> Result<()> {
                 {
                     Ok(_) => {
                         info!(
-                            "Successfully updated users for {}",
-                            dao_discourse_users_clone.discourse_base_url
+                            discourse_url = %dao_discourse_users_clone.discourse_base_url,
+                            "Successfully updated users"
                         );
                     }
                     Err(e) => {
                         error!(
-                            "Error updating users for {} (ID: {}): {}",
-                            dao_discourse_users_clone.discourse_base_url,
-                            dao_discourse_users_clone.id,
-                            e
+                            error = %e,
+                            discourse_url = %dao_discourse_users_clone.discourse_base_url,
+                            discourse_id = %dao_discourse_users_clone.id,
+                            "Error updating users"
                         );
                     }
                 }
@@ -158,16 +157,16 @@ async fn main() -> Result<()> {
                 {
                     Ok(_) => {
                         info!(
-                            "Successfully updated topics for {}",
-                            dao_discourse_topic_clone.discourse_base_url
+                            discourse_url = %dao_discourse_topic_clone.discourse_base_url,
+                            "Successfully updated topics"
                         );
                     }
                     Err(e) => {
                         error!(
-                            "Error updating topics for {} (ID: {}): {}",
-                            dao_discourse_topic_clone.discourse_base_url,
-                            dao_discourse_topic_clone.id,
-                            e
+                            error = %e,
+                            discourse_url = %dao_discourse_topic_clone.discourse_base_url,
+                            discourse_id = %dao_discourse_topic_clone.id,
+                            "Error updating topics"
                         );
                     }
                 }
@@ -198,16 +197,16 @@ async fn main() -> Result<()> {
                 {
                     Ok(_) => {
                         info!(
-                            "Successfully updated all revisions for {}",
-                            dao_discourse_revision_clone.discourse_base_url
+                            discourse_url = %dao_discourse_revision_clone.discourse_base_url,
+                            "Successfully updated revisions"
                         );
                     }
                     Err(e) => {
                         error!(
-                            "Error updating all revisions for {} (ID: {}): {}",
-                            dao_discourse_revision_clone.discourse_base_url,
-                            dao_discourse_revision_clone.id,
-                            e
+                            error = %e,
+                            discourse_url = %dao_discourse_revision_clone.discourse_base_url,
+                            discourse_id = %dao_discourse_revision_clone.id,
+                            "Error updating revisions"
                         );
                     }
                 }
@@ -245,16 +244,16 @@ async fn main() -> Result<()> {
                 match user_result {
                     Ok(_) => {
                         info!(
-                            "Successfully updated new users for {}",
-                            dao_discourse_newcontent_clone.discourse_base_url
+                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
+                            "Successfully updated new users"
                         );
                     }
                     Err(e) => {
                         error!(
-                            "Error updating new users for {} (ID: {}): {}",
-                            dao_discourse_newcontent_clone.discourse_base_url,
-                            dao_discourse_newcontent_clone.id,
-                            e
+                            error = %e,
+                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
+                            discourse_id = %dao_discourse_newcontent_clone.id,
+                            "Error updating new users"
                         );
                     }
                 }
@@ -262,16 +261,16 @@ async fn main() -> Result<()> {
                 match topic_result {
                     Ok(_) => {
                         info!(
-                            "Successfully updated new topics for {}",
-                            dao_discourse_newcontent_clone.discourse_base_url
+                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
+                            "Successfully updated new topics"
                         );
                     }
                     Err(e) => {
                         error!(
-                            "Error updating new topics for {} (ID: {}): {}",
-                            dao_discourse_newcontent_clone.discourse_base_url,
-                            dao_discourse_newcontent_clone.id,
-                            e
+                            error = %e,
+                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
+                            discourse_id = %dao_discourse_newcontent_clone.id,
+                            "Error updating new topics"
                         );
                     }
                 }
@@ -279,16 +278,16 @@ async fn main() -> Result<()> {
                 match revision_result {
                     Ok(_) => {
                         info!(
-                            "Successfully updated recent revisions for {}",
-                            dao_discourse_newcontent_clone.discourse_base_url
+                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
+                            "Successfully updated new revisions"
                         );
                     }
                     Err(e) => {
                         error!(
-                            "Error updating recent revisions for {} (ID: {}): {}",
-                            dao_discourse_newcontent_clone.discourse_base_url,
-                            dao_discourse_newcontent_clone.id,
-                            e
+                            error = %e,
+                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
+                            discourse_id = %dao_discourse_newcontent_clone.id,
+                            "Error updating new revisions"
                         );
                     }
                 }

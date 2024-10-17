@@ -78,15 +78,11 @@ impl ApiHandler {
                 .load(std::sync::atomic::Ordering::Relaxed);
 
             info!(
-                base_url = self.base_url,
-                total_size = total_size,
-                priority_size = priority_size,
-                normal_size = normal_size,
-                "{} request queue sizes - Total: {}, Priority: {}, Normal: {}",
-                self.base_url,
+                base_url = %self.base_url,
                 total_size,
                 priority_size,
-                normal_size
+                normal_size,
+                "Queue sizes"
             );
 
             interval.tick().await;
@@ -106,6 +102,12 @@ impl ApiHandler {
     {
         let total_size = self.total_queue_size.load(Ordering::SeqCst);
         if total_size >= MAX_QUEUE_SIZE {
+            warn!(
+                self.base_url,
+                total_size,
+                max_size = MAX_QUEUE_SIZE,
+                "Queue is full"
+            );
             return Err(anyhow!("Queue is full. Please try again later."));
         }
 
@@ -128,8 +130,6 @@ impl ApiHandler {
             .send(job)
             .await
             .map_err(|e| anyhow!("Failed to send job: {}", e))?;
-
-        info!("Job added to queue: {} (priority: {})", endpoint, priority);
 
         let response = response_receiver
             .await
@@ -194,10 +194,12 @@ impl ApiHandler {
         let result = self.execute_request(&job.url).await;
         if let Err(e) = &result {
             if is_priority {
-                error!("Priority request failed: {}", e);
+                error!(error = %e, url = %job.url, "Priority request failed");
             } else {
-                error!("Request failed: {}", e);
+                error!(error = %e, url = %job.url, "Request failed");
             }
+        } else {
+            info!(url = %job.url, priority = is_priority, "Request processed successfully");
         }
         let _ = job.response_sender.send(result);
 
@@ -217,6 +219,7 @@ impl ApiHandler {
             match self.client.get(url).send().await {
                 Ok(response) => match response.status() {
                     StatusCode::OK => {
+                        info!(url, "Request successful");
                         return response
                             .text()
                             .await
@@ -225,51 +228,47 @@ impl ApiHandler {
                     StatusCode::TOO_MANY_REQUESTS => {
                         attempt += 1;
                         if attempt > self.max_retries {
-                            error!(url = url, "Max retries reached. Last error: HTTP 429");
+                            error!(
+                                url,
+                                attempt,
+                                max_retries = self.max_retries,
+                                "Max retries reached. Last error: HTTP 429"
+                            );
                             return Err(anyhow!("Max retries reached. Last error: HTTP 429"));
                         }
 
                         let retry_after = Self::get_retry_after(&response, delay);
-                        warn!(
-                            url = url,
-                            retry_after = ?retry_after,
-                            "Rate limited (429). Waiting before retrying..."
-                        );
+                        warn!(url, attempt, retry_after = ?retry_after, "Rate limited, retrying");
                         sleep(retry_after).await;
                         delay = delay.max(retry_after) * 2;
                     }
                     status if status.is_server_error() => {
                         attempt += 1;
                         if attempt > self.max_retries {
-                            error!(url = url, status = %status, "Max retries reached. Server error");
+                            error!(url, status = %status, attempt, max_retries = self.max_retries, "Max retries reached. Server error");
                             return Err(anyhow!(
                                 "Max retries reached. Last error: HTTP {}",
                                 status
                             ));
                         }
 
-                        warn!(
-                            url = url,
-                            status = %status,
-                            delay = ?delay,
-                            "Server error. Waiting before retrying..."
-                        );
+                        warn!(url, status = %status, attempt, delay = ?delay, "Server error, retrying");
                         sleep(delay).await;
                         delay *= 2;
                     }
                     status => {
                         let body = response.text().await.unwrap_or_default();
-                        error!(url = url, status = %status, body = body, "Request failed");
+                        error!(url, status = %status, body, "Request failed");
                         return Err(anyhow!("Request failed with status {}: {}", status, body));
                     }
                 },
                 Err(e) => {
                     attempt += 1;
                     if attempt > self.max_retries {
-                        error!(url = url, error = %e, "Max retries reached");
+                        error!(url, error = %e, attempt, max_retries = self.max_retries, "Max retries reached");
                         return Err(anyhow!("Max retries reached. Last error: {}", e));
                     }
-                    warn!(url = url, error = %e, delay = ?delay, "Request error. Retrying...");
+                    warn!(url, error = %e, attempt, delay = ?delay, "Request error, retrying");
                     sleep(delay).await;
                     delay *= 2; // Exponential backoff
                 }

@@ -5,7 +5,7 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use sea_orm::prelude::Uuid;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-use seaorm::discourse_post;
+use seaorm::{discourse_post, discourse_post_revision};
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::{instrument, warn};
@@ -108,12 +108,22 @@ impl RevisionIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<Vec<discourse_post::Model>> {
-        Ok(discourse_post::Entity::find()
-            .filter(discourse_post::Column::Version.gte(2))
-            .filter(discourse_post::Column::CanViewEditHistory.gte(true))
+        let posts = discourse_post::Entity::find()
+            .filter(discourse_post::Column::Version.gt(1))
+            .filter(discourse_post::Column::CanViewEditHistory.eq(true))
             .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
+            .find_with_related(discourse_post_revision::Entity)
             .all(&db_handler.conn)
-            .await?)
+            .await?;
+
+        Ok(posts
+            .into_iter()
+            .filter(|(post, revisions)| {
+                let revision_count = revisions.len();
+                revision_count < (post.version - 1) as usize
+            })
+            .map(|(post, _)| post)
+            .collect())
     }
 
     async fn fetch_recent_posts_with_revisions(
@@ -122,13 +132,23 @@ impl RevisionIndexer {
         dao_discourse_id: Uuid,
     ) -> Result<Vec<seaorm::discourse_post::Model>> {
         let six_hours_ago = Utc::now() - Duration::hours(6);
-        Ok(seaorm::discourse_post::Entity::find()
-            .filter(discourse_post::Column::Version.gte(2))
-            .filter(discourse_post::Column::CanViewEditHistory.gte(true))
+        let posts = seaorm::discourse_post::Entity::find()
+            .filter(discourse_post::Column::Version.gt(1))
+            .filter(discourse_post::Column::CanViewEditHistory.eq(true))
             .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
             .filter(seaorm::discourse_post::Column::UpdatedAt.gte(six_hours_ago.naive_utc()))
+            .find_with_related(discourse_post_revision::Entity)
             .all(&db_handler.conn)
-            .await?)
+            .await?;
+
+        Ok(posts
+            .into_iter()
+            .filter(|(post, revisions)| {
+                let revision_count = revisions.len();
+                revision_count < (post.version - 1) as usize
+            })
+            .map(|(post, _)| post)
+            .collect())
     }
 }
 
