@@ -30,6 +30,7 @@ pub struct Post {
     pub flair_bg_color: Option<String>,
     pub flair_color: Option<String>,
     pub version: i32,
+    pub can_view_edit_history: bool,
     pub user_id: i32,
 }
 

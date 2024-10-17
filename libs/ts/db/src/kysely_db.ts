@@ -142,6 +142,7 @@ export interface DiscourseCategory {
 }
 
 export interface DiscoursePost {
+  canViewEditHistory: Generated<boolean>;
   cooked: string;
   createdAt: Timestamp;
   daoDiscourseId: string;

@@ -328,6 +328,7 @@ impl DbHandler {
             post_update.flair_color = Set(post.flair_color.clone());
             post_update.version = Set(post.version);
             post_update.user_id = Set(post.user_id);
+            post_update.can_view_edit_history = Set(post.can_view_edit_history);
             seaorm::discourse_post::Entity::update(post_update)
                 .exec(&self.conn)
                 .await
@@ -367,6 +368,7 @@ impl DbHandler {
                 version: Set(post.version),
                 user_id: Set(post.user_id),
                 dao_discourse_id: Set(dao_discourse_id),
+                can_view_edit_history: Set(post.can_view_edit_history),
                 ..Default::default()
             };
             seaorm::discourse_post::Entity::insert(post_model)

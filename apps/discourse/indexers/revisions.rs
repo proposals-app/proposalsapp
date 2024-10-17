@@ -108,6 +108,7 @@ impl RevisionIndexer {
     ) -> Result<Vec<discourse_post::Model>> {
         Ok(discourse_post::Entity::find()
             .filter(discourse_post::Column::Version.gte(2))
+            .filter(discourse_post::Column::CanViewEditHistory.gte(true))
             .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
             .all(&db_handler.conn)
             .await?)
@@ -121,6 +122,7 @@ impl RevisionIndexer {
         let six_hours_ago = Utc::now() - Duration::hours(6);
         Ok(seaorm::discourse_post::Entity::find()
             .filter(discourse_post::Column::Version.gte(2))
+            .filter(discourse_post::Column::CanViewEditHistory.gte(true))
             .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
             .filter(seaorm::discourse_post::Column::UpdatedAt.gte(six_hours_ago.naive_utc()))
             .all(&db_handler.conn)
