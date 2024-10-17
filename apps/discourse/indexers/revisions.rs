@@ -1,6 +1,6 @@
 use crate::api_handler::ApiHandler;
 use crate::db_handler::DbHandler;
-use crate::models::revisions::{Revision, RevisionResponse};
+use crate::models::revisions::Revision;
 use anyhow::Result;
 use chrono::{Duration, Utc};
 use sea_orm::prelude::Uuid;
@@ -153,17 +153,7 @@ async fn update_revisions_for_post(
 
     for rev_num in 2..=version {
         let url = format!("/posts/{}/revisions/{}.json", post_id, rev_num);
-        let response: RevisionResponse = api_handler.fetch(&url).await?;
-
-        let revision = Revision {
-            id: response.current_revision,
-            post_id: response.post_id,
-            version: response.current_version,
-            created_at: response.created_at,
-            username: response.username,
-            body_changes: response.body_changes.inline,
-            edit_reason: response.edit_reason,
-        };
+        let revision: Revision = api_handler.fetch(&url).await?;
 
         db_handler
             .upsert_revision(&revision, dao_discourse_id, discourse_post.id)

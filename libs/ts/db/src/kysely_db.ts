@@ -180,6 +180,7 @@ export interface DiscoursePostRevision {
   editReason: string | null;
   externalPostId: number;
   id: Generated<string>;
+  titleChanges: string | null;
   username: string;
   version: number;
 }

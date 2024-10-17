@@ -23,6 +23,7 @@ pub struct Model {
     pub body_changes: String,
     pub edit_reason: Option<String>,
     pub dao_discourse_id: Uuid,
+    pub title_changes: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -36,6 +37,7 @@ pub enum Column {
     BodyChanges,
     EditReason,
     DaoDiscourseId,
+    TitleChanges,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -69,6 +71,7 @@ impl ColumnTrait for Column {
             Self::BodyChanges => ColumnType::Text.def(),
             Self::EditReason => ColumnType::Text.def().null(),
             Self::DaoDiscourseId => ColumnType::Uuid.def(),
+            Self::TitleChanges => ColumnType::Text.def().null(),
         }
     }
 }

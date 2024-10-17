@@ -3,6 +3,7 @@ use crate::models::revisions::Revision;
 use crate::models::topics::Topic;
 use crate::models::{categories::Category, users::User};
 use anyhow::Result;
+use sea_orm::ActiveValue::NotSet;
 use sea_orm::DbErr;
 use sea_orm::{
     prelude::Uuid, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
@@ -395,7 +396,7 @@ impl DbHandler {
     ) -> Result<()> {
         let existing_revision = discourse_post_revision::Entity::find()
             .filter(discourse_post_revision::Column::ExternalPostId.eq(revision.post_id))
-            .filter(discourse_post_revision::Column::Version.eq(revision.version))
+            .filter(discourse_post_revision::Column::Version.eq(revision.current_version))
             .filter(discourse_post_revision::Column::DaoDiscourseId.eq(dao_discourse_id))
             .one(&self.conn)
             .await?;
@@ -406,7 +407,12 @@ impl DbHandler {
                 existing_revision.into();
             revision_update.created_at = Set(revision.created_at.naive_utc());
             revision_update.username = Set(revision.username.clone());
-            revision_update.body_changes = Set(revision.body_changes.clone());
+            revision_update.body_changes = Set(revision.body_changes.inline.clone());
+            if revision.title_changes.is_some() {
+                revision_update.title_changes = Set(Some(
+                    revision.title_changes.as_ref().unwrap().inline.clone(),
+                ));
+            }
             revision_update.edit_reason = Set(revision.edit_reason.clone());
             discourse_post_revision::Entity::update(revision_update)
                 .exec(&self.conn)
@@ -415,10 +421,14 @@ impl DbHandler {
             // Insert new revision
             let revision_model = discourse_post_revision::ActiveModel {
                 external_post_id: Set(revision.post_id),
-                version: Set(revision.version),
+                version: Set(revision.current_version),
                 created_at: Set(revision.created_at.naive_utc()),
                 username: Set(revision.username.clone()),
-                body_changes: Set(revision.body_changes.clone()),
+                body_changes: Set(revision.body_changes.inline.clone()),
+                title_changes: match revision.title_changes.as_ref() {
+                    Some(title) => Set(Some(title.inline.clone())),
+                    None => NotSet,
+                },
                 edit_reason: Set(revision.edit_reason.clone()),
                 dao_discourse_id: Set(dao_discourse_id),
                 discourse_post_id: Set(discourse_post_id),

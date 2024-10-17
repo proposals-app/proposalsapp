@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct RevisionResponse {
+pub struct Revision {
     pub created_at: DateTime<Utc>,
     pub post_id: i32,
     pub previous_hidden: bool,
@@ -19,6 +19,7 @@ pub struct RevisionResponse {
     pub avatar_template: String,
     pub edit_reason: Option<String>,
     pub body_changes: BodyChanges,
+    pub title_changes: Option<TitleChanges>,
     pub can_edit: bool,
 }
 
@@ -30,12 +31,6 @@ pub struct BodyChanges {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Revision {
-    pub id: i32,
-    pub post_id: i32,
-    pub version: i32,
-    pub created_at: DateTime<Utc>,
-    pub username: String,
-    pub body_changes: String, // We'll store the inline changes as a string
-    pub edit_reason: Option<String>,
+pub struct TitleChanges {
+    pub inline: String,
 }
