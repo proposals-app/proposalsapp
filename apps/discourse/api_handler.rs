@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT};
 use reqwest::{Client, StatusCode};
 use serde::de::DeserializeOwned;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
@@ -102,8 +103,13 @@ impl ApiHandler {
             response_sender,
         };
 
-        self.total_queue_size
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.total_queue_size.fetch_add(1, Ordering::SeqCst);
+        if priority {
+            self.priority_queue_size.fetch_add(1, Ordering::SeqCst);
+        } else {
+            self.normal_queue_size.fetch_add(1, Ordering::SeqCst);
+        }
+
         self.sender
             .send(job)
             .await
@@ -122,40 +128,40 @@ impl ApiHandler {
         let mut normal_queue = Vec::new();
 
         while let Some(job) = receiver.recv().await {
-            self.total_queue_size
-                .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
-
             if job.priority {
                 priority_queue.push(job);
-                self.priority_queue_size
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             } else {
                 normal_queue.push(job);
-                self.normal_queue_size
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             }
 
             // Process all priority jobs first
             while let Some(priority_job) = priority_queue.pop() {
-                self.priority_queue_size
-                    .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
-                let result = self.execute_request(&priority_job.url).await;
-                if let Err(e) = &result {
-                    error!("Priority request failed: {}", e);
-                }
-                let _ = priority_job.response_sender.send(result);
+                self.process_job(priority_job, true).await;
             }
 
             // Then process one normal job
             if let Some(normal_job) = normal_queue.pop() {
-                self.normal_queue_size
-                    .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
-                let result = self.execute_request(&normal_job.url).await;
-                if let Err(e) = &result {
-                    error!("Request failed: {}", e);
-                }
-                let _ = normal_job.response_sender.send(result);
+                self.process_job(normal_job, false).await;
             }
+        }
+    }
+
+    async fn process_job(&self, job: Job, is_priority: bool) {
+        let result = self.execute_request(&job.url).await;
+        if let Err(e) = &result {
+            if is_priority {
+                error!("Priority request failed: {}", e);
+            } else {
+                error!("Request failed: {}", e);
+            }
+        }
+        let _ = job.response_sender.send(result);
+
+        self.total_queue_size.fetch_sub(1, Ordering::SeqCst);
+        if is_priority {
+            self.priority_queue_size.fetch_sub(1, Ordering::SeqCst);
+        } else {
+            self.normal_queue_size.fetch_sub(1, Ordering::SeqCst);
         }
     }
 
