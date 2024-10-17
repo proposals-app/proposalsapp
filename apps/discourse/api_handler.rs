@@ -78,8 +78,14 @@ impl ApiHandler {
                 .load(std::sync::atomic::Ordering::Relaxed);
 
             info!(
+                total_size = total_size,
+                priority_size = priority_size,
+                normal_size = normal_size,
                 "{} request queue sizes - Total: {}, Priority: {}, Normal: {}",
-                self.base_url, total_size, priority_size, normal_size
+                self.base_url,
+                total_size,
+                priority_size,
+                normal_size
             );
 
             interval.tick().await;
