@@ -1,13 +1,22 @@
 use futures::{Future, FutureExt};
-use opentelemetry::{global, KeyValue};
+use opentelemetry::{global, metrics::Meter, KeyValue};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
-    logs::Config, propagation::TraceContextPropagator, runtime::Tokio, trace, Resource,
+    logs::Config, metrics::reader::DefaultTemporalitySelector, propagation::TraceContextPropagator,
+    runtime::Tokio, trace, Resource,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 use tracing::error;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+pub fn get_meter() -> Meter {
+    let crate_name = std::env::var("CARGO_PKG_NAME")
+        .unwrap_or(std::env::var("PROPOSALS_BIN").unwrap_or("unknown".to_string()))
+        .to_string();
+
+    global::meter(crate_name)
+}
 
 pub fn setup_tracing() {
     let endpoint: String = std::env::var("HYPERDX_ENDPOINT").expect("HYPERDX_ENDPOINT not set!");
@@ -59,7 +68,7 @@ pub fn setup_tracing() {
         .with_exporter(
             opentelemetry_otlp::new_exporter()
                 .http()
-                .with_endpoint(endpoint)
+                .with_endpoint(endpoint.clone())
                 .with_headers(HashMap::from([(
                     "authorization".to_string(),
                     api_key.clone(),
@@ -69,6 +78,26 @@ pub fn setup_tracing() {
         .unwrap();
 
     let appender_tracing_layer = OpenTelemetryTracingBridge::new(&logs.provider().unwrap());
+
+    let meter = opentelemetry_otlp::new_pipeline()
+        .metrics(opentelemetry_sdk::runtime::Tokio)
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .http()
+                .with_endpoint(endpoint)
+                .with_headers(HashMap::from([(
+                    "authorization".to_string(),
+                    api_key.clone(),
+                )])),
+        )
+        .with_resource(Resource::new(resources.clone()))
+        .with_period(Duration::from_secs(3))
+        .with_timeout(Duration::from_secs(10))
+        .with_temporality_selector(DefaultTemporalitySelector::new())
+        .build()
+        .expect("Failed to build meter provider");
+
+    global::set_meter_provider(meter);
 
     tracing_subscriber::registry()
         .with(filter_layer)

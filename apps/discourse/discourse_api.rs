@@ -1,25 +1,27 @@
 use anyhow::{anyhow, Result};
+use opentelemetry::metrics::{Counter, UpDownCounter};
+use opentelemetry::KeyValue;
 use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT};
 use reqwest::{Client, StatusCode};
 use serde::de::DeserializeOwned;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::sleep;
 use tracing::{error, info, instrument, warn};
+use utils::tracing::get_meter;
 
 const DEFAULT_QUEUE_SIZE: usize = 100_000;
 const DEFAULT_MAX_RETRIES: usize = 5;
 const DEFAULT_INITIAL_BACKOFF: Duration = Duration::from_secs(2);
-const MAX_QUEUE_SIZE: usize = 5000;
 const NORMAL_JOBS_BATCH_SIZE: usize = 10;
 
 #[derive(Clone)]
 pub struct DiscourseApi {
     client: Client,
-    total_queue_size: std::sync::Arc<AtomicUsize>,
-    priority_queue_size: std::sync::Arc<AtomicUsize>,
-    normal_queue_size: std::sync::Arc<AtomicUsize>,
+    total_queue_counter: UpDownCounter<i64>,
+    priority_queue_counter: UpDownCounter<i64>,
+    normal_queue_counter: UpDownCounter<i64>,
+    requests_counter: Counter<u64>,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     pub base_url: String,
@@ -45,49 +47,40 @@ impl DiscourseApi {
 
         let (sender, receiver) = mpsc::channel(queue_size);
 
-        let total_queue_size = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let priority_queue_size = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let normal_queue_size = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let meter = get_meter();
+        let labels = &[KeyValue::new("base_url", base_url.clone())];
+
+        let total_queue_counter = meter
+            .i64_up_down_counter("discourse_api_total_queue_size")
+            .with_description("Total number of jobs in the queue")
+            .init();
+        let priority_queue_counter = meter
+            .i64_up_down_counter("discourse_api_priority_queue_size")
+            .with_description("Number of priority jobs in the queue")
+            .init();
+        let normal_queue_counter = meter
+            .i64_up_down_counter("discourse_api_normal_queue_size")
+            .with_description("Number of normal jobs in the queue")
+            .init();
+        let requests_counter = meter
+            .u64_counter("discourse_api_requests_total")
+            .with_description("Total number of requests made")
+            .init();
 
         let api_handler = Self {
             client,
             max_retries,
             sender,
             base_url,
-            total_queue_size: total_queue_size.clone(),
-            priority_queue_size: priority_queue_size.clone(),
-            normal_queue_size: normal_queue_size.clone(),
+            total_queue_counter,
+            priority_queue_counter,
+            normal_queue_counter,
+            requests_counter,
         };
 
         tokio::spawn(api_handler.clone().run_queue(receiver));
-        tokio::spawn(api_handler.clone().log_queue_sizes());
 
         api_handler
-    }
-
-    async fn log_queue_sizes(self) {
-        let mut interval = tokio::time::interval(Duration::from_secs(10));
-        loop {
-            let total_size = self
-                .total_queue_size
-                .load(std::sync::atomic::Ordering::Relaxed);
-            let priority_size = self
-                .priority_queue_size
-                .load(std::sync::atomic::Ordering::Relaxed);
-            let normal_size = self
-                .normal_queue_size
-                .load(std::sync::atomic::Ordering::Relaxed);
-
-            info!(
-                base_url = %self.base_url,
-                total_size,
-                priority_size,
-                normal_size,
-                "Queue sizes"
-            );
-
-            interval.tick().await;
-        }
     }
 
     fn default_headers() -> HeaderMap {
@@ -102,15 +95,13 @@ impl DiscourseApi {
     where
         T: DeserializeOwned,
     {
-        let total_size = self.total_queue_size.load(Ordering::SeqCst);
-        if total_size >= MAX_QUEUE_SIZE {
-            warn!(
-                self.base_url,
-                total_size,
-                max_size = MAX_QUEUE_SIZE,
-                "Queue is full"
-            );
-            return Err(anyhow!("Queue is full. Please try again later."));
+        let labels = &[KeyValue::new("base_url", self.base_url.clone())];
+
+        self.total_queue_counter.add(1, labels);
+        if priority {
+            self.priority_queue_counter.add(1, labels);
+        } else {
+            self.normal_queue_counter.add(1, labels);
         }
 
         let (response_sender, response_receiver) = oneshot::channel();
@@ -120,13 +111,6 @@ impl DiscourseApi {
             priority,
             response_sender,
         };
-
-        self.total_queue_size.fetch_add(1, Ordering::SeqCst);
-        if priority {
-            self.priority_queue_size.fetch_add(1, Ordering::SeqCst);
-        } else {
-            self.normal_queue_size.fetch_add(1, Ordering::SeqCst);
-        }
 
         self.sender
             .send(job)
@@ -193,6 +177,7 @@ impl DiscourseApi {
     }
 
     async fn process_job(&self, job: Job, is_priority: bool) {
+        let labels = &[KeyValue::new("base_url", self.base_url.clone())];
         let result = self.execute_request(&job.url).await;
         if let Err(e) = &result {
             if is_priority {
@@ -205,12 +190,13 @@ impl DiscourseApi {
         }
         let _ = job.response_sender.send(result);
 
-        self.total_queue_size.fetch_sub(1, Ordering::SeqCst);
+        self.total_queue_counter.add(-1, labels);
         if is_priority {
-            self.priority_queue_size.fetch_sub(1, Ordering::SeqCst);
+            self.priority_queue_counter.add(-1, labels);
         } else {
-            self.normal_queue_size.fetch_sub(1, Ordering::SeqCst);
+            self.normal_queue_counter.add(-1, labels);
         }
+        self.requests_counter.add(1, labels);
     }
 
     #[instrument(skip(self), fields(url = %url))]
