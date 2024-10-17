@@ -48,7 +48,6 @@ impl DiscourseApi {
         let (sender, receiver) = mpsc::channel(queue_size);
 
         let meter = get_meter();
-        let labels = &[KeyValue::new("base_url", base_url.clone())];
 
         let total_queue_counter = meter
             .i64_up_down_counter("discourse_api_total_queue_size")
