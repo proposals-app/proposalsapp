@@ -2,22 +2,24 @@ use anyhow::{anyhow, Result};
 use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT};
 use reqwest::{Client, StatusCode};
 use serde::de::DeserializeOwned;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use tokio::time::sleep;
 use tracing::{error, info, warn};
 
 const DEFAULT_QUEUE_SIZE: usize = 100_000;
 const DEFAULT_MAX_RETRIES: usize = 5;
 const DEFAULT_INITIAL_BACKOFF: Duration = Duration::from_secs(2);
+const MAX_QUEUE_SIZE: usize = 5000;
+const NORMAL_JOBS_BATCH_SIZE: usize = 10;
 
 #[derive(Clone)]
 pub struct ApiHandler {
     client: Client,
-    total_queue_size: std::sync::Arc<std::sync::atomic::AtomicUsize>,
-    priority_queue_size: std::sync::Arc<std::sync::atomic::AtomicUsize>,
-    normal_queue_size: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    total_queue_size: std::sync::Arc<AtomicUsize>,
+    priority_queue_size: std::sync::Arc<AtomicUsize>,
+    normal_queue_size: std::sync::Arc<AtomicUsize>,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     pub base_url: String,
@@ -95,6 +97,11 @@ impl ApiHandler {
     where
         T: DeserializeOwned,
     {
+        let total_size = self.total_queue_size.load(Ordering::SeqCst);
+        if total_size >= MAX_QUEUE_SIZE {
+            return Err(anyhow!("Queue is full. Please try again later."));
+        }
+
         let (response_sender, response_receiver) = oneshot::channel();
         let url = format!("{}{}", self.base_url, endpoint);
         let job = Job {
@@ -127,21 +134,51 @@ impl ApiHandler {
         let mut priority_queue = Vec::new();
         let mut normal_queue = Vec::new();
 
-        while let Some(job) = receiver.recv().await {
-            if job.priority {
-                priority_queue.push(job);
-            } else {
-                normal_queue.push(job);
+        loop {
+            // Process all available jobs
+            loop {
+                match receiver.try_recv() {
+                    Ok(job) => {
+                        if job.priority {
+                            priority_queue.push(job);
+                        } else {
+                            normal_queue.push(job);
+                        }
+                    }
+                    Err(mpsc::error::TryRecvError::Empty) => break,
+                    Err(mpsc::error::TryRecvError::Disconnected) => return,
+                }
             }
 
-            // Process all priority jobs first
+            // Process all priority jobs
             while let Some(priority_job) = priority_queue.pop() {
                 self.process_job(priority_job, true).await;
             }
 
-            // Then process one normal job
-            if let Some(normal_job) = normal_queue.pop() {
-                self.process_job(normal_job, false).await;
+            // Process a batch of normal jobs
+            for _ in 0..NORMAL_JOBS_BATCH_SIZE {
+                if let Some(normal_job) = normal_queue.pop() {
+                    self.process_job(normal_job, false).await;
+                } else {
+                    break;
+                }
+            }
+
+            // If both queues are empty, wait for new jobs
+            if priority_queue.is_empty() && normal_queue.is_empty() {
+                match receiver.recv().await {
+                    Some(job) => {
+                        if job.priority {
+                            priority_queue.push(job);
+                        } else {
+                            normal_queue.push(job);
+                        }
+                    }
+                    None => {
+                        // Channel closed, exit the loop
+                        break;
+                    }
+                }
             }
         }
     }
