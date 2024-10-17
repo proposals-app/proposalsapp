@@ -55,6 +55,7 @@ impl TopicIndexer {
                 "/latest.json?order=created&ascending={}&page={}",
                 ascending, page
             );
+            info!(url = %url, "Fetching topic");
 
             match self
                 .discourse_api

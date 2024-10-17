@@ -30,11 +30,12 @@ const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 async fn main() -> Result<()> {
     dotenv().ok();
     setup_tracing();
+    info!("Application starting up");
 
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
 
     let db_handler = Arc::new(DbHandler::new(&database_url).await?);
-    info!("Database handler initialized");
+    info!(database_url = %database_url, "Initialtabase connection");
 
     let app = Router::new().route("/", get("OK"));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -45,7 +46,11 @@ async fn main() -> Result<()> {
             error!(error = %e, "Health check server error");
         }
     });
-    info!(port = 3000, "Health check server initialized");
+    info!(
+        port = 3000,
+        address = %addr,
+        "Health check server initialized and listening"
+    );
 
     let dao_discourses = seaorm::dao_discourse::Entity::find()
         .filter(dao_discourse::Column::Enabled.eq(true))

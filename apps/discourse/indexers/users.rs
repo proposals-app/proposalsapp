@@ -54,6 +54,7 @@ impl UserIndexer {
                 "/directory_items.json?page={}&order=asc&period={}",
                 page, period
             );
+            info!(url = %url, "Fetching users");
             let response: UserResponse = self.discourse_api.fetch(&url, priority).await?;
 
             let page_users: Vec<User> = response

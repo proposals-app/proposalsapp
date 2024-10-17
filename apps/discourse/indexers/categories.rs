@@ -5,7 +5,6 @@ use crate::DbHandler;
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use tracing::debug;
 use tracing::error;
 use tracing::info;
 use tracing::instrument;
@@ -31,7 +30,7 @@ impl CategoryIndexer {
 
         loop {
             let url = format!("/categories.json?include_subcategories=true&page={}", page);
-            debug!(url = %url, "Fetching categories");
+            info!(url = %url, "Fetching categories");
             let response: CategoryResponse = self.discourse_api.fetch(&url, true).await?;
 
             let mut all_categories = Vec::new();

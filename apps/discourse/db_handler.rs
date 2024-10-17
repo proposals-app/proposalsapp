@@ -50,6 +50,12 @@ impl DbHandler {
 
     #[instrument(skip(self, user, dao_discourse_id), fields(user_id = user.id, user_username = %user.username))]
     pub async fn upsert_user(&self, user: &User, dao_discourse_id: Uuid) -> Result<()> {
+        info!(
+            user_id = user.id,
+            user_username = %user.username,
+            dao_discourse_id = %dao_discourse_id,
+            "Upserting user"
+        );
         let existing_user = discourse_user::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -131,6 +137,12 @@ impl DbHandler {
 
     #[instrument(skip(self, category, dao_discourse_id), fields(category_id = category.id, cateogory_name = %category.name))]
     pub async fn upsert_category(&self, category: &Category, dao_discourse_id: Uuid) -> Result<()> {
+        info!(
+            category_id = category.id,
+            category_name = %category.name,
+            dao_discourse_id = %dao_discourse_id,
+            "Upserting category"
+        );
         let existing_category = seaorm::discourse_category::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -218,6 +230,12 @@ impl DbHandler {
 
     #[instrument(skip(self, topic, dao_discourse_id), fields(topic_id = topic.id, topic_title = %topic.title))]
     pub async fn upsert_topic(&self, topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
+        info!(
+            topic_id = topic.id,
+            topic_title = %topic.title,
+            dao_discourse_id = %dao_discourse_id,
+            "Upserting topic"
+        );
         let existing_topic = seaorm::discourse_topic::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -311,6 +329,12 @@ impl DbHandler {
 
     #[instrument(skip(self, post, dao_discourse_id), fields(post_id = post.id, post_username = %post.username))]
     pub async fn upsert_post(&self, post: &Post, dao_discourse_id: Uuid) -> Result<()> {
+        info!(
+            post_id = post.id,
+            post_username = %post.username,
+            dao_discourse_id = %dao_discourse_id,
+            "Upserting post"
+        );
         let existing_post = seaorm::discourse_post::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -419,13 +443,20 @@ impl DbHandler {
         Ok(())
     }
 
-    #[instrument(skip(self, revision, dao_discourse_id), fields(revision = revision.current_version, post_id = %discourse_post_id))]
+    #[instrument(skip(self, revision, dao_discourse_id), fields(revision_version = revision.current_version, post_id = revision.post_id))]
     pub async fn upsert_revision(
         &self,
         revision: &Revision,
         dao_discourse_id: Uuid,
         discourse_post_id: Uuid,
     ) -> Result<()> {
+        info!(
+            revision = revision.current_version,
+            post_id = %revision.post_id,
+            dao_discourse_id = %dao_discourse_id,
+            "Upserting revision"
+        );
+
         let existing_revision = discourse_post_revision::Entity::find()
             .filter(discourse_post_revision::Column::ExternalPostId.eq(revision.post_id))
             .filter(discourse_post_revision::Column::Version.eq(revision.current_version))

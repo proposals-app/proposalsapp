@@ -8,7 +8,7 @@ use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::{discourse_post, discourse_post_revision};
 use std::sync::Arc;
 use tokio::task::JoinSet;
-use tracing::{instrument, warn};
+use tracing::{info, instrument, warn};
 
 pub struct RevisionIndexer {
     discourse_api: Arc<DiscourseApi>,
@@ -176,6 +176,7 @@ async fn update_revisions_for_post(
 
     for rev_num in 2..=version {
         let url = format!("/posts/{}/revisions/{}.json", post_id, rev_num);
+        info!(url = %url, "Fetching revision");
         let revision: Revision = discourse_api.fetch(&url, priority).await?;
 
         db_handler

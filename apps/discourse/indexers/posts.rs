@@ -34,6 +34,7 @@ impl PostIndexer {
 
         loop {
             let url = format!("/t/{}.json?page={}", topic_id, page);
+            info!(url = %url, "Fetching posts");
             match self.discourse_api.fetch::<PostResponse>(&url, true).await {
                 Ok(response) => {
                     if total_posts_count == 0 {

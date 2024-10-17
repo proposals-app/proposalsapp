@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::sleep;
-use tracing::{error, info, warn};
+use tracing::{error, info, instrument, warn};
 
 const DEFAULT_QUEUE_SIZE: usize = 100_000;
 const DEFAULT_MAX_RETRIES: usize = 5;
@@ -32,6 +32,7 @@ struct Job {
 }
 
 impl DiscourseApi {
+    #[tracing::instrument(level = "info", skip(base_url))]
     pub fn new(base_url: String) -> Self {
         Self::new_with_config(base_url, DEFAULT_QUEUE_SIZE, DEFAULT_MAX_RETRIES)
     }
@@ -96,6 +97,7 @@ impl DiscourseApi {
         headers
     }
 
+    #[instrument(skip(self), fields(endpoint = %endpoint, priority = priority))]
     pub async fn fetch<T>(&self, endpoint: &str, priority: bool) -> Result<T>
     where
         T: DeserializeOwned,
@@ -211,6 +213,7 @@ impl DiscourseApi {
         }
     }
 
+    #[instrument(skip(self), fields(url = %url))]
     async fn execute_request(&self, url: &str) -> Result<String> {
         let mut attempt = 0;
         let mut delay = DEFAULT_INITIAL_BACKOFF;
