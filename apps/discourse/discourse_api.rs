@@ -1,9 +1,11 @@
 use anyhow::{anyhow, Result};
-use opentelemetry::metrics::{Counter, UpDownCounter};
+use opentelemetry::metrics::Counter;
 use opentelemetry::KeyValue;
 use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT};
 use reqwest::{Client, StatusCode};
 use serde::de::DeserializeOwned;
+use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::sleep;
@@ -18,9 +20,9 @@ const NORMAL_JOBS_BATCH_SIZE: usize = 10;
 #[derive(Clone)]
 pub struct DiscourseApi {
     client: Client,
-    total_queue_counter: UpDownCounter<i64>,
-    priority_queue_counter: UpDownCounter<i64>,
-    normal_queue_counter: UpDownCounter<i64>,
+    total_queue_count: Arc<AtomicI64>,
+    priority_queue_count: Arc<AtomicI64>,
+    normal_queue_count: Arc<AtomicI64>,
     requests_counter: Counter<u64>,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
@@ -49,16 +51,20 @@ impl DiscourseApi {
 
         let meter = get_meter();
 
-        let total_queue_counter = meter
-            .i64_up_down_counter("discourse_api_total_queue_size")
+        let total_queue_count = Arc::new(AtomicI64::new(0));
+        let priority_queue_count = Arc::new(AtomicI64::new(0));
+        let normal_queue_count = Arc::new(AtomicI64::new(0));
+
+        let total_queue_gauge = meter
+            .i64_observable_gauge("discourse_api_total_queue_size")
             .with_description("Total number of jobs in the queue")
             .init();
-        let priority_queue_counter = meter
-            .i64_up_down_counter("discourse_api_priority_queue_size")
+        let priority_queue_gauge = meter
+            .i64_observable_gauge("discourse_api_priority_queue_size")
             .with_description("Number of priority jobs in the queue")
             .init();
-        let normal_queue_counter = meter
-            .i64_up_down_counter("discourse_api_normal_queue_size")
+        let normal_queue_gauge = meter
+            .i64_observable_gauge("discourse_api_normal_queue_size")
             .with_description("Number of normal jobs in the queue")
             .init();
         let requests_counter = meter
@@ -66,14 +72,47 @@ impl DiscourseApi {
             .with_description("Total number of requests made")
             .init();
 
+        let total_count_clone = total_queue_count.clone();
+        let priority_count_clone = priority_queue_count.clone();
+        let normal_count_clone = normal_queue_count.clone();
+        let base_url_clone = base_url.clone();
+
+        meter
+            .register_callback(
+                &[
+                    total_queue_gauge.as_any(),
+                    priority_queue_gauge.as_any(),
+                    normal_queue_gauge.as_any(),
+                ],
+                move |observer| {
+                    let labels = &[KeyValue::new("base_url", base_url_clone.clone())];
+                    observer.observe_i64(
+                        &total_queue_gauge,
+                        total_count_clone.load(Ordering::Relaxed),
+                        labels,
+                    );
+                    observer.observe_i64(
+                        &priority_queue_gauge,
+                        priority_count_clone.load(Ordering::Relaxed),
+                        labels,
+                    );
+                    observer.observe_i64(
+                        &normal_queue_gauge,
+                        normal_count_clone.load(Ordering::Relaxed),
+                        labels,
+                    );
+                },
+            )
+            .expect("Failed to register callback");
+
         let api_handler = Self {
             client,
             max_retries,
             sender,
             base_url,
-            total_queue_counter,
-            priority_queue_counter,
-            normal_queue_counter,
+            total_queue_count,
+            priority_queue_count,
+            normal_queue_count,
             requests_counter,
         };
 
@@ -94,13 +133,11 @@ impl DiscourseApi {
     where
         T: DeserializeOwned,
     {
-        let labels = &[KeyValue::new("base_url", self.base_url.clone())];
-
-        self.total_queue_counter.add(1, labels);
+        self.total_queue_count.fetch_add(1, Ordering::SeqCst);
         if priority {
-            self.priority_queue_counter.add(1, labels);
+            self.priority_queue_count.fetch_add(1, Ordering::SeqCst);
         } else {
-            self.normal_queue_counter.add(1, labels);
+            self.normal_queue_count.fetch_add(1, Ordering::SeqCst);
         }
 
         let (response_sender, response_receiver) = oneshot::channel();
@@ -189,11 +226,11 @@ impl DiscourseApi {
         }
         let _ = job.response_sender.send(result);
 
-        self.total_queue_counter.add(-1, labels);
+        self.total_queue_count.fetch_sub(1, Ordering::SeqCst);
         if is_priority {
-            self.priority_queue_counter.add(-1, labels);
+            self.priority_queue_count.fetch_sub(1, Ordering::SeqCst);
         } else {
-            self.normal_queue_counter.add(-1, labels);
+            self.normal_queue_count.fetch_sub(1, Ordering::SeqCst);
         }
         self.requests_counter.add(1, labels);
     }
