@@ -40,6 +40,7 @@ impl RevisionIndexer {
                     dao_discourse_id,
                     post.external_id,
                     post.version,
+                    false,
                 )
                 .await
                 {
@@ -81,6 +82,7 @@ impl RevisionIndexer {
                     dao_discourse_id,
                     post.external_id,
                     post.version,
+                    true,
                 )
                 .await
                 {
@@ -136,6 +138,7 @@ async fn update_revisions_for_post(
     dao_discourse_id: Uuid,
     post_id: i32,
     version: i32,
+    priority: bool,
 ) -> Result<()> {
     let discourse_post = seaorm::discourse_post::Entity::find()
         .filter(seaorm::discourse_post::Column::ExternalId.eq(post_id))
@@ -153,7 +156,7 @@ async fn update_revisions_for_post(
 
     for rev_num in 2..=version {
         let url = format!("/posts/{}/revisions/{}.json", post_id, rev_num);
-        let revision: Revision = api_handler.fetch(&url).await?;
+        let revision: Revision = api_handler.fetch(&url, priority).await?;
 
         db_handler
             .upsert_revision(&revision, dao_discourse_id, discourse_post.id)

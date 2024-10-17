@@ -33,7 +33,7 @@ impl PostIndexer {
 
         loop {
             let url = format!("/t/{}.json?page={}", topic_id, page);
-            match self.api_handler.fetch::<PostResponse>(&url).await {
+            match self.api_handler.fetch::<PostResponse>(&url, true).await {
                 Ok(response) => {
                     if total_posts_count == 0 {
                         total_posts_count = response.posts_count;
@@ -67,7 +67,7 @@ impl PostIndexer {
                                 })
                             })
                             .buffer_unordered(10)
-                            .for_each(|_| async {  })
+                            .for_each(|_| async {})
                             .await;
                     }
                     info!(

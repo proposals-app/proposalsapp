@@ -21,7 +21,7 @@ impl UserIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        self.update_users(db_handler, dao_discourse_id, "all", None)
+        self.update_users(db_handler, dao_discourse_id, "all", None, false)
             .await
     }
 
@@ -32,7 +32,7 @@ impl UserIndexer {
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         const MAX_PAGES: usize = 3;
-        self.update_users(db_handler, dao_discourse_id, "daily", Some(MAX_PAGES))
+        self.update_users(db_handler, dao_discourse_id, "daily", Some(MAX_PAGES), true)
             .await
     }
 
@@ -43,6 +43,7 @@ impl UserIndexer {
         dao_discourse_id: Uuid,
         period: &str,
         max_pages: Option<usize>,
+        priority: bool,
     ) -> Result<()> {
         let mut page = 0;
         let mut total_users = 0;
@@ -53,7 +54,7 @@ impl UserIndexer {
                 "/directory_items.json?page={}&order=asc&period={}",
                 page, period
             );
-            let response: UserResponse = self.api_handler.fetch(&url).await?;
+            let response: UserResponse = self.api_handler.fetch(&url, priority).await?;
 
             let page_users: Vec<User> = response
                 .directory_items

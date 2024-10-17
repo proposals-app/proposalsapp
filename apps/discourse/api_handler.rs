@@ -22,6 +22,7 @@ pub struct ApiHandler {
 
 struct Job {
     url: String,
+    priority: bool,
     response_sender: oneshot::Sender<Result<String>>,
 }
 
@@ -70,7 +71,7 @@ impl ApiHandler {
         headers
     }
 
-    pub async fn fetch<T>(&self, endpoint: &str) -> Result<T>
+    pub async fn fetch<T>(&self, endpoint: &str, priority: bool) -> Result<T>
     where
         T: DeserializeOwned,
     {
@@ -78,6 +79,7 @@ impl ApiHandler {
         let url = format!("{}{}", self.base_url, endpoint);
         let job = Job {
             url,
+            priority,
             response_sender,
         };
 
@@ -88,7 +90,7 @@ impl ApiHandler {
             .await
             .map_err(|e| anyhow!("Failed to send job: {}", e))?;
 
-        debug!("Job added to queue: {}", endpoint);
+        info!("Job added to queue: {} (priority: {})", endpoint, priority);
 
         let response = response_receiver
             .await
@@ -97,14 +99,36 @@ impl ApiHandler {
     }
 
     async fn run_queue(self, mut receiver: mpsc::Receiver<Job>) {
+        let mut priority_queue = Vec::new();
+        let mut normal_queue = Vec::new();
+
         while let Some(job) = receiver.recv().await {
             self.queue_size
                 .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
-            let result = self.execute_request(&job.url).await;
-            if let Err(e) = &result {
-                error!("Request failed: {}", e);
+
+            if job.priority {
+                priority_queue.push(job);
+            } else {
+                normal_queue.push(job);
             }
-            let _ = job.response_sender.send(result);
+
+            // Process all priority jobs first
+            while let Some(priority_job) = priority_queue.pop() {
+                let result = self.execute_request(&priority_job.url).await;
+                if let Err(e) = &result {
+                    error!("Priority request failed: {}", e);
+                }
+                let _ = priority_job.response_sender.send(result);
+            }
+
+            // Then process one normal job
+            if let Some(normal_job) = normal_queue.pop() {
+                let result = self.execute_request(&normal_job.url).await;
+                if let Err(e) = &result {
+                    error!("Request failed: {}", e);
+                }
+                let _ = normal_job.response_sender.send(result);
+            }
         }
     }
 

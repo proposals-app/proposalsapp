@@ -29,7 +29,7 @@ impl CategoryIndexer {
 
         loop {
             let url = format!("/categories.json?include_subcategories=true&page={}", page);
-            let response: CategoryResponse = self.api_handler.fetch(&url).await?;
+            let response: CategoryResponse = self.api_handler.fetch(&url, true).await?;
 
             let mut all_categories = Vec::new();
             flatten_categories(&response.category_list.categories, &mut all_categories);

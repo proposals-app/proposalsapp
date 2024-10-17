@@ -22,7 +22,7 @@ impl TopicIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        self.update_topics(db_handler, dao_discourse_id, true, None)
+        self.update_topics(db_handler, dao_discourse_id, true, None, false)
             .await
     }
 
@@ -33,7 +33,7 @@ impl TopicIndexer {
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         const MAX_PAGES: usize = 3;
-        self.update_topics(db_handler, dao_discourse_id, false, Some(MAX_PAGES))
+        self.update_topics(db_handler, dao_discourse_id, false, Some(MAX_PAGES), true)
             .await
     }
 
@@ -44,6 +44,7 @@ impl TopicIndexer {
         dao_discourse_id: Uuid,
         ascending: bool,
         max_pages: Option<usize>,
+        priority: bool,
     ) -> Result<()> {
         let mut total_topics = 0;
         let mut page = 0;
@@ -57,7 +58,7 @@ impl TopicIndexer {
 
             let response: Result<TopicResponse> = self
                 .api_handler
-                .fetch(&url)
+                .fetch(&url, priority)
                 .await
                 .context("Failed to fetch topics");
 
