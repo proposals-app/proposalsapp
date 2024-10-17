@@ -3,6 +3,8 @@ use crate::models::revisions::Revision;
 use crate::models::topics::Topic;
 use crate::models::{categories::Category, users::User};
 use anyhow::Result;
+use opentelemetry::metrics::{Counter, UpDownCounter};
+use opentelemetry::KeyValue;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::DbErr;
 use sea_orm::{
@@ -11,9 +13,20 @@ use sea_orm::{
 };
 use seaorm::{discourse_post_revision, discourse_user};
 use tracing::{debug, info, instrument};
+use utils::tracing::get_meter;
 
 pub struct DbHandler {
     pub conn: DatabaseConnection,
+    upsert_user_counter: Counter<u64>,
+    upsert_category_counter: Counter<u64>,
+    upsert_topic_counter: Counter<u64>,
+    upsert_post_counter: Counter<u64>,
+    upsert_revision_counter: Counter<u64>,
+    total_users_counter: UpDownCounter<i64>,
+    total_categories_counter: UpDownCounter<i64>,
+    total_topics_counter: UpDownCounter<i64>,
+    total_posts_counter: UpDownCounter<i64>,
+    total_revisions_counter: UpDownCounter<i64>,
 }
 
 impl DbHandler {
@@ -23,7 +36,32 @@ impl DbHandler {
         opt.sqlx_logging(false);
         let conn = Database::connect(opt).await?;
         info!("Database connection established");
-        Ok(Self { conn })
+
+        let meter = get_meter();
+
+        Ok(Self {
+            conn,
+            upsert_user_counter: meter.u64_counter("discourse_db_upsert_user_total").init(),
+            upsert_category_counter: meter
+                .u64_counter("discourse_db_upsert_category_total")
+                .init(),
+            upsert_topic_counter: meter.u64_counter("discourse_db_upsert_topic_total").init(),
+            upsert_post_counter: meter.u64_counter("discourse_db_upsert_post_total").init(),
+            upsert_revision_counter: meter
+                .u64_counter("discourse_db_upsert_revision_total")
+                .init(),
+            total_users_counter: meter.i64_up_down_counter("discourse_db_total_users").init(),
+            total_categories_counter: meter
+                .i64_up_down_counter("discourse_db_total_categories")
+                .init(),
+            total_topics_counter: meter
+                .i64_up_down_counter("discourse_db_total_topics")
+                .init(),
+            total_posts_counter: meter.i64_up_down_counter("discourse_db_total_posts").init(),
+            total_revisions_counter: meter
+                .i64_up_down_counter("discourse_db_total_revisions")
+                .init(),
+        })
     }
 
     pub async fn get_or_create_unknown_user(&self, dao_discourse_id: Uuid) -> Result<User> {
@@ -129,9 +167,23 @@ impl DbHandler {
                             err
                         )
                     })?;
+                self.total_users_counter.add(
+                    1,
+                    &[KeyValue::new(
+                        "dao_discourse_id",
+                        dao_discourse_id.to_string(),
+                    )],
+                );
             }
         }
         info!("User upserted successfully");
+        self.upsert_user_counter.add(
+            1,
+            &[KeyValue::new(
+                "dao_discourse_id",
+                dao_discourse_id.to_string(),
+            )],
+        );
         Ok(())
     }
 
@@ -221,10 +273,23 @@ impl DbHandler {
                             err
                         )
                     })?;
+                self.total_categories_counter.add(
+                    1,
+                    &[KeyValue::new(
+                        "dao_discourse_id",
+                        dao_discourse_id.to_string(),
+                    )],
+                );
             }
         }
-
         info!("Category upserted successfully");
+        self.upsert_category_counter.add(
+            1,
+            &[KeyValue::new(
+                "dao_discourse_id",
+                dao_discourse_id.to_string(),
+            )],
+        );
         Ok(())
     }
 
@@ -319,10 +384,23 @@ impl DbHandler {
                             err
                         )
                     })?;
+                self.total_topics_counter.add(
+                    1,
+                    &[KeyValue::new(
+                        "dao_discourse_id",
+                        dao_discourse_id.to_string(),
+                    )],
+                );
             }
         }
-
         info!("Topic upserted successfully");
+        self.upsert_topic_counter.add(
+            1,
+            &[KeyValue::new(
+                "dao_discourse_id",
+                dao_discourse_id.to_string(),
+            )],
+        );
 
         Ok(())
     }
@@ -436,9 +514,23 @@ impl DbHandler {
                             err,
                         )
                     })?;
+                self.total_posts_counter.add(
+                    1,
+                    &[KeyValue::new(
+                        "dao_discourse_id",
+                        dao_discourse_id.to_string(),
+                    )],
+                );
             }
         }
         info!("Post upserted successfully");
+        self.upsert_post_counter.add(
+            1,
+            &[KeyValue::new(
+                "dao_discourse_id",
+                dao_discourse_id.to_string(),
+            )],
+        );
 
         Ok(())
     }
@@ -502,9 +594,23 @@ impl DbHandler {
                 discourse_post_revision::Entity::insert(revision_model)
                     .exec(&self.conn)
                     .await?;
+                self.total_revisions_counter.add(
+                    1,
+                    &[KeyValue::new(
+                        "dao_discourse_id",
+                        dao_discourse_id.to_string(),
+                    )],
+                );
             }
         }
         info!("Revision upserted successfully");
+        self.upsert_revision_counter.add(
+            1,
+            &[KeyValue::new(
+                "dao_discourse_id",
+                dao_discourse_id.to_string(),
+            )],
+        );
 
         Ok(())
     }
