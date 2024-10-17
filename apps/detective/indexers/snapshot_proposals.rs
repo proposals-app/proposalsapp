@@ -3,7 +3,11 @@ use std::sync::Arc;
 use crate::{database::DatabaseStore, indexer::Indexer, snapshot_api::SnapshotApiHandler};
 use anyhow::Result;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set};
+use itertools::Itertools;
+use sea_orm::{
+    ActiveValue::{self, NotSet},
+    ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
+};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde::Deserialize;
 use tracing::info;
@@ -128,8 +132,18 @@ impl Indexer for SnapshotProposalsIndexer {
 
         let highest_index = proposals
             .iter()
-            .map(|p| p.index_created.clone().unwrap())
-            .max()
+            .sorted_by(|a, b| a.index_created.as_ref().cmp(b.index_created.as_ref()))
+            .filter(|p| {
+                matches!(
+                    p.proposal_state.as_ref(),
+                    ProposalState::Active | ProposalState::Pending
+                )
+            })
+            .filter_map(|p| match &p.index_created {
+                ActiveValue::Set(value) => Some(*value),
+                _ => None,
+            })
+            .min()
             .unwrap_or(indexer.index);
 
         Ok((proposals, vec![], highest_index))

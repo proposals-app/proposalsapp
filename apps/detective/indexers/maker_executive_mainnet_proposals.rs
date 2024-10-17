@@ -334,7 +334,7 @@ pub async fn get_single_spell_addresses(
             let address = gov_contract.slates(slate.into(), count).call().await;
             match address {
                 Ok(addr) => {
-                    spell_addresses.insert(addr._0.to_checksum(Some(1)));
+                    spell_addresses.insert(addr._0.to_checksum(None));
                     count += U256::from(1);
                 }
                 Err(_) => {
@@ -363,7 +363,7 @@ pub async fn get_multi_spell_addresses(
         for slate in slates {
             // Take the last 20 bytes of the 32-byte slate to create an Address
             let slate_address = Address::from_slice(&slate[12..]);
-            let checksummed_address = slate_address.to_checksum(Some(1));
+            let checksummed_address = slate_address.to_checksum(None);
             spell_addresses.insert(checksummed_address);
         }
     }

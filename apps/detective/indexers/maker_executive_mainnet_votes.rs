@@ -198,7 +198,7 @@ pub async fn get_single_spell_addresses(
                 Ok(addr) => {
                     spells.push(SpellCast {
                         voter: format!("0x{}", hex::encode(log.0.guy)),
-                        spell: addr._0.to_checksum(Some(1)),
+                        spell: addr._0.to_checksum(None),
                     });
                     count += U256::from(1);
                 }
@@ -222,7 +222,7 @@ pub async fn get_multi_spell_addresses(logs: Vec<(LogNote, Log)>) -> Result<Vec<
             let slate_address = Address::from_slice(&slate[12..]);
             spells.push(SpellCast {
                 voter: format!("0x{}", hex::encode(log.0.guy)),
-                spell: slate_address.to_checksum(Some(1)),
+                spell: slate_address.to_checksum(None),
             });
         }
     }
