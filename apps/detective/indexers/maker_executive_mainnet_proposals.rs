@@ -1,6 +1,6 @@
 use crate::{indexer::Indexer, rpc_providers};
 use alloy::{
-    primitives::{address, b256, U256},
+    primitives::{address, b256, Address, U256},
     providers::{Provider, ReqwestProvider},
     rpc::types::Log,
     sol,
@@ -334,7 +334,7 @@ pub async fn get_single_spell_addresses(
             let address = gov_contract.slates(slate.into(), count).call().await;
             match address {
                 Ok(addr) => {
-                    spell_addresses.insert(addr._0.to_string());
+                    spell_addresses.insert(addr._0.to_checksum(Some(1)));
                     count += U256::from(1);
                 }
                 Err(_) => {
@@ -361,8 +361,10 @@ pub async fn get_multi_spell_addresses(
         let slates = extract_desired_bytes(&log.0.fax);
 
         for slate in slates {
-            let spell_address = format!("0x{}", hex::encode(slate));
-            spell_addresses.insert(spell_address.to_string());
+            // Take the last 20 bytes of the 32-byte slate to create an Address
+            let slate_address = Address::from_slice(&slate[12..]);
+            let checksummed_address = slate_address.to_checksum(Some(1));
+            spell_addresses.insert(checksummed_address);
         }
     }
 
