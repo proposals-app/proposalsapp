@@ -24,7 +24,7 @@ enum StateFilterEnum {
 }
 
 export const getGuestProposals = async (
-  active: StateFilterEnum,
+  state_filter: StateFilterEnum,
   daos: string | string[],
   page: number,
 ) => {
@@ -58,7 +58,7 @@ export const getGuestProposals = async (
       db_daos.map((d) => d.id),
     );
 
-  if (active == StateFilterEnum.ALL) {
+  if (state_filter == StateFilterEnum.ALL) {
     proposals_query = proposals_query.where("proposal.proposalState", "in", [
       ProposalState.QUEUED,
       ProposalState.DEFEATED,
@@ -71,7 +71,7 @@ export const getGuestProposals = async (
     proposals_query = proposals_query.orderBy("proposal.timeEnd", "desc");
   }
 
-  if (active == StateFilterEnum.OPEN) {
+  if (state_filter == StateFilterEnum.OPEN) {
     proposals_query = proposals_query.where(
       "proposal.proposalState",
       "=",
@@ -80,7 +80,7 @@ export const getGuestProposals = async (
     proposals_query = proposals_query.orderBy("timeEnd", "asc");
   }
 
-  if (active == StateFilterEnum.CLOSED) {
+  if (state_filter == StateFilterEnum.CLOSED) {
     proposals_query = proposals_query.where("proposal.proposalState", "in", [
       ProposalState.QUEUED,
       ProposalState.DEFEATED,

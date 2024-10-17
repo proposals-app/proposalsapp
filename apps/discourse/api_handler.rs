@@ -78,6 +78,7 @@ impl ApiHandler {
                 .load(std::sync::atomic::Ordering::Relaxed);
 
             info!(
+                base_url = self.base_url,
                 total_size = total_size,
                 priority_size = priority_size,
                 normal_size = normal_size,
