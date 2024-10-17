@@ -14,7 +14,9 @@ const DEFAULT_INITIAL_BACKOFF: Duration = Duration::from_secs(2);
 #[derive(Clone)]
 pub struct ApiHandler {
     client: Client,
-    queue_size: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    total_queue_size: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    priority_queue_size: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    normal_queue_size: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     pub base_url: String,
@@ -39,27 +41,44 @@ impl ApiHandler {
 
         let (sender, receiver) = mpsc::channel(queue_size);
 
-        let queue_size_counter = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let total_queue_size = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let priority_queue_size = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let normal_queue_size = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
 
         let api_handler = Self {
             client,
             max_retries,
             sender,
             base_url,
-            queue_size: queue_size_counter.clone(),
+            total_queue_size: total_queue_size.clone(),
+            priority_queue_size: priority_queue_size.clone(),
+            normal_queue_size: normal_queue_size.clone(),
         };
 
         tokio::spawn(api_handler.clone().run_queue(receiver));
-        tokio::spawn(api_handler.clone().log_queue_size());
+        tokio::spawn(api_handler.clone().log_queue_sizes());
 
         api_handler
     }
 
-    async fn log_queue_size(self) {
+    async fn log_queue_sizes(self) {
         let mut interval = tokio::time::interval(Duration::from_secs(10));
         loop {
-            let size = self.queue_size.load(std::sync::atomic::Ordering::Relaxed);
-            info!("{} request queue size: {}", self.base_url, size);
+            let total_size = self
+                .total_queue_size
+                .load(std::sync::atomic::Ordering::Relaxed);
+            let priority_size = self
+                .priority_queue_size
+                .load(std::sync::atomic::Ordering::Relaxed);
+            let normal_size = self
+                .normal_queue_size
+                .load(std::sync::atomic::Ordering::Relaxed);
+
+            info!(
+                "{} request queue sizes - Total: {}, Priority: {}, Normal: {}",
+                self.base_url, total_size, priority_size, normal_size
+            );
+
             interval.tick().await;
         }
     }
@@ -83,7 +102,7 @@ impl ApiHandler {
             response_sender,
         };
 
-        self.queue_size
+        self.total_queue_size
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         self.sender
             .send(job)
@@ -103,17 +122,23 @@ impl ApiHandler {
         let mut normal_queue = Vec::new();
 
         while let Some(job) = receiver.recv().await {
-            self.queue_size
+            self.total_queue_size
                 .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
 
             if job.priority {
                 priority_queue.push(job);
+                self.priority_queue_size
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             } else {
                 normal_queue.push(job);
+                self.normal_queue_size
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             }
 
             // Process all priority jobs first
             while let Some(priority_job) = priority_queue.pop() {
+                self.priority_queue_size
+                    .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
                 let result = self.execute_request(&priority_job.url).await;
                 if let Err(e) = &result {
                     error!("Priority request failed: {}", e);
@@ -123,6 +148,8 @@ impl ApiHandler {
 
             // Then process one normal job
             if let Some(normal_job) = normal_queue.pop() {
+                self.normal_queue_size
+                    .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
                 let result = self.execute_request(&normal_job.url).await;
                 if let Err(e) = &result {
                     error!("Request failed: {}", e);
