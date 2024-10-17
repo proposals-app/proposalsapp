@@ -3,8 +3,7 @@ use opentelemetry::{global, metrics::Meter, KeyValue};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
-    logs::Config, metrics::reader::DefaultTemporalitySelector, propagation::TraceContextPropagator,
-    runtime::Tokio, trace, Resource,
+    logs::Config, propagation::TraceContextPropagator, runtime::Tokio, trace, Resource,
 };
 use std::{collections::HashMap, time::Duration};
 use tracing::error;
@@ -91,9 +90,8 @@ pub fn setup_tracing() {
                 )])),
         )
         .with_resource(Resource::new(resources.clone()))
-        .with_period(Duration::from_secs(3))
+        .with_period(Duration::from_millis(250))
         .with_timeout(Duration::from_secs(10))
-        .with_temporality_selector(DefaultTemporalitySelector::new())
         .build()
         .expect("Failed to build meter provider");
 
