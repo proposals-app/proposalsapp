@@ -103,6 +103,7 @@ impl RevisionIndexer {
         Ok(())
     }
 
+    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     async fn fetch_posts_with_revisions(
         &self,
         db_handler: Arc<DbHandler>,
@@ -116,16 +117,23 @@ impl RevisionIndexer {
             .all(&db_handler.conn)
             .await?;
 
-        Ok(posts
+        let filtered_posts: Vec<discourse_post::Model> = posts
             .into_iter()
             .filter(|(post, revisions)| {
                 let revision_count = revisions.len();
                 revision_count < (post.version - 1) as usize
             })
             .map(|(post, _)| post)
-            .collect())
+            .collect();
+
+        info!(
+            posts_count = filtered_posts.len(),
+            "Fetched posts with incomplete revisions"
+        );
+        Ok(filtered_posts)
     }
 
+    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     async fn fetch_recent_posts_with_revisions(
         &self,
         db_handler: Arc<DbHandler>,
@@ -141,14 +149,20 @@ impl RevisionIndexer {
             .all(&db_handler.conn)
             .await?;
 
-        Ok(posts
+        let filtered_posts: Vec<seaorm::discourse_post::Model> = posts
             .into_iter()
             .filter(|(post, revisions)| {
                 let revision_count = revisions.len();
                 revision_count < (post.version - 1) as usize
             })
             .map(|(post, _)| post)
-            .collect())
+            .collect();
+
+        info!(
+            posts_count = filtered_posts.len(),
+            "Fetched recent posts with incomplete revisions"
+        );
+        Ok(filtered_posts)
     }
 }
 
