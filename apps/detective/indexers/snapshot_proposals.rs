@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::{indexer::Indexer, snapshot_api::SnapshotApiHandler};
+use crate::{database::DatabaseStore, indexer::Indexer, snapshot_api::SnapshotApiHandler};
 use anyhow::Result;
-use chrono::{DateTime, Utc};
-use sea_orm::{ActiveValue::NotSet, Set};
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set};
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde::Deserialize;
 use tracing::info;
@@ -75,6 +75,11 @@ impl Indexer for SnapshotProposalsIndexer {
                 ))
             }
         };
+
+        let sanitize_from: NaiveDateTime = (Utc::now() - Duration::days(90)).naive_utc();
+        let sanitize_to: NaiveDateTime = (Utc::now() - Duration::minutes(5)).naive_utc();
+
+        sanitize(indexer, snapshot_space, sanitize_from, sanitize_to).await?;
 
         let graphql_query = format!(
             r#"
@@ -195,6 +200,99 @@ fn parse_proposals(
             }
         })
         .collect()
+}
+
+async fn sanitize(
+    indexer: &dao_indexer::Model,
+    space: &str,
+    sanitize_from: chrono::NaiveDateTime,
+    sanitize_to: chrono::NaiveDateTime,
+) -> Result<()> {
+    #[derive(Debug, Deserialize)]
+    struct GraphQLResponse {
+        data: GraphQLResponseInner,
+    }
+
+    #[derive(Deserialize, Debug)]
+    struct GraphQLResponseInner {
+        proposals: Vec<GraphQLProposal>,
+    }
+
+    #[derive(Debug, Clone, Deserialize)]
+    struct GraphQLProposal {
+        id: String,
+    }
+
+    let db = DatabaseStore::connect().await?;
+
+    let database_proposals = proposal::Entity::find()
+        .filter(
+            Condition::all()
+                .add(proposal::Column::DaoIndexerId.eq(indexer.id))
+                .add(proposal::Column::TimeCreated.gte(sanitize_from))
+                .add(proposal::Column::TimeCreated.lte(sanitize_to)),
+        )
+        .all(&db)
+        .await?;
+
+    let graphql_query = format!(
+        r#"
+        {{
+            proposals (
+                first: 1000,
+                where: {{
+                    space: {:?},
+                    created_gte: {},
+                    created_lte: {},
+                }},
+                orderBy: "created",
+                orderDirection: asc
+            )
+            {{
+                id
+            }}
+        }}
+    "#,
+        space,
+        sanitize_from.and_utc().timestamp(),
+        sanitize_to.and_utc().timestamp()
+    );
+
+    let graphql_response = reqwest::Client::new()
+        .get("https://hub.snapshot.org/graphql")
+        .json(&serde_json::json!({"query": graphql_query}))
+        .send()
+        .await?
+        .json::<GraphQLResponse>()
+        .await?;
+
+    let graph_proposals: Vec<GraphQLProposal> = graphql_response.data.proposals;
+
+    let graphql_proposal_ids: Vec<String> = graph_proposals
+        .iter()
+        .map(|proposal| proposal.id.clone())
+        .collect();
+
+    let proposals_to_delete: Vec<proposal::Model> = database_proposals
+        .into_iter()
+        .filter(|proposal| !graphql_proposal_ids.contains(&proposal.external_id))
+        .collect();
+
+    let now = Utc::now().naive_utc();
+
+    for proposal in proposals_to_delete {
+        let mut updated_proposal: proposal::ActiveModel = proposal.clone().into();
+
+        updated_proposal.marked_spam = Set(true);
+        updated_proposal.proposal_state = Set(ProposalState::Canceled);
+        updated_proposal.time_end = Set(now);
+
+        proposal::Entity::update(updated_proposal.clone())
+            .exec(&db)
+            .await?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
