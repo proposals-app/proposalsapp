@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
-use api_handler::ApiHandler;
 use axum::routing::get;
 use axum::Router;
 use db_handler::DbHandler;
+use discourse_api::DiscourseApi;
 use dotenv::dotenv;
 use indexers::categories::CategoryIndexer;
 use indexers::revisions::RevisionIndexer;
@@ -17,8 +17,8 @@ use std::time::Duration;
 use tracing::{error, info, warn};
 use utils::tracing::setup_tracing;
 
-mod api_handler;
 mod db_handler;
+mod discourse_api;
 mod indexers;
 mod models;
 
@@ -53,22 +53,23 @@ async fn main() -> Result<()> {
         .await?;
 
     let mut handles = vec![];
-    let mut api_handlers = HashMap::new();
+    let mut discourse_apis = HashMap::new();
 
     for dao_discourse in dao_discourses {
-        let api_handler = Arc::new(ApiHandler::new(dao_discourse.discourse_base_url.clone()));
-        api_handlers.insert(dao_discourse.id, Arc::clone(&api_handler));
+        let discourse_api = Arc::new(DiscourseApi::new(dao_discourse.discourse_base_url.clone()));
+        discourse_apis.insert(dao_discourse.id, Arc::clone(&discourse_api));
 
         // Spawn category fetcher thread
         let db_handler_category_clone = Arc::clone(&db_handler);
         let dao_discourse_category_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
+        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let category_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
                 if WAIT_FIRST {
                     interval.tick().await;
                 }
+
                 let category_fetcher = CategoryIndexer::new(Arc::clone(&api_handler));
                 match category_fetcher
                     .update_all_categories(
@@ -101,7 +102,7 @@ async fn main() -> Result<()> {
         // Spawn user fetcher thread
         let db_handler_users_clone = Arc::clone(&db_handler);
         let dao_discourse_users_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
+        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let user_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
@@ -140,7 +141,7 @@ async fn main() -> Result<()> {
         // Spawn topic fetcher thread
         let db_handler_topic_clone = Arc::clone(&db_handler);
         let dao_discourse_topic_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
+        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let topic_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
@@ -178,7 +179,7 @@ async fn main() -> Result<()> {
 
         let db_handler_revision_clone = Arc::clone(&db_handler);
         let dao_discourse_revision_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
+        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let revision_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
@@ -218,7 +219,7 @@ async fn main() -> Result<()> {
 
         let db_handler_newcontent_clone = Arc::clone(&db_handler);
         let dao_discourse_newcontent_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&api_handlers[&dao_discourse.id]);
+        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let newcontent_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(FAST_INDEX);
             loop {

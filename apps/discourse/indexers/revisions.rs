@@ -1,5 +1,5 @@
-use crate::api_handler::ApiHandler;
 use crate::db_handler::DbHandler;
+use crate::discourse_api::DiscourseApi;
 use crate::models::revisions::Revision;
 use anyhow::Result;
 use chrono::{Duration, Utc};
@@ -11,12 +11,12 @@ use tokio::task::JoinSet;
 use tracing::{instrument, warn};
 
 pub struct RevisionIndexer {
-    api_handler: Arc<ApiHandler>,
+    discourse_api: Arc<DiscourseApi>,
 }
 
 impl RevisionIndexer {
-    pub fn new(api_handler: Arc<ApiHandler>) -> Self {
-        Self { api_handler }
+    pub fn new(discourse_api: Arc<DiscourseApi>) -> Self {
+        Self { discourse_api }
     }
 
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
@@ -32,7 +32,7 @@ impl RevisionIndexer {
 
         for post in posts {
             let db_handler = db_handler.clone();
-            let api_handler = self.api_handler.clone();
+            let api_handler = self.discourse_api.clone();
             join_set.spawn(async move {
                 if let Err(e) = update_revisions_for_post(
                     &api_handler,
@@ -74,7 +74,7 @@ impl RevisionIndexer {
 
         for post in posts {
             let db_handler = db_handler.clone();
-            let api_handler = self.api_handler.clone();
+            let api_handler = self.discourse_api.clone();
             join_set.spawn(async move {
                 if let Err(e) = update_revisions_for_post(
                     &api_handler,
@@ -153,7 +153,7 @@ impl RevisionIndexer {
 }
 
 async fn update_revisions_for_post(
-    api_handler: &ApiHandler,
+    discourse_api: &DiscourseApi,
     db_handler: Arc<DbHandler>,
     dao_discourse_id: Uuid,
     post_id: i32,
@@ -176,7 +176,7 @@ async fn update_revisions_for_post(
 
     for rev_num in 2..=version {
         let url = format!("/posts/{}/revisions/{}.json", post_id, rev_num);
-        let revision: Revision = api_handler.fetch(&url, priority).await?;
+        let revision: Revision = discourse_api.fetch(&url, priority).await?;
 
         db_handler
             .upsert_revision(&revision, dao_discourse_id, discourse_post.id)

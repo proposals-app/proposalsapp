@@ -1,5 +1,5 @@
-use crate::api_handler::ApiHandler;
 use crate::db_handler::DbHandler;
+use crate::discourse_api::DiscourseApi;
 use crate::indexers::users::UserIndexer;
 use crate::models::posts::{Post, PostResponse};
 use anyhow::Result;
@@ -11,12 +11,12 @@ use tokio::task;
 use tracing::{error, info, instrument, warn};
 
 pub struct PostIndexer {
-    api_handler: Arc<ApiHandler>,
+    discourse_api: Arc<DiscourseApi>,
 }
 
 impl PostIndexer {
-    pub fn new(api_handler: Arc<ApiHandler>) -> Self {
-        Self { api_handler }
+    pub fn new(discourse_api: Arc<DiscourseApi>) -> Self {
+        Self { discourse_api }
     }
 
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id, topic_id = topic_id))]
@@ -34,7 +34,7 @@ impl PostIndexer {
 
         loop {
             let url = format!("/t/{}.json?page={}", topic_id, page);
-            match self.api_handler.fetch::<PostResponse>(&url, true).await {
+            match self.discourse_api.fetch::<PostResponse>(&url, true).await {
                 Ok(response) => {
                     if total_posts_count == 0 {
                         total_posts_count = response.posts_count;
@@ -56,7 +56,7 @@ impl PostIndexer {
                         stream::iter(posts)
                             .map(|post| {
                                 let db_handler = Arc::clone(&db_handler);
-                                let api_handler = Arc::clone(&self.api_handler);
+                                let api_handler = Arc::clone(&self.discourse_api);
                                 task::spawn(async move {
                                     Self::process_post(
                                         post,
@@ -127,7 +127,7 @@ impl PostIndexer {
         post: Post,
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
-        api_handler: Arc<ApiHandler>,
+        discourse_api: Arc<DiscourseApi>,
         priority: bool,
     ) {
         match db_handler.upsert_post(&post, dao_discourse_id).await {
@@ -141,7 +141,7 @@ impl PostIndexer {
                         username = post.username,
                         "User not found, fetching user details"
                     );
-                    let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
+                    let user_fetcher = UserIndexer::new(Arc::clone(&discourse_api));
                     match user_fetcher
                         .fetch_user_by_username(
                             &post.username,

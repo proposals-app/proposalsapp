@@ -1,5 +1,5 @@
-use crate::api_handler::ApiHandler;
 use crate::db_handler::DbHandler;
+use crate::discourse_api::DiscourseApi;
 use crate::models::users::{User, UserDetailResponse, UserResponse};
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
@@ -7,12 +7,12 @@ use std::sync::Arc;
 use tracing::{info, instrument};
 
 pub struct UserIndexer {
-    api_handler: Arc<ApiHandler>,
+    discourse_api: Arc<DiscourseApi>,
 }
 
 impl UserIndexer {
-    pub fn new(api_handler: Arc<ApiHandler>) -> Self {
-        Self { api_handler }
+    pub fn new(discourse_api: Arc<DiscourseApi>) -> Self {
+        Self { discourse_api }
     }
 
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
@@ -54,7 +54,7 @@ impl UserIndexer {
                 "/directory_items.json?page={}&order=asc&period={}",
                 page, period
             );
-            let response: UserResponse = self.api_handler.fetch(&url, priority).await?;
+            let response: UserResponse = self.discourse_api.fetch(&url, priority).await?;
 
             let page_users: Vec<User> = response
                 .directory_items
@@ -131,7 +131,7 @@ impl UserIndexer {
         info!("Fetch user by username: {}", username);
 
         let response = self
-            .api_handler
+            .discourse_api
             .fetch::<UserDetailResponse>(&url, priority)
             .await?;
 
@@ -161,7 +161,7 @@ impl UserIndexer {
             // It's a relative URL, prepend the base URL and replace {size}
             format!(
                 "{}{}",
-                self.api_handler.base_url,
+                self.discourse_api.base_url,
                 avatar_template.replace("{size}", "120")
             )
         }

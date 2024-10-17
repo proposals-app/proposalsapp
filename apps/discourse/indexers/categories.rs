@@ -1,22 +1,24 @@
-use crate::api_handler::ApiHandler;
+use crate::discourse_api::DiscourseApi;
 use crate::models::categories::Category;
 use crate::models::categories::CategoryResponse;
 use crate::DbHandler;
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
+use tracing::debug;
 use tracing::error;
 use tracing::info;
 use tracing::instrument;
 
 pub struct CategoryIndexer {
-    api_handler: Arc<ApiHandler>,
+    discourse_api: Arc<DiscourseApi>,
 }
 
 impl CategoryIndexer {
-    pub fn new(api_handler: Arc<ApiHandler>) -> Self {
-        Self { api_handler }
+    pub fn new(discourse_api: Arc<DiscourseApi>) -> Self {
+        Self { discourse_api }
     }
+
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_all_categories(
         &self,
@@ -29,7 +31,8 @@ impl CategoryIndexer {
 
         loop {
             let url = format!("/categories.json?include_subcategories=true&page={}", page);
-            let response: CategoryResponse = self.api_handler.fetch(&url, true).await?;
+            debug!(url = %url, "Fetching categories");
+            let response: CategoryResponse = self.discourse_api.fetch(&url, true).await?;
 
             let mut all_categories = Vec::new();
             flatten_categories(&response.category_list.categories, &mut all_categories);
@@ -55,7 +58,6 @@ impl CategoryIndexer {
                 page = page + 1,
                 categories_fetched = num_categories,
                 total_categories = total_categories,
-                url = url,
                 "Fetched and upserted categories"
             );
 
@@ -77,10 +79,7 @@ impl CategoryIndexer {
             page += 1;
         }
 
-        info!(
-            total_categories = total_categories,
-            "Finished updating categories"
-        );
+        info!(total_categories, "Finished updating categories");
         Ok(())
     }
 }

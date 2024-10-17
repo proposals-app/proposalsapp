@@ -1,19 +1,19 @@
 use crate::indexers::posts::PostIndexer;
 use crate::models::topics::TopicResponse;
-use crate::{api_handler::ApiHandler, db_handler::DbHandler};
-use anyhow::{Context, Result};
+use crate::{db_handler::DbHandler, discourse_api::DiscourseApi};
+use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::{info, instrument};
 
 pub struct TopicIndexer {
-    api_handler: Arc<ApiHandler>,
+    discourse_api: Arc<DiscourseApi>,
 }
 
 impl TopicIndexer {
-    pub fn new(api_handler: Arc<ApiHandler>) -> Self {
-        Self { api_handler }
+    pub fn new(discourse_api: Arc<DiscourseApi>) -> Self {
+        Self { discourse_api }
     }
 
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
@@ -56,13 +56,11 @@ impl TopicIndexer {
                 ascending, page
             );
 
-            let response: Result<TopicResponse> = self
-                .api_handler
-                .fetch(&url, priority)
+            match self
+                .discourse_api
+                .fetch::<TopicResponse>(&url, priority)
                 .await
-                .context("Failed to fetch topics");
-
-            match response {
+            {
                 Ok(response) => {
                     let per_page = response.topic_list.per_page;
                     let num_topics = response.topic_list.topics.len() as i32;
@@ -71,7 +69,7 @@ impl TopicIndexer {
                     for topic in &response.topic_list.topics {
                         db_handler.upsert_topic(topic, dao_discourse_id).await?;
 
-                        let post_fetcher = PostIndexer::new(Arc::clone(&self.api_handler));
+                        let post_fetcher = PostIndexer::new(Arc::clone(&self.discourse_api));
                         let db_handler_clone = Arc::clone(&db_handler);
                         let dao_discourse_id_clone = dao_discourse_id;
                         let topic_id = topic.id;

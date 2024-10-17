@@ -15,7 +15,7 @@ const MAX_QUEUE_SIZE: usize = 5000;
 const NORMAL_JOBS_BATCH_SIZE: usize = 10;
 
 #[derive(Clone)]
-pub struct ApiHandler {
+pub struct DiscourseApi {
     client: Client,
     total_queue_size: std::sync::Arc<AtomicUsize>,
     priority_queue_size: std::sync::Arc<AtomicUsize>,
@@ -31,7 +31,7 @@ struct Job {
     response_sender: oneshot::Sender<Result<String>>,
 }
 
-impl ApiHandler {
+impl DiscourseApi {
     pub fn new(base_url: String) -> Self {
         Self::new_with_config(base_url, DEFAULT_QUEUE_SIZE, DEFAULT_MAX_RETRIES)
     }
