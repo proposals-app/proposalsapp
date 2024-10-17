@@ -96,13 +96,9 @@ impl Indexer for MakerExecutiveMainnetVotesIndexer {
             .into_iter()
             .filter(|sc| {
                 !([
-                    "0x0000000000000000000000000000000000000000000000000000000000000000",
                     "0x0000000000000000000000000000000000000000",
-                    "0x0000000000000000000000000000000000000000000000000000000000000001",
                     "0x0000000000000000000000000000000000000001",
-                    "0x0000000000000000000000000000000000000000000000000000000000000002",
                     "0x0000000000000000000000000000000000000002",
-                    "0x0000000000000000000000000000000000000000000000000000000000000020",
                     "0x0000000000000000000000000000000000000020",
                 ]
                 .contains(&sc.spell.as_str()))
@@ -141,7 +137,7 @@ async fn get_votes(
             block_created: Set(Some(0)),
             choice: Set(1.into()),
             proposal_id: NotSet,
-            proposal_external_id: Set(spell_cast.spell.to_string()),
+            proposal_external_id: Set(spell_cast.spell[..42].to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
             ..Default::default()
