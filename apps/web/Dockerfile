@@ -1,4 +1,4 @@
-FROM node:alpine AS builder
+FROM node:22-alpine AS builder
 
 # Set the working directory
 WORKDIR /app
@@ -14,8 +14,7 @@ COPY apps/web/package.json apps/web/
 COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
 
-# Install dependencies
-RUN yarn cache clean
+# Update lockfile and install dependencies
 RUN yarn install --mode=update-lockfile
 RUN yarn install
 
