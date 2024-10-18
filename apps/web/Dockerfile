@@ -51,11 +51,5 @@ COPY --from=builder /app/.yarnrc.yml /app/
 ENV PROPOSALS_BIN=web
 ENV NEXT_OTEL_VERBOSE=1
 
-# Set OTEL environment variables based on build args
-ARG HYPERDX_ENDPOINT
-ARG HYPERDX_KEY
-ENV OTEL_EXPORTER_OTLP_ENDPOINT=${HYPERDX_ENDPOINT}
-ENV OTEL_EXPORTER_OTLP_HEADERS="authorization=${HYPERDX_KEY}"
-
 # Set the default command
 CMD ["yarn", "start-web"]
