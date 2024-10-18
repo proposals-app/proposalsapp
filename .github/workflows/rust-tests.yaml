@@ -1,4 +1,5 @@
 name: Rust Tests
+
 on:
   pull_request:
   push:
@@ -41,10 +42,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential
 
-      - name: Install cargo-nextest and cargo-llvm-cov
-        run: |
-          cargo install cargo-nextest --locked
-          cargo install cargo-llvm-cov --locked
+      - name: Install latest cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Build
+        run: cargo build --verbose
 
       - name: Run tests with coverage
         env:
@@ -57,13 +59,7 @@ jobs:
           POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
           AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
         run: |
-          cargo llvm-cov nextest --lcov --output-path lcov.info
-      - name: Upload test results
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: target/nextest/default/junit.xml
-          format: junit
+          cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -74,3 +70,9 @@ jobs:
           name: codecov-rust
           fail_ci_if_error: true
           verbose: true
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-report
+          path: lcov.info
