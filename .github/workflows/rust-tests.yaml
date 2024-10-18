@@ -1,4 +1,5 @@
 name: Rust Tests
+
 on:
   pull_request:
   push:
@@ -7,6 +8,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests"
+  RUSTDOCFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests"
 
 jobs:
   build-test-coverage:
@@ -22,7 +25,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
           components: llvm-tools-preview
 
@@ -36,12 +39,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Install cargo-nextest and cargo-llvm-cov
-        run: |
-          cargo install cargo-nextest --locked
-          cargo install cargo-llvm-cov --locked
+      - name: Install grcov
+        run: cargo install grcov cargo-nextest --locked
 
-      - name: Run tests with coverage
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Run tests
+        run: cargo t-ci --verbose
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
@@ -51,8 +56,10 @@ jobs:
           OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
           POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
           AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
+
+      - name: Generate coverage
         run: |
-          cargo llvm-cov nextest --lcov --output-path lcov.info
+          grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
