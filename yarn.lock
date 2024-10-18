@@ -2501,6 +2501,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@opentelemetry/api-logs@npm:^0.53.0":
+  version: 0.53.0
+  resolution: "@opentelemetry/api-logs@npm:0.53.0"
+  dependencies:
+    "@opentelemetry/api": "npm:^1.0.0"
+  checksum: 10c0/969ad3bbb74e3de6fdfe8eb9b3ab86d3dc284ca7bffd0ca67eef64efd08c97a4305696afe0b7b03e5d356f15d0a1a67ac517e5fa7d1ddee6fdc249eef2209fcb
+  languageName: node
+  linkType: hard
+
+"@opentelemetry/api@npm:^1.0.0, @opentelemetry/api@npm:^1.9.0":
+  version: 1.9.0
+  resolution: "@opentelemetry/api@npm:1.9.0"
+  checksum: 10c0/9aae2fe6e8a3a3eeb6c1fdef78e1939cf05a0f37f8a4fae4d6bf2e09eb1e06f966ece85805626e01ba5fab48072b94f19b835449e58b6d26720ee19a58298add
+  languageName: node
+  linkType: hard
+
 "@oslojs/asn1@npm:1.0.0":
   version: 1.0.0
   resolution: "@oslojs/asn1@npm:1.0.0"
@@ -2655,6 +2671,8 @@ __metadata:
   dependencies:
     "@hookform/resolvers": "npm:^3.9.0"
     "@lucia-auth/adapter-postgresql": "npm:3.1.2"
+    "@opentelemetry/api": "npm:^1.9.0"
+    "@opentelemetry/api-logs": "npm:^0.53.0"
     "@proposalsapp/db": "npm:*"
     "@proposalsapp/emails": "npm:*"
     "@radix-ui/react-accordion": "npm:^1.2.1"
@@ -2692,6 +2710,7 @@ __metadata:
     "@types/react-dom": "npm:18.3.1"
     "@types/uuid": "npm:^10"
     "@types/web-push": "npm:3.6.3"
+    "@vercel/otel": "npm:^1.10.0"
     autoprefixer: "npm:10.4.20"
     class-variance-authority: "npm:0.7.0"
     clsx: "npm:2.1.1"
@@ -5529,6 +5548,21 @@ __metadata:
     "@typescript-eslint/types": "npm:7.18.0"
     eslint-visitor-keys: "npm:^3.4.3"
   checksum: 10c0/538b645f8ff1d9debf264865c69a317074eaff0255e63d7407046176b0f6a6beba34a6c51d511f12444bae12a98c69891eb6f403c9f54c6c2e2849d1c1cb73c0
+  languageName: node
+  linkType: hard
+
+"@vercel/otel@npm:^1.10.0":
+  version: 1.10.0
+  resolution: "@vercel/otel@npm:1.10.0"
+  peerDependencies:
+    "@opentelemetry/api": ^1.7.0
+    "@opentelemetry/api-logs": "*"
+    "@opentelemetry/instrumentation": "*"
+    "@opentelemetry/resources": ^1.19.0
+    "@opentelemetry/sdk-logs": "*"
+    "@opentelemetry/sdk-metrics": ^1.19.0
+    "@opentelemetry/sdk-trace-base": ^1.19.0
+  checksum: 10c0/1e5e058176c9dc7d8468942254e9b23d69676bc93085e3e3ebab5e01ae6528726cb52ee13e309f464c5ebc2448fb3fcf35ac39617db3a5484d2bf8755cc3feba
   languageName: node
   linkType: hard
 

@@ -6,6 +6,7 @@ import { Lucia } from "lucia";
 import { db, db_pool } from "@proposalsapp/db";
 import { NodePostgresAdapter } from "@lucia-auth/adapter-postgresql";
 import { cookies } from "next/headers";
+import { otel } from "./otel";
 
 const adapter = new NodePostgresAdapter(db_pool, {
   user: "user",
@@ -31,35 +32,37 @@ export const validateRequest = cache(
   async (): Promise<
     { user: User; session: Session } | { user: null; session: null }
   > => {
-    const sessionId = cookies().get(lucia.sessionCookieName)?.value ?? null;
-    if (!sessionId) {
-      return {
-        user: null,
-        session: null,
-      };
-    }
+    return otel("auth-validate-request", async () => {
+      const sessionId = cookies().get(lucia.sessionCookieName)?.value ?? null;
+      if (!sessionId) {
+        return {
+          user: null,
+          session: null,
+        };
+      }
 
-    const result = await lucia.validateSession(sessionId);
-    // next.js throws when you attempt to set cookie when rendering page
-    try {
-      if (result.session && result.session.fresh) {
-        const sessionCookie = lucia.createSessionCookie(result.session.id);
-        cookies().set(
-          sessionCookie.name,
-          sessionCookie.value,
-          sessionCookie.attributes,
-        );
-      }
-      if (!result.session) {
-        const sessionCookie = lucia.createBlankSessionCookie();
-        cookies().set(
-          sessionCookie.name,
-          sessionCookie.value,
-          sessionCookie.attributes,
-        );
-      }
-    } catch {}
-    return result;
+      const result = await lucia.validateSession(sessionId);
+      // next.js throws when you attempt to set cookie when rendering page
+      try {
+        if (result.session && result.session.fresh) {
+          const sessionCookie = lucia.createSessionCookie(result.session.id);
+          cookies().set(
+            sessionCookie.name,
+            sessionCookie.value,
+            sessionCookie.attributes,
+          );
+        }
+        if (!result.session) {
+          const sessionCookie = lucia.createBlankSessionCookie();
+          cookies().set(
+            sessionCookie.name,
+            sessionCookie.value,
+            sessionCookie.attributes,
+          );
+        }
+      } catch {}
+      return result;
+    });
   },
 );
 
@@ -67,47 +70,51 @@ export async function generateEmailVerificationCode(
   userId: string,
   email: string,
 ): Promise<string> {
-  await db
-    .deleteFrom("emailVerification")
-    .where("emailVerification.userId", "=", userId)
-    .execute();
+  return otel("auth-generate-email-code", async () => {
+    await db
+      .deleteFrom("emailVerification")
+      .where("emailVerification.userId", "=", userId)
+      .execute();
 
-  const code = generateRandomString(6, alphabet("0-9"));
+    const code = generateRandomString(6, alphabet("0-9"));
 
-  await db
-    .insertInto("emailVerification")
-    .values({
-      userId: userId,
-      email: email,
-      code: code,
-      expiresAt: createDate(new TimeSpan(15, "m")), // Increase expiration time to 15 minutes
-    })
-    .execute();
+    await db
+      .insertInto("emailVerification")
+      .values({
+        userId: userId,
+        email: email,
+        code: code,
+        expiresAt: createDate(new TimeSpan(15, "m")), // Increase expiration time to 15 minutes
+      })
+      .execute();
 
-  return code;
+    return code;
+  });
 }
 
 export async function verifyVerificationCode(
   user: User,
   code: string,
 ): Promise<boolean> {
-  const databaseCode = await db
-    .selectFrom("emailVerification")
-    .selectAll()
-    .where("userId", "=", user.id)
-    .executeTakeFirst();
+  return otel("auth-verify-code", async () => {
+    const databaseCode = await db
+      .selectFrom("emailVerification")
+      .selectAll()
+      .where("userId", "=", user.id)
+      .executeTakeFirst();
 
-  if (!databaseCode || databaseCode.code !== code) return false;
+    if (!databaseCode || databaseCode.code !== code) return false;
 
-  await db
-    .deleteFrom("emailVerification")
-    .where("id", "=", databaseCode.id)
-    .execute();
+    await db
+      .deleteFrom("emailVerification")
+      .where("id", "=", databaseCode.id)
+      .execute();
 
-  if (!isWithinExpirationDate(databaseCode.expiresAt)) return false;
-  if (databaseCode.email !== user.email) return false;
+    if (!isWithinExpirationDate(databaseCode.expiresAt)) return false;
+    if (databaseCode.email !== user.email) return false;
 
-  return true;
+    return true;
+  });
 }
 
 declare module "lucia" {
