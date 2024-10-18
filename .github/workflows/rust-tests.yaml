@@ -65,7 +65,6 @@ jobs:
           files: ./lcov.info
           flags: unittests
           name: codecov-rust
-          fail_ci_if_error: true
           verbose: true
 
       - name: Archive code coverage results
