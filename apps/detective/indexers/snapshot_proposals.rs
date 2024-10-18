@@ -321,6 +321,7 @@ mod snapshot_proposals {
     use std::sync::Arc;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn snapshot_aave() {
         let _ = dotenv().ok();
