@@ -62,6 +62,8 @@ export function ProposalAccordion({ proposals }: { proposals: any[] }) {
                     <br />
                     <span className="font-medium">Power:</span>{" "}
                     {vote.votingPower}
+                    <br />
+                    <span className="font-medium">Reason:</span> {vote.reason}
                   </li>
                 ))}
               </ul>
