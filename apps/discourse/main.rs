@@ -61,7 +61,8 @@ async fn main() -> Result<()> {
     let mut discourse_apis = HashMap::new();
 
     for dao_discourse in dao_discourses {
-        let discourse_api = Arc::new(DiscourseApi::new(dao_discourse.discourse_base_url.clone()));
+        let discourse_api =
+            Arc::new(DiscourseApi::new(dao_discourse.discourse_base_url.clone()).await);
         discourse_apis.insert(dao_discourse.id, Arc::clone(&discourse_api));
 
         // Spawn category fetcher thread

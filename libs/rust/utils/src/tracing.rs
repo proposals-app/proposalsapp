@@ -37,14 +37,14 @@ fn init_logs() -> Result<sdklogs::LoggerProvider, opentelemetry::logs::LogError>
     opentelemetry_otlp::new_pipeline()
         .logging()
         .with_resource(RESOURCE.clone())
-        .with_exporter(http_exporter().with_protocol(Protocol::HttpBinary))
+        .with_exporter(http_exporter())
         .install_batch(opentelemetry_sdk::runtime::Tokio)
 }
 
 fn init_tracer_provider() -> Result<sdktrace::TracerProvider, TraceError> {
     opentelemetry_otlp::new_pipeline()
         .tracing()
-        .with_exporter(http_exporter().with_protocol(Protocol::HttpBinary))
+        .with_exporter(http_exporter())
         .with_trace_config(Config::default().with_resource(RESOURCE.clone()))
         .install_batch(opentelemetry_sdk::runtime::Tokio)
 }
@@ -52,7 +52,7 @@ fn init_tracer_provider() -> Result<sdktrace::TracerProvider, TraceError> {
 fn init_metrics() -> Result<SdkMeterProvider, MetricsError> {
     opentelemetry_otlp::new_pipeline()
         .metrics(opentelemetry_sdk::runtime::Tokio)
-        .with_exporter(http_exporter().with_protocol(Protocol::HttpBinary))
+        .with_exporter(http_exporter())
         .with_resource(RESOURCE.clone())
         .with_period(Duration::from_millis(250))
         .with_timeout(Duration::from_secs(10))

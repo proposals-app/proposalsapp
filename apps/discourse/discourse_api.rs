@@ -39,11 +39,11 @@ struct Job {
 
 impl DiscourseApi {
     #[tracing::instrument(level = "info", skip(base_url))]
-    pub fn new(base_url: String) -> Self {
-        Self::new_with_config(base_url, DEFAULT_QUEUE_SIZE, DEFAULT_MAX_RETRIES)
+    pub async fn new(base_url: String) -> Self {
+        Self::new_with_config(base_url, DEFAULT_QUEUE_SIZE, DEFAULT_MAX_RETRIES).await
     }
 
-    pub fn new_with_config(base_url: String, queue_size: usize, max_retries: usize) -> Self {
+    pub async fn new_with_config(base_url: String, queue_size: usize, max_retries: usize) -> Self {
         let client = Client::builder()
             .default_headers(Self::default_headers())
             .build()
