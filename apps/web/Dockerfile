@@ -15,6 +15,7 @@ COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
 
 # Install dependencies
+RUN yarn cache clean
 RUN yarn install --mode=update-lockfile
 RUN yarn install
 
