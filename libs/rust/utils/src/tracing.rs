@@ -24,16 +24,22 @@ static RESOURCE: Lazy<Resource> = Lazy::new(|| {
 });
 
 fn base_http_exporter() -> HttpExporterBuilder {
-    let endpoint: String = std::env::var("HYPERDX_ENDPOINT").expect("HYPERDX_ENDPOINT not set!");
-    let api_key: String = std::env::var("HYPERDX_KEY").expect("HYPERDX_KEY not set!");
+    let endpoint: String =
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
+    let headers: String =
+        std::env::var("OTEL_EXPORTER_OTLP_HEADERS").expect("OTEL_EXPORTER_OTLP_HEADERS not set!");
+
+    let mut headers_map = HashMap::new();
+    for header in headers.split(',') {
+        if let Some((key, value)) = header.split_once('=') {
+            headers_map.insert(key.trim().to_string(), value.trim().to_string());
+        }
+    }
 
     opentelemetry_otlp::new_exporter()
         .http()
         .with_endpoint(endpoint)
-        .with_headers(HashMap::from([(
-            "Authorization".to_string(),
-            api_key.clone(),
-        )]))
+        .with_headers(headers_map)
         .with_timeout(Duration::from_secs(3))
         .with_protocol(opentelemetry_otlp::Protocol::HttpBinary)
         .with_http_client(reqwest::Client::new())
@@ -41,21 +47,30 @@ fn base_http_exporter() -> HttpExporterBuilder {
 
 fn traces_exporter() -> HttpExporterBuilder {
     base_http_exporter().with_export_config(ExportConfig {
-        endpoint: format!("{}/v1/traces", std::env::var("HYPERDX_ENDPOINT").unwrap()),
+        endpoint: format!(
+            "{}/v1/traces",
+            std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap()
+        ),
         ..ExportConfig::default()
     })
 }
 
 fn logs_exporter() -> HttpExporterBuilder {
     base_http_exporter().with_export_config(ExportConfig {
-        endpoint: format!("{}/v1/logs", std::env::var("HYPERDX_ENDPOINT").unwrap()),
+        endpoint: format!(
+            "{}/v1/logs",
+            std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap()
+        ),
         ..ExportConfig::default()
     })
 }
 
 fn metrics_exporter() -> HttpExporterBuilder {
     base_http_exporter().with_export_config(ExportConfig {
-        endpoint: format!("{}/v1/metrics", std::env::var("HYPERDX_ENDPOINT").unwrap()),
+        endpoint: format!(
+            "{}/v1/metrics",
+            std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap()
+        ),
         ..ExportConfig::default()
     })
 }
