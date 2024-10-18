@@ -42,6 +42,7 @@ sea-orm = { workspace = true, features = [
 seaorm = { path = "../seaorm" }
 serde = { workspace = true }
 serde_json = { workspace = true }
+reqwest = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-error = { workspace = true }

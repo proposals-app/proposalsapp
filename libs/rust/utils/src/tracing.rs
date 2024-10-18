@@ -2,7 +2,7 @@ use futures::FutureExt;
 use once_cell::sync::Lazy;
 use opentelemetry::{global, metrics::MetricsError, trace::TraceError, KeyValue};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use opentelemetry_otlp::{HttpExporterBuilder, Protocol, WithExportConfig};
+use opentelemetry_otlp::{ExportConfig, HttpExporterBuilder, WithExportConfig};
 use opentelemetry_sdk::{
     logs as sdklogs,
     metrics::SdkMeterProvider,
@@ -23,28 +23,55 @@ static RESOURCE: Lazy<Resource> = Lazy::new(|| {
     )])
 });
 
-fn http_exporter() -> HttpExporterBuilder {
-    let endpoint = std::env::var("HYPERDX_ENDPOINT").expect("HYPERDX_ENDPOINT not set!");
-    let api_key = std::env::var("HYPERDX_KEY").expect("HYPERDX_KEY not set!");
+fn base_http_exporter() -> HttpExporterBuilder {
+    let endpoint: String = std::env::var("HYPERDX_ENDPOINT").expect("HYPERDX_ENDPOINT not set!");
+    let api_key: String = std::env::var("HYPERDX_KEY").expect("HYPERDX_KEY not set!");
 
     opentelemetry_otlp::new_exporter()
         .http()
         .with_endpoint(endpoint)
-        .with_headers(HashMap::from([("authorization".to_string(), api_key)]))
+        .with_headers(HashMap::from([(
+            "Authorization".to_string(),
+            api_key.clone(),
+        )]))
+        .with_timeout(Duration::from_secs(3))
+        .with_protocol(opentelemetry_otlp::Protocol::HttpBinary)
+        .with_http_client(reqwest::Client::new())
+}
+
+fn traces_exporter() -> HttpExporterBuilder {
+    base_http_exporter().with_export_config(ExportConfig {
+        endpoint: format!("{}/v1/traces", std::env::var("HYPERDX_ENDPOINT").unwrap()),
+        ..ExportConfig::default()
+    })
+}
+
+fn logs_exporter() -> HttpExporterBuilder {
+    base_http_exporter().with_export_config(ExportConfig {
+        endpoint: format!("{}/v1/logs", std::env::var("HYPERDX_ENDPOINT").unwrap()),
+        ..ExportConfig::default()
+    })
+}
+
+fn metrics_exporter() -> HttpExporterBuilder {
+    base_http_exporter().with_export_config(ExportConfig {
+        endpoint: format!("{}/v1/metrics", std::env::var("HYPERDX_ENDPOINT").unwrap()),
+        ..ExportConfig::default()
+    })
 }
 
 fn init_logs() -> Result<sdklogs::LoggerProvider, opentelemetry::logs::LogError> {
     opentelemetry_otlp::new_pipeline()
         .logging()
         .with_resource(RESOURCE.clone())
-        .with_exporter(http_exporter())
+        .with_exporter(logs_exporter())
         .install_batch(opentelemetry_sdk::runtime::Tokio)
 }
 
 fn init_tracer_provider() -> Result<sdktrace::TracerProvider, TraceError> {
     opentelemetry_otlp::new_pipeline()
         .tracing()
-        .with_exporter(http_exporter())
+        .with_exporter(traces_exporter())
         .with_trace_config(Config::default().with_resource(RESOURCE.clone()))
         .install_batch(opentelemetry_sdk::runtime::Tokio)
 }
@@ -52,9 +79,9 @@ fn init_tracer_provider() -> Result<sdktrace::TracerProvider, TraceError> {
 fn init_metrics() -> Result<SdkMeterProvider, MetricsError> {
     opentelemetry_otlp::new_pipeline()
         .metrics(opentelemetry_sdk::runtime::Tokio)
-        .with_exporter(http_exporter())
+        .with_exporter(metrics_exporter())
         .with_resource(RESOURCE.clone())
-        .with_period(Duration::from_millis(250))
+        .with_period(Duration::from_secs(1))
         .with_timeout(Duration::from_secs(10))
         .build()
 }
@@ -68,13 +95,22 @@ pub fn get_meter() -> opentelemetry::metrics::Meter {
 }
 
 pub fn setup_tracing() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-    let tracer_provider = init_tracer_provider()?;
+    let tracer_provider = init_tracer_provider().map_err(|e| {
+        println!("Failed to initialize tracer provider: {:?}", e);
+        e
+    })?;
     global::set_tracer_provider(tracer_provider);
 
-    let meter_provider = init_metrics()?;
+    let meter_provider = init_metrics().map_err(|e| {
+        println!("Failed to initialize metrics: {:?}", e);
+        e
+    })?;
     global::set_meter_provider(meter_provider);
 
-    let logger_provider = init_logs()?;
+    let logger_provider = init_logs().map_err(|e| {
+        println!("Failed to initialize logs: {:?}", e);
+        e
+    })?;
     let layer = OpenTelemetryTracingBridge::new(&logger_provider);
 
     let filter = EnvFilter::try_from_default_env()

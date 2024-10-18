@@ -4,10 +4,9 @@ use opentelemetry::KeyValue;
 use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT};
 use reqwest::{Client, StatusCode};
 use serde::de::DeserializeOwned;
-use std::collections::HashMap;
+use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::sleep;
 use tracing::{error, info, instrument, warn};
@@ -21,14 +20,16 @@ const NORMAL_JOBS_BATCH_SIZE: usize = 10;
 #[derive(Clone)]
 pub struct DiscourseApi {
     client: Client,
+    total_queue: Arc<AtomicI64>,
     total_queue_gauge: Gauge<i64>,
+    priority_queue: Arc<AtomicI64>,
     priority_queue_gauge: Gauge<i64>,
+    normal_queue: Arc<AtomicI64>,
     normal_queue_gauge: Gauge<i64>,
     requests_counter: Counter<u64>,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     pub base_url: String,
-    queue_counts: Arc<Mutex<HashMap<String, i64>>>,
 }
 
 struct Job {
@@ -38,28 +39,17 @@ struct Job {
 }
 
 impl DiscourseApi {
-    #[tracing::instrument(level = "info", skip(base_url))]
-    pub async fn new(base_url: String) -> Self {
-        Self::new_with_config(base_url, DEFAULT_QUEUE_SIZE, DEFAULT_MAX_RETRIES).await
+    pub fn new(base_url: String) -> Self {
+        Self::new_with_config(base_url, DEFAULT_QUEUE_SIZE, DEFAULT_MAX_RETRIES)
     }
 
-    pub async fn new_with_config(base_url: String, queue_size: usize, max_retries: usize) -> Self {
+    pub fn new_with_config(base_url: String, queue_size: usize, max_retries: usize) -> Self {
         let client = Client::builder()
             .default_headers(Self::default_headers())
             .build()
             .expect("Failed to build HTTP client");
 
         let (sender, receiver) = mpsc::channel(queue_size);
-
-        let queue_counts = Arc::new(Mutex::new(HashMap::new()));
-
-        // Initialize the HashMap synchronously
-        {
-            let mut counts = queue_counts.blocking_lock();
-            counts.insert("total".to_string(), 0);
-            counts.insert("priority".to_string(), 0);
-            counts.insert("normal".to_string(), 0);
-        }
 
         let meter = get_meter();
 
@@ -85,35 +75,19 @@ impl DiscourseApi {
             max_retries,
             sender,
             base_url: base_url.clone(),
+            total_queue: Arc::new(AtomicI64::new(0)),
             total_queue_gauge,
+            priority_queue: Arc::new(AtomicI64::new(0)),
             priority_queue_gauge,
+            normal_queue: Arc::new(AtomicI64::new(0)),
             normal_queue_gauge,
             requests_counter,
-            queue_counts: queue_counts.clone(),
         };
 
-        let gauge_updater = api_handler.clone();
-        tokio::spawn(async move {
-            loop {
-                gauge_updater.update_gauges().await;
-                tokio::time::sleep(Duration::from_secs(1)).await;
-            }
-        });
-
+        // Spawn the queue runner
         tokio::spawn(api_handler.clone().run_queue(receiver));
 
         api_handler
-    }
-
-    async fn update_gauges(&self) {
-        let counts = self.queue_counts.lock().await;
-        let labels = &[KeyValue::new("base_url", self.base_url.clone())];
-        self.total_queue_gauge
-            .record(*counts.get("total").unwrap_or(&0), labels);
-        self.priority_queue_gauge
-            .record(*counts.get("priority").unwrap_or(&0), labels);
-        self.normal_queue_gauge
-            .record(*counts.get("normal").unwrap_or(&0), labels);
     }
 
     fn default_headers() -> HeaderMap {
@@ -128,14 +102,20 @@ impl DiscourseApi {
     where
         T: DeserializeOwned,
     {
-        let mut counts = self.queue_counts.lock().await;
-        *counts.entry("total".to_string()).or_insert(0) += 1;
+        let labels = &[KeyValue::new("base_url", self.base_url.clone())];
+        self.total_queue.fetch_add(1, Ordering::SeqCst);
         if priority {
-            *counts.entry("priority".to_string()).or_insert(0) += 1;
+            self.priority_queue.fetch_add(1, Ordering::SeqCst);
         } else {
-            *counts.entry("normal".to_string()).or_insert(0) += 1;
+            self.normal_queue.fetch_add(1, Ordering::SeqCst);
         }
-        drop(counts);
+
+        self.total_queue_gauge
+            .record(self.total_queue.load(Ordering::SeqCst), labels);
+        self.priority_queue_gauge
+            .record(self.priority_queue.load(Ordering::SeqCst), labels);
+        self.normal_queue_gauge
+            .record(self.normal_queue.load(Ordering::SeqCst), labels);
 
         let (response_sender, response_receiver) = oneshot::channel();
         let url = format!("{}{}", self.base_url, endpoint);
@@ -222,16 +202,21 @@ impl DiscourseApi {
         }
         let _ = job.response_sender.send(result);
 
-        let mut counts = self.queue_counts.lock().await;
-        *counts.entry("total".to_string()).or_insert(0) -= 1;
-        if is_priority {
-            *counts.entry("priority".to_string()).or_insert(0) -= 1;
-        } else {
-            *counts.entry("normal".to_string()).or_insert(0) -= 1;
-        }
-        drop(counts);
-
         let labels = &[KeyValue::new("base_url", self.base_url.clone())];
+        self.total_queue.fetch_sub(1, Ordering::SeqCst);
+        if is_priority {
+            self.priority_queue.fetch_sub(1, Ordering::SeqCst);
+        } else {
+            self.normal_queue.fetch_sub(1, Ordering::SeqCst);
+        }
+
+        self.total_queue_gauge
+            .record(self.total_queue.load(Ordering::SeqCst), labels);
+        self.priority_queue_gauge
+            .record(self.priority_queue.load(Ordering::SeqCst), labels);
+        self.normal_queue_gauge
+            .record(self.normal_queue.load(Ordering::SeqCst), labels);
+
         self.requests_counter.add(1, labels);
     }
 

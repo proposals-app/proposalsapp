@@ -22,7 +22,7 @@ mod discourse_api;
 mod indexers;
 mod models;
 
-const WAIT_FIRST: bool = true;
+const WAIT_FIRST: bool = false;
 const FAST_INDEX: Duration = Duration::from_secs(5 * 60);
 const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 
@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
 
     let db_handler = Arc::new(DbHandler::new(&database_url).await?);
-    info!(database_url = %database_url, "Initialtabase connection");
+    info!(database_url = %database_url, "Initial database connection");
 
     let app = Router::new().route("/", get("OK"));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -61,8 +61,7 @@ async fn main() -> Result<()> {
     let mut discourse_apis = HashMap::new();
 
     for dao_discourse in dao_discourses {
-        let discourse_api =
-            Arc::new(DiscourseApi::new(dao_discourse.discourse_base_url.clone()).await);
+        let discourse_api = Arc::new(DiscourseApi::new(dao_discourse.discourse_base_url.clone()));
         discourse_apis.insert(dao_discourse.id, Arc::clone(&discourse_api));
 
         // Spawn category fetcher thread
