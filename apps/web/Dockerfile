@@ -25,6 +25,7 @@ COPY libs/ts/emails/ libs/ts/emails/
 
 # Build the project
 ARG DATABASE_URL=postgresql://user:password@host:5432/database
+
 ENV DATABASE_URL=${DATABASE_URL}
 RUN yarn build-web
 
@@ -46,10 +47,15 @@ COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 COPY --from=builder /app/.yarnrc.yml /app/
 
-# Set the environment variable
+# Set the environment variables
 ENV PROPOSALS_BIN=web
 ENV NEXT_OTEL_VERBOSE=1
+
+# Set OTEL environment variables based on build args
+ARG HYPERDX_ENDPOINT
+ARG HYPERDX_KEY
 ENV OTEL_EXPORTER_OTLP_ENDPOINT=${HYPERDX_ENDPOINT}
-ENV OTEL_EXPORTER_OTLP_HEADERS="authorization=${HYPERDX_KEY}"
+ENV OTEL_EXPORTER_OTLP_HEADERS="x-api-key=${HYPERDX_KEY}"
+
 # Set the default command
 CMD ["yarn", "start-web"]
