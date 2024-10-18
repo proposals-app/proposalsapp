@@ -1,15 +1,65 @@
-use futures::{Future, FutureExt};
-use opentelemetry::{global, metrics::Meter, KeyValue};
+use futures::FutureExt;
+use once_cell::sync::Lazy;
+use opentelemetry::{global, metrics::MetricsError, trace::TraceError, KeyValue};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_otlp::{HttpExporterBuilder, Protocol, WithExportConfig};
 use opentelemetry_sdk::{
-    logs::Config, propagation::TraceContextPropagator, runtime::Tokio, trace, Resource,
+    logs as sdklogs,
+    metrics::SdkMeterProvider,
+    trace::{self as sdktrace, Config},
+    Resource,
 };
-use std::{collections::HashMap, time::Duration};
-use tracing::error;
+use std::{collections::HashMap, error::Error, time::Duration};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-pub fn get_meter() -> Meter {
+static RESOURCE: Lazy<Resource> = Lazy::new(|| {
+    let crate_name = std::env::var("CARGO_PKG_NAME")
+        .or_else(|_| std::env::var("PROPOSALS_BIN"))
+        .unwrap_or_else(|_| "unknown".to_string());
+
+    Resource::new(vec![KeyValue::new(
+        opentelemetry_semantic_conventions::resource::SERVICE_NAME,
+        crate_name.to_lowercase(),
+    )])
+});
+
+fn http_exporter() -> HttpExporterBuilder {
+    let endpoint = std::env::var("HYPERDX_ENDPOINT").expect("HYPERDX_ENDPOINT not set!");
+    let api_key = std::env::var("HYPERDX_KEY").expect("HYPERDX_KEY not set!");
+
+    opentelemetry_otlp::new_exporter()
+        .http()
+        .with_endpoint(endpoint)
+        .with_headers(HashMap::from([("authorization".to_string(), api_key)]))
+}
+
+fn init_logs() -> Result<sdklogs::LoggerProvider, opentelemetry::logs::LogError> {
+    opentelemetry_otlp::new_pipeline()
+        .logging()
+        .with_resource(RESOURCE.clone())
+        .with_exporter(http_exporter().with_protocol(Protocol::HttpBinary))
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
+}
+
+fn init_tracer_provider() -> Result<sdktrace::TracerProvider, TraceError> {
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(http_exporter().with_protocol(Protocol::HttpBinary))
+        .with_trace_config(Config::default().with_resource(RESOURCE.clone()))
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
+}
+
+fn init_metrics() -> Result<SdkMeterProvider, MetricsError> {
+    opentelemetry_otlp::new_pipeline()
+        .metrics(opentelemetry_sdk::runtime::Tokio)
+        .with_exporter(http_exporter().with_protocol(Protocol::HttpBinary))
+        .with_resource(RESOURCE.clone())
+        .with_period(Duration::from_millis(250))
+        .with_timeout(Duration::from_secs(10))
+        .build()
+}
+
+pub fn get_meter() -> opentelemetry::metrics::Meter {
     let crate_name = std::env::var("CARGO_PKG_NAME")
         .unwrap_or(std::env::var("PROPOSALS_BIN").unwrap_or("unknown".to_string()))
         .to_string();
@@ -17,102 +67,46 @@ pub fn get_meter() -> Meter {
     global::meter(crate_name)
 }
 
-pub fn setup_tracing() {
-    let endpoint: String = std::env::var("HYPERDX_ENDPOINT").expect("HYPERDX_ENDPOINT not set!");
-    let api_key: String = std::env::var("HYPERDX_KEY").expect("HYPERDX_KEY not set!");
+pub fn setup_tracing() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    let tracer_provider = init_tracer_provider()?;
+    global::set_tracer_provider(tracer_provider);
 
-    global::set_text_map_propagator(TraceContextPropagator::new());
+    let meter_provider = init_metrics()?;
+    global::set_meter_provider(meter_provider);
 
-    let filter_layer = EnvFilter::try_from_default_env()
+    let logger_provider = init_logs()?;
+    let layer = OpenTelemetryTracingBridge::new(&logger_provider);
+
+    let filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("info"))
-        .unwrap();
+        .unwrap()
+        .add_directive("hyper=error".parse().unwrap())
+        .add_directive("tonic=error".parse().unwrap())
+        .add_directive("reqwest=error".parse().unwrap());
 
-    // Ensure the fmt layer logs to the console
     let fmt_layer = fmt::layer()
         .with_line_number(true)
         .compact()
         .with_writer(std::io::stdout);
 
-    let crate_name = std::env::var("CARGO_PKG_NAME")
-        .unwrap_or(std::env::var("PROPOSALS_BIN").unwrap_or("unknown".to_string()))
-        .to_string();
-
-    let resources = vec![KeyValue::new("service.name", crate_name.to_lowercase())];
-
-    let tracer = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .http()
-                .with_endpoint(endpoint.clone())
-                .with_headers(HashMap::from([(
-                    "authorization".to_string(),
-                    api_key.clone(),
-                )])),
-        )
-        .with_trace_config(trace::config().with_resource(Resource::new(resources.clone())))
-        .install_batch(Tokio)
-        .unwrap();
-
-    let otel_layer = tracing_opentelemetry::layer()
-        .with_error_fields_to_exceptions(true)
-        .with_error_events_to_exceptions(true)
-        .with_error_records_to_exceptions(true)
-        .with_location(true)
-        .with_tracer(tracer);
-
-    let logs = opentelemetry_otlp::new_pipeline()
-        .logging()
-        .with_log_config(Config::default().with_resource(Resource::new(resources.clone())))
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .http()
-                .with_endpoint(endpoint.clone())
-                .with_headers(HashMap::from([(
-                    "authorization".to_string(),
-                    api_key.clone(),
-                )])),
-        )
-        .install_batch(Tokio)
-        .unwrap();
-
-    let appender_tracing_layer = OpenTelemetryTracingBridge::new(&logs.provider().unwrap());
-
-    let meter = opentelemetry_otlp::new_pipeline()
-        .metrics(opentelemetry_sdk::runtime::Tokio)
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .http()
-                .with_endpoint(endpoint)
-                .with_headers(HashMap::from([(
-                    "authorization".to_string(),
-                    api_key.clone(),
-                )])),
-        )
-        .with_resource(Resource::new(resources.clone()))
-        .with_period(Duration::from_millis(250))
-        .with_timeout(Duration::from_secs(10))
-        .build()
-        .expect("Failed to build meter provider");
-
-    global::set_meter_provider(meter);
-
     tracing_subscriber::registry()
-        .with(filter_layer)
+        .with(filter)
         .with(fmt_layer)
-        .with(appender_tracing_layer)
-        .with(otel_layer)
+        .with(layer)
         .init();
+
+    Ok(())
 }
 
-pub async fn run_with_tracing<F, Fut>(future: F)
+pub async fn run_with_tracing<F, Fut>(
+    future: F,
+) -> Result<(), Box<dyn Error + Send + Sync + 'static>>
 where
     F: FnOnce() -> Fut,
-    Fut: Future<Output = Result<(), anyhow::Error>> + Send + 'static,
+    Fut: std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'static,
 {
-    setup_tracing();
+    setup_tracing()?;
 
-    // Wrap the async block in a catch_unwind
     let result = std::panic::AssertUnwindSafe(future()).catch_unwind().await;
 
     if let Err(e) = result {
@@ -120,21 +114,24 @@ where
     }
 
     shutdown_tracing().await;
+    Ok(())
 }
 
 fn capture_panic_details(e: Box<dyn std::any::Any + Send>) {
     let backtrace = backtrace::Backtrace::new();
     if let Some(s) = e.downcast_ref::<&str>() {
-        error!(panic_message = *s, backtrace = ?backtrace, "Panic occurred with message");
+        tracing::error!(panic_message = *s, backtrace = ?backtrace, "Panic occurred with message");
     } else if let Some(s) = e.downcast_ref::<String>() {
-        error!(panic_message = s, backtrace = ?backtrace, "Panic occurred with message");
+        tracing::error!(panic_message = s, backtrace = ?backtrace, "Panic occurred with message");
     } else {
-        error!(backtrace = ?backtrace, "Panic occurred but the payload is not a string");
+        tracing::error!(backtrace = ?backtrace, "Panic occurred but the payload is not a string");
     }
 }
 
 pub async fn shutdown_tracing() {
-    // Delay to allow logs to be sent before shutting down
     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-    opentelemetry::global::shutdown_tracer_provider();
+    global::shutdown_tracer_provider();
+    // Note: You should also shut down the meter provider and logger provider here
+    // if you have access to them. In this structure, you might need to store them
+    // in a global state or pass them around.
 }

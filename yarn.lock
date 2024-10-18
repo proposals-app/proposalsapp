@@ -2709,7 +2709,7 @@ __metadata:
     pg: "npm:8.13.0"
     pino-pretty: "npm:11.3.0"
     postcss: "npm:8.4.47"
-    posthog-js: "npm:1.172.1"
+    posthog-js: "npm:1.174.0"
     postmark: "npm:4.0.5"
     prettier: "npm:3.3.3"
     prettier-plugin-tailwindcss: "npm:0.6.8"
@@ -2729,7 +2729,7 @@ __metadata:
     typescript: "npm:5.6.3"
     uuid: "npm:^10.0.0"
     vaul: "npm:^1.1.0"
-    viem: "npm:2.21.28"
+    viem: "npm:2.21.29"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -12209,15 +12209,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.172.1":
-  version: 1.172.1
-  resolution: "posthog-js@npm:1.172.1"
+"posthog-js@npm:1.174.0":
+  version: 1.174.0
+  resolution: "posthog-js@npm:1.174.0"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.2.0"
-  checksum: 10c0/170fb080f4b34a320956a1b0b5cf5b209a42e2e6d7c66ed9778553c820a66579731b2b65f1b55d7d61f96f427e019555d6cd28da3556b7683cbd6eb070a2c956
+  checksum: 10c0/21419b0e51dc0c15cf74a44b0a5b923f9091ed9cfe1b52f9be9c2fdc9418d229510abf8c63017b3239de4b979d7744939ff056ea316d88098da2802fee75eb4a
   languageName: node
   linkType: hard
 
@@ -14716,9 +14716,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.28":
-  version: 2.21.28
-  resolution: "viem@npm:2.21.28"
+"viem@npm:2.21.29":
+  version: 2.21.29
+  resolution: "viem@npm:2.21.29"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.11.0"
     "@noble/curves": "npm:1.6.0"
@@ -14734,7 +14734,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/32bd6981029dd7ed035e51c6bbe12390cdc6c6148960011e2dbdea57462fdd8b51588ec45817e8210a4f197cb156ebde13de0d355cddc2ebb628e3cb9c9a27de
+  checksum: 10c0/dfb7886e1c9e0c1486231c0352bcff1f1bcba70988f67c9ca9f6ee0dcde609365c4e930d865bd38d3281475171577f3e89674f9e1957ff67d1a8cc4ee8e02e93
   languageName: node
   linkType: hard
 

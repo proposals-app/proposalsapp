@@ -10,8 +10,8 @@ chrono = { workspace = true }
 dotenv = { workspace = true }
 futures = { workspace = true }
 oneshot = { workspace = true }
-rand = { workspace = true }
 opentelemetry = { workspace = true }
+rand = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",

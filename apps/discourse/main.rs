@@ -29,7 +29,7 @@ const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    setup_tracing();
+    let _ = setup_tracing();
     info!("Application starting up");
 
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
