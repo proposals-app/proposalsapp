@@ -26,11 +26,21 @@ ARG DATABASE_URL=postgresql://user:password@host:5432/database
 ENV DATABASE_URL=${DATABASE_URL}
 RUN yarn build-push-service
 
-# Use a minimal Node.js image for the final stage
-FROM node:alpine
+# Use Debian Bookworm for the final stage
+FROM debian:bookworm
 
-# Install and enable Corepack
-RUN corepack enable && corepack prepare yarn@4 --activate
+# Set the working directory
+WORKDIR /app
+
+# Install Node.js and yarn
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g corepack && \
+    corepack enable && \
+    corepack prepare yarn@4 --activate && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
 WORKDIR /app
