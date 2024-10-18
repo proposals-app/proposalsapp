@@ -36,6 +36,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Update and install required packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
       - name: Install cargo-nextest and cargo-llvm-cov
         run: |
           cargo install cargo-nextest --locked
