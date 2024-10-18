@@ -54,13 +54,6 @@ jobs:
         run: |
           cargo llvm-cov nextest --lcov --output-path lcov.info
 
-      - name: Upload test results
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: target/nextest/default/junit.xml
-          format: junit
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -70,3 +63,9 @@ jobs:
           name: codecov-rust
           fail_ci_if_error: true
           verbose: true
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-report
+          path: lcov.info

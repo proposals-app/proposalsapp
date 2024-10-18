@@ -31,7 +31,7 @@ impl CategoryIndexer {
         loop {
             let url = format!("/categories.json?include_subcategories=true&page={}", page);
             info!(url = %url, "Fetching categories");
-            let response: CategoryResponse = self.discourse_api.fetch(&url, true).await?;
+            let response: CategoryResponse = self.discourse_api.fetch(&url, false).await?;
 
             let mut all_categories = Vec::new();
             flatten_categories(&response.category_list.categories, &mut all_categories);
