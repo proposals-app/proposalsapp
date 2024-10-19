@@ -1,6 +1,6 @@
 "use client";
 
-import { getGuestProposals, getGuestProposalsType } from "@/app/actions";
+import { getProposals, getProposalsType } from "@/app/actions";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { StateFilterEnum } from "../filters/state-filter";
@@ -33,7 +33,7 @@ const endMessages = [
 ];
 
 export function LoadMore({ searchParams }: ItemsProps) {
-  const [proposals, setProposals] = useState<getGuestProposalsType>([]);
+  const [proposals, setProposals] = useState<getProposalsType>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [endMessage, setEndMessage] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export function LoadMore({ searchParams }: ItemsProps) {
     await delay(1000);
     const nextPage = page + 1;
 
-    const proposals = await getGuestProposals(
+    const proposals = await getProposals(
       searchParams.state as StateFilterEnum,
       searchParams.dao,
       nextPage,

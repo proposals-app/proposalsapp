@@ -9,11 +9,10 @@ async-trait = { workspace = true }
 backtrace = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
-opentelemetry = { workspace = true }
-opentelemetry-appender-tracing = { workspace = true }
-opentelemetry-appender-log = { workspace = true }
-opentelemetry-semantic-conventions = { workspace = true }
 once_cell = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry-appender-log = { workspace = true }
+opentelemetry-appender-tracing = { workspace = true }
 opentelemetry-http = { workspace = true }
 opentelemetry-otlp = { workspace = true, features = [
     "logs",
@@ -24,12 +23,14 @@ opentelemetry-otlp = { workspace = true, features = [
     "reqwest-rustls",
 ] }
 opentelemetry-proto = { workspace = true }
+opentelemetry-semantic-conventions = { workspace = true }
 opentelemetry_sdk = { workspace = true, features = [
     "rt-tokio",
     "logs",
     "metrics",
     "trace",
 ] }
+reqwest = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
     "runtime-tokio-rustls",
@@ -42,7 +43,6 @@ sea-orm = { workspace = true, features = [
 seaorm = { path = "../seaorm" }
 serde = { workspace = true }
 serde_json = { workspace = true }
-reqwest = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-error = { workspace = true }

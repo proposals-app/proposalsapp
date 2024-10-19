@@ -26,7 +26,7 @@ enum StateFilterEnum {
   CLOSED = "closed",
 }
 
-export const getGuestProposals = async (
+export const getProposals = async (
   state_filter: StateFilterEnum,
   daos: string | string[],
   page: number,
@@ -104,7 +104,7 @@ export const getGuestProposals = async (
   });
 };
 
-export type getGuestProposalsType = AsyncReturnType<typeof getGuestProposals>;
+export type getProposalsType = AsyncReturnType<typeof getProposals>;
 
 export const getHotDaos = async () => {
   return otel("get-hot-daos", async () => {

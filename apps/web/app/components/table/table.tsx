@@ -1,4 +1,4 @@
-import { getGuestProposals } from "@/app/actions";
+import { getProposals } from "@/app/actions";
 import { StateFilterEnum } from "../filters/state-filter";
 import { ProposalItem } from "./item";
 import { LoadMore } from "./load-more";
@@ -11,7 +11,7 @@ export const ProposalsTable = async ({
     dao: string | string[];
   };
 }) => {
-  const proposals = await getGuestProposals(
+  const proposals = await getProposals(
     searchParams.state as StateFilterEnum,
     searchParams.dao,
     0,
