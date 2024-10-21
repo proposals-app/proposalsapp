@@ -26,7 +26,6 @@ const nextConfig = {
   },
   skipTrailingSlashRedirect: true,
   experimental: {
-    instrumentationHook: true,
     serverActions: {
       bodySizeLimit: "10mb",
     },

@@ -1,15 +1,13 @@
-use std::sync::Arc;
-
 use crate::{database::DatabaseStore, indexer::Indexer, snapshot_api::SnapshotApiHandler};
 use anyhow::Result;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
-use itertools::Itertools;
 use sea_orm::{
     ActiveValue::{self, NotSet},
     ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
 };
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde::Deserialize;
+use std::sync::Arc;
 use tracing::info;
 
 #[derive(Debug, Deserialize)]
