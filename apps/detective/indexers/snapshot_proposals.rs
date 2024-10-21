@@ -130,21 +130,31 @@ impl Indexer for SnapshotProposalsIndexer {
             vec![]
         };
 
-        let highest_index = proposals
-            .iter()
-            .sorted_by(|a, b| a.index_created.as_ref().cmp(b.index_created.as_ref()))
-            .filter(|p| {
-                matches!(
-                    p.proposal_state.clone().take().unwrap(),
-                    ProposalState::Active | ProposalState::Pending
-                )
-            })
-            .filter_map(|p| match &p.index_created {
-                ActiveValue::Set(value) => Some(*value),
-                _ => None,
-            })
-            .min()
-            .unwrap_or(indexer.index);
+        let highest_index = {
+            let active_or_pending = proposals
+                .iter()
+                .filter(|p| {
+                    matches!(
+                        p.proposal_state.clone().take().unwrap(),
+                        ProposalState::Active | ProposalState::Pending
+                    )
+                })
+                .filter_map(|p| match &p.index_created {
+                    ActiveValue::Set(value) => Some(*value),
+                    _ => None,
+                });
+
+            let min_active_or_pending = active_or_pending.clone().min();
+            let max_any = proposals
+                .iter()
+                .filter_map(|p| match &p.index_created {
+                    ActiveValue::Set(value) => Some(*value),
+                    _ => None,
+                })
+                .max();
+
+            min_active_or_pending.or(max_any).unwrap_or(indexer.index)
+        };
 
         Ok((proposals, vec![], highest_index))
     }
