@@ -135,7 +135,7 @@ impl Indexer for SnapshotProposalsIndexer {
             .sorted_by(|a, b| a.index_created.as_ref().cmp(b.index_created.as_ref()))
             .filter(|p| {
                 matches!(
-                    p.proposal_state.as_ref(),
+                    p.proposal_state.clone().take().unwrap(),
                     ProposalState::Active | ProposalState::Pending
                 )
             })

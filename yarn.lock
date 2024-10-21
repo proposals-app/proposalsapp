@@ -2657,7 +2657,7 @@ __metadata:
     "@types/pg": "npm:8"
     dotenv: "npm:16.4.5"
     kysely: "npm:0.27.4"
-    kysely-codegen: "npm:0.15.0"
+    kysely-codegen: "npm:0.17.0"
     kysely-ctl: "npm:0.9.0"
     pg: "npm:8.13.0"
     typescript: "npm:5.6.3"
@@ -2837,7 +2837,7 @@ __metadata:
     typescript: "npm:5.6.3"
     uuid: "npm:^10.0.0"
     vaul: "npm:^1.1.0"
-    viem: "npm:2.21.29"
+    viem: "npm:2.21.30"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -8427,14 +8427,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-turbo@npm:2.2.0":
-  version: 2.2.0
-  resolution: "eslint-config-turbo@npm:2.2.0"
+"eslint-config-turbo@npm:2.2.1":
+  version: 2.2.1
+  resolution: "eslint-config-turbo@npm:2.2.1"
   dependencies:
-    eslint-plugin-turbo: "npm:2.2.0"
+    eslint-plugin-turbo: "npm:2.2.1"
   peerDependencies:
     eslint: ">6.6.0"
-  checksum: 10c0/6577243cf30bd49a1b6c6d6491b72aa655a71fbd21fb5f961f376aa8d1a4c34bb5c42bcc57d01ad2ae4bff1bf608cd2b276019a3a5b1827955fb930466542258
+  checksum: 10c0/fdd51931860e6c345871e6148e76455f7ce0ab66dc1cb2786d7143566706faabdca71acf21d03c70007d32280455b1de7101f8b3e55e6de051120ed1e7020783
   languageName: node
   linkType: hard
 
@@ -8652,14 +8652,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-turbo@npm:2.2.0":
-  version: 2.2.0
-  resolution: "eslint-plugin-turbo@npm:2.2.0"
+"eslint-plugin-turbo@npm:2.2.1":
+  version: 2.2.1
+  resolution: "eslint-plugin-turbo@npm:2.2.1"
   dependencies:
     dotenv: "npm:16.0.3"
   peerDependencies:
     eslint: ">6.6.0"
-  checksum: 10c0/5d7ef5fec640443063108e314f8b4b43773b87a0cf9affe112f9a0a43a7f5fc2c48bcac61376a1cf254cf4d3606b8d923e25f216d55ed323b4bfb0f39424f54e
+  checksum: 10c0/3b07ef41bb374c05732fb982de093229d4a1cc955fb2a3c21b902b1b2e78b002a19c6874d27c4068f84be8de0f4efd599c6c57c76a86fcf9a4a601b63a306423
   languageName: node
   linkType: hard
 
@@ -10556,26 +10556,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely-codegen@npm:0.15.0":
-  version: 0.15.0
-  resolution: "kysely-codegen@npm:0.15.0"
+"kysely-codegen@npm:0.17.0":
+  version: 0.17.0
+  resolution: "kysely-codegen@npm:0.17.0"
   dependencies:
     chalk: "npm:4.1.2"
     dotenv: "npm:^16.4.5"
     dotenv-expand: "npm:^11.0.6"
     git-diff: "npm:^2.0.6"
-    micromatch: "npm:^4.0.5"
+    micromatch: "npm:^4.0.8"
     minimist: "npm:^1.2.8"
+    pluralize: "npm:^8.0.0"
   peerDependencies:
     "@libsql/kysely-libsql": ^0.3.0
     "@tediousjs/connection-string": ^0.5.0
     better-sqlite3: ">=7.6.2"
     kysely: ^0.27.0
+    kysely-bun-sqlite: ^0.3.2
     kysely-bun-worker: ^0.5.3
     mysql2: ^2.3.3 || ^3.0.0
     pg: ^8.8.0
     tarn: ^3.0.0
-    tedious: ^16.6.0 || ^17.0.0
+    tedious: ^18.0.0
   peerDependenciesMeta:
     "@libsql/kysely-libsql":
       optional: true
@@ -10585,6 +10587,8 @@ __metadata:
       optional: true
     kysely:
       optional: false
+    kysely-bun-sqlite:
+      optional: true
     kysely-bun-worker:
       optional: true
     mysql2:
@@ -10597,7 +10601,7 @@ __metadata:
       optional: true
   bin:
     kysely-codegen: dist/cli/bin.js
-  checksum: 10c0/3519fe5b7a3f23e739309819ed70b6731b6dc6424b0c8b9869d48f872a00e3b70e306ae8dd4e66531a605cc6336bdc51f311937191136dd3b767661e5ad7f5f4
+  checksum: 10c0/9e780972aa5301f9df43e1e9018ef5aa5a26e6eed14af28fa1a5cdde5e8d0a2c7a6a46633eaa5dabfad4cda68d53b9612626692b4e45997ae33af288f87c6944
   languageName: node
   linkType: hard
 
@@ -10948,6 +10952,16 @@ __metadata:
     braces: "npm:^3.0.3"
     picomatch: "npm:^2.3.1"
   checksum: 10c0/58fa99bc5265edec206e9163a1d2cec5fabc46a5b473c45f4a700adce88c2520456ae35f2b301e4410fb3afb27e9521fb2813f6fc96be0a48a89430e0916a772
+  languageName: node
+  linkType: hard
+
+"micromatch@npm:^4.0.8":
+  version: 4.0.8
+  resolution: "micromatch@npm:4.0.8"
+  dependencies:
+    braces: "npm:^3.0.3"
+    picomatch: "npm:^2.3.1"
+  checksum: 10c0/166fa6eb926b9553f32ef81f5f531d27b4ce7da60e5baf8c021d043b27a388fb95e46a8038d5045877881e673f8134122b59624d5cecbd16eb50a42e7a6b5ca8
   languageName: node
   linkType: hard
 
@@ -12520,7 +12534,7 @@ __metadata:
     esbuild: "npm:0.24.0"
     eslint: "npm:9.13.0"
     eslint-config-prettier: "npm:9.1.0"
-    eslint-config-turbo: "npm:2.2.0"
+    eslint-config-turbo: "npm:2.2.1"
     framer-motion: "npm:12.0.0-alpha.0"
     glob: "npm:11.0.0"
     log-symbols: "npm:7.0.0"
@@ -14890,9 +14904,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.29":
-  version: 2.21.29
-  resolution: "viem@npm:2.21.29"
+"viem@npm:2.21.30":
+  version: 2.21.30
+  resolution: "viem@npm:2.21.30"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.11.0"
     "@noble/curves": "npm:1.6.0"
@@ -14908,7 +14922,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/dfb7886e1c9e0c1486231c0352bcff1f1bcba70988f67c9ca9f6ee0dcde609365c4e930d865bd38d3281475171577f3e89674f9e1957ff67d1a8cc4ee8e02e93
+  checksum: 10c0/8273f6c0c2525fb876a64de441dce5b1823a0de8625e1e11907607c6d2e5be16df01e8fdac9a492fcdb099106d86c7a5df5217ab9e9fbd1b6249438dcfb35b38
   languageName: node
   linkType: hard
 
