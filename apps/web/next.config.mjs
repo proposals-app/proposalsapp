@@ -26,7 +26,6 @@ const nextConfig = {
   },
   skipTrailingSlashRedirect: true,
   experimental: {
-    instrumentationHook: true,
     serverActions: {
       bodySizeLimit: "10mb",
     },
@@ -39,7 +38,7 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ["@proposalsapp/db"],
+  serverExternalPackages: ["@proposalsapp/db"],
 };
 
 export default withSerwist(nextConfig);
