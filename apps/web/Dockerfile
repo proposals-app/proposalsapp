@@ -35,12 +35,6 @@ FROM debian:bookworm
 # Set the working directory
 WORKDIR /app
 
-# Install necessary dependencies
-RUN apt-get update && apt-get install -y \
-    libc6 \
-    libstdc++6 \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install Node.js and yarn
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
