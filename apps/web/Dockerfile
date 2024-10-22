@@ -7,7 +7,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare yarn@4 --activate
 
 # Copy package-related files
-COPY package.json yarn.lock .yarnrc.yml ./
+COPY package.json .yarnrc.yml ./
 
 # Copy project-specific package files
 COPY apps/web/package.json apps/web/
@@ -15,7 +15,6 @@ COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
 
 # Update lockfile and install dependencies
-RUN yarn install --mode=update-lockfile
 RUN yarn install
 
 # Copy the remaining project files
@@ -34,12 +33,6 @@ FROM debian:bookworm
 
 # Set the working directory
 WORKDIR /app
-
-# Install necessary dependencies
-RUN apt-get update && apt-get install -y \
-    libc6 \
-    libstdc++6 \
-    && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js and yarn
 RUN apt-get update && apt-get install -y curl && \
