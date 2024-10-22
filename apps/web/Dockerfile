@@ -1,4 +1,3 @@
-# Build stage
 FROM node:22-alpine AS builder
 
 # Set the working directory
@@ -25,14 +24,25 @@ COPY libs/ts/emails/ libs/ts/emails/
 
 # Build the project
 ARG DATABASE_URL=postgresql://user:password@host:5432/database
+
 ENV DATABASE_URL=${DATABASE_URL}
 RUN yarn build-web
 
-# Production stage
-FROM node:22-alpine
+# Use Debian Bookworm for the final stage
+FROM debian:bookworm
 
 # Set the working directory
 WORKDIR /app
+
+# Install Node.js and yarn
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g corepack && \
+    corepack enable && \
+    corepack prepare yarn@4 --activate && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy the built project and required files from the builder stage
 COPY --from=builder /app/apps/web/ /app/apps/web/
@@ -42,9 +52,6 @@ COPY --from=builder /app/node_modules/ /app/node_modules/
 COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 COPY --from=builder /app/.yarnrc.yml /app/
-
-# Install production dependencies
-RUN yarn install --production
 
 # Set the environment variables
 ENV PROPOSALS_BIN=web
