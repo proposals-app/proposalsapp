@@ -17,11 +17,7 @@ export async function sendQuorum(job: JobData) {
     .selectFrom("notification")
     .where("userId", "=", userId)
     .where("proposalId", "=", proposalId)
-    .where(
-      "notification.type",
-      "=",
-      NotificationTypeEnum.EMAIL_QUORUM_NOT_REACHED,
-    )
+    .where("notification.type", "=", NotificationTypeEnum.EMAILQUORUMNOTREACHED)
     .where("dispatchStatus", "=", NotificationDispatchStatusEnum.DISPATCHED)
     .selectAll()
     .executeTakeFirst();
@@ -101,7 +97,7 @@ export async function sendQuorum(job: JobData) {
     .values({
       userId: userId,
       proposalId: proposalId,
-      type: NotificationTypeEnum.EMAIL_QUORUM_NOT_REACHED,
+      type: NotificationTypeEnum.EMAILQUORUMNOTREACHED,
       dispatchStatus: NotificationDispatchStatusEnum.DISPATCHED,
       dispatchedAt: new Date(res.SubmittedAt),
     })

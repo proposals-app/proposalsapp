@@ -76,8 +76,8 @@ const checkProposalsAndCreateJobs = async () => {
 
       const quorumNotReached = proposal.quorum > proposal.scoresQuorum;
       const notificationType = quorumNotReached
-        ? NotificationTypeEnum.PUSH_QUORUM_NOT_REACHED
-        : NotificationTypeEnum.PUSH_TIMEEND;
+        ? NotificationTypeEnum.PUSHQUORUMNOTREACHED
+        : NotificationTypeEnum.PUSHTIMEEND;
 
       // Check if a notification has already been sent
       const existingNotification = await db
@@ -119,8 +119,8 @@ const processJobQueue = async () => {
       .selectAll()
       .where("processed", "=", false)
       .where("jobType", "in", [
-        NotificationTypeEnum.PUSH_TIMEEND,
-        NotificationTypeEnum.PUSH_QUORUM_NOT_REACHED,
+        NotificationTypeEnum.PUSHTIMEEND,
+        NotificationTypeEnum.PUSHQUORUMNOTREACHED,
       ])
       .execute();
 
@@ -180,7 +180,7 @@ const sendPushNotification = async (
   );
 
   const message =
-    notificationType === NotificationTypeEnum.PUSH_QUORUM_NOT_REACHED
+    notificationType === NotificationTypeEnum.PUSHQUORUMNOTREACHED
       ? `${dao.name} proposal is nearing its deadline and hasn't reached quorum yet. Don't forget to cast your vote!`
       : `${dao.name} proposal is nearing its deadline and you didn't vote yet. Don't forget to cast your vote!`;
 

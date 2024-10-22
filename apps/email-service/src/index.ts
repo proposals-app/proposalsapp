@@ -71,12 +71,12 @@ const typedSendTimeend: SendFunction = sendTimeend;
 
 // Process job queues every minute
 cron.schedule("* * * * *", async () => {
-  await processJobQueue(NotificationTypeEnum.EMAIL_BULLETIN, typedSendBulletin);
+  await processJobQueue(NotificationTypeEnum.EMAILBULLETIN, typedSendBulletin);
   await processJobQueue(
-    NotificationTypeEnum.EMAIL_QUORUM_NOT_REACHED,
+    NotificationTypeEnum.EMAILQUORUMNOTREACHED,
     typedSendQuorum,
   );
-  await processJobQueue(NotificationTypeEnum.EMAIL_TIMEEND, typedSendTimeend);
+  await processJobQueue(NotificationTypeEnum.EMAILTIMEEND, typedSendTimeend);
 });
 
 // Schedule tasks to add jobs to the job queues
@@ -98,7 +98,7 @@ cron.schedule("0 8 * * *", async () => {
         .insertInto("jobQueue")
         .values({
           job: { userId: user.id },
-          jobType: NotificationTypeEnum.EMAIL_BULLETIN,
+          jobType: NotificationTypeEnum.EMAILBULLETIN,
         })
         .execute();
     }

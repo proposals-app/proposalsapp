@@ -36,10 +36,9 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-const PostHogPageView = dynamic(
-  () => import("./components/posthog-pageview"),
-  {},
-);
+const PostHogPageView = dynamic(() => import("./components/posthog-pageview"), {
+  ssr: false,
+});
 
 export default async function RootLayout({
   children,
