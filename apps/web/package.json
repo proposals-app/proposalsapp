@@ -85,12 +85,12 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "22.7.7",
+    "@types/node": "22.7.8",
     "@types/react": "18.3.11",
     "@types/react-day-picker": "5.3.0",
     "@types/react-dom": "18.3.1",
     "@types/uuid": "^10",
-    "@types/web-push": "3.6.3",
+    "@types/web-push": "3.6.4",
     "autoprefixer": "10.4.20",
     "pino-pretty": "11.3.0",
     "postcss": "8.4.47",

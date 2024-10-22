@@ -1,4 +1,5 @@
 import withSerwistInit from "@serwist/next";
+import type { NextConfig } from "next";
 
 const revision = crypto.randomUUID();
 
@@ -10,7 +11,11 @@ const withSerwist = withSerwistInit({
   maximumFileSizeToCacheInBytes: 25000000,
 });
 
-const nextConfig = {
+const nextConfig: NextConfig = {
+  devIndicators: {
+    appIsrStatus: true,
+    buildActivity: true,
+  },
   reactStrictMode: true,
   async rewrites() {
     return [
