@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::{database::DatabaseStore, indexer::Indexer, snapshot_api::SnapshotApiHandler};
 use anyhow::Result;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
-use itertools::Itertools;
 use sea_orm::{
     ActiveValue::{self, NotSet},
     ColumnTrait, Condition, EntityTrait, QueryFilter, Set,

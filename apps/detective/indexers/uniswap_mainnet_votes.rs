@@ -77,7 +77,7 @@ impl Indexer for UniswapMainnetVotesIndexer {
     }
 
     fn max_refresh_speed(&self) -> i32 {
-        1_000_000
+        100_000
     }
 }
 

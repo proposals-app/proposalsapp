@@ -118,7 +118,7 @@ impl Indexer for MakerExecutiveMainnetVotesIndexer {
     }
 
     fn max_refresh_speed(&self) -> i32 {
-        1_000_000
+        100_000
     }
 }
 

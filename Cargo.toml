@@ -24,7 +24,7 @@ reqwest-retry = "0.6.1"
 sea-orm = { version = "1.1.0", default-features = false }
 serde = "1.0.213"
 serde_json = "1.0.132"
-tokio = "1.39.0"
+tokio = "1.38.0"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 backtrace = "*"
