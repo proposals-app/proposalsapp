@@ -96,12 +96,18 @@ export async function fuzzySearchItems(
   return otel("mapping-fuzzy-search", async () => {
     const proposals = await db
       .selectFrom("proposal")
+      .where("proposal.daoId", "=", "f4b728d7-8117-4756-85d6-ca1a95412eaa")
       .leftJoin("daoIndexer", "daoIndexer.id", "proposal.daoIndexerId")
       .select(["proposal.id", "proposal.name", "daoIndexer.indexerVariant"])
       .execute();
 
     const topics = await db
       .selectFrom("discourseTopic")
+      .where(
+        "discourseTopic.daoDiscourseId",
+        "=",
+        "099352eb-b859-44ff-acbc-76806d304086",
+      )
       .leftJoin(
         "daoDiscourse",
         "daoDiscourse.id",
