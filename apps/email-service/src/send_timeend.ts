@@ -17,7 +17,7 @@ export async function sendTimeend(job: JobData) {
     .selectFrom("notification")
     .where("userId", "=", userId)
     .where("proposalId", "=", proposalId)
-    .where("notification.type", "=", NotificationTypeEnum.EMAILTIMEEND)
+    .where("notification.type", "=", NotificationTypeEnum.EMAIL_TIMEEND)
     .where("dispatchStatus", "=", NotificationDispatchStatusEnum.DISPATCHED)
     .selectAll()
     .executeTakeFirst();
@@ -96,7 +96,7 @@ export async function sendTimeend(job: JobData) {
     .values({
       userId: userId,
       proposalId: proposalId,
-      type: NotificationTypeEnum.EMAILTIMEEND,
+      type: NotificationTypeEnum.EMAIL_TIMEEND,
       dispatchStatus: NotificationDispatchStatusEnum.DISPATCHED,
       dispatchedAt: new Date(res.SubmittedAt),
     })
