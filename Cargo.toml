@@ -10,7 +10,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-anyhow = "1.0.92"
+anyhow = "1.0.93"
 async-trait = "0.1.83"
 chrono = "0.4.38"
 dotenv = "0.15.0"

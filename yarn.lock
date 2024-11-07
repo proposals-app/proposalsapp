@@ -2344,12 +2344,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@opentelemetry/api-logs@npm:0.54.0, @opentelemetry/api-logs@npm:^0.54.0":
-  version: 0.54.0
-  resolution: "@opentelemetry/api-logs@npm:0.54.0"
+"@opentelemetry/api-logs@npm:0.54.1, @opentelemetry/api-logs@npm:^0.54.1":
+  version: 0.54.1
+  resolution: "@opentelemetry/api-logs@npm:0.54.1"
   dependencies:
     "@opentelemetry/api": "npm:^1.3.0"
-  checksum: 10c0/877cf75fb6fe37cae9dde1fe9a38202af4d00246bfe3ac29b8c06da5e6e1818a27cb851a0f2c14b3cb7acdebb85ba847144f8523d84279fbb000e88685e66e3b
+  checksum: 10c0/68dcf75a80474d31c4c5925e03dc7885879f0a4e18e71a20135720b0eeb1b84f38994a71c0511fb567e6ff51b876feaba63c2f76ba57c20f8eaa6aa043a898cf
   languageName: node
   linkType: hard
 
@@ -2371,11 +2371,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@opentelemetry/instrumentation@npm:^0.54.0":
-  version: 0.54.0
-  resolution: "@opentelemetry/instrumentation@npm:0.54.0"
+"@opentelemetry/instrumentation@npm:^0.54.1":
+  version: 0.54.1
+  resolution: "@opentelemetry/instrumentation@npm:0.54.1"
   dependencies:
-    "@opentelemetry/api-logs": "npm:0.54.0"
+    "@opentelemetry/api-logs": "npm:0.54.1"
     "@types/shimmer": "npm:^1.2.0"
     import-in-the-middle: "npm:^1.8.1"
     require-in-the-middle: "npm:^7.1.1"
@@ -2383,7 +2383,7 @@ __metadata:
     shimmer: "npm:^1.2.1"
   peerDependencies:
     "@opentelemetry/api": ^1.3.0
-  checksum: 10c0/3b80aac8bb64c53c91926b6b19cacea27b98ac3ababa2b36cf02451b168094d0894ef4682ddbd680117c1f748fd0104750a1e0e924f3ef4bcb9e9e1cad37a141
+  checksum: 10c0/33b1b342ac43d0a3c96d3a73e332c529899ab40dd0760cfd2b8b55bc27ec1f040ac1aa6e5ca799bc851409bddd8332705d05e1c32c233e3b0a88152dbcc00ffd
   languageName: node
   linkType: hard
 
@@ -2399,16 +2399,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@opentelemetry/sdk-logs@npm:^0.54.0":
-  version: 0.54.0
-  resolution: "@opentelemetry/sdk-logs@npm:0.54.0"
+"@opentelemetry/sdk-logs@npm:^0.54.1":
+  version: 0.54.1
+  resolution: "@opentelemetry/sdk-logs@npm:0.54.1"
   dependencies:
-    "@opentelemetry/api-logs": "npm:0.54.0"
+    "@opentelemetry/api-logs": "npm:0.54.1"
     "@opentelemetry/core": "npm:1.27.0"
     "@opentelemetry/resources": "npm:1.27.0"
   peerDependencies:
     "@opentelemetry/api": ">=1.4.0 <1.10.0"
-  checksum: 10c0/10219ec72d00a2ebac83d25cf545daf3e5a2af372a96400745472c0d940c605e5749f6004bc43d6cfa584fd6fd5019ac987019c1a0a75eb308e99ccee49491a1
+  checksum: 10c0/f7baf35538df586f4e6f33294bbf3e7eeed5a9629750a3eda35090d224a3114604ca91f832d192ec7353b4261f21785b490fb8f7115bb120fa0702e293cc4b7d
   languageName: node
   linkType: hard
 
@@ -2599,10 +2599,10 @@ __metadata:
     "@hookform/resolvers": "npm:^3.9.1"
     "@lucia-auth/adapter-postgresql": "npm:3.1.2"
     "@opentelemetry/api": "npm:^1.9.0"
-    "@opentelemetry/api-logs": "npm:^0.54.0"
-    "@opentelemetry/instrumentation": "npm:^0.54.0"
+    "@opentelemetry/api-logs": "npm:^0.54.1"
+    "@opentelemetry/instrumentation": "npm:^0.54.1"
     "@opentelemetry/resources": "npm:^1.27.0"
-    "@opentelemetry/sdk-logs": "npm:^0.54.0"
+    "@opentelemetry/sdk-logs": "npm:^0.54.1"
     "@opentelemetry/sdk-metrics": "npm:^1.27.0"
     "@opentelemetry/sdk-trace-base": "npm:^1.27.0"
     "@proposalsapp/db": "npm:*"
@@ -2680,7 +2680,7 @@ __metadata:
     typescript: "npm:5.6.3"
     uuid: "npm:^11.0.2"
     vaul: "npm:^1.1.1"
-    viem: "npm:2.21.40"
+    viem: "npm:2.21.42"
     web-push: "npm:3.6.7"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -4544,90 +4544,90 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-darwin-arm64@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-darwin-arm64@npm:1.8.0"
+"@swc/core-darwin-arm64@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-darwin-arm64@npm:1.9.1"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@swc/core-darwin-x64@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-darwin-x64@npm:1.8.0"
+"@swc/core-darwin-x64@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-darwin-x64@npm:1.9.1"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm-gnueabihf@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.8.0"
+"@swc/core-linux-arm-gnueabihf@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.9.1"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm64-gnu@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-linux-arm64-gnu@npm:1.8.0"
+"@swc/core-linux-arm64-gnu@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-linux-arm64-gnu@npm:1.9.1"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm64-musl@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-linux-arm64-musl@npm:1.8.0"
+"@swc/core-linux-arm64-musl@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-linux-arm64-musl@npm:1.9.1"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@swc/core-linux-x64-gnu@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-linux-x64-gnu@npm:1.8.0"
+"@swc/core-linux-x64-gnu@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-linux-x64-gnu@npm:1.9.1"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@swc/core-linux-x64-musl@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-linux-x64-musl@npm:1.8.0"
+"@swc/core-linux-x64-musl@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-linux-x64-musl@npm:1.9.1"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@swc/core-win32-arm64-msvc@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-win32-arm64-msvc@npm:1.8.0"
+"@swc/core-win32-arm64-msvc@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-win32-arm64-msvc@npm:1.9.1"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@swc/core-win32-ia32-msvc@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-win32-ia32-msvc@npm:1.8.0"
+"@swc/core-win32-ia32-msvc@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-win32-ia32-msvc@npm:1.9.1"
   conditions: os=win32 & cpu=ia32
   languageName: node
   linkType: hard
 
-"@swc/core-win32-x64-msvc@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core-win32-x64-msvc@npm:1.8.0"
+"@swc/core-win32-x64-msvc@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core-win32-x64-msvc@npm:1.9.1"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"@swc/core@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@swc/core@npm:1.8.0"
+"@swc/core@npm:1.9.1":
+  version: 1.9.1
+  resolution: "@swc/core@npm:1.9.1"
   dependencies:
-    "@swc/core-darwin-arm64": "npm:1.8.0"
-    "@swc/core-darwin-x64": "npm:1.8.0"
-    "@swc/core-linux-arm-gnueabihf": "npm:1.8.0"
-    "@swc/core-linux-arm64-gnu": "npm:1.8.0"
-    "@swc/core-linux-arm64-musl": "npm:1.8.0"
-    "@swc/core-linux-x64-gnu": "npm:1.8.0"
-    "@swc/core-linux-x64-musl": "npm:1.8.0"
-    "@swc/core-win32-arm64-msvc": "npm:1.8.0"
-    "@swc/core-win32-ia32-msvc": "npm:1.8.0"
-    "@swc/core-win32-x64-msvc": "npm:1.8.0"
+    "@swc/core-darwin-arm64": "npm:1.9.1"
+    "@swc/core-darwin-x64": "npm:1.9.1"
+    "@swc/core-linux-arm-gnueabihf": "npm:1.9.1"
+    "@swc/core-linux-arm64-gnu": "npm:1.9.1"
+    "@swc/core-linux-arm64-musl": "npm:1.9.1"
+    "@swc/core-linux-x64-gnu": "npm:1.9.1"
+    "@swc/core-linux-x64-musl": "npm:1.9.1"
+    "@swc/core-win32-arm64-msvc": "npm:1.9.1"
+    "@swc/core-win32-ia32-msvc": "npm:1.9.1"
+    "@swc/core-win32-x64-msvc": "npm:1.9.1"
     "@swc/counter": "npm:^0.1.3"
     "@swc/types": "npm:^0.1.14"
   peerDependencies:
@@ -4656,7 +4656,7 @@ __metadata:
   peerDependenciesMeta:
     "@swc/helpers":
       optional: true
-  checksum: 10c0/a117e13b01327f8219d7eb5a177eed7174bb4dad2b508020cbc34391890f14935eff22f1b8be28456a1716bca001ff76e94a95cb210756e2101eb011012fc45b
+  checksum: 10c0/7b9a3da9bdd95216b031739ebe35983e69f17284809a62706c93edfd30ede0732060d944db23007aca9aebbc49859eb5784454c8882ae6fd04eb8bd15ac6a247
   languageName: node
   linkType: hard
 
@@ -12077,7 +12077,7 @@ __metadata:
     "@radix-ui/react-slot": "npm:1.1.0"
     "@radix-ui/react-toggle-group": "npm:1.1.0"
     "@radix-ui/react-tooltip": "npm:1.1.3"
-    "@swc/core": "npm:1.8.0"
+    "@swc/core": "npm:1.9.1"
     "@types/babel__core": "npm:7.20.5"
     "@types/fs-extra": "npm:11.0.4"
     "@types/mime-types": "npm:2.1.4"
@@ -14528,9 +14528,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.40":
-  version: 2.21.40
-  resolution: "viem@npm:2.21.40"
+"viem@npm:2.21.42":
+  version: 2.21.42
+  resolution: "viem@npm:2.21.42"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.11.0"
     "@noble/curves": "npm:1.6.0"
@@ -14546,7 +14546,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/5a4afdcce60a2ca89c167458215305a23c29b4be03054f9aa13f95b40c34c1223ffcc49e741c76a47df95f31bad8c525a0a86572aa92776e5a9d6b665663a0b9
+  checksum: 10c0/f6817d563aee3d7257d4d8e64486e3e7024c5e651dd56913fc880210ad0ff2e9e3e4a003ba9239c404f61fd1c8460ff1f4ba888c38872ee70a5cd1730dcf7acb
   languageName: node
   linkType: hard
 
