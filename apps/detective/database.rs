@@ -296,19 +296,6 @@ pub async fn store_voting_powers(
     const BATCH_SIZE: usize = 1000;
     for chunk in voting_powers.chunks(BATCH_SIZE) {
         voting_power::Entity::insert_many(chunk.to_vec())
-            .on_conflict(
-                sea_orm::sea_query::OnConflict::columns([
-                    voting_power::Column::Voter,
-                    voting_power::Column::Block,
-                ])
-                .to_owned() // Add this
-                .update_columns([
-                    voting_power::Column::VotingPower,
-                    voting_power::Column::Timestamp,
-                    voting_power::Column::Txid,
-                ])
-                .to_owned(),
-            )
             .exec(&txn)
             .await?;
     }
@@ -331,19 +318,6 @@ pub async fn store_delegations(
     const BATCH_SIZE: usize = 1000;
     for chunk in delegations.chunks(BATCH_SIZE) {
         delegation::Entity::insert_many(chunk.to_vec())
-            .on_conflict(
-                sea_orm::sea_query::OnConflict::columns([
-                    delegation::Column::Delegator,
-                    delegation::Column::Delegate,
-                ])
-                .to_owned() // Add this
-                .update_columns([
-                    delegation::Column::Block,
-                    delegation::Column::Timestamp,
-                    delegation::Column::Txid,
-                ])
-                .to_owned(),
-            )
             .exec(&txn)
             .await?;
     }
