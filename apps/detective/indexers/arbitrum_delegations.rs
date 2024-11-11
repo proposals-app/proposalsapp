@@ -48,7 +48,7 @@ impl DelegationIndexer for ArbitrumDelegationsIndexer {
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
     ) -> Result<ProcessResult> {
-        info!("Processing Arbitrum Core Votes");
+        info!("Processing Arbitrum Delegations");
 
         let arb_rpc = rpc_providers::get_provider("arbitrum")?;
 

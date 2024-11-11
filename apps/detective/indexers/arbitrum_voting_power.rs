@@ -48,7 +48,7 @@ impl VotingPowerIndexer for ArbitrumVotingPowerIndexer {
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
     ) -> Result<ProcessResult> {
-        info!("Processing Arbitrum Core Votes");
+        info!("Processing Arbitrum Voting Power");
 
         let arb_rpc = rpc_providers::get_provider("arbitrum")?;
 
