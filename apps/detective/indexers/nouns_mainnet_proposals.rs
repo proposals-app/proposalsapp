@@ -184,6 +184,7 @@ async fn data_for_proposal(
         "{:.120}",
         event
             .description
+            .trim_start()
             .split('\n')
             .next()
             .unwrap_or("Unknown")
