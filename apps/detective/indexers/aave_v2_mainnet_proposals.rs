@@ -1,4 +1,7 @@
-use crate::{indexer::Indexer, rpc_providers};
+use crate::{
+    indexer::{Indexer, ProcessResult, ProposalsIndexer},
+    rpc_providers,
+};
 use aave_v2_gov::{aave_v2_govInstance, ProposalCreated};
 use alloy::{
     primitives::{address, U256},
@@ -8,6 +11,7 @@ use alloy::{
     transports::http::Http,
 };
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::DateTime;
 use regex::Regex;
 use reqwest::Client;
@@ -17,7 +21,7 @@ use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
+use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tracing::{info, warn};
@@ -45,13 +49,23 @@ sol!(
 
 pub struct AaveV2MainnetProposalsIndexer;
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Indexer for AaveV2MainnetProposalsIndexer {
-    async fn process(
+    fn min_refresh_speed(&self) -> i32 {
+        1
+    }
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
+    }
+}
+
+#[async_trait]
+impl ProposalsIndexer for AaveV2MainnetProposalsIndexer {
+    async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+    ) -> Result<ProcessResult> {
         info!("Processing Aave V2 Mainnet Proposals");
 
         let eth_rpc = rpc_providers::get_provider("ethereum")?;
@@ -105,13 +119,7 @@ impl Indexer for AaveV2MainnetProposalsIndexer {
             .min()
             .unwrap_or(to_block);
 
-        Ok((proposals, Vec::new(), new_index))
-    }
-    fn min_refresh_speed(&self) -> i32 {
-        1
-    }
-    fn max_refresh_speed(&self) -> i32 {
-        1_000_000
+        Ok(ProcessResult::Proposals(proposals, new_index))
     }
 }
 
@@ -596,7 +604,7 @@ mod aave_v2_proposals {
     async fn aave_v2_1() {
         let _ = dotenv().ok();
 
-        let dao_indexer = dao_indexer::Model {
+        let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::AaveV2MainnetProposals,
             indexer_type: IndexerType::Proposals,
@@ -618,10 +626,10 @@ mod aave_v2_proposals {
         };
 
         match AaveV2MainnetProposalsIndexer
-            .process(&dao_indexer, &dao)
+            .process_proposals(&indexer, &dao)
             .await
         {
-            Ok((proposals, _, _)) => {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 11512328,
@@ -652,7 +660,7 @@ mod aave_v2_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 
@@ -660,7 +668,7 @@ mod aave_v2_proposals {
     async fn aave_v2_2() {
         let _ = dotenv().ok();
 
-        let dao_indexer = dao_indexer::Model {
+        let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::AaveV2MainnetProposals,
             indexer_type: IndexerType::Proposals,
@@ -682,10 +690,10 @@ mod aave_v2_proposals {
         };
 
         match AaveV2MainnetProposalsIndexer
-            .process(&dao_indexer, &dao)
+            .process_proposals(&indexer, &dao)
             .await
         {
-            Ok((proposals, _, _)) => {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [
                     ExpectedProposal {
@@ -714,7 +722,7 @@ mod aave_v2_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 
@@ -722,7 +730,7 @@ mod aave_v2_proposals {
     async fn aave_v2_3() {
         let _ = dotenv().ok();
 
-        let dao_indexer = dao_indexer::Model {
+        let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::AaveV2MainnetProposals,
             indexer_type: IndexerType::Proposals,
@@ -744,10 +752,10 @@ mod aave_v2_proposals {
         };
 
         match AaveV2MainnetProposalsIndexer
-            .process(&dao_indexer, &dao)
+            .process_proposals(&indexer, &dao)
             .await
         {
-            Ok((proposals, _, _)) => {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 18790604,
@@ -774,7 +782,7 @@ mod aave_v2_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 }

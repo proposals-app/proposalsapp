@@ -6,8 +6,10 @@
 import type { ColumnType } from "kysely";
 
 export enum IndexerType {
+  DELEGATION = "DELEGATION",
   PROPOSALS = "PROPOSALS",
   VOTES = "VOTES",
+  VOTING_POWER = "VOTING_POWER",
 }
 
 export enum IndexerVariant {
@@ -17,6 +19,8 @@ export enum IndexerVariant {
   AAVE_V_3_MAINNET_PROPOSALS = "AAVE_V3_MAINNET_PROPOSALS",
   AAVE_V_3_MAINNET_VOTES = "AAVE_V3_MAINNET_VOTES",
   AAVE_V_3_POLYGON_VOTES = "AAVE_V3_POLYGON_VOTES",
+  ARB_ARBITRUM_DELEGATION = "ARB_ARBITRUM_DELEGATION",
+  ARB_ARBITRUM_VOTING_POWER = "ARB_ARBITRUM_VOTING_POWER",
   ARB_CORE_ARBITRUM_PROPOSALS = "ARB_CORE_ARBITRUM_PROPOSALS",
   ARB_CORE_ARBITRUM_VOTES = "ARB_CORE_ARBITRUM_VOTES",
   ARB_TREASURY_ARBITRUM_PROPOSALS = "ARB_TREASURY_ARBITRUM_PROPOSALS",
@@ -125,6 +129,16 @@ export interface DaoIndexer {
   indexerVariant: IndexerVariant;
   portalUrl: string | null;
   speed: Generated<number>;
+}
+
+export interface Delegation {
+  block: number;
+  daoId: string;
+  delegate: string;
+  delegator: string;
+  id: Generated<string>;
+  timestamp: Generated<Timestamp>;
+  txid: string | null;
 }
 
 export interface DiscourseCategory {
@@ -355,10 +369,21 @@ export interface Voter {
   id: Generated<string>;
 }
 
+export interface VotingPower {
+  block: number;
+  daoId: string;
+  id: Generated<string>;
+  timestamp: Generated<Timestamp>;
+  txid: string | null;
+  voter: string;
+  votingPower: number;
+}
+
 export interface DB {
   dao: Dao;
   daoDiscourse: DaoDiscourse;
   daoIndexer: DaoIndexer;
+  delegation: Delegation;
   discourseCategory: DiscourseCategory;
   discoursePost: DiscoursePost;
   discoursePostRevision: DiscoursePostRevision;
@@ -377,4 +402,5 @@ export interface DB {
   userToVoter: UserToVoter;
   vote: Vote;
   voter: Voter;
+  votingPower: VotingPower;
 }

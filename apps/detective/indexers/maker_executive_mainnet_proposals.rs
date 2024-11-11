@@ -1,4 +1,7 @@
-use crate::{indexer::Indexer, rpc_providers};
+use crate::{
+    indexer::{Indexer, ProcessResult, ProposalsIndexer},
+    rpc_providers,
+};
 use alloy::{
     primitives::{address, b256, Address, U256},
     providers::{Provider, ReqwestProvider},
@@ -7,13 +10,14 @@ use alloy::{
     transports::http::Http,
 };
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
+use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
 use serde_json::json;
 use std::{collections::HashSet, sync::Arc, time::Duration};
 use tracing::info;
@@ -27,13 +31,24 @@ sol!(
 
 pub struct MakerExecutiveMainnetProposalsIndexer;
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Indexer for MakerExecutiveMainnetProposalsIndexer {
-    async fn process(
+    fn min_refresh_speed(&self) -> i32 {
+        1
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
+    }
+}
+
+#[async_trait::async_trait]
+impl ProposalsIndexer for MakerExecutiveMainnetProposalsIndexer {
+    async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+    ) -> Result<ProcessResult> {
         info!("Processing Maker Executive Proposals");
 
         let eth_rpc = rpc_providers::get_provider("ethereum")?;
@@ -120,15 +135,7 @@ impl Indexer for MakerExecutiveMainnetProposalsIndexer {
             .min()
             .unwrap_or(to_block);
 
-        Ok((proposals, Vec::new(), new_index))
-    }
-
-    fn min_refresh_speed(&self) -> i32 {
-        1
-    }
-
-    fn max_refresh_speed(&self) -> i32 {
-        1_000_000
+        Ok(ProcessResult::Proposals(proposals, new_index))
     }
 }
 
@@ -411,10 +418,10 @@ mod maker_executive_mainnet_proposals {
         };
 
         match MakerExecutiveMainnetProposalsIndexer
-            .process(&indexer, &dao)
+            .process_proposals(&indexer, &dao)
             .await
         {
-            Ok((proposals, _, _)) => {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
 
                 let expected_proposals = [ExpectedProposal {
@@ -442,7 +449,7 @@ mod maker_executive_mainnet_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 }

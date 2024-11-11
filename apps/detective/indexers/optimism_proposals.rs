@@ -1,4 +1,8 @@
-use crate::{database::DatabaseStore, indexer::Indexer, rpc_providers};
+use crate::{
+    database::DatabaseStore,
+    indexer::{Indexer, ProcessResult, ProposalsIndexer},
+    rpc_providers,
+};
 use alloy::{
     dyn_abi::{DynSolType, DynSolValue},
     primitives::{address, U256},
@@ -8,6 +12,7 @@ use alloy::{
     transports::http::Http,
 };
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
@@ -56,13 +61,24 @@ sol!(
 
 pub struct OptimismProposalsIndexer;
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Indexer for OptimismProposalsIndexer {
-    async fn process(
+    fn min_refresh_speed(&self) -> i32 {
+        1
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        100_000
+    }
+}
+
+#[async_trait]
+impl ProposalsIndexer for OptimismProposalsIndexer {
+    async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+    ) -> Result<ProcessResult> {
         info!("Processing Optimism Proposals");
 
         let op_rpc = rpc_providers::get_provider("optimism")?;
@@ -174,15 +190,7 @@ impl Indexer for OptimismProposalsIndexer {
             .min()
             .unwrap_or(to_block);
 
-        Ok((proposals, Vec::new(), new_index))
-    }
-
-    fn min_refresh_speed(&self) -> i32 {
-        1
-    }
-
-    fn max_refresh_speed(&self) -> i32 {
-        10_000_000
+        Ok(ProcessResult::Proposals(proposals, new_index))
     }
 }
 
@@ -1000,8 +1008,11 @@ mod optimism_proposals {
             email_quorum_warning_support: true,
         };
 
-        match OptimismProposalsIndexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match OptimismProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 72973366,
@@ -1028,7 +1039,7 @@ mod optimism_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 
@@ -1057,8 +1068,11 @@ mod optimism_proposals {
             email_quorum_warning_support: true,
         };
 
-        match OptimismProposalsIndexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match OptimismProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 110769479,
@@ -1085,7 +1099,7 @@ mod optimism_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 
@@ -1114,8 +1128,11 @@ mod optimism_proposals {
             email_quorum_warning_support: true,
         };
 
-        match OptimismProposalsIndexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match OptimismProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 99601892,
@@ -1142,7 +1159,7 @@ mod optimism_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 
@@ -1171,8 +1188,11 @@ mod optimism_proposals {
             email_quorum_warning_support: true,
         };
 
-        match OptimismProposalsIndexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match OptimismProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 111677431,
@@ -1199,7 +1219,7 @@ mod optimism_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 
@@ -1229,8 +1249,11 @@ mod optimism_proposals {
             email_quorum_warning_support: true,
         };
 
-        match OptimismProposalsIndexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match OptimismProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 115004187,
@@ -1257,7 +1280,7 @@ mod optimism_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 
@@ -1287,8 +1310,11 @@ mod optimism_proposals {
             email_quorum_warning_support: true,
         };
 
-        match OptimismProposalsIndexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match OptimismProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 115004502,
@@ -1315,7 +1341,7 @@ mod optimism_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 
@@ -1345,8 +1371,11 @@ mod optimism_proposals {
             email_quorum_warning_support: true,
         };
 
-        match OptimismProposalsIndexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match OptimismProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 115911400,
@@ -1373,7 +1402,7 @@ mod optimism_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 
@@ -1403,8 +1432,11 @@ mod optimism_proposals {
             email_quorum_warning_support: true,
         };
 
-        match OptimismProposalsIndexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match OptimismProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 121357490,
@@ -1431,7 +1463,7 @@ mod optimism_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 }

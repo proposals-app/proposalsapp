@@ -1,15 +1,9 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use seaorm::{dao, dao_indexer, proposal, vote};
+use seaorm::{dao, dao_indexer, delegation, proposal, vote, voting_power};
 
 #[async_trait]
 pub trait Indexer: Send + Sync {
-    async fn process(
-        &self,
-        indexer: &dao_indexer::Model,
-        dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)>;
-
     fn min_refresh_speed(&self) -> i32;
     fn max_refresh_speed(&self) -> i32;
 
@@ -27,68 +21,45 @@ pub trait Indexer: Send + Sync {
     }
 }
 
-#[cfg(test)]
-mod indexer_tests {
-    use super::*;
-    use std::sync::Arc;
+#[async_trait]
+pub trait ProposalsIndexer: Indexer {
+    async fn process_proposals(
+        &self,
+        indexer: &dao_indexer::Model,
+        dao: &dao::Model,
+    ) -> Result<ProcessResult>;
+}
 
-    struct MockIndexer;
+#[async_trait]
+pub trait VotesIndexer: Indexer {
+    async fn process_votes(
+        &self,
+        indexer: &dao_indexer::Model,
+        dao: &dao::Model,
+    ) -> Result<ProcessResult>;
+}
 
-    #[async_trait]
-    impl Indexer for MockIndexer {
-        async fn process(
-            &self,
-            _indexer: &dao_indexer::Model,
-            _dao: &dao::Model,
-        ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
-            unimplemented!()
-        }
+#[async_trait]
+pub trait VotingPowerIndexer: Indexer {
+    async fn process_voting_powers(
+        &self,
+        indexer: &dao_indexer::Model,
+        dao: &dao::Model,
+    ) -> Result<ProcessResult>;
+}
 
-        fn min_refresh_speed(&self) -> i32 {
-            10
-        }
+#[async_trait]
+pub trait DelegationIndexer: Indexer {
+    async fn process_delegations(
+        &self,
+        indexer: &dao_indexer::Model,
+        dao: &dao::Model,
+    ) -> Result<ProcessResult>;
+}
 
-        fn max_refresh_speed(&self) -> i32 {
-            100
-        }
-    }
-
-    #[test]
-    fn test_adjust_speed_success() {
-        let indexer = Arc::new(MockIndexer);
-
-        assert_eq!(indexer.adjust_speed(50, true), 55);
-        assert_eq!(indexer.adjust_speed(90, true), 99);
-        assert_eq!(indexer.adjust_speed(95, true), 100);
-        assert_eq!(indexer.adjust_speed(100, true), 100);
-    }
-
-    #[test]
-    fn test_adjust_speed_failure() {
-        let indexer = Arc::new(MockIndexer);
-
-        assert_eq!(indexer.adjust_speed(50, false), 25);
-        assert_eq!(indexer.adjust_speed(30, false), 15);
-        assert_eq!(indexer.adjust_speed(15, false), 10);
-        assert_eq!(indexer.adjust_speed(10, false), 10);
-    }
-
-    #[test]
-    fn test_adjust_speed_min_increase() {
-        let indexer = Arc::new(MockIndexer);
-
-        assert_eq!(indexer.adjust_speed(11, true), 12);
-        assert_eq!(indexer.adjust_speed(10, true), 11);
-    }
-
-    #[test]
-    fn test_adjust_speed_bounds() {
-        let indexer = Arc::new(MockIndexer);
-
-        // Test lower bound
-        assert_eq!(indexer.adjust_speed(5, false), 10);
-
-        // Test upper bound
-        assert_eq!(indexer.adjust_speed(110, true), 100);
-    }
+pub enum ProcessResult {
+    Proposals(Vec<proposal::ActiveModel>, i32),
+    Votes(Vec<vote::ActiveModel>, i32),
+    VotingPower(Vec<voting_power::ActiveModel>, i32),
+    Delegation(Vec<delegation::ActiveModel>, i32),
 }

@@ -6,10 +6,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "indexer_type")]
 pub enum IndexerType {
+    #[sea_orm(string_value = "DELEGATION")]
+    Delegation,
     #[sea_orm(string_value = "PROPOSALS")]
     Proposals,
     #[sea_orm(string_value = "VOTES")]
     Votes,
+    #[sea_orm(string_value = "VOTING_POWER")]
+    VotingPower,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "indexer_variant")]
@@ -26,6 +30,10 @@ pub enum IndexerVariant {
     AaveV3MainnetVotes,
     #[sea_orm(string_value = "AAVE_V3_POLYGON_VOTES")]
     AaveV3PolygonVotes,
+    #[sea_orm(string_value = "ARB_ARBITRUM_DELEGATION")]
+    ArbArbitrumDelegation,
+    #[sea_orm(string_value = "ARB_ARBITRUM_VOTING_POWER")]
+    ArbArbitrumVotingPower,
     #[sea_orm(string_value = "ARB_CORE_ARBITRUM_PROPOSALS")]
     ArbCoreArbitrumProposals,
     #[sea_orm(string_value = "ARB_CORE_ARBITRUM_VOTES")]

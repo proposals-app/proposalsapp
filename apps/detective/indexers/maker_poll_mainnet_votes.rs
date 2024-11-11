@@ -1,4 +1,7 @@
-use crate::{indexer::Indexer, rpc_providers};
+use crate::{
+    indexer::{Indexer, ProcessResult, VotesIndexer},
+    rpc_providers,
+};
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
@@ -6,12 +9,13 @@ use alloy::{
     sol,
 };
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::DateTime;
 use maker_poll_vote::Voted;
 use num_bigint::BigInt;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
+use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use std::{str::FromStr, sync::Arc};
 use tracing::info;
 
@@ -30,13 +34,24 @@ impl MakerPollMainnetVotesIndexer {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Indexer for MakerPollMainnetVotesIndexer {
-    async fn process(
+    fn min_refresh_speed(&self) -> i32 {
+        1
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        100_000
+    }
+}
+
+#[async_trait]
+impl VotesIndexer for MakerPollMainnetVotesIndexer {
+    async fn process_votes(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+    ) -> Result<ProcessResult> {
         info!("Processing Maker Poll Votes");
 
         let eth_rpc = rpc_providers::get_provider("ethereum")?;
@@ -70,15 +85,7 @@ impl Indexer for MakerPollMainnetVotesIndexer {
             .await
             .context("bad votes")?;
 
-        Ok((Vec::new(), votes, to_block))
-    }
-
-    fn min_refresh_speed(&self) -> i32 {
-        1
-    }
-
-    fn max_refresh_speed(&self) -> i32 {
-        100_000
+        Ok(ProcessResult::Votes(votes, to_block))
     }
 }
 
@@ -205,8 +212,11 @@ mod maker_poll_mainnet_votes {
             email_quorum_warning_support: true,
         };
 
-        match MakerPollMainnetVotesIndexer.process(&indexer, &dao).await {
-            Ok((_, votes, _)) => {
+        match MakerPollMainnetVotesIndexer
+            .process_votes(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
                     index_created: 20322121,
@@ -225,7 +235,7 @@ mod maker_poll_mainnet_votes {
                     assert_vote(vote, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 }

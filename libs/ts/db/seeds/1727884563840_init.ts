@@ -29,11 +29,11 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://nouns.wtf/vote",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.NOUNSPROPOSALSMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.NOUNS_PROPOSALS_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.NOUNSPROPOSALSMAINNETVOTES,
+          indexerVariant: IndexerVariant.NOUNS_PROPOSALS_MAINNET_VOTES,
         },
       ],
       discourse: [
@@ -56,20 +56,20 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://www.tally.xyz/gov/hop",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.HOPMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.HOP_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.HOPMAINNETVOTES,
+          indexerVariant: IndexerVariant.HOP_MAINNET_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/hop.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [
@@ -92,20 +92,20 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://app.uniswap.org/#/vote",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.UNISWAPMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.UNISWAP_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.UNISWAPMAINNETVOTES,
+          indexerVariant: IndexerVariant.UNISWAP_MAINNET_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/uniswapgovernance.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [
@@ -128,29 +128,29 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://www.tally.xyz/gov/gitcoin",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.GITCOINMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.GITCOIN_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.GITCOINMAINNETVOTES,
+          indexerVariant: IndexerVariant.GITCOIN_MAINNET_VOTES,
         },
         {
           portalUrl: "https://www.tally.xyz/gov/gitcoin",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.GITCOINV2MAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.GITCOIN_V_2_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.GITCOINV2MAINNETVOTES,
+          indexerVariant: IndexerVariant.GITCOIN_V_2_MAINNET_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/gitcoindao.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [
@@ -173,20 +173,20 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://vote.optimism.io/proposals",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.OPOPTIMISMPROPOSALS,
+          indexerVariant: IndexerVariant.OP_OPTIMISM_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.OPOPTIMISMVOTES,
+          indexerVariant: IndexerVariant.OP_OPTIMISM_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/opcollective.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [
@@ -209,29 +209,29 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://app.frax.finance/gov/frax",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.FRAXALPHAMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.FRAX_ALPHA_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.FRAXALPHAMAINNETVOTES,
+          indexerVariant: IndexerVariant.FRAX_ALPHA_MAINNET_VOTES,
         },
         {
           portalUrl: "https://app.frax.finance/gov/frax",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.FRAXOMEGAMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.FRAX_OMEGA_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.FRAXOMEGAMAINNETVOTES,
+          indexerVariant: IndexerVariant.FRAX_OMEGA_MAINNET_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/frax.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [
@@ -254,37 +254,37 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://app.aave.com/governance",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.AAVEV2MAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.AAVE_V_2_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.AAVEV2MAINNETVOTES,
+          indexerVariant: IndexerVariant.AAVE_V_2_MAINNET_VOTES,
         },
         {
           portalUrl: "https://app.aave.com/governance",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.AAVEV3MAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.AAVE_V_3_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.AAVEV3MAINNETVOTES,
+          indexerVariant: IndexerVariant.AAVE_V_3_MAINNET_VOTES,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.AAVEV3POLYGONVOTES,
+          indexerVariant: IndexerVariant.AAVE_V_3_POLYGON_VOTES,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.AAVEV3AVALANCHEVOTES,
+          indexerVariant: IndexerVariant.AAVE_V_3_AVALANCHE_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/aave.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [
@@ -307,20 +307,20 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://www.tally.xyz/gov/ens",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.ENSMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.ENS_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.ENSMAINNETVOTES,
+          indexerVariant: IndexerVariant.ENS_MAINNET_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/ens.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [
@@ -343,20 +343,20 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://compound.finance/governance",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.COMPOUNDMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.COMPOUND_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.COMPOUNDMAINNETVOTES,
+          indexerVariant: IndexerVariant.COMPOUND_MAINNET_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/comp-vote.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [
@@ -379,24 +379,24 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://vote.makerdao.com/executive",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.MAKEREXECUTIVEMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.MAKER_EXECUTIVE_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.MAKEREXECUTIVEMAINNETVOTES,
+          indexerVariant: IndexerVariant.MAKER_EXECUTIVE_MAINNET_VOTES,
         },
         {
           portalUrl: "https://vote.makerdao.com/polling/",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.MAKERPOLLMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.MAKER_POLL_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.MAKERPOLLMAINNETVOTES,
+          indexerVariant: IndexerVariant.MAKER_POLL_MAINNET_VOTES,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.MAKERPOLLARBITRUMVOTES,
+          indexerVariant: IndexerVariant.MAKER_POLL_ARBITRUM_VOTES,
         },
       ],
       discourse: [
@@ -423,29 +423,29 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://www.tally.xyz/gov/arbitrum",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.ARBCOREARBITRUMPROPOSALS,
+          indexerVariant: IndexerVariant.ARB_CORE_ARBITRUM_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.ARBCOREARBITRUMVOTES,
+          indexerVariant: IndexerVariant.ARB_CORE_ARBITRUM_VOTES,
         },
         {
           portalUrl: "https://www.tally.xyz/gov/arbitrum",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.ARBTREASURYARBITRUMPROPOSALS,
+          indexerVariant: IndexerVariant.ARB_TREASURY_ARBITRUM_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.ARBTREASURYARBITRUMVOTES,
+          indexerVariant: IndexerVariant.ARB_TREASURY_ARBITRUM_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/arbitrumfoundation.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [
@@ -468,20 +468,20 @@ export async function seed(db: Kysely<DB>): Promise<void> {
         {
           portalUrl: "https://dydx.community/dashboard",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.DYDXMAINNETPROPOSALS,
+          indexerVariant: IndexerVariant.DYDX_MAINNET_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.DYDXMAINNETVOTES,
+          indexerVariant: IndexerVariant.DYDX_MAINNET_VOTES,
         },
         {
           portalUrl: "https://snapshot.org/#/dydxgov.eth",
           indexerType: IndexerType.PROPOSALS,
-          indexerVariant: IndexerVariant.SNAPSHOTPROPOSALS,
+          indexerVariant: IndexerVariant.SNAPSHOT_PROPOSALS,
         },
         {
           indexerType: IndexerType.VOTES,
-          indexerVariant: IndexerVariant.SNAPSHOTVOTES,
+          indexerVariant: IndexerVariant.SNAPSHOT_VOTES,
         },
       ],
       discourse: [

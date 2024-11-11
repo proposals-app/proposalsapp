@@ -1,4 +1,7 @@
-use crate::{indexer::Indexer, rpc_providers};
+use crate::{
+    indexer::{Indexer, ProcessResult, ProposalsIndexer},
+    rpc_providers,
+};
 use alloy::{
     primitives::{address, U256},
     providers::{Provider, ReqwestProvider},
@@ -7,6 +10,7 @@ use alloy::{
     transports::http::Http,
 };
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
 use scanners::etherscan::estimate_timestamp;
@@ -14,7 +18,7 @@ use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
+use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
 use serde_json::json;
 use std::sync::Arc;
 use tracing::{info, warn};
@@ -28,13 +32,23 @@ sol!(
     "./abis/ens_gov.json"
 );
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Indexer for EnsMainnetProposalsIndexer {
-    async fn process(
+    fn min_refresh_speed(&self) -> i32 {
+        1
+    }
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
+    }
+}
+
+#[async_trait]
+impl ProposalsIndexer for EnsMainnetProposalsIndexer {
+    async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+    ) -> Result<ProcessResult> {
         info!("Processing ENS Proposals");
 
         let eth_rpc = rpc_providers::get_provider("ethereum")?;
@@ -88,13 +102,7 @@ impl Indexer for EnsMainnetProposalsIndexer {
             .min()
             .unwrap_or(to_block);
 
-        Ok((proposals, Vec::new(), new_index))
-    }
-    fn min_refresh_speed(&self) -> i32 {
-        1
-    }
-    fn max_refresh_speed(&self) -> i32 {
-        1_000_000
+        Ok(ProcessResult::Proposals(proposals, new_index))
     }
 }
 
@@ -299,8 +307,11 @@ mod ens_mainnet_proposals {
             email_quorum_warning_support: true,
         };
 
-        match EnsMainnetProposalsIndexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match EnsMainnetProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 19583608,
@@ -327,7 +338,7 @@ mod ens_mainnet_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 }

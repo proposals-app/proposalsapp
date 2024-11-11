@@ -1,12 +1,14 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use axum::routing::get;
 use axum::Router;
 use database::{
-    fetch_dao_indexers, store_proposals, store_votes, update_indexer_speed,
-    update_indexer_speed_and_index, DatabaseStore,
+    fetch_dao_indexers, store_delegations, store_proposals, store_votes, store_voting_powers,
+    update_indexer_speed, update_indexer_speed_and_index, DatabaseStore,
 };
 use dotenv::dotenv;
-use indexer::Indexer;
+use indexer::{
+    DelegationIndexer, ProcessResult, ProposalsIndexer, VotesIndexer, VotingPowerIndexer,
+};
 use indexers::aave_v2_mainnet_proposals::AaveV2MainnetProposalsIndexer;
 use indexers::aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer;
 use indexers::aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer;
@@ -15,8 +17,10 @@ use indexers::aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer;
 use indexers::aave_v3_polygon_votes::AaveV3PolygonVotesIndexer;
 use indexers::arbitrum_core_proposals::ArbitrumCoreProposalsIndexer;
 use indexers::arbitrum_core_votes::ArbitrumCoreVotesIndexer;
+use indexers::arbitrum_delegations::ArbitrumDelegationsIndexer;
 use indexers::arbitrum_treasury_proposals::ArbitrumTreasuryProposalsIndexer;
 use indexers::arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer;
+use indexers::arbitrum_voting_power::ArbitrumVotingPowerIndexer;
 use indexers::compound_mainnet_proposals::CompoundMainnetProposalsIndexer;
 use indexers::compound_mainnet_votes::CompoundMainnetVotesIndexer;
 use indexers::dydx_mainnet_proposals::DydxMainnetProposalsIndexer;
@@ -211,6 +215,7 @@ fn create_job_consumer(
             let permit = semaphore.clone().acquire_owned().await.unwrap();
             let queued_indexers = queued_indexers.clone();
             let db = db.clone();
+
             tokio::spawn(async move {
                 info!(
                     indexer_type = ?indexer.indexer_type,
@@ -219,37 +224,31 @@ fn create_job_consumer(
                     "Processing indexer"
                 );
 
+                // Get the indexer implementation early
                 let indexer_implementation = get_indexer(&indexer.indexer_variant);
 
-                let result = tokio::time::timeout(JOB_TIMEOUT, async {
-                    indexer_implementation.process(&indexer, &dao).await
-                })
-                .await;
+                let result = tokio::time::timeout(JOB_TIMEOUT, process_job(&indexer, &dao)).await;
 
                 match result {
-                    Ok(Ok((proposals, votes, to_index))) => {
+                    Ok(Ok(process_result)) => {
                         let mut store_success = true;
 
-                        if indexer.indexer_type == IndexerType::Proposals {
-                            if let Err(e) = store_proposals(&db, indexer.id, proposals).await {
-                                error!("Failed to store proposals: {:?}", e);
-                                store_success = false;
-                            }
-                        }
+                        let new_index = match process_result {
+                            ProcessResult::Proposals(_, new_idx) => new_idx,
+                            ProcessResult::Votes(_, new_idx) => new_idx,
+                            ProcessResult::VotingPower(_, new_idx) => new_idx,
+                            ProcessResult::Delegation(_, new_idx) => new_idx,
+                        };
 
-                        if indexer.indexer_type == IndexerType::Votes {
-                            if let Err(e) = store_votes(&db, &indexer, votes).await {
-                                error!("Failed to store votes: {:?}", e);
-                                store_success = false;
-                            }
+                        if let Err(e) = store_process_results(&db, &indexer, process_result).await {
+                            error!("Failed to store process results: {:?}", e);
+                            store_success = false;
                         }
 
                         let new_speed =
                             indexer_implementation.adjust_speed(indexer.speed, store_success);
-                        if store_success {
-                            // Use to_index as the new index
-                            let new_index = to_index;
 
+                        if store_success {
                             if let Err(e) =
                                 update_indexer_speed_and_index(&db, &indexer, new_speed, new_index)
                                     .await
@@ -296,7 +295,149 @@ fn create_job_consumer(
     })
 }
 
-pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
+async fn process_job(indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult> {
+    match indexer.indexer_type {
+        IndexerType::Proposals => {
+            if let Some(proposal_indexer) = get_proposals_indexer(&indexer.indexer_variant) {
+                proposal_indexer.process_proposals(indexer, dao).await
+            } else {
+                bail!("Unsupported proposals indexer variant")
+            }
+        }
+        IndexerType::Votes => {
+            if let Some(vote_indexer) = get_votes_indexer(&indexer.indexer_variant) {
+                vote_indexer.process_votes(indexer, dao).await
+            } else {
+                bail!("Unsupported votes indexer variant")
+            }
+        }
+        IndexerType::VotingPower => {
+            if let Some(power_indexer) = get_voting_power_indexer(&indexer.indexer_variant) {
+                power_indexer.process_voting_powers(indexer, dao).await
+            } else {
+                bail!("Unsupported voting power indexer variant")
+            }
+        }
+        IndexerType::Delegation => {
+            if let Some(delegation_indexer) = get_delegation_indexer(&indexer.indexer_variant) {
+                delegation_indexer.process_delegations(indexer, dao).await
+            } else {
+                bail!("Unsupported delegation indexer variant")
+            }
+        }
+    }
+}
+
+async fn store_process_results(
+    db: &DatabaseConnection,
+    indexer: &dao_indexer::Model,
+    result: ProcessResult,
+) -> Result<()> {
+    match result {
+        ProcessResult::Proposals(proposals, _) => {
+            store_proposals(db, indexer.id, proposals).await?;
+        }
+        ProcessResult::Votes(votes, _) => {
+            store_votes(db, indexer, votes).await?;
+        }
+        ProcessResult::VotingPower(powers, _) => {
+            store_voting_powers(db, powers).await?;
+        }
+        ProcessResult::Delegation(delegations, _) => {
+            store_delegations(db, delegations).await?;
+        }
+    }
+    Ok(())
+}
+
+fn get_proposals_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn ProposalsIndexer>> {
+    match indexer_variant {
+        IndexerVariant::SnapshotProposals => Some(Box::new(SnapshotProposalsIndexer::new(
+            SNAPSHOT_API_HANDLER.clone(),
+        ))),
+        IndexerVariant::AaveV2MainnetProposals => Some(Box::new(AaveV2MainnetProposalsIndexer)),
+        IndexerVariant::AaveV3MainnetProposals => Some(Box::new(AaveV3MainnetProposalsIndexer)),
+        IndexerVariant::CompoundMainnetProposals => Some(Box::new(CompoundMainnetProposalsIndexer)),
+        IndexerVariant::DydxMainnetProposals => Some(Box::new(DydxMainnetProposalsIndexer)),
+        IndexerVariant::EnsMainnetProposals => Some(Box::new(EnsMainnetProposalsIndexer)),
+        IndexerVariant::FraxAlphaMainnetProposals => {
+            Some(Box::new(FraxAlphaMainnetProposalsIndexer))
+        }
+        IndexerVariant::FraxOmegaMainnetProposals => {
+            Some(Box::new(FraxOmegaMainnetProposalsIndexer))
+        }
+        IndexerVariant::GitcoinMainnetProposals => Some(Box::new(GitcoinV1MainnetProposalsIndexer)),
+        IndexerVariant::GitcoinV2MainnetProposals => {
+            Some(Box::new(GitcoinV2MainnetProposalsIndexer))
+        }
+        IndexerVariant::HopMainnetProposals => Some(Box::new(HopMainnetProposalsIndexer)),
+        IndexerVariant::MakerExecutiveMainnetProposals => {
+            Some(Box::new(MakerExecutiveMainnetProposalsIndexer))
+        }
+        IndexerVariant::MakerPollMainnetProposals => {
+            Some(Box::new(MakerPollMainnetProposalsIndexer))
+        }
+        IndexerVariant::NounsProposalsMainnetProposals => {
+            Some(Box::new(NounsMainnetProposalsIndexer))
+        }
+        IndexerVariant::OpOptimismProposals => Some(Box::new(OptimismProposalsIndexer)),
+        IndexerVariant::UniswapMainnetProposals => Some(Box::new(UniswapMainnetProposalsIndexer)),
+        IndexerVariant::ArbCoreArbitrumProposals => Some(Box::new(ArbitrumCoreProposalsIndexer)),
+        IndexerVariant::ArbTreasuryArbitrumProposals => {
+            Some(Box::new(ArbitrumTreasuryProposalsIndexer))
+        }
+        _ => None,
+    }
+}
+
+fn get_votes_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn VotesIndexer>> {
+    match indexer_variant {
+        IndexerVariant::SnapshotVotes => Some(Box::new(SnapshotVotesIndexer::new(
+            SNAPSHOT_API_HANDLER.clone(),
+        ))),
+        IndexerVariant::AaveV2MainnetVotes => Some(Box::new(AaveV2MainnetVotesIndexer)),
+        IndexerVariant::AaveV3MainnetVotes => Some(Box::new(AaveV3MainnetVotesIndexer)),
+        IndexerVariant::AaveV3PolygonVotes => Some(Box::new(AaveV3PolygonVotesIndexer)),
+        IndexerVariant::AaveV3AvalancheVotes => Some(Box::new(AaveV3AvalancheVotesIndexer)),
+        IndexerVariant::CompoundMainnetVotes => Some(Box::new(CompoundMainnetVotesIndexer)),
+        IndexerVariant::DydxMainnetVotes => Some(Box::new(DydxMainnetVotesIndexer)),
+        IndexerVariant::EnsMainnetVotes => Some(Box::new(EnsMainnetVotesIndexer)),
+        IndexerVariant::FraxAlphaMainnetVotes => Some(Box::new(FraxAlphaMainnetVotesIndexer)),
+        IndexerVariant::FraxOmegaMainnetVotes => Some(Box::new(FraxOmegaMainnetVotesIndexer)),
+        IndexerVariant::GitcoinMainnetVotes => Some(Box::new(GitcoinV1MainnetVotesIndexer)),
+        IndexerVariant::GitcoinV2MainnetVotes => Some(Box::new(GitcoinV2MainnetVotesIndexer)),
+        IndexerVariant::HopMainnetVotes => Some(Box::new(HopMainnetVotesIndexer)),
+        IndexerVariant::MakerExecutiveMainnetVotes => {
+            Some(Box::new(MakerExecutiveMainnetVotesIndexer))
+        }
+        IndexerVariant::MakerPollMainnetVotes => Some(Box::new(MakerPollMainnetVotesIndexer)),
+        IndexerVariant::MakerPollArbitrumVotes => Some(Box::new(MakerPollArbitrumVotesIndexer)),
+        IndexerVariant::NounsProposalsMainnetVotes => Some(Box::new(NounsMainnetVotesIndexer)),
+        IndexerVariant::OpOptimismVotes => Some(Box::new(OptimismVotesIndexer)),
+        IndexerVariant::UniswapMainnetVotes => Some(Box::new(UniswapMainnetVotesIndexer)),
+        IndexerVariant::ArbCoreArbitrumVotes => Some(Box::new(ArbitrumCoreVotesIndexer)),
+        IndexerVariant::ArbTreasuryArbitrumVotes => Some(Box::new(ArbitrumTreasuryVotesIndexer)),
+        _ => None,
+    }
+}
+
+fn get_voting_power_indexer(
+    indexer_variant: &IndexerVariant,
+) -> Option<Box<dyn VotingPowerIndexer>> {
+    match indexer_variant {
+        IndexerVariant::ArbArbitrumVotingPower => Some(Box::new(ArbitrumVotingPowerIndexer)),
+        _ => None,
+    }
+}
+
+fn get_delegation_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn DelegationIndexer>> {
+    match indexer_variant {
+        IndexerVariant::ArbArbitrumDelegation => Some(Box::new(ArbitrumDelegationsIndexer)),
+        _ => None,
+    }
+}
+
+fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn indexer::Indexer> {
     match indexer_variant {
         IndexerVariant::SnapshotProposals => {
             Box::new(SnapshotProposalsIndexer::new(SNAPSHOT_API_HANDLER.clone()))
@@ -304,7 +445,6 @@ pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
         IndexerVariant::SnapshotVotes => {
             Box::new(SnapshotVotesIndexer::new(SNAPSHOT_API_HANDLER.clone()))
         }
-
         IndexerVariant::AaveV2MainnetProposals => Box::new(AaveV2MainnetProposalsIndexer),
         IndexerVariant::AaveV2MainnetVotes => Box::new(AaveV2MainnetVotesIndexer),
         IndexerVariant::AaveV3MainnetProposals => Box::new(AaveV3MainnetProposalsIndexer),
@@ -344,5 +484,7 @@ pub fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn Indexer> {
         IndexerVariant::ArbCoreArbitrumVotes => Box::new(ArbitrumCoreVotesIndexer),
         IndexerVariant::ArbTreasuryArbitrumProposals => Box::new(ArbitrumTreasuryProposalsIndexer),
         IndexerVariant::ArbTreasuryArbitrumVotes => Box::new(ArbitrumTreasuryVotesIndexer),
+        IndexerVariant::ArbArbitrumVotingPower => Box::new(ArbitrumVotingPowerIndexer),
+        IndexerVariant::ArbArbitrumDelegation => Box::new(ArbitrumDelegationsIndexer),
     }
 }

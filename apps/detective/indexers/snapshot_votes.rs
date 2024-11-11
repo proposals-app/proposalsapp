@@ -1,5 +1,8 @@
-use crate::{database::DatabaseStore, indexer::Indexer, snapshot_api::SnapshotApiHandler};
+use crate::database::DatabaseStore;
+use crate::indexer::{Indexer, ProcessResult, VotesIndexer};
+use crate::SnapshotApiHandler;
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
@@ -50,13 +53,24 @@ impl SnapshotVotesIndexer {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Indexer for SnapshotVotesIndexer {
-    async fn process(
+    fn min_refresh_speed(&self) -> i32 {
+        1
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1000
+    }
+}
+
+#[async_trait]
+impl VotesIndexer for SnapshotVotesIndexer {
+    async fn process_votes(
         &self,
         indexer: &dao_indexer::Model,
         dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+    ) -> Result<ProcessResult> {
         info!("Processing Snapshot Votes");
 
         let db = DatabaseStore::connect().await?;
@@ -152,15 +166,7 @@ impl Indexer for SnapshotVotesIndexer {
             .max()
             .unwrap_or(indexer.index);
 
-        Ok((vec![], votes, highest_index))
-    }
-
-    fn min_refresh_speed(&self) -> i32 {
-        1
-    }
-
-    fn max_refresh_speed(&self) -> i32 {
-        1000
+        Ok(ProcessResult::Votes(votes, highest_index))
     }
 }
 
@@ -204,7 +210,7 @@ async fn parse_votes(
 
 #[cfg(test)]
 mod snapshot_votes {
-    use crate::snapshot_api::SnapshotApiConfig;
+    use crate::snapshot_api::{SnapshotApiConfig, SnapshotApiHandler};
 
     use super::*;
     use dotenv::dotenv;
@@ -243,8 +249,8 @@ mod snapshot_votes {
         let snapshot_api_handler = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig::default()));
         let snapshot_indexer = SnapshotVotesIndexer::new(snapshot_api_handler);
 
-        match snapshot_indexer.process(&indexer, &dao).await {
-            Ok((_, votes, _)) => {
+        match snapshot_indexer.process_votes(&indexer, &dao).await {
+            Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
                     index_created: 1718821336,
@@ -262,7 +268,7 @@ mod snapshot_votes {
                     assert_vote(vote, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 }

@@ -1,4 +1,5 @@
-use crate::{indexer::Indexer, rpc_providers};
+use crate::indexer::{Indexer, ProcessResult, VotesIndexer};
+use crate::rpc_providers;
 use aave_v2_gov::VoteEmitted;
 use alloy::{
     primitives::address,
@@ -7,10 +8,11 @@ use alloy::{
     sol,
 };
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
+use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use std::sync::Arc;
 use tracing::info;
 
@@ -29,13 +31,23 @@ sol!(
     "./abis/aave_v2_gov.json"
 );
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Indexer for AaveV2MainnetVotesIndexer {
-    async fn process(
+    fn min_refresh_speed(&self) -> i32 {
+        1
+    }
+    fn max_refresh_speed(&self) -> i32 {
+        100_000
+    }
+}
+
+#[async_trait]
+impl VotesIndexer for AaveV2MainnetVotesIndexer {
+    async fn process_votes(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+    ) -> Result<ProcessResult> {
         info!("Processing Aave V2 Mainnet Votes");
 
         let eth_rpc = rpc_providers::get_provider("ethereum")?;
@@ -69,13 +81,7 @@ impl Indexer for AaveV2MainnetVotesIndexer {
             .await
             .context("bad votes")?;
 
-        Ok((Vec::new(), votes, to_block))
-    }
-    fn min_refresh_speed(&self) -> i32 {
-        1
-    }
-    fn max_refresh_speed(&self) -> i32 {
-        100_000
+        Ok(ProcessResult::Votes(votes, to_block))
     }
 }
 
@@ -163,8 +169,11 @@ mod aave_v2_mainnet_votes {
             email_quorum_warning_support: true,
         };
 
-        match AaveV2MainnetVotesIndexer.process(&indexer, &dao).await {
-            Ok((_, votes, _)) => {
+        match AaveV2MainnetVotesIndexer
+            .process_votes(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
                     index_created: 11512645,
@@ -183,7 +192,7 @@ mod aave_v2_mainnet_votes {
                     assert_vote(vote, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 }

@@ -50,9 +50,11 @@ impl PrimaryKeyTrait for PrimaryKey {
 pub enum Relation {
     DaoDiscourse,
     DaoIndexer,
+    Delegation,
     Proposal,
     Subscription,
     Vote,
+    VotingPower,
 }
 
 impl ColumnTrait for Column {
@@ -75,9 +77,11 @@ impl RelationTrait for Relation {
         match self {
             Self::DaoDiscourse => Entity::has_many(super::dao_discourse::Entity).into(),
             Self::DaoIndexer => Entity::has_many(super::dao_indexer::Entity).into(),
+            Self::Delegation => Entity::has_many(super::delegation::Entity).into(),
             Self::Proposal => Entity::has_many(super::proposal::Entity).into(),
             Self::Subscription => Entity::has_many(super::subscription::Entity).into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
+            Self::VotingPower => Entity::has_many(super::voting_power::Entity).into(),
         }
     }
 }
@@ -91,6 +95,12 @@ impl Related<super::dao_discourse::Entity> for Entity {
 impl Related<super::dao_indexer::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DaoIndexer.def()
+    }
+}
+
+impl Related<super::delegation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Delegation.def()
     }
 }
 
@@ -109,6 +119,12 @@ impl Related<super::subscription::Entity> for Entity {
 impl Related<super::vote::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Vote.def()
+    }
+}
+
+impl Related<super::voting_power::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::VotingPower.def()
     }
 }
 

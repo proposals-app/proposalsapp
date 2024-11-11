@@ -1,14 +1,18 @@
-use std::sync::Arc;
-
-use crate::{database::DatabaseStore, indexer::Indexer, snapshot_api::SnapshotApiHandler};
+use crate::{
+    database::DatabaseStore,
+    indexer::{Indexer, ProcessResult, ProposalsIndexer},
+    snapshot_api::SnapshotApiHandler,
+};
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use sea_orm::{
     ActiveValue::{self, NotSet},
     ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
 };
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
+use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
 use serde::Deserialize;
+use std::sync::Arc;
 use tracing::info;
 
 #[derive(Debug, Deserialize)]
@@ -51,13 +55,24 @@ impl SnapshotProposalsIndexer {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Indexer for SnapshotProposalsIndexer {
-    async fn process(
+    fn min_refresh_speed(&self) -> i32 {
+        1
+    }
+
+    fn max_refresh_speed(&self) -> i32 {
+        1000
+    }
+}
+
+#[async_trait]
+impl ProposalsIndexer for SnapshotProposalsIndexer {
+    async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
         dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+    ) -> Result<ProcessResult> {
         info!("Processing Snapshot Proposals");
 
         let snapshot_space = match dao.slug.as_str() {
@@ -155,15 +170,7 @@ impl Indexer for SnapshotProposalsIndexer {
             min_active_or_pending.or(max_any).unwrap_or(indexer.index)
         };
 
-        Ok((proposals, vec![], highest_index))
-    }
-
-    fn min_refresh_speed(&self) -> i32 {
-        1
-    }
-
-    fn max_refresh_speed(&self) -> i32 {
-        1000
+        Ok(ProcessResult::Proposals(proposals, highest_index))
     }
 }
 
@@ -359,8 +366,8 @@ mod snapshot_proposals {
         let snapshot_api_handler = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig::default()));
         let snapshot_indexer = SnapshotProposalsIndexer::new(snapshot_api_handler);
 
-        match snapshot_indexer.process(&indexer, &dao).await {
-            Ok((proposals, _, _)) => {
+        match snapshot_indexer.process_proposals(&indexer, &dao).await {
+            Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {
                     index_created: 1725263866,
@@ -387,7 +394,7 @@ mod snapshot_proposals {
                     assert_proposal(proposal, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 }

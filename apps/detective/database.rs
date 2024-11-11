@@ -3,7 +3,10 @@ use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
     DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
 };
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote, voter};
+use seaorm::{
+    dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote, voter,
+    voting_power,
+};
 use std::{
     collections::{HashMap, HashSet},
     time::Duration,
@@ -276,6 +279,76 @@ async fn ensure_voters_exist(
         }
     }
 
+    Ok(())
+}
+
+pub async fn store_voting_powers(
+    db: &DatabaseConnection,
+    voting_powers: Vec<voting_power::ActiveModel>,
+) -> Result<()> {
+    if voting_powers.is_empty() {
+        return Ok(());
+    }
+
+    let txn = db.begin().await?;
+
+    // Insert or update voting powers
+    const BATCH_SIZE: usize = 1000;
+    for chunk in voting_powers.chunks(BATCH_SIZE) {
+        voting_power::Entity::insert_many(chunk.to_vec())
+            .on_conflict(
+                sea_orm::sea_query::OnConflict::columns([
+                    voting_power::Column::Voter,
+                    voting_power::Column::Block,
+                ])
+                .to_owned() // Add this
+                .update_columns([
+                    voting_power::Column::VotingPower,
+                    voting_power::Column::Timestamp,
+                    voting_power::Column::Txid,
+                ])
+                .to_owned(),
+            )
+            .exec(&txn)
+            .await?;
+    }
+
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn store_delegations(
+    db: &DatabaseConnection,
+    delegations: Vec<delegation::ActiveModel>,
+) -> Result<()> {
+    if delegations.is_empty() {
+        return Ok(());
+    }
+
+    let txn = db.begin().await?;
+
+    // Insert or update delegations
+    const BATCH_SIZE: usize = 1000;
+    for chunk in delegations.chunks(BATCH_SIZE) {
+        delegation::Entity::insert_many(chunk.to_vec())
+            .on_conflict(
+                sea_orm::sea_query::OnConflict::columns([
+                    delegation::Column::Delegator,
+                    delegation::Column::Delegate,
+                ])
+                .to_owned() // Add this
+                .update_columns([
+                    delegation::Column::Block,
+                    delegation::Column::Timestamp,
+                    delegation::Column::Txid,
+                ])
+                .to_owned(),
+            )
+            .exec(&txn)
+            .await?;
+    }
+
+    txn.commit().await?;
     Ok(())
 }
 

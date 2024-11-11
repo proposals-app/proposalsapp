@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use seaorm::{proposal, sea_orm_active_enums::ProposalState, vote};
+use seaorm::{delegation, proposal, sea_orm_active_enums::ProposalState, vote, voting_power};
 use serde_json::Value;
 
 pub struct ExpectedProposal {
@@ -189,7 +189,81 @@ pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
     );
 }
 
-// Helper function to parse datetime strings
 pub fn parse_datetime(datetime_str: &str) -> NaiveDateTime {
     NaiveDateTime::parse_from_str(datetime_str, "%Y-%m-%d %H:%M:%S").unwrap()
+}
+
+pub struct ExpectedDelegation {
+    pub delegator: &'static str,
+    pub delegate: &'static str,
+    pub block: i32,
+    pub timestamp: NaiveDateTime,
+    pub txid: Option<&'static str>,
+}
+
+pub fn assert_delegation(delegation: &delegation::ActiveModel, expected: &ExpectedDelegation) {
+    assert_eq!(
+        delegation.delegator.clone().take().unwrap(),
+        expected.delegator,
+        "Delegation delegator mismatch"
+    );
+    assert_eq!(
+        delegation.delegate.clone().take().unwrap(),
+        expected.delegate,
+        "Delegation delegate mismatch"
+    );
+    assert_eq!(
+        delegation.block.clone().take().unwrap(),
+        expected.block,
+        "Delegation block mismatch"
+    );
+    assert_eq!(
+        delegation.timestamp.clone().take().unwrap(),
+        expected.timestamp,
+        "Delegation timestamp mismatch"
+    );
+    assert_eq!(
+        delegation.txid.clone().take().flatten(),
+        expected.txid.map(|s| s.to_string()),
+        "Delegation txid mismatch"
+    );
+}
+
+pub struct ExpectedVotingPower {
+    pub voter: &'static str,
+    pub voting_power: f64,
+    pub block: i32,
+    pub timestamp: NaiveDateTime,
+    pub txid: Option<&'static str>,
+}
+
+pub fn assert_voting_power(
+    voting_power: &voting_power::ActiveModel,
+    expected: &ExpectedVotingPower,
+) {
+    assert_eq!(
+        voting_power.voter.clone().take().unwrap(),
+        expected.voter,
+        "Voting power voter mismatch"
+    );
+    assert_eq!(
+        voting_power.voting_power.clone().take().unwrap(),
+        expected.voting_power,
+        "Voting power value mismatch"
+    );
+    assert_eq!(
+        voting_power.block.clone().take().unwrap(),
+        expected.block,
+        "Voting power block mismatch"
+    );
+    assert_eq!(
+        voting_power.timestamp.clone().take().unwrap(),
+        expected.timestamp,
+        "Voting power timestamp mismatch"
+    );
+    assert_eq!(
+        voting_power.txid.clone().take().flatten(),
+        expected.txid.map(|s| s.to_string()),
+        "Voting power txid mismatch"
+    );
 }

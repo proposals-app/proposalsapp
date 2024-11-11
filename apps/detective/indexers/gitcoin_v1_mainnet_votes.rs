@@ -1,6 +1,7 @@
-use std::sync::Arc;
-
-use crate::{indexer::Indexer, rpc_providers};
+use crate::{
+    indexer::{Indexer, ProcessResult, VotesIndexer},
+    rpc_providers,
+};
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
@@ -8,11 +9,13 @@ use alloy::{
     sol,
 };
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use chrono::DateTime;
 use gitcoin_v1_gov::VoteCast;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
+use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
+use std::sync::Arc;
 use tracing::info;
 
 sol!(
@@ -30,13 +33,23 @@ impl GitcoinV1MainnetVotesIndexer {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Indexer for GitcoinV1MainnetVotesIndexer {
-    async fn process(
+    fn min_refresh_speed(&self) -> i32 {
+        1
+    }
+    fn max_refresh_speed(&self) -> i32 {
+        1_000_000
+    }
+}
+
+#[async_trait]
+impl VotesIndexer for GitcoinV1MainnetVotesIndexer {
+    async fn process_votes(
         &self,
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
-    ) -> Result<(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32)> {
+    ) -> Result<ProcessResult> {
         info!("Processing Gitcoin V1 Votes");
 
         let eth_rpc = rpc_providers::get_provider("ethereum")?;
@@ -70,13 +83,7 @@ impl Indexer for GitcoinV1MainnetVotesIndexer {
             .await
             .context("bad votes")?;
 
-        Ok((Vec::new(), votes, to_block))
-    }
-    fn min_refresh_speed(&self) -> i32 {
-        1
-    }
-    fn max_refresh_speed(&self) -> i32 {
-        100_000
+        Ok(ProcessResult::Votes(votes, to_block))
     }
 }
 
@@ -164,8 +171,11 @@ mod gitcoin_v1_mainnet_votes {
             email_quorum_warning_support: true,
         };
 
-        match GitcoinV1MainnetVotesIndexer.process(&indexer, &dao).await {
-            Ok((_, votes, _)) => {
+        match GitcoinV1MainnetVotesIndexer
+            .process_votes(&indexer, &dao)
+            .await
+        {
+            Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
                     index_created: 17917788,
@@ -184,7 +194,7 @@ mod gitcoin_v1_mainnet_votes {
                     assert_vote(vote, expected);
                 }
             }
-            Err(e) => panic!("Failed to get proposals: {:?}", e),
+            _ => panic!("Failed to index"),
         }
     }
 }

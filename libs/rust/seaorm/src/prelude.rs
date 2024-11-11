@@ -3,6 +3,7 @@
 pub use super::dao::Entity as Dao;
 pub use super::dao_discourse::Entity as DaoDiscourse;
 pub use super::dao_indexer::Entity as DaoIndexer;
+pub use super::delegation::Entity as Delegation;
 pub use super::discourse_category::Entity as DiscourseCategory;
 pub use super::discourse_post::Entity as DiscoursePost;
 pub use super::discourse_post_revision::Entity as DiscoursePostRevision;
@@ -23,3 +24,4 @@ pub use super::user_settings::Entity as UserSettings;
 pub use super::user_to_voter::Entity as UserToVoter;
 pub use super::vote::Entity as Vote;
 pub use super::voter::Entity as Voter;
+pub use super::voting_power::Entity as VotingPower;
