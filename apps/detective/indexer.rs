@@ -1,11 +1,24 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use seaorm::{dao, dao_indexer, delegation, proposal, vote, voting_power};
+use seaorm::{
+    dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerType, vote, voting_power,
+};
+use std::time::Duration;
 
 #[async_trait]
 pub trait Indexer: Send + Sync {
     fn min_refresh_speed(&self) -> i32;
     fn max_refresh_speed(&self) -> i32;
+    fn indexer_type(&self) -> IndexerType;
+
+    fn refresh_interval(&self) -> Duration {
+        match self.indexer_type() {
+            IndexerType::Proposals => Duration::from_secs(5 * 60),
+            IndexerType::Votes => Duration::from_secs(5 * 60),
+            IndexerType::VotingPower => Duration::from_secs(1 * 60),
+            IndexerType::Delegation => Duration::from_secs(1 * 60),
+        }
+    }
 
     fn adjust_speed(&self, current_speed: i32, success: bool) -> i32 {
         if success {

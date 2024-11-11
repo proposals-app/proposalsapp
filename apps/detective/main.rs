@@ -56,7 +56,9 @@ use sea_orm::DatabaseConnection;
 use seaorm::sea_orm_active_enums::{IndexerType, IndexerVariant};
 use seaorm::{dao, dao_indexer};
 use snapshot_api::{SnapshotApiConfig, SnapshotApiHandler};
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Instant;
 use std::{collections::HashSet, time::Duration};
 use tokio::{
     sync::{mpsc, Mutex},
@@ -73,7 +75,6 @@ mod snapshot_api;
 
 static MAX_JOBS: usize = 100;
 static CONCURRENT_JOBS: usize = 1;
-static JOB_PRODUCE_INTERVAL: Duration = Duration::from_secs(5 * 60);
 static JOB_TIMEOUT: Duration = Duration::from_secs(2 * 60);
 static SNAPSHOT_MAX_RETRIES: usize = 5;
 static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
@@ -125,6 +126,9 @@ async fn main() -> Result<()> {
         let other_queued_indexers = other_queued_indexers.clone();
 
         async move {
+            // Keep track of when each indexer was last processed
+            let mut last_processed: HashMap<Uuid, Instant> = HashMap::new();
+
             loop {
                 let dao_indexers = fetch_dao_indexers(&db)
                     .await
@@ -133,6 +137,19 @@ async fn main() -> Result<()> {
                 for (indexer, dao) in dao_indexers {
                     let indexer_id = indexer.id;
                     let indexer_variant = indexer.indexer_variant.clone();
+
+                    // Get the indexer implementation to access its refresh interval
+                    let indexer_impl = get_indexer(&indexer_variant);
+                    let interval = indexer_impl.refresh_interval();
+
+                    // Check if enough time has passed since last processing
+                    let should_process = last_processed
+                        .get(&indexer_id)
+                        .map_or(true, |last| last.elapsed() >= interval);
+
+                    if !should_process {
+                        continue;
+                    }
 
                     let (tx, queued_indexers) = if indexer_variant
                         == IndexerVariant::SnapshotProposals
@@ -150,11 +167,13 @@ async fn main() -> Result<()> {
                             break;
                         }
                         queue.insert(indexer_id);
+                        last_processed.insert(indexer_id, Instant::now());
 
                         info!(
                             indexer_type = ?indexer.indexer_type,
                             indexer_variant = ?indexer_variant,
                             dao_name = ?dao.name,
+                            interval = ?interval.as_secs(),
                             "Added indexer to queue"
                         );
                     } else {
@@ -167,8 +186,8 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                // Wait for a while before fetching again
-                sleep(JOB_PRODUCE_INTERVAL).await;
+                // Wait for a short duration before the next check
+                sleep(Duration::from_secs(30)).await;
             }
         }
     });

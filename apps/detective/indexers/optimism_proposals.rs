@@ -18,6 +18,7 @@ use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 use scanners::optimistic_scan::estimate_timestamp;
 use sea_orm::{ActiveValue, ColumnTrait, Condition, EntityTrait, QueryFilter, Set};
+use seaorm::sea_orm_active_enums::IndexerType;
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde::Deserialize;
 use serde_json::json;
@@ -69,6 +70,9 @@ impl Indexer for OptimismProposalsIndexer {
 
     fn max_refresh_speed(&self) -> i32 {
         100_000
+    }
+    fn indexer_type(&self) -> IndexerType {
+        IndexerType::Proposals
     }
 }
 

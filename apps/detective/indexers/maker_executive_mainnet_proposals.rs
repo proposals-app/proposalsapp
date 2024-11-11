@@ -17,6 +17,7 @@ use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
+use seaorm::sea_orm_active_enums::IndexerType;
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
 use serde_json::json;
 use std::{collections::HashSet, sync::Arc, time::Duration};
@@ -39,6 +40,9 @@ impl Indexer for MakerExecutiveMainnetProposalsIndexer {
 
     fn max_refresh_speed(&self) -> i32 {
         1_000_000
+    }
+    fn indexer_type(&self) -> IndexerType {
+        IndexerType::Proposals
     }
 }
 

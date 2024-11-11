@@ -17,6 +17,7 @@ use rust_decimal::prelude::*;
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
 };
+use seaorm::sea_orm_active_enums::IndexerType;
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use serde::Deserialize;
 use serde_json::Value;
@@ -46,6 +47,9 @@ impl Indexer for OptimismVotesIndexer {
 
     fn max_refresh_speed(&self) -> i32 {
         100_000
+    }
+    fn indexer_type(&self) -> IndexerType {
+        IndexerType::Votes
     }
 }
 

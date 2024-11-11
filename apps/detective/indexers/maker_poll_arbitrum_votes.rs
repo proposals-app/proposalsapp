@@ -15,6 +15,7 @@ use maker_poll_vote_arbitrum::Voted;
 use num_bigint::BigInt;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
+use seaorm::sea_orm_active_enums::IndexerType;
 use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use std::{str::FromStr, sync::Arc};
 use tracing::info;
@@ -42,6 +43,9 @@ impl Indexer for MakerPollArbitrumVotesIndexer {
 
     fn max_refresh_speed(&self) -> i32 {
         100_000
+    }
+    fn indexer_type(&self) -> IndexerType {
+        IndexerType::Votes
     }
 }
 

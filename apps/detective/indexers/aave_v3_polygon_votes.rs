@@ -14,6 +14,7 @@ use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
+use seaorm::sea_orm_active_enums::IndexerType;
 use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use std::sync::Arc;
 use tracing::info;
@@ -40,6 +41,9 @@ impl Indexer for AaveV3PolygonVotesIndexer {
     }
     fn max_refresh_speed(&self) -> i32 {
         100_000
+    }
+    fn indexer_type(&self) -> IndexerType {
+        IndexerType::Votes
     }
 }
 

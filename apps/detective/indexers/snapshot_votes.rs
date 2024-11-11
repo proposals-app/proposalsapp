@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
+use seaorm::sea_orm_active_enums::IndexerType;
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use serde::Deserialize;
 use serde_json::Value;
@@ -61,6 +62,9 @@ impl Indexer for SnapshotVotesIndexer {
 
     fn max_refresh_speed(&self) -> i32 {
         1000
+    }
+    fn indexer_type(&self) -> IndexerType {
+        IndexerType::Votes
     }
 }
 
