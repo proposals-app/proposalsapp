@@ -30,6 +30,14 @@ pub enum IndexerVariant {
     AaveV3MainnetVotes,
     #[sea_orm(string_value = "AAVE_V3_POLYGON_VOTES")]
     AaveV3PolygonVotes,
+    #[sea_orm(string_value = "ARBITRUM_COUNCIL_MEMBER_PROPOSAL")]
+    ArbitrumCouncilMemberProposal,
+    #[sea_orm(string_value = "ARBITRUM_COUNCIL_MEMBER_VOTE")]
+    ArbitrumCouncilMemberVote,
+    #[sea_orm(string_value = "ARBITRUM_COUNCIL_NOMINATION_PROPOSAL")]
+    ArbitrumCouncilNominationProposal,
+    #[sea_orm(string_value = "ARBITRUM_COUNCIL_NOMINATION_VOTE")]
+    ArbitrumCouncilNominationVote,
     #[sea_orm(string_value = "ARB_ARBITRUM_DELEGATION")]
     ArbArbitrumDelegation,
     #[sea_orm(string_value = "ARB_ARBITRUM_VOTING_POWER")]

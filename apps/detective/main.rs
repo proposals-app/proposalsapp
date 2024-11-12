@@ -17,6 +17,10 @@ use indexers::aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer;
 use indexers::aave_v3_polygon_votes::AaveV3PolygonVotesIndexer;
 use indexers::arbitrum_core_proposals::ArbitrumCoreProposalsIndexer;
 use indexers::arbitrum_core_votes::ArbitrumCoreVotesIndexer;
+use indexers::arbitrum_council_members_proposals::ArbitrumCouncilMembersProposalsIndexer;
+use indexers::arbitrum_council_members_votes::ArbitrumCouncilMembersVotesIndexer;
+use indexers::arbitrum_council_nomination_proposals::ArbitrumCouncilNominationProposalsIndexer;
+use indexers::arbitrum_council_nomination_votes::ArbitrumCouncilNominationVotesIndexer;
 use indexers::arbitrum_delegations::ArbitrumDelegationsIndexer;
 use indexers::arbitrum_treasury_proposals::ArbitrumTreasuryProposalsIndexer;
 use indexers::arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer;
@@ -75,7 +79,7 @@ mod snapshot_api;
 
 static MAX_JOBS: usize = 100;
 static CONCURRENT_JOBS: usize = 1;
-static JOB_TIMEOUT: Duration = Duration::from_secs(45);
+static JOB_TIMEOUT: Duration = Duration::from_secs(2 * 60);
 static SNAPSHOT_MAX_RETRIES: usize = 5;
 static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
 static SNAPSHOT_MAX_QUEUE: usize = 100;
@@ -505,5 +509,15 @@ fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn indexer::Indexer> {
         IndexerVariant::ArbTreasuryArbitrumVotes => Box::new(ArbitrumTreasuryVotesIndexer),
         IndexerVariant::ArbArbitrumVotingPower => Box::new(ArbitrumVotingPowerIndexer),
         IndexerVariant::ArbArbitrumDelegation => Box::new(ArbitrumDelegationsIndexer),
+        IndexerVariant::ArbitrumCouncilMemberProposal => {
+            Box::new(ArbitrumCouncilMembersProposalsIndexer)
+        }
+        IndexerVariant::ArbitrumCouncilMemberVote => Box::new(ArbitrumCouncilMembersVotesIndexer),
+        IndexerVariant::ArbitrumCouncilNominationProposal => {
+            Box::new(ArbitrumCouncilNominationProposalsIndexer)
+        }
+        IndexerVariant::ArbitrumCouncilNominationVote => {
+            Box::new(ArbitrumCouncilNominationVotesIndexer)
+        }
     }
 }
