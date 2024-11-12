@@ -3,6 +3,7 @@ use crate::{
     rpc_providers,
 };
 use aave_v2_gov::{aave_v2_govInstance, ProposalCreated};
+use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::{address, U256},
     providers::{Provider, ReqwestProvider},
@@ -139,7 +140,10 @@ async fn data_for_proposal(
     let voting_end_block_number = event.endBlock.to::<u64>();
 
     let created_block_timestamp = rpc
-        .get_block_by_number(log.block_number.unwrap().into(), false)
+        .get_block_by_number(
+            log.block_number.unwrap().into(),
+            BlockTransactionsKind::Hashes,
+        )
         .await
         .context("get_block_by_number")?
         .unwrap()

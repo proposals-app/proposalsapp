@@ -330,7 +330,7 @@ async fn sanitize(
 }
 
 #[cfg(test)]
-mod snapshot_proposals {
+mod snapshot_proposals_tests {
     use crate::snapshot_api::SnapshotApiConfig;
 
     use super::*;

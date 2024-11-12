@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use anyhow::{bail, Result};
 use axum::routing::get;
 use axum::Router;
@@ -17,8 +19,8 @@ use indexers::aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer;
 use indexers::aave_v3_polygon_votes::AaveV3PolygonVotesIndexer;
 use indexers::arbitrum_core_proposals::ArbitrumCoreProposalsIndexer;
 use indexers::arbitrum_core_votes::ArbitrumCoreVotesIndexer;
-use indexers::arbitrum_council_members_proposals::ArbitrumCouncilMembersProposalsIndexer;
-use indexers::arbitrum_council_members_votes::ArbitrumCouncilMembersVotesIndexer;
+use indexers::arbitrum_council_members_proposals::ArbitrumCouncilMemberProposalsIndexer;
+use indexers::arbitrum_council_members_votes::ArbitrumCouncilMemberVotesIndexer;
 use indexers::arbitrum_council_nomination_proposals::ArbitrumCouncilNominationProposalsIndexer;
 use indexers::arbitrum_council_nomination_votes::ArbitrumCouncilNominationVotesIndexer;
 use indexers::arbitrum_delegations::ArbitrumDelegationsIndexer;
@@ -510,9 +512,9 @@ fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn indexer::Indexer> {
         IndexerVariant::ArbArbitrumVotingPower => Box::new(ArbitrumVotingPowerIndexer),
         IndexerVariant::ArbArbitrumDelegation => Box::new(ArbitrumDelegationsIndexer),
         IndexerVariant::ArbitrumCouncilMemberProposal => {
-            Box::new(ArbitrumCouncilMembersProposalsIndexer)
+            Box::new(ArbitrumCouncilMemberProposalsIndexer)
         }
-        IndexerVariant::ArbitrumCouncilMemberVote => Box::new(ArbitrumCouncilMembersVotesIndexer),
+        IndexerVariant::ArbitrumCouncilMemberVote => Box::new(ArbitrumCouncilMemberVotesIndexer),
         IndexerVariant::ArbitrumCouncilNominationProposal => {
             Box::new(ArbitrumCouncilNominationProposalsIndexer)
         }

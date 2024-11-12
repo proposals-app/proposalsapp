@@ -1,4 +1,7 @@
-use alloy::providers::{Provider, ProviderBuilder};
+use alloy::{
+    providers::{Provider, ProviderBuilder},
+    rpc::types::BlockTransactionsKind,
+};
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use reqwest_middleware::ClientBuilder;
@@ -37,7 +40,7 @@ pub async fn estimate_timestamp(block_number: u64) -> Result<NaiveDateTime> {
 
     if block_number < current_block {
         let block = provider
-            .get_block_by_number(block_number.into(), true)
+            .get_block_by_number(block_number.into(), BlockTransactionsKind::Hashes)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Block not found"))?;
 

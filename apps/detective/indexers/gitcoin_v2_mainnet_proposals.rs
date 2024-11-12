@@ -2,6 +2,7 @@ use crate::{
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
     rpc_providers,
 };
+use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
@@ -122,7 +123,10 @@ async fn data_for_proposal(
     let (event, log): (gitcoin_v2_gov::ProposalCreated, Log) = p.clone();
 
     let created_block = rpc
-        .get_block_by_number(log.block_number.unwrap().into(), false)
+        .get_block_by_number(
+            log.block_number.unwrap().into(),
+            BlockTransactionsKind::Hashes,
+        )
         .await
         .context("get_block_by_number")?
         .unwrap();

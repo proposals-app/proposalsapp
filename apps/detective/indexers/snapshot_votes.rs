@@ -213,7 +213,7 @@ async fn parse_votes(
 }
 
 #[cfg(test)]
-mod snapshot_votes {
+mod snapshot_votes_tests {
     use crate::snapshot_api::{SnapshotApiConfig, SnapshotApiHandler};
 
     use super::*;

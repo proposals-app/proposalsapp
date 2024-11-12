@@ -3,7 +3,7 @@ use crate::{
     rpc_providers,
 };
 use alloy::{
-    primitives::{address, U256},
+    primitives::address,
     providers::{Provider, ReqwestProvider},
     rpc::types::Log,
     sol,
@@ -11,24 +11,19 @@ use alloy::{
 };
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
-use scanners::etherscan;
-use sea_orm::{
-    ActiveValue::{self, NotSet},
-    Set,
-};
+use sea_orm::ActiveValue::{self};
 use seaorm::sea_orm_active_enums::IndexerType;
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
-use serde_json::json;
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::info;
+use crate::indexers::arbitrum_council_nomination_proposals::arbitrum_security_council_nominee_election::Date;
 
 sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
-    arbitrum_core_gov,
-    "./abis/arbitrum_core_gov.json"
+    arbitrum_security_council_nominee_election,
+    "./abis/arbitrum_security_council_nominee_election.json"
 );
 
 pub struct ArbitrumCouncilNominationProposalsIndexer;
@@ -53,7 +48,7 @@ impl ProposalsIndexer for ArbitrumCouncilNominationProposalsIndexer {
         indexer: &dao_indexer::Model,
         _dao: &dao::Model,
     ) -> Result<ProcessResult> {
-        info!("Processing Arbitrum Core Proposals");
+        info!("Processing Arbitrum Council Nomination Proposals");
 
         let arb_rpc = rpc_providers::get_provider("arbitrum")?;
 
@@ -69,11 +64,12 @@ impl ProposalsIndexer for ArbitrumCouncilNominationProposalsIndexer {
             indexer.index + indexer.speed
         };
 
-        let address = address!("f07DeD9dC292157749B6Fd268E37DF6EA38395B9");
+        let address = address!("8a1cDA8dee421cD06023470608605934c16A05a0");
 
-        let gov_contract = arbitrum_core_gov::new(address, arb_rpc.clone());
+        let election_contract =
+            arbitrum_security_council_nominee_election::new(address, arb_rpc.clone());
 
-        let proposal_events = gov_contract
+        let proposal_events = election_contract
             .ProposalCreated_filter()
             .from_block(from_block.to_u64().unwrap())
             .to_block(to_block.to_u64().unwrap())
@@ -85,7 +81,7 @@ impl ProposalsIndexer for ArbitrumCouncilNominationProposalsIndexer {
         let mut proposals = Vec::new();
 
         for p in proposal_events.iter() {
-            let p = data_for_proposal(p.clone(), &arb_rpc, indexer, gov_contract.clone())
+            let p = data_for_proposal(p.clone(), &arb_rpc, indexer, election_contract.clone())
                 .await
                 .context("data_for_proposal")?;
             proposals.push(p);
@@ -111,188 +107,45 @@ impl ProposalsIndexer for ArbitrumCouncilNominationProposalsIndexer {
 }
 
 async fn data_for_proposal(
-    p: (arbitrum_core_gov::ProposalCreated, Log),
+    p: (
+        arbitrum_security_council_nominee_election::ProposalCreated,
+        Log,
+    ),
     rpc: &Arc<ReqwestProvider>,
     indexer: &dao_indexer::Model,
-    gov_contract: arbitrum_core_gov::arbitrum_core_govInstance<
+    election_contract: arbitrum_security_council_nominee_election::arbitrum_security_council_nominee_electionInstance<
         Http<reqwest::Client>,
         Arc<ReqwestProvider>,
     >,
 ) -> Result<proposal::ActiveModel> {
-    let (event, log): (arbitrum_core_gov::ProposalCreated, Log) = p.clone();
-
-    let created_block_timestamp = rpc
-        .get_block_by_number(log.block_number.unwrap().into(), false)
-        .await
-        .context("get_block_by_number")?
-        .unwrap()
-        .header
-        .timestamp;
-
-    let created_block_datetime = DateTime::from_timestamp(created_block_timestamp as i64, 0)
-        .context("bad timestamp")?
-        .naive_utc();
-
-    let voting_start_block_number = event.startBlock.to::<u64>();
-    let mut voting_end_block_number = event.endBlock.to::<u64>();
-
-    let gov_contract_end_block_number = gov_contract
-        .proposalDeadline(event.proposalId)
-        .call()
-        .await?
-        ._0
-        .to::<u64>();
-
-    if gov_contract_end_block_number > voting_end_block_number {
-        voting_end_block_number = gov_contract_end_block_number;
-    }
-
-    let average_block_time_millis = 12_200;
-
-    let voting_starts_timestamp =
-        match etherscan::estimate_timestamp(voting_start_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_start_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
-                .context("bad timestamp")?
-                .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_start_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
-
-    let voting_ends_timestamp = match etherscan::estimate_timestamp(voting_end_block_number).await {
-        Ok(r) => r,
-        Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_end_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
-            warn!(
-                "Could not estimate timestamp for {:?}",
-                voting_end_block_number
-            );
-            info!("Fallback to {:?}", fallback);
-            fallback
-        }
-    };
-
-    let proposal_url = format!(
-        "https://www.tally.xyz/gov/arbitrum/proposal/{}",
-        event.proposalId
-    );
-
-    let proposal_external_id = event.proposalId.to_string();
-
-    let mut title = format!(
-        "{:.120}",
-        event
-            .description
-            .split('\n')
-            .next()
-            .unwrap_or("Unknown")
-            .to_string()
-    );
-
-    if title.starts_with("# ") {
-        title = title.split_off(2);
-    }
-
-    if title.is_empty() {
-        title = "Unknown".into()
-    }
-
-    let body = event.description.to_string();
-
-    let onchain_proposal = gov_contract
-        .proposalVotes(event.proposalId)
-        .call()
-        .await
-        .context("gov_contract.proposalVotes")?;
-
-    let choices = vec!["For", "Against", "Abstain"];
-
-    let scores = vec![
-        onchain_proposal.forVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
-        onchain_proposal.againstVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
-        onchain_proposal.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18)),
-    ];
-
-    let scores_total = scores.iter().sum();
-
-    let scores_quorum = onchain_proposal.forVotes.to::<u128>() as f64 / (10.0f64.powi(18))
-        + onchain_proposal.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18));
-
-    let proposal_snapshot_block = gov_contract
-        .proposalSnapshot(event.proposalId)
-        .call()
-        .await
-        .context("gov_contract.proposalSnapshot")?
-        ._0;
-
-    let quorum = match gov_contract.quorum(proposal_snapshot_block).call().await {
-        Ok(r) => r._0.to::<u128>() as f64 / (10.0f64.powi(18)),
-        Err(_) => U256::from(0).to::<u128>() as f64 / (10.0f64.powi(18)),
-    };
-
-    let proposal_state = gov_contract
-        .state(event.proposalId)
-        .call()
-        .await
-        .context("gov_contract.state")?
-        ._0;
-
-    let state = match proposal_state {
-        0 => ProposalState::Pending,
-        1 => ProposalState::Active,
-        2 => ProposalState::Canceled,
-        3 => ProposalState::Defeated,
-        4 => ProposalState::Succeeded,
-        5 => ProposalState::Queued,
-        6 => ProposalState::Expired,
-        7 => ProposalState::Executed,
-        _ => ProposalState::Unknown,
-    };
-
-    let discussionurl = String::from("");
+    let (event, log): (
+        arbitrum_security_council_nominee_election::ProposalCreated,
+        Log,
+    ) = p.clone();
 
     Ok(proposal::ActiveModel {
-        id: NotSet,
-        external_id: Set(proposal_external_id),
-        name: Set(title),
-        body: Set(body),
-        url: Set(proposal_url),
-        discussion_url: Set(discussionurl),
-        choices: Set(json!(choices)),
-        scores: Set(json!(scores)),
-        scores_total: Set(scores_total),
-        scores_quorum: Set(scores_quorum),
-        quorum: Set(quorum),
-        proposal_state: Set(state),
-        marked_spam: NotSet,
-        block_created: Set(Some(log.block_number.unwrap().to_i32().unwrap())),
-        time_created: Set(created_block_datetime),
-        time_start: Set(voting_starts_timestamp),
-        time_end: Set(voting_ends_timestamp),
-        dao_indexer_id: Set(indexer.clone().id),
-        dao_id: Set(indexer.clone().dao_id),
-        index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: NotSet,
-        txid: Set(Some(format!(
-            "0x{}",
-            hex::encode(log.transaction_hash.unwrap())
-        ))),
+        id: todo!(),
+        index_created: todo!(),
+        external_id: todo!(),
+        name: todo!(),
+        body: todo!(),
+        url: todo!(),
+        discussion_url: todo!(),
+        choices: todo!(),
+        scores: todo!(),
+        scores_total: todo!(),
+        quorum: todo!(),
+        scores_quorum: todo!(),
+        proposal_state: todo!(),
+        marked_spam: todo!(),
+        time_created: todo!(),
+        time_start: todo!(),
+        time_end: todo!(),
+        block_created: todo!(),
+        txid: todo!(),
+        metadata: todo!(),
+        dao_indexer_id: todo!(),
+        dao_id: todo!(),
     })
 }
 

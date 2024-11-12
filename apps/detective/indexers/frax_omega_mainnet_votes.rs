@@ -2,6 +2,7 @@ use crate::{
     indexer::{Indexer, ProcessResult, VotesIndexer},
     rpc_providers,
 };
+use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
@@ -118,7 +119,10 @@ async fn get_votes(
     for (event, log) in voter_logs {
         let created_block_number = log.block_number.unwrap();
         let created_block_timestamp = rpc
-            .get_block_by_number(log.block_number.unwrap().into(), false)
+            .get_block_by_number(
+                log.block_number.unwrap().into(),
+                BlockTransactionsKind::Hashes,
+            )
             .await
             .context("get_block_by_number")?
             .unwrap()
@@ -170,7 +174,10 @@ async fn get_votes_with_params(
     for (event, log) in voter_logs {
         let created_block_number = log.block_number.unwrap();
         let created_block_timestamp = rpc
-            .get_block_by_number(log.block_number.unwrap().into(), false)
+            .get_block_by_number(
+                log.block_number.unwrap().into(),
+                BlockTransactionsKind::Hashes,
+            )
             .await
             .context("get_block_by_number")?
             .unwrap()
@@ -211,7 +218,7 @@ async fn get_votes_with_params(
 }
 
 #[cfg(test)]
-mod frax_omega_mainnet_votes {
+mod frax_omega_mainnet_votes_tests {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;

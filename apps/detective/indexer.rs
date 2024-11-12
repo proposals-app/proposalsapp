@@ -15,8 +15,8 @@ pub trait Indexer: Send + Sync {
         match self.indexer_type() {
             IndexerType::Proposals => Duration::from_secs(5 * 60),
             IndexerType::Votes => Duration::from_secs(5 * 60),
-            IndexerType::VotingPower => Duration::from_secs(1 * 60),
-            IndexerType::Delegation => Duration::from_secs(1 * 60),
+            IndexerType::VotingPower => Duration::from_secs(60),
+            IndexerType::Delegation => Duration::from_secs(60),
         }
     }
 

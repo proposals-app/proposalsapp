@@ -3,6 +3,7 @@ use crate::{
     rpc_providers,
 };
 use aave_v3_voting_machine_mainnet::VoteEmitted;
+use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
@@ -103,7 +104,10 @@ async fn get_votes(
     for (event, log) in voter_logs {
         let created_block_number = log.block_number.unwrap();
         let created_block_timestamp = rpc
-            .get_block_by_number(log.block_number.unwrap().into(), false)
+            .get_block_by_number(
+                log.block_number.unwrap().into(),
+                BlockTransactionsKind::Hashes,
+            )
             .await
             .context("get_block_by_number")?
             .unwrap()

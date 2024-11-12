@@ -2,6 +2,7 @@ use crate::{
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
     rpc_providers,
 };
+use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
@@ -122,7 +123,7 @@ async fn data_for_proposal(
 
     let created_block_number = meta.block_number.unwrap();
     let created_block = rpc
-        .get_block_by_number(created_block_number.into(), false)
+        .get_block_by_number(created_block_number.into(), BlockTransactionsKind::Hashes)
         .await
         .context("get_block_by_number")?
         .unwrap();
@@ -317,7 +318,7 @@ async fn get_title(url: String) -> Result<String> {
 }
 
 #[cfg(test)]
-mod maker_poll_mainnet_proposals {
+mod maker_poll_mainnet_proposals_tests {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;

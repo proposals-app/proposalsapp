@@ -3,6 +3,7 @@ use crate::{
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
     rpc_providers,
 };
+use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     dyn_abi::{DynSolType, DynSolValue},
     primitives::{address, U256},
@@ -211,7 +212,7 @@ async fn data_for_proposal_one(
 
     let created_block_number = log.block_number.unwrap();
     let created_block = rpc
-        .get_block_by_number(created_block_number.into(), false)
+        .get_block_by_number(created_block_number.into(), BlockTransactionsKind::Hashes)
         .await
         .context("get_block_by_number")?
         .unwrap();
@@ -371,7 +372,7 @@ async fn data_for_proposal_two(
 
     let created_block_number = log.block_number.unwrap();
     let created_block = rpc
-        .get_block_by_number(created_block_number.into(), false)
+        .get_block_by_number(created_block_number.into(), BlockTransactionsKind::Hashes)
         .await
         .context("get_block_by_number")?
         .unwrap();
@@ -629,7 +630,7 @@ async fn data_for_proposal_three(
 
     let created_block_number = log.block_number.unwrap();
     let created_block = rpc
-        .get_block_by_number(created_block_number.into(), false)
+        .get_block_by_number(created_block_number.into(), BlockTransactionsKind::Hashes)
         .await
         .context("get_block_by_number")?
         .unwrap();
@@ -833,7 +834,7 @@ async fn data_for_proposal_four(
 
     let created_block_number = log.block_number.unwrap();
     let created_block = rpc
-        .get_block_by_number(created_block_number.into(), false)
+        .get_block_by_number(created_block_number.into(), BlockTransactionsKind::Hashes)
         .await
         .context("get_block_by_number")?
         .unwrap();
@@ -979,7 +980,7 @@ async fn data_for_proposal_four(
 }
 
 #[cfg(test)]
-mod optimism_proposals {
+mod optimism_proposals_tests {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;

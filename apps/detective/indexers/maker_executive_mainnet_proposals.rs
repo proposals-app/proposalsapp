@@ -388,7 +388,7 @@ pub async fn get_multi_spell_addresses(
 }
 
 #[cfg(test)]
-mod maker_executive_mainnet_proposals {
+mod maker_executive_mainnet_proposals_tests {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;

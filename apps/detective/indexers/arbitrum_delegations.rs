@@ -2,6 +2,7 @@ use crate::{
     indexer::{DelegationIndexer, Indexer, ProcessResult},
     rpc_providers,
 };
+use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
@@ -97,7 +98,10 @@ async fn get_delegations(
     for (event, log) in delegation_logs {
         let created_block_number = log.block_number.unwrap();
         let created_block_timestamp = rpc
-            .get_block_by_number(log.block_number.unwrap().into(), false)
+            .get_block_by_number(
+                log.block_number.unwrap().into(),
+                BlockTransactionsKind::Hashes,
+            )
             .await
             .context("get_block_by_number")?
             .unwrap()
@@ -127,7 +131,7 @@ async fn get_delegations(
 }
 
 #[cfg(test)]
-mod arbitrum_delegations {
+mod arbitrum_delegations_tests {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;

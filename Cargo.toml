@@ -22,7 +22,7 @@ reqwest = { version = "0.12.9", default-features = false }
 reqwest-middleware = "0.3.3"
 reqwest-retry = "0.6.1"
 sea-orm = { version = "1.1.1", default-features = false }
-serde = "1.0.214"
+serde = "1.0.215"
 serde_json = "1.0.132"
 tokio = "1.38.1"
 tracing = "0.1.40"
@@ -46,7 +46,7 @@ rust_decimal_macros = "1.36"
 axum = "0.7.7"
 rand = "0.8.5"
 lazy_static = "1.5.0"
-alloy = "0.4.2"
+alloy = "0.6.2"
 
 [profile.release]
 opt-level = 3
