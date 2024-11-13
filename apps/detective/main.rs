@@ -543,7 +543,9 @@ fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn indexer::Indexer> {
         IndexerVariant::ArbTreasuryArbitrumVotes => Box::new(ArbitrumTreasuryVotesIndexer),
         IndexerVariant::ArbArbitrumVotingPower => Box::new(ArbitrumVotingPowerIndexer),
         IndexerVariant::ArbArbitrumDelegation => Box::new(ArbitrumDelegationsIndexer),
+        IndexerVariant::ArbitrumCouncilNominations => {
+            Box::new(ArbitrumCouncilNominationsProposalsAndVotesIndexer)
+        }
         IndexerVariant::ArbitrumCouncilElections => todo!(),
-        IndexerVariant::ArbitrumCouncilNominations => todo!(),
     }
 }
