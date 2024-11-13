@@ -25,6 +25,7 @@ use sea_orm::{ColumnTrait, Condition, EntityTrait, IntoActiveModel, QueryFilter,
 use seaorm::sea_orm_active_enums::{IndexerType, ProposalState};
 use seaorm::{dao, dao_indexer, proposal, vote};
 use serde_json::json;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{info, warn};
 
@@ -188,16 +189,19 @@ async fn get_votes(
 ) -> Result<(Vec<vote::ActiveModel>, Vec<proposal::ActiveModel>)> {
     let db = DatabaseStore::connect().await?;
 
+    let mut votes: Vec<vote::ActiveModel> = vec![];
+
     // Convert proposals to a HashMap for easier lookup
     let mut proposals_map: std::collections::HashMap<String, proposal::ActiveModel> = proposals
         .into_iter()
         .map(|p| (p.external_id.clone().unwrap(), p))
         .collect();
 
-    let voter_logs: Vec<(VoteCastForContender, Log)> = logs.into_iter().collect();
-    let mut votes: Vec<vote::ActiveModel> = vec![];
+    // Fetch proposals from the database only once if not found in proposals_map
+    let mut db_proposals_fetched: std::collections::HashMap<String, proposal::ActiveModel> =
+        HashMap::new();
 
-    for (event, log) in voter_logs {
+    for (event, log) in logs {
         let created_block_number = log.block_number.unwrap();
         let created_block_timestamp = rpc
             .get_block_by_number(
@@ -216,11 +220,9 @@ async fn get_votes(
                 .naive_utc();
 
         // First, try to find the proposal in proposals_map
-        let mut proposal =
-            if let Some(active_proposal) = proposals_map.get_mut(&event.proposalId.to_string()) {
-                active_proposal.clone()
-            } else {
-                // If not found in proposals_map, fetch from the database
+        if !proposals_map.contains_key(&event.proposalId.to_string()) {
+            // If not found in proposals_map, fetch from the database once
+            if !db_proposals_fetched.contains_key(&event.proposalId.to_string()) {
                 match proposal::Entity::find()
                     .filter(
                         Condition::all()
@@ -230,10 +232,18 @@ async fn get_votes(
                     .one(&db)
                     .await?
                 {
-                    Some(active_proposal) => active_proposal.into_active_model(),
+                    Some(active_proposal) => db_proposals_fetched.insert(
+                        event.proposalId.to_string(),
+                        active_proposal.into_active_model(),
+                    ),
                     None => bail!("Proposal not found for external ID: {}", event.proposalId),
-                }
-            };
+                };
+            }
+        }
+
+        let proposal = proposals_map
+            .entry(event.proposalId.to_string())
+            .or_insert_with(|| db_proposals_fetched[&event.proposalId.to_string()].clone());
 
         // Parse the choices and scores from the proposal
         let mut choices = match &proposal.choices.take() {
@@ -299,7 +309,7 @@ async fn get_votes(
             }
         }
 
-        votes.push(vote::ActiveModel {
+        let vote_record = vote::ActiveModel {
             id: NotSet,
             index_created: Set(created_block_number as i32),
             voter_address: Set(event.voter.to_string()),
@@ -316,14 +326,14 @@ async fn get_votes(
                 "0x{}",
                 hex::encode(log.transaction_hash.unwrap())
             ))),
-        });
+        };
 
         // Update the proposal with new choices and scores
         proposal.choices = Set(choices);
         proposal.scores = Set(scores);
 
-        // Insert or update the proposal in the map
-        proposals_map.insert(event.proposalId.to_string(), proposal);
+        // Add the vote to the votes vector
+        votes.push(vote_record);
     }
 
     Ok((votes, proposals_map.into_values().collect()))
@@ -343,73 +353,59 @@ async fn merge_with_nominees(
         .map(|p| (p.external_id.clone().unwrap(), p))
         .collect();
 
+    // Fetch proposals from the database only once if not found in proposals_map
+    let mut db_proposals_fetched: std::collections::HashMap<String, proposal::ActiveModel> =
+        HashMap::new();
+
     for (event, _log) in nominee_logs {
         let proposal_id_str = event.proposalId.to_string();
         let contender_str = event.contender.to_string();
 
         // First, try to find the proposal in proposals_map
-        if let Some(active_proposal) = proposals_map.get_mut(&proposal_id_str) {
-            // Ensure choices is initialized with an empty array if it's NotSet
-            if active_proposal.choices.is_not_set() {
-                active_proposal.choices = Set(json!([]));
+        if !proposals_map.contains_key(&proposal_id_str) {
+            // If not found in proposals_map, fetch from the database once
+            if !db_proposals_fetched.contains_key(&proposal_id_str) {
+                match proposal::Entity::find()
+                    .filter(
+                        Condition::all()
+                            .add(proposal::Column::DaoIndexerId.eq(indexer.id))
+                            .add(proposal::Column::ExternalId.eq(event.proposalId.to_string())),
+                    )
+                    .one(&db)
+                    .await?
+                {
+                    Some(proposal) => db_proposals_fetched
+                        .insert(event.proposalId.to_string(), proposal.into_active_model()),
+                    None => bail!("Proposal not found for external ID: {}", event.proposalId),
+                };
             }
+        }
 
-            // Fetch current choices and ensure it's an array
-            let mut choices: serde_json::Value = active_proposal.choices.clone().unwrap();
-            if !choices.is_array() {
-                choices = serde_json::json!([]);
-            }
+        let proposal = proposals_map
+            .entry(event.proposalId.to_string())
+            .or_insert_with(|| db_proposals_fetched[&event.proposalId.to_string()].clone());
 
-            if !choices
+        // Ensure choices is initialized with an empty array if it's NotSet
+        if proposal.choices.is_not_set() {
+            proposal.choices = Set(json!([]));
+        }
+
+        // Fetch current choices and ensure it's an array
+        let mut choices: serde_json::Value = proposal.choices.clone().unwrap();
+        if !choices.is_array() {
+            choices = serde_json::json!([]);
+        }
+
+        if !choices
+            .as_array_mut()
+            .unwrap() // Safe to unwrap since we ensured it's an array above
+            .contains(&serde_json::json!(contender_str))
+        {
+            choices
                 .as_array_mut()
                 .unwrap() // Safe to unwrap since we ensured it's an array above
-                .contains(&serde_json::json!(contender_str))
-            {
-                choices
-                    .as_array_mut()
-                    .unwrap() // Safe to unwrap since we ensured it's an array above
-                    .push(serde_json::json!(contender_str));
-                active_proposal.choices = Set(choices);
-            }
-        } else {
-            // If not found in proposals_map, fetch from the database
-            match proposal::Entity::find()
-                .filter(
-                    Condition::all()
-                        .add(proposal::Column::DaoIndexerId.eq(indexer.id))
-                        .add(proposal::Column::ExternalId.eq(event.proposalId.to_string())),
-                )
-                .one(&db)
-                .await?
-            {
-                Some(proposal) => {
-                    // Fetch current choices and ensure it's an array
-                    let mut choices: serde_json::Value =
-                        serde_json::from_str(&proposal.choices.to_string())?;
-                    if !choices.is_array() {
-                        choices = serde_json::json!([]);
-                    }
-
-                    // Convert the fetched model to ActiveModel
-                    let mut active_proposal = proposal.into_active_model();
-
-                    if !choices
-                        .as_array_mut()
-                        .unwrap() // Safe to unwrap since we ensured it's an array above
-                        .contains(&serde_json::json!(contender_str))
-                    {
-                        choices
-                            .as_array_mut()
-                            .unwrap() // Safe to unwrap since we ensured it's an array above
-                            .push(serde_json::json!(contender_str));
-                        active_proposal.choices = Set(choices);
-                    }
-
-                    // Add the updated proposal to the map
-                    proposals_map.insert(proposal_id_str, active_proposal);
-                }
-                None => bail!("Proposal not found for external ID: {}", event.proposalId),
-            };
+                .push(serde_json::json!(contender_str));
+            proposal.choices = Set(choices);
         }
     }
 
