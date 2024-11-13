@@ -15,6 +15,7 @@ pub trait Indexer: Send + Sync {
         match self.indexer_type() {
             IndexerType::Proposals => Duration::from_secs(5 * 60),
             IndexerType::Votes => Duration::from_secs(5 * 60),
+            IndexerType::ProposalsAndVotes => Duration::from_secs(5 * 60),
             IndexerType::VotingPower => Duration::from_secs(60),
             IndexerType::Delegation => Duration::from_secs(60),
         }
@@ -53,6 +54,15 @@ pub trait VotesIndexer: Indexer {
 }
 
 #[async_trait]
+pub trait ProposalsAndVotesIndexer: Indexer {
+    async fn process_proposals_and_votes(
+        &self,
+        indexer: &dao_indexer::Model,
+        dao: &dao::Model,
+    ) -> Result<ProcessResult>;
+}
+
+#[async_trait]
 pub trait VotingPowerIndexer: Indexer {
     async fn process_voting_powers(
         &self,
@@ -73,6 +83,7 @@ pub trait DelegationIndexer: Indexer {
 pub enum ProcessResult {
     Proposals(Vec<proposal::ActiveModel>, i32),
     Votes(Vec<vote::ActiveModel>, i32),
+    ProposalsAndVotes(Vec<proposal::ActiveModel>, Vec<vote::ActiveModel>, i32),
     VotingPower(Vec<voting_power::ActiveModel>, i32),
     Delegation(Vec<delegation::ActiveModel>, i32),
 }

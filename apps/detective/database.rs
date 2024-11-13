@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
-    DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
+    prelude::Uuid, sea_query::OnConflict, ActiveValue::NotSet, ColumnTrait, ConnectOptions,
+    Database, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set,
+    TransactionTrait,
 };
 use seaorm::{
     dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote, voter,
@@ -57,45 +58,40 @@ impl DatabaseStore {
 
 pub async fn store_proposals(
     db: &DatabaseConnection,
-    indexer: Uuid,
     proposals: Vec<proposal::ActiveModel>,
 ) -> Result<()> {
+    if proposals.is_empty() {
+        return Ok(());
+    }
+
     let txn = db.begin().await?;
 
-    let external_ids: Vec<String> = proposals
-        .iter()
-        .map(|p| p.external_id.clone().unwrap())
-        .collect();
-
-    let existing_proposals: HashMap<String, proposal::Model> = proposal::Entity::find()
-        .filter(
-            Condition::all()
-                .add(proposal::Column::ExternalId.is_in(external_ids.clone()))
-                .add(proposal::Column::DaoIndexerId.eq(indexer)),
+    proposal::Entity::insert_many(proposals)
+        .on_conflict(
+            OnConflict::columns([proposal::Column::ExternalId, proposal::Column::DaoIndexerId])
+                .update_columns([
+                    proposal::Column::Name,
+                    proposal::Column::Body,
+                    proposal::Column::Url,
+                    proposal::Column::DiscussionUrl,
+                    proposal::Column::Choices,
+                    proposal::Column::Scores,
+                    proposal::Column::ScoresTotal,
+                    proposal::Column::Quorum,
+                    proposal::Column::ScoresQuorum,
+                    proposal::Column::ProposalState,
+                    proposal::Column::MarkedSpam,
+                    proposal::Column::TimeCreated,
+                    proposal::Column::TimeStart,
+                    proposal::Column::TimeEnd,
+                    proposal::Column::BlockCreated,
+                    proposal::Column::Txid,
+                    proposal::Column::Metadata,
+                ])
+                .to_owned(),
         )
-        .all(&txn)
-        .await?
-        .into_iter()
-        .map(|p| (p.external_id.clone(), p))
-        .collect();
-
-    let (to_insert, to_update): (Vec<_>, Vec<_>) = proposals
-        .into_iter()
-        .partition(|p| !existing_proposals.contains_key(&p.external_id.clone().unwrap()));
-
-    // Batch insert
-    if !to_insert.is_empty() {
-        proposal::Entity::insert_many(to_insert).exec(&txn).await?;
-    }
-
-    // Batch update
-    for mut p in to_update {
-        let existing = existing_proposals
-            .get(&p.external_id.clone().unwrap())
-            .unwrap();
-        p.id = Set(existing.id);
-        proposal::Entity::update(p).exec(&txn).await?;
-    }
+        .exec(&txn)
+        .await?;
 
     txn.commit().await?;
     Ok(())
@@ -167,6 +163,8 @@ pub async fn store_votes(
         }
 
         IndexerVariant::SnapshotVotes => SnapshotVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::ArbitrumCouncilNominations => IndexerVariant::ArbitrumCouncilNominations,
+        IndexerVariant::ArbitrumCouncilElections => IndexerVariant::ArbitrumCouncilElections,
         // Add other matches as needed
         _ => return Err(anyhow::anyhow!("Unsupported votes indexer variant")),
     };

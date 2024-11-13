@@ -19,10 +19,8 @@ use indexers::aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer;
 use indexers::aave_v3_polygon_votes::AaveV3PolygonVotesIndexer;
 use indexers::arbitrum_core_proposals::ArbitrumCoreProposalsIndexer;
 use indexers::arbitrum_core_votes::ArbitrumCoreVotesIndexer;
-use indexers::arbitrum_council_members_proposals::ArbitrumCouncilMemberProposalsIndexer;
-use indexers::arbitrum_council_members_votes::ArbitrumCouncilMemberVotesIndexer;
-use indexers::arbitrum_council_nomination_proposals::ArbitrumCouncilNominationProposalsIndexer;
-use indexers::arbitrum_council_nomination_votes::ArbitrumCouncilNominationVotesIndexer;
+use indexers::arbitrum_council_elections::ArbitrumCouncilElectionsProposalsAndVotesIndexer;
+use indexers::arbitrum_council_nominations::ArbitrumCouncilNominationsProposalsAndVotesIndexer;
 use indexers::arbitrum_delegations::ArbitrumDelegationsIndexer;
 use indexers::arbitrum_treasury_proposals::ArbitrumTreasuryProposalsIndexer;
 use indexers::arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer;
@@ -263,6 +261,7 @@ fn create_job_consumer(
                             ProcessResult::Votes(_, new_idx) => new_idx,
                             ProcessResult::VotingPower(_, new_idx) => new_idx,
                             ProcessResult::Delegation(_, new_idx) => new_idx,
+                            ProcessResult::ProposalsAndVotes(_, _, new_idx) => new_idx,
                         };
 
                         if let Err(e) = store_process_results(&db, &indexer, process_result).await {
@@ -350,6 +349,17 @@ async fn process_job(indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<P
                 bail!("Unsupported delegation indexer variant")
             }
         }
+        IndexerType::ProposalsAndVotes => {
+            if let Some(proposals_and_votes_indexer) =
+                get_proposals_and_votes_indexer(&indexer.indexer_variant)
+            {
+                proposals_and_votes_indexer
+                    .process_proposals_and_votes(indexer, dao)
+                    .await
+            } else {
+                bail!("Unsupported proposals and votes indexer variant")
+            }
+        }
     }
 }
 
@@ -360,7 +370,7 @@ async fn store_process_results(
 ) -> Result<()> {
     match result {
         ProcessResult::Proposals(proposals, _) => {
-            store_proposals(db, indexer.id, proposals).await?;
+            store_proposals(db, proposals).await?;
         }
         ProcessResult::Votes(votes, _) => {
             store_votes(db, indexer, votes).await?;
@@ -370,6 +380,14 @@ async fn store_process_results(
         }
         ProcessResult::Delegation(delegations, _) => {
             store_delegations(db, delegations).await?;
+        }
+        ProcessResult::ProposalsAndVotes(proposals, votes, _) => {
+            if !proposals.is_empty() {
+                store_proposals(db, proposals).await?;
+            }
+            if !votes.is_empty() {
+                store_votes(db, indexer, votes).await?;
+            }
         }
     }
     Ok(())
@@ -446,6 +464,20 @@ fn get_votes_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn VotesIn
     }
 }
 
+fn get_proposals_and_votes_indexer(
+    indexer_variant: &IndexerVariant,
+) -> Option<Box<dyn indexer::ProposalsAndVotesIndexer>> {
+    match indexer_variant {
+        IndexerVariant::ArbitrumCouncilNominations => {
+            Some(Box::new(ArbitrumCouncilNominationsProposalsAndVotesIndexer))
+        }
+        IndexerVariant::ArbitrumCouncilElections => {
+            Some(Box::new(ArbitrumCouncilElectionsProposalsAndVotesIndexer))
+        }
+        _ => None,
+    }
+}
+
 fn get_voting_power_indexer(
     indexer_variant: &IndexerVariant,
 ) -> Option<Box<dyn VotingPowerIndexer>> {
@@ -511,15 +543,7 @@ fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn indexer::Indexer> {
         IndexerVariant::ArbTreasuryArbitrumVotes => Box::new(ArbitrumTreasuryVotesIndexer),
         IndexerVariant::ArbArbitrumVotingPower => Box::new(ArbitrumVotingPowerIndexer),
         IndexerVariant::ArbArbitrumDelegation => Box::new(ArbitrumDelegationsIndexer),
-        IndexerVariant::ArbitrumCouncilMemberProposal => {
-            Box::new(ArbitrumCouncilMemberProposalsIndexer)
-        }
-        IndexerVariant::ArbitrumCouncilMemberVote => Box::new(ArbitrumCouncilMemberVotesIndexer),
-        IndexerVariant::ArbitrumCouncilNominationProposal => {
-            Box::new(ArbitrumCouncilNominationProposalsIndexer)
-        }
-        IndexerVariant::ArbitrumCouncilNominationVote => {
-            Box::new(ArbitrumCouncilNominationVotesIndexer)
-        }
+        IndexerVariant::ArbitrumCouncilElections => todo!(),
+        IndexerVariant::ArbitrumCouncilNominations => todo!(),
     }
 }
