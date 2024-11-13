@@ -370,7 +370,7 @@ async fn store_process_results(
 ) -> Result<()> {
     match result {
         ProcessResult::Proposals(proposals, _) => {
-            store_proposals(db, proposals).await?;
+            store_proposals(db, indexer, proposals).await?;
         }
         ProcessResult::Votes(votes, _) => {
             store_votes(db, indexer, votes).await?;
@@ -383,7 +383,7 @@ async fn store_process_results(
         }
         ProcessResult::ProposalsAndVotes(proposals, votes, _) => {
             if !proposals.is_empty() {
-                store_proposals(db, proposals).await?;
+                store_proposals(db, indexer, proposals).await?;
             }
             if !votes.is_empty() {
                 store_votes(db, indexer, votes).await?;
