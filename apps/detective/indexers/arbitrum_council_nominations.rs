@@ -187,8 +187,6 @@ async fn get_votes(
         Arc<ReqwestProvider>,
     >,
 ) -> Result<(Vec<vote::ActiveModel>, Vec<proposal::ActiveModel>)> {
-    let db = DatabaseStore::connect().await?;
-
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
     // Convert proposals to a HashMap for easier lookup
@@ -221,6 +219,7 @@ async fn get_votes(
 
         // First, try to find the proposal in proposals_map
         if !proposals_map.contains_key(&event.proposalId.to_string()) {
+            let db = DatabaseStore::connect().await?;
             // If not found in proposals_map, fetch from the database once
             if !db_proposals_fetched.contains_key(&event.proposalId.to_string()) {
                 match proposal::Entity::find()
@@ -345,8 +344,6 @@ async fn merge_with_nominees(
     _rpc: &Arc<ReqwestProvider>,
     indexer: &dao_indexer::Model,
 ) -> Result<Vec<proposal::ActiveModel>> {
-    let db = DatabaseStore::connect().await?;
-
     // Convert proposals to a HashMap for easier lookup
     let mut proposals_map: std::collections::HashMap<String, proposal::ActiveModel> = proposals
         .into_iter()
@@ -363,6 +360,7 @@ async fn merge_with_nominees(
 
         // First, try to find the proposal in proposals_map
         if !proposals_map.contains_key(&proposal_id_str) {
+            let db = DatabaseStore::connect().await?;
             // If not found in proposals_map, fetch from the database once
             if !db_proposals_fetched.contains_key(&proposal_id_str) {
                 match proposal::Entity::find()
