@@ -19,7 +19,6 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/shadcn/ui/input-otp";
 import { Manjari, Poppins } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -29,6 +28,7 @@ import {
   AlertDialogAction,
 } from "@/shadcn/ui/alert-dialog";
 import { AlertDialogCancel } from "@/shadcn/ui/alert-dialog";
+import { cn } from "@/shadcn/lib/utils";
 
 const manjari = Manjari({
   weight: "700",
@@ -147,7 +147,13 @@ export const SubscribeButton = () => {
             `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:rounded-3xl lg:p-12`,
           )}
         >
-          <AlertDialogCancel asChild>
+          <AlertDialogCancel
+            asChild
+            className={cn(
+              buttonVariants({ variant: "default" }),
+              "m-0 rounded-full bg-transparent p-0 hover:bg-transparent",
+            )}
+          >
             <Image
               className="absolute ml-4 mt-12 h-[48px] w-[48px] cursor-pointer lg:ml-2 lg:mt-2"
               src="/assets/icons/web/new/close-button.svg"
@@ -185,7 +191,7 @@ export const SubscribeButton = () => {
                     <FormControl>
                       <Input
                         className={cn(
-                          "h-[60px] border-gold bg-luna text-[18px] lowercase leading-[24px] focus:border-0 focus:bg-white",
+                          "h-[60px] border-gold bg-luna text-[18px] lowercase leading-[24px] focus:border-0 focus:bg-white md:text-base",
                         )}
                         placeholder="delegatoooor@defi.com"
                         {...field}
@@ -250,7 +256,13 @@ export const SubscribeButton = () => {
             `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:rounded-3xl lg:p-12`,
           )}
         >
-          <AlertDialogCancel asChild>
+          <AlertDialogCancel
+            asChild
+            className={cn(
+              buttonVariants({ variant: "default" }),
+              "m-0 rounded-full bg-transparent p-0 hover:bg-transparent",
+            )}
+          >
             <Image
               className="absolute ml-4 mt-12 h-[48px] w-[48px] cursor-pointer lg:ml-2 lg:mt-2"
               src="/assets/icons/web/new/back-button.svg"

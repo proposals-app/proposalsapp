@@ -25,7 +25,6 @@ const config = {
         dark: "#2C2927",
         bgdark: "#161413",
         rainbow: "linear-gradient(90deg, #FF0000, #00FF00, #0000FF)",
-
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -59,6 +58,16 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -67,20 +76,36 @@ const config = {
       },
       keyframes: {
         "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
+          from: {
+            height: "0",
+          },
+          to: {
+            height: "var(--radix-accordion-content-height)",
+          },
         },
         "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
+          from: {
+            height: "var(--radix-accordion-content-height)",
+          },
+          to: {
+            height: "0",
+          },
         },
         "logo-skew-keyframes": {
-          "0%, 50%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(-2deg)" },
+          "0%, 50%": {
+            transform: "rotate(0deg)",
+          },
+          "100%": {
+            transform: "rotate(-2deg)",
+          },
         },
         "logo-straight-keyframes": {
-          "0%, 50%": { transform: "rotate(-2deg)" },
-          "100%": { transform: "rotate(0deg)" },
+          "0%, 50%": {
+            transform: "rotate(-2deg)",
+          },
+          "100%": {
+            transform: "rotate(0deg)",
+          },
         },
       },
       animation: {

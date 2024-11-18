@@ -10,9 +10,9 @@ import {
 } from "@/shadcn/ui/alert-dialog";
 import { Manjari, Poppins } from "next/font/google";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shadcn/lib/utils";
 import { useEffect, useState } from "react";
-import { Button } from "@/shadcn/ui/button";
+import { Button, buttonVariants } from "@/shadcn/ui/button";
 import { removePushNotifications, setPushNotifications } from "../actions";
 import { LuShare, LuPlusSquare } from "react-icons/lu";
 
@@ -125,7 +125,13 @@ export const PushNotificationsModal = () => {
           `flex h-screen w-full flex-col items-center bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:min-h-[400px] lg:max-w-2xl lg:rounded-3xl lg:p-12`,
         )}
       >
-        <AlertDialogCancel asChild>
+        <AlertDialogCancel
+          asChild
+          className={cn(
+            buttonVariants({ variant: "default" }),
+            "m-0 rounded-full bg-transparent p-0 hover:bg-transparent",
+          )}
+        >
           <Image
             className="absolute left-4 top-12 h-[48px] w-[48px] cursor-pointer lg:left-2 lg:top-2"
             src="/assets/icons/web/new/close-button.svg"

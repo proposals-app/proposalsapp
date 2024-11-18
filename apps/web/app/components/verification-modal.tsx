@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button } from "@/shadcn/ui/button";
+import { Button, buttonVariants } from "@/shadcn/ui/button";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +15,7 @@ import {
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/shadcn/ui/input-otp";
 import { Manjari, Poppins } from "next/font/google";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shadcn/lib/utils";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -81,7 +81,13 @@ export const VerificationModal = ({ email }: { email: string }) => {
           `h-screen w-full bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:rounded-3xl lg:p-12`,
         )}
       >
-        <AlertDialogCancel asChild>
+        <AlertDialogCancel
+          asChild
+          className={cn(
+            buttonVariants({ variant: "default" }),
+            "m-0 rounded-full bg-transparent p-0 hover:bg-transparent",
+          )}
+        >
           <Image
             className="absolute ml-4 mt-12 h-[48px] w-[48px] cursor-pointer lg:ml-2 lg:mt-2"
             src="/assets/icons/web/new/close-button.svg"
@@ -90,8 +96,9 @@ export const VerificationModal = ({ email }: { email: string }) => {
             height={48}
             style={{
               maxWidth: "100%",
-              height: "auto"
-            }} />
+              height: "auto",
+            }}
+          />
         </AlertDialogCancel>
 
         <Form {...otpForm}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/shadcn/ui/button";
+import { Button, buttonVariants } from "@/shadcn/ui/button";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -14,7 +14,7 @@ import { useState } from "react";
 import { CheckIcon } from "@radix-ui/react-icons";
 import { onboardingSubscribeDaos } from "./actions";
 import { hotDaosType } from "@/app/actions";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shadcn/lib/utils";
 import { useRouter } from "next/navigation";
 
 const manjari = Manjari({
@@ -65,7 +65,13 @@ export const OnboardingSubscriptionModal = ({
           `flex h-screen w-full flex-col items-center bg-luna px-4 pt-32 lg:h-fit lg:max-h-[70vh] lg:min-h-[400px] lg:max-w-2xl lg:rounded-3xl lg:p-12`,
         )}
       >
-        <AlertDialogCancel asChild>
+        <AlertDialogCancel
+          asChild
+          className={cn(
+            buttonVariants({ variant: "default" }),
+            "m-0 rounded-full bg-transparent p-0 hover:bg-transparent",
+          )}
+        >
           <Image
             className="absolute left-4 top-12 h-[48px] w-[48px] cursor-pointer lg:left-2 lg:top-2"
             src="/assets/icons/web/new/close-button.svg"
