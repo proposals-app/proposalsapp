@@ -1,12 +1,11 @@
 use crate::{
+    chain_data::{self, Chain},
     indexer::{Indexer, ProcessResult, VotingPowerIndexer},
-    rpc_providers,
 };
-use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
-    rpc::types::Log,
+    rpc::types::{BlockTransactionsKind, Log},
     sol,
 };
 use anyhow::{Context, Result};
@@ -15,8 +14,7 @@ use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, voting_power};
+use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerType, voting_power};
 use std::sync::Arc;
 use tracing::info;
 
@@ -51,7 +49,9 @@ impl VotingPowerIndexer for ArbitrumVotingPowerIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Arbitrum Voting Power");
 
-        let arb_rpc = rpc_providers::get_provider("arbitrum")?;
+        let arb_rpc = chain_data::get_chain_config(Chain::Arbitrum)?
+            .provider
+            .clone();
 
         let current_block = arb_rpc
             .get_block_number()

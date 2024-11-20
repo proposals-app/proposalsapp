@@ -2,7 +2,6 @@
 members = [
     "apps/detective",
     "apps/discourse",
-    "libs/rust/scanners",
     "libs/rust/seaorm",
     "libs/rust/utils",
 ]

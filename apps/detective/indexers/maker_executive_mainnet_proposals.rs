@@ -1,6 +1,6 @@
 use crate::{
+    chain_data::{self, Chain},
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
-    rpc_providers,
 };
 use alloy::{
     primitives::{address, b256, Address, U256},
@@ -17,8 +17,10 @@ use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
+use seaorm::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerType, ProposalState},
+};
 use serde_json::json;
 use std::{collections::HashSet, sync::Arc, time::Duration};
 use tracing::info;
@@ -55,7 +57,9 @@ impl ProposalsIndexer for MakerExecutiveMainnetProposalsIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Maker Executive Proposals");
 
-        let eth_rpc = rpc_providers::get_provider("ethereum")?;
+        let eth_rpc = chain_data::get_chain_config(Chain::Ethereum)?
+            .provider
+            .clone();
 
         let current_block = eth_rpc
             .get_block_number()

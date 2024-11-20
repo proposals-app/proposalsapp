@@ -1,14 +1,13 @@
 use crate::{
+    chain_data::{self, Chain},
     database::DatabaseStore,
     indexer::{Indexer, ProcessResult, VotesIndexer},
-    rpc_providers,
 };
-use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     dyn_abi::{DynSolType, DynSolValue},
     primitives::address,
     providers::{Provider, ReqwestProvider},
-    rpc::types::Log,
+    rpc::types::{BlockTransactionsKind, Log},
     sol,
 };
 use anyhow::{Context, Result};
@@ -18,8 +17,11 @@ use rust_decimal::prelude::*;
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
 };
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
+use seaorm::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerType, IndexerVariant},
+    vote,
+};
 use serde::Deserialize;
 use serde_json::Value;
 use std::sync::Arc;
@@ -63,7 +65,9 @@ impl VotesIndexer for OptimismVotesIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Optimism Votes");
 
-        let op_rpc = rpc_providers::get_provider("optimism")?;
+        let op_rpc = chain_data::get_chain_config(Chain::Optimism)?
+            .provider
+            .clone();
 
         let current_block = op_rpc
             .get_block_number()

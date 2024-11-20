@@ -1,12 +1,11 @@
 use crate::{
+    chain_data::{self, Chain},
     indexer::{Indexer, ProcessResult, VotesIndexer},
-    rpc_providers,
 };
-use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
-    rpc::types::Log,
+    rpc::types::{BlockTransactionsKind, Log},
     sol,
 };
 use anyhow::{Context, Result};
@@ -14,8 +13,11 @@ use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
+use seaorm::{
+    dao, dao_indexer,
+    sea_orm_active_enums::{IndexerType, IndexerVariant},
+    vote,
+};
 use std::sync::Arc;
 use tracing::info;
 use uniswap_gov::VoteCast;
@@ -58,7 +60,9 @@ impl VotesIndexer for UniswapMainnetVotesIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Uniswap Mainnet Votes");
 
-        let eth_rpc = rpc_providers::get_provider("ethereum")?;
+        let eth_rpc = chain_data::get_chain_config(Chain::Ethereum)?
+            .provider
+            .clone();
 
         let current_block = eth_rpc
             .get_block_number()

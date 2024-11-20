@@ -1,32 +1,32 @@
-use crate::database::DatabaseStore;
-use crate::indexers::arbitrum_council_nominations::arbitrum_security_council_nomination::Date;
 use crate::{
+    chain_data::{self, Chain},
+    database::DatabaseStore,
     indexer::{Indexer, ProcessResult, ProposalsAndVotesIndexer},
-    rpc_providers,
+    indexers::arbitrum_council_nominations::arbitrum_security_council_nomination::Date,
 };
-use alloy::rpc::types::BlockTransactionsKind;
-use alloy::transports::http::Http;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
-    rpc::types::Log,
+    rpc::types::{BlockTransactionsKind, Log},
     sol,
+    transports::http::Http,
 };
-use anyhow::bail;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use arbitrum_security_council_nomination::VoteCastForContender;
 use async_trait::async_trait;
 use chrono::DateTime;
 use regex::Regex;
 use rust_decimal::prelude::ToPrimitive;
-use scanners::etherscan;
-use sea_orm::ActiveValue::NotSet;
-use sea_orm::{ColumnTrait, Condition, EntityTrait, IntoActiveModel, QueryFilter, Set};
-use seaorm::sea_orm_active_enums::{IndexerType, ProposalState};
-use seaorm::{dao, dao_indexer, proposal, vote};
+use sea_orm::{
+    ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, IntoActiveModel, QueryFilter, Set,
+};
+use seaorm::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerType, ProposalState},
+    vote,
+};
 use serde_json::json;
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tracing::{info, warn};
 
 sol!(
@@ -60,7 +60,9 @@ impl ProposalsAndVotesIndexer for ArbitrumCouncilNominationsProposalsAndVotesInd
     ) -> Result<ProcessResult> {
         info!("Processing Arbitrum Council Nominations and Votes");
 
-        let arb_rpc = rpc_providers::get_provider("arbitrum")?;
+        let arb_rpc = chain_data::get_chain_config(Chain::Arbitrum)?
+            .provider
+            .clone();
 
         let current_block = arb_rpc
             .get_block_number()
@@ -453,28 +455,32 @@ async fn get_created_proposals(
 
         let average_block_time_millis = 12_200;
 
-        let voting_starts_timestamp =
-            match etherscan::estimate_timestamp(voting_start_block_number).await {
-                Ok(r) => r,
-                Err(_) => {
-                    let fallback = DateTime::from_timestamp_millis(
-                        (log.block_timestamp.unwrap()
-                            + (voting_start_block_number - log.block_number.unwrap())
-                                * average_block_time_millis) as i64,
-                    )
-                    .context("bad timestamp")?
-                    .naive_utc();
-                    warn!(
-                        "Could not estimate timestamp for {:?}",
-                        voting_start_block_number
-                    );
-                    info!("Fallback to {:?}", fallback);
-                    fallback
-                }
-            };
+        let voting_starts_timestamp = match chain_data::estimate_timestamp(
+            Chain::Ethereum,
+            voting_start_block_number,
+        )
+        .await
+        {
+            Ok(r) => r,
+            Err(_) => {
+                let fallback = DateTime::from_timestamp_millis(
+                    (log.block_timestamp.unwrap()
+                        + (voting_start_block_number - log.block_number.unwrap())
+                            * average_block_time_millis) as i64,
+                )
+                .context("bad timestamp")?
+                .naive_utc();
+                warn!(
+                    "Could not estimate timestamp for {:?}",
+                    voting_start_block_number
+                );
+                info!("Fallback to {:?}", fallback);
+                fallback
+            }
+        };
 
         let voting_ends_timestamp =
-            match etherscan::estimate_timestamp(voting_end_block_number).await {
+            match chain_data::estimate_timestamp(Chain::Ethereum, voting_end_block_number).await {
                 Ok(r) => r,
                 Err(_) => {
                     let fallback = DateTime::from_timestamp_millis(

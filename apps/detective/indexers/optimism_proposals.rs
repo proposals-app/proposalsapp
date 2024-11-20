@@ -1,26 +1,26 @@
 use crate::{
+    chain_data::{self, Chain},
     database::DatabaseStore,
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
-    rpc_providers,
 };
-use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     dyn_abi::{DynSolType, DynSolValue},
     primitives::{address, U256},
     providers::{Provider, ReqwestProvider},
-    rpc::types::Log,
+    rpc::types::{BlockTransactionsKind, Log},
     sol,
     transports::http::Http,
 };
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
-use rust_decimal::prelude::*;
-use rust_decimal::Decimal;
-use scanners::optimistic_scan::estimate_timestamp;
+use rust_decimal::{prelude::*, Decimal};
 use sea_orm::{ActiveValue, ColumnTrait, Condition, EntityTrait, QueryFilter, Set};
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
+use seaorm::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerType, ProposalState},
+    vote,
+};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -86,7 +86,9 @@ impl ProposalsIndexer for OptimismProposalsIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Optimism Proposals");
 
-        let op_rpc = rpc_providers::get_provider("optimism")?;
+        let op_rpc = chain_data::get_chain_config(Chain::Optimism)?
+            .provider
+            .clone();
 
         let current_block = op_rpc
             .get_block_number()
@@ -234,25 +236,27 @@ async fn data_for_proposal_one(
         ._0
         .to::<u64>();
 
-    let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
-        Ok(r) => r,
-        Err(_) => DateTime::from_timestamp_millis(
-            (created_block_timestamp * 1000)
-                + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
-        )
-        .context("bad timestamp")?
-        .naive_utc(),
-    };
+    let voting_starts_timestamp =
+        match chain_data::estimate_timestamp(Chain::Optimism, voting_start_block_number).await {
+            Ok(r) => r,
+            Err(_) => DateTime::from_timestamp_millis(
+                (created_block_timestamp * 1000)
+                    + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
+            )
+            .context("bad timestamp")?
+            .naive_utc(),
+        };
 
-    let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
-        Ok(r) => r,
-        Err(_) => DateTime::from_timestamp_millis(
-            created_block_timestamp * 1000
-                + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
-        )
-        .context("bad timestamp")?
-        .naive_utc(),
-    };
+    let voting_ends_timestamp =
+        match chain_data::estimate_timestamp(Chain::Optimism, voting_end_block_number).await {
+            Ok(r) => r,
+            Err(_) => DateTime::from_timestamp_millis(
+                created_block_timestamp * 1000
+                    + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
+            )
+            .context("bad timestamp")?
+            .naive_utc(),
+        };
 
     let mut title = format!(
         "{:.120}",
@@ -381,25 +385,27 @@ async fn data_for_proposal_two(
     let voting_start_block_number = event.startBlock.to::<u64>();
     let voting_end_block_number = event.endBlock.to::<u64>();
 
-    let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
-        Ok(r) => r,
-        Err(_) => DateTime::from_timestamp_millis(
-            (created_block_timestamp * 1000)
-                + (voting_start_block_number as i64 - created_block_number as i64) * 12 * 1000,
-        )
-        .context("bad timestamp")?
-        .naive_utc(),
-    };
+    let voting_starts_timestamp =
+        match chain_data::estimate_timestamp(Chain::Optimism, voting_start_block_number).await {
+            Ok(r) => r,
+            Err(_) => DateTime::from_timestamp_millis(
+                (created_block_timestamp * 1000)
+                    + (voting_start_block_number as i64 - created_block_number as i64) * 12 * 1000,
+            )
+            .context("bad timestamp")?
+            .naive_utc(),
+        };
 
-    let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
-        Ok(r) => r,
-        Err(_) => DateTime::from_timestamp_millis(
-            created_block_timestamp * 1000
-                + (voting_end_block_number - created_block_number) as i64 * 12 * 1000,
-        )
-        .context("bad timestamp")?
-        .naive_utc(),
-    };
+    let voting_ends_timestamp =
+        match chain_data::estimate_timestamp(Chain::Optimism, voting_end_block_number).await {
+            Ok(r) => r,
+            Err(_) => DateTime::from_timestamp_millis(
+                created_block_timestamp * 1000
+                    + (voting_end_block_number - created_block_number) as i64 * 12 * 1000,
+            )
+            .context("bad timestamp")?
+            .naive_utc(),
+        };
 
     let mut title = format!(
         "{:.120}",
@@ -652,25 +658,27 @@ async fn data_for_proposal_three(
         ._0
         .to::<u64>();
 
-    let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
-        Ok(r) => r,
-        Err(_) => DateTime::from_timestamp_millis(
-            (created_block_timestamp * 1000)
-                + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
-        )
-        .context("bad timestamp")?
-        .naive_utc(),
-    };
+    let voting_starts_timestamp =
+        match chain_data::estimate_timestamp(Chain::Optimism, voting_start_block_number).await {
+            Ok(r) => r,
+            Err(_) => DateTime::from_timestamp_millis(
+                (created_block_timestamp * 1000)
+                    + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
+            )
+            .context("bad timestamp")?
+            .naive_utc(),
+        };
 
-    let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
-        Ok(r) => r,
-        Err(_) => DateTime::from_timestamp_millis(
-            created_block_timestamp * 1000
-                + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
-        )
-        .context("bad timestamp")?
-        .naive_utc(),
-    };
+    let voting_ends_timestamp =
+        match chain_data::estimate_timestamp(Chain::Optimism, voting_end_block_number).await {
+            Ok(r) => r,
+            Err(_) => DateTime::from_timestamp_millis(
+                created_block_timestamp * 1000
+                    + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
+            )
+            .context("bad timestamp")?
+            .naive_utc(),
+        };
 
     let mut title = format!(
         "{:.120}",
@@ -856,25 +864,27 @@ async fn data_for_proposal_four(
         ._0
         .to::<u64>();
 
-    let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
-        Ok(r) => r,
-        Err(_) => DateTime::from_timestamp_millis(
-            (created_block_timestamp * 1000)
-                + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
-        )
-        .context("bad timestamp")?
-        .naive_utc(),
-    };
+    let voting_starts_timestamp =
+        match chain_data::estimate_timestamp(Chain::Optimism, voting_start_block_number).await {
+            Ok(r) => r,
+            Err(_) => DateTime::from_timestamp_millis(
+                (created_block_timestamp * 1000)
+                    + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
+            )
+            .context("bad timestamp")?
+            .naive_utc(),
+        };
 
-    let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
-        Ok(r) => r,
-        Err(_) => DateTime::from_timestamp_millis(
-            created_block_timestamp * 1000
-                + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
-        )
-        .context("bad timestamp")?
-        .naive_utc(),
-    };
+    let voting_ends_timestamp =
+        match chain_data::estimate_timestamp(Chain::Optimism, voting_end_block_number).await {
+            Ok(r) => r,
+            Err(_) => DateTime::from_timestamp_millis(
+                created_block_timestamp * 1000
+                    + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
+            )
+            .context("bad timestamp")?
+            .naive_utc(),
+        };
 
     let mut title = format!(
         "{:.120}",

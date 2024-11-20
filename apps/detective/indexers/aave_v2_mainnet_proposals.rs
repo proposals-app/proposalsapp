@@ -1,13 +1,12 @@
 use crate::{
+    chain_data::{self, Chain},
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
-    rpc_providers,
 };
 use aave_v2_gov::{aave_v2_govInstance, ProposalCreated};
-use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::{address, U256},
     providers::{Provider, ReqwestProvider},
-    rpc::types::Log,
+    rpc::types::{BlockTransactionsKind, Log},
     sol,
     transports::http::Http,
 };
@@ -17,13 +16,14 @@ use chrono::DateTime;
 use regex::Regex;
 use reqwest::Client;
 use rust_decimal::prelude::ToPrimitive;
-use scanners::etherscan::estimate_timestamp;
 use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
+use seaorm::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerType, ProposalState},
+};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tracing::{info, warn};
@@ -73,7 +73,9 @@ impl ProposalsIndexer for AaveV2MainnetProposalsIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Aave V2 Mainnet Proposals");
 
-        let eth_rpc = rpc_providers::get_provider("ethereum")?;
+        let eth_rpc = chain_data::get_chain_config(Chain::Ethereum)?
+            .provider
+            .clone();
 
         let current_block = eth_rpc
             .get_block_number()
@@ -157,43 +159,45 @@ async fn data_for_proposal(
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
-        Ok(r) => r,
-        Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_start_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
-            warn!(
-                "Could not estimate timestamp for {:?}",
-                voting_start_block_number
-            );
-            info!("Fallback to {:?}", fallback);
-            fallback
-        }
-    };
+    let voting_starts_timestamp =
+        match chain_data::estimate_timestamp(Chain::Ethereum, voting_start_block_number).await {
+            Ok(r) => r,
+            Err(_) => {
+                let fallback = DateTime::from_timestamp_millis(
+                    (log.block_timestamp.unwrap()
+                        + (voting_start_block_number - log.block_number.unwrap())
+                            * average_block_time_millis) as i64,
+                )
+                .context("bad timestamp")?
+                .naive_utc();
+                warn!(
+                    "Could not estimate timestamp for {:?}",
+                    voting_start_block_number
+                );
+                info!("Fallback to {:?}", fallback);
+                fallback
+            }
+        };
 
-    let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
-        Ok(r) => r,
-        Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_end_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
-            warn!(
-                "Could not estimate timestamp for {:?}",
-                voting_end_block_number
-            );
-            info!("Fallback to {:?}", fallback);
-            fallback
-        }
-    };
+    let voting_ends_timestamp =
+        match chain_data::estimate_timestamp(Chain::Ethereum, voting_end_block_number).await {
+            Ok(r) => r,
+            Err(_) => {
+                let fallback = DateTime::from_timestamp_millis(
+                    (log.block_timestamp.unwrap()
+                        + (voting_end_block_number - log.block_number.unwrap())
+                            * average_block_time_millis) as i64,
+                )
+                .context("bad timestamp")?
+                .naive_utc();
+                warn!(
+                    "Could not estimate timestamp for {:?}",
+                    voting_end_block_number
+                );
+                info!("Fallback to {:?}", fallback);
+                fallback
+            }
+        };
 
     let proposal_url = format!(
         "https://app.aave.com/governance/proposal/?proposalId={}",
@@ -220,14 +224,14 @@ async fn data_for_proposal(
         .context("MINIMUM_QUORUM")?
         ._0;
 
-    let one_hunded_with_precision = executor_contract
+    let one_hundred_with_precision = executor_contract
         .ONE_HUNDRED_WITH_PRECISION()
         .call()
         .await
         .context("ONE_HUNDRED_WITH_PRECISION")?
         ._0;
 
-    let quorum = ((total_voting_power * min_quorum) / one_hunded_with_precision).to::<u128>()
+    let quorum = ((total_voting_power * min_quorum) / one_hundred_with_precision).to::<u128>()
         as f64
         / (10.0f64.powi(18));
 
@@ -602,11 +606,9 @@ mod aave_v2_proposals {
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
-    use seaorm::sea_orm_active_enums::IndexerType;
-    use seaorm::sea_orm_active_enums::IndexerVariant;
+    use seaorm::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use serde_json::json;
-    use utils::test_utils::parse_datetime;
-    use utils::test_utils::{assert_proposal, ExpectedProposal};
+    use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
 
     #[tokio::test]
     async fn aave_v2_1() {

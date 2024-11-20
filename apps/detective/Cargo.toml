@@ -21,7 +21,6 @@ reqwest-middleware = { workspace = true }
 reqwest-retry = { workspace = true }
 rust_decimal = { workspace = true }
 rust_decimal_macros = { workspace = true }
-scanners = { path = "../../libs/rust/scanners" }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
     "runtime-tokio-rustls",

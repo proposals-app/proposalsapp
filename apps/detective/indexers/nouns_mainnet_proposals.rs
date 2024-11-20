@@ -1,12 +1,11 @@
 use crate::{
+    chain_data::{self, Chain},
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
-    rpc_providers,
 };
-use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
-    rpc::types::Log,
+    rpc::types::{BlockTransactionsKind, Log},
     sol,
     transports::http::Http,
 };
@@ -14,13 +13,14 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
-use scanners::etherscan::estimate_timestamp;
 use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
+use seaorm::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerType, ProposalState},
+};
 use serde_json::json;
 use std::sync::Arc;
 use tracing::{info, warn};
@@ -57,7 +57,9 @@ impl ProposalsIndexer for NounsMainnetProposalsIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Nouns Proposals");
 
-        let eth_rpc = rpc_providers::get_provider("ethereum")?;
+        let eth_rpc = chain_data::get_chain_config(Chain::Ethereum)?
+            .provider
+            .clone();
 
         let current_block = eth_rpc
             .get_block_number()
@@ -136,43 +138,45 @@ async fn data_for_proposal(
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match estimate_timestamp(voting_start_block_number).await {
-        Ok(r) => r,
-        Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (created_block_timestamp * 1000)
-                    + (voting_start_block_number as i64 - created_block_number as i64)
-                        * average_block_time_millis,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
-            warn!(
-                "Could not estimate timestamp for {:?}",
-                voting_start_block_number
-            );
-            info!("Fallback to {:?}", fallback);
-            fallback
-        }
-    };
+    let voting_starts_timestamp =
+        match chain_data::estimate_timestamp(Chain::Ethereum, voting_start_block_number).await {
+            Ok(r) => r,
+            Err(_) => {
+                let fallback = DateTime::from_timestamp_millis(
+                    (created_block_timestamp * 1000)
+                        + (voting_start_block_number as i64 - created_block_number as i64)
+                            * average_block_time_millis,
+                )
+                .context("bad timestamp")?
+                .naive_utc();
+                warn!(
+                    "Could not estimate timestamp for {:?}",
+                    voting_start_block_number
+                );
+                info!("Fallback to {:?}", fallback);
+                fallback
+            }
+        };
 
-    let voting_ends_timestamp = match estimate_timestamp(voting_end_block_number).await {
-        Ok(r) => r,
-        Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                created_block_timestamp * 1000
-                    + (voting_end_block_number - created_block_number) as i64
-                        * average_block_time_millis,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
-            warn!(
-                "Could not estimate timestamp for {:?}",
-                voting_end_block_number
-            );
-            info!("Fallback to {:?}", fallback);
-            fallback
-        }
-    };
+    let voting_ends_timestamp =
+        match chain_data::estimate_timestamp(Chain::Ethereum, voting_end_block_number).await {
+            Ok(r) => r,
+            Err(_) => {
+                let fallback = DateTime::from_timestamp_millis(
+                    created_block_timestamp * 1000
+                        + (voting_end_block_number - created_block_number) as i64
+                            * average_block_time_millis,
+                )
+                .context("bad timestamp")?
+                .naive_utc();
+                warn!(
+                    "Could not estimate timestamp for {:?}",
+                    voting_end_block_number
+                );
+                info!("Fallback to {:?}", fallback);
+                fallback
+            }
+        };
 
     let proposal_url = format!("https://nouns.wtf/vote/{}", event.id);
 

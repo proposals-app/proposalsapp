@@ -1,8 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use anyhow::{bail, Result};
-use axum::routing::get;
-use axum::Router;
+use axum::{routing::get, Router};
 use database::{
     fetch_dao_indexers, store_delegations, store_proposals, store_votes, store_voting_powers,
     update_indexer_speed, update_indexer_speed_and_index, DatabaseStore,
@@ -11,59 +10,59 @@ use dotenv::dotenv;
 use indexer::{
     DelegationIndexer, ProcessResult, ProposalsIndexer, VotesIndexer, VotingPowerIndexer,
 };
-use indexers::aave_v2_mainnet_proposals::AaveV2MainnetProposalsIndexer;
-use indexers::aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer;
-use indexers::aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer;
-use indexers::aave_v3_mainnet_proposals::AaveV3MainnetProposalsIndexer;
-use indexers::aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer;
-use indexers::aave_v3_polygon_votes::AaveV3PolygonVotesIndexer;
-use indexers::arbitrum_core_proposals::ArbitrumCoreProposalsIndexer;
-use indexers::arbitrum_core_votes::ArbitrumCoreVotesIndexer;
-use indexers::arbitrum_council_elections::ArbitrumCouncilElectionsProposalsAndVotesIndexer;
-use indexers::arbitrum_council_nominations::ArbitrumCouncilNominationsProposalsAndVotesIndexer;
-use indexers::arbitrum_delegations::ArbitrumDelegationsIndexer;
-use indexers::arbitrum_treasury_proposals::ArbitrumTreasuryProposalsIndexer;
-use indexers::arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer;
-use indexers::arbitrum_voting_power::ArbitrumVotingPowerIndexer;
-use indexers::compound_mainnet_proposals::CompoundMainnetProposalsIndexer;
-use indexers::compound_mainnet_votes::CompoundMainnetVotesIndexer;
-use indexers::dydx_mainnet_proposals::DydxMainnetProposalsIndexer;
-use indexers::dydx_mainnet_votes::DydxMainnetVotesIndexer;
-use indexers::ens_mainnnet_proposals::EnsMainnetProposalsIndexer;
-use indexers::ens_vote_indexer::EnsMainnetVotesIndexer;
-use indexers::frax_alpha_mainnet_proposals::FraxAlphaMainnetProposalsIndexer;
-use indexers::frax_alpha_mainnet_votes::FraxAlphaMainnetVotesIndexer;
-use indexers::frax_omega_mainnet_proposals::FraxOmegaMainnetProposalsIndexer;
-use indexers::frax_omega_mainnet_votes::FraxOmegaMainnetVotesIndexer;
-use indexers::gitcoin_v1_mainnet_proposals::GitcoinV1MainnetProposalsIndexer;
-use indexers::gitcoin_v1_mainnet_votes::GitcoinV1MainnetVotesIndexer;
-use indexers::gitcoin_v2_mainnet_proposals::GitcoinV2MainnetProposalsIndexer;
-use indexers::gitcoin_v2_mainnet_votes::GitcoinV2MainnetVotesIndexer;
-use indexers::hop_mainnet_proposals::HopMainnetProposalsIndexer;
-use indexers::hop_mainnet_votes::HopMainnetVotesIndexer;
-use indexers::maker_executive_mainnet_proposals::MakerExecutiveMainnetProposalsIndexer;
-use indexers::maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer;
-use indexers::maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer;
-use indexers::maker_poll_mainnet_proposals::MakerPollMainnetProposalsIndexer;
-use indexers::maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer;
-use indexers::nouns_mainnet_proposals::NounsMainnetProposalsIndexer;
-use indexers::nouns_mainnet_votes::NounsMainnetVotesIndexer;
-use indexers::optimism_proposals::OptimismProposalsIndexer;
-use indexers::optimism_votes::OptimismVotesIndexer;
-use indexers::snapshot_proposals::SnapshotProposalsIndexer;
-use indexers::snapshot_votes::SnapshotVotesIndexer;
-use indexers::uniswap_mainnet_proposals::UniswapMainnetProposalsIndexer;
-use indexers::uniswap_mainnet_votes::UniswapMainnetVotesIndexer;
+use indexers::{
+    aave_v2_mainnet_proposals::AaveV2MainnetProposalsIndexer,
+    aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer,
+    aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer,
+    aave_v3_mainnet_proposals::AaveV3MainnetProposalsIndexer,
+    aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer,
+    aave_v3_polygon_votes::AaveV3PolygonVotesIndexer,
+    arbitrum_core_proposals::ArbitrumCoreProposalsIndexer,
+    arbitrum_core_votes::ArbitrumCoreVotesIndexer,
+    arbitrum_council_elections::ArbitrumCouncilElectionsProposalsAndVotesIndexer,
+    arbitrum_council_nominations::ArbitrumCouncilNominationsProposalsAndVotesIndexer,
+    arbitrum_delegations::ArbitrumDelegationsIndexer,
+    arbitrum_treasury_proposals::ArbitrumTreasuryProposalsIndexer,
+    arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer,
+    arbitrum_voting_power::ArbitrumVotingPowerIndexer,
+    compound_mainnet_proposals::CompoundMainnetProposalsIndexer,
+    compound_mainnet_votes::CompoundMainnetVotesIndexer,
+    dydx_mainnet_proposals::DydxMainnetProposalsIndexer,
+    dydx_mainnet_votes::DydxMainnetVotesIndexer,
+    ens_mainnnet_proposals::EnsMainnetProposalsIndexer, ens_vote_indexer::EnsMainnetVotesIndexer,
+    frax_alpha_mainnet_proposals::FraxAlphaMainnetProposalsIndexer,
+    frax_alpha_mainnet_votes::FraxAlphaMainnetVotesIndexer,
+    frax_omega_mainnet_proposals::FraxOmegaMainnetProposalsIndexer,
+    frax_omega_mainnet_votes::FraxOmegaMainnetVotesIndexer,
+    gitcoin_v1_mainnet_proposals::GitcoinV1MainnetProposalsIndexer,
+    gitcoin_v1_mainnet_votes::GitcoinV1MainnetVotesIndexer,
+    gitcoin_v2_mainnet_proposals::GitcoinV2MainnetProposalsIndexer,
+    gitcoin_v2_mainnet_votes::GitcoinV2MainnetVotesIndexer,
+    hop_mainnet_proposals::HopMainnetProposalsIndexer, hop_mainnet_votes::HopMainnetVotesIndexer,
+    maker_executive_mainnet_proposals::MakerExecutiveMainnetProposalsIndexer,
+    maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer,
+    maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer,
+    maker_poll_mainnet_proposals::MakerPollMainnetProposalsIndexer,
+    maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer,
+    nouns_mainnet_proposals::NounsMainnetProposalsIndexer,
+    nouns_mainnet_votes::NounsMainnetVotesIndexer, optimism_proposals::OptimismProposalsIndexer,
+    optimism_votes::OptimismVotesIndexer, snapshot_proposals::SnapshotProposalsIndexer,
+    snapshot_votes::SnapshotVotesIndexer,
+    uniswap_mainnet_proposals::UniswapMainnetProposalsIndexer,
+    uniswap_mainnet_votes::UniswapMainnetVotesIndexer,
+};
 use reqwest::Client;
-use sea_orm::prelude::Uuid;
-use sea_orm::DatabaseConnection;
-use seaorm::sea_orm_active_enums::{IndexerType, IndexerVariant};
-use seaorm::{dao, dao_indexer};
+use sea_orm::{prelude::Uuid, DatabaseConnection};
+use seaorm::{
+    dao, dao_indexer,
+    sea_orm_active_enums::{IndexerType, IndexerVariant},
+};
 use snapshot_api::{SnapshotApiConfig, SnapshotApiHandler};
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Instant;
-use std::{collections::HashSet, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tokio::{
     sync::{mpsc, Mutex},
     time::sleep,
@@ -71,10 +70,10 @@ use tokio::{
 use tracing::{debug, error, info, instrument, warn};
 use utils::tracing::setup_tracing;
 
+mod chain_data;
 mod database;
 mod indexer;
 mod indexers;
-mod rpc_providers;
 mod snapshot_api;
 
 static MAX_JOBS: usize = 100;

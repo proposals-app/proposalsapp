@@ -1,12 +1,11 @@
 use crate::{
+    chain_data::{self, Chain},
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
-    rpc_providers,
 };
-use alloy::rpc::types::BlockTransactionsKind;
 use alloy::{
     primitives::address,
     providers::{Provider, ReqwestProvider},
-    rpc::types::Log,
+    rpc::types::{BlockTransactionsKind, Log},
     sol,
     transports::http::Http,
 };
@@ -18,8 +17,10 @@ use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
 };
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
+use seaorm::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerType, ProposalState},
+};
 use serde_json::json;
 use std::sync::Arc;
 use tracing::info;
@@ -55,7 +56,9 @@ impl ProposalsIndexer for FraxOmegaMainnetProposalsIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Frax Omega Proposals");
 
-        let eth_rpc = rpc_providers::get_provider("ethereum")?;
+        let eth_rpc = chain_data::get_chain_config(Chain::Ethereum)?
+            .provider
+            .clone();
 
         let current_block = eth_rpc
             .get_block_number()
