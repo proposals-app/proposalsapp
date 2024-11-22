@@ -11,6 +11,7 @@ import {
   ProposalContent,
 } from "./types";
 import { processTimelineData } from "./utils";
+import { ResultsPanel } from "../results/ResultsPanel";
 
 interface CollapsibleCard {
   id: number;
@@ -134,35 +135,43 @@ export default function TimelineView({ initialData }: Props) {
   }, [timelineItems]);
 
   return (
-    <div className="mx-auto w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>
-            {initialData.result.group?.name || "Ungrouped Item"}
-          </CardTitle>
-          <Button asChild>
-            <Link href="/">Back to Proposals</Link>
-          </Button>
-        </div>
-      </CardHeader>
+    <div className="mx-auto max-w-7xl px-4">
+      <div className="flex gap-8">
+        <div className="flex-1">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>
+                {initialData.result.group?.name || "Ungrouped Item"}
+              </CardTitle>
+              <Button asChild>
+                <Link href="/">Back to Proposals</Link>
+              </Button>
+            </div>
+          </CardHeader>
 
-      <CardContent ref={contentRef}>
-        <div className="relative space-y-6">{renderTimelineItems}</div>
-      </CardContent>
+          <CardContent ref={contentRef}>
+            <div className="relative space-y-6">{renderTimelineItems}</div>
+          </CardContent>
 
-      {collapsedCards.length > 0 && (
-        <div className="fixed left-4 right-4 top-16 z-50 space-y-2">
-          {collapsedCards.map((card) => (
-            <button
-              key={card.id}
-              className="w-full rounded-lg border bg-white p-2 text-left shadow-md"
-              onClick={() => handleCardClick(card.id)}
-            >
-              {card.title}
-            </button>
-          ))}
+          {collapsedCards.length > 0 && (
+            <div className="fixed left-4 right-4 top-16 z-50 space-y-2">
+              {collapsedCards.map((card) => (
+                <button
+                  key={card.id}
+                  className="w-full rounded-lg border bg-white p-2 text-left shadow-md"
+                  onClick={() => handleCardClick(card.id)}
+                >
+                  {card.title}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        <div className="w-96">
+          <ResultsPanel groupDetails={initialData.groupDetails} />
+        </div>
+      </div>
     </div>
   );
 }
