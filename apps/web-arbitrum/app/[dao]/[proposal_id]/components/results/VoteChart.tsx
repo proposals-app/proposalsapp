@@ -17,9 +17,10 @@ interface VoteChartProps {
   votes: VoteDataPoint[];
   choiceNames: Record<string, string>;
 }
+
 interface VoteDataPoint {
   timestamp: Date;
-  choices: string[];
+  choices: string[] | string;
   votingPower: number;
 }
 
@@ -32,56 +33,75 @@ export function VoteChart({ votes, choiceNames }: VoteChartProps) {
       (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
     );
 
-    // Get all unique choices
+    // Get all unique choice indices from the votes (they are 1-based)
     const uniqueChoices = Array.from(
-      new Set(sortedVotes.flatMap((v) => v.choices)),
-    ).sort();
+      new Set(
+        sortedVotes.flatMap((v) =>
+          Array.isArray(v.choices) ? v.choices : [v.choices],
+        ),
+      ),
+    ).sort((a, b) => Number(a) - Number(b));
 
-    // Process votes for each choice separately
-    const choiceVoteSeries = uniqueChoices.map((choice) => {
-      let cumulativeVotingPower = 0;
-      return sortedVotes
-        .filter((vote) => vote.choices.includes(choice))
-        .map((vote) => {
-          // For multiple choice votes, divide voting power among chosen options
-          const votePowerPerChoice = vote.votingPower / vote.choices.length;
-          cumulativeVotingPower += votePowerPerChoice;
-          return {
-            timestamp: vote.timestamp.getTime(),
-            votingPower: cumulativeVotingPower,
-            choice,
-          };
-        });
+    // Create separate arrays to track each choice's votes
+    const choiceVotes: {
+      [key: string]: { timestamp: number; total: number }[];
+    } = {};
+    uniqueChoices.forEach((choice) => {
+      choiceVotes[choice] = [];
     });
 
-    // Combine all timestamps and create data points
-    const timestampSet = new Set(
-      sortedVotes.map((vote) => vote.timestamp.getTime()),
-    );
-    const allTimestamps = Array.from(timestampSet).sort((a, b) => a - b);
+    // Process each vote
+    sortedVotes.forEach((vote) => {
+      const timestamp = vote.timestamp.getTime();
+      const voteChoices = Array.isArray(vote.choices)
+        ? vote.choices
+        : [vote.choices];
 
-    const data = allTimestamps.map((timestamp) => {
-      const dataPoint: any = { timestamp };
-      uniqueChoices.forEach((choice) => {
-        const lastVoteBeforeTimestamp = choiceVoteSeries
-          .find((series) => series[0]?.choice === choice)
-          ?.filter((point) => point.timestamp <= timestamp)
-          .pop();
-        dataPoint[choice] = lastVoteBeforeTimestamp?.votingPower || 0;
+      // For each choice in this vote, add the vote to its tracking array
+      voteChoices.forEach((choice) => {
+        const previousTotal =
+          choiceVotes[choice].length > 0
+            ? choiceVotes[choice][choiceVotes[choice].length - 1].total
+            : 0;
+        choiceVotes[choice].push({
+          timestamp,
+          total: previousTotal + vote.votingPower,
+        });
       });
-      return dataPoint;
+    });
+
+    // Create data points for all timestamps where any vote occurred
+    const allTimestamps = Array.from(
+      new Set(sortedVotes.map((v) => v.timestamp.getTime())),
+    ).sort((a, b) => a - b);
+
+    // Create the processed data points
+    const processedPoints = allTimestamps.map((timestamp) => {
+      const point: any = { timestamp };
+
+      // For each choice, find its total at this timestamp
+      uniqueChoices.forEach((choice) => {
+        const choiceHistory = choiceVotes[choice];
+        const latestVote = choiceHistory
+          .filter((v) => v.timestamp <= timestamp)
+          .pop();
+        point[choice] = latestVote ? latestVote.total : 0;
+      });
+
+      return point;
     });
 
     // Add initial zero point
-    if (data.length > 0) {
-      data.unshift({
-        timestamp: data[0].timestamp,
+    if (processedPoints.length > 0) {
+      const zeroPoint = {
+        timestamp: processedPoints[0].timestamp,
         ...Object.fromEntries(uniqueChoices.map((choice) => [choice, 0])),
-      });
+      };
+      processedPoints.unshift(zeroPoint);
     }
 
     return {
-      processedData: data,
+      processedData: processedPoints,
       choices: uniqueChoices,
     };
   }, [votes]);
@@ -142,17 +162,19 @@ export function VoteChart({ votes, choiceNames }: VoteChartProps) {
                 dataKey="timestamp"
                 tickFormatter={formatDate}
                 ticks={getCustomTicks}
+                type="number"
+                domain={["auto", "auto"]}
               />
               <YAxis />
               <Tooltip
                 labelFormatter={(label) => formatDate(label as number)}
                 formatter={(value, name) => [
                   value,
-                  choiceNames[name as string] || name,
+                  choiceNames[name] || `Choice ${name}`,
                 ]}
               />
               <Legend
-                formatter={(value) => choiceNames[value] || value}
+                formatter={(value) => choiceNames[value] || `Choice ${value}`}
                 wrapperStyle={{ fontSize: "12px" }}
               />
               {choices.map((choice, index) => (
@@ -160,7 +182,7 @@ export function VoteChart({ votes, choiceNames }: VoteChartProps) {
                   key={choice}
                   type="stepAfter"
                   dataKey={choice}
-                  name={choiceNames[choice] || choice}
+                  name={choice.toString()}
                   stroke={colors[index % colors.length]}
                   strokeWidth={2}
                   dot={false}

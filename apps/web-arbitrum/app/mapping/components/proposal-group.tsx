@@ -43,16 +43,16 @@ export default function GroupingInterface({
     if (value.trim()) {
       const results = await fuzzySearchItems(value);
 
-      const currentGroup = groups.find((group) => group.id === editingGroupId);
+      // Get all items from all groups
+      const allGroupItems = groups.flatMap((group) => group.items);
+      const allGroupItemIds = new Set(allGroupItems.map((item) => item.id));
 
-      if (currentGroup) {
-        const filteredResults = results.filter(
-          (result) => !currentGroup.items.some((item) => item.id === result.id),
-        );
-        setSearchResults(filteredResults);
-      } else {
-        setSearchResults(results);
-      }
+      // Filter out items that are already in any group
+      const filteredResults = results.filter(
+        (result) => !allGroupItemIds.has(result.id),
+      );
+
+      setSearchResults(filteredResults);
     } else {
       setSearchResults([]);
     }
