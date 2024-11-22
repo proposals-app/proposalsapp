@@ -1,6 +1,10 @@
+import { validateRequest } from "@/lib/auth";
 import type { Metadata, Viewport } from "next";
 import "../styles/globals.css";
+import OnboardingFlow from "./components/onboarding/onboarding";
+import { SessionProvider } from "./components/session-provider";
 import dynamic from "next/dynamic";
+import { PHProvider } from "./components/posthog-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? "https://proposals.app"),
@@ -32,14 +36,33 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+const PostHogPageView = dynamic(
+  () => import("./components/posthog-pageview"),
+  {},
+);
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await validateRequest();
+
   return (
     <html lang="en">
-      <body className="bg-[#F1EBE7]">{children}</body>
+      <PHProvider>
+        <body className="bg-[#F1EBE7]">
+          <PostHogPageView />
+          <SessionProvider value={session}>
+            <OnboardingFlow />
+            <div className="flex h-full min-h-screen w-full flex-col items-center bg-luna">
+              <div className="flex w-full flex-col gap-12 px-4 pb-40 pt-14 lg:max-w-[1200px]">
+                {children}
+              </div>
+            </div>
+          </SessionProvider>
+        </body>
+      </PHProvider>
     </html>
   );
 }

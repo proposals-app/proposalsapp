@@ -1,0 +1,38 @@
+{
+  "name": "proposals.app",
+  "short_name": "proposals.app",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#F1EBE7",
+  "background_color": "#F1EBE7",
+  "start_url": "/",
+  "description": "The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.",
+  "icons": [
+    {
+      "src": "/assets/icons/web/pwa/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icons/web/pwa/icon-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icons/web/pwa/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icons/web/pwa/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icons/web/pwa/maskable-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

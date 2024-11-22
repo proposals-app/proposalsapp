@@ -1,3 +1,15 @@
+import withSerwistInit from "@serwist/next";
+
+const revision = crypto.randomUUID();
+
+const withSerwist = withSerwistInit({
+  cacheOnNavigation: true,
+  swSrc: "/app/sw.ts",
+  swDest: "./public/sw.js",
+  additionalPrecacheEntries: [{ url: "/~offline", revision }],
+  maximumFileSizeToCacheInBytes: 25000000,
+});
+
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
@@ -26,16 +38,7 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config) => {
-    config.externals = [
-      ...(config.externals || []),
-      "pino-pretty",
-      "lokijs",
-      "encoding",
-    ];
-    return config;
-  },
-  transpilePackages: ["@proposalsapp/db"],
+  serverExternalPackages: ["@proposalsapp/db"],
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
