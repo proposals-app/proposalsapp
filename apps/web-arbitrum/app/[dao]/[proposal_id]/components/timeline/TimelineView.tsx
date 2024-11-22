@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/ui/card";
 import { Button } from "@/shadcn/ui/button";
 import Link from "next/link";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { TimelineItem } from "./TimelineItem";
 import {
   DiscussionContent,
@@ -34,7 +34,6 @@ export default function TimelineView({ initialData }: Props) {
   );
   const [collapsedCards, setCollapsedCards] = useState<CollapsibleCard[]>([]);
   const timelineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const headerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,47 +44,14 @@ export default function TimelineView({ initialData }: Props) {
     setTimelineItems(items);
   }, [initialData]);
 
-  useEffect(() => {
-    let lastVisibleItemIndex = -1;
-
-    function handleScroll() {
-      if (!contentRef.current) return;
-
-      for (let i = timelineItems.length - 1; i > lastVisibleItemIndex; i--) {
-        const itemRef = timelineRefs.current.get(i);
-        if (itemRef && isElementInViewport(itemRef)) {
-          lastVisibleItemIndex = i;
-          break;
-        }
-      }
-
-      const newCollapsedCards: CollapsibleCard[] = [];
-      for (let i = 0; i < lastVisibleItemIndex; i++) {
-        const item = timelineItems[i];
-        if (item.type === "proposal" || item.type === "discussion") {
-          newCollapsedCards.push({
-            id: i,
-            title: getTitleForItemType(item),
-            timestamp: item.timestamp,
-          });
-        }
-      }
-
-      setCollapsedCards(newCollapsedCards);
-    }
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [timelineItems, timelineRefs]);
-
-  const isElementInViewport = (el: HTMLElement): boolean => {
+  const isElementInViewport = useCallback((el: HTMLElement): boolean => {
     const rect = el.getBoundingClientRect();
     return (
       rect.top <=
         (window.innerHeight || document.documentElement.clientHeight) &&
       rect.bottom >= 0
     );
-  };
+  }, []);
 
   const getTitleForItemType = useCallback(
     (item: ProcessedTimelineItem): string => {
@@ -103,16 +69,73 @@ export default function TimelineView({ initialData }: Props) {
     [],
   );
 
-  const handleCardClick = (id: number) => {
+  // Memoize the function to calculate collapsed cards
+  const calculateCollapsedCards = useCallback(
+    (items: ProcessedTimelineItem[]) => {
+      let lastVisibleItemIndex = -1;
+
+      for (let i = items.length - 1; i > lastVisibleItemIndex; i--) {
+        const itemRef = timelineRefs.current.get(i);
+        if (itemRef && isElementInViewport(itemRef)) {
+          lastVisibleItemIndex = i;
+          break;
+        }
+      }
+
+      const newCollapsedCards: CollapsibleCard[] = [];
+      for (let i = 0; i < lastVisibleItemIndex; i++) {
+        const item = items[i];
+        if (item.type === "proposal" || item.type === "discussion") {
+          newCollapsedCards.push({
+            id: i,
+            title: getTitleForItemType(item),
+            timestamp: item.timestamp,
+          });
+        }
+      }
+
+      return newCollapsedCards;
+    },
+    [isElementInViewport, getTitleForItemType],
+  );
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!contentRef.current) return;
+
+      // Calculate collapsed cards only when needed
+      setCollapsedCards(calculateCollapsedCards(timelineItems));
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [timelineItems, calculateCollapsedCards]);
+
+  const handleCardClick = useCallback((id: number) => {
     const ref = timelineRefs.current.get(id);
     if (ref) {
       ref.scrollIntoView({ behavior: "smooth" });
     }
-  };
+  }, []);
+
+  // Use useMemo to memoize the list of items rendered
+  const renderTimelineItems = useMemo(() => {
+    return timelineItems.map((item, index) => (
+      <div
+        key={index}
+        ref={(el) => {
+          if (el) timelineRefs.current.set(index, el);
+        }}
+        className="timeline-card"
+      >
+        <TimelineItem item={item} />
+      </div>
+    ));
+  }, [timelineItems]);
 
   return (
     <div className="mx-auto w-full">
-      <CardHeader ref={headerRef}>
+      <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>
             {initialData.result.group?.name || "Ungrouped Item"}
@@ -124,19 +147,7 @@ export default function TimelineView({ initialData }: Props) {
       </CardHeader>
 
       <CardContent ref={contentRef}>
-        <div className="relative space-y-6">
-          {timelineItems.map((item, index) => (
-            <div
-              key={index}
-              ref={(el) => {
-                if (el) timelineRefs.current.set(index, el);
-              }}
-              className="timeline-card"
-            >
-              <TimelineItem item={item} />
-            </div>
-          ))}
-        </div>
+        <div className="relative space-y-6">{renderTimelineItems}</div>
       </CardContent>
 
       {collapsedCards.length > 0 && (
@@ -144,7 +155,7 @@ export default function TimelineView({ initialData }: Props) {
           {collapsedCards.map((card) => (
             <button
               key={card.id}
-              className="animate-slide-in w-full rounded-lg border bg-white p-2 text-left shadow-md"
+              className="w-full rounded-lg border bg-white p-2 text-left shadow-md"
               onClick={() => handleCardClick(card.id)}
             >
               {card.title}
@@ -154,28 +165,4 @@ export default function TimelineView({ initialData }: Props) {
       )}
     </div>
   );
-}
-
-// CSS animations
-const slideInAnimation = `
-@keyframes slide-in {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out;
-}
-`;
-
-// Inject the CSS animations into the document
-const styleSheet = document.styleSheets[document.styleSheets.length - 1];
-if (styleSheet && "insertRule" in styleSheet) {
-  (styleSheet as any).insertRule(slideInAnimation, styleSheet.cssRules.length);
 }
