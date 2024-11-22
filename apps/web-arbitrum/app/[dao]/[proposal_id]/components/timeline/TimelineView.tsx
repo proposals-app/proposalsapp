@@ -70,7 +70,6 @@ export default function TimelineView({ initialData }: Props) {
     [],
   );
 
-  // Memoize the function to calculate collapsed cards
   const calculateCollapsedCards = useCallback(
     (items: ProcessedTimelineItem[]) => {
       let lastVisibleItemIndex = -1;
@@ -103,8 +102,6 @@ export default function TimelineView({ initialData }: Props) {
   useEffect(() => {
     const handleScroll = () => {
       if (!contentRef.current) return;
-
-      // Calculate collapsed cards only when needed
       setCollapsedCards(calculateCollapsedCards(timelineItems));
     };
 
@@ -119,7 +116,6 @@ export default function TimelineView({ initialData }: Props) {
     }
   }, []);
 
-  // Use useMemo to memoize the list of items rendered
   const renderTimelineItems = useMemo(() => {
     return timelineItems.map((item, index) => (
       <div
@@ -137,11 +133,29 @@ export default function TimelineView({ initialData }: Props) {
   return (
     <div className="min-h-screen w-full bg-gray-50">
       {/* Header */}
-      <div className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
-        <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center px-4">
-          <h1 className="text-xl font-semibold">
-            {initialData.result.group?.name || "Ungrouped Item"}
-          </h1>
+      <div className="sticky top-0 z-50 w-full border-b bg-white">
+        <div className="mx-auto w-full max-w-[1920px]">
+          {/* Main Header */}
+          <div className="flex h-16 items-center px-4">
+            <h1 className="text-xl font-semibold">
+              {initialData.result.group?.name || "Ungrouped Item"}
+            </h1>
+          </div>
+
+          {/* Collapsed Cards Section */}
+          {collapsedCards.length > 0 && (
+            <div className="flex flex-col flex-wrap gap-2 border-t bg-gray-50 px-4 py-2">
+              {collapsedCards.map((card) => (
+                <button
+                  key={card.id}
+                  onClick={() => handleCardClick(card.id)}
+                  className="inline-flex items-center rounded-full bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                >
+                  {card.title}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -153,21 +167,6 @@ export default function TimelineView({ initialData }: Props) {
             <div ref={contentRef} className="relative space-y-4">
               {renderTimelineItems}
             </div>
-
-            {/* Collapsed Cards */}
-            {/* {collapsedCards.length > 0 && (
-              <div className="fixed left-4 right-4 top-20 z-40 space-y-2 lg:left-[calc((100%-1920px)/2+1rem)]">
-                {collapsedCards.map((card) => (
-                  <button
-                    key={card.id}
-                    className="w-full rounded-lg border bg-white p-2 text-left shadow-md transition-colors hover:bg-gray-50"
-                    onClick={() => handleCardClick(card.id)}
-                  >
-                    {card.title}
-                  </button>
-                ))}
-              </div>
-            )} */}
           </div>
 
           {/* Results Panel - Takes 1/3 of the space */}
