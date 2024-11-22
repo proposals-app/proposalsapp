@@ -2,13 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/ui/card";
 import { VoteChart } from "./VoteChart";
-import { Proposal } from "@proposalsapp/db";
+import { Proposal, Selectable } from "@proposalsapp/db";
 import { useMemo } from "react";
 
 interface ResultsPanelProps {
   groupDetails: {
     proposals: Array<
-      Proposal & {
+      Selectable<Proposal> & {
         votes: Array<{
           id: string;
           choice: string | string[];
@@ -25,7 +25,12 @@ export function ResultsPanel({ groupDetails }: ResultsPanelProps) {
   const processedProposals = useMemo(
     () =>
       [...groupDetails.proposals]
-        .sort((a, b) => b.timeEnd.getTime() - a.timeEnd.getTime())
+        .sort((a, b) => {
+          // Use toDate() method on Timestamp objects
+          const dateA = a.timeEnd.getTime();
+          const dateB = b.timeEnd.getTime();
+          return dateB - dateA;
+        })
         .map((proposal) => ({
           ...proposal,
           processedVotes: proposal.votes
@@ -43,7 +48,7 @@ export function ResultsPanel({ groupDetails }: ResultsPanelProps) {
   );
 
   return (
-    <div className="sticky top-24 h-[calc(100vh-6rem)] overflow-hidden">
+    <div className="sticky top-24 h-[calc(100vh-6rem)]">
       <div className="h-full overflow-y-auto pr-4">
         <div className="space-y-4">
           {processedProposals.map((proposal, index) => (
