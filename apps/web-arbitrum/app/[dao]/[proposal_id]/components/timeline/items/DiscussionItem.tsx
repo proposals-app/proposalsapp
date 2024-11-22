@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DiscussionContent } from "../types";
+import { useState } from "react";
 
 interface DiscussionItemProps {
   content: DiscussionContent;
@@ -7,6 +8,13 @@ interface DiscussionItemProps {
 }
 
 export function DiscussionItem({ content, timestamp }: DiscussionItemProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Function to toggle the expanded state
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
+  };
+
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
@@ -24,8 +32,11 @@ export function DiscussionItem({ content, timestamp }: DiscussionItemProps) {
             <span className="font-medium text-gray-700">
               {content.username}:
             </span>
+            {/* Container for the body text with max-height when collapsed */}
             <div
-              className="prose prose-sm mt-1 max-w-none"
+              className={`prose prose-sm mt-1 max-w-none ${
+                isExpanded ? "max-h-none" : "max-h-40 overflow-hidden"
+              }`}
               dangerouslySetInnerHTML={{ __html: content.cooked || "" }}
             />
           </div>
@@ -39,6 +50,23 @@ export function DiscussionItem({ content, timestamp }: DiscussionItemProps) {
           {content.title}
         </Link>
       )}
+
+      {/* Show More/Less button */}
+      {!isExpanded && content.cooked ? (
+        <button
+          onClick={toggleExpand}
+          className="mt-2 flex w-full justify-center text-sm font-medium text-blue-500 hover:underline"
+        >
+          + Show More
+        </button>
+      ) : isExpanded ? (
+        <button
+          onClick={toggleExpand}
+          className="mt-2 flex w-full justify-center text-sm font-medium text-blue-500 hover:underline"
+        >
+          - Show Less
+        </button>
+      ) : null}
     </div>
   );
 }

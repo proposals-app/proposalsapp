@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProposalContent } from "../types";
+import { useState } from "react";
 
 interface ProposalItemProps {
   content: ProposalContent;
@@ -7,6 +8,13 @@ interface ProposalItemProps {
 }
 
 export function ProposalItem({ content, timestamp }: ProposalItemProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Function to toggle the expanded state
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
+  };
+
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
@@ -24,7 +32,34 @@ export function ProposalItem({ content, timestamp }: ProposalItemProps) {
       >
         {content.name}
       </Link>
-      <p className="mt-2 whitespace-pre-wrap text-sm">{content.body}</p>
+
+      {/* Container for the body text with max-height when collapsed */}
+      <div
+        className={`mt-2 whitespace-pre-wrap text-sm ${
+          isExpanded ? "max-h-none" : "max-h-40 overflow-hidden"
+        }`}
+      >
+        {content.body.split("\n").map((line, index) => (
+          <p key={index}>{line}</p>
+        ))}
+      </div>
+
+      {/* Show More/Less button */}
+      {!isExpanded && content.body.split("\n").length > 10 ? (
+        <button
+          onClick={toggleExpand}
+          className="mt-2 flex w-full justify-center text-sm font-medium text-blue-500 hover:underline"
+        >
+          + Show More
+        </button>
+      ) : isExpanded ? (
+        <button
+          onClick={toggleExpand}
+          className="mt-2 flex w-full justify-center text-sm font-medium text-blue-500 hover:underline"
+        >
+          - Show Less
+        </button>
+      ) : null}
     </div>
   );
 }
