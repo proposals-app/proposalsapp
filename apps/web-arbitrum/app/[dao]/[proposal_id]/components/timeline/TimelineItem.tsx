@@ -14,7 +14,7 @@ import {
 
 export function TimelineItem({ item }: { item: ProcessedTimelineItem }) {
   return (
-    <div className="rounded-lg border bg-gray-100 p-4 transition-colors">
+    <div className="rounded-lg border bg-white p-4 shadow-sm transition-colors hover:bg-gray-50">
       {item.type === "proposal" && (
         <ProposalItem
           content={item.content as ProposalContent}

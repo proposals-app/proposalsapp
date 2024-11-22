@@ -56,9 +56,7 @@ export default async function RootLayout({
           <SessionProvider value={session}>
             <OnboardingFlow />
             <div className="flex h-full min-h-screen w-full flex-col items-center bg-luna">
-              <div className="flex w-full flex-col gap-12 px-4 pb-40 pt-14 lg:max-w-[1200px]">
-                {children}
-              </div>
+              {children}
             </div>
           </SessionProvider>
         </body>

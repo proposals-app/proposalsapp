@@ -17,5 +17,9 @@ export default async function ProposalPage({
 
   const groupDetails = await getGroupDetails(result.group?.id ?? "");
 
-  return <TimelineView initialData={{ result, groupDetails }} />;
+  return (
+    <div className="w-full">
+      <TimelineView initialData={{ result, groupDetails }} />
+    </div>
+  );
 }

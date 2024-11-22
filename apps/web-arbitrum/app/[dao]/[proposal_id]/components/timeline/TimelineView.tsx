@@ -135,41 +135,45 @@ export default function TimelineView({ initialData }: Props) {
   }, [timelineItems]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4">
-      <div className="flex gap-8">
-        <div className="flex-1">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>
-                {initialData.result.group?.name || "Ungrouped Item"}
-              </CardTitle>
-              <Button asChild>
-                <Link href="/">Back to Proposals</Link>
-              </Button>
-            </div>
-          </CardHeader>
-
-          <CardContent ref={contentRef}>
-            <div className="relative space-y-6">{renderTimelineItems}</div>
-          </CardContent>
-
-          {collapsedCards.length > 0 && (
-            <div className="fixed left-4 right-4 top-16 z-50 space-y-2">
-              {collapsedCards.map((card) => (
-                <button
-                  key={card.id}
-                  className="w-full rounded-lg border bg-white p-2 text-left shadow-md"
-                  onClick={() => handleCardClick(card.id)}
-                >
-                  {card.title}
-                </button>
-              ))}
-            </div>
-          )}
+    <div className="min-h-screen w-full bg-gray-50">
+      {/* Header */}
+      <div className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
+        <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center px-4">
+          <h1 className="text-xl font-semibold">
+            {initialData.result.group?.name || "Ungrouped Item"}
+          </h1>
         </div>
+      </div>
 
-        <div className="w-96">
-          <ResultsPanel groupDetails={initialData.groupDetails} />
+      {/* Main Content */}
+      <div className="mx-auto w-full max-w-[1920px] px-4 py-6">
+        <div className="flex gap-8">
+          {/* Timeline Section - Takes 2/3 of the space */}
+          <div className="w-2/3">
+            <div ref={contentRef} className="relative space-y-4">
+              {renderTimelineItems}
+            </div>
+
+            {/* Collapsed Cards */}
+            {/* {collapsedCards.length > 0 && (
+              <div className="fixed left-4 right-4 top-20 z-40 space-y-2 lg:left-[calc((100%-1920px)/2+1rem)]">
+                {collapsedCards.map((card) => (
+                  <button
+                    key={card.id}
+                    className="w-full rounded-lg border bg-white p-2 text-left shadow-md transition-colors hover:bg-gray-50"
+                    onClick={() => handleCardClick(card.id)}
+                  >
+                    {card.title}
+                  </button>
+                ))}
+              </div>
+            )} */}
+          </div>
+
+          {/* Results Panel - Takes 1/3 of the space */}
+          <div className="w-1/3">
+            <ResultsPanel groupDetails={initialData.groupDetails} />
+          </div>
         </div>
       </div>
     </div>
