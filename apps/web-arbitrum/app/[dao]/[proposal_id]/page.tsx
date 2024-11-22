@@ -5,7 +5,7 @@ import TimelineView from "./components/timeline/TimelineView";
 export default async function ProposalPage({
   params,
 }: {
-  params: { dao: string; proposal_id: string };
+  params: Promise<{ dao: string; proposal_id: string }>;
 }) {
   const result = await getProposalAndGroup(
     (await params).dao,
