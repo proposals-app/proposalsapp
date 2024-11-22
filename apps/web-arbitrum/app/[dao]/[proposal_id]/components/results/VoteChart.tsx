@@ -13,15 +13,14 @@ import {
 import { Card, CardContent } from "@/shadcn/ui/card";
 import { useMemo } from "react";
 
+interface VoteChartProps {
+  votes: VoteDataPoint[];
+  choiceNames: Record<string, string>;
+}
 interface VoteDataPoint {
   timestamp: Date;
   choices: string[];
   votingPower: number;
-}
-
-interface VoteChartProps {
-  votes: VoteDataPoint[];
-  choiceNames: Record<string, string>;
 }
 
 export function VoteChart({ votes, choiceNames }: VoteChartProps) {
@@ -40,16 +39,19 @@ export function VoteChart({ votes, choiceNames }: VoteChartProps) {
 
     // Process votes for each choice separately
     const choiceVoteSeries = uniqueChoices.map((choice) => {
-      const votesForChoice = sortedVotes.filter((vote) =>
-        vote.choices.includes(choice),
-      );
-
       let cumulativeVotingPower = 0;
-      return votesForChoice.map((vote) => ({
-        timestamp: vote.timestamp.getTime(),
-        votingPower: (cumulativeVotingPower += vote.votingPower),
-        choice,
-      }));
+      return sortedVotes
+        .filter((vote) => vote.choices.includes(choice))
+        .map((vote) => {
+          // For multiple choice votes, divide voting power among chosen options
+          const votePowerPerChoice = vote.votingPower / vote.choices.length;
+          cumulativeVotingPower += votePowerPerChoice;
+          return {
+            timestamp: vote.timestamp.getTime(),
+            votingPower: cumulativeVotingPower,
+            choice,
+          };
+        });
     });
 
     // Combine all timestamps and create data points

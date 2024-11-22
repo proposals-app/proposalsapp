@@ -40,6 +40,8 @@ export function processTimelineData(
         .filter((v: any) => v !== null && v.timeCreated && v.votingPower)
         .map((vote: any) => ({
           ...vote,
+          // Ensure choice is always an array
+          choice: Array.isArray(vote.choice) ? vote.choice : [vote.choice],
           votingPower: parseFloat(vote.votingPower),
           timestampMs: new Date(vote.timeCreated).getTime(),
         }));

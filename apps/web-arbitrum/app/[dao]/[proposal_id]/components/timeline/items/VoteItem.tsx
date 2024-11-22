@@ -10,10 +10,8 @@ interface VoteItemProps {
 
 export function VoteItem({ content, timestamp }: VoteItemProps) {
   const formatChoice = (choice: string | string[]) => {
-    if (Array.isArray(choice)) {
-      return choice.map((c) => content.choiceNames?.[c] || c).join(", ");
-    }
-    return content.choiceNames?.[choice] || choice;
+    const choices = Array.isArray(choice) ? choice : [choice];
+    return choices.map((c) => content.choiceNames?.[c] || c).join(" + ");
   };
 
   return (
@@ -37,7 +35,7 @@ export function VoteItem({ content, timestamp }: VoteItemProps) {
             Power: {content.votingPower}
           </span>
         </div>
-        <div className="text-sm">Vote: {formatChoice(content.choice)}</div>
+        <div className="text-sm">Votes: {formatChoice(content.choice)}</div>
       </div>
       {content.reason && (
         <p className="mt-2 text-sm text-gray-600">Reason: {content.reason}</p>

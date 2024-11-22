@@ -27,7 +27,12 @@ export function AggregatedVoteItem({
         <div className="mt-2">
           {content.votes.map((vote, index) => (
             <div key={index} className="flex justify-between text-sm">
-              <span>Choice: {vote.choice}</span>
+              <span>
+                Choice:{" "}
+                {Array.isArray(vote.choice)
+                  ? vote.choice.join(" + ")
+                  : vote.choice}
+              </span>
               <span>Power: {vote.votingPower}</span>
               <span>Count: {vote.count}</span>
             </div>
