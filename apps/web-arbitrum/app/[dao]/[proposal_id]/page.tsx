@@ -1,13 +1,13 @@
-import { getProposalAndGroup, getGroupDetails } from "./actions";
 import { notFound } from "next/navigation";
 import TimelineView from "./components/timeline/TimelineView";
+import { getGroupData } from "./actions";
 
 export default async function ProposalPage({
   params,
 }: {
   params: Promise<{ dao: string; proposal_id: string }>;
 }) {
-  const result = await getProposalAndGroup(
+  const result = await getGroupData(
     (await params).dao,
     (await params).proposal_id,
   );
@@ -15,11 +15,9 @@ export default async function ProposalPage({
     notFound();
   }
 
-  const groupDetails = await getGroupDetails(result.group?.id ?? "");
-
   return (
     <div className="w-full">
-      <TimelineView initialData={{ result, groupDetails }} />
+      <TimelineView initialData={result} />
     </div>
   );
 }

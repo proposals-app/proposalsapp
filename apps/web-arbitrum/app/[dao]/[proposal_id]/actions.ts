@@ -1,12 +1,27 @@
 "use server";
 
-import { db } from "@proposalsapp/db";
-import { otel } from "@/lib/otel";
+import {
+  db,
+  DiscoursePost,
+  DiscourseTopic,
+  Proposal,
+  ProposalGroup,
+  Selectable,
+  Vote,
+} from "@proposalsapp/db";
 
-export async function getProposalAndGroup(
-  slug: string,
-  proposalOrTopicId: string,
-) {
+type ExtendedProposal = Selectable<Proposal> & {
+  indexerVariant: string | null;
+  votes?: Array<Omit<Selectable<Vote>, "proposalId" | "daoIndexerId">>;
+};
+
+type ExtendedDiscourseTopic = Selectable<DiscourseTopic> & {
+  discourseBaseUrl: string | null;
+  enabled?: boolean;
+  posts?: Array<Omit<Selectable<DiscoursePost>, "topicSlug">>;
+};
+
+export async function getGroupData(slug: string, proposalOrTopicId: string) {
   // Get the DAO first
   const dao = await db
     .selectFrom("dao")
@@ -18,19 +33,27 @@ export async function getProposalAndGroup(
     return null;
   }
 
-  // Try to find proposal first
-  const proposal = await db
-    .selectFrom("proposal")
-    .where("proposal.daoId", "=", dao.id)
-    .where("externalId", "=", proposalOrTopicId)
-    .leftJoin("daoIndexer", "daoIndexer.id", "proposal.daoIndexerId")
-    .selectAll("proposal")
-    .select("daoIndexer.indexerVariant")
-    .executeTakeFirst();
+  // Initialize variables as optional or with default values
+  let proposal: ExtendedProposal | undefined;
+  let topic: ExtendedDiscourseTopic | undefined;
+
+  try {
+    proposal = await db
+      .selectFrom("proposal")
+      .where("proposal.daoId", "=", dao.id)
+      .where("externalId", "=", proposalOrTopicId)
+      .leftJoin("daoIndexer", "daoIndexer.id", "proposal.daoIndexerId")
+      .selectAll("proposal")
+      .select("daoIndexer.indexerVariant")
+      .executeTakeFirst();
+  } catch (error) {
+    console.error("Error fetching proposal:", error);
+  }
 
   // If no proposal, try to find discourse topic
-  const topic = !proposal
-    ? await db
+  if (!proposal) {
+    try {
+      topic = await db
         .selectFrom("discourseTopic")
         .where("externalId", "=", parseInt(proposalOrTopicId))
         .leftJoin(
@@ -41,8 +64,11 @@ export async function getProposalAndGroup(
         .where("daoDiscourse.daoId", "=", dao.id)
         .selectAll("discourseTopic")
         .select("daoDiscourse.discourseBaseUrl")
-        .executeTakeFirst()
-    : null;
+        .executeTakeFirst();
+    } catch (error) {
+      console.error("Error fetching topic:", error);
+    }
+  }
 
   if (!proposal && !topic) {
     return null;
@@ -51,7 +77,7 @@ export async function getProposalAndGroup(
   // Find a proposal group containing this item
   const groups = await db.selectFrom("proposalGroup").selectAll().execute();
 
-  let matchingGroup = null;
+  let matchingGroup: Selectable<ProposalGroup> | null = null;
   for (const group of groups) {
     const items = group.items as any[];
     const hasItem = items.some(
@@ -65,26 +91,11 @@ export async function getProposalAndGroup(
     }
   }
 
-  return {
-    dao,
-    group: matchingGroup,
-  };
-}
-
-export async function getGroupDetails(groupId: string | null) {
-  if (!groupId) return null;
-
-  const group = await db
-    .selectFrom("proposalGroup")
-    .where("id", "=", groupId)
-    .selectAll()
-    .executeTakeFirst();
-
-  if (!group) {
+  if (!matchingGroup) {
     return null;
   }
 
-  const items = group.items as any[];
+  const items = matchingGroup.items as any[];
 
   const proposalIds = items
     .filter((item) => item.type === "proposal")
@@ -94,49 +105,65 @@ export async function getGroupDetails(groupId: string | null) {
     .filter((item) => item.type === "topic")
     .map((item) => item.id);
 
-  const proposals =
-    proposalIds.length > 0
-      ? await db
-          .selectFrom("proposal")
-          .where("proposal.id", "in", proposalIds)
-          .leftJoin("vote", "vote.proposalId", "proposal.id")
-          .leftJoin("daoIndexer", "daoIndexer.id", "proposal.daoIndexerId")
-          .selectAll("proposal")
-          .select("daoIndexer.indexerVariant")
-          .select(db.fn.jsonAgg("vote").as("votes"))
-          .groupBy(["proposal.id", "daoIndexer.indexerVariant"])
-          .execute()
-      : [];
+  let proposals: Selectable<Proposal>[] = [];
+  if (proposalIds.length > 0) {
+    try {
+      proposals = await db
+        .selectFrom("proposal")
+        .where("proposal.id", "in", proposalIds)
+        .leftJoin("vote", "vote.proposalId", "proposal.id")
+        .leftJoin("daoIndexer", "daoIndexer.id", "proposal.daoIndexerId")
+        .selectAll("proposal")
+        .select("daoIndexer.indexerVariant")
+        .select(db.fn.jsonAgg("vote").as("votes"))
+        .groupBy(["proposal.id", "daoIndexer.indexerVariant"])
+        .execute();
+    } catch (error) {
+      console.error("Error fetching proposals:", error);
+    }
+  }
 
-  const topics =
-    topicIds.length > 0
-      ? await db
-          .selectFrom("discourseTopic")
-          .where("discourseTopic.id", "in", topicIds)
-          .leftJoin(
-            "daoDiscourse",
-            "discourseTopic.daoDiscourseId",
-            "daoDiscourse.id",
-          )
-          .leftJoin(
-            "discoursePost",
-            "discoursePost.topicId",
-            "discourseTopic.externalId",
-          )
-          .selectAll("discourseTopic")
-          .select(["daoDiscourse.discourseBaseUrl", "daoDiscourse.enabled"])
-          .select(db.fn.jsonAgg("discoursePost").as("posts"))
-          .groupBy([
-            "discourseTopic.id",
-            "daoDiscourse.id",
-            "daoDiscourse.discourseBaseUrl",
-            "daoDiscourse.enabled",
-          ])
-          .execute()
-      : [];
+  let topics: Selectable<DiscourseTopic>[] = [];
+  if (topicIds.length > 0) {
+    try {
+      topics = await db
+        .selectFrom("discourseTopic")
+        .where("discourseTopic.id", "in", topicIds)
+        .leftJoin(
+          "daoDiscourse",
+          "discourseTopic.daoDiscourseId",
+          "daoDiscourse.id",
+        )
+        .leftJoin(
+          "discoursePost",
+          "discoursePost.topicId",
+          "discourseTopic.externalId",
+        )
+        .selectAll("discourseTopic")
+        .select(["daoDiscourse.discourseBaseUrl", "daoDiscourse.enabled"])
+        .select(db.fn.jsonAgg("discoursePost").as("posts"))
+        .groupBy([
+          "discourseTopic.id",
+          "daoDiscourse.id",
+          "daoDiscourse.discourseBaseUrl",
+          "daoDiscourse.enabled",
+        ])
+        .execute();
+    } catch (error) {
+      console.error("Error fetching topics:", error);
+    }
+  }
+
+  console.log({
+    dao,
+    group: matchingGroup,
+    proposals,
+    topics,
+  });
 
   return {
-    ...group,
+    dao,
+    group: matchingGroup,
     proposals,
     topics,
   };

@@ -21,11 +21,10 @@ interface CollapsibleCard {
 
 interface Props {
   initialData: {
-    result: {
-      dao: any;
-      group: any;
-    };
-    groupDetails: any;
+    dao: any;
+    group: any;
+    proposals: any;
+    topics: any;
   };
 }
 
@@ -39,8 +38,8 @@ export default function TimelineView({ initialData }: Props) {
 
   useEffect(() => {
     const items = processTimelineData(
-      initialData.result,
-      initialData.groupDetails,
+      initialData.proposals,
+      initialData.topics,
     );
     setTimelineItems(items);
   }, [initialData]);
@@ -138,7 +137,7 @@ export default function TimelineView({ initialData }: Props) {
           {/* Main Header */}
           <div className="flex h-16 items-center px-4">
             <h1 className="text-xl font-semibold">
-              {initialData.result.group?.name || "Ungrouped Item"}
+              {initialData.group?.name || "Ungrouped Item"}
             </h1>
           </div>
 
@@ -171,7 +170,7 @@ export default function TimelineView({ initialData }: Props) {
 
           {/* Results Panel - Takes 1/3 of the space */}
           <div className="w-1/3">
-            <ResultsPanel groupDetails={initialData.groupDetails} />
+            <ResultsPanel proposals={initialData.proposals} />
           </div>
         </div>
       </div>

@@ -6,25 +6,23 @@ import { Proposal, Selectable } from "@proposalsapp/db";
 import { useMemo } from "react";
 
 interface ResultsPanelProps {
-  groupDetails: {
-    proposals: Array<
-      Selectable<Proposal> & {
-        votes: Array<{
-          id: string;
-          choice: string | string[];
-          timeCreated: string;
-          votingPower: string;
-        }>;
-        choices: Record<string, string>;
-      }
-    >;
-  };
+  proposals: Array<
+    Selectable<Proposal> & {
+      votes: Array<{
+        id: string;
+        choice: string | string[];
+        timeCreated: string;
+        votingPower: string;
+      }>;
+      choices: Record<string, string>;
+    }
+  >;
 }
 
-export function ResultsPanel({ groupDetails }: ResultsPanelProps) {
+export function ResultsPanel({ proposals }: ResultsPanelProps) {
   const processedProposals = useMemo(
     () =>
-      [...groupDetails.proposals]
+      [...proposals]
         .sort((a, b) => {
           // Use toDate() method on Timestamp objects
           const dateA = a.timeEnd.getTime();
@@ -44,7 +42,7 @@ export function ResultsPanel({ groupDetails }: ResultsPanelProps) {
             })),
           choiceNames: proposal.choices || {},
         })),
-    [groupDetails],
+    [proposals],
   );
 
   return (
