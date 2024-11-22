@@ -2,11 +2,20 @@ import { formatAddress } from "@/lib/utils";
 import { VoteContent } from "../types";
 
 interface VoteItemProps {
-  content: VoteContent;
+  content: VoteContent & {
+    choiceNames?: Record<string, string>;
+  };
   timestamp: Date;
 }
 
 export function VoteItem({ content, timestamp }: VoteItemProps) {
+  const formatChoice = (choice: string | string[]) => {
+    if (Array.isArray(choice)) {
+      return choice.map((c) => content.choiceNames?.[c] || c).join(", ");
+    }
+    return content.choiceNames?.[choice] || choice;
+  };
+
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
@@ -28,12 +37,7 @@ export function VoteItem({ content, timestamp }: VoteItemProps) {
             Power: {content.votingPower}
           </span>
         </div>
-        <div className="text-sm">
-          Choice:{" "}
-          {Array.isArray(content.choice)
-            ? content.choice.join(", ")
-            : content.choice}
-        </div>
+        <div className="text-sm">Vote: {formatChoice(content.choice)}</div>
       </div>
       {content.reason && (
         <p className="mt-2 text-sm text-gray-600">Reason: {content.reason}</p>

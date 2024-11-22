@@ -31,6 +31,7 @@ export interface VoteContent {
   votingPower: string;
   choice: string[] | string;
   reason?: string;
+  choiceNames?: Record<string, string>;
 }
 
 export interface AggregatedVotesContent {

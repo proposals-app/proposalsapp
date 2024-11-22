@@ -15,6 +15,7 @@ interface ResultsPanelProps {
           timeCreated: string;
           votingPower: string;
         }>;
+        choices: Record<string, string>;
       }
     >;
   };
@@ -29,12 +30,12 @@ export function ResultsPanel({ groupDetails }: ResultsPanelProps) {
           .filter((v) => v !== null)
           .map((vote) => ({
             timestamp: new Date(vote.timeCreated),
-            // Handle both single choice and multiple choice formats
             choices: Array.isArray(vote.choice)
-              ? vote.choice.map(String) // Convert numbers to strings for array choices
-              : [String(vote.choice)], // Convert single number to string array
+              ? vote.choice.map((c) => String(c))
+              : [String(vote.choice)],
             votingPower: parseFloat(vote.votingPower),
           })),
+        choiceNames: proposal.choices || {},
       })),
     [groupDetails],
   );
@@ -47,7 +48,10 @@ export function ResultsPanel({ groupDetails }: ResultsPanelProps) {
             <CardTitle className="text-sm">{proposal.name}</CardTitle>
           </CardHeader>
           <CardContent>
-            <VoteChart votes={proposal.processedVotes} />
+            <VoteChart
+              votes={proposal.processedVotes}
+              choiceNames={proposal.choiceNames}
+            />
           </CardContent>
         </Card>
       ))}

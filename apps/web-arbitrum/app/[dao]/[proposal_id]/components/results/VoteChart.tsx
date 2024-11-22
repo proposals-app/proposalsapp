@@ -21,9 +21,10 @@ interface VoteDataPoint {
 
 interface VoteChartProps {
   votes: VoteDataPoint[];
+  choiceNames: Record<string, string>;
 }
 
-export function VoteChart({ votes }: VoteChartProps) {
+export function VoteChart({ votes, choiceNames }: VoteChartProps) {
   const { processedData, choices } = useMemo(() => {
     if (votes.length === 0) return { processedData: [], choices: [] };
 
@@ -39,12 +40,10 @@ export function VoteChart({ votes }: VoteChartProps) {
 
     // Process votes for each choice separately
     const choiceVoteSeries = uniqueChoices.map((choice) => {
-      // Get votes that include this choice
       const votesForChoice = sortedVotes.filter((vote) =>
         vote.choices.includes(choice),
       );
 
-      // Calculate cumulative voting power for this choice
       let cumulativeVotingPower = 0;
       return votesForChoice.map((vote) => ({
         timestamp: vote.timestamp.getTime(),
@@ -84,6 +83,7 @@ export function VoteChart({ votes }: VoteChartProps) {
       choices: uniqueChoices,
     };
   }, [votes]);
+
   // Format date to show month and day only
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -138,38 +138,27 @@ export function VoteChart({ votes }: VoteChartProps) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="timestamp"
-                type="number"
-                domain={["dataMin", "dataMax"]}
                 tickFormatter={formatDate}
                 ticks={getCustomTicks}
-                scale="time"
-                tick={{ fontSize: 12 }}
-                height={30}
               />
-              <YAxis
-                tickFormatter={(value) =>
-                  new Intl.NumberFormat("en", {
-                    notation: "compact",
-                    compactDisplay: "short",
-                  }).format(value)
-                }
-              />
+              <YAxis />
               <Tooltip
-                labelFormatter={(timestamp) =>
-                  new Date(timestamp).toLocaleString()
-                }
-                formatter={(value: any) => [
-                  new Intl.NumberFormat("en").format(value),
-                  "Voting Power",
+                labelFormatter={(label) => formatDate(label as number)}
+                formatter={(value, name) => [
+                  value,
+                  choiceNames[name as string] || name,
                 ]}
               />
-              <Legend />
+              <Legend
+                formatter={(value) => choiceNames[value] || value}
+                wrapperStyle={{ fontSize: "12px" }}
+              />
               {choices.map((choice, index) => (
                 <Line
                   key={choice}
                   type="stepAfter"
                   dataKey={choice}
-                  name={choice}
+                  name={choiceNames[choice] || choice}
                   stroke={colors[index % colors.length]}
                   strokeWidth={2}
                   dot={false}

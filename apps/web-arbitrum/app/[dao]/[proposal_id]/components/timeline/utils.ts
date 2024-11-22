@@ -71,6 +71,7 @@ export function processTimelineData(
           content: {
             ...currentVote,
             proposalName: relatedProposal.name,
+            choiceNames: relatedProposal.choices || {}, // Add this line
             votingPower: currentVote.votingPower.toLocaleString(undefined, {
               maximumFractionDigits: 2,
             }),
