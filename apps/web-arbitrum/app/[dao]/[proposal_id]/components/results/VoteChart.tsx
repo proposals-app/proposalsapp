@@ -12,82 +12,126 @@ import {
 } from "recharts";
 import { Card, CardContent } from "@/shadcn/ui/card";
 import { useMemo } from "react";
+import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 
-interface VoteChartProps {
-  votes: VoteDataPoint[];
-  choiceNames: Record<string, string>;
+// Define types for choices and votes
+type Choice = string;
+type Choices = Choice[];
+
+interface TypedProposal extends Selectable<Proposal> {
+  choices: Choices; // Ensure choices are an array of strings
 }
 
-interface VoteDataPoint {
-  timestamp: Date;
-  choices: string[] | string;
-  votingPower: number;
+interface TypedVote extends Selectable<Vote> {
+  choice: number | number[] | { [key: number]: number }; // Define possible types for vote.choice
 }
 
-export function VoteChart({ votes, choiceNames }: VoteChartProps) {
+interface ResultProps {
+  proposal: TypedProposal & {
+    votes: TypedVote[];
+  };
+}
+
+export function VoteChart({ proposal }: ResultProps) {
+  console.log("Votes:", proposal.votes); // Debugging: Log the votes
+
   const { processedData, choices } = useMemo(() => {
-    if (votes.length === 0) return { processedData: [], choices: [] };
+    if (!proposal.votes || proposal.votes.length === 0)
+      return { processedData: [], choices: [] };
 
-    // Sort votes by timestamp
-    const sortedVotes = [...votes].sort(
-      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-    );
+    // Ensure choices are available
+    if (!proposal.choices) {
+      console.warn("No choices available for this proposal.");
+      return { processedData: [], choices: [] };
+    }
 
-    // Get all unique choice indices from the votes (they are 1-based)
-    const uniqueChoices = Array.from(
-      new Set(
-        sortedVotes.flatMap((v) =>
-          Array.isArray(v.choices) ? v.choices : [v.choices],
-        ),
-      ),
-    ).sort((a, b) => Number(a) - Number(b));
+    const uniqueChoices = proposal.choices.map((choice, index) => ({
+      index: index.toString(),
+      label: choice,
+    }));
 
     // Create separate arrays to track each choice's votes
     const choiceVotes: {
       [key: string]: { timestamp: number; total: number }[];
     } = {};
-    uniqueChoices.forEach((choice) => {
-      choiceVotes[choice] = [];
+    uniqueChoices.forEach(({ index }) => {
+      choiceVotes[index] = [];
     });
 
     // Process each vote
-    sortedVotes.forEach((vote) => {
-      const timestamp = vote.timestamp.getTime();
-      const voteChoices = Array.isArray(vote.choices)
-        ? vote.choices
-        : [vote.choices];
+    proposal.votes.forEach((vote) => {
+      if (!vote.timeCreated || !vote.votingPower) return;
 
-      // For each choice in this vote, add the vote to its tracking array
-      voteChoices.forEach((choice) => {
-        const previousTotal =
-          choiceVotes[choice].length > 0
-            ? choiceVotes[choice][choiceVotes[choice].length - 1].total
-            : 0;
-        choiceVotes[choice].push({
-          timestamp,
-          total: previousTotal + vote.votingPower,
+      const timestamp = new Date(vote.timeCreated!).getTime();
+      let votingPowerDistribution: { [key: string]: number } = {};
+
+      if (typeof vote.choice === "number") {
+        // Single index
+        const choiceIndex = vote.choice.toString();
+        votingPowerDistribution[choiceIndex] = vote.votingPower;
+      } else if (Array.isArray(vote.choice)) {
+        // List of indices
+        vote.choice.forEach((index) => {
+          votingPowerDistribution[index.toString()] =
+            vote.votingPower /
+            (typeof vote.choice == "number" ? 1 : vote.choice.length);
         });
-      });
+      } else if (typeof vote.choice === "object" && vote.choice !== null) {
+        // Object with indices as keys
+        for (const key in vote.choice) {
+          if (vote.choice.hasOwnProperty(key)) {
+            const count = vote.choice[key];
+            if (count !== null && count !== undefined) {
+              votingPowerDistribution[key] =
+                (count /
+                  Object.values(vote.choice).reduce(
+                    (sum, val) =>
+                      sum + (val !== null && val !== undefined ? val : 0),
+                    0,
+                  )) *
+                vote.votingPower;
+            }
+          }
+        }
+      } else {
+        console.warn(`Unknown choice format: ${vote.choice}`);
+        return;
+      }
+
+      // Distribute voting power to respective choices
+      for (const [choiceIndex, power] of Object.entries(
+        votingPowerDistribution,
+      )) {
+        if (choiceVotes[choiceIndex]) {
+          const previousTotal =
+            choiceVotes[choiceIndex].length > 0
+              ? choiceVotes[choiceIndex][choiceVotes[choiceIndex].length - 1]
+                  .total
+              : 0;
+          choiceVotes[choiceIndex].push({
+            timestamp,
+            total: previousTotal + power,
+          });
+        }
+      }
     });
 
     // Create data points for all timestamps where any vote occurred
     const allTimestamps = Array.from(
-      new Set(sortedVotes.map((v) => v.timestamp.getTime())),
+      new Set(proposal.votes.map((v) => new Date(v.timeCreated!).getTime())),
     ).sort((a, b) => a - b);
 
     // Create the processed data points
     const processedPoints = allTimestamps.map((timestamp) => {
-      const point: any = { timestamp };
-
+      const point: { timestamp: number; [key: string]: number } = { timestamp };
       // For each choice, find its total at this timestamp
-      uniqueChoices.forEach((choice) => {
-        const choiceHistory = choiceVotes[choice];
+      uniqueChoices.forEach(({ index }) => {
+        const choiceHistory = choiceVotes[index];
         const latestVote = choiceHistory
           .filter((v) => v.timestamp <= timestamp)
           .pop();
-        point[choice] = latestVote ? latestVote.total : 0;
+        point[index] = latestVote ? latestVote.total : 0;
       });
-
       return point;
     });
 
@@ -95,16 +139,19 @@ export function VoteChart({ votes, choiceNames }: VoteChartProps) {
     if (processedPoints.length > 0) {
       const zeroPoint = {
         timestamp: processedPoints[0].timestamp,
-        ...Object.fromEntries(uniqueChoices.map((choice) => [choice, 0])),
+        ...Object.fromEntries(uniqueChoices.map(({ index }) => [index, 0])),
       };
       processedPoints.unshift(zeroPoint);
     }
 
+    console.log("Processed Data:", processedPoints); // Debugging: Log the processed data
+    console.log("Unique Choices:", uniqueChoices); // Debugging: Log the unique choices
+
     return {
       processedData: processedPoints,
-      choices: uniqueChoices,
+      choices: uniqueChoices.map(({ label }) => label),
     };
-  }, [votes]);
+  }, [proposal.votes, proposal.choices]);
 
   // Format date to show month and day only
   const formatDate = (timestamp: number) => {
@@ -118,11 +165,9 @@ export function VoteChart({ votes, choiceNames }: VoteChartProps) {
   // Calculate ticks manually to show only 5 evenly spaced dates
   const getCustomTicks = useMemo(() => {
     if (processedData.length === 0) return [];
-
     const firstTimestamp = processedData[0].timestamp;
     const lastTimestamp = processedData[processedData.length - 1].timestamp;
     const timeRange = lastTimestamp - firstTimestamp;
-
     return Array.from(
       { length: 5 },
       (_, i) => firstTimestamp + (timeRange * i) / 4,
@@ -168,21 +213,17 @@ export function VoteChart({ votes, choiceNames }: VoteChartProps) {
               <YAxis />
               <Tooltip
                 labelFormatter={(label) => formatDate(label as number)}
-                formatter={(value, name) => [
-                  value,
-                  choiceNames[name] || `Choice ${name}`,
-                ]}
+                formatter={(value, name) =>
+                  name === undefined ? [value] : [value, `Choice ${name}`]
+                }
               />
-              <Legend
-                formatter={(value) => choiceNames[value] || `Choice ${value}`}
-                wrapperStyle={{ fontSize: "12px" }}
-              />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
               {choices.map((choice, index) => (
                 <Line
-                  key={choice}
+                  key={index}
                   type="stepAfter"
-                  dataKey={choice}
-                  name={choice.toString()}
+                  dataKey={index.toString()}
+                  name={choice}
                   stroke={colors[index % colors.length]}
                   strokeWidth={2}
                   dot={false}

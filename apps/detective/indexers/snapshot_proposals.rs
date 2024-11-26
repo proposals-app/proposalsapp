@@ -10,9 +10,12 @@ use sea_orm::{
     ActiveValue::{self, NotSet},
     ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
 };
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState};
+use seaorm::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerType, ProposalState},
+};
 use serde::Deserialize;
+use serde_json::json;
 use std::sync::Arc;
 use tracing::info;
 
@@ -42,6 +45,8 @@ struct GraphQLProposal {
     quorum: f64,
     link: String,
     state: String,
+    #[serde(rename = "type")]
+    proposal_type: String,
     flagged: Option<bool>,
     ipfs: String,
 }
@@ -131,6 +136,7 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
                     link
                     state
                     flagged
+                    type
                     ipfs
                 }}
             }}"#,
@@ -229,7 +235,7 @@ fn parse_proposals(
                 dao_indexer_id: Set(indexer.id),
                 dao_id: Set(indexer.dao_id),
                 index_created: Set(p.created),
-                metadata: NotSet,
+                metadata: Set(json!({"snapshot_type":p.proposal_type}).into()),
                 txid: Set(Some(p.ipfs)),
             }
         })
