@@ -10,7 +10,7 @@
   "dependencies": {
     "@proposalsapp/db": "*",
     "@proposalsapp/emails": "*",
-    "axios": "^1.7.7",
+    "axios": "^1.7.8",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "node-cron": "^3.0.3",
@@ -22,6 +22,6 @@
     "@types/express": "^5.0.0",
     "@types/node-cron": "^3.0.11",
     "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.7.2"
   }
 }
