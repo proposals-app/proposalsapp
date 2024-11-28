@@ -30,6 +30,12 @@ type VoteTally = {
   };
 };
 
+type RoundResult = {
+  voteCounts: { [choice: number]: number };
+  eliminated: number[];
+  winner?: number;
+};
+
 export function RankedChoiceVoteChart({ proposal }: ResultProps) {
   const { processedData, choices } = useMemo(() => {
     if (
@@ -46,7 +52,7 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
       .map((vote) => ({
         timestamp: new Date(vote.timeCreated!).getTime(),
         votingPower: Number(vote.votingPower),
-        choice: vote.choice as number[],
+        choice: (vote.choice as number[]).map((c) => c - 1), // Convert to 0-based index
       }))
       .sort((a, b) => a.timestamp - b.timestamp);
 
@@ -54,44 +60,85 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
       return { processedData: [], choices: [] };
     }
 
+    // Function to run one round of IRV counting
+    const countIRVRound = (
+      votes: ProcessedVote[],
+      eliminatedChoices: number[],
+    ): RoundResult => {
+      const voteCounts: { [key: number]: number } = {};
+      let totalVotingPower = 0;
+
+      // Count votes for each choice
+      votes.forEach((vote) => {
+        // Find the highest-ranked choice that hasn't been eliminated
+        const validChoice = vote.choice.find(
+          (choice) => !eliminatedChoices.includes(choice),
+        );
+        if (validChoice !== undefined) {
+          voteCounts[validChoice] =
+            (voteCounts[validChoice] || 0) + vote.votingPower;
+          totalVotingPower += vote.votingPower;
+        }
+      });
+
+      // Check if any choice has majority
+      const majorityThreshold = totalVotingPower / 2;
+      let winner: number | undefined;
+      Object.entries(voteCounts).forEach(([choice, votes]) => {
+        if (votes > majorityThreshold) {
+          winner = parseInt(choice);
+        }
+      });
+
+      // If no winner, find choice with fewest votes to eliminate
+      let toEliminate: number | undefined;
+      if (!winner) {
+        let minVotes = Infinity;
+        Object.entries(voteCounts).forEach(([choice, votes]) => {
+          if (
+            votes < minVotes &&
+            !eliminatedChoices.includes(parseInt(choice))
+          ) {
+            minVotes = votes;
+            toEliminate = parseInt(choice);
+          }
+        });
+      }
+
+      return {
+        voteCounts,
+        eliminated:
+          toEliminate !== undefined
+            ? [...eliminatedChoices, toEliminate]
+            : eliminatedChoices,
+        winner,
+      };
+    };
+
     // Create time windows
     const timestamps = Array.from(new Set(sortedVotes.map((v) => v.timestamp)));
 
-    // Initialize vote tally for each timestamp
-    const voteTally: VoteTally = {};
-    timestamps.forEach((timestamp) => {
-      voteTally[timestamp] = {};
-
-      if (proposal.choices && Array.isArray(proposal.choices))
-        proposal.choices.forEach((_, index) => {
-          voteTally[timestamp][index] = 0;
-        });
-    });
-
-    // Calculate cumulative votes at each timestamp
-    let currentVotes: ProcessedVote[] = [];
-    timestamps.forEach((timestamp) => {
-      // Add new votes for this timestamp
-      const newVotes = sortedVotes.filter((v) => v.timestamp <= timestamp);
-      currentVotes = newVotes;
-
-      // Count first choices for current state
-      currentVotes.forEach((vote) => {
-        if (vote.choice.length > 0) {
-          const firstChoice = vote.choice[0];
-          voteTally[timestamp][firstChoice] =
-            (voteTally[timestamp][firstChoice] || 0) + vote.votingPower;
-        }
-      });
-    });
-
-    // Convert tally to chart data format
+    // Process votes at each timestamp using IRV
     const processedPoints = timestamps.map((timestamp) => {
-      const point: { [key: string]: number } = { timestamp };
-      Object.entries(voteTally[timestamp]).forEach(([choice, votes]) => {
-        point[choice] = votes;
-      });
-      return point;
+      const currentVotes = sortedVotes.filter((v) => v.timestamp <= timestamp);
+      let eliminated: number[] = [];
+      let result: RoundResult;
+      let finalVoteCounts: { [key: number]: number } = {};
+
+      // Run IRV rounds until we have a winner or no more choices to eliminate
+      do {
+        result = countIRVRound(currentVotes, eliminated);
+        finalVoteCounts = result.voteCounts;
+        eliminated = result.eliminated;
+      } while (
+        !result.winner &&
+        eliminated.length < proposal.choices.length - 1
+      );
+
+      return {
+        timestamp,
+        ...finalVoteCounts,
+      };
     });
 
     // Add initial zero point
@@ -158,7 +205,10 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
               <YAxis />
               <Tooltip
                 labelFormatter={(label) => formatDate(label as number)}
-                formatter={(value: number) => [`${value.toFixed(2)} VP`, ""]}
+                formatter={(value: number, name: string) => [
+                  `${value.toFixed(2)} VP`,
+                  `${name}`,
+                ]}
               />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
               {choices.map((choice: string, index: number) => (

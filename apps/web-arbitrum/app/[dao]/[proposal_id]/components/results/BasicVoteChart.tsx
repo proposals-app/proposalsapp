@@ -161,7 +161,7 @@ export function BasicVoteChart({ proposal }: ResultProps) {
               <Tooltip
                 labelFormatter={(label) => formatDate(label as number)}
                 formatter={(value, name) =>
-                  name === undefined ? [value] : [value, `Choice ${name}`]
+                  name === undefined ? [value] : [value, `${name}`]
                 }
               />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
