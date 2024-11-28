@@ -125,15 +125,16 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
       let result: RoundResult;
       let finalVoteCounts: { [key: number]: number } = {};
 
-      // Run IRV rounds until we have a winner or no more choices to eliminate
-      do {
-        result = countIRVRound(currentVotes, eliminated);
-        finalVoteCounts = result.voteCounts;
-        eliminated = result.eliminated;
-      } while (
-        !result.winner &&
-        eliminated.length < proposal.choices.length - 1
-      );
+      if (proposal.choices && Array.isArray(proposal.choices))
+        // Run IRV rounds until we have a winner or no more choices to eliminate
+        do {
+          result = countIRVRound(currentVotes, eliminated);
+          finalVoteCounts = result.voteCounts;
+          eliminated = result.eliminated;
+        } while (
+          !result.winner &&
+          eliminated.length < proposal.choices.length - 1
+        );
 
       return {
         timestamp,
