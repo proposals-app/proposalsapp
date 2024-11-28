@@ -221,7 +221,6 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
                   stroke={colors[index % colors.length]}
                   strokeWidth={2}
                   dot={false}
-                  connectNulls
                 />
               ))}
             </LineChart>
