@@ -24,7 +24,7 @@ sea-orm = { version = "1.1.1", default-features = false }
 serde = "1.0.215"
 serde_json = "1.0.133"
 tokio = "1.38.1"
-tracing = "0.1.40"
+tracing = "0.1.41"
 tracing-subscriber = "0.3.18"
 backtrace = "*"
 opentelemetry = "0.25.0"

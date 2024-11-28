@@ -1,18 +1,16 @@
-"use client";
-
-import { Card, CardContent, CardTitle } from "@/shadcn/ui/card";
 import { useMemo } from "react";
-import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import {
-  CartesianGrid,
-  Legend,
   Line,
   LineChart,
+  CartesianGrid,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { Card, CardContent } from "@/shadcn/ui/card";
+import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 
 interface ResultProps {
   proposal: Selectable<Proposal> & {
@@ -20,78 +18,100 @@ interface ResultProps {
   };
 }
 
-export function RankedChoiceVoteChart({ proposal }: ResultProps) {
-  const { finalResult, choices } = useMemo(() => {
-    if (!proposal.votes || proposal.votes.length === 0)
-      return { finalResult: [], choices: [] };
+type ProcessedVote = {
+  timestamp: number;
+  votingPower: number;
+  choice: number[];
+};
 
-    // Ensure choices are available
-    if (!proposal.choices) {
-      console.warn("No choices available for this proposal.");
-      return { finalResult: [], choices: [] };
+type VoteTally = {
+  [timestamp: number]: {
+    [choice: string]: number;
+  };
+};
+
+export function RankedChoiceVoteChart({ proposal }: ResultProps) {
+  const { processedData, choices } = useMemo(() => {
+    if (
+      !proposal.votes ||
+      proposal.votes.length === 0 ||
+      !Array.isArray(proposal.choices)
+    ) {
+      return { processedData: [], choices: [] };
     }
 
-    const uniqueChoices = proposal.choices.map((choice, index) => ({
-      index: index.toString(),
-      label: choice,
-      votes: 0,
-    }));
+    // Sort votes by timestamp
+    const sortedVotes = proposal.votes
+      .filter((vote) => vote.timeCreated && Array.isArray(vote.choice))
+      .map((vote) => ({
+        timestamp: new Date(vote.timeCreated!).getTime(),
+        votingPower: Number(vote.votingPower),
+        choice: vote.choice as number[],
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp);
 
-    // Create a map of votes
-    const voteMap: { [key: string]: number[] } = {};
-    proposal.votes.forEach((vote) => {
-      if (!Array.isArray(vote.choice)) return;
-      voteMap[vote.id] = vote.choice.map(String);
+    if (sortedVotes.length === 0) {
+      return { processedData: [], choices: [] };
+    }
+
+    // Create time windows
+    const timestamps = Array.from(new Set(sortedVotes.map((v) => v.timestamp)));
+
+    // Initialize vote tally for each timestamp
+    const voteTally: VoteTally = {};
+    timestamps.forEach((timestamp) => {
+      voteTally[timestamp] = {};
+
+      if (proposal.choices && Array.isArray(proposal.choices))
+        proposal.choices.forEach((_, index) => {
+          voteTally[timestamp][index] = 0;
+        });
     });
 
-    let remainingChoices = uniqueChoices.slice();
-    while (remainingChoices.length > 1) {
-      const firstChoiceVotes: { [key: string]: number } = {};
+    // Calculate cumulative votes at each timestamp
+    let currentVotes: ProcessedVote[] = [];
+    timestamps.forEach((timestamp) => {
+      // Add new votes for this timestamp
+      const newVotes = sortedVotes.filter((v) => v.timestamp <= timestamp);
+      currentVotes = newVotes;
 
-      // Count votes for each choice
-      Object.values(voteMap).forEach((choices) => {
-        const firstChoice = choices[0];
-        if (firstChoiceVotes[firstChoice] === undefined) {
-          firstChoiceVotes[firstChoice] = 0;
+      // Count first choices for current state
+      currentVotes.forEach((vote) => {
+        if (vote.choice.length > 0) {
+          const firstChoice = vote.choice[0];
+          voteTally[timestamp][firstChoice] =
+            (voteTally[timestamp][firstChoice] || 0) + vote.votingPower;
         }
-        firstChoiceVotes[firstChoice]++;
       });
+    });
 
-      // Find the choice with the least votes
-      const minVotes = Math.min(...Object.values(firstChoiceVotes));
-      const choicesToRemove = Object.keys(firstChoiceVotes).filter(
-        (choice) => firstChoiceVotes[choice] === minVotes,
-      );
+    // Convert tally to chart data format
+    const processedPoints = timestamps.map((timestamp) => {
+      const point: { [key: string]: number } = { timestamp };
+      Object.entries(voteTally[timestamp]).forEach(([choice, votes]) => {
+        point[choice] = votes;
+      });
+      return point;
+    });
 
-      if (choicesToRemove.length > 0) {
-        // Remove the choice with the least votes from remaining choices
-        choicesToRemove.forEach((choiceToRemove) => {
-          remainingChoices = remainingChoices.filter(
-            (choice) => choice.index !== choiceToRemove,
-          );
-        });
-
-        // Update vote map by removing the eliminated choices and moving to the next preference
-        Object.keys(voteMap).forEach((voteId) => {
-          const currentPreferences = voteMap[voteId];
-          voteMap[voteId] = currentPreferences.filter(
-            (choiceIndex) =>
-              !choicesToRemove.some(
-                (choiceToRemove) => choiceToRemove === choiceIndex,
-              ),
-          );
-        });
-      }
+    // Add initial zero point
+    if (processedPoints.length > 0) {
+      const zeroPoint = {
+        timestamp: processedPoints[0].timestamp,
+        ...Object.fromEntries(
+          proposal.choices.map((_, index) => [index.toString(), 0]),
+        ),
+      };
+      processedPoints.unshift(zeroPoint);
     }
 
-    // Final result is the remaining choices
     return {
-      finalResult: remainingChoices,
-      choices: uniqueChoices.map(({ label }) => label),
+      processedData: processedPoints,
+      choices: proposal.choices as string[],
     };
   }, [proposal.votes, proposal.choices]);
 
-  if (finalResult.length === 0) {
+  if (processedData.length === 0) {
     return (
       <Card className="bg-white">
         <CardContent className="flex h-64 items-center justify-center text-gray-500">
@@ -100,6 +120,15 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
       </Card>
     );
   }
+
+  // Format date to show month and day only
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+    }).format(date);
+  };
 
   const colors = [
     "#2563eb", // blue-600
@@ -110,32 +139,38 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
     "#0891b2", // cyan-600
   ];
 
-  const chartData = finalResult.map((choice, index) => ({
-    name: choice.label,
-    value: index === 0 ? 100 : 0, // Assuming the winner gets 100%, others get 0%
-  }));
-
   return (
     <Card className="bg-white">
       <CardContent>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              data={processedData}
+              margin={{ left: 0, right: 20, top: 20, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis type="number" domain={[0, 100]} />
-              <Tooltip formatter={(value) => [value, "%"]} />
-              <Legend />
-              {choices.map((choice, index) => (
+              <XAxis
+                dataKey="timestamp"
+                tickFormatter={formatDate}
+                type="number"
+                domain={["auto", "auto"]}
+              />
+              <YAxis />
+              <Tooltip
+                labelFormatter={(label) => formatDate(label as number)}
+                formatter={(value: number) => [`${value.toFixed(2)} VP`, ""]}
+              />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
+              {choices.map((choice: string, index: number) => (
                 <Line
                   key={index}
                   type="monotone"
-                  dataKey="value"
-                  stroke={colors[index % colors.length]}
+                  dataKey={index.toString()}
                   name={choice}
+                  stroke={colors[index % colors.length]}
+                  strokeWidth={2}
+                  dot={false}
+                  connectNulls
                 />
               ))}
             </LineChart>

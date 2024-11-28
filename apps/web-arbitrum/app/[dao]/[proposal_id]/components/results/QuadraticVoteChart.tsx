@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Card, CardContent, CardTitle } from "@/shadcn/ui/card";
+import { Card, CardContent } from "@/shadcn/ui/card";
 import { useMemo } from "react";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 

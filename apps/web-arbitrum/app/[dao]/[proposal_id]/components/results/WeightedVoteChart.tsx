@@ -1,5 +1,4 @@
-"use client";
-
+import { useMemo } from "react";
 import {
   Line,
   LineChart,
@@ -11,7 +10,6 @@ import {
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardTitle } from "@/shadcn/ui/card";
-import { useMemo } from "react";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 
 interface ResultProps {
@@ -25,8 +23,8 @@ export function WeightedVoteChart({ proposal }: ResultProps) {
     if (!proposal.votes || proposal.votes.length === 0)
       return { processedData: [], choices: [] };
 
-    // Ensure choices are available
-    if (!proposal.choices) {
+    // Ensure choices are available and is an array
+    if (!Array.isArray(proposal.choices)) {
       console.warn("No choices available for this proposal.");
       return { processedData: [], choices: [] };
     }
@@ -49,7 +47,7 @@ export function WeightedVoteChart({ proposal }: ResultProps) {
       if (!vote.timeCreated || !vote.votingPower) return;
 
       const timestamp = new Date(vote.timeCreated!).getTime();
-      let totalVotingPower = vote.votingPower;
+      let totalVotingPower = parseFloat(vote.votingPower);
 
       vote.choice.forEach((choiceIndex) => {
         const choiceStr = choiceIndex.toString();

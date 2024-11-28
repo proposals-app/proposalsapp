@@ -1,5 +1,4 @@
-"use client";
-
+import { useMemo } from "react";
 import {
   Line,
   LineChart,
@@ -11,7 +10,6 @@ import {
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardTitle } from "@/shadcn/ui/card";
-import { useMemo } from "react";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 
 interface ResultProps {
@@ -25,8 +23,8 @@ export function BasicVoteChart({ proposal }: ResultProps) {
     if (!proposal.votes || proposal.votes.length === 0)
       return { processedData: [], choices: [] };
 
-    // Ensure choices are available
-    if (!proposal.choices || !Array.isArray(proposal.choices)) {
+    // Ensure choices are available and is an array
+    if (!Array.isArray(proposal.choices)) {
       console.warn("No choices available for this proposal.");
       return { processedData: [], choices: [] };
     }
@@ -38,7 +36,7 @@ export function BasicVoteChart({ proposal }: ResultProps) {
 
     // Create separate arrays to track each choice's votes
     const choiceVotes: {
-      [key: string]: { timestamp: number; total: number }[];
+      [key: string]: { timestamp: number; totalVotingPower: number }[];
     } = {};
     uniqueChoices.forEach(({ index }) => {
       choiceVotes[index] = [];
@@ -49,56 +47,22 @@ export function BasicVoteChart({ proposal }: ResultProps) {
       if (!vote.timeCreated || !vote.votingPower) return;
 
       const timestamp = new Date(vote.timeCreated!).getTime();
-      let votingPowerDistribution: { [key: string]: number } = {};
+      let totalVotingPower = vote.votingPower;
 
-      if (typeof vote.choice === "number") {
-        // Single index
-        const choiceIndex = vote.choice.toString();
-        votingPowerDistribution[choiceIndex] = vote.votingPower;
-      } else if (Array.isArray(vote.choice)) {
-        // List of indices
-        vote.choice.forEach((index) => {
-          votingPowerDistribution[index.toString()] =
-            vote.votingPower /
-            (typeof vote.choice == "number" ? 1 : vote.choice.length);
+      // Directly use the single number in vote.choice
+      const choiceIndex = vote.choice as number;
+      const choiceStr = choiceIndex.toString();
+
+      if (choiceVotes[choiceStr]) {
+        const previousTotal =
+          choiceVotes[choiceStr].length > 0
+            ? choiceVotes[choiceStr][choiceVotes[choiceStr].length - 1]
+                .totalVotingPower
+            : 0;
+        choiceVotes[choiceStr].push({
+          timestamp,
+          totalVotingPower: previousTotal + totalVotingPower,
         });
-      } else if (typeof vote.choice === "object" && vote.choice !== null) {
-        // Object with indices as keys
-        for (const key in vote.choice) {
-          if (vote.choice.hasOwnProperty(key)) {
-            const count = vote.choice[key];
-            if (count !== null && count !== undefined) {
-              votingPowerDistribution[key] =
-                (count /
-                  Object.values(vote.choice).reduce(
-                    (sum, val) =>
-                      sum + (val !== null && val !== undefined ? val : 0),
-                    0,
-                  )) *
-                vote.votingPower;
-            }
-          }
-        }
-      } else {
-        console.warn(`Unknown choice format: ${vote.choice}`);
-        return;
-      }
-
-      // Distribute voting power to respective choices
-      for (const [choiceIndex, power] of Object.entries(
-        votingPowerDistribution,
-      )) {
-        if (choiceVotes[choiceIndex]) {
-          const previousTotal =
-            choiceVotes[choiceIndex].length > 0
-              ? choiceVotes[choiceIndex][choiceVotes[choiceIndex].length - 1]
-                  .total
-              : 0;
-          choiceVotes[choiceIndex].push({
-            timestamp,
-            total: previousTotal + power,
-          });
-        }
       }
     });
 
@@ -116,7 +80,7 @@ export function BasicVoteChart({ proposal }: ResultProps) {
         const latestVote = choiceHistory
           .filter((v) => v.timestamp <= timestamp)
           .pop();
-        point[index] = latestVote ? latestVote.total : 0;
+        point[index] = latestVote ? latestVote.totalVotingPower : 0;
       });
       return point;
     });
@@ -168,11 +132,11 @@ export function BasicVoteChart({ proposal }: ResultProps) {
   }
 
   const colors = [
-    "#2563eb", // blue-600
-    "#dc2626", // red-600
     "#16a34a", // green-600
-    "#9333ea", // purple-600
+    "#dc2626", // red-600
     "#ca8a04", // yellow-600
+    "#2563eb", // blue-600
+    "#9333ea", // purple-600
     "#0891b2", // cyan-600
   ];
 
@@ -206,7 +170,7 @@ export function BasicVoteChart({ proposal }: ResultProps) {
                   key={index}
                   type="stepAfter"
                   dataKey={index.toString()}
-                  name={choice}
+                  name={choice?.toString() ?? `Choice ${index}`}
                   stroke={colors[index % colors.length]}
                   strokeWidth={2}
                   dot={false}

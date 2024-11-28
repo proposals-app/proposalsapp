@@ -1,5 +1,4 @@
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
-import { SingleChoiceVoteChart } from "./SingleChoiceVoteChart";
 import { WeightedVoteChart } from "./WeightedVoteChart";
 import { ApprovalVoteChart } from "./ApprovalVoteChart";
 import { BasicVoteChart } from "./BasicVoteChart";
@@ -32,20 +31,18 @@ export function VoteChart({ proposal }: ResultProps) {
       | "ranked-choice";
   }
 
-  console.log(`proposal.metadata: ${JSON.stringify(proposal.metadata)}`);
-  console.log(`snapshotType: ${snapshotType}`);
-
   switch (snapshotType) {
-    case "single-choice":
-      return <SingleChoiceVoteChart proposal={proposal} />;
     case "weighted":
       return <WeightedVoteChart proposal={proposal} />;
     case "approval":
       return <ApprovalVoteChart proposal={proposal} />;
-    case "quadratic": // New case
+    case "quadratic":
       return <QuadraticVoteChart proposal={proposal} />;
-    case "ranked-choice": // New case
+    case "ranked-choice":
       return <RankedChoiceVoteChart proposal={proposal} />;
+    case "single-choice":
+    case "basic":
+      return <BasicVoteChart proposal={proposal} />;
     default:
       return <BasicVoteChart proposal={proposal} />;
   }
