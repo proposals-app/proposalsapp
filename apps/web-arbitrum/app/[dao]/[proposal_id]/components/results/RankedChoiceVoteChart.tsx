@@ -215,7 +215,7 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
               {choices.map((choice: string, index: number) => (
                 <Line
                   key={index}
-                  type="monotone"
+                  type="stepAfter"
                   dataKey={index.toString()}
                   name={choice}
                   stroke={colors[index % colors.length]}

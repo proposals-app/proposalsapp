@@ -65,7 +65,7 @@
     "next-themes": "^0.4.3",
     "oslo": "1.2.1",
     "pg": "8.13.1",
-    "posthog-js": "1.191.0",
+    "posthog-js": "1.194.1",
     "postmark": "4.0.5",
     "react": "18.3.1",
     "react-day-picker": "9.4.0",
@@ -80,7 +80,7 @@
     "tailwindcss-animate": "1.0.7",
     "uuid": "^11.0.3",
     "vaul": "^1.1.1",
-    "viem": "2.21.51",
+    "viem": "2.21.53",
     "web-push": "3.6.7",
     "zod": "^3.23.8"
   },
