@@ -119,13 +119,17 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
     const timestamps = Array.from(new Set(sortedVotes.map((v) => v.timestamp)));
 
     // Process votes at each timestamp using IRV
-    const processedPoints = timestamps.map((timestamp) => {
-      const currentVotes = sortedVotes.filter((v) => v.timestamp <= timestamp);
-      let eliminated: number[] = [];
-      let result: RoundResult;
-      let finalVoteCounts: { [key: number]: number } = {};
+    const processedPoints: { [key: string]: any } = {};
 
-      if (proposal.choices && Array.isArray(proposal.choices))
+    timestamps.forEach((timestamp) => {
+      if (proposal.choices && Array.isArray(proposal.choices)) {
+        const currentVotes = sortedVotes.filter(
+          (v) => v.timestamp <= timestamp,
+        );
+        let eliminated: number[] = [];
+        let result: RoundResult;
+        let finalVoteCounts: { [key: number]: number } = {};
+
         // Run IRV rounds until we have a winner or no more choices to eliminate
         do {
           result = countIRVRound(currentVotes, eliminated);
@@ -136,25 +140,25 @@ export function RankedChoiceVoteChart({ proposal }: ResultProps) {
           eliminated.length < proposal.choices.length - 1
         );
 
-      return {
-        timestamp,
-        ...finalVoteCounts,
-      };
+        // Ensure all choices are included and fill missing data with zero
+        const point: { [key: string]: number } = {
+          timestamp,
+        };
+        proposal.choices.forEach((_, index) => {
+          point[index.toString()] = finalVoteCounts[index] || 0;
+        });
+
+        processedPoints[timestamp] = point;
+      }
     });
 
-    // Add initial zero point
-    if (processedPoints.length > 0) {
-      const zeroPoint = {
-        timestamp: processedPoints[0].timestamp,
-        ...Object.fromEntries(
-          proposal.choices.map((_, index) => [index.toString(), 0]),
-        ),
-      };
-      processedPoints.unshift(zeroPoint);
-    }
+    // Convert processedPoints to an array and sort by timestamp
+    const processedDataArray = Object.values(processedPoints).sort(
+      (a, b) => a.timestamp - b.timestamp,
+    );
 
     return {
-      processedData: processedPoints,
+      processedData: processedDataArray,
       choices: proposal.choices as string[],
     };
   }, [proposal.votes, proposal.choices]);

@@ -154,13 +154,6 @@ export async function getGroupData(slug: string, proposalOrTopicId: string) {
     }
   }
 
-  console.log({
-    dao,
-    group: matchingGroup,
-    proposals,
-    topics,
-  });
-
   return {
     dao,
     group: matchingGroup,
