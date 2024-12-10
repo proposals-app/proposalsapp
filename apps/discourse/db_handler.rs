@@ -40,26 +40,30 @@ impl DbHandler {
 
         Ok(Self {
             conn,
-            upsert_user_counter: meter.u64_counter("discourse_db_upsert_user_total").init(),
+            upsert_user_counter: meter.u64_counter("discourse_db_upsert_user_total").build(),
             upsert_category_counter: meter
                 .u64_counter("discourse_db_upsert_category_total")
-                .init(),
-            upsert_topic_counter: meter.u64_counter("discourse_db_upsert_topic_total").init(),
-            upsert_post_counter: meter.u64_counter("discourse_db_upsert_post_total").init(),
+                .build(),
+            upsert_topic_counter: meter.u64_counter("discourse_db_upsert_topic_total").build(),
+            upsert_post_counter: meter.u64_counter("discourse_db_upsert_post_total").build(),
             upsert_revision_counter: meter
                 .u64_counter("discourse_db_upsert_revision_total")
-                .init(),
-            total_users_counter: meter.i64_up_down_counter("discourse_db_total_users").init(),
+                .build(),
+            total_users_counter: meter
+                .i64_up_down_counter("discourse_db_total_users")
+                .build(),
             total_categories_counter: meter
                 .i64_up_down_counter("discourse_db_total_categories")
-                .init(),
+                .build(),
             total_topics_counter: meter
                 .i64_up_down_counter("discourse_db_total_topics")
-                .init(),
-            total_posts_counter: meter.i64_up_down_counter("discourse_db_total_posts").init(),
+                .build(),
+            total_posts_counter: meter
+                .i64_up_down_counter("discourse_db_total_posts")
+                .build(),
             total_revisions_counter: meter
                 .i64_up_down_counter("discourse_db_total_revisions")
-                .init(),
+                .build(),
         })
     }
 

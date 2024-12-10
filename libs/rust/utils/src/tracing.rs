@@ -1,16 +1,28 @@
 use futures::FutureExt;
 use once_cell::sync::Lazy;
-use opentelemetry::{global, metrics::MetricsError, trace::TraceError, KeyValue};
+use opentelemetry::{global, trace::TraceError, KeyValue};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use opentelemetry_otlp::{ExportConfig, HttpExporterBuilder, WithExportConfig};
+use opentelemetry_otlp::{LogExporter, MetricExporter, Protocol, SpanExporter, WithExportConfig};
 use opentelemetry_sdk::{
-    logs as sdklogs,
-    metrics::SdkMeterProvider,
-    trace::{self as sdktrace, Config},
+    logs::{self as sdklogs, LoggerProvider},
+    metrics::{MetricError, PeriodicReader, SdkMeterProvider},
+    runtime,
+    trace::{self as sdktrace, TracerProvider},
     Resource,
 };
-use std::{collections::HashMap, error::Error, time::Duration};
+use std::{error::Error, time::Duration};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+#[derive(Debug)]
+pub struct MetricsError(String);
+
+impl std::error::Error for MetricsError {}
+
+impl std::fmt::Display for MetricsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Metrics error: {}", self.0)
+    }
+}
 
 static RESOURCE: Lazy<Resource> = Lazy::new(|| {
     let crate_name = std::env::var("CARGO_PKG_NAME")
@@ -23,128 +35,113 @@ static RESOURCE: Lazy<Resource> = Lazy::new(|| {
     )])
 });
 
-fn base_http_exporter() -> HttpExporterBuilder {
-    let endpoint: String =
-        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
-    let headers: String =
-        std::env::var("OTEL_EXPORTER_OTLP_HEADERS").expect("OTEL_EXPORTER_OTLP_HEADERS not set!");
+static SERVICE_NAME: Lazy<&'static str> = Lazy::new(|| {
+    let crate_name = std::env::var("CARGO_PKG_NAME")
+        .or_else(|_| std::env::var("PROPOSALS_BIN"))
+        .unwrap_or_else(|_| "unknown".to_string());
 
-    let mut headers_map = HashMap::new();
-    for header in headers.split(',') {
-        if let Some((key, value)) = header.split_once('=') {
-            headers_map.insert(key.trim().to_string(), value.trim().to_string());
-        }
-    }
+    Box::leak(crate_name.to_lowercase().into_boxed_str())
+});
 
-    opentelemetry_otlp::new_exporter()
-        .http()
-        .with_endpoint(endpoint)
-        .with_headers(headers_map)
-        .with_timeout(Duration::from_secs(3))
-        .with_protocol(opentelemetry_otlp::Protocol::HttpBinary)
-        .with_http_client(reqwest::Client::new())
+fn get_endpoint() -> String {
+    std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!")
 }
 
-fn traces_exporter() -> HttpExporterBuilder {
-    base_http_exporter().with_export_config(ExportConfig {
-        endpoint: format!(
-            "{}/v1/traces",
-            std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap()
-        ),
-        ..ExportConfig::default()
-    })
-}
+fn init_logs() -> Result<sdklogs::LoggerProvider, opentelemetry_sdk::logs::LogError> {
+    let endpoint = get_endpoint();
 
-fn logs_exporter() -> HttpExporterBuilder {
-    base_http_exporter().with_export_config(ExportConfig {
-        endpoint: format!(
-            "{}/v1/logs",
-            std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap()
-        ),
-        ..ExportConfig::default()
-    })
-}
+    let exporter = LogExporter::builder()
+        .with_http()
+        .with_endpoint(format!("{}/v1/logs", endpoint))
+        .with_protocol(Protocol::HttpBinary)
+        .build()?;
 
-fn metrics_exporter() -> HttpExporterBuilder {
-    base_http_exporter().with_export_config(ExportConfig {
-        endpoint: format!(
-            "{}/v1/metrics",
-            std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap()
-        ),
-        ..ExportConfig::default()
-    })
-}
-
-fn init_logs() -> Result<sdklogs::LoggerProvider, opentelemetry::logs::LogError> {
-    opentelemetry_otlp::new_pipeline()
-        .logging()
+    Ok(LoggerProvider::builder()
+        .with_batch_exporter(exporter, runtime::Tokio)
         .with_resource(RESOURCE.clone())
-        .with_exporter(logs_exporter())
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
+        .build())
 }
 
 fn init_tracer_provider() -> Result<sdktrace::TracerProvider, TraceError> {
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(traces_exporter())
-        .with_trace_config(Config::default().with_resource(RESOURCE.clone()))
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
+    let endpoint = get_endpoint();
+
+    let exporter = SpanExporter::builder()
+        .with_http()
+        .with_endpoint(format!("{}/v1/traces", endpoint))
+        .with_protocol(Protocol::HttpBinary)
+        .build()?;
+
+    Ok(TracerProvider::builder()
+        .with_batch_exporter(exporter, runtime::Tokio)
+        .with_resource(RESOURCE.clone())
+        .with_sampler(opentelemetry_sdk::trace::Sampler::AlwaysOn)
+        .build())
 }
 
-fn init_metrics() -> Result<SdkMeterProvider, MetricsError> {
-    opentelemetry_otlp::new_pipeline()
-        .metrics(opentelemetry_sdk::runtime::Tokio)
-        .with_exporter(metrics_exporter())
-        .with_resource(RESOURCE.clone())
-        .with_period(Duration::from_secs(1))
-        .with_timeout(Duration::from_secs(10))
+fn init_metrics() -> Result<SdkMeterProvider, MetricError> {
+    let endpoint = get_endpoint();
+
+    let exporter = MetricExporter::builder()
+        .with_http()
+        .with_endpoint(format!("{}/v1/metrics", endpoint))
+        .with_protocol(Protocol::HttpBinary)
         .build()
+        .map_err(|e| MetricError::Other(e.to_string()))?;
+
+    Ok(SdkMeterProvider::builder()
+        .with_reader(PeriodicReader::builder(exporter, runtime::Tokio).build())
+        .with_resource(RESOURCE.clone())
+        .build())
 }
 
 pub fn get_meter() -> opentelemetry::metrics::Meter {
-    let crate_name = std::env::var("CARGO_PKG_NAME")
-        .unwrap_or(std::env::var("PROPOSALS_BIN").unwrap_or("unknown".to_string()))
-        .to_string();
-
-    global::meter(crate_name)
+    global::meter(&*SERVICE_NAME)
 }
 
 pub fn setup_tracing() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     let tracer_provider = init_tracer_provider().map_err(|e| {
-        println!("Failed to initialize tracer provider: {:?}", e);
+        tracing::error!("Failed to initialize tracer provider: {:?}", e);
         e
     })?;
-    global::set_tracer_provider(tracer_provider);
+    global::set_tracer_provider(tracer_provider.clone());
 
     let meter_provider = init_metrics().map_err(|e| {
-        println!("Failed to initialize metrics: {:?}", e);
+        tracing::error!("Failed to initialize metrics: {:?}", e);
         e
     })?;
-    global::set_meter_provider(meter_provider);
+    global::set_meter_provider(meter_provider.clone());
 
     let logger_provider = init_logs().map_err(|e| {
-        println!("Failed to initialize logs: {:?}", e);
+        tracing::error!("Failed to initialize logger provider: {:?}", e);
         e
     })?;
-    let layer = OpenTelemetryTracingBridge::new(&logger_provider);
 
-    let filter = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("info"))
-        .unwrap()
-        .add_directive("hyper=error".parse().unwrap())
-        .add_directive("tonic=error".parse().unwrap())
-        .add_directive("reqwest=error".parse().unwrap());
+    // Create a new OpenTelemetryTracingBridge using the LoggerProvider
+    let otel_layer = OpenTelemetryTracingBridge::new(&logger_provider);
 
+    // Filter for OpenTelemetry layer to prevent infinite telemetry generation
+    let filter_otel = EnvFilter::new("info")
+        .add_directive("hyper=off".parse().unwrap())
+        .add_directive("opentelemetry=off".parse().unwrap())
+        .add_directive("tonic=off".parse().unwrap())
+        .add_directive("h2=off".parse().unwrap())
+        .add_directive("reqwest=off".parse().unwrap());
+    let otel_layer = otel_layer.with_filter(filter_otel);
+
+    // Create fmt layer with custom filter
+    let filter_fmt = EnvFilter::new("info").add_directive("opentelemetry=debug".parse().unwrap());
     let fmt_layer = fmt::layer()
         .with_line_number(true)
         .compact()
-        .with_writer(std::io::stdout);
+        .with_thread_names(true)
+        .with_filter(filter_fmt);
 
+    // Initialize the tracing subscriber
     tracing_subscriber::registry()
-        .with(filter)
+        .with(otel_layer)
         .with(fmt_layer)
-        .with(layer)
-        .init();
+        .try_init()
+        .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?;
 
     Ok(())
 }
@@ -180,9 +177,9 @@ fn capture_panic_details(e: Box<dyn std::any::Any + Send>) {
 }
 
 pub async fn shutdown_tracing() {
-    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+    // Allow time for final exports
+    tokio::time::sleep(Duration::from_secs(5)).await;
+
+    // Shut down tracer provider
     global::shutdown_tracer_provider();
-    // Note: You should also shut down the meter provider and logger provider here
-    // if you have access to them. In this structure, you might need to store them
-    // in a global state or pass them around.
 }

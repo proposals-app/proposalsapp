@@ -1,14 +1,24 @@
 use anyhow::{anyhow, Result};
-use opentelemetry::metrics::{Counter, Gauge};
-use opentelemetry::KeyValue;
-use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT};
-use reqwest::{Client, StatusCode};
+use opentelemetry::{
+    metrics::{Counter, Gauge},
+    KeyValue,
+};
+use reqwest::{
+    header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT},
+    Client, StatusCode,
+};
 use serde::de::DeserializeOwned;
-use std::sync::atomic::{AtomicI64, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::{mpsc, oneshot};
-use tokio::time::sleep;
+use std::{
+    sync::{
+        atomic::{AtomicI64, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::sleep,
+};
 use tracing::{error, info, instrument, warn};
 use utils::tracing::get_meter;
 
@@ -56,19 +66,19 @@ impl DiscourseApi {
         let total_queue_gauge = meter
             .i64_gauge("discourse_api_total_queue_size")
             .with_description("Total number of jobs in the queue")
-            .init();
+            .build();
         let priority_queue_gauge = meter
             .i64_gauge("discourse_api_priority_queue_size")
             .with_description("Number of priority jobs in the queue")
-            .init();
+            .build();
         let normal_queue_gauge = meter
             .i64_gauge("discourse_api_normal_queue_size")
             .with_description("Number of normal jobs in the queue")
-            .init();
+            .build();
         let requests_counter = meter
             .u64_counter("discourse_api_requests_total")
             .with_description("Total number of requests made")
-            .init();
+            .build();
 
         let api_handler = Self {
             client,

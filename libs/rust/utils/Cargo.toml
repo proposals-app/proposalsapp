@@ -10,7 +10,7 @@ backtrace = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 once_cell = { workspace = true }
-opentelemetry = { workspace = true }
+opentelemetry = { workspace = true, features = ["trace", "metrics"] }
 opentelemetry-appender-log = { workspace = true }
 opentelemetry-appender-tracing = { workspace = true }
 opentelemetry-http = { workspace = true }
