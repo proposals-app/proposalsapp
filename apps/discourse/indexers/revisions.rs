@@ -1,10 +1,7 @@
-use crate::db_handler::DbHandler;
-use crate::discourse_api::DiscourseApi;
-use crate::models::revisions::Revision;
+use crate::{db_handler::DbHandler, discourse_api::DiscourseApi, models::revisions::Revision};
 use anyhow::Result;
 use chrono::{Duration, Utc};
-use sea_orm::prelude::Uuid;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::{discourse_post, discourse_post_revision};
 use std::sync::Arc;
 use tokio::task::JoinSet;
@@ -194,7 +191,13 @@ async fn update_revisions_for_post(
         let revision: Revision = discourse_api.fetch(&url, priority).await?;
 
         db_handler
-            .upsert_revision(&revision, dao_discourse_id, discourse_post.id)
+            .upsert_revision(
+                &revision,
+                "".into(),
+                Some("".into()),
+                dao_discourse_id,
+                discourse_post.id,
+            )
             .await?;
     }
 

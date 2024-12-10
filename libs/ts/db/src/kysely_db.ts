@@ -196,6 +196,8 @@ export interface DiscoursePost {
 
 export interface DiscoursePostRevision {
   bodyChanges: string;
+  cookedBody: string | null;
+  cookedTitle: string | null;
   createdAt: Timestamp;
   daoDiscourseId: string;
   discoursePostId: string;

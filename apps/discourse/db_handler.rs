@@ -1,15 +1,14 @@
-use crate::models::posts::Post;
-use crate::models::revisions::Revision;
-use crate::models::topics::Topic;
-use crate::models::{categories::Category, users::User};
+use crate::models::{
+    categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User,
+};
 use anyhow::Result;
-use opentelemetry::metrics::{Counter, UpDownCounter};
-use opentelemetry::KeyValue;
-use sea_orm::ActiveValue::NotSet;
-use sea_orm::DbErr;
+use opentelemetry::{
+    metrics::{Counter, UpDownCounter},
+    KeyValue,
+};
 use sea_orm::{
-    prelude::Uuid, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
-    QueryFilter, Set,
+    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
+    DbErr, EntityTrait, QueryFilter, Set,
 };
 use seaorm::{discourse_post_revision, discourse_user};
 use tracing::{debug, info, instrument};
@@ -437,7 +436,7 @@ impl DbHandler {
                 post_update.name = Set(post.name.clone());
                 post_update.username = Set(post.username.clone());
                 post_update.created_at = Set(post.created_at.naive_utc());
-                post_update.cooked = Set(post.cooked.clone());
+                //post_update.cooked = Set(post.cooked.clone());
                 post_update.post_number = Set(post.post_number);
                 post_update.post_type = Set(post.post_type);
                 post_update.updated_at = Set(post.updated_at.naive_utc());
@@ -539,6 +538,8 @@ impl DbHandler {
     pub async fn upsert_revision(
         &self,
         revision: &Revision,
+        cooked_body: String,
+        cooked_title: Option<String>,
         dao_discourse_id: Uuid,
         discourse_post_id: Uuid,
     ) -> Result<()> {
@@ -570,6 +571,8 @@ impl DbHandler {
                     ));
                 }
                 revision_update.edit_reason = Set(revision.edit_reason.clone());
+                revision_update.cooked_body = Set(cooked_body.into());
+                revision_update.cooked_title = Set(cooked_title);
                 discourse_post_revision::Entity::update(revision_update)
                     .exec(&self.conn)
                     .await?;
@@ -587,6 +590,8 @@ impl DbHandler {
                         None => NotSet,
                     },
                     edit_reason: Set(revision.edit_reason.clone()),
+                    cooked_body: Set(cooked_body.into()),
+                    cooked_title: Set(cooked_title),
                     dao_discourse_id: Set(dao_discourse_id),
                     discourse_post_id: Set(discourse_post_id),
                     ..Default::default()
