@@ -549,7 +549,7 @@ impl DbHandler {
         );
 
         let cooked_body_before = Some(revision.get_cooked_before());
-        let cooked_body_after = revision.get_cooked_after();
+        let cooked_body_after = Some(revision.get_cooked_after());
 
         let cooked_title_before = revision
             .title_changes
@@ -583,7 +583,7 @@ impl DbHandler {
                 revision_update.edit_reason = Set(revision.edit_reason.clone());
                 revision_update.cooked_body_before = Set(cooked_body_before);
                 revision_update.cooked_title_before = Set(cooked_title_before);
-                revision_update.cooked_body_after = Set(cooked_body_after.into());
+                revision_update.cooked_body_after = Set(cooked_body_after);
                 revision_update.cooked_title_after = Set(cooked_title_after);
                 discourse_post_revision::Entity::update(revision_update)
                     .exec(&self.conn)
@@ -604,7 +604,7 @@ impl DbHandler {
                     edit_reason: Set(revision.edit_reason.clone()),
                     cooked_body_before: Set(cooked_body_before),
                     cooked_title_before: Set(cooked_title_before),
-                    cooked_body_after: Set(cooked_body_after.into()),
+                    cooked_body_after: Set(cooked_body_after),
                     cooked_title_after: Set(cooked_title_after),
                     dao_discourse_id: Set(dao_discourse_id),
                     discourse_post_id: Set(discourse_post_id),
