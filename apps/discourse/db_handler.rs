@@ -436,7 +436,7 @@ impl DbHandler {
                 post_update.name = Set(post.name.clone());
                 post_update.username = Set(post.username.clone());
                 post_update.created_at = Set(post.created_at.naive_utc());
-                //post_update.cooked = Set(post.cooked.clone());
+                post_update.cooked = Set(post.cooked.clone());
                 post_update.post_number = Set(post.post_number);
                 post_update.post_type = Set(post.post_type);
                 post_update.updated_at = Set(post.updated_at.naive_utc());
