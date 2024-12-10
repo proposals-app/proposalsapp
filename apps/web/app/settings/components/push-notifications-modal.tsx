@@ -14,7 +14,7 @@ import { cn } from "@/shadcn/lib/utils";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/shadcn/ui/button";
 import { removePushNotifications, setPushNotifications } from "../actions";
-import { LuShare, LuPlusSquare } from "react-icons/lu";
+import { LuShare, LuPlus } from "react-icons/lu";
 
 const manjari = Manjari({
   weight: "700",
@@ -179,7 +179,7 @@ export const PushNotificationsModal = () => {
                   <div
                     className={`flex flex-row items-center gap-2 text-[18px] leading-[26px] text-dark ${poppins300.className} py-4`}
                   >
-                    <LuPlusSquare size={50} />
+                    <LuPlus size={50} />
                     <p>Add to Home Screen</p>
                   </div>
                 </div>
