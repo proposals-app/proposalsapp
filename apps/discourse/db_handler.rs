@@ -538,8 +538,6 @@ impl DbHandler {
     pub async fn upsert_revision(
         &self,
         revision: &Revision,
-        cooked_body: String,
-        cooked_title: Option<String>,
         dao_discourse_id: Uuid,
         discourse_post_id: Uuid,
     ) -> Result<()> {
@@ -549,6 +547,18 @@ impl DbHandler {
             dao_discourse_id = %dao_discourse_id,
             "Upserting revision"
         );
+
+        let cooked_body_before = Some(revision.get_cooked_before());
+        let cooked_body_after = revision.get_cooked_after();
+
+        let cooked_title_before = revision
+            .title_changes
+            .as_ref()
+            .map(|tc| tc.get_cooked_before());
+        let cooked_title_after = revision
+            .title_changes
+            .as_ref()
+            .map(|tc| tc.get_cooked_after());
 
         let existing_revision = discourse_post_revision::Entity::find()
             .filter(discourse_post_revision::Column::ExternalPostId.eq(revision.post_id))
@@ -571,8 +581,10 @@ impl DbHandler {
                     ));
                 }
                 revision_update.edit_reason = Set(revision.edit_reason.clone());
-                revision_update.cooked_body = Set(cooked_body.into());
-                revision_update.cooked_title = Set(cooked_title);
+                revision_update.cooked_body_before = Set(cooked_body_before);
+                revision_update.cooked_title_before = Set(cooked_title_before);
+                revision_update.cooked_body_after = Set(cooked_body_after.into());
+                revision_update.cooked_title_after = Set(cooked_title_after);
                 discourse_post_revision::Entity::update(revision_update)
                     .exec(&self.conn)
                     .await?;
@@ -590,8 +602,10 @@ impl DbHandler {
                         None => NotSet,
                     },
                     edit_reason: Set(revision.edit_reason.clone()),
-                    cooked_body: Set(cooked_body.into()),
-                    cooked_title: Set(cooked_title),
+                    cooked_body_before: Set(cooked_body_before),
+                    cooked_title_before: Set(cooked_title_before),
+                    cooked_body_after: Set(cooked_body_after.into()),
+                    cooked_title_after: Set(cooked_title_after),
                     dao_discourse_id: Set(dao_discourse_id),
                     discourse_post_id: Set(discourse_post_id),
                     ..Default::default()

@@ -191,13 +191,7 @@ async fn update_revisions_for_post(
         let revision: Revision = discourse_api.fetch(&url, priority).await?;
 
         db_handler
-            .upsert_revision(
-                &revision,
-                "".into(),
-                Some("".into()),
-                dao_discourse_id,
-                discourse_post.id,
-            )
+            .upsert_revision(&revision, dao_discourse_id, discourse_post.id)
             .await?;
     }
 

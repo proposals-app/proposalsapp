@@ -24,8 +24,10 @@ pub struct Model {
     pub edit_reason: Option<String>,
     pub dao_discourse_id: Uuid,
     pub title_changes: Option<String>,
-    pub cooked_body: Option<String>,
-    pub cooked_title: Option<String>,
+    pub cooked_body_before: Option<String>,
+    pub cooked_title_before: Option<String>,
+    pub cooked_body_after: Option<String>,
+    pub cooked_title_after: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -40,8 +42,10 @@ pub enum Column {
     EditReason,
     DaoDiscourseId,
     TitleChanges,
-    CookedBody,
-    CookedTitle,
+    CookedBodyBefore,
+    CookedTitleBefore,
+    CookedBodyAfter,
+    CookedTitleAfter,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -76,8 +80,10 @@ impl ColumnTrait for Column {
             Self::EditReason => ColumnType::Text.def().null(),
             Self::DaoDiscourseId => ColumnType::Uuid.def(),
             Self::TitleChanges => ColumnType::Text.def().null(),
-            Self::CookedBody => ColumnType::Text.def().null(),
-            Self::CookedTitle => ColumnType::Text.def().null(),
+            Self::CookedBodyBefore => ColumnType::Text.def().null(),
+            Self::CookedTitleBefore => ColumnType::Text.def().null(),
+            Self::CookedBodyAfter => ColumnType::Text.def().null(),
+            Self::CookedTitleAfter => ColumnType::Text.def().null(),
         }
     }
 }
