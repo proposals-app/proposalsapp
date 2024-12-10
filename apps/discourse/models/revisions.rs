@@ -25,41 +25,65 @@ pub struct Revision {
 
 impl Revision {
     pub fn get_cooked_before(&self) -> String {
-        // Helper function to extract text content before revision
-        let body_before = self
-            .body_changes
-            .inline
-            .split("<ins>")
-            .map(|part| part.split("</ins>").last().unwrap_or(""))
-            .collect::<Vec<&str>>()
-            .join("");
+        // Start with the current text
+        let mut content = self.body_changes.inline.clone();
 
-        // Remove deletion markers
-        body_before
+        // Remove all insertions (content that was added in this revision)
+        while let Some(start) = content.find("<ins>") {
+            if let Some(end) = content[start..].find("</ins>") {
+                content.replace_range(start..start + end + 6, "");
+            } else {
+                break;
+            }
+        }
+
+        // Keep deletions but remove the tags
+        content = content
             .replace("<del>", "")
             .replace("</del>", "")
             .replace("diff-del", "")
             .trim()
-            .to_string()
+            .to_string();
+
+        // Clean up any residual HTML comments or extra whitespace
+        content = content
+            .replace(r#"<div class="inline-diff">"#, "")
+            .replace("</div>", "")
+            .trim()
+            .to_string();
+
+        content
     }
 
     pub fn get_cooked_after(&self) -> String {
-        // Helper function to extract text content after revision
-        let body_after = self
-            .body_changes
-            .inline
-            .split("<del>")
-            .map(|part| part.split("</del>").last().unwrap_or(""))
-            .collect::<Vec<&str>>()
-            .join("");
+        // Start with the current text
+        let mut content = self.body_changes.inline.clone();
 
-        // Remove insertion markers
-        body_after
+        // Remove all deletions (content that was removed in this revision)
+        while let Some(start) = content.find("<del>") {
+            if let Some(end) = content[start..].find("</del>") {
+                content.replace_range(start..start + end + 6, "");
+            } else {
+                break;
+            }
+        }
+
+        // Keep insertions but remove the tags
+        content = content
             .replace("<ins>", "")
             .replace("</ins>", "")
             .replace("diff-ins", "")
             .trim()
-            .to_string()
+            .to_string();
+
+        // Clean up any residual HTML comments or extra whitespace
+        content = content
+            .replace(r#"<div class="inline-diff">"#, "")
+            .replace("</div>", "")
+            .trim()
+            .to_string();
+
+        content
     }
 }
 
@@ -77,38 +101,50 @@ pub struct TitleChanges {
 
 impl TitleChanges {
     pub fn get_cooked_before(&self) -> String {
-        // Helper function to extract text content before revision
-        let title_before = self
-            .inline
-            .split("<ins>")
-            .map(|part| part.split("</ins>").last().unwrap_or(""))
-            .collect::<Vec<&str>>()
-            .join("");
+        // Similar logic for title changes
+        let mut content = self.inline.clone();
 
-        // Remove deletion markers
-        title_before
+        while let Some(start) = content.find("<ins>") {
+            if let Some(end) = content[start..].find("</ins>") {
+                content.replace_range(start..start + end + 6, "");
+            } else {
+                break;
+            }
+        }
+
+        content = content
             .replace("<del>", "")
             .replace("</del>", "")
             .replace("diff-del", "")
+            .replace(r#"<div class="inline-diff">"#, "")
+            .replace("</div>", "")
             .trim()
-            .to_string()
+            .to_string();
+
+        content
     }
 
     pub fn get_cooked_after(&self) -> String {
-        // Helper function to extract text content after revision
-        let title_after = self
-            .inline
-            .split("<del>")
-            .map(|part| part.split("</del>").last().unwrap_or(""))
-            .collect::<Vec<&str>>()
-            .join("");
+        // Similar logic for title changes
+        let mut content = self.inline.clone();
 
-        // Remove insertion markers
-        title_after
+        while let Some(start) = content.find("<del>") {
+            if let Some(end) = content[start..].find("</del>") {
+                content.replace_range(start..start + end + 6, "");
+            } else {
+                break;
+            }
+        }
+
+        content = content
             .replace("<ins>", "")
             .replace("</ins>", "")
             .replace("diff-ins", "")
+            .replace(r#"<div class="inline-diff">"#, "")
+            .replace("</div>", "")
             .trim()
-            .to_string()
+            .to_string();
+
+        content
     }
 }
