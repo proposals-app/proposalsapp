@@ -21,7 +21,7 @@ reqwest = { version = "0.12.9", default-features = false }
 reqwest-middleware = "0.4.0"
 reqwest-retry = "0.7.0"
 sea-orm = { version = "1.1.2", default-features = false }
-serde = "1.0.215"
+serde = "1.0.216"
 serde_json = "1.0.133"
 tokio = "1.42.0"
 tracing = "0.1.41"
