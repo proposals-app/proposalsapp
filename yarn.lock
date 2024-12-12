@@ -2671,7 +2671,7 @@ __metadata:
     prettier: "npm:3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
     react: "npm:19.0.0"
-    react-day-picker: "npm:9.4.2"
+    react-day-picker: "npm:9.4.3"
     react-dom: "npm:19.0.0"
     react-hook-form: "npm:^7.54.0"
     react-icons: "npm:5.4.0"
@@ -2765,7 +2765,7 @@ __metadata:
     prettier: "npm:3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
     react: "npm:19.0.0"
-    react-day-picker: "npm:9.4.2"
+    react-day-picker: "npm:9.4.3"
     react-dom: "npm:19.0.0"
     react-hook-form: "npm:^7.54.0"
     react-icons: "npm:5.4.0"
@@ -12175,7 +12175,7 @@ __metadata:
     normalize-path: "npm:3.0.0"
     ora: "npm:8.1.1"
     postcss: "npm:8.4.49"
-    prism-react-renderer: "npm:2.4.0"
+    prism-react-renderer: "npm:2.4.1"
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
     sharp: "npm:0.33.5"
@@ -12195,15 +12195,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"prism-react-renderer@npm:2.4.0":
-  version: 2.4.0
-  resolution: "prism-react-renderer@npm:2.4.0"
+"prism-react-renderer@npm:2.4.1":
+  version: 2.4.1
+  resolution: "prism-react-renderer@npm:2.4.1"
   dependencies:
     "@types/prismjs": "npm:^1.26.0"
     clsx: "npm:^2.0.0"
   peerDependencies:
     react: ">=16.0.0"
-  checksum: 10c0/3d6969b057da0efe39e3e637bf93601cd5757de5919180e8df16daf1d1b8eedc39b70c7f6f28724fba0a01bc857c6b78312ab027f4e913159d1165c5aba235bb
+  checksum: 10c0/ebbe8feb975224344bbdd046b3a937d121592dbe4b8f22ba0be31f5af37b9a8219f441138ef6cab1c5b96f2aa6b529015200959f7e5e85b60ca69c81d35edcd4
   languageName: node
   linkType: hard
 
@@ -12348,15 +12348,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-day-picker@npm:9.4.2":
-  version: 9.4.2
-  resolution: "react-day-picker@npm:9.4.2"
+"react-day-picker@npm:9.4.3":
+  version: 9.4.3
+  resolution: "react-day-picker@npm:9.4.3"
   dependencies:
     "@date-fns/tz": "npm:^1.2.0"
     date-fns: "npm:^4.1.0"
   peerDependencies:
     react: ">=16.8.0"
-  checksum: 10c0/afd04c4056536e1f26596f3fd9903bd1031bc47491374fb35d815be225a2ac3f4c2e9f34a8c824fa0fb1634f473d9227085a4ccb9fc344fff22bd3b997184073
+  checksum: 10c0/f0d2c547bc4f148234db0a422cf6c0f655a76547fb1436057b75bd732aa1497767a5ff4affeaecdb479b58bc155f797afcc8c6a4e5d329a406c41b610bea2e4a
   languageName: node
   linkType: hard
 
