@@ -46,6 +46,9 @@ impl Indexer for MakerExecutiveMainnetProposalsIndexer {
     fn indexer_type(&self) -> IndexerType {
         IndexerType::Proposals
     }
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(5 * 60)
+    }
 }
 
 #[async_trait::async_trait]

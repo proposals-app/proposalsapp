@@ -1,11 +1,11 @@
 use crate::{
-    database::DatabaseStore,
+    database::{store_votes, DatabaseStore},
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
     snapshot_api::SnapshotApiHandler,
 };
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use sea_orm::{
     ActiveValue::{self, NotSet},
     ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
@@ -13,19 +13,20 @@ use sea_orm::{
 use seaorm::{
     dao, dao_indexer, proposal,
     sea_orm_active_enums::{IndexerType, ProposalState},
+    vote,
 };
 use serde::Deserialize;
-use serde_json::json;
-use std::sync::Arc;
+use serde_json::{json, Value};
+use std::{sync::Arc, time::Duration};
 use tracing::info;
 
 #[derive(Debug, Deserialize)]
-struct GraphQLResponse {
-    data: Option<GraphQLResponseInner>,
+struct GraphQLResponseProposals {
+    data: Option<GraphQLResponseInnerProposals>,
 }
 
 #[derive(Deserialize, Debug)]
-struct GraphQLResponseInner {
+struct GraphQLResponseInnerProposals {
     proposals: Vec<GraphQLProposal>,
 }
 
@@ -74,6 +75,9 @@ impl Indexer for SnapshotProposalsIndexer {
     fn indexer_type(&self) -> IndexerType {
         IndexerType::Proposals
     }
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(30 * 60)
+    }
 }
 
 #[async_trait]
@@ -104,8 +108,8 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
             }
         };
 
-        let sanitize_from: NaiveDateTime = (Utc::now() - Duration::days(90)).naive_utc();
-        let sanitize_to: NaiveDateTime = (Utc::now() - Duration::minutes(5)).naive_utc();
+        let sanitize_from: NaiveDateTime = (Utc::now() - chrono::Duration::days(90)).naive_utc();
+        let sanitize_to: NaiveDateTime = (Utc::now() - chrono::Duration::minutes(5)).naive_utc();
 
         sanitize(indexer, snapshot_space, sanitize_from, sanitize_to).await?;
 
@@ -145,13 +149,13 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
             indexer.speed, snapshot_space, indexer.index
         );
 
-        let graphql_response: GraphQLResponse = self
+        let graphql_response: GraphQLResponseProposals = self
             .api_handler
             .fetch("https://hub.snapshot.org/graphql", graphql_query.to_owned())
             .await?;
 
         let proposals = if let Some(data) = graphql_response.data {
-            parse_proposals(data.proposals, indexer)
+            parse_proposals(data.proposals, indexer, self.api_handler.clone()).await?
         } else {
             vec![]
         };
@@ -186,65 +190,211 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
     }
 }
 
-fn parse_proposals(
+async fn parse_proposals(
     graphql_proposals: Vec<GraphQLProposal>,
     indexer: &dao_indexer::Model,
-) -> Vec<proposal::ActiveModel> {
-    graphql_proposals
-        .into_iter()
-        .map(|p| {
-            let state = if p.state.as_str() == "pending" && p.privacy.as_str() == "shutter" {
-                ProposalState::Hidden
-            } else if p.state.as_str() == "active" {
-                ProposalState::Active
-            } else if p.state.as_str() == "pending" {
-                ProposalState::Pending
-            } else if p.state.as_str() == "closed" {
-                if p.scores_state == "final" {
-                    ProposalState::Executed
-                } else {
-                    ProposalState::Defeated
-                }
+    snapshot_api: Arc<SnapshotApiHandler>,
+) -> Result<Vec<proposal::ActiveModel>> {
+    let mut proposals = vec![];
+
+    for p in graphql_proposals {
+        let state = if p.state.as_str() == "pending" && p.privacy.as_str() == "shutter" {
+            ProposalState::Hidden
+        } else if p.state.as_str() == "active" {
+            ProposalState::Active
+        } else if p.state.as_str() == "pending" {
+            ProposalState::Pending
+        } else if p.state.as_str() == "closed" {
+            if p.scores_state == "final" {
+                ProposalState::Executed
             } else {
-                ProposalState::Unknown
-            };
-
-            let time_created = DateTime::<Utc>::from_timestamp(p.created as i64, 0)
-                .expect("Invalid timestamp")
-                .naive_utc();
-            let time_start = DateTime::<Utc>::from_timestamp(p.start, 0)
-                .expect("Invalid timestamp")
-                .naive_utc();
-            let time_end = DateTime::<Utc>::from_timestamp(p.end, 0)
-                .expect("Invalid timestamp")
-                .naive_utc();
-
-            proposal::ActiveModel {
-                id: NotSet,
-                external_id: Set(p.id),
-                name: Set(p.title),
-                body: Set(p.body),
-                url: Set(p.link),
-                discussion_url: Set(p.discussion),
-                choices: Set(serde_json::to_value(p.choices).unwrap()),
-                scores: Set(serde_json::to_value(p.scores).unwrap()),
-                scores_total: Set(p.scores_total),
-                quorum: Set(p.quorum),
-                scores_quorum: Set(p.scores_total),
-                proposal_state: Set(state),
-                marked_spam: Set(p.flagged.unwrap_or(false)),
-                block_created: NotSet,
-                time_created: Set(time_created),
-                time_start: Set(time_start),
-                time_end: Set(time_end),
-                dao_indexer_id: Set(indexer.id),
-                dao_id: Set(indexer.dao_id),
-                index_created: Set(p.created),
-                metadata: Set(json!({"snapshot_type":p.proposal_type}).into()),
-                txid: Set(Some(p.ipfs)),
+                ProposalState::Defeated
             }
-        })
-        .collect()
+        } else {
+            ProposalState::Unknown
+        };
+
+        let time_created = DateTime::<Utc>::from_timestamp(p.created as i64, 0)
+            .expect("Invalid timestamp")
+            .naive_utc();
+        let time_start = DateTime::<Utc>::from_timestamp(p.start, 0)
+            .expect("Invalid timestamp")
+            .naive_utc();
+        let time_end = DateTime::<Utc>::from_timestamp(p.end, 0)
+            .expect("Invalid timestamp")
+            .naive_utc();
+
+        let proposal_model = proposal::ActiveModel {
+            id: NotSet,
+            external_id: Set(p.id.clone()),
+            name: Set(p.title),
+            body: Set(p.body),
+            url: Set(p.link),
+            discussion_url: Set(p.discussion),
+            choices: Set(serde_json::to_value(p.choices).unwrap()),
+            scores: Set(serde_json::to_value(p.scores).unwrap()),
+            scores_total: Set(p.scores_total),
+            quorum: Set(p.quorum),
+            scores_quorum: Set(p.scores_total),
+            proposal_state: Set(state.clone()),
+            marked_spam: Set(p.flagged.unwrap_or(false)),
+            block_created: NotSet,
+            time_created: Set(time_created),
+            time_start: Set(time_start),
+            time_end: Set(time_end),
+            dao_indexer_id: Set(indexer.id),
+            dao_id: Set(indexer.dao_id),
+            index_created: Set(p.created),
+            metadata: Set(json!({"snapshot_type":p.proposal_type}).into()),
+            txid: Set(Some(p.ipfs)),
+        };
+
+        proposals.push(proposal_model);
+
+        if p.privacy.as_str() == "shutter" && p.scores_state.as_str() == "final" {
+            refresh_shutter_votes(indexer.clone(), snapshot_api.clone(), p.id).await?;
+        }
+    }
+
+    Ok(proposals)
+}
+
+#[derive(Debug, Deserialize)]
+struct GraphQLResponseVotes {
+    data: GraphQLResponseInnerVotes,
+}
+
+#[derive(Deserialize, Debug)]
+struct GraphQLResponseInnerVotes {
+    votes: Vec<GraphQLVote>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct GraphQLProposalId {
+    id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct GraphQLVote {
+    voter: String,
+    reason: String,
+    choice: Value,
+    vp: f64,
+    created: i32,
+    proposal: GraphQLProposalId,
+    ipfs: String,
+}
+
+async fn refresh_shutter_votes(
+    indexer: dao_indexer::Model,
+    snapshot_api: Arc<SnapshotApiHandler>,
+    proposal_id: String,
+) -> Result<()> {
+    let db = DatabaseStore::connect().await?;
+
+    let snapshot_space = match indexer.dao_id.to_string().as_str() {
+        "compound" => "comp-vote.eth",
+        "gitcoin" => "gitcoindao.eth",
+        "arbitrum_dao" => "arbitrumfoundation.eth",
+        "optimism" => "opcollective.eth",
+        "uniswap" => "uniswapgovernance.eth",
+        "hop_protocol" => "hop.eth",
+        "frax" => "frax.eth",
+        "dydx" => "dydxgov.eth",
+        "ens" => "ens.eth",
+        "aave" => "aave.eth",
+        _ => {
+            return Err(anyhow::anyhow!(
+                "Unsupported DAO for Snapshot - {}",
+                indexer.dao_id
+            ))
+        }
+    };
+
+    let mut all_votes = vec![];
+    let mut skip = 0;
+    const BATCH_SIZE: usize = 1000;
+
+    loop {
+        let graphql_query = format!(
+            r#"
+                {{
+                    votes (
+                        first: {},
+                        skip: {},
+                        orderBy: "created",
+                        orderDirection: asc,
+                        where: {{
+                            space: "{}",
+                            proposal: "{}"
+                        }}
+                    )
+                    {{
+                        voter
+                        reason
+                        choice
+                        vp
+                        created
+                        ipfs
+                        proposal
+                        {{
+                             id
+                        }}
+                    }}
+                }}"#,
+            BATCH_SIZE, skip, snapshot_space, proposal_id
+        );
+
+        let graphql_response: GraphQLResponseVotes = snapshot_api
+            .fetch("https://hub.snapshot.org/graphql", graphql_query.to_owned())
+            .await?;
+
+        let votes_result: Result<Vec<_>> = graphql_response
+            .data
+            .votes
+            .into_iter()
+            .map(|v| {
+                Ok(vote::ActiveModel {
+                    id: NotSet,
+                    index_created: Set(v.created),
+                    voter_address: Set(v.voter),
+                    reason: Set(Some(v.reason)),
+                    choice: Set(if v.choice.is_number() {
+                        (v.choice
+                            .as_i64()
+                            .ok_or_else(|| anyhow::anyhow!("Invalid choice value"))?
+                            - 1)
+                        .into()
+                    } else {
+                        v.choice
+                    }),
+                    voting_power: Set(v.vp),
+                    block_created: NotSet,
+                    time_created: Set(Some(
+                        DateTime::<Utc>::from_timestamp(v.created as i64, 0)
+                            .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?
+                            .naive_utc(),
+                    )),
+                    proposal_id: NotSet,
+                    proposal_external_id: Set(v.proposal.id.clone()),
+                    dao_id: Set(indexer.dao_id),
+                    indexer_id: Set(indexer.id),
+                    txid: Set(Some(v.ipfs)),
+                })
+            })
+            .collect();
+
+        let votes = votes_result?;
+        if votes.is_empty() {
+            break;
+        }
+        all_votes.extend(votes);
+        skip += BATCH_SIZE;
+    }
+
+    store_votes(&db, &indexer, all_votes).await?;
+
+    Ok(())
 }
 
 async fn sanitize(

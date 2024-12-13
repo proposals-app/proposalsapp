@@ -95,7 +95,7 @@ fn init_metrics() -> Result<SdkMeterProvider, MetricError> {
 }
 
 pub fn get_meter() -> opentelemetry::metrics::Meter {
-    global::meter(&*SERVICE_NAME)
+    global::meter(&SERVICE_NAME)
 }
 
 pub fn setup_tracing() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {

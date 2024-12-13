@@ -10,6 +10,7 @@ pub trait Indexer: Send + Sync {
     fn min_refresh_speed(&self) -> i32;
     fn max_refresh_speed(&self) -> i32;
     fn indexer_type(&self) -> IndexerType;
+    fn timeout(&self) -> Duration;
 
     fn refresh_interval(&self) -> Duration {
         match self.indexer_type() {

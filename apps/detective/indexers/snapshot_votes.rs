@@ -1,17 +1,22 @@
-use crate::database::DatabaseStore;
-use crate::indexer::{Indexer, ProcessResult, VotesIndexer};
-use crate::SnapshotApiHandler;
+use crate::{
+    database::DatabaseStore,
+    indexer::{Indexer, ProcessResult, VotesIndexer},
+    SnapshotApiHandler,
+};
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
-use seaorm::sea_orm_active_enums::IndexerType;
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
+use seaorm::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerType, IndexerVariant},
+    vote,
+};
 use serde::Deserialize;
 use serde_json::Value;
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tracing::{error, info};
 
 #[derive(Debug, Deserialize)]
@@ -65,6 +70,9 @@ impl Indexer for SnapshotVotesIndexer {
     }
     fn indexer_type(&self) -> IndexerType {
         IndexerType::Votes
+    }
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(5 * 60)
     }
 }
 

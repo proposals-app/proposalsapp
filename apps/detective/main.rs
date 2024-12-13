@@ -78,7 +78,6 @@ mod snapshot_api;
 
 static MAX_JOBS: usize = 100;
 static CONCURRENT_JOBS: usize = 1;
-static JOB_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 static SNAPSHOT_MAX_RETRIES: usize = 5;
 static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
 static SNAPSHOT_MAX_QUEUE: usize = 100;
@@ -249,7 +248,11 @@ fn create_job_consumer(
                 // Get the indexer implementation early
                 let indexer_implementation = get_indexer(&indexer.indexer_variant);
 
-                let result = tokio::time::timeout(JOB_TIMEOUT, process_job(&indexer, &dao)).await;
+                let result = tokio::time::timeout(
+                    indexer_implementation.timeout(),
+                    process_job(&indexer, &dao),
+                )
+                .await;
 
                 match result {
                     Ok(Ok(process_result)) => {

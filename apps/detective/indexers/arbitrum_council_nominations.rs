@@ -26,7 +26,7 @@ use seaorm::{
     vote,
 };
 use serde_json::json;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tracing::{info, warn};
 
 sol!(
@@ -48,6 +48,9 @@ impl Indexer for ArbitrumCouncilNominationsProposalsAndVotesIndexer {
     }
     fn indexer_type(&self) -> IndexerType {
         IndexerType::ProposalsAndVotes
+    }
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(5 * 60)
     }
 }
 

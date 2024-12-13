@@ -24,7 +24,7 @@ use seaorm::{
 };
 use serde::Deserialize;
 use serde_json::Value;
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tracing::info;
 
 sol!(
@@ -53,6 +53,9 @@ impl Indexer for OptimismVotesIndexer {
     }
     fn indexer_type(&self) -> IndexerType {
         IndexerType::Votes
+    }
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(5 * 60)
     }
 }
 

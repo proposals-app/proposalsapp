@@ -18,7 +18,7 @@ use seaorm::{
     dao, dao_indexer, proposal,
     sea_orm_active_enums::{IndexerType, ProposalState},
 };
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tracing::{info, warn};
 
 sol!(
@@ -40,6 +40,9 @@ impl Indexer for ArbitrumCouncilElectionsProposalsAndVotesIndexer {
     }
     fn indexer_type(&self) -> IndexerType {
         IndexerType::ProposalsAndVotes
+    }
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(5 * 60)
     }
 }
 

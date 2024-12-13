@@ -15,7 +15,7 @@ use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, delegation, sea_orm_active_enums::IndexerType};
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tracing::info;
 
 sol!(
@@ -37,6 +37,9 @@ impl Indexer for ArbitrumDelegationsIndexer {
     }
     fn indexer_type(&self) -> IndexerType {
         IndexerType::Delegation
+    }
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(5 * 60)
     }
 }
 

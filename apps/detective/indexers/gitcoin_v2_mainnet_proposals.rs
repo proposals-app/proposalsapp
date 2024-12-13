@@ -22,7 +22,7 @@ use seaorm::{
     sea_orm_active_enums::{IndexerType, ProposalState},
 };
 use serde_json::json;
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tracing::{info, warn};
 
 sol!(
@@ -44,6 +44,9 @@ impl Indexer for GitcoinV2MainnetProposalsIndexer {
     }
     fn indexer_type(&self) -> IndexerType {
         IndexerType::Proposals
+    }
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(5 * 60)
     }
 }
 
