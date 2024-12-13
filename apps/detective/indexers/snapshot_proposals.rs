@@ -39,6 +39,7 @@ struct GraphQLProposal {
     scores: Vec<f64>,
     scores_total: f64,
     scores_state: String,
+    privacy: String,
     created: i32,
     start: i64,
     end: i64,
@@ -129,6 +130,7 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
                     scores
                     scores_total
                     scores_state
+                    privacy
                     created
                     start
                     end
@@ -160,7 +162,7 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
                 .filter(|p| {
                     matches!(
                         p.proposal_state.clone().take().unwrap(),
-                        ProposalState::Active | ProposalState::Pending
+                        ProposalState::Active | ProposalState::Pending | ProposalState::Hidden
                     )
                 })
                 .filter_map(|p| match &p.index_created {
@@ -191,17 +193,20 @@ fn parse_proposals(
     graphql_proposals
         .into_iter()
         .map(|p| {
-            let state = match p.state.as_str() {
-                "active" => ProposalState::Active,
-                "pending" => ProposalState::Pending,
-                "closed" => {
-                    if p.scores_state == "final" {
-                        ProposalState::Executed
-                    } else {
-                        ProposalState::Defeated
-                    }
+            let state = if p.state.as_str() == "pending" && p.privacy.as_str() == "shutter" {
+                ProposalState::Hidden
+            } else if p.state.as_str() == "active" {
+                ProposalState::Active
+            } else if p.state.as_str() == "pending" {
+                ProposalState::Pending
+            } else if p.state.as_str() == "closed" {
+                if p.scores_state == "final" {
+                    ProposalState::Executed
+                } else {
+                    ProposalState::Defeated
                 }
-                _ => ProposalState::Unknown,
+            } else {
+                ProposalState::Unknown
             };
 
             let time_created = DateTime::<Utc>::from_timestamp(p.created as i64, 0)
