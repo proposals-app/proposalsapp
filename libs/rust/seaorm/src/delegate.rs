@@ -8,22 +8,20 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "voter"
+        "delegate"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
     pub id: Uuid,
-    pub address: String,
-    pub ens: Option<String>,
+    pub dao_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
-    Address,
-    Ens,
+    DaoId,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -40,9 +38,9 @@ impl PrimaryKeyTrait for PrimaryKey {
 
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
+    Dao,
+    DelegateToDiscourseUser,
     DelegateToVoter,
-    UserToVoter,
-    Vote,
 }
 
 impl ColumnTrait for Column {
@@ -50,8 +48,7 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::Uuid.def(),
-            Self::Address => ColumnType::Text.def().unique(),
-            Self::Ens => ColumnType::Text.def().null(),
+            Self::DaoId => ColumnType::Uuid.def(),
         }
     }
 }
@@ -59,28 +56,33 @@ impl ColumnTrait for Column {
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
+            Self::Dao => Entity::belongs_to(super::dao::Entity)
+                .from(Column::DaoId)
+                .to(super::dao::Column::Id)
+                .into(),
+            Self::DelegateToDiscourseUser => {
+                Entity::has_many(super::delegate_to_discourse_user::Entity).into()
+            }
             Self::DelegateToVoter => Entity::has_many(super::delegate_to_voter::Entity).into(),
-            Self::UserToVoter => Entity::has_many(super::user_to_voter::Entity).into(),
-            Self::Vote => Entity::has_many(super::vote::Entity).into(),
         }
+    }
+}
+
+impl Related<super::dao::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Dao.def()
+    }
+}
+
+impl Related<super::delegate_to_discourse_user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DelegateToDiscourseUser.def()
     }
 }
 
 impl Related<super::delegate_to_voter::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DelegateToVoter.def()
-    }
-}
-
-impl Related<super::user_to_voter::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserToVoter.def()
-    }
-}
-
-impl Related<super::vote::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Vote.def()
     }
 }
 

@@ -50,6 +50,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 pub enum Relation {
     DaoDiscourse,
     DaoIndexer,
+    Delegate,
     Delegation,
     Proposal,
     Subscription,
@@ -77,6 +78,7 @@ impl RelationTrait for Relation {
         match self {
             Self::DaoDiscourse => Entity::has_many(super::dao_discourse::Entity).into(),
             Self::DaoIndexer => Entity::has_many(super::dao_indexer::Entity).into(),
+            Self::Delegate => Entity::has_many(super::delegate::Entity).into(),
             Self::Delegation => Entity::has_many(super::delegation::Entity).into(),
             Self::Proposal => Entity::has_many(super::proposal::Entity).into(),
             Self::Subscription => Entity::has_many(super::subscription::Entity).into(),
@@ -95,6 +97,12 @@ impl Related<super::dao_discourse::Entity> for Entity {
 impl Related<super::dao_indexer::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DaoIndexer.def()
+    }
+}
+
+impl Related<super::delegate::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Delegate.def()
     }
 }
 

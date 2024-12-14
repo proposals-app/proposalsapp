@@ -134,6 +134,33 @@ export interface DaoIndexer {
   speed: Generated<number>;
 }
 
+export interface Delegate {
+  daoId: string;
+  id: Generated<string>;
+}
+
+export interface DelegateToDiscourseUser {
+  createdAt: Generated<Timestamp>;
+  delegateId: string;
+  discourseUserId: string;
+  id: Generated<string>;
+  periodEnd: Timestamp;
+  periodStart: Timestamp;
+  proof: Json | null;
+  verified: Generated<boolean>;
+}
+
+export interface DelegateToVoter {
+  createdAt: Generated<Timestamp>;
+  delegateId: string;
+  id: Generated<string>;
+  periodEnd: Timestamp;
+  periodStart: Timestamp;
+  proof: Json | null;
+  verified: Generated<boolean>;
+  voterId: string;
+}
+
 export interface Delegation {
   block: number;
   daoId: string;
@@ -390,6 +417,9 @@ export interface DB {
   dao: Dao;
   daoDiscourse: DaoDiscourse;
   daoIndexer: DaoIndexer;
+  delegate: Delegate;
+  delegateToDiscourseUser: DelegateToDiscourseUser;
+  delegateToVoter: DelegateToVoter;
   delegation: Delegation;
   discourseCategory: DiscourseCategory;
   discoursePost: DiscoursePost;

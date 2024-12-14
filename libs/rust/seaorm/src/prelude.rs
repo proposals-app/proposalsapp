@@ -2,8 +2,9 @@
 
 pub use super::{
     dao::Entity as Dao, dao_discourse::Entity as DaoDiscourse, dao_indexer::Entity as DaoIndexer,
-    delegation::Entity as Delegation, discourse_category::Entity as DiscourseCategory,
-    discourse_post::Entity as DiscoursePost,
+    delegate::Entity as Delegate, delegate_to_discourse_user::Entity as DelegateToDiscourseUser,
+    delegate_to_voter::Entity as DelegateToVoter, delegation::Entity as Delegation,
+    discourse_category::Entity as DiscourseCategory, discourse_post::Entity as DiscoursePost,
     discourse_post_revision::Entity as DiscoursePostRevision,
     discourse_topic::Entity as DiscourseTopic, discourse_user::Entity as DiscourseUser,
     email_verification::Entity as EmailVerification, job_queue::Entity as JobQueue,
