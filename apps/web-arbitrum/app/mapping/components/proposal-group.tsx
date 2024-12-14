@@ -92,6 +92,7 @@ export default function GroupingInterface({
   };
 
   const addItemToGroup = (groupId: string, item: ProposalGroupItem) => {
+    allTopicIds.add(item.id);
     setGroups((prevGroups) =>
       prevGroups.map((group) =>
         group.id === groupId
@@ -106,6 +107,7 @@ export default function GroupingInterface({
   };
 
   const removeItemFromGroup = (groupId: string, itemId: string) => {
+    allTopicIds.delete(itemId);
     setGroups(
       groups.map((group) =>
         group.id === groupId
