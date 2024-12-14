@@ -38,21 +38,38 @@ export default function GroupingInterface({
   const [searchTerm, setSearchTerm] = useState("");
   const [shouldSaveGroups, setShouldSaveGroups] = useState(false);
 
+  // Track all topic IDs across groups
+  const allTopicIds = new Set(
+    groups.flatMap((group) =>
+      group.items
+        .filter((item) => item.type === "topic")
+        .map((item) => item.id),
+    ),
+  );
+
   const handleSearch = async (value: string) => {
     setSearchTerm(value);
     if (value.trim()) {
       const results = await fuzzySearchItems(value);
 
-      // Get all items from all groups
-      const allGroupItems = groups.flatMap((group) => group.items);
-      const allGroupItemIds = new Set(allGroupItems.map((item) => item.id));
+      // Filter out topic IDs that are already in any group
+      const filteredResults = results.filter((result) => {
+        if (result.type === "topic") {
+          return !allTopicIds.has(result.id);
+        }
+        return true;
+      });
 
-      // Filter out items that are already in any group
-      const filteredResults = results.filter(
-        (result) => !allGroupItemIds.has(result.id),
-      );
+      const currentGroup = groups.find((group) => group.id === editingGroupId);
 
-      setSearchResults(filteredResults);
+      if (currentGroup) {
+        const furtherFilteredResults = filteredResults.filter(
+          (result) => !currentGroup.items.some((item) => item.id === result.id),
+        );
+        setSearchResults(furtherFilteredResults);
+      } else {
+        setSearchResults(filteredResults);
+      }
     } else {
       setSearchResults([]);
     }
@@ -75,6 +92,7 @@ export default function GroupingInterface({
   };
 
   const addItemToGroup = (groupId: string, item: ProposalGroupItem) => {
+    allItemIds.add(item.id); // Add to the set of all item IDs
     setGroups((prevGroups) =>
       prevGroups.map((group) =>
         group.id === groupId
@@ -89,6 +107,7 @@ export default function GroupingInterface({
   };
 
   const removeItemFromGroup = (groupId: string, itemId: string) => {
+    allItemIds.delete(itemId); // Remove from the set of all item IDs
     setGroups(
       groups.map((group) =>
         group.id === groupId
