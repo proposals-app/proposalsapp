@@ -39,12 +39,8 @@ export default function GroupingInterface({
   const [shouldSaveGroups, setShouldSaveGroups] = useState(false);
 
   // Track all topic IDs across groups
-  const allTopicIds = new Set(
-    groups.flatMap((group) =>
-      group.items
-        .filter((item) => item.type === "topic")
-        .map((item) => item.id),
-    ),
+  const allItemIds = new Set(
+    groups.flatMap((group) => group.items.map((item) => item.id)),
   );
 
   const handleSearch = async (value: string) => {
@@ -55,7 +51,7 @@ export default function GroupingInterface({
       // Filter out topic IDs that are already in any group
       const filteredResults = results.filter((result) => {
         if (result.type === "topic") {
-          return !allTopicIds.has(result.id);
+          return !allItemIds.has(result.id);
         }
         return true;
       });
@@ -92,7 +88,7 @@ export default function GroupingInterface({
   };
 
   const addItemToGroup = (groupId: string, item: ProposalGroupItem) => {
-    allTopicIds.add(item.id);
+    allItemIds.add(item.id);
     setGroups((prevGroups) =>
       prevGroups.map((group) =>
         group.id === groupId
@@ -107,7 +103,7 @@ export default function GroupingInterface({
   };
 
   const removeItemFromGroup = (groupId: string, itemId: string) => {
-    allTopicIds.delete(itemId);
+    allItemIds.delete(itemId);
     setGroups(
       groups.map((group) =>
         group.id === groupId
