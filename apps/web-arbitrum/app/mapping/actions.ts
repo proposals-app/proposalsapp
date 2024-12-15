@@ -96,6 +96,7 @@ export async function fuzzySearchItems(
   return otel("mapping-fuzzy-search", async () => {
     const proposals = await db
       .selectFrom("proposal")
+      .where("markedSpam", "=", false)
       .where("proposal.daoId", "=", "f4b728d7-8117-4756-85d6-ca1a95412eaa")
       .leftJoin("daoIndexer", "daoIndexer.id", "proposal.daoIndexerId")
       .select(["proposal.id", "proposal.name", "daoIndexer.indexerVariant"])
