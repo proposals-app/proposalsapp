@@ -50,10 +50,7 @@ export default function GroupingInterface({
 
       // Filter out topic IDs that are already in any group
       const filteredResults = results.filter((result) => {
-        if (result.type === "topic") {
-          return !allItemIds.has(result.id);
-        }
-        return true;
+        return !allItemIds.has(result.id);
       });
 
       const currentGroup = groups.find((group) => group.id === editingGroupId);
