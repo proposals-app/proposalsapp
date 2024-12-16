@@ -1,5 +1,6 @@
-use crate::models::{
-    categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User,
+use crate::{
+    models::{categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User},
+    DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS,
 };
 use anyhow::Result;
 use opentelemetry::{
@@ -11,6 +12,7 @@ use sea_orm::{
     DbErr, EntityTrait, QueryFilter, Set,
 };
 use seaorm::{discourse_post_revision, discourse_user};
+use serde_json::json;
 use tracing::{debug, info, instrument};
 use utils::tracing::get_meter;
 
@@ -376,7 +378,7 @@ impl DbHandler {
                     dao_discourse_id: Set(dao_discourse_id),
                     ..Default::default()
                 };
-                seaorm::discourse_topic::Entity::insert(topic_model)
+                let result = seaorm::discourse_topic::Entity::insert(topic_model)
                     .exec(&self.conn)
                     .await
                     .map_err(|err: DbErr| {
@@ -387,6 +389,30 @@ impl DbHandler {
                             err
                         )
                     })?;
+
+                if let Some(category_ids) =
+                    DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id)
+                {
+                    if category_ids.contains(&topic.category_id) {
+                        seaorm::job_queue::Entity::insert(seaorm::job_queue::ActiveModel {
+                            id: NotSet,
+                            r#type: Set("MAPPER_NEW_PROPOSAL_DISCUSSION".into()),
+                            data: Set(json!({"discourse_topic": result.last_insert_id, "category_id": topic.category_id})),
+                            status: Set("PENDING".into()),
+                            created_at: NotSet,
+                        })
+                        .exec(&self.conn)
+                        .await
+                        .map_err(|err: DbErr| {
+                            anyhow::anyhow!(
+                                "Failed to create MAPPER_NEW_PROPOSAL_DISCUSSION job for topic ID {}: {}",
+                                result.last_insert_id,
+                                err
+                            )
+                        })?;
+                    }
+                }
+
                 self.total_topics_counter.add(
                     1,
                     &[KeyValue::new(

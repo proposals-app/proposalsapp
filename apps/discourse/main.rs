@@ -1,19 +1,18 @@
+#![warn(unused_extern_crates)]
+
 use anyhow::{Context, Result};
-use axum::routing::get;
-use axum::Router;
+use axum::{routing::get, Router};
 use db_handler::DbHandler;
 use discourse_api::DiscourseApi;
 use dotenv::dotenv;
-use indexers::categories::CategoryIndexer;
-use indexers::revisions::RevisionIndexer;
-use indexers::topics::TopicIndexer;
-use indexers::users::UserIndexer;
+use indexers::{
+    categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer,
+    users::UserIndexer,
+};
 use reqwest::Client;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::dao_discourse;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tracing::{error, info, warn};
 use utils::tracing::setup_tracing;
 
@@ -25,6 +24,15 @@ mod models;
 const WAIT_FIRST: bool = false;
 const FAST_INDEX: Duration = Duration::from_secs(5 * 60);
 const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
+
+lazy_static::lazy_static! {
+    static ref DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS: HashMap<Uuid, Vec<i32>> = {
+        let mut m = HashMap::new();
+        m.insert(Uuid::parse_str("099352eb-b859-44ff-acbc-76806d304086").unwrap(), vec![7]);
+        // Add more mappings as needed
+        m
+    };
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {

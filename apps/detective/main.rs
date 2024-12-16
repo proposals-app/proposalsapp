@@ -1,4 +1,5 @@
 #![allow(clippy::too_many_arguments)]
+#![warn(unused_extern_crates)]
 
 use anyhow::{bail, Result};
 use axum::{routing::get, Router};

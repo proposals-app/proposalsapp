@@ -9,6 +9,7 @@ axum = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
 futures = { workspace = true }
+lazy_static.workspace = true
 oneshot = { workspace = true }
 opentelemetry = { workspace = true }
 rand = { workspace = true }

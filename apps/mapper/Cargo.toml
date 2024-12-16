@@ -1,25 +1,19 @@
 [package]
-name = "detective"
-version = "0.2.0"
+name = "mapper"
+version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-alloy = { workspace = true, features = ["full"] }
 anyhow = { workspace = true, features = ["backtrace"] }
-async-trait = { workspace = true }
 axum = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
 futures = { workspace = true }
-hex = { workspace = true }
-itertools = { workspace = true }
-lazy_static = { workspace = true }
-num-bigint = { workspace = true }
+lazy_static.workspace = true
+opentelemetry = { workspace = true }
+rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
-reqwest-middleware = { workspace = true }
-reqwest-retry = { workspace = true }
-rust_decimal = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
     "runtime-tokio-rustls",
@@ -30,7 +24,7 @@ sea-orm = { workspace = true, features = [
     "with-uuid",
 ] }
 seaorm = { path = "../../libs/rust/seaorm" }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
@@ -42,5 +36,5 @@ tracing-subscriber = { workspace = true, features = [
 utils = { path = "../../libs/rust/utils" }
 
 [[bin]]
-name = "detective"
+name = "mapper"
 path = "main.rs"
