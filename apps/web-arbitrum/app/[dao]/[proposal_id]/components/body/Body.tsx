@@ -32,15 +32,11 @@ export default async function Body({ groupData }: GroupDataProps) {
 
         <div className="flex flex-col">
           <div className="flex flex-row justify-between">
-            <div className="flex flex-row items-center gap-2">
-              <Avatar className="bg-gray-500">
-                <AvatarImage src={latestBody.author_picture} />
-                <AvatarFallback>
-                  {latestBody.author_name.slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="font-bold">{latestBody.author_name}</div>
-            </div>
+            <AuthorInfo
+              authorName={latestBody.author_name}
+              authorPicture={latestBody.author_picture}
+            />
+
             <div className="flex flex-row">
               <PostedTime
                 label="initially posted"
@@ -56,93 +52,27 @@ export default async function Body({ groupData }: GroupDataProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div
-            className="markdown-content"
-            dangerouslySetInnerHTML={parseMarkdown(latestBody.content)}
-          />
-        </div>
+        <div className="flex flex-col gap-4">{latestBody.content}</div>
       </div>
     </div>
   );
 }
 
-// Simple Markdown parser
-const parseMarkdown = (markdown: string) => {
-  // Convert headers
-  const headerRegex = /^(#{1,6})\s+(.*)$/gm;
-  let parsedContent = markdown.replace(headerRegex, (match, hashes, text) => {
-    const level = hashes.length;
-    return `<h${level}>${text}</h${level}>`;
-  });
-
-  // Convert bold and italic
-  const boldItalicRegex = /(\*\*|__)(.*?)\1/g;
-  parsedContent = parsedContent.replace(
-    boldItalicRegex,
-    (match, stars, text) => {
-      if (stars === "**" || stars === "__") {
-        return `<strong>${text}</strong>`;
-      }
-      return match;
-    },
-  );
-
-  // Convert italic
-  const italicRegex = /(\*|_)(.*?)\1/g;
-  parsedContent = parsedContent.replace(italicRegex, (match, star, text) => {
-    if (star === "*" || star === "_") {
-      return `<em>${text}</em>`;
-    }
-    return match;
-  });
-
-  // Convert links
-  const linkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
-  parsedContent = parsedContent.replace(linkRegex, '<a href="$2">$1</a>');
-
-  // Convert images
-  const imageRegex = /!\[([^\]]+)\]\(([^\)]+)\)/g;
-  parsedContent = parsedContent.replace(imageRegex, '<img src="$2" alt="$1">');
-
-  // Convert lists
-  const listRegex = /^(\s*[-+*]|\d+\.)\s+(.*)$/gm;
-  let inList = false;
-  let listType: "ul" | "ol" = "ul";
-  parsedContent = parsedContent.replace(
-    listRegex,
-    (match, bulletOrNumber, text) => {
-      const isOrdered = /\d+\./.test(bulletOrNumber);
-      if (!inList) {
-        inList = true;
-        listType = isOrdered ? "ol" : "ul";
-        return `<${listType}><li>${text}</li>`;
-      } else if (isOrdered !== (listType === "ol")) {
-        // Change of list type
-        const closeTag = `</${listType}>`;
-        listType = isOrdered ? "ol" : "ul";
-        const openTag = `<${listType}>`;
-        return `${closeTag}${openTag}<li>${text}</li>`;
-      } else {
-        return `<li>${text}</li>`;
-      }
-    },
-  );
-
-  if (inList) {
-    parsedContent += `</${listType}>`;
-  }
-
-  // Convert paragraphs
-  parsedContent = parsedContent.replace(/\n{2,}/g, "</p><p>");
-
-  // Wrap in paragraph tags if not already wrapped
-  if (!parsedContent.startsWith("<p>")) {
-    parsedContent = `<p>${parsedContent}</p>`;
-  }
-
-  return { __html: parsedContent };
-};
+const AuthorInfo = ({
+  authorName,
+  authorPicture,
+}: {
+  authorName: string;
+  authorPicture: string;
+}) => (
+  <div className="flex flex-row items-center gap-2">
+    <Avatar className="bg-gray-500">
+      <AvatarImage src={authorPicture} />
+      <AvatarFallback>{authorName.slice(0, 2)}</AvatarFallback>
+    </Avatar>
+    <div className="font-bold">{authorName}</div>
+  </div>
+);
 
 // Helper component to display the time with a tooltip
 const PostedTime = ({
