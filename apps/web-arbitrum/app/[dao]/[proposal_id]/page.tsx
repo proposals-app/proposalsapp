@@ -25,7 +25,7 @@ export default async function ProposalPage({
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">
       <SideBar dao={result.dao} />
-      <div className="flex flex-col pl-20">
+      <div className="flex flex-row pl-20">
         <Body groupData={result} />
         <DetailsBar />
       </div>
