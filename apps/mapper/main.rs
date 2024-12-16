@@ -127,18 +127,12 @@ impl Mapper {
         };
 
         // Check if topic is already part of a proposal group
-        let existing_groups = proposal_group::Entity::find().all(&self.conn).await?;
-
-        let topic_already_mapped = existing_groups.iter().any(|group| {
-            if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
-            {
-                items
-                    .iter()
-                    .any(|item| item.id == topic.id.to_string() && item.type_field == "topic")
-            } else {
-                false
-            }
-        });
+        let topic_already_mapped = proposal_group::Entity::find()
+            .filter(proposal_group::Column::Items.contains(topic.id.to_string()))
+            .all(&self.conn)
+            .await?
+            .len()
+            > 0;
 
         if !topic_already_mapped {
             let discourse_indexer = dao_indexer::Entity::find_by_id(topic.dao_discourse_id)
@@ -226,50 +220,46 @@ impl Mapper {
                 .await?;
 
             if let Some(topic) = discourse_topic {
-                // Find the proposal group containing this topic
-                let existing_groups = proposal_group::Entity::find().all(&self.conn).await?;
+                // Find the proposal group containing this topic directly
+                let group = proposal_group::Entity::find()
+                    .filter(proposal_group::Column::Items.contains(topic.id.to_string()))
+                    .one(&self.conn)
+                    .await?;
 
-                for group in existing_groups {
+                if let Some(group) = group {
                     if let Ok(mut items) =
                         serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
                     {
-                        // Check if this group contains the topic
-                        if items.iter().any(|item| {
-                            item.id == topic.id.to_string() && item.type_field == "topic"
+                        // Check if proposal is not already in the group
+                        if !items.iter().any(|item| {
+                            item.id == proposal.id.to_string() && item.type_field == "proposal"
                         }) {
-                            // Check if proposal is not already in the group
-                            if !items.iter().any(|item| {
-                                item.id == proposal.id.to_string() && item.type_field == "proposal"
-                            }) {
-                                // Add the proposal to the group
-                                let indexer =
-                                    dao_indexer::Entity::find_by_id(proposal.dao_indexer_id)
-                                        .one(&self.conn)
-                                        .await?
-                                        .unwrap();
+                            // Add the proposal to the group
+                            let indexer = dao_indexer::Entity::find_by_id(proposal.dao_indexer_id)
+                                .one(&self.conn)
+                                .await?
+                                .unwrap();
 
-                                items.push(ProposalGroupItem {
-                                    id: proposal.id.to_string(),
-                                    type_field: "proposal".to_string(),
-                                    name: proposal.name.clone(),
-                                    indexer_name: format!("{:?}", indexer.indexer_variant),
-                                });
+                            items.push(ProposalGroupItem {
+                                id: proposal.id.to_string(),
+                                type_field: "proposal".to_string(),
+                                name: proposal.name.clone(),
+                                indexer_name: format!("{:?}", indexer.indexer_variant),
+                            });
 
-                                // Update the group
-                                let mut group: proposal_group::ActiveModel = group.into();
-                                group.items = Set(serde_json::to_value(items)?);
-                                proposal_group::Entity::update(group)
-                                    .exec(&self.conn)
-                                    .await?;
+                            // Update the group
+                            let mut group: proposal_group::ActiveModel = group.into();
+                            group.items = Set(serde_json::to_value(items)?);
+                            proposal_group::Entity::update(group)
+                                .exec(&self.conn)
+                                .await?;
 
-                                info!(
-                                    job_id = job_id,
-                                    proposal_id = %proposal_id,
-                                    discourse_topic_id = %topic.id,
-                                    "Added snapshot proposal to existing group"
-                                );
-                            }
-                            break;
+                            info!(
+                                job_id = job_id,
+                                proposal_id = %proposal_id,
+                                discourse_topic_id = %topic.id,
+                                "Added snapshot proposal to existing group"
+                            );
                         }
                     }
                 }
