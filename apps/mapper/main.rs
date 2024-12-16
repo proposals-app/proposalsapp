@@ -143,6 +143,7 @@ impl Mapper {
         let mut interval = tokio::time::interval(Duration::from_secs(60));
         loop {
             interval.tick().await;
+            info!("Mapping");
             if let Err(e) = self.process_jobs().await {
                 error!(error = %e, "Error processing jobs");
             }
