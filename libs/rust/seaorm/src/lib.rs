@@ -18,7 +18,6 @@ pub mod email_verification;
 pub mod job_queue;
 pub mod kysely_migration;
 pub mod kysely_migration_lock;
-pub mod notification;
 pub mod proposal;
 pub mod proposal_group;
 pub mod sea_orm_active_enums;

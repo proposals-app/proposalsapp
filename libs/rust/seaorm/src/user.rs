@@ -45,7 +45,6 @@ impl PrimaryKeyTrait for PrimaryKey {
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     EmailVerification,
-    Notification,
     Subscription,
     UserPushNotificationSubscription,
     UserSession,
@@ -70,7 +69,6 @@ impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
             Self::EmailVerification => Entity::has_one(super::email_verification::Entity).into(),
-            Self::Notification => Entity::has_many(super::notification::Entity).into(),
             Self::Subscription => Entity::has_many(super::subscription::Entity).into(),
             Self::UserPushNotificationSubscription => {
                 Entity::has_many(super::user_push_notification_subscription::Entity).into()
@@ -85,12 +83,6 @@ impl RelationTrait for Relation {
 impl Related<super::email_verification::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::EmailVerification.def()
-    }
-}
-
-impl Related<super::notification::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Notification.def()
     }
 }
 

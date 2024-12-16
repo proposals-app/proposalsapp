@@ -59,20 +59,6 @@ export enum IndexerVariant {
   UNISWAP_MAINNET_VOTES = "UNISWAP_MAINNET_VOTES",
 }
 
-export enum NotificationDispatchStatusEnum {
-  DISPATCHED = "DISPATCHED",
-  FAILED = "FAILED",
-  NOT_DISPATCHED = "NOT_DISPATCHED",
-}
-
-export enum NotificationTypeEnum {
-  EMAIL_BULLETIN = "EMAIL_BULLETIN",
-  EMAIL_QUORUM_NOT_REACHED = "EMAIL_QUORUM_NOT_REACHED",
-  EMAIL_TIMEEND = "EMAIL_TIMEEND",
-  PUSH_QUORUM_NOT_REACHED = "PUSH_QUORUM_NOT_REACHED",
-  PUSH_TIMEEND = "PUSH_TIMEEND",
-}
-
 export enum ProposalState {
   ACTIVE = "ACTIVE",
   CANCELED = "CANCELED",
@@ -287,20 +273,11 @@ export interface EmailVerification {
 }
 
 export interface JobQueue {
-  createdAt: Generated<Timestamp | null>;
+  createdAt: Generated<Timestamp>;
+  data: Json;
   id: Generated<number>;
-  job: Json;
-  jobType: string;
-  processed: Generated<boolean | null>;
-}
-
-export interface Notification {
-  dispatchedAt: Timestamp | null;
-  dispatchStatus: Generated<NotificationDispatchStatusEnum>;
-  id: Generated<string>;
-  proposalId: string;
-  type: NotificationTypeEnum;
-  userId: string;
+  status: Generated<string>;
+  type: string;
 }
 
 export interface Proposal {
@@ -428,7 +405,6 @@ export interface DB {
   discourseUser: DiscourseUser;
   emailVerification: EmailVerification;
   jobQueue: JobQueue;
-  notification: Notification;
   proposal: Proposal;
   proposalGroup: ProposalGroup;
   subscription: Subscription;

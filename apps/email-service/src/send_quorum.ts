@@ -1,28 +1,23 @@
-import {
-  db,
-  NotificationDispatchStatusEnum,
-  NotificationTypeEnum,
-} from "@proposalsapp/db";
+import { db, traverseJSON } from "@proposalsapp/db";
 import { QuorumData, QuorumEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
-import { JobData } from ".";
 
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
 
-export async function sendQuorum(job: JobData) {
+export async function sendQuorum(job: any) {
   const { userId, proposalId } = job;
   if (!proposalId) throw new Error("proposalId is required for sendQuorum");
 
   const existingNotification = await db
-    .selectFrom("notification")
-    .where("userId", "=", userId)
-    .where("proposalId", "=", proposalId)
-    .where(
-      "notification.type",
-      "=",
-      NotificationTypeEnum.EMAIL_QUORUM_NOT_REACHED,
+    .selectFrom("jobQueue")
+    .where((eb) =>
+      eb.and([
+        eb(traverseJSON(eb, "data", "userId"), "=", userId),
+        eb(traverseJSON(eb, "data", "proposalId"), "=", proposalId),
+      ]),
     )
-    .where("dispatchStatus", "=", NotificationDispatchStatusEnum.DISPATCHED)
+    .where("type", "=", "EMAIL_QUORUM_NOT_REACHED")
+    .where("status", "!=", "COMPLETED")
     .selectAll()
     .executeTakeFirst();
 
@@ -70,7 +65,7 @@ export async function sendQuorum(job: JobData) {
   let { countdownSmall, countdownLarge } = {
     countdownSmall: "",
     countdownLarge: "",
-  }; // await getCountdown(proposal.timeEnd);
+  };
 
   const emailData: QuorumData = {
     daoName: dao.name,
@@ -94,18 +89,33 @@ export async function sendQuorum(job: JobData) {
     HtmlBody: emailHtml,
   };
 
-  let res = await client.sendEmail(options);
+  try {
+    await client.sendEmail(options);
+    console.log(`send quorum for ${proposalId} to ${userId}`);
 
-  await db
-    .insertInto("notification")
-    .values({
-      userId: userId,
-      proposalId: proposalId,
-      type: NotificationTypeEnum.EMAIL_QUORUM_NOT_REACHED,
-      dispatchStatus: NotificationDispatchStatusEnum.DISPATCHED,
-      dispatchedAt: new Date(res.SubmittedAt),
-    })
-    .execute();
+    // Insert jobQueue entry with status COMPLETED
+    await db
+      .insertInto("jobQueue")
+      .values({
+        type: "EMAIL_QUORUM_NOT_REACHED",
+        data: { userId, proposalId },
+        status: "COMPLETED",
+      })
+      .execute();
+  } catch (error) {
+    console.error(
+      `Failed to send quorum email for ${proposalId} to ${userId}:`,
+      error,
+    );
 
-  console.log(`send quorum for ${proposalId} to ${userId}`);
+    // Insert jobQueue entry with status FAILED
+    await db
+      .insertInto("jobQueue")
+      .values({
+        type: "EMAIL_QUORUM_NOT_REACHED",
+        data: { userId, proposalId },
+        status: "FAILED",
+      })
+      .execute();
+  }
 }

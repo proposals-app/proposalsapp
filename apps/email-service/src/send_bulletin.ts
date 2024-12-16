@@ -16,12 +16,12 @@ import {
   NewProposal,
 } from "@proposalsapp/emails/emails/daily-bulletin";
 import { ServerClient } from "postmark";
-import { JobData } from ".";
 
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
 
-export async function sendBulletin(job: JobData) {
+export async function sendBulletin(job: any) {
   const { userId } = job;
+
   const user = await db
     .selectFrom("user")
     .where("user.id", "=", userId)

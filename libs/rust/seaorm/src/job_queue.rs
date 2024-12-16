@@ -15,19 +15,19 @@ impl EntityName for Entity {
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
     pub id: i32,
-    pub job: Json,
-    pub job_type: String,
-    pub created_at: Option<DateTime>,
-    pub processed: Option<bool>,
+    pub r#type: String,
+    pub data: Json,
+    pub status: String,
+    pub created_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
-    Job,
-    JobType,
+    Type,
+    Data,
+    Status,
     CreatedAt,
-    Processed,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -50,10 +50,10 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::Integer.def(),
-            Self::Job => ColumnType::JsonBinary.def(),
-            Self::JobType => ColumnType::String(StringLen::None).def(),
-            Self::CreatedAt => ColumnType::DateTime.def().null(),
-            Self::Processed => ColumnType::Boolean.def().null(),
+            Self::Type => ColumnType::Text.def(),
+            Self::Data => ColumnType::JsonBinary.def(),
+            Self::Status => ColumnType::Text.def(),
+            Self::CreatedAt => ColumnType::DateTime.def(),
         }
     }
 }

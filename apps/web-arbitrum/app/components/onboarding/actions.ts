@@ -185,15 +185,13 @@ const sendBulletin = async (userId: string) => {
       userId: string;
     };
 
-    const JOB_TYPE = "email-bulletin";
-
     const message: Message = { userId: userId };
 
     await db
       .insertInto("jobQueue")
       .values({
-        job: message,
-        jobType: JOB_TYPE,
+        data: message,
+        type: "EMAIL_BULLETIN",
       })
       .execute();
   });

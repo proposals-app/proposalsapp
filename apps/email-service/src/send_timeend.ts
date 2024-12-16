@@ -1,24 +1,23 @@
-import {
-  db,
-  NotificationDispatchStatusEnum,
-  NotificationTypeEnum,
-} from "@proposalsapp/db";
+import { db, traverseJSON } from "@proposalsapp/db";
 import { NotVotedData, NotVotedEmail, render } from "@proposalsapp/emails";
 import { ServerClient } from "postmark";
-import { JobData } from ".";
 
 const client = new ServerClient(process.env.POSTMARK_API_KEY ?? "");
 
-export async function sendTimeend(job: JobData) {
+export async function sendTimeend(job: any) {
   const { userId, proposalId } = job;
   if (!proposalId) throw new Error("proposalId is required for sendTimeend");
 
   const existingNotification = await db
-    .selectFrom("notification")
-    .where("userId", "=", userId)
-    .where("proposalId", "=", proposalId)
-    .where("notification.type", "=", NotificationTypeEnum.EMAIL_TIMEEND)
-    .where("dispatchStatus", "=", NotificationDispatchStatusEnum.DISPATCHED)
+    .selectFrom("jobQueue")
+    .where((eb) =>
+      eb.and([
+        eb(traverseJSON(eb, "data", "userId"), "=", userId),
+        eb(traverseJSON(eb, "data", "proposalId"), "=", proposalId),
+      ]),
+    )
+    .where("type", "=", "EMAIL_TIMEEND")
+    .where("status", "!=", "COMPLETED")
     .selectAll()
     .executeTakeFirst();
 
@@ -89,18 +88,33 @@ export async function sendTimeend(job: JobData) {
     HtmlBody: emailHtml,
   };
 
-  let res = await client.sendEmail(options);
+  try {
+    await client.sendEmail(options);
+    console.log(`Sent timeend email for ${proposalId} to ${userId}`);
 
-  await db
-    .insertInto("notification")
-    .values({
-      userId: userId,
-      proposalId: proposalId,
-      type: NotificationTypeEnum.EMAIL_TIMEEND,
-      dispatchStatus: NotificationDispatchStatusEnum.DISPATCHED,
-      dispatchedAt: new Date(res.SubmittedAt),
-    })
-    .execute();
+    // Insert jobQueue entry with status COMPLETED
+    await db
+      .insertInto("jobQueue")
+      .values({
+        type: "EMAIL_TIMEEND",
+        data: { userId, proposalId },
+        status: "COMPLETED",
+      })
+      .execute();
+  } catch (error) {
+    console.error(
+      `Failed to send timeend email for ${proposalId} to ${userId}:`,
+      error,
+    );
 
-  console.log(`send timeend for ${proposalId} to ${userId}`);
+    // Insert jobQueue entry with status FAILED
+    await db
+      .insertInto("jobQueue")
+      .values({
+        type: "EMAIL_TIMEEND",
+        data: { userId, proposalId },
+        status: "FAILED",
+      })
+      .execute();
+  }
 }

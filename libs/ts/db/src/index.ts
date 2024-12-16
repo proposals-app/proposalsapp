@@ -1,8 +1,11 @@
 import {
   DeduplicateJoinsPlugin,
+  ExpressionBuilder,
   Kysely,
   ParseJSONResultsPlugin,
   PostgresDialect,
+  sql,
+  StringReference,
 } from "kysely";
 import { CamelCasePlugin } from "kysely";
 import { config as dotenv_config } from "dotenv";
@@ -39,6 +42,21 @@ export const db = global.db || createDbInstance();
 
 //if (process.env.NODE_ENV !== "production") global.db = db;
 
+function traverseJSON<DB, TB extends keyof DB>(
+  eb: ExpressionBuilder<DB, TB>,
+  column: StringReference<DB, TB>,
+  path: string | [string, ...string[]],
+) {
+  if (!Array.isArray(path)) {
+    path = [path];
+  }
+
+  return sql`${sql.ref(column)}->${sql.raw(
+    path.map((item) => `'${item}'`).join("->"),
+  )}`;
+}
+
+export { traverseJSON };
 export { db_pool };
 export * from "./kysely_db";
 export { Kysely };

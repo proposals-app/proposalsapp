@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { config as dotenvConfig } from "dotenv";
 import express from "express";
-import { db, NotificationTypeEnum } from "@proposalsapp/db";
+import { db } from "@proposalsapp/db";
 import axios from "axios";
 import { sendBulletin } from "./send_bulletin";
 import { sendQuorum } from "./send_quorum";
@@ -10,11 +10,9 @@ import { sendTimeend } from "./send_timeend";
 dotenvConfig();
 
 const app = express();
-
 app.get("/", (_req, res) => {
   res.send("OK");
 });
-
 app.listen(3000, () => {
   console.log(`Healthcheck is running at http://localhost:3000`);
 });
@@ -30,54 +28,55 @@ async function sendUptimePing() {
 
 setInterval(sendUptimePing, 10 * 1000);
 
-export type JobData = {
-  userId: string;
-  proposalId?: string;
-};
-type SendFunction = (job: JobData) => Promise<void>;
-
-async function processJobQueue(
-  jobType: NotificationTypeEnum,
-  sendFunction: SendFunction,
-) {
+async function processJobQueue() {
   try {
     const jobs = await db
       .selectFrom("jobQueue")
       .selectAll()
-      .where("processed", "=", false)
-      .where("jobType", "=", jobType)
+      .where("status", "=", "PENDING")
+      .where("type", "in", [
+        "EMAIL_BULLETIN",
+        "EMAIL_QUORUM_NOT_REACHED",
+        "EMAIL_TIMEEND",
+      ])
       .execute();
 
     for (const job of jobs) {
       try {
-        await sendFunction(job.job as JobData);
+        switch (job.type) {
+          case "EMAIL_BULLETIN":
+            await sendBulletin(job.data);
+            break;
+          case "EMAIL_QUORUM_NOT_REACHED":
+            await sendQuorum(job.data);
+            break;
+          case "EMAIL_TIMEEND":
+            await sendTimeend(job.data);
+            break;
+          default:
+            console.log(`Unknown job type: ${job.type}`);
+        }
         await db
           .updateTable("jobQueue")
-          .set({ processed: true })
+          .set({ status: "COMPLETED" })
           .where("id", "=", job.id)
           .execute();
       } catch (e) {
-        console.log(e);
+        console.error(`Failed to process job ${job.id}:`, e);
+        await db
+          .updateTable("jobQueue")
+          .set({ status: "FAILED" })
+          .where("id", "=", job.id)
+          .execute();
       }
     }
   } catch (err) {
-    console.error(`Error processing ${jobType} job queue:`, err);
+    console.error("Error processing job queue:", err);
   }
 }
 
-const typedSendBulletin: SendFunction = sendBulletin;
-const typedSendQuorum: SendFunction = sendQuorum;
-const typedSendTimeend: SendFunction = sendTimeend;
-
 // Process job queues every minute
-cron.schedule("* * * * *", async () => {
-  await processJobQueue(NotificationTypeEnum.EMAIL_BULLETIN, typedSendBulletin);
-  await processJobQueue(
-    NotificationTypeEnum.EMAIL_QUORUM_NOT_REACHED,
-    typedSendQuorum,
-  );
-  await processJobQueue(NotificationTypeEnum.EMAIL_TIMEEND, typedSendTimeend);
-});
+cron.schedule("* * * * *", processJobQueue);
 
 // Schedule tasks to add jobs to the job queues
 cron.schedule("0 8 * * *", async () => {
@@ -97,8 +96,9 @@ cron.schedule("0 8 * * *", async () => {
       await db
         .insertInto("jobQueue")
         .values({
-          job: { userId: user.id },
-          jobType: NotificationTypeEnum.EMAIL_BULLETIN,
+          type: "EMAIL_BULLETIN",
+          data: { userId: user.id },
+          status: "PENDING",
         })
         .execute();
     }
@@ -107,6 +107,7 @@ cron.schedule("0 8 * * *", async () => {
   }
 });
 
+// // Cron to add quorum and timeend jobs
 // cron.schedule("* * * * *", async () => {
 //   // Add quorum and timeend jobs
 //   try {
@@ -150,8 +151,9 @@ cron.schedule("0 8 * * *", async () => {
 //           await db
 //             .insertInto("jobQueue")
 //             .values({
-//               job: { userId: user.id, proposalId: proposal.id },
-//               jobType: NotificationTypeEnumV2.EMAILQUORUMNOTREACHED,
+//               type: "EMAIL_QUORUM_NOT_REACHED",
+//               data: { userId: user.id, proposalId: proposal.id },
+//               status: "PENDING",
 //             })
 //             .execute();
 //         }
@@ -160,8 +162,9 @@ cron.schedule("0 8 * * *", async () => {
 //           await db
 //             .insertInto("jobQueue")
 //             .values({
-//               job: { userId: user.id, proposalId: proposal.id },
-//               jobType: NotificationTypeEnumV2.EMAILTIMEEND,
+//               type: "EMAIL_TIMEEND",
+//               data: { userId: user.id, proposalId: proposal.id },
+//               status: "PENDING",
 //             })
 //             .execute();
 //         }

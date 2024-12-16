@@ -108,38 +108,6 @@ pub enum IndexerVariant {
     UniswapMainnetVotes,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(
-    rs_type = "String",
-    db_type = "Enum",
-    enum_name = "notification_dispatch_status_enum"
-)]
-pub enum NotificationDispatchStatusEnum {
-    #[sea_orm(string_value = "DISPATCHED")]
-    Dispatched,
-    #[sea_orm(string_value = "FAILED")]
-    Failed,
-    #[sea_orm(string_value = "NOT_DISPATCHED")]
-    NotDispatched,
-}
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(
-    rs_type = "String",
-    db_type = "Enum",
-    enum_name = "notification_type_enum"
-)]
-pub enum NotificationTypeEnum {
-    #[sea_orm(string_value = "EMAIL_BULLETIN")]
-    EmailBulletin,
-    #[sea_orm(string_value = "EMAIL_QUORUM_NOT_REACHED")]
-    EmailQuorumNotReached,
-    #[sea_orm(string_value = "EMAIL_TIMEEND")]
-    EmailTimeend,
-    #[sea_orm(string_value = "PUSH_QUORUM_NOT_REACHED")]
-    PushQuorumNotReached,
-    #[sea_orm(string_value = "PUSH_TIMEEND")]
-    PushTimeend,
-}
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "proposal_state")]
 pub enum ProposalState {
     #[sea_orm(string_value = "ACTIVE")]
