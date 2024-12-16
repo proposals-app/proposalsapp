@@ -1,7 +1,9 @@
 #![warn(unused_extern_crates)]
 
-use anyhow::Result;
+use anyhow::{Context, Result};
+use axum::Router;
 use dotenv::dotenv;
+use reqwest::Client;
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
     EntityTrait, QueryFilter, QueryOrder, Set,
@@ -9,7 +11,7 @@ use sea_orm::{
 use seaorm::{dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, time::Duration};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use utils::{
     tracing::setup_tracing,
     types::{DiscussionJobData, JobType, ProposalJobData},
@@ -298,10 +300,10 @@ async fn main() -> Result<()> {
     dotenv().ok();
     let _tracing = setup_tracing();
 
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
 
     // Start health check server
-    let app = axum::Router::new().route("/", axum::routing::get(|| async { "OK" }));
+    let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move {
@@ -313,7 +315,27 @@ async fn main() -> Result<()> {
 
     // Create and run mapper
     let mapper = Mapper::new(&database_url).await?;
-    mapper.run().await?;
+    let mapper_handle = tokio::spawn(async move {
+        if let Err(e) = mapper.run().await {
+            error!(error = %e, "Mapper runtime error");
+        }
+    });
+
+    // Uptime ping task
+    let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
+    let client = Client::new();
+    let uptime_handle = tokio::spawn(async move {
+        loop {
+            match client.get(uptime_key.clone()).send().await {
+                Ok(_) => info!("Uptime ping sent successfully"),
+                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+            }
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
+    });
+
+    // Join the handles to keep the main thread running
+    futures::future::join_all(vec![mapper_handle, uptime_handle]).await;
 
     Ok(())
 }
