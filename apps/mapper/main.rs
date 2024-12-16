@@ -3,8 +3,8 @@
 use anyhow::Result;
 use dotenv::dotenv;
 use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder, Set,
+    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
+    EntityTrait, QueryFilter, QueryOrder, Set,
 };
 use seaorm::{dao_indexer, discourse_topic, job_queue, proposal_group};
 use serde::{Deserialize, Serialize};
@@ -24,7 +24,10 @@ struct Mapper {
 
 impl Mapper {
     async fn new(database_url: &str) -> Result<Self> {
-        let conn = sea_orm::Database::connect(database_url).await?;
+        let mut opt = ConnectOptions::new(database_url.to_string());
+        opt.sqlx_logging(false);
+        let conn = Database::connect(opt).await?;
+
         Ok(Self { conn })
     }
 
