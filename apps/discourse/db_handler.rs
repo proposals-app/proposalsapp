@@ -12,9 +12,11 @@ use sea_orm::{
     DbErr, EntityTrait, QueryFilter, Set,
 };
 use seaorm::{discourse_post_revision, discourse_user};
-use serde_json::json;
 use tracing::{debug, info, instrument};
-use utils::tracing::get_meter;
+use utils::{
+    tracing::get_meter,
+    types::{DiscussionJobData, JobData},
+};
 
 pub struct DbHandler {
     pub conn: DatabaseConnection,
@@ -394,10 +396,14 @@ impl DbHandler {
                     DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id)
                 {
                     if category_ids.contains(&topic.category_id) {
+                        let job_data = DiscussionJobData {
+                            discourse_topic_id: result.last_insert_id,
+                        };
+
                         seaorm::job_queue::Entity::insert(seaorm::job_queue::ActiveModel {
                             id: NotSet,
-                            r#type: Set("MAPPER_NEW_PROPOSAL_DISCUSSION".into()),
-                            data: Set(json!({"discourse_topic_id": result.last_insert_id})),
+                            r#type: Set(DiscussionJobData::job_type().to_string()),
+                               data: Set(serde_json::to_value(job_data)?),
                             status: Set("PENDING".into()),
                             created_at: NotSet,
                         })

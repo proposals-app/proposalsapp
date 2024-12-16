@@ -1,29 +1,56 @@
+use ::serde::{Deserialize, Serialize};
 use sea_orm::prelude::Uuid;
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum JobType {
-    Proposals = 0,
-    Votes = 1,
+    MapperNewProposalDiscussion,
+    MapperNewSnapshotProposal,
 }
 
-impl JobType {
-    pub fn as_str(&self) -> &str {
+impl std::fmt::Display for JobType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            JobType::Proposals => "proposals-job",
-            JobType::Votes => "votes-job",
+            JobType::MapperNewProposalDiscussion => write!(f, "MAPPER_NEW_PROPOSAL_DISCUSSION"),
+            JobType::MapperNewSnapshotProposal => write!(f, "MAPPER_NEW_SNAPSHOT_PROPOSAL"),
         }
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ProposalsJob {
-    pub dao_handler_id: Uuid,
-    pub from_index: i32,
+impl std::str::FromStr for JobType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "MAPPER_NEW_PROPOSAL_DISCUSSION" => Ok(JobType::MapperNewProposalDiscussion),
+            "MAPPER_NEW_SNAPSHOT_PROPOSAL" => Ok(JobType::MapperNewSnapshotProposal),
+            _ => Err(anyhow::anyhow!("Unknown job type: {}", s)),
+        }
+    }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct VotesJob {
-    pub dao_handler_id: Uuid,
-    pub proposal_id: Option<Uuid>,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiscussionJobData {
+    pub discourse_topic_id: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProposalJobData {
+    pub proposal_id: Uuid,
+}
+
+pub trait JobData: Serialize {
+    fn job_type() -> JobType;
+}
+
+impl JobData for DiscussionJobData {
+    fn job_type() -> JobType {
+        JobType::MapperNewProposalDiscussion
+    }
+}
+
+impl JobData for ProposalJobData {
+    fn job_type() -> JobType {
+        JobType::MapperNewSnapshotProposal
+    }
 }

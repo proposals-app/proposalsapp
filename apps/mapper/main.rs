@@ -6,16 +6,22 @@ use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
     EntityTrait, QueryFilter, QueryOrder, Set,
 };
-use seaorm::{dao_indexer, discourse_topic, job_queue, proposal_group};
+use seaorm::{dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{fmt::Debug, time::Duration};
 use tracing::{error, info};
-use utils::tracing::setup_tracing;
+use utils::{
+    tracing::setup_tracing,
+    types::{DiscussionJobData, JobType, ProposalJobData},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
-struct MapperNewProposalJob {
-    discourse_topic: Uuid,
-    category_id: i32,
+struct ProposalGroupItem {
+    id: String,
+    #[serde(rename = "type")]
+    type_field: String,
+    name: String,
+    indexer_name: String,
 }
 
 struct Mapper {
@@ -32,10 +38,15 @@ impl Mapper {
     }
 
     async fn process_jobs(&self) -> Result<()> {
-        // Find all pending MAPPER_NEW_PROPOSAL jobs
         let pending_jobs = job_queue::Entity::find()
-            .filter(job_queue::Column::Type.eq("MAPPER_NEW_PROPOSAL_DISCUSSION"))
-            .filter(job_queue::Column::Status.eq("PENDING"))
+            .filter(
+                job_queue::Column::Status
+                    .eq("PENDING")
+                    .and(job_queue::Column::Type.is_in(vec![
+                        JobType::MapperNewProposalDiscussion.to_string(),
+                        JobType::MapperNewSnapshotProposal.to_string(),
+                    ])),
+            )
             .order_by_asc(job_queue::Column::CreatedAt)
             .all(&self.conn)
             .await?;
@@ -43,99 +54,225 @@ impl Mapper {
         for job in pending_jobs {
             info!(job_id = job.id, "Processing job");
 
-            // Parse job data
-            let job_data: MapperNewProposalJob = match serde_json::from_value(job.data.clone()) {
-                Ok(data) => data,
-                Err(e) => {
-                    error!(
-                        error = %e,
-                        job_id = job.id,
-                        "Failed to parse job data"
-                    );
-                    continue;
+            let job_type: JobType = job.r#type.parse()?;
+
+            match job_type {
+                JobType::MapperNewProposalDiscussion => {
+                    let data: DiscussionJobData = serde_json::from_value(job.data.clone())?;
+                    if let Err(e) = self
+                        .process_new_discussion_job(job.id, data.discourse_topic_id)
+                        .await
+                    {
+                        error!(
+                            error = %e,
+                            job_id = job.id,
+                            discourse_topic_id = %data.discourse_topic_id,
+                            "Failed to process new discussion job"
+                        );
+                        continue;
+                    }
                 }
-            };
-
-            // Find the discourse topic
-            let topic = match discourse_topic::Entity::find_by_id(job_data.discourse_topic)
-                .one(&self.conn)
-                .await?
-            {
-                Some(topic) => topic,
-                None => {
-                    error!(
-                        job_id = job.id,
-                        discourse_topic_id = %job_data.discourse_topic,
-                        "Discourse topic not found"
-                    );
-                    continue;
+                JobType::MapperNewSnapshotProposal => {
+                    let data: ProposalJobData = serde_json::from_value(job.data.clone())?;
+                    if let Err(e) = self
+                        .process_snapshot_proposal_job(job.id, data.proposal_id)
+                        .await
+                    {
+                        error!(
+                            error = %e,
+                            job_id = job.id,
+                            proposal_id = %data.proposal_id,
+                            "Failed to process snapshot proposal job"
+                        );
+                        continue;
+                    }
                 }
-            };
-
-            // Check if topic is already part of a proposal group
-            let existing_groups = proposal_group::Entity::find().all(&self.conn).await?;
-
-            let topic_already_mapped = existing_groups.iter().any(|group| {
-                if let Ok(items) =
-                    serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
-                {
-                    items
-                        .iter()
-                        .any(|item| item.id == topic.id.to_string() && item.type_field == "topic")
-                } else {
-                    false
-                }
-            });
-
-            if !topic_already_mapped {
-                let discourse_indexer = dao_indexer::Entity::find_by_id(topic.dao_discourse_id)
-                    .one(&self.conn)
-                    .await?;
-
-                // Create new proposal group
-                let new_group = proposal_group::ActiveModel {
-                    id: NotSet,
-                    name: Set(topic.title.clone()),
-                    items: Set(serde_json::to_value(vec![ProposalGroupItem {
-                        id: topic.id.to_string(),
-                        type_field: "topic".to_string(),
-                        name: topic.title.clone(),
-                        indexer_name: discourse_indexer.unwrap().portal_url.unwrap().to_string(),
-                    }])
-                    .unwrap()),
-                    created_at: sea_orm::Set(chrono::Utc::now().naive_utc()),
-                };
-
-                if let Err(e) = proposal_group::Entity::insert(new_group)
-                    .exec(&self.conn)
-                    .await
-                {
-                    error!(
-                        error = %e,
-                        job_id = job.id,
-                        discourse_topic_id = %job_data.discourse_topic,
-                        "Failed to create proposal group"
-                    );
-                    continue;
-                }
-
-                info!(
-                    job_id = job.id,
-                    discourse_topic_id = %job_data.discourse_topic,
-                    "Created new proposal group"
-                );
             }
 
             // Update job status to COMPLETED
-            let job_id = job.id; // Store the job ID before converting to ActiveModel
+            let job_id = job.id;
             let mut job: job_queue::ActiveModel = job.into();
-            job.status = sea_orm::Set("COMPLETED".to_string());
+            job.status = Set("COMPLETED".to_string());
             if let Err(e) = job_queue::Entity::update(job).exec(&self.conn).await {
                 error!(
                     error = %e,
                     job_id = job_id,
                     "Failed to update job status"
                 );
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn process_new_discussion_job(
+        &self,
+        job_id: i32,
+        discourse_topic_id: Uuid,
+    ) -> Result<()> {
+        // Find the discourse topic
+        let topic = match discourse_topic::Entity::find_by_id(discourse_topic_id)
+            .one(&self.conn)
+            .await?
+        {
+            Some(topic) => topic,
+            None => {
+                error!(
+                    job_id = job_id,
+                    discourse_topic_id = %discourse_topic_id,
+                    "Discourse topic not found"
+                );
+                return Ok(());
+            }
+        };
+
+        // Check if topic is already part of a proposal group
+        let existing_groups = proposal_group::Entity::find().all(&self.conn).await?;
+
+        let topic_already_mapped = existing_groups.iter().any(|group| {
+            if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+            {
+                items
+                    .iter()
+                    .any(|item| item.id == topic.id.to_string() && item.type_field == "topic")
+            } else {
+                false
+            }
+        });
+
+        if !topic_already_mapped {
+            let discourse_indexer = dao_indexer::Entity::find_by_id(topic.dao_discourse_id)
+                .one(&self.conn)
+                .await?;
+
+            // Create new proposal group
+            let new_group = proposal_group::ActiveModel {
+                id: NotSet,
+                name: Set(topic.title.clone()),
+                items: Set(serde_json::to_value(vec![ProposalGroupItem {
+                    id: topic.id.to_string(),
+                    type_field: "topic".to_string(),
+                    name: topic.title.clone(),
+                    indexer_name: discourse_indexer.unwrap().portal_url.unwrap().to_string(),
+                }])
+                .unwrap()),
+                created_at: NotSet,
+            };
+
+            if let Err(e) = proposal_group::Entity::insert(new_group)
+                .exec(&self.conn)
+                .await
+            {
+                error!(
+                    error = %e,
+                    job_id = job_id,
+                    discourse_topic_id = %discourse_topic_id,
+                    "Failed to create proposal group"
+                );
+                return Ok(());
+            }
+
+            info!(
+                job_id = job_id,
+                discourse_topic_id = %discourse_topic_id,
+                "Created new proposal group"
+            );
+        }
+
+        Ok(())
+    }
+
+    async fn process_snapshot_proposal_job(&self, job_id: i32, proposal_id: Uuid) -> Result<()> {
+        // Find the snapshot proposal
+        let proposal = match proposal::Entity::find_by_id(proposal_id)
+            .one(&self.conn)
+            .await?
+        {
+            Some(proposal) => proposal,
+            None => {
+                error!(
+                    job_id = job_id,
+                    proposal_id = %proposal_id,
+                    "Snapshot proposal not found"
+                );
+                return Ok(());
+            }
+        };
+
+        // Extract discussion_id from discussion_url if it exists
+        if let Some(topic_id) = extract_discourse_id(&proposal.discussion_url) {
+            let Some(dao_discourse) = dao_discourse::Entity::find()
+                .filter(dao_discourse::Column::DaoId.eq(proposal.dao_id))
+                .one(&self.conn)
+                .await?
+            else {
+                error!(
+                    job_id = job_id,
+                    proposal_id = %proposal_id,
+                    dao_id = %proposal.dao_id,
+                    "No DAO discourse configuration found for proposal's DAO"
+                );
+                return Ok(());
+            };
+
+            // Find the discourse topic with this external_id
+            let discourse_topic = discourse_topic::Entity::find()
+                .filter(
+                    discourse_topic::Column::ExternalId
+                        .eq(topic_id)
+                        .add(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
+                )
+                .one(&self.conn)
+                .await?;
+
+            if let Some(topic) = discourse_topic {
+                // Find the proposal group containing this topic
+                let existing_groups = proposal_group::Entity::find().all(&self.conn).await?;
+
+                for group in existing_groups {
+                    if let Ok(mut items) =
+                        serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+                    {
+                        // Check if this group contains the topic
+                        if items.iter().any(|item| {
+                            item.id == topic.id.to_string() && item.type_field == "topic"
+                        }) {
+                            // Check if proposal is not already in the group
+                            if !items.iter().any(|item| {
+                                item.id == proposal.id.to_string() && item.type_field == "proposal"
+                            }) {
+                                // Add the proposal to the group
+                                let indexer =
+                                    dao_indexer::Entity::find_by_id(proposal.dao_indexer_id)
+                                        .one(&self.conn)
+                                        .await?
+                                        .unwrap();
+
+                                items.push(ProposalGroupItem {
+                                    id: proposal.id.to_string(),
+                                    type_field: "proposal".to_string(),
+                                    name: proposal.name.clone(),
+                                    indexer_name: format!("{:?}", indexer.indexer_variant),
+                                });
+
+                                // Update the group
+                                let mut group: proposal_group::ActiveModel = group.into();
+                                group.items = Set(serde_json::to_value(items)?);
+                                proposal_group::Entity::update(group)
+                                    .exec(&self.conn)
+                                    .await?;
+
+                                info!(
+                                    job_id = job_id,
+                                    proposal_id = %proposal_id,
+                                    discourse_topic_id = %topic.id,
+                                    "Added snapshot proposal to existing group"
+                                );
+                            }
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -154,13 +291,16 @@ impl Mapper {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ProposalGroupItem {
-    id: String,
-    #[serde(rename = "type")]
-    type_field: String,
-    name: String,
-    indexer_name: String,
+fn extract_discourse_id(url: &str) -> Option<i32> {
+    url.split('?') // First split by ? to remove query parameters
+        .next() // Take the part before any query parameters
+        .and_then(|url| {
+            let parts: Vec<&str> = url.split('/').collect();
+            parts
+                .iter()
+                .filter_map(|part| part.parse::<i32>().ok())
+                .next()
+        })
 }
 
 #[tokio::main]
@@ -186,4 +326,23 @@ async fn main() -> Result<()> {
     mapper.run().await?;
 
     Ok(())
+}
+
+#[test]
+fn test_extract_discourse_id() {
+    // Pattern 1: Simple URL
+    let url1 = "https://governance.aave.com/t/arfc-chaos-labs-risk-stewards-increase-caps-reth-and-wsteth-on-v3-arbitrum/13817";
+    assert_eq!(extract_discourse_id(url1), Some(13817));
+
+    // Pattern 2: URL with query parameters
+    let url2 = "https://governance.aave.com/t/bgd-retroactive-bug-bounties-proposal-pre-immunefi/15989?u=marczeller";
+    assert_eq!(extract_discourse_id(url2), Some(15989));
+
+    // Pattern 3: URL with post number
+    let url3 = "https://governance.aave.com/t/arfc-add-mai-to-arbitrum-aave-v3-market/12759/8";
+    assert_eq!(extract_discourse_id(url3), Some(12759));
+
+    // Invalid URL
+    let invalid_url = "https://governance.aave.com/t/invalid";
+    assert_eq!(extract_discourse_id(invalid_url), None);
 }

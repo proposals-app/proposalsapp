@@ -1,17 +1,3 @@
-use anyhow::{Context, Result};
-use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
-    DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
-};
-use seaorm::{
-    dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote, voter,
-    voting_power,
-};
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
-
 use crate::indexers::{
     aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer,
     aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer,
@@ -32,6 +18,20 @@ use crate::indexers::{
     nouns_mainnet_votes::NounsMainnetVotesIndexer, optimism_votes::OptimismVotesIndexer,
     snapshot_votes::SnapshotVotesIndexer, uniswap_mainnet_votes::UniswapMainnetVotesIndexer,
 };
+use anyhow::{Context, Result};
+use sea_orm::{
+    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
+    DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
+};
+use seaorm::{
+    dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote, voter,
+    voting_power,
+};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
+use utils::types::{JobData, ProposalJobData};
 
 pub struct DatabaseStore;
 
@@ -93,12 +93,14 @@ pub async fn store_proposals(
             if indexer.indexer_variant == IndexerVariant::SnapshotProposals
                 && proposal.discussion_url.is_set()
             {
+                let job_data = ProposalJobData {
+                    proposal_id: result.last_insert_id,
+                };
+
                 seaorm::job_queue::Entity::insert(seaorm::job_queue::ActiveModel {
                     id: NotSet,
-                    r#type: Set("MAPPER_NEW_PROPOSAL_SNAPSHOT".into()),
-                    data: Set(serde_json::json!({
-                        "proposal_id": result.last_insert_id,
-                    })),
+                    r#type: Set(ProposalJobData::job_type().to_string()),
+                    data: Set(serde_json::to_value(job_data)?),
                     status: Set("PENDING".into()),
                     created_at: NotSet,
                 })
