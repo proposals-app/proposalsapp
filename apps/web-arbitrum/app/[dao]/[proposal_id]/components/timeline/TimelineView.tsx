@@ -1,8 +1,3 @@
-"use client";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/ui/card";
-import { Button } from "@/shadcn/ui/button";
-import Link from "next/link";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { TimelineItem } from "./TimelineItem";
 import {
@@ -12,6 +7,8 @@ import {
 } from "./types";
 import { processTimelineData } from "./utils";
 import { ResultsPanel } from "../results/ResultsPanel";
+import { GroupDataProps } from "../../page";
+import { notFound } from "next/navigation";
 
 interface CollapsibleCard {
   id: number;
@@ -19,16 +16,11 @@ interface CollapsibleCard {
   timestamp: Date;
 }
 
-interface Props {
-  initialData: {
-    dao: any;
-    group: any;
-    proposals: any;
-    topics: any;
-  };
-}
+export default function TimelineView({ groupData }: GroupDataProps) {
+  if (!groupData) {
+    notFound();
+  }
 
-export default function TimelineView({ initialData }: Props) {
   const [timelineItems, setTimelineItems] = useState<ProcessedTimelineItem[]>(
     [],
   );
@@ -37,12 +29,9 @@ export default function TimelineView({ initialData }: Props) {
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const items = processTimelineData(
-      initialData.proposals,
-      initialData.topics,
-    );
+    const items = processTimelineData(groupData.proposals, groupData.topics);
     setTimelineItems(items);
-  }, [initialData]);
+  }, [groupData]);
 
   const isElementInViewport = useCallback((el: HTMLElement): boolean => {
     const rect = el.getBoundingClientRect();
@@ -137,7 +126,7 @@ export default function TimelineView({ initialData }: Props) {
           {/* Main Header */}
           <div className="flex h-16 items-center px-4">
             <h1 className="text-xl font-semibold">
-              {initialData.group?.name || "Ungrouped Item"}
+              {groupData.group?.name || "Ungrouped Item"}
             </h1>
           </div>
 
@@ -169,9 +158,9 @@ export default function TimelineView({ initialData }: Props) {
           </div>
 
           {/* Results Panel - Takes 1/3 of the space */}
-          <div className="w-1/3">
-            <ResultsPanel proposals={initialData.proposals} />
-          </div>
+          {/* <div className="w-1/3">
+            <ResultsPanel proposals={groupData.proposals} />
+          </div> */}
         </div>
       </div>
     </div>

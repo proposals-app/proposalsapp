@@ -1,6 +1,13 @@
 import { notFound } from "next/navigation";
 import TimelineView from "./components/timeline/TimelineView";
-import { getGroupData } from "./actions";
+import { getGroupData, GroupDataType } from "./actions";
+import Body from "./components/body/Body";
+import { SideBar } from "./components/SideBar";
+import { DetailsBar } from "./components/detailsbar/DetailsBar";
+
+export interface GroupDataProps {
+  groupData: GroupDataType;
+}
 
 export default async function ProposalPage({
   params,
@@ -16,8 +23,13 @@ export default async function ProposalPage({
   }
 
   return (
-    <div className="w-full">
-      <TimelineView initialData={result} />
+    <div className="flex min-h-screen w-full flex-row bg-gray-100">
+      <SideBar dao={result.dao} />
+      <div className="flex flex-col pl-20">
+        <Body groupData={result} />
+        <DetailsBar />
+      </div>
+      {/* <TimelineView groupData={result} /> */}
     </div>
   );
 }
