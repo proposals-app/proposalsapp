@@ -133,8 +133,10 @@ export async function getGroupData(slug: string, proposalOrTopicId: string) {
 }
 
 export type Body = {
-  name: string;
+  title: string;
   content: string;
+  author_name: string;
+  author_picture: string;
   createdAt: Date;
   type: "proposal" | "topic";
 };
@@ -180,8 +182,11 @@ export async function getBodiesForGroup(groupID: string) {
 
   proposals.map((proposal) =>
     bodies.push({
-      name: proposal.name,
+      title: proposal.name,
       content: proposal.body,
+      author_name: "Author Placeholder",
+      author_picture:
+        "https://api.dicebear.com/9.x/pixel-art/svg?seed=Placeholder",
       createdAt: proposal.timeCreated,
       type: "proposal",
     }),
@@ -209,9 +214,21 @@ export async function getBodiesForGroup(groupID: string) {
       .selectAll()
       .executeTakeFirstOrThrow();
 
+    const discourseFirstPostAuthor = await db
+      .selectFrom("discourseUser")
+      .where("discourseUser.externalId", "=", discourseFirstPost.userId)
+      .where("daoDiscourseId", "=", discourseTopic.daoDiscourseId)
+      .selectAll()
+      .executeTakeFirstOrThrow();
+
     bodies.push({
-      name: discourseFirstPost.name ?? discourseFirstPost.username ?? "Unknown",
+      title: discourseTopic.title,
       content: discourseFirstPost.cooked ?? "Unknown",
+      author_name:
+        discourseFirstPostAuthor.name ??
+        discourseFirstPostAuthor.username ??
+        "Unknown",
+      author_picture: discourseFirstPostAuthor.avatarTemplate,
       createdAt: discourseFirstPost.createdAt,
       type: "topic",
     });
@@ -228,9 +245,14 @@ export async function getBodiesForGroup(groupID: string) {
 
     for (const discourseFirstPostRevision of discourseFirstPostRevisions) {
       bodies.push({
-        name:
-          discourseFirstPost.name ?? discourseFirstPost.username ?? "Unknown",
+        title:
+          discourseFirstPostRevision.cookedTitleAfter ?? discourseTopic.title,
         content: discourseFirstPostRevision.cookedBodyAfter ?? "Unknown",
+        author_name:
+          discourseFirstPostAuthor.name ??
+          discourseFirstPostAuthor.username ??
+          "Unknown",
+        author_picture: discourseFirstPostAuthor.avatarTemplate,
         createdAt: discourseFirstPostRevision.createdAt,
         type: "topic",
       });

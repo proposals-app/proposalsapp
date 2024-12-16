@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 
 export default async function Body({ groupData }: GroupDataProps) {
   if (!groupData) {
@@ -25,25 +26,42 @@ export default async function Body({ groupData }: GroupDataProps) {
   const latestBody = bodies[bodies.length - 1];
 
   return (
-    <div className="w-full bg-gray-100 p-4">
-      <div className="flex flex-col">
-        <div className="flex flex-row self-end">
-          <PostedTime
-            label="initially posted"
-            createdAt={initialBody.createdAt}
-          />
+    <div className="flex w-full justify-center bg-gray-100 p-4">
+      <div className="flex w-3/4 flex-col gap-4">
+        <div className="text-4xl font-bold">{latestBody.title}</div>
 
-          <PostedTime
-            label="latest revision"
-            createdAt={latestBody.createdAt}
-            border
-          />
+        <div className="flex flex-col">
+          <div className="flex flex-row justify-between">
+            <div className="flex flex-row items-center gap-2">
+              <Avatar className="bg-gray-500">
+                <AvatarImage src={latestBody.author_picture} />
+                <AvatarFallback>
+                  {latestBody.author_name.slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="font-bold">{latestBody.author_name}</div>
+            </div>
+            <div className="flex flex-row">
+              <PostedTime
+                label="initially posted"
+                createdAt={initialBody.createdAt}
+              />
+
+              <PostedTime
+                label="latest revision"
+                createdAt={latestBody.createdAt}
+                border
+              />
+            </div>
+          </div>
         </div>
 
-        <div
-          className="markdown-content"
-          dangerouslySetInnerHTML={parseMarkdown(latestBody.content)}
-        />
+        <div className="flex flex-col gap-4">
+          <div
+            className="markdown-content"
+            dangerouslySetInnerHTML={parseMarkdown(latestBody.content)}
+          />
+        </div>
       </div>
     </div>
   );
