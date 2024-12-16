@@ -164,8 +164,6 @@ async fn data_for_proposal(
 
     let body = String::new();
 
-    let discussionurl = String::new();
-
     let mut choices: Vec<String> = vec![];
     let mut scores: Vec<f64> = vec![];
     let mut scores_total: f64 = 0.0;
@@ -202,7 +200,7 @@ async fn data_for_proposal(
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
-        discussion_url: Set(discussionurl),
+        discussion_url: NotSet,
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),

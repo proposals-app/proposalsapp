@@ -275,15 +275,13 @@ async fn data_for_proposal(
         _ => ProposalState::Unknown,
     };
 
-    let discussionurl = String::from("");
-
     Ok(proposal::ActiveModel {
         id: NotSet,
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
-        discussion_url: Set(discussionurl),
+        discussion_url: NotSet,
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),

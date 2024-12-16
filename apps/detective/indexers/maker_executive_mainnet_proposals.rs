@@ -224,7 +224,7 @@ async fn data_for_proposal(
         name: Set(proposal_data.title.clone()),
         body: Set(proposal_data.about.clone()),
         url: Set(proposal_url),
-        discussion_url: Set(String::from("")),
+        discussion_url: NotSet,
         choices: Set(json!(vec!["Yes"])),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),

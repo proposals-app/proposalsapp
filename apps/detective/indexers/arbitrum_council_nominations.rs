@@ -537,7 +537,7 @@ async fn get_created_proposals(
             name: Set(event.description.clone()),
             body: Set(event.description.clone()),
             url: Set(url),
-            discussion_url: Set(String::new()),
+            discussion_url: NotSet,
             choices: Set(json!([])),
             scores: Set(json!([])),
             scores_total: Set(0.0),

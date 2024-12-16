@@ -111,7 +111,6 @@ async fn data_for_proposal(
     let title = format!("Vote #{}", log.vote_id);
     let body = log.metadata.to_string();
     let proposal_url = format!("https://vote.lido.fi/vote/{}", log.vote_id);
-    let discussionurl = String::from("");
 
     let onchain_proposal = gov_contract
         .get_vote(log.vote_id)
@@ -159,7 +158,7 @@ async fn data_for_proposal(
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
-        discussion_url: Set(discussionurl),
+        discussion_url: NotSet,
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),

@@ -220,7 +220,7 @@ async fn get_proposals(
             name: Set(format!("Nomination Proposal for {}", event.description)),
             body: Set(String::new()), // Fill with actual description if available
             url: Set(String::new()),  // Fill with actual URL if available
-            discussion_url: Set(String::new()), // Fill with actual discussion URL if available
+            discussion_url: NotSet,   // Fill with actual discussion URL if available
             choices: NotSet,
             scores: NotSet,
             scores_total: Set(0.0),

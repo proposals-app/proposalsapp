@@ -15,7 +15,10 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::{prelude::*, Decimal};
-use sea_orm::{ActiveValue, ColumnTrait, Condition, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveValue::{self, NotSet},
+    ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
+};
 use seaorm::{
     dao, dao_indexer, proposal,
     sea_orm_active_enums::{IndexerType, ProposalState},
@@ -331,15 +334,13 @@ async fn data_for_proposal_one(
         _ => ProposalState::Unknown,
     };
 
-    let discussionurl = String::from("");
-
     Ok(proposal::ActiveModel {
         id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
-        discussion_url: Set(discussionurl),
+        discussion_url: NotSet,
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
@@ -591,15 +592,13 @@ async fn data_for_proposal_two(
         _ => ProposalState::Unknown,
     };
 
-    let discussionurl = String::from("");
-
     Ok(proposal::ActiveModel {
         id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
-        discussion_url: Set(discussionurl),
+        discussion_url: NotSet,
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
@@ -799,15 +798,13 @@ async fn data_for_proposal_three(
         .to::<u128>() as f64
         / (10.0f64.powi(18));
 
-    let discussionurl = String::from("");
-
     Ok(proposal::ActiveModel {
         id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
-        discussion_url: Set(discussionurl),
+        discussion_url: NotSet,
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
@@ -959,15 +956,13 @@ async fn data_for_proposal_four(
         _ => ProposalState::Unknown,
     };
 
-    let discussionurl = String::from("");
-
     Ok(proposal::ActiveModel {
         id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
-        discussion_url: Set(discussionurl),
+        discussion_url: NotSet,
         choices: Set(json!(choices)),
         scores: Set(json!(scores)),
         scores_total: Set(scores_total),
