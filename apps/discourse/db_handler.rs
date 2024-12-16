@@ -397,7 +397,7 @@ impl DbHandler {
                         seaorm::job_queue::Entity::insert(seaorm::job_queue::ActiveModel {
                             id: NotSet,
                             r#type: Set("MAPPER_NEW_PROPOSAL_DISCUSSION".into()),
-                            data: Set(json!({"discourse_topic": result.last_insert_id, "category_id": topic.category_id})),
+                            data: Set(json!({"discourse_topic_id": result.last_insert_id})),
                             status: Set("PENDING".into()),
                             created_at: NotSet,
                         })

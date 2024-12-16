@@ -83,9 +83,29 @@ pub async fn store_proposals(
         .into_iter()
         .partition(|p| !existing_proposals.contains_key(&p.external_id.clone().unwrap()));
 
-    // Batch insert
+    // Batch insert new proposals
     if !to_insert.is_empty() {
-        proposal::Entity::insert_many(to_insert).exec(&txn).await?;
+        for proposal in to_insert {
+            let result = proposal::Entity::insert(proposal.clone())
+                .exec(&txn)
+                .await?;
+
+            if indexer.indexer_variant == IndexerVariant::SnapshotProposals
+                && proposal.discussion_url.is_set()
+            {
+                seaorm::job_queue::Entity::insert(seaorm::job_queue::ActiveModel {
+                    id: NotSet,
+                    r#type: Set("MAPPER_NEW_PROPOSAL_SNAPSHOT".into()),
+                    data: Set(serde_json::json!({
+                        "proposal_id": result.last_insert_id,
+                    })),
+                    status: Set("PENDING".into()),
+                    created_at: NotSet,
+                })
+                .exec(&txn)
+                .await?;
+            }
+        }
     }
 
     // Batch update
