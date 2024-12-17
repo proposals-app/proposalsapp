@@ -217,6 +217,7 @@ async fn get_proposals(
         proposals.push(proposal::ActiveModel {
             id: NotSet,
             external_id: Set(event.proposalId.to_string()),
+            author: Set(Some(event.proposer.to_string())),
             name: Set(format!("Nomination Proposal for {}", event.description)),
             body: Set(String::new()), // Fill with actual description if available
             url: Set(String::new()),  // Fill with actual URL if available

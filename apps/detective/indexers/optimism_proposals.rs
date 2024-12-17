@@ -337,6 +337,7 @@ async fn data_for_proposal_one(
     Ok(proposal::ActiveModel {
         id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
+        author: Set(Some(event.proposer.to_string())),
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
@@ -595,6 +596,7 @@ async fn data_for_proposal_two(
     Ok(proposal::ActiveModel {
         id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
+        author: Set(Some(event.proposer.to_string())),
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
@@ -801,6 +803,7 @@ async fn data_for_proposal_three(
     Ok(proposal::ActiveModel {
         id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
+        author: Set(Some(event.proposer.to_string())),
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),
@@ -959,6 +962,7 @@ async fn data_for_proposal_four(
     Ok(proposal::ActiveModel {
         id: ActiveValue::NotSet,
         external_id: Set(proposal_external_id),
+        author: Set(Some(event.proposer.to_string())),
         name: Set(title),
         body: Set(body),
         url: Set(proposal_url),

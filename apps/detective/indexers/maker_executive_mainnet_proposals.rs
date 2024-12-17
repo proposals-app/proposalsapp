@@ -221,6 +221,7 @@ async fn data_for_proposal(
     Ok(proposal::ActiveModel {
         id: NotSet,
         external_id: Set(spell_address.to_string()),
+        author: Set(Some(spell_address.to_string())),
         name: Set(proposal_data.title.clone()),
         body: Set(proposal_data.about.clone()),
         url: Set(proposal_url),

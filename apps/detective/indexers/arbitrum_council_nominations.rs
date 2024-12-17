@@ -534,6 +534,7 @@ async fn get_created_proposals(
         proposals.push(proposal::ActiveModel {
             id: NotSet,
             external_id: Set(event.proposalId.to_string()),
+            author: Set(Some(event.proposer.to_string())),
             name: Set(event.description.clone()),
             body: Set(event.description.clone()),
             url: Set(url),
@@ -592,6 +593,7 @@ async fn get_canceled_proposals(
         proposals.push(proposal::ActiveModel {
             id: NotSet,
             external_id: Set(event.proposalId.to_string()),
+            author: NotSet,
             name: NotSet,
             body: NotSet,
             url: NotSet,
@@ -647,6 +649,7 @@ async fn get_executed_proposals(
         proposals.push(proposal::ActiveModel {
             id: NotSet,
             external_id: Set(event.proposalId.to_string()),
+            author: NotSet,
             name: NotSet,
             body: NotSet,
             url: NotSet,

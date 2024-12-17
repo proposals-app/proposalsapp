@@ -281,6 +281,7 @@ export interface JobQueue {
 }
 
 export interface Proposal {
+  author: string | null;
   blockCreated: number | null;
   body: string;
   choices: Generated<Json>;

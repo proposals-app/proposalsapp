@@ -33,6 +33,7 @@ struct GraphQLResponseInnerProposals {
 #[derive(Debug, Clone, Deserialize)]
 struct GraphQLProposal {
     id: String,
+    author: String,
     title: String,
     body: String,
     discussion: String,
@@ -127,6 +128,7 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
                 )
                 {{
                     id
+                    author
                     title
                     body
                     discussion
@@ -227,6 +229,7 @@ async fn parse_proposals(
         let proposal_model = proposal::ActiveModel {
             id: NotSet,
             external_id: Set(p.id.clone()),
+            author: Set(Some(p.author)),
             name: Set(p.title),
             body: Set(p.body),
             url: Set(p.link),

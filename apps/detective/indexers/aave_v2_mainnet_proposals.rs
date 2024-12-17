@@ -298,6 +298,7 @@ async fn data_for_proposal(
 
     Ok(proposal::ActiveModel {
         id: NotSet,
+        author: Set(Some(event.creator.to_string())),
         external_id: Set(proposal_external_id),
         name: Set(title),
         body: Set(body),

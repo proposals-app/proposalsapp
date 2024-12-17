@@ -37,6 +37,7 @@ pub struct Model {
     pub metadata: Option<Json>,
     pub dao_indexer_id: Uuid,
     pub dao_id: Uuid,
+    pub author: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -63,6 +64,7 @@ pub enum Column {
     Metadata,
     DaoIndexerId,
     DaoId,
+    Author,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -110,6 +112,7 @@ impl ColumnTrait for Column {
             Self::Metadata => ColumnType::JsonBinary.def().null(),
             Self::DaoIndexerId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
+            Self::Author => ColumnType::Text.def().null(),
         }
     }
 }
