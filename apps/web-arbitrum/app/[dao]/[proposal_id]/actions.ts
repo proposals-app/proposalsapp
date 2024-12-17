@@ -248,7 +248,9 @@ export async function getBodiesForGroup(groupID: string) {
       bodies.push({
         title:
           discourseFirstPostRevision.cookedTitleAfter ?? discourseTopic.title,
-        content: discourseFirstPostRevision.cookedBodyAfter ?? "Unknown",
+        content:
+          discourseFirstPostRevision.cookedBodyAfter ??
+          discourseFirstPost.cooked,
         author_name:
           discourseFirstPostAuthor.name ??
           discourseFirstPostAuthor.username ??
