@@ -35,11 +35,7 @@ export default async function ProposalPage({
       <SideBar dao={groupData.dao} />
       <div className="flex flex-row pl-20">
         <Body bodies={bodies} version={version} />
-        <DetailsBar
-          groupData={groupData}
-          daoParam={dao}
-          proposalIdParam={proposal_id}
-        />
+        <DetailsBar groupData={groupData} />
       </div>
       {/* <TimelineView groupData={result} /> */}
     </div>

@@ -4,15 +4,9 @@ import BodyVersion from "./BodyVersions";
 
 interface DetailsBarProps {
   groupData: GroupDataType | null;
-  daoParam: string;
-  proposalIdParam: string;
 }
 
-export async function DetailsBar({
-  groupData,
-  daoParam,
-  proposalIdParam,
-}: DetailsBarProps) {
+export async function DetailsBar({ groupData }: DetailsBarProps) {
   if (!groupData) {
     notFound();
   }
@@ -27,7 +21,7 @@ export async function DetailsBar({
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const pathname = `/${daoParam}/${proposalIdParam}`;
+  const pathname = `/${groupData.daoSlug}/${groupData.proposalOrTopicId}`;
   const searchParams = new URLSearchParams();
 
   return (

@@ -129,6 +129,8 @@ export async function getGroupData(slug: string, proposalOrTopicId: string) {
     group: matchingGroup,
     proposals: fetchedProposals,
     topics: fetchedTopics,
+    daoSlug: slug,
+    proposalOrTopicId: proposalOrTopicId,
   };
 }
 
