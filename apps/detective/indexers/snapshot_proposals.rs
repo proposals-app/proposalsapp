@@ -3,7 +3,7 @@ use crate::{
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
     snapshot_api::SnapshotApiHandler,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use sea_orm::{
@@ -73,9 +73,11 @@ impl Indexer for SnapshotProposalsIndexer {
     fn max_refresh_speed(&self) -> i32 {
         1000
     }
+
     fn indexer_type(&self) -> IndexerType {
         IndexerType::Proposals
     }
+
     fn timeout(&self) -> Duration {
         Duration::from_secs(30 * 60)
     }
@@ -112,7 +114,10 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
         let sanitize_from: NaiveDateTime = (Utc::now() - chrono::Duration::days(90)).naive_utc();
         let sanitize_to: NaiveDateTime = (Utc::now() - chrono::Duration::minutes(5)).naive_utc();
 
-        sanitize(indexer, snapshot_space, sanitize_from, sanitize_to).await?;
+        if let Err(e) = sanitize(indexer, snapshot_space, sanitize_from, sanitize_to).await {
+            tracing::error!("Sanitize error: {}", e);
+            return Err(anyhow!("Failed to sanitize proposals: {}", e));
+        }
 
         let graphql_query = format!(
             r#"
@@ -120,11 +125,11 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
                 proposals (
                     first: {},
                     orderBy: "created",
-                    orderDirection: asc
+                    orderDirection: asc,
                     where: {{
                         space: {:?},
                         created_gte: {}
-                }},
+                    }},
                 )
                 {{
                     id
@@ -151,13 +156,25 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
             indexer.speed, snapshot_space, indexer.index
         );
 
-        let graphql_response: GraphQLResponseProposals = self
+        let graphql_response: GraphQLResponseProposals = match self
             .api_handler
-            .fetch("https://hub.snapshot.org/graphql", graphql_query.to_owned())
-            .await?;
+            .fetch("https://hub.snapshot.org/graphql", graphql_query)
+            .await
+        {
+            Ok(response) => response,
+            Err(e) => {
+                return Err(anyhow!(
+                    "Failed to fetch proposals from Snapshot API: {}",
+                    e
+                ))
+            }
+        };
 
         let proposals = if let Some(data) = graphql_response.data {
-            parse_proposals(data.proposals, indexer, self.api_handler.clone()).await?
+            match parse_proposals(data.proposals, indexer, self.api_handler.clone()).await {
+                Ok(parsed_proposals) => parsed_proposals,
+                Err(e) => return Err(anyhow!("Failed to parse proposals: {}", e)),
+            }
         } else {
             vec![]
         };
@@ -200,20 +217,18 @@ async fn parse_proposals(
     let mut proposals = vec![];
 
     for p in graphql_proposals {
-        let state = if p.state.as_str() == "pending" && p.privacy.as_str() == "shutter" {
-            ProposalState::Hidden
-        } else if p.state.as_str() == "active" {
-            ProposalState::Active
-        } else if p.state.as_str() == "pending" {
-            ProposalState::Pending
-        } else if p.state.as_str() == "closed" {
-            if p.scores_state == "final" {
-                ProposalState::Executed
-            } else {
-                ProposalState::Defeated
+        let state = match p.state.as_str() {
+            "pending" if p.privacy.as_str() == "shutter" => ProposalState::Hidden,
+            "active" => ProposalState::Active,
+            "pending" => ProposalState::Pending,
+            "closed" => {
+                if p.scores_state == "final" {
+                    ProposalState::Executed
+                } else {
+                    ProposalState::Defeated
+                }
             }
-        } else {
-            ProposalState::Unknown
+            _ => ProposalState::Unknown,
         };
 
         let time_created = DateTime::<Utc>::from_timestamp(p.created as i64, 0)
@@ -234,8 +249,8 @@ async fn parse_proposals(
             body: Set(p.body),
             url: Set(p.link),
             discussion_url: Set(p.discussion),
-            choices: Set(serde_json::to_value(p.choices).unwrap()),
-            scores: Set(serde_json::to_value(p.scores).unwrap()),
+            choices: Set(serde_json::to_value(&p.choices)?),
+            scores: Set(serde_json::to_value(&p.scores)?),
             scores_total: Set(p.scores_total),
             quorum: Set(p.quorum),
             scores_quorum: Set(p.scores_total),
@@ -248,14 +263,18 @@ async fn parse_proposals(
             dao_indexer_id: Set(indexer.id),
             dao_id: Set(indexer.dao_id),
             index_created: Set(p.created),
-            metadata: Set(json!({"snapshot_type":p.proposal_type}).into()),
+            metadata: Set(json!({"snapshot_type": p.proposal_type}).into()),
             txid: Set(Some(p.ipfs)),
         };
 
         proposals.push(proposal_model);
 
         if p.privacy.as_str() == "shutter" && p.scores_state.as_str() == "final" {
-            refresh_shutter_votes(indexer.clone(), snapshot_api.clone(), p.id).await?;
+            if let Err(e) = refresh_shutter_votes(indexer.clone(), snapshot_api.clone(), p.id).await
+            {
+                tracing::error!("Failed to refresh shutter votes: {}", e);
+                // Optionally, continue processing other proposals or return an error
+            }
         }
     }
 
@@ -295,12 +314,16 @@ async fn refresh_shutter_votes(
 ) -> Result<()> {
     let db = DatabaseStore::connect().await?;
 
-    let dao = dao::Entity::find()
+    let dao = match dao::Entity::find()
         .filter(dao::Column::Id.eq(indexer.dao_id))
         .one(&db)
-        .await?;
+        .await?
+    {
+        Some(dao) => dao,
+        None => return Err(anyhow!("DAO not found for ID: {}", indexer.dao_id)),
+    };
 
-    let snapshot_space = match dao.unwrap().slug.as_str() {
+    let snapshot_space = match dao.slug.as_str() {
         "compound" => "comp-vote.eth",
         "gitcoin" => "gitcoindao.eth",
         "arbitrum_dao" => "arbitrumfoundation.eth",
@@ -314,7 +337,7 @@ async fn refresh_shutter_votes(
         _ => {
             return Err(anyhow::anyhow!(
                 "Unsupported DAO for Snapshot - {}",
-                indexer.dao_id
+                dao.name
             ))
         }
     };
@@ -353,9 +376,13 @@ async fn refresh_shutter_votes(
             BATCH_SIZE, skip, snapshot_space, proposal_id
         );
 
-        let graphql_response: GraphQLResponseVotes = snapshot_api
-            .fetch("https://hub.snapshot.org/graphql", graphql_query.to_owned())
-            .await?;
+        let graphql_response: GraphQLResponseVotes = match snapshot_api
+            .fetch("https://hub.snapshot.org/graphql", graphql_query)
+            .await
+        {
+            Ok(response) => response,
+            Err(e) => return Err(anyhow!("Failed to fetch votes from Snapshot API: {}", e)),
+        };
 
         let votes_result: Result<Vec<_>> = graphql_response
             .data
@@ -370,7 +397,7 @@ async fn refresh_shutter_votes(
                     choice: Set(if v.choice.is_number() {
                         (v.choice
                             .as_i64()
-                            .ok_or_else(|| anyhow::anyhow!("Invalid choice value"))?
+                            .ok_or_else(|| anyhow!("Invalid choice value"))?
                             - 1)
                         .into()
                     } else {
@@ -392,7 +419,11 @@ async fn refresh_shutter_votes(
             })
             .collect();
 
-        let votes = votes_result?;
+        let votes = match votes_result {
+            Ok(votes) => votes,
+            Err(e) => return Err(anyhow!("Failed to parse votes: {}", e)),
+        };
+
         if votes.is_empty() {
             break;
         }
@@ -412,17 +443,17 @@ async fn sanitize(
     sanitize_to: chrono::NaiveDateTime,
 ) -> Result<()> {
     #[derive(Debug, Deserialize)]
-    struct GraphQLResponse {
-        data: GraphQLResponseInner,
+    struct GraphQLResponseSanitize {
+        data: GraphQLResponseInnerSanitize,
     }
 
     #[derive(Deserialize, Debug)]
-    struct GraphQLResponseInner {
-        proposals: Vec<GraphQLProposal>,
+    struct GraphQLResponseInnerSanitize {
+        proposals: Vec<GraphQLProposalSanitize>,
     }
 
     #[derive(Debug, Clone, Deserialize)]
-    struct GraphQLProposal {
+    struct GraphQLProposalSanitize {
         id: String,
     }
 
@@ -461,15 +492,21 @@ async fn sanitize(
         sanitize_to.and_utc().timestamp()
     );
 
-    let graphql_response = reqwest::Client::new()
+    let response = reqwest::Client::new()
         .get("https://hub.snapshot.org/graphql")
         .json(&serde_json::json!({"query": graphql_query}))
         .send()
-        .await?
-        .json::<GraphQLResponse>()
         .await?;
 
-    let graph_proposals: Vec<GraphQLProposal> = graphql_response.data.proposals;
+    if !response.status().is_success() {
+        return Err(anyhow!(
+            "Failed to fetch proposals from Snapshot API: {}",
+            response.status()
+        ));
+    }
+
+    let graphql_response = response.json::<GraphQLResponseSanitize>().await?;
+    let graph_proposals: Vec<GraphQLProposalSanitize> = graphql_response.data.proposals;
 
     let graphql_proposal_ids: Vec<String> = graph_proposals
         .iter()
