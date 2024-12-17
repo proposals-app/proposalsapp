@@ -357,7 +357,7 @@ async fn refresh_shutter_votes(
                         orderDirection: asc,
                         where: {{
                             space: "{}",
-                            proposal: "{}"
+                            proposal_in: [{}],
                         }}
                     )
                     {{
