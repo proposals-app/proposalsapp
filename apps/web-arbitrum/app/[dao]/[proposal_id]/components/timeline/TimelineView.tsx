@@ -6,9 +6,8 @@ import {
   ProposalContent,
 } from "./types";
 import { processTimelineData } from "./utils";
-import { ResultsPanel } from "../results/ResultsPanel";
-import { GroupDataProps } from "../../page";
 import { notFound } from "next/navigation";
+import { GroupDataType } from "../../actions";
 
 interface CollapsibleCard {
   id: number;
@@ -16,7 +15,11 @@ interface CollapsibleCard {
   timestamp: Date;
 }
 
-export default function TimelineView({ groupData }: GroupDataProps) {
+interface DetailsBarProps {
+  groupData: GroupDataType | null;
+}
+
+export default function TimelineView({ groupData }: DetailsBarProps) {
   if (!groupData) {
     notFound();
   }

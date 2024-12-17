@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
-import { GroupDataProps } from "../../page";
-import { getBodiesForGroup } from "../../actions";
+import {
+  BodiesDataType,
+  getBodiesForGroup,
+  GroupDataType,
+} from "../../actions";
 import { format, formatDistanceToNow, formatISO } from "date-fns";
 import {
   Tooltip,
@@ -11,13 +14,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import ContentSectionClient from "./ContentSectionClient";
 
-export default async function Body({ groupData }: GroupDataProps) {
-  if (!groupData) {
-    notFound();
-  }
-
-  const bodies = await getBodiesForGroup(groupData.group.id);
-
+export default async function Body({
+  bodies,
+  version,
+}: {
+  bodies: BodiesDataType;
+  version: number;
+}) {
   if (!bodies || bodies.length === 0) {
     return <div className="w-full bg-gray-100 p-4">No bodies found.</div>;
   }
@@ -25,17 +28,18 @@ export default async function Body({ groupData }: GroupDataProps) {
   // Find the initial and latest bodies based on createdAt
   const initialBody = bodies[0];
   const latestBody = bodies[bodies.length - 1];
+  const visibleBody = bodies[version];
 
   return (
     <div className="flex w-full justify-center bg-gray-100 p-4">
       <div className="flex w-3/4 flex-col gap-4">
-        <div className="text-4xl font-bold">{latestBody.title}</div>
+        <div className="text-4xl font-bold">{visibleBody.title}</div>
 
         <div className="flex flex-col">
           <div className="flex flex-row justify-between">
             <AuthorInfo
-              authorName={latestBody.author_name}
-              authorPicture={latestBody.author_picture}
+              authorName={visibleBody.author_name}
+              authorPicture={visibleBody.author_picture}
             />
 
             <div className="flex flex-row">
@@ -53,7 +57,7 @@ export default async function Body({ groupData }: GroupDataProps) {
           </div>
         </div>
 
-        <ContentSectionClient content={latestBody.content} />
+        <ContentSectionClient content={visibleBody.content} />
       </div>
     </div>
   );
