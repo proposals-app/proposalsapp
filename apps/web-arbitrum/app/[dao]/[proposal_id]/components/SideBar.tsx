@@ -9,7 +9,7 @@ interface SideBarProps {
 
 export function SideBar(props: SideBarProps) {
   return (
-    <div className="absolute flex min-h-screen flex-col items-center bg-gray-300 p-2">
+    <div className="fixed left-0 top-0 flex min-h-screen flex-col items-center bg-gray-300 p-2">
       <Image
         className="aspect-square w-16 rounded-sm"
         src={`/${props.dao.picture}_large.png`}
