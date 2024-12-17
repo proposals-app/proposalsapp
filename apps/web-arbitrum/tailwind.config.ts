@@ -107,12 +107,17 @@ const config = {
             transform: "rotate(0deg)",
           },
         },
+        "slide-up": {
+          from: { transform: "translateY(100%)" },
+          to: { transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "logo-skew": "logo-skew-keyframes 0.5s ease forwards",
         "logo-straight": "logo-straight-keyframes 0.5s ease forwards",
+        "slide-up": "slide-up 0.3s ease-in-out",
       },
     },
   },

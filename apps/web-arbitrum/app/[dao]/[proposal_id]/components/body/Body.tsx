@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
+import ContentSectionClient from "./ContentSectionClient";
 
 export default async function Body({ groupData }: GroupDataProps) {
   if (!groupData) {
@@ -52,7 +53,7 @@ export default async function Body({ groupData }: GroupDataProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">{latestBody.content}</div>
+        <ContentSectionClient content={latestBody.content} />
       </div>
     </div>
   );
