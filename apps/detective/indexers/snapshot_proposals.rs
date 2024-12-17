@@ -295,7 +295,12 @@ async fn refresh_shutter_votes(
 ) -> Result<()> {
     let db = DatabaseStore::connect().await?;
 
-    let snapshot_space = match indexer.dao_id.to_string().as_str() {
+    let dao = dao::Entity::find()
+        .filter(dao::Column::Id.eq(indexer.dao_id))
+        .one(&db)
+        .await?;
+
+    let snapshot_space = match dao.unwrap().slug.as_str() {
         "compound" => "comp-vote.eth",
         "gitcoin" => "gitcoindao.eth",
         "arbitrum_dao" => "arbitrumfoundation.eth",
