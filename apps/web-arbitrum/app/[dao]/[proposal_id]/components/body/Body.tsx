@@ -1,9 +1,4 @@
-import { notFound } from "next/navigation";
-import {
-  BodiesDataType,
-  getBodiesForGroup,
-  GroupDataType,
-} from "../../actions";
+import { BodiesDataType } from "../../actions";
 import { format, formatDistanceToNow, formatISO } from "date-fns";
 import {
   Tooltip,
@@ -12,7 +7,7 @@ import {
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
-import ContentSectionClient from "./ContentSectionClient";
+import BodyContent from "./BodyContent";
 
 export default async function Body({
   bodies,
@@ -57,7 +52,7 @@ export default async function Body({
           </div>
         </div>
 
-        <ContentSectionClient content={visibleBody.content} />
+        <BodyContent content={visibleBody.content} />
       </div>
     </div>
   );

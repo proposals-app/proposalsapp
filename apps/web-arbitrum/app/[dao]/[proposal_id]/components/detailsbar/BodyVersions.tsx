@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  notFound,
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
+import { notFound } from "next/navigation";
 import { Body } from "../../actions";
 import {
   Tooltip,

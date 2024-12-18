@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp } from "lucide-react";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import DOMPurify from "isomorphic-dompurify";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -89,10 +89,7 @@ const sharedMarkdownStyles: Components = {
   ),
 };
 
-const ContentSectionClient = ({
-  content,
-  contentType,
-}: ContentSectionClientProps) => {
+const BodyContent = ({ content, contentType }: ContentSectionClientProps) => {
   const [viewType, setViewType] = useQueryState(
     "view",
     parseAsStringEnum<ViewType>(Object.values(ViewType))
@@ -232,4 +229,4 @@ const ContentSectionClient = ({
   );
 };
 
-export default ContentSectionClient;
+export default BodyContent;
