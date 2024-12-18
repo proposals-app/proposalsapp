@@ -5,6 +5,7 @@ import OnboardingFlow from "./components/onboarding/onboarding";
 import { SessionProvider } from "./components/session-provider";
 import dynamic from "next/dynamic";
 import { PHProvider } from "./components/posthog-provider";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? "https://proposals.app"),
@@ -50,17 +51,19 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <PHProvider>
-        <body className="bg-[#F1EBE7]">
-          <PostHogPageView />
-          <SessionProvider value={session}>
-            <OnboardingFlow />
-            <div className="flex h-full min-h-screen w-full flex-col items-center bg-luna">
-              {children}
-            </div>
-          </SessionProvider>
-        </body>
-      </PHProvider>
+      <NuqsAdapter>
+        <PHProvider>
+          <body className="bg-[#F1EBE7]">
+            <PostHogPageView />
+            <SessionProvider value={session}>
+              <OnboardingFlow />
+              <div className="flex h-full min-h-screen w-full flex-col items-center bg-luna">
+                {children}
+              </div>
+            </SessionProvider>
+          </body>
+        </PHProvider>
+      </NuqsAdapter>
     </html>
   );
 }

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getBodiesForGroup, GroupDataType } from "../../actions";
 import BodyVersion from "./BodyVersions";
+import { searchParamsCache, ViewType } from "@/app/searchParams";
 
 interface DetailsBarProps {
   groupData: GroupDataType | null;
@@ -21,20 +22,19 @@ export async function DetailsBar({ groupData }: DetailsBarProps) {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const pathname = `/${groupData.daoSlug}/${groupData.proposalOrTopicId}`;
-  const searchParams = new URLSearchParams();
+  const view = searchParamsCache.get("view");
 
-  return (
-    <div className="flex min-w-64 flex-col gap-4 bg-gray-600 p-4">
-      {bodies.map((body, index) => (
-        <BodyVersion
-          key={index}
-          body={body}
-          versionIndex={bodies.length - 1 - index}
-          pathname={pathname}
-          searchParams={searchParams}
-        />
-      ))}
-    </div>
-  );
+  if (view == ViewType.BODY)
+    return (
+      <div className="flex min-w-80 flex-col gap-4 p-4">
+        {bodies.map((body, index) => (
+          <BodyVersion
+            key={index}
+            body={body}
+            version={bodies.length - 1 - index}
+          />
+        ))}
+      </div>
+    );
+  else return <div className="flex min-w-80 flex-col gap-4 p-4">Timeline</div>;
 }

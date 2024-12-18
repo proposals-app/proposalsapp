@@ -7,11 +7,22 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
+import { parseAsStringEnum, useQueryState } from "nuqs";
+import { ViewType } from "@/app/searchParams";
 
 interface ContentSectionClientProps {
   content: string;
   contentType?: "html" | "markdown";
 }
+
+const detectContentType = (content: string): "html" | "markdown" => {
+  if (!content?.trim()) {
+    return "markdown";
+  }
+  const firstLine = content.trim().split("\n")[0];
+  const hasHtmlTags = /<[^>]+>/g.test(firstLine);
+  return hasHtmlTags ? "html" : "markdown";
+};
 
 const sharedMarkdownStyles: Components = {
   h1: ({ children }: { children: React.ReactNode }) => (
@@ -82,18 +93,14 @@ const ContentSectionClient = ({
   content,
   contentType,
 }: ContentSectionClientProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [viewportHeight, setViewportHeight] = useState<number>(0);
+  const [viewType, setViewType] = useQueryState(
+    "view",
+    parseAsStringEnum<ViewType>(Object.values(ViewType))
+      .withDefault(ViewType.TIMELINE)
+      .withOptions({ shallow: false }),
+  );
 
-  const detectContentType = (content: string): "html" | "markdown" => {
-    if (!content?.trim()) {
-      return "markdown";
-    }
-    const firstLine = content.trim().split("\n")[0];
-    const hasHtmlTags = /<[^>]+>/g.test(firstLine);
-    return hasHtmlTags ? "html" : "markdown";
-  };
+  const [viewportHeight, setViewportHeight] = useState<number>(0);
 
   const actualContentType = contentType ?? detectContentType(content);
 
@@ -155,15 +162,23 @@ const ContentSectionClient = ({
         })
       : content;
 
+  const toggleView = () => {
+    if (viewType === ViewType.BODY) {
+      setViewType(ViewType.TIMELINE);
+    } else {
+      setViewType(ViewType.BODY);
+    }
+  };
+
   return (
     <div className="relative min-h-screen pb-16">
       <div
-        ref={contentRef}
         className={`relative transition-all duration-500 ease-in-out ${
-          !isExpanded ? "overflow-hidden" : ""
+          viewType === ViewType.BODY ? "" : "overflow-hidden"
         }`}
         style={{
-          maxHeight: isExpanded ? "none" : `${collapsedHeight}px`,
+          maxHeight:
+            viewType === ViewType.BODY ? "none" : `${collapsedHeight}px`,
         }}
       >
         <div className="prose prose-lg max-w-none">
@@ -183,7 +198,7 @@ const ContentSectionClient = ({
           )}
         </div>
 
-        {!isExpanded && (
+        {viewType === ViewType.TIMELINE && (
           <div
             className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-100 to-transparent"
             aria-hidden="true"
@@ -191,9 +206,9 @@ const ContentSectionClient = ({
         )}
       </div>
 
-      {!isExpanded ? (
+      {viewType === ViewType.TIMELINE ? (
         <button
-          onClick={() => setIsExpanded(true)}
+          onClick={toggleView}
           className="mt-4 flex w-full cursor-pointer items-center justify-start gap-2 rounded-full border bg-white p-2 text-sm font-bold transition-colors hover:bg-gray-50"
           aria-label="Expand proposal content"
         >
@@ -202,7 +217,7 @@ const ContentSectionClient = ({
         </button>
       ) : (
         <button
-          onClick={() => setIsExpanded(false)}
+          onClick={toggleView}
           className="fixed bottom-0 left-4 right-4 z-50 mx-auto flex w-full max-w-[600px] animate-slide-up cursor-pointer items-center justify-between gap-2 rounded-t-xl border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50"
           aria-label="Collapse proposal content"
         >

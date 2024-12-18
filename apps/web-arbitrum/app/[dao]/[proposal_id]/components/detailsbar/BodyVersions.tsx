@@ -1,5 +1,11 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
+"use client";
+
+import {
+  notFound,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import { Body } from "../../actions";
 import {
   Tooltip,
@@ -8,20 +14,14 @@ import {
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
 import { format, formatDistanceToNow, formatISO } from "date-fns";
+import { parseAsInteger, useQueryState } from "nuqs";
 
 interface BodyVersionProps {
   body: Body;
-  versionIndex: number; // Add this prop to pass the index of the body
-  pathname: string; // Pathname for the Link component
-  searchParams: URLSearchParams; // Search parameters for the Link component
+  version: number;
 }
 
-export default function BodyVersion({
-  body,
-  versionIndex,
-  pathname,
-  searchParams,
-}: BodyVersionProps) {
+export default function BodyVersion({ body, version }: BodyVersionProps) {
   if (!body) {
     notFound();
   }
@@ -35,19 +35,22 @@ export default function BodyVersion({
     "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
   );
 
-  // Clone search params and set the version query parameter
-  const newSearchParams = new URLSearchParams(searchParams);
-  newSearchParams.set("version", versionIndex.toString());
+  const [_, setVersion] = useQueryState(
+    "version",
+    parseAsInteger.withOptions({ shallow: false }),
+  );
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Link href={{ pathname, search: newSearchParams.toString() }}>
-            <div className="flex cursor-pointer flex-col items-center rounded-lg border bg-white p-2">
-              <span className="font-bold">{relativeTime}</span>
-            </div>
-          </Link>
+          <div
+            className="flex cursor-pointer flex-col items-end rounded-xl border bg-white p-4 text-sm"
+            onClick={() => setVersion(version)}
+          >
+            <p>latest revision</p>
+            <span className="font-bold">{relativeTime}</span>
+          </div>
         </TooltipTrigger>
         <TooltipContent className="w-40 text-center text-xs">
           <p>{formattedDateTime}</p>
