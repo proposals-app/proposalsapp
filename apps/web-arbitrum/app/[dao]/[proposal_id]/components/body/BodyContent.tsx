@@ -7,8 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
-import { parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
-import { ViewType } from "@/app/searchParams";
+import { parseAsInteger, useQueryState } from "nuqs";
 
 interface ContentSectionClientProps {
   content: string;
@@ -89,12 +88,7 @@ const sharedMarkdownStyles: Components = {
 };
 
 const BodyContent = ({ content }: ContentSectionClientProps) => {
-  const [viewType, setViewType] = useQueryState(
-    "view",
-    parseAsStringEnum<ViewType>(Object.values(ViewType))
-      .withDefault(ViewType.TIMELINE)
-      .withOptions({ shallow: false }),
-  );
+  const [expanded, setExpanded] = useState(false);
   const [_, setVersion] = useQueryState(
     "version",
     parseAsInteger.withOptions({ shallow: false }),
@@ -162,24 +156,14 @@ const BodyContent = ({ content }: ContentSectionClientProps) => {
         })
       : content;
 
-  const toggleView = () => {
-    if (viewType === ViewType.BODY) {
-      setViewType(ViewType.TIMELINE);
-      setVersion(null);
-    } else {
-      setViewType(ViewType.BODY);
-    }
-  };
-
   return (
-    <div className="relative min-h-screen pb-16">
+    <div className="relative pb-16">
       <div
         className={`relative transition-all duration-500 ease-in-out ${
-          viewType === ViewType.BODY ? "" : "overflow-hidden"
+          !expanded ? "" : "overflow-hidden"
         }`}
         style={{
-          maxHeight:
-            viewType === ViewType.BODY ? "none" : `${collapsedHeight}px`,
+          maxHeight: !expanded ? "none" : `${collapsedHeight}px`,
         }}
       >
         <div className="prose prose-lg max-w-none">
@@ -199,7 +183,7 @@ const BodyContent = ({ content }: ContentSectionClientProps) => {
           )}
         </div>
 
-        {viewType === ViewType.TIMELINE && (
+        {expanded && (
           <div
             className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-100 to-transparent"
             aria-hidden="true"
@@ -207,9 +191,11 @@ const BodyContent = ({ content }: ContentSectionClientProps) => {
         )}
       </div>
 
-      {viewType === ViewType.TIMELINE ? (
+      {expanded ? (
         <button
-          onClick={toggleView}
+          onClick={() => {
+            setExpanded(!expanded);
+          }}
           className="mt-4 flex w-full cursor-pointer items-center justify-start gap-2 rounded-full border bg-white p-2 text-sm font-bold transition-colors hover:bg-gray-50"
           aria-label="Expand proposal content"
         >
@@ -218,8 +204,10 @@ const BodyContent = ({ content }: ContentSectionClientProps) => {
         </button>
       ) : (
         <button
-          onClick={toggleView}
-          className="fixed bottom-0 left-4 right-4 z-50 mx-auto flex w-full max-w-[600px] animate-slide-up cursor-pointer items-center justify-between gap-2 rounded-t-xl border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50"
+          onClick={() => {
+            setExpanded(!expanded);
+          }}
+          className="mt-4 flex w-full cursor-pointer items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold transition-colors hover:bg-gray-50"
           aria-label="Collapse proposal content"
         >
           <ArrowUp className="rounded-full border p-1" />

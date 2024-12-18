@@ -34,7 +34,10 @@ export default async function ProposalPage({
         version={version ?? defaultVersion}
       />
       <div className="flex flex-row pl-20">
-        <Body bodies={bodies} version={version ?? defaultVersion} />
+        <div className="flex flex-col">
+          <Body bodies={bodies} version={version ?? defaultVersion} />
+          <div>comments</div>
+        </div>
         <DetailsBar group={group} />
       </div>
     </div>

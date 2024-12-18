@@ -1,13 +1,7 @@
 import { BodiesDataType } from "../../actions";
-import { format, formatDistanceToNow, formatISO } from "date-fns";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/shadcn/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import BodyContent from "./BodyContent";
+import { PostedTime } from "./BodyVersionChange";
 
 export default async function Body({
   bodies,
@@ -73,41 +67,3 @@ const AuthorInfo = ({
     <div className="font-bold">{authorName}</div>
   </div>
 );
-
-// Helper component to display the time with a tooltip
-const PostedTime = ({
-  label,
-  createdAt,
-  border,
-}: {
-  label: string;
-  createdAt: Date;
-  border?: true;
-}) => {
-  const relativeTime = formatDistanceToNow(new Date(createdAt), {
-    addSuffix: true,
-  });
-
-  const formattedDateTime = format(
-    formatISO(new Date(createdAt)),
-    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
-  );
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger>
-          <div
-            className={`flex flex-col items-center p-2 ${border ? "rounded-lg border bg-white" : ""}`}
-          >
-            <span className="text-gray-600">{label}</span>
-            <span className="font-bold">{relativeTime}</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent className="w-40 text-center text-xs">
-          <p>{formattedDateTime}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
