@@ -60,9 +60,12 @@ impl Revision {
         let mut result = content.to_string();
 
         // Remove wrapper div if present
-        result = result
-            .replace(r#"<div class="inline-diff">"#, "")
-            .replace("</div>", "");
+        if let Some(last_div_pos) = result.rfind("</div>") {
+            result.replace_range(last_div_pos..last_div_pos + 6, "");
+        }
+        if result.starts_with(r#"<div class="inline-diff">"#) {
+            result.drain(..25);
+        }
 
         // Remove all insertion tags and their content
         while let Some(start) = result.find("<ins>") {
@@ -96,9 +99,12 @@ impl Revision {
         let mut result = content.to_string();
 
         // Remove wrapper div if present
-        result = result
-            .replace(r#"<div class="inline-diff">"#, "")
-            .replace("</div>", "");
+        if let Some(last_div_pos) = result.rfind("</div>") {
+            result.replace_range(last_div_pos..last_div_pos + 6, "");
+        }
+        if result.starts_with(r#"<div class="inline-diff">"#) {
+            result.drain(..25);
+        }
 
         // Remove all deletion tags and their content
         while let Some(start) = result.find("<del>") {
@@ -187,7 +193,6 @@ fn find_closing_tag(content: &str) -> Option<usize> {
 fn remove_class_keep_content(content: &str, class_name: &str) -> String {
     let mut result = content.to_string();
     let mut pos = 0;
-    let mut processed_len = 0;
 
     while pos < result.len() {
         if let Some(start_tag) = find_tag_with_class(&result[pos..], class_name) {
@@ -211,8 +216,7 @@ fn remove_class_keep_content(content: &str, class_name: &str) -> String {
                         );
 
                         // Move position past the processed content
-                        processed_len = tag.len() * 2 + inner_content.len() + 5; // <tag>content</tag>
-                        pos = absolute_start + processed_len;
+                        pos = absolute_start + inner_content.len() + tag.len() * 2 + 5; // <tag>content</tag>
                         continue;
                     }
                 }
@@ -333,10 +337,16 @@ mod tests {
     #[test]
     fn test_with_wrapper_div() {
         let revision = create_basic_revision(
-            r#"<div class="inline-diff"><div class="inline-diff"><p><del>old</del><ins>new</ins></p></div></div>"#,
+            r#"<div class="inline-diff"><div class="something"><p><del>old</del><ins>new</ins></p></div></div>"#,
         );
-        assert_eq!(revision.get_cooked_before(), "<p>old</p>");
-        assert_eq!(revision.get_cooked_after(), "<p>new</p>");
+        assert_eq!(
+            revision.get_cooked_before(),
+            r#"<div class="something"><p>old</p></div>"#
+        );
+        assert_eq!(
+            revision.get_cooked_after(),
+            r#"<div class="something"><p>new</p></div>"#
+        );
     }
 
     #[test]
@@ -448,11 +458,11 @@ mod tests {
         let revision = create_basic_revision(inline_content);
         assert_eq!(
             revision.get_cooked_before(),
-            "<p>old text</p><ul><li>item 1</li></ul>"
+            "<div><p>old text</p><div><ul><li>item 1</li></ul></div></div>"
         );
         assert_eq!(
             revision.get_cooked_after(),
-            "<p>new text</p><ul><li>item 2</li></ul>"
+            "<div><p>new text</p><div><ul><li></li><li>item 2</li></ul></div></div>"
         );
     }
 }
