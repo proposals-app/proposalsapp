@@ -8,6 +8,94 @@ import {
   sql,
 } from "@proposalsapp/db";
 
+export async function getGroup(slug: string, proposalOrTopicId: string) {
+  // Fetch the DAO based on the slug
+  const dao = await db
+    .selectFrom("dao")
+    .where("slug", "=", slug)
+    .selectAll()
+    .executeTakeFirst();
+
+  if (!dao) {
+    return null;
+  }
+
+  let proposal: Selectable<Proposal> | null = null;
+  let topic: Selectable<DiscourseTopic> | null = null;
+
+  try {
+    // Fetch the proposal based on externalId
+    proposal = await db
+      .selectFrom("proposal")
+      .selectAll()
+      .where("externalId", "=", proposalOrTopicId)
+      .where("proposal.daoId", "=", dao.id)
+      .executeTakeFirstOrThrow();
+  } catch (error) {
+    console.error("Error fetching proposal:", error);
+  }
+
+  try {
+    if (!proposal)
+      // Fetch the topic based on externalId
+      topic = await db
+        .selectFrom("discourseTopic")
+        .selectAll()
+        .where("externalId", "=", parseInt(proposalOrTopicId))
+        .leftJoin(
+          "daoDiscourse",
+          "daoDiscourse.id",
+          "discourseTopic.daoDiscourseId",
+        )
+        .where("daoDiscourse.daoId", "=", dao.id)
+        .executeTakeFirstOrThrow();
+  } catch (error) {
+    console.error("Error fetching topic:", error);
+  }
+
+  if (!proposal && !topic) {
+    return null;
+  }
+
+  // Find a proposal group containing this item
+  let matchingGroup: Selectable<ProposalGroup> | null = null;
+
+  const fetchMatchingGroup = async (
+    id: string,
+    type: "proposal" | "topic",
+  ): Promise<Selectable<ProposalGroup> | null> => {
+    const result = await db
+      .selectFrom("proposalGroup")
+      .where(
+        sql<boolean>`exists (select 1 from jsonb_array_elements(proposal_group.items) as item where item->>'id' = ${id} and item->>'type' = ${type})`,
+      )
+      .selectAll()
+      .executeTakeFirst();
+
+    // Ensure the function returns null if no matching group is found
+    return result ?? null;
+  };
+
+  if (proposal) {
+    matchingGroup = await fetchMatchingGroup(proposal.id, "proposal");
+  }
+
+  if (!matchingGroup && topic) {
+    matchingGroup = await fetchMatchingGroup(topic.id, "topic");
+  }
+
+  if (!matchingGroup) {
+    return null;
+  }
+
+  return {
+    dao,
+    group: matchingGroup,
+    daoSlug: slug,
+    proposalOrTopicId: proposalOrTopicId,
+  };
+}
+
 export async function getGroupData(slug: string, proposalOrTopicId: string) {
   // Fetch the DAO based on the slug
   const dao = await db
@@ -267,5 +355,6 @@ export async function getBodiesForGroup(groupID: string) {
   return bodies;
 }
 
+export type GroupType = AsyncReturnType<typeof getGroup>;
 export type GroupDataType = AsyncReturnType<typeof getGroupData>;
 export type BodiesDataType = AsyncReturnType<typeof getBodiesForGroup>;

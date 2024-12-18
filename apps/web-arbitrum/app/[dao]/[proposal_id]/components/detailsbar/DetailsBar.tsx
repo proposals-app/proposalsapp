@@ -1,18 +1,18 @@
 import { notFound } from "next/navigation";
-import { getBodiesForGroup, GroupDataType } from "../../actions";
+import { getBodiesForGroup, GroupDataType, GroupType } from "../../actions";
 import BodyVersion from "./BodyVersions";
 import { searchParamsCache, ViewType } from "@/app/searchParams";
 
 interface DetailsBarProps {
-  groupData: GroupDataType | null;
+  group: GroupType | null;
 }
 
-export async function DetailsBar({ groupData }: DetailsBarProps) {
-  if (!groupData) {
+export async function DetailsBar({ group }: DetailsBarProps) {
+  if (!group) {
     notFound();
   }
 
-  const bodies = await getBodiesForGroup(groupData.group.id);
+  const bodies = await getBodiesForGroup(group.group.id);
 
   if (!bodies || bodies.length === 0) {
     return <div className="w-full bg-gray-100 p-4">No bodies found.</div>;

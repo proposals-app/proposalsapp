@@ -1,22 +1,18 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import { BodiesDataType, GroupDataType } from "../actions";
+import { BodiesDataType, GroupType } from "../actions";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 
 interface StickyHeaderProps {
   bodies: BodiesDataType;
-  groupData: GroupDataType;
+  group: GroupType;
   version: number;
 }
 
-export function StickyHeader({
-  bodies,
-  groupData,
-  version,
-}: StickyHeaderProps) {
-  if (!groupData || !bodies) {
+export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
+  if (!group || !bodies) {
     notFound();
   }
 

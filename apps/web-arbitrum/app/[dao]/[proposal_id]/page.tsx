@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getBodiesForGroup, getGroupData } from "./actions";
+import { getBodiesForGroup, getGroup } from "./actions";
 import Body from "./components/body/Body";
 import { SideBar } from "./components/SideBar";
 import { DetailsBar } from "./components/detailsbar/DetailsBar";
@@ -14,12 +14,12 @@ export default async function ProposalPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { dao, proposal_id } = await params;
-  const groupData = await getGroupData(dao, proposal_id);
-  if (!groupData) {
+  const group = await getGroup(dao, proposal_id);
+  if (!group) {
     notFound();
   }
 
-  const bodies = await getBodiesForGroup(groupData.group.id);
+  const bodies = await getBodiesForGroup(group.group.id);
 
   const defaultVersion = bodies ? bodies.length - 1 : 0;
 
@@ -27,15 +27,15 @@ export default async function ProposalPage({
 
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">
-      <SideBar dao={groupData.dao} />
+      <SideBar dao={group.dao} />
       <StickyHeader
         bodies={bodies}
-        groupData={groupData}
+        group={group}
         version={version ?? defaultVersion}
       />
       <div className="flex flex-row pl-20">
         <Body bodies={bodies} version={version ?? defaultVersion} />
-        <DetailsBar groupData={groupData} />
+        <DetailsBar group={group} />
       </div>
     </div>
   );
