@@ -7,12 +7,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
-import { parseAsStringEnum, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
 import { ViewType } from "@/app/searchParams";
 
 interface ContentSectionClientProps {
   content: string;
-  contentType?: "html" | "markdown";
 }
 
 const detectContentType = (content: string): "html" | "markdown" => {
@@ -89,17 +88,21 @@ const sharedMarkdownStyles: Components = {
   ),
 };
 
-const BodyContent = ({ content, contentType }: ContentSectionClientProps) => {
+const BodyContent = ({ content }: ContentSectionClientProps) => {
   const [viewType, setViewType] = useQueryState(
     "view",
     parseAsStringEnum<ViewType>(Object.values(ViewType))
       .withDefault(ViewType.TIMELINE)
       .withOptions({ shallow: false }),
   );
+  const [_, setVersion] = useQueryState(
+    "version",
+    parseAsInteger.withOptions({ shallow: false }),
+  );
 
   const [viewportHeight, setViewportHeight] = useState<number>(0);
 
-  const actualContentType = contentType ?? detectContentType(content);
+  const actualContentType = detectContentType(content);
 
   useEffect(() => {
     const updateViewportHeight = () => {
@@ -162,6 +165,7 @@ const BodyContent = ({ content, contentType }: ContentSectionClientProps) => {
   const toggleView = () => {
     if (viewType === ViewType.BODY) {
       setViewType(ViewType.TIMELINE);
+      setVersion(null);
     } else {
       setViewType(ViewType.BODY);
     }
