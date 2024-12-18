@@ -420,4 +420,39 @@ mod tests {
         assert_eq!(before.trim(), expected_before);
         assert_eq!(after.trim(), expected_after);
     }
+
+    #[test]
+    fn test_non_ascii_characters() {
+        let revision = create_basic_revision(
+            r#"<div class="inline-diff"><p><del>café</del><ins>café</ins></p></div>"#,
+        );
+        assert_eq!(revision.get_cooked_before(), "café");
+        assert_eq!(revision.get_cooked_after(), "café");
+    }
+
+    #[test]
+    fn test_mixed_content() {
+        let revision = create_basic_revision(
+            r#"<div class="inline-diff"><p><del>old <strong>text</strong></del><ins>new <em>content</em></ins></p></div>"#,
+        );
+        assert_eq!(
+            revision.get_cooked_before(),
+            "<p>old <strong>text</strong></p>"
+        );
+        assert_eq!(revision.get_cooked_after(), "<p>new <em>content</em></p>");
+    }
+
+    #[test]
+    fn test_multiple_nested_tags() {
+        let inline_content = r#"<div class="inline-diff"><div><p><del>old text</del><ins>new text</ins></p><div><ul><li><del>item 1</del></li><li class="diff-ins">item 2</li></ul></div></div></div>"#;
+        let revision = create_basic_revision(inline_content);
+        assert_eq!(
+            revision.get_cooked_before(),
+            "<p>old text</p><ul><li>item 1</li></ul>"
+        );
+        assert_eq!(
+            revision.get_cooked_after(),
+            "<p>new text</p><ul><li>item 2</li></ul>"
+        );
+    }
 }
