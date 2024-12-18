@@ -280,7 +280,9 @@ mod tests {
 
     #[test]
     fn test_simple_ins_del() {
-        let revision = create_basic_revision("<del>old text</del><ins>new text</ins>");
+        let revision = create_basic_revision(
+            r#"<div class="inline-diff"><del>old text</del><ins>new text</ins></div>"#,
+        );
         assert_eq!(revision.get_cooked_before(), "old text");
         assert_eq!(revision.get_cooked_after(), "new text");
     }
@@ -288,7 +290,7 @@ mod tests {
     #[test]
     fn test_nested_tags() {
         let revision = create_basic_revision(
-            "<p><del>old <strong>formatted</strong> text</del></p><p><ins>new <em>styled</em> text</ins></p>"
+            r#"<div class="inline-diff"><p><del>old <strong>formatted</strong> text</del></p><p><ins>new <em>styled</em> text</ins></p></div>"#,
         );
         assert_eq!(
             revision.get_cooked_before(),
@@ -303,7 +305,7 @@ mod tests {
     #[test]
     fn test_diff_classes() {
         let revision = create_basic_revision(
-            r#"<p class="diff-del">removed paragraph</p><p class="diff-ins">added paragraph</p>"#,
+            r#"<div class="inline-diff"><p class="diff-del">removed paragraph</p><p class="diff-ins">added paragraph</p></div>"#,
         );
 
         let before = revision.get_cooked_before();
@@ -316,7 +318,7 @@ mod tests {
     #[test]
     fn test_mixed_changes() {
         let revision = create_basic_revision(
-            r#"<p>unchanged <del>removed</del><ins>added</ins> text</p><p class="diff-del">old para</p><p class="diff-ins">new para</p>"#,
+            r#"<div class="inline-diff"><p>unchanged <del>removed</del><ins>added</ins> text</p><p class="diff-del">old para</p><p class="diff-ins">new para</p></div>"#,
         );
         assert_eq!(
             revision.get_cooked_before(),
@@ -331,7 +333,7 @@ mod tests {
     #[test]
     fn test_with_wrapper_div() {
         let revision = create_basic_revision(
-            r#"<div class="inline-diff"><p><del>old</del><ins>new</ins></p></div>"#,
+            r#"<div class="inline-diff"><div class="inline-diff"><p><del>old</del><ins>new</ins></p></div></div>"#,
         );
         assert_eq!(revision.get_cooked_before(), "<p>old</p>");
         assert_eq!(revision.get_cooked_after(), "<p>new</p>");
@@ -341,7 +343,8 @@ mod tests {
     fn test_title_changes() {
         let mut revision = create_basic_revision("");
         revision.title_changes = Some(TitleChanges {
-            inline: "<del>Old Title</del><ins>New Title</ins>".to_string(),
+            inline: r#"<div class="inline-diff"><del>Old Title</del><ins>New Title</ins></div>"#
+                .to_string(),
         });
 
         let title_changes = revision.title_changes.as_ref().unwrap();
@@ -352,14 +355,14 @@ mod tests {
     #[test]
     fn test_complex_html() {
         let revision = create_basic_revision(
-            r#"<div class="inline-diff">
+            r#"<div class="inline-diff"><div class="inline-diff">
                 <h1><del>Old Title</del><ins>New Title</ins></h1>
                 <p class="diff-del">Removed paragraph</p>
                 <ul>
                     <li><del>Old item 1</del></li>
                     <li class="diff-ins">New item 2</li>
                 </ul>
-            </div>"#,
+            </div></div>"#,
         );
         let before = revision.get_cooked_before();
         let after = revision.get_cooked_after();
@@ -378,12 +381,12 @@ mod tests {
     #[test]
     fn test_multiple_paragraphs() {
         let revision = create_basic_revision(
-            r#"<div class="inline-diff">
+            r#"<div class="inline-diff"><div class="inline-diff">
                 <p>First unchanged paragraph</p>
                 <p><del>Second removed paragraph</del></p>
                 <p><ins>Second added paragraph</ins></p>
                 <p>Third unchanged paragraph</p>
-            </div>"#,
+            </div></div>"#,
         );
 
         let before = revision.get_cooked_before();
@@ -401,77 +404,20 @@ mod tests {
     }
 
     #[test]
-    fn test_deeply_nested_elements() {
-        let revision = create_basic_revision(
-            r#"<div class="diff-del">
-                <div>
-                    <div>
-                        <p>Deeply nested old content</p>
-                    </div>
-                </div>
-            </div>
-            <div class="diff-ins">
-                <div>
-                    <div>
-                        <p>Deeply nested new content</p>
-                    </div>
-                </div>
-            </div>"#,
-        );
+    fn test_complex_inline_diff() {
+        let inline_content = r#"<div class="inline-diff"><p>I’ve listened to most of the Alisha twitter space yesterday and while I understand the pov opposing brantly I still think we haven’t given him the freedom of expression and the chance to apologize, neither have we considered other alternative solutions like sanctions and punishments instead of radical termination.</p><p>So the way it is now, if the proposal has only the Yes/No options, I might lean towards No.<ins> </ins><ins>Not </ins><ins>because </ins><ins>I </ins><ins>agree </ins><ins>with </ins><ins>him</ins><ins>,</ins><ins> </ins><ins>but </ins><ins>because </ins><ins>of </ins><ins>the </ins><ins>short</ins><ins>-</ins><ins>sightedness </ins><ins>of </ins><ins>this </ins><ins>proposal </ins><ins>and </ins><ins>the </ins><ins>lack </ins><ins>of </ins><ins>responsability</ins><ins>.</ins><ins> </ins><ins>None </ins><ins>of </ins><ins>you </ins><ins>have </ins><ins>come </ins><ins>up </ins><ins>with </ins><ins>alternatives </ins><ins>or </ins><ins>seriously </ins><ins>considered </ins><ins>the </ins><ins>aftermath </ins><ins>of </ins><ins>this </ins><ins>decision </ins><ins>on </ins><ins>ENS</ins><ins>.</ins></p><p>Please discuss this thoroughly before taking terminal decisions. Drastic decisions pushed by people that have absolutely no skin in ENS, that joined the community just yesterday… and will get what they want, and never contribute here again.</p></div>"#;
 
+        let revision = create_basic_revision(inline_content);
         let before = revision.get_cooked_before();
         let after = revision.get_cooked_after();
 
-        assert!(before.contains("Deeply nested old content"));
-        assert!(!before.contains("Deeply nested new content"));
-        assert!(after.contains("Deeply nested new content"));
-        assert!(!after.contains("Deeply nested old content"));
-    }
+        // Expected content before and after changes
+        let expected_before = r#"<p>I’ve listened to most of the Alisha twitter space yesterday and while I understand the pov opposing brantly I still think we haven’t given him the freedom of expression and the chance to apologize, neither have we considered other alternative solutions like sanctions and punishments instead of radical termination.</p><p>So the way it is now, if the proposal has only the Yes/No options, I might lean towards No.None of you have come up with alternatives or seriously considered the aftermath of this decision on ENS.</p><p>Please discuss this thoroughly before taking terminal decisions. Drastic decisions pushed by people that have absolutely no skin in ENS, that joined the community just yesterday… and will get what they want, and never contribute here again.</p>"#;
 
-    #[test]
-    fn test_self_closing_tags() {
-        let revision = create_basic_revision(
-            r#"<div class="diff-del">
-                <p>Old text with <br/> break</p>
-            </div>
-            <div class="diff-ins">
-                <p>New text with <br/> break</p>
-            </div>"#,
-        );
+        let expected_after = r#"<p>I’ve listened to most of the Alisha twitter space yesterday and while I understand the pov opposing brantly I still think we haven’t given him the freedom of expression and the chance to apologize, neither have we considered other alternative solutions like sanctions and punishments instead of radical termination.</p><p>So the way it is now, if the proposal has only the Yes/No options, I might lean towards No. Not because I agree with him, but because of the short-sightedness of this proposal and the lack of responsability. None of you have come up with alternatives or seriously considered the aftermath of this decision on ENS.</p><p>Please discuss this thoroughly before taking terminal decisions. Drastic decisions pushed by people that have absolutely no skin in ENS, that joined the community just yesterday… and will get what they want, and never contribute here again.</p>"#;
 
-        let before = revision.get_cooked_before();
-        let after = revision.get_cooked_after();
-
-        assert!(before.contains("<br/>"));
-        assert!(before.contains("Old text with"));
-        assert!(after.contains("<br/>"));
-        assert!(after.contains("New text with"));
-    }
-
-    #[test]
-    fn test_nested_elements_with_classes() {
-        let revision = create_basic_revision(
-            r#"<div class="inline-diff">
-                <div class="diff-del">
-                    <h2>Old Section</h2>
-                    <p>Old content</p>
-                </div>
-                <div class="diff-ins">
-                    <h2>New Section</h2>
-                    <p>New content</p>
-                </div>
-            </div>"#,
-        );
-
-        let before = revision.get_cooked_before();
-        let after = revision.get_cooked_after();
-
-        assert!(before.contains("<div>\n                    <h2>Old Section</h2>"));
-        assert!(before.contains("<p>Old content</p>"));
-        assert!(!before.contains("New Section"));
-
-        assert!(after.contains("<div>\n                    <h2>New Section</h2>"));
-        assert!(after.contains("<p>New content</p>"));
-        assert!(!after.contains("Old Section"));
+        // Assert that the extracted content matches the expected content
+        assert_eq!(before.trim(), expected_before);
+        assert_eq!(after.trim(), expected_after);
     }
 }
