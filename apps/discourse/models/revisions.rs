@@ -108,6 +108,9 @@ impl Revision {
         let ins_pattern = Regex::new(r#"<ins>[\s\S]*?</ins>"#)?;
         result = ins_pattern.replace_all(&result, "").to_string();
 
+        let re_wrapper_div = Regex::new(r#"^<div>|</div>$"#).unwrap();
+        result = re_wrapper_div.replace_all(&result, "").to_string();
+
         // Clean up at the end
         Ok(Self::cleanup_html(&result))
     }
@@ -144,6 +147,9 @@ impl Revision {
         // Rule 4: Keep content inside <ins> tags including whitespace
         let ins_pattern = Regex::new(r#"<ins>([\s\S]*?)</ins>"#)?;
         result = ins_pattern.replace_all(&result, "$1").to_string();
+
+        let re_wrapper_div = Regex::new(r#"^<div>|</div>$"#).unwrap();
+        result = re_wrapper_div.replace_all(&result, "").to_string();
 
         // Clean up at the end
         Ok(Self::cleanup_html(&result))

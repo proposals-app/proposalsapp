@@ -156,19 +156,19 @@ const BodyContent = ({
     // Generate HTML with diff highlights
     const diffHtml = diffs
       .map(([op, text]) => {
-        console.log(op);
         switch (op) {
           case 0:
             return `<span>${text}</span>`;
           case -1:
-            return `<del style="background-color:#ffe6e6;">${text}</del>`;
+            return `<span class="diff-delete !bg-red-200 !border !border-red-200">${text}</span>`;
           case 1:
-            return `<ins style="background-color:#e6ffe6;">${text}</ins>`;
+            return `<span class="diff-add !bg-emerald-200 !border !border-emerald-200">${text}</span>`;
           default:
             return "";
         }
       })
       .join("");
+
     return DOMPurify.sanitize(diffHtml, { ALLOWED_TAGS, ALLOWED_ATTR });
   }, [content, allBodies, version, diff]);
 
@@ -182,7 +182,7 @@ const BodyContent = ({
       >
         <div
           dangerouslySetInnerHTML={{ __html: processedContent }}
-          className="prose prose-lg max-w-none"
+          className="prose prose-lg max-w-none [&_.diff-add]:!bg-emerald-200 [&_.diff-delete]:!bg-red-200"
         />
 
         {expanded && (

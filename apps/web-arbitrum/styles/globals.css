@@ -112,3 +112,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+.prose .diff-delete,
+.prose .diff-delete * {
+  @apply !border-red-200 !bg-red-200;
+}
+
+.prose .diff-add,
+.prose .diff-add * {
+  @apply !border-emerald-200 !bg-emerald-200;
+}

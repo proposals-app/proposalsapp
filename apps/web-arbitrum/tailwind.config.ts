@@ -119,6 +119,30 @@ const config = {
         "logo-straight": "logo-straight-keyframes 0.5s ease forwards",
         "slide-up": "slide-up 0.3s ease-in-out",
       },
+      extend: {
+        typography: {
+          DEFAULT: {
+            css: {
+              "span.diff-delete": {
+                backgroundColor: "rgb(254 202 202)", // red-200
+                borderColor: "rgb(254 202 202)",
+                "& *": {
+                  backgroundColor: "rgb(254 202 202)",
+                  borderColor: "rgb(254 202 202)",
+                },
+              },
+              "span.diff-add": {
+                backgroundColor: "rgb(167 243 208)", // emerald-200
+                borderColor: "rgb(167 243 208)",
+                "& *": {
+                  backgroundColor: "rgb(167 243 208)",
+                  borderColor: "rgb(167 243 208)",
+                },
+              },
+            },
+          },
+        },
+      },
     },
   },
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
