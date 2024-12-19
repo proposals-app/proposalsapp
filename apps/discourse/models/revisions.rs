@@ -150,7 +150,7 @@ impl Revision {
     }
 
     fn extract_before_content_markdown(content: &str) -> Result<String, fancy_regex::Error> {
-        // Match the content of the left column (diff-del)
+        // First try to find diff-del content
         let diff_del_pattern = Regex::new(r#"<td class="diff-del">([\s\S]*?)</td>"#)?;
         if let Some(captures) = diff_del_pattern.captures(content)? {
             if let Some(content) = captures.get(1) {
@@ -174,11 +174,33 @@ impl Revision {
                 return Ok(result.trim().to_string());
             }
         }
+
+        // If no diff-del content is found, look for the plain content
+        let plain_pattern = Regex::new(r#"<td>([\s\S]*?)</td>"#)?;
+        if let Some(captures) = plain_pattern.captures(content)? {
+            if let Some(content) = captures.get(1) {
+                let mut result = content.as_str().to_string();
+
+                // Clean up any remaining HTML tags
+                let tags = Regex::new(r#"<[^>]+>"#)?;
+                result = tags.replace_all(&result, "").to_string();
+
+                // Decode HTML entities
+                result = html_escape::decode_html_entities(&result).to_string();
+
+                // Cleanup extra whitespace
+                let whitespace = Regex::new(r#"\s+"#)?;
+                result = whitespace.replace_all(&result, " ").to_string();
+
+                return Ok(result.trim().to_string());
+            }
+        }
+
         Ok(String::new())
     }
 
     fn extract_after_content_markdown(content: &str) -> Result<String, fancy_regex::Error> {
-        // Match the content of the right column (diff-ins)
+        // First try to find diff-ins content
         let diff_ins_pattern = Regex::new(r#"<td class="diff-ins">([\s\S]*?)</td>"#)?;
         if let Some(captures) = diff_ins_pattern.captures(content)? {
             if let Some(content) = captures.get(1) {
@@ -202,6 +224,28 @@ impl Revision {
                 return Ok(result.trim().to_string());
             }
         }
+
+        // If no diff-ins content is found, look for the plain content
+        let plain_pattern = Regex::new(r#"<td>([\s\S]*?)</td>"#)?;
+        if let Some(captures) = plain_pattern.captures(content)? {
+            if let Some(content) = captures.get(1) {
+                let mut result = content.as_str().to_string();
+
+                // Clean up any remaining HTML tags
+                let tags = Regex::new(r#"<[^>]+>"#)?;
+                result = tags.replace_all(&result, "").to_string();
+
+                // Decode HTML entities
+                result = html_escape::decode_html_entities(&result).to_string();
+
+                // Cleanup extra whitespace
+                let whitespace = Regex::new(r#"\s+"#)?;
+                result = whitespace.replace_all(&result, " ").to_string();
+
+                return Ok(result.trim().to_string());
+            }
+        }
+
         Ok(String::new())
     }
 }
@@ -316,6 +360,26 @@ mod tests {
         assert_eq!(
             revision.get_cooked_markdown_after().trim(),
             r#"I have a family emergency, I’d like to make an emergency withdrawal please to my uniswap 0x3De64a2C0d91E247950f8dCa3381B1486b658d20 I need 500,000 Usdc or tether right away. I tried to find the withdrawal button, to no avail. If you would kindly handle this for me it would be of great appreciation to myself and fam. Thanks Frax Gov Christina"#
+        );
+    }
+
+    #[test]
+    fn test_markdown_extraction_4() {
+        let markdown_content = r#"<table class="markdown"><tr><td class="diff-del">@fig @berrios.eth Your comments have been incorporated</td><td class="diff-ins">@fig @berrios.eth <ins>
+
+        </ins>Your comments have been incorporated<ins>
+
+        ![Orgs|690x282](upload://vWRrAxRZ52XAdVz2s2KllwCVszi.gif)</ins></td></tr></table>"#;
+
+        let revision = create_markdown_revision(markdown_content);
+
+        assert_eq!(
+            revision.get_cooked_markdown_before().trim(),
+            r#"@fig @berrios.eth Your comments have been incorporated"#
+        );
+        assert_eq!(
+            revision.get_cooked_markdown_after().trim(),
+            r#"@fig @berrios.eth Your comments have been incorporated ![Orgs|690x282](upload://vWRrAxRZ52XAdVz2s2KllwCVszi.gif)"#
         );
     }
 
