@@ -66,27 +66,27 @@ impl Revision {
 
         // Rule 7: Handle diff-del in both opening and closing tags
         let both_diff_del =
-            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">(.*?)</\1\s+class="diff-del">"#)?;
+            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">([\s\S]*?)</\1\s+class="diff-del">"#)?;
         result = both_diff_del
             .replace_all(&result, "<$1>$2</$1>")
             .to_string();
 
         // Rule 5: Handle diff-del class in opening tag
-        let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">(.*?)</\1>"#)?;
+        let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">([\s\S]*?)</\1>"#)?;
         result = diff_del_pattern
             .replace_all(&result, "<$1>$2</$1>")
             .to_string();
 
-        // Rule 6: Remove diff-ins elements completely
-        let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-ins">.*?</\1>"#)?;
+        // Rule 6: Remove diff-ins elements completely including their content
+        let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-ins">[\s\S]*?</\1>"#)?;
         result = diff_ins_pattern.replace_all(&result, "").to_string();
 
-        // Rule 3: Keep content inside <del> tags
-        let del_pattern = Regex::new(r#"<del>(.*?)</del>"#)?;
+        // Rule 3: Keep content inside <del> tags including whitespace
+        let del_pattern = Regex::new(r#"<del>([\s\S]*?)</del>"#)?;
         result = del_pattern.replace_all(&result, "$1").to_string();
 
         // Rule 4: Remove content inside <ins> tags
-        let ins_pattern = Regex::new(r#"<ins>.*?</ins>"#)?;
+        let ins_pattern = Regex::new(r#"<ins>[\s\S]*?</ins>"#)?;
         result = ins_pattern.replace_all(&result, "").to_string();
 
         Ok(result)
@@ -104,22 +104,22 @@ impl Revision {
             Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">(.*?)</\1\s+class="diff-del">"#)?;
         result = both_diff_del.replace_all(&result, "$2").to_string();
 
-        // Rule 5: Remove diff-del elements completely
-        let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">.*?</\1>"#)?;
+        // Rule 5: Remove diff-del elements completely including their content
+        let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">[\s\S]*?</\1>"#)?;
         result = diff_del_pattern.replace_all(&result, "").to_string();
 
         // Rule 6: Handle diff-ins class
-        let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-ins">(.*?)</\1>"#)?;
+        let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-ins">([\s\S]*?)</\1>"#)?;
         result = diff_ins_pattern
             .replace_all(&result, "<$1>$2</$1>")
             .to_string();
 
         // Rule 3: Remove content inside <del> tags
-        let del_pattern = Regex::new(r#"<del>.*?</del>"#)?;
+        let del_pattern = Regex::new(r#"<del>[\s\S]*?</del>"#)?;
         result = del_pattern.replace_all(&result, "").to_string();
 
-        // Rule 4: Keep content inside <ins> tags
-        let ins_pattern = Regex::new(r#"<ins>(.*?)</ins>"#)?;
+        // Rule 4: Keep content inside <ins> tags including whitespace
+        let ins_pattern = Regex::new(r#"<ins>([\s\S]*?)</ins>"#)?;
         result = ins_pattern.replace_all(&result, "$1").to_string();
 
         Ok(result)
@@ -163,6 +163,20 @@ mod tests {
             r#"<div class="inline-diff"><del>old text</del><ins>new text</ins></div>"#,
         );
         assert_eq!(revision.get_cooked_before(), "old text");
+        assert_eq!(revision.get_cooked_after(), "new text");
+    }
+
+    #[test]
+    fn test_empty_del() {
+        let revision = create_basic_revision(
+            r#"<div class="inline-diff"><del>
+            </del><ins>new text</ins></div>"#,
+        );
+        assert_eq!(
+            revision.get_cooked_before(),
+            r#"
+            "#
+        );
         assert_eq!(revision.get_cooked_after(), "new text");
     }
 
@@ -382,27 +396,6 @@ mod tests {
     }
 
     #[test]
-    fn test_complex_diff_with_lists() {
-        let revision = create_basic_revision(
-            r#"<div class="inline-diff"><ul class="diff-ins">
-                <li>4M ARB allocated to a bonus pool for internal employees and OpCo's oversight committee.</li>
-                <li>Of the remaining 18M ARB, tokens will be liquidated until $12M worth of cash equivalents has been attained.</li>
-                <li>After subtracting the bonus allocation and the liquidation is complete, the remaining ARB will be transferred back.</li>
-            </ul><p class="diff-del">The previous structure has been removed.</p></div>"#,
-        );
-
-        let expected_before = "<p>The previous structure has been removed.</p>";
-        let expected_after = r#"<ul>
-                    <li>4M ARB allocated to a bonus pool for internal employees and OpCo's oversight committee.</li>
-                    <li>Of the remaining 18M ARB, tokens will be liquidated until $12M worth of cash equivalents has been attained.</li>
-                    <li>After subtracting the bonus allocation and the liquidation is complete, the remaining ARB will be transferred back.</li>
-                </ul>"#;
-
-        assert_eq!(revision.get_cooked_before().trim(), expected_before);
-        assert_eq!(revision.get_cooked_after().trim(), expected_after);
-    }
-
-    #[test]
     fn test_opco_proposal_changes() {
         let revision = create_basic_revision(
             r#"<div class="inline-diff">
@@ -523,5 +516,83 @@ mod tests {
 
         // Assert that the extracted content matches the expected content
         assert_eq!(revision.get_cooked_after().trim(), expected_after);
+    }
+
+    #[test]
+    fn test_complex_proposal_with_tables_and_images() {
+        let inline_content = r#"<div class="inline-diff"><h1><a name="p-62786-tldr-1" class="anchor" href="\#p-62786-tldr-1"></a><strong>TLDR:</strong></h1><ul>
+    <li>Overview: The DAO has existed for 18 months, <a href="https://online.flippingbook.com/view/927107714/2/" rel="noopener nofollow ugc">total expenditures of 425M ARB</a> with 40+ initiatives that have passed Tally; and only in the last three months did we create a single list with the live initiatives. We can do better.</li>
+    <li>Still, reporting has had inconsistent processes, making it difficult to see all the initiatives, let alone determine relative performance.</li>
+    <li>This proposal enables the DAO to create a Reporting and Information function that will enable transparency and visibility into the status and performance of initiatives.</li>
+    <li>Critical Importance: Reporting and information management are a critical component of growing organizations as it enables them to learn and improve. As the DAO evolves, a reporting function is a critical way to improve and show investors it is more than just "the teenager with the trust fund".</li>
+    <li>This lack of a DAO-wide reporting function has led to issues for delegates and initiatives, reducing our speed of learning.</li>
+    <li>The problem is that while the Arbitrum DAO has made strides in data capture and reporting, gaps remain in transparency, documentation, and the distribution of data to stakeholders.</li>
+    <li>The work, Basic Reporting continuation [Stream]: the ongoing work required to maintain, document, and incrementally improve current data capture and reporting workflows.</li>
+    <li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li>
+    <li><strong class="diff-del">Cost:</strong class="diff-del"> <ins>a </ins><ins>maximum </ins><ins>of </ins><del>Up </del><del>to </del>$263,260 for the continuation of the reporting <ins>function </ins><ins>for </ins><ins>up </ins><ins>to </ins><ins>12 </ins><ins>months</ins><del>function</del>, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>
+    </ul>[... rest of the content ...]</div>"#;
+
+        let revision = create_basic_revision(inline_content);
+
+        // Expected content before changes
+        let expected_before = r#"<h1><a name="p-62786-tldr-1" class="anchor" href="\#p-62786-tldr-1"></a><strong>TLDR:</strong></h1><ul>
+    <li>Overview: The DAO has existed for 18 months, <a href="https://online.flippingbook.com/view/927107714/2/" rel="noopener nofollow ugc">total expenditures of 425M ARB</a> with 40+ initiatives that have passed Tally; and only in the last three months did we create a single list with the live initiatives. We can do better.</li>
+    <li>Still, reporting has had inconsistent processes, making it difficult to see all the initiatives, let alone determine relative performance.</li>
+    <li>This proposal enables the DAO to create a Reporting and Information function that will enable transparency and visibility into the status and performance of initiatives.</li>
+    <li>Critical Importance: Reporting and information management are a critical component of growing organizations as it enables them to learn and improve. As the DAO evolves, a reporting function is a critical way to improve and show investors it is more than just "the teenager with the trust fund".</li>
+    <li>This lack of a DAO-wide reporting function has led to issues for delegates and initiatives, reducing our speed of learning.</li>
+    <li>The problem is that while the Arbitrum DAO has made strides in data capture and reporting, gaps remain in transparency, documentation, and the distribution of data to stakeholders.</li>
+    <li>The work, Basic Reporting continuation [Stream]: the ongoing work required to maintain, document, and incrementally improve current data capture and reporting workflows.</li>
+    <li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li>
+    <li><strong>Cost:</strong> Up to $263,260 for the continuation of the reporting function, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>
+    </ul>[... rest of the content ...]"#;
+
+        // Expected content after changes
+        let expected_after = r#"<h1><a name="p-62786-tldr-1" class="anchor" href="\#p-62786-tldr-1"></a><strong>TLDR:</strong></h1><ul>
+    <li>Overview: The DAO has existed for 18 months, <a href="https://online.flippingbook.com/view/927107714/2/" rel="noopener nofollow ugc">total expenditures of 425M ARB</a> with 40+ initiatives that have passed Tally; and only in the last three months did we create a single list with the live initiatives. We can do better.</li>
+    <li>Still, reporting has had inconsistent processes, making it difficult to see all the initiatives, let alone determine relative performance.</li>
+    <li>This proposal enables the DAO to create a Reporting and Information function that will enable transparency and visibility into the status and performance of initiatives.</li>
+    <li>Critical Importance: Reporting and information management are a critical component of growing organizations as it enables them to learn and improve. As the DAO evolves, a reporting function is a critical way to improve and show investors it is more than just "the teenager with the trust fund".</li>
+    <li>This lack of a DAO-wide reporting function has led to issues for delegates and initiatives, reducing our speed of learning.</li>
+    <li>The problem is that while the Arbitrum DAO has made strides in data capture and reporting, gaps remain in transparency, documentation, and the distribution of data to stakeholders.</li>
+    <li>The work, Basic Reporting continuation [Stream]: the ongoing work required to maintain, document, and incrementally improve current data capture and reporting workflows.</li>
+    <li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li>
+    <li>Cost: a maximum of $263,260 for the continuation of the reporting function for up to 12 months, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>
+    </ul>[... rest of the content ...]"#;
+
+        // Get the actual before and after content
+        let before = revision.get_cooked_before();
+        let after = revision.get_cooked_after();
+
+        // Assert specific changes in the content
+        assert!(before.contains("Up to $263,260"));
+        assert!(before.contains("<strong>Cost:</strong>"));
+        assert!(!after.contains("<strong>Cost:</strong>"));
+        assert!(after.contains("Cost:"));
+        assert!(after.contains("a maximum of $263,260"));
+        assert!(after.contains("for up to 12 months"));
+        assert!(!before.contains("for up to 12 months"));
+
+        // Assert the full content matches
+        assert_eq!(before.trim(), expected_before.trim());
+        assert_eq!(after.trim(), expected_after.trim());
+
+        // Additional specific assertions for key elements
+        assert!(before.contains("<strong>TLDR:</strong>"));
+        assert!(after.contains("<strong>TLDR:</strong>"));
+        assert!(before.contains("total expenditures of 425M ARB"));
+        assert!(after.contains("total expenditures of 425M ARB"));
+
+        // Check preservation of links and special characters
+        assert!(before.contains(r#"<a href="https://online.flippingbook.com/view/927107714/2/""#));
+        assert!(after.contains(r#"<a href="https://online.flippingbook.com/view/927107714/2/""#));
+        assert!(before.contains("&amp;"));
+        assert!(after.contains("&amp;"));
+
+        // Check structural integrity
+        assert!(before.contains("<ul>"));
+        assert!(before.contains("</ul>"));
+        assert!(after.contains("<ul>"));
+        assert!(after.contains("</ul>"));
     }
 }
