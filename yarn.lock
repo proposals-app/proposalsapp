@@ -2643,6 +2643,7 @@ __metadata:
     "@radix-ui/react-tooltip": "npm:^1.1.6"
     "@serwist/next": "npm:9.0.11"
     "@tailwindcss/typography": "npm:^0.5.15"
+    "@types/diff-match-patch": "npm:^1"
     "@types/node": "npm:22.10.2"
     "@types/react": "npm:19.0.2"
     "@types/react-day-picker": "npm:5.3.0"
@@ -2655,6 +2656,7 @@ __metadata:
     clsx: "npm:2.1.1"
     cmdk: "npm:1.0.4"
     date-fns: "npm:^4.1.0"
+    diff-match-patch: "npm:^1.0.5"
     embla-carousel-react: "npm:^8.5.1"
     fuse.js: "npm:^7.0.0"
     input-otp: "npm:^1.4.1"
@@ -5197,6 +5199,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/diff-match-patch@npm:^1":
+  version: 1.0.36
+  resolution: "@types/diff-match-patch@npm:1.0.36"
+  checksum: 10c0/0bad011ab138baa8bde94e7815064bb881f010452463272644ddbbb0590659cb93f7aa2776ff442c6721d70f202839e1053f8aa62d801cc4166f7a3ea9130055
+  languageName: node
+  linkType: hard
+
 "@types/dotenv@npm:8.2.3, @types/dotenv@npm:^8.2.3":
   version: 8.2.3
   resolution: "@types/dotenv@npm:8.2.3"
@@ -7657,6 +7666,13 @@ __metadata:
   version: 1.2.2
   resolution: "didyoumean@npm:1.2.2"
   checksum: 10c0/95d0b53d23b851aacff56dfadb7ecfedce49da4232233baecfeecb7710248c4aa03f0aa8995062f0acafaf925adf8536bd7044a2e68316fd7d411477599bc27b
+  languageName: node
+  linkType: hard
+
+"diff-match-patch@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "diff-match-patch@npm:1.0.5"
+  checksum: 10c0/142b6fad627b9ef309d11bd935e82b84c814165a02500f046e2773f4ea894d10ed3017ac20454900d79d4a0322079f5b713cf0986aaf15fce0ec4a2479980c86
   languageName: node
   linkType: hard
 

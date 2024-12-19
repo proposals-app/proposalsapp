@@ -1,7 +1,9 @@
 import { BodiesDataType } from "../../actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import BodyContent from "./BodyContent";
-import { PostedTime } from "./BodyVersionChange";
+import { PostedTime } from "./PostedTime";
+import { VersionChange } from "./VersionChange";
+import { VersionDiff } from "./VersionDiff";
 
 export default async function Body({
   bodies,
@@ -31,22 +33,39 @@ export default async function Body({
               authorPicture={visibleBody.author_picture}
             />
 
-            <div className="flex flex-row">
-              <PostedTime
-                label="initially posted"
-                createdAt={initialBody.createdAt}
-              />
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-row">
+                <VersionChange
+                  toVersion={version - 1}
+                  dir="dec"
+                  disabled={version - 1 < 0}
+                />
+                <PostedTime
+                  label="initially posted"
+                  createdAt={initialBody.createdAt}
+                />
 
-              <PostedTime
-                label="latest revision"
-                createdAt={latestBody.createdAt}
-                border
-              />
+                <PostedTime
+                  label="latest revision"
+                  createdAt={latestBody.createdAt}
+                  border
+                />
+                <VersionChange
+                  toVersion={version + 1}
+                  dir="inc"
+                  disabled={version + 1 > bodies.length - 1}
+                />
+              </div>
+              <VersionDiff />
             </div>
           </div>
         </div>
 
-        <BodyContent content={visibleBody.content} />
+        <BodyContent
+          content={visibleBody.content}
+          allBodies={bodies.map((b) => b.content)}
+          version={version}
+        />
       </div>
     </div>
   );

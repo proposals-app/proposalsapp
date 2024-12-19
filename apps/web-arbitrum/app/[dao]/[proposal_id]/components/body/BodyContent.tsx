@@ -1,16 +1,19 @@
 "use client";
 
 import { ArrowDown, ArrowUp } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import DOMPurify from "isomorphic-dompurify";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
-import { parseAsInteger, useQueryState } from "nuqs";
+import { parseAsBoolean, parseAsInteger, useQueryState } from "nuqs";
+import { diff_match_patch } from "diff-match-patch";
 
 interface ContentSectionClientProps {
   content: string;
+  allBodies: Array<string>;
+  version: number;
 }
 
 const detectContentType = (content: string): "html" | "markdown" => {
@@ -21,6 +24,51 @@ const detectContentType = (content: string): "html" | "markdown" => {
   const hasHtmlTags = /<[^>]+>/g.test(firstLine);
   return hasHtmlTags ? "html" : "markdown";
 };
+
+const ALLOWED_TAGS = [
+  "span",
+  "del",
+  "ins",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "p",
+  "ul",
+  "li",
+  "ol",
+  "strong",
+  "em",
+  "a",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
+  "div",
+  "img",
+  "br",
+  "code",
+  "pre",
+  "blockquote",
+  "hr",
+];
+
+const ALLOWED_ATTR = [
+  "href",
+  "src",
+  "class",
+  "style",
+  "alt",
+  "title",
+  "target",
+  "rel",
+  "id",
+  "name",
+];
 
 const sharedMarkdownStyles: Components = {
   h1: ({ children }: { children: React.ReactNode }) => (
@@ -87,11 +135,16 @@ const sharedMarkdownStyles: Components = {
   ),
 };
 
-const BodyContent = ({ content }: ContentSectionClientProps) => {
+const BodyContent = ({
+  content,
+  allBodies,
+  version,
+}: ContentSectionClientProps) => {
   const [expanded, setExpanded] = useState(false);
-  const [_, setVersion] = useQueryState(
-    "version",
-    parseAsInteger.withOptions({ shallow: false }),
+
+  const [diff, _] = useQueryState(
+    "diff",
+    parseAsBoolean.withDefault(false).withOptions({ shallow: false }),
   );
 
   const [viewportHeight, setViewportHeight] = useState<number>(0);
@@ -113,48 +166,54 @@ const BodyContent = ({ content }: ContentSectionClientProps) => {
   const sanitizedContent =
     actualContentType === "html"
       ? DOMPurify.sanitize(content, {
-          ALLOWED_TAGS: [
-            "h1",
-            "h2",
-            "h3",
-            "h4",
-            "h5",
-            "h6",
-            "p",
-            "ul",
-            "li",
-            "ol",
-            "strong",
-            "em",
-            "a",
-            "table",
-            "thead",
-            "tbody",
-            "tr",
-            "th",
-            "td",
-            "div",
-            "img",
-            "br",
-            "code",
-            "pre",
-            "blockquote",
-            "hr",
-          ],
-          ALLOWED_ATTR: [
-            "href",
-            "src",
-            "class",
-            "style",
-            "alt",
-            "title",
-            "target",
-            "rel",
-            "id",
-            "name",
-          ],
+          ALLOWED_TAGS,
+          ALLOWED_ATTR,
         })
       : content;
+
+  const previousContent = useMemo(() => {
+    if (version > 0) {
+      return allBodies[version - 1];
+    }
+    return null;
+  }, [allBodies, version]);
+
+  const diffedContent = useMemo(() => {
+    if (!diff || !previousContent) {
+      return sanitizedContent;
+    }
+
+    const diffA = DOMPurify.sanitize(previousContent, {
+      ALLOWED_TAGS,
+      ALLOWED_ATTR,
+    });
+
+    const diffB = DOMPurify.sanitize(content, {
+      ALLOWED_TAGS,
+      ALLOWED_ATTR,
+    });
+
+    const dmp = new diff_match_patch();
+    const diffs = dmp.diff_main(diffA, diffB);
+    dmp.diff_cleanupSemantic(diffs);
+
+    let output = "";
+    for (const [op, text] of diffs) {
+      switch (op) {
+        case 0: // Equal
+          output += `<span>${text}</span>`;
+          break;
+        case -1: // Delete
+          output += `<del style="background-color:#ffe6e6;">${text}</del>`;
+          break;
+        case 1: // Insert
+          output += `<ins style="background-color:#e6ffe6;">${text}</ins>`;
+          break;
+      }
+    }
+
+    return output;
+  }, [diff, previousContent, sanitizedContent]);
 
   return (
     <div className="relative pb-16">
@@ -167,7 +226,7 @@ const BodyContent = ({ content }: ContentSectionClientProps) => {
         }}
       >
         <div className="prose prose-lg max-w-none">
-          {actualContentType === "markdown" ? (
+          {actualContentType === "markdown" && !diff ? (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeRaw]}
@@ -175,6 +234,8 @@ const BodyContent = ({ content }: ContentSectionClientProps) => {
             >
               {content}
             </ReactMarkdown>
+          ) : diff ? (
+            <div dangerouslySetInnerHTML={{ __html: diffedContent }} />
           ) : (
             <div
               dangerouslySetInnerHTML={{ __html: sanitizedContent }}

@@ -636,4 +636,22 @@ mod tests {
         assert!(!after.contains("required to abstain"));
         assert!(!after.contains("its operations"));
     }
+
+    #[test]
+    fn test_opco_complex_team_and_cost_changes() {
+        let inline_content = r#"<div class="inline-diff"><li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li>
+        <li class="diff-ins"><strong class="diff-ins"><ins>Cost</ins><ins>:</ins></strong class="diff-ins"><ins> </ins><ins>Up </ins><ins>to </ins><ins>$</ins><ins>263</ins><ins>,</ins><ins>260 </ins><ins>for </ins><ins>the </ins><ins>continuation </ins><ins>of </ins><ins>the </ins><ins>reporting </ins><ins>function</ins><ins>,</ins><ins> </ins><ins>4 </ins><ins>months </ins><ins>of </ins><ins>backpay</ins><ins>,</ins><ins> </ins><ins>grants </ins><ins>to </ins><ins>incorporate </ins><ins>the </ins><ins>community </ins><ins>and </ins><ins>research </ins><ins>areas </ins><ins>such </ins><ins>as </ins><ins>information </ins><ins>dissemination </ins><ins>and </ins><ins>how </ins><ins>to </ins><ins>incorporate </ins><ins>other </ins><ins>tools </ins><ins>the </ins><ins>community </ins><ins>has </ins><ins>built</ins><ins>.</ins></li class="diff-ins"><ins>
+        </ins></div>"#;
+
+        let revision = create_basic_revision(inline_content);
+
+        // Expected content before and after changes
+        let expected_before = r#"<li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li><li><strong>Cost:</strong> Up to $263,260 for the continuation of the reporting function, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>"#;
+
+        let expected_after = r#"<li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li><li>Cost: a maximum of $263,260 for the continuation of the reporting function or up to 12 months, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>"#;
+
+        // Assert that the extracted content matches the expected content
+        assert_eq!(revision.get_cooked_before().trim(), expected_before);
+        assert_eq!(revision.get_cooked_after().trim(), expected_after);
+    }
 }
