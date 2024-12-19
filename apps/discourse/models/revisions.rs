@@ -64,21 +64,24 @@ impl Revision {
         let re_wrapper_div = Regex::new(r#"^<div class="inline-diff">|</div>$"#).unwrap();
         result = re_wrapper_div.replace_all(content, "").to_string();
 
-        // Rule 7: Handle diff-del in both opening and closing tags
-        let both_diff_del =
-            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">([\s\S]*?)</\1\s+class="diff-del">"#)?;
+        // Rule 7: Handle diff-del in both opening and closing tags (with multiple classes)
+        let both_diff_del = Regex::new(
+            r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">([\s\S]*?)</\1\s+class="[^"]*diff-del[^"]*">"#,
+        )?;
         result = both_diff_del
             .replace_all(&result, "<$1>$2</$1>")
             .to_string();
 
-        // Rule 5: Handle diff-del class in opening tag
-        let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">([\s\S]*?)</\1>"#)?;
+        // Rule 5: Handle diff-del class in opening tag (with multiple classes)
+        let diff_del_pattern =
+            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">([\s\S]*?)</\1>"#)?;
         result = diff_del_pattern
             .replace_all(&result, "<$1>$2</$1>")
             .to_string();
 
-        // Rule 6: Remove diff-ins elements completely including their content
-        let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-ins">[\s\S]*?</\1>"#)?;
+        // Rule 6: Remove diff-ins elements completely including their content (with multiple classes)
+        let diff_ins_pattern =
+            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-ins[^"]*">[\s\S]*?</\1>"#)?;
         result = diff_ins_pattern.replace_all(&result, "").to_string();
 
         // Rule 3: Keep content inside <del> tags including whitespace
@@ -99,17 +102,20 @@ impl Revision {
         let re_wrapper_div = Regex::new(r#"^<div class="inline-diff">|</div>$"#).unwrap();
         result = re_wrapper_div.replace_all(content, "").to_string();
 
-        // Rule 7: Handle diff-del in both opening and closing tags
-        let both_diff_del =
-            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">(.*?)</\1\s+class="diff-del">"#)?;
+        // Rule 7: Handle diff-del in both opening and closing tags (with multiple classes)
+        let both_diff_del = Regex::new(
+            r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">(.*?)</\1\s+class="[^"]*diff-del[^"]*">"#,
+        )?;
         result = both_diff_del.replace_all(&result, "$2").to_string();
 
-        // Rule 5: Remove diff-del elements completely including their content
-        let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">[\s\S]*?</\1>"#)?;
+        // Rule 5: Remove diff-del elements completely including their content (with multiple classes)
+        let diff_del_pattern =
+            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">[\s\S]*?</\1>"#)?;
         result = diff_del_pattern.replace_all(&result, "").to_string();
 
-        // Rule 6: Handle diff-ins class
-        let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-ins">([\s\S]*?)</\1>"#)?;
+        // Rule 6: Handle diff-ins class (with multiple classes)
+        let diff_ins_pattern =
+            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-ins[^"]*">([\s\S]*?)</\1>"#)?;
         result = diff_ins_pattern
             .replace_all(&result, "<$1>$2</$1>")
             .to_string();
@@ -594,5 +600,49 @@ mod tests {
         assert!(before.contains("</ul>"));
         assert!(after.contains("<ul>"));
         assert!(after.contains("</ul>"));
+    }
+
+    #[test]
+    fn test_multiple_classes() {
+        let revision = create_basic_revision(
+            r#"<div class="inline-diff">
+                <p class="anchor diff-del important">old text</p>
+                <p class="highlight diff-ins main">new text</p>
+                <span class="diff-del bold">removed</span>
+                <span class="diff-ins italic">added</span>
+            </div>"#,
+        );
+
+        let expected_before = r#"<p>old text</p><span>removed</span>"#;
+        let expected_after = r#"<p>new text</p><span>added</span>"#;
+
+        assert_eq!(revision.get_cooked_before().trim(), expected_before);
+        assert_eq!(revision.get_cooked_after().trim(), expected_after);
+    }
+
+    #[test]
+    fn test_complex_multiple_classes() {
+        let revision = create_basic_revision(
+            r#"<div class="inline-diff">
+                <h1 class="anchor diff-del main">Old Title</h1>
+                <h1 class="anchor diff-ins main">New Title</h1>
+                <p class="text-lg diff-del highlight">Removed paragraph</p>
+                <p class="text-lg diff-ins highlight">Added paragraph</p>
+                <ul class="list-style diff-del numbered">
+                    <li>Old item</li>
+                </ul>
+                <ul class="list-style diff-ins numbered">
+                    <li>New item</li>
+                </ul>
+            </div>"#,
+        );
+
+        let expected_before =
+            r#"<h1>Old Title</h1><p>Removed paragraph</p><ul><li>Old item</li></ul>"#;
+        let expected_after =
+            r#"<h1>New Title</h1><p>Added paragraph</p><ul><li>New item</li></ul>"#;
+
+        assert_eq!(revision.get_cooked_before().trim(), expected_before);
+        assert_eq!(revision.get_cooked_after().trim(), expected_after);
     }
 }
