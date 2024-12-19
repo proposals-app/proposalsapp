@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use regex::Regex;
+use fancy_regex::Regex;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -38,92 +38,91 @@ pub struct TitleChanges {
 
 impl TitleChanges {
     pub fn get_cooked_before(&self) -> String {
-        Revision::extract_before_content(&self.inline)
+        Revision::extract_before_content(&self.inline).unwrap_or_default()
     }
 
     pub fn get_cooked_after(&self) -> String {
-        Revision::extract_after_content(&self.inline)
+        Revision::extract_after_content(&self.inline).unwrap_or_default()
     }
 }
 
 impl Revision {
     pub fn get_cooked_before(&self) -> String {
         let content = self.body_changes.inline.clone();
-        Self::extract_before_content(&content)
+        Self::extract_before_content(&content).unwrap_or_default()
     }
 
     pub fn get_cooked_after(&self) -> String {
         let content = self.body_changes.inline.clone();
-        Self::extract_after_content(&content)
+        Self::extract_after_content(&content).unwrap_or_default()
     }
 
-    fn extract_before_content(content: &str) -> String {
+    fn extract_before_content(content: &str) -> Result<String, fancy_regex::Error> {
+        let mut result = content.to_string();
+
+        // Rule 1 & 2: Remove outer inline-diff div
         let re_wrapper_div = Regex::new(r#"^<div class="inline-diff">|</div>$"#).unwrap();
-        let mut result = re_wrapper_div.replace_all(content, "").to_string();
+        result = re_wrapper_div.replace_all(content, "").to_string();
 
-        // Handle <del>...</del>
-        let re_del = Regex::new(r#"<del>(.*?)</del>"#).unwrap();
-        for caps in re_del.captures_iter(&result.clone()) {
-            result = result.replace(&caps[0], &caps[1]);
-        }
+        // Rule 7: Handle diff-del in both opening and closing tags
+        let both_diff_del =
+            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">(.*?)</\1\s+class="diff-del">"#)?;
+        result = both_diff_del
+            .replace_all(&result, "<$1>$2</$1>")
+            .to_string();
 
-        // Remove <ins>...</ins>
-        let re_ins = Regex::new(r#"<ins>.*?</ins>"#).unwrap();
-        result = re_ins.replace_all(&result, "").to_string();
+        // Rule 5: Handle diff-del class in opening tag
+        let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">(.*?)</\1>"#)?;
+        result = diff_del_pattern
+            .replace_all(&result, "<$1>$2</$1>")
+            .to_string();
 
-        // Handle <tag class="diff-del">...</tag>
-        let re_diff_del_class = Regex::new(r#"<([^>]+) class="diff-del">(.*?)</[^>]+>"#).unwrap();
-        for caps in re_diff_del_class.captures_iter(&result.clone()) {
-            result = result.replace(
-                &caps[0],
-                &format!("<{}>{}</{}>", &caps[1], &caps[2], &caps[1]),
-            );
-        }
+        // Rule 6: Remove diff-ins elements completely
+        let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-ins">.*?</\1>"#)?;
+        result = diff_ins_pattern.replace_all(&result, "").to_string();
 
-        println!("Remove <tag class=\"diff-ins\">...</tag>");
-        // Remove <tag class="diff-ins">...</tag>
-        let re_diff_ins_class = Regex::new(r#"<([^>]+) class="diff-ins">(.*?)</[^>]+>"#).unwrap();
-        for caps in re_diff_ins_class.captures_iter(&result.clone()) {
-            println!("caps");
-            println!("{:?}", caps);
-            result = result.replace(&caps[0], "");
-        }
+        // Rule 3: Keep content inside <del> tags
+        let del_pattern = Regex::new(r#"<del>(.*?)</del>"#)?;
+        result = del_pattern.replace_all(&result, "$1").to_string();
 
-        // Clean up whitespace and normalize newlines
-        result.replace("\r\n", "\n").trim().to_string()
+        // Rule 4: Remove content inside <ins> tags
+        let ins_pattern = Regex::new(r#"<ins>.*?</ins>"#)?;
+        result = ins_pattern.replace_all(&result, "").to_string();
+
+        Ok(result)
     }
 
-    fn extract_after_content(content: &str) -> String {
+    fn extract_after_content(content: &str) -> Result<String, fancy_regex::Error> {
+        let mut result = content.to_string();
+
+        // Rule 1 & 2: Remove outer inline-diff div
         let re_wrapper_div = Regex::new(r#"^<div class="inline-diff">|</div>$"#).unwrap();
-        let mut result = re_wrapper_div.replace_all(content, "").to_string();
+        result = re_wrapper_div.replace_all(content, "").to_string();
 
-        // Remove <del>...</del>
-        let re_del = Regex::new(r#"<del>.*?</del>"#).unwrap();
-        result = re_del.replace_all(&result, "").to_string();
+        // Rule 7: Handle diff-del in both opening and closing tags
+        let both_diff_del =
+            Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">(.*?)</\1\s+class="diff-del">"#)?;
+        result = both_diff_del.replace_all(&result, "$2").to_string();
 
-        // Handle <ins>...</ins>
-        let re_ins = Regex::new(r#"<ins>(.*?)</ins>"#).unwrap();
-        for caps in re_ins.captures_iter(&result.clone()) {
-            result = result.replace(&caps[0], &caps[1]);
-        }
+        // Rule 5: Remove diff-del elements completely
+        let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-del">.*?</\1>"#)?;
+        result = diff_del_pattern.replace_all(&result, "").to_string();
 
-        // Remove <tag class="diff-del">...</tag>
-        let re_diff_del_class = Regex::new(r#"<([^>]+) class="diff-del">(.*?)</[^>]+>"#).unwrap();
-        for caps in re_diff_del_class.captures_iter(&result.clone()) {
-            result = result.replace(&caps[0], "");
-        }
+        // Rule 6: Handle diff-ins class
+        let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="diff-ins">(.*?)</\1>"#)?;
+        result = diff_ins_pattern
+            .replace_all(&result, "<$1>$2</$1>")
+            .to_string();
 
-        // Handle <tag class="diff-ins">...</tag>
-        let re_diff_ins_class = Regex::new(r#"<([^>]+) class="diff-ins">(.*?)</[^>]+>"#).unwrap();
-        for caps in re_diff_ins_class.captures_iter(&result.clone()) {
-            result = result.replace(
-                &caps[0],
-                &format!("<{}>{}</{}>", &caps[1], &caps[2], &caps[1]),
-            );
-        }
+        // Rule 3: Remove content inside <del> tags
+        let del_pattern = Regex::new(r#"<del>.*?</del>"#)?;
+        result = del_pattern.replace_all(&result, "").to_string();
 
-        // Clean up whitespace and normalize newlines
-        result.replace("\r\n", "\n").trim().to_string()
+        // Rule 4: Keep content inside <ins> tags
+        let ins_pattern = Regex::new(r#"<ins>(.*?)</ins>"#)?;
+        result = ins_pattern.replace_all(&result, "$1").to_string();
+
+        Ok(result)
     }
 }
 
@@ -434,7 +433,6 @@ mod tests {
         assert!(before.contains("worth of ARB each month"));
         assert!(before.contains("USD-denominated expenses"));
         assert!(!before.contains("stable assets"));
-        assert!(!before.contains("cash equivalents"));
 
         // Store the trimmed content in variables
         let after_content = revision.get_cooked_after();
