@@ -8,9 +8,9 @@ anyhow = { workspace = true, features = ["backtrace"] }
 axum = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
-fancy-regex = "0.14.0"
+fancy-regex = { workspace = true }
 futures = { workspace = true }
-html-escape = "0.2.13"
+html-escape = { workspace = true }
 lazy_static = { workspace = true }
 oneshot = { workspace = true }
 opentelemetry = { workspace = true }

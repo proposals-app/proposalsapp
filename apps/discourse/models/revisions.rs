@@ -527,7 +527,6 @@ mod tests {
                 .to_string(),
         });
 
-        let title_changes = revision.title_changes.as_ref().unwrap();
         let before = revision
             .title_changes
             .as_ref()

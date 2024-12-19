@@ -1827,10 +1827,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/env@npm:15.1.1":
-  version: 15.1.1
-  resolution: "@next/env@npm:15.1.1"
-  checksum: 10c0/464ecb345eaf1170a863fff3f5bbed081982b1c1d70d617020d336aa7bdd6160a8dbb0a9cb4ba9d8c8189ae56aa026c2fa0d3b7f8365dc6ea00d5e9fba10c2f0
+"@next/env@npm:15.1.2":
+  version: 15.1.2
+  resolution: "@next/env@npm:15.1.2"
+  checksum: 10c0/07f2b258bd0e8937bfd33515c48b920491d9c281de5f1fa58c4c222dc8e7e0ad3745ca6035bfef788f07d9a39c583bc18cb0cdfbaa8c2177761d9c2bbdd9592f
   languageName: node
   linkType: hard
 
@@ -1841,9 +1841,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-arm64@npm:15.1.1":
-  version: 15.1.1
-  resolution: "@next/swc-darwin-arm64@npm:15.1.1"
+"@next/swc-darwin-arm64@npm:15.1.2":
+  version: 15.1.2
+  resolution: "@next/swc-darwin-arm64@npm:15.1.2"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
@@ -1855,9 +1855,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-x64@npm:15.1.1":
-  version: 15.1.1
-  resolution: "@next/swc-darwin-x64@npm:15.1.1"
+"@next/swc-darwin-x64@npm:15.1.2":
+  version: 15.1.2
+  resolution: "@next/swc-darwin-x64@npm:15.1.2"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
@@ -1869,9 +1869,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-gnu@npm:15.1.1":
-  version: 15.1.1
-  resolution: "@next/swc-linux-arm64-gnu@npm:15.1.1"
+"@next/swc-linux-arm64-gnu@npm:15.1.2":
+  version: 15.1.2
+  resolution: "@next/swc-linux-arm64-gnu@npm:15.1.2"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
@@ -1883,9 +1883,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-musl@npm:15.1.1":
-  version: 15.1.1
-  resolution: "@next/swc-linux-arm64-musl@npm:15.1.1"
+"@next/swc-linux-arm64-musl@npm:15.1.2":
+  version: 15.1.2
+  resolution: "@next/swc-linux-arm64-musl@npm:15.1.2"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
@@ -1897,9 +1897,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-gnu@npm:15.1.1":
-  version: 15.1.1
-  resolution: "@next/swc-linux-x64-gnu@npm:15.1.1"
+"@next/swc-linux-x64-gnu@npm:15.1.2":
+  version: 15.1.2
+  resolution: "@next/swc-linux-x64-gnu@npm:15.1.2"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
@@ -1911,9 +1911,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-musl@npm:15.1.1":
-  version: 15.1.1
-  resolution: "@next/swc-linux-x64-musl@npm:15.1.1"
+"@next/swc-linux-x64-musl@npm:15.1.2":
+  version: 15.1.2
+  resolution: "@next/swc-linux-x64-musl@npm:15.1.2"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
@@ -1925,9 +1925,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-win32-arm64-msvc@npm:15.1.1":
-  version: 15.1.1
-  resolution: "@next/swc-win32-arm64-msvc@npm:15.1.1"
+"@next/swc-win32-arm64-msvc@npm:15.1.2":
+  version: 15.1.2
+  resolution: "@next/swc-win32-arm64-msvc@npm:15.1.2"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
@@ -1939,9 +1939,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-win32-x64-msvc@npm:15.1.1":
-  version: 15.1.1
-  resolution: "@next/swc-win32-x64-msvc@npm:15.1.1"
+"@next/swc-win32-x64-msvc@npm:15.1.2":
+  version: 15.1.2
+  resolution: "@next/swc-win32-x64-msvc@npm:15.1.2"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -2664,14 +2664,14 @@ __metadata:
     lucia: "npm:3.2.2"
     lucide-react: "npm:^0.468.0"
     moment: "npm:2.30.1"
-    next: "npm:15.1.1"
+    next: "npm:15.1.2"
     next-themes: "npm:^0.4.4"
     nuqs: "npm:^2.2.3"
     oslo: "npm:1.2.1"
     pg: "npm:8.13.1"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:8.4.49"
-    posthog-js: "npm:1.202.2"
+    posthog-js: "npm:1.202.5"
     postmark: "npm:4.0.5"
     prettier: "npm:3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
@@ -2767,13 +2767,13 @@ __metadata:
     lucia: "npm:3.2.2"
     lucide-react: "npm:^0.468.0"
     moment: "npm:2.30.1"
-    next: "npm:15.1.1"
+    next: "npm:15.1.2"
     next-themes: "npm:^0.4.4"
     oslo: "npm:1.2.1"
     pg: "npm:8.13.1"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:8.4.49"
-    posthog-js: "npm:1.202.2"
+    posthog-js: "npm:1.202.5"
     postmark: "npm:4.0.5"
     prettier: "npm:3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
@@ -6795,6 +6795,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chalk@npm:5.4.0":
+  version: 5.4.0
+  resolution: "chalk@npm:5.4.0"
+  checksum: 10c0/474266abd1a69879e367690b3090541deb985a54d3263efa4c82ffc623ea12b8ab9afdba082e853bb5e3f64c6619ac4951a154622b6cc8f66265f85c943d0481
+  languageName: node
+  linkType: hard
+
 "chalk@npm:^2.3.2, chalk@npm:^2.4.2":
   version: 2.4.2
   resolution: "chalk@npm:2.4.2"
@@ -6841,12 +6848,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chokidar@npm:4.0.2":
-  version: 4.0.2
-  resolution: "chokidar@npm:4.0.2"
+"chokidar@npm:4.0.3":
+  version: 4.0.3
+  resolution: "chokidar@npm:4.0.3"
   dependencies:
     readdirp: "npm:^4.0.1"
-  checksum: 10c0/562a3456d529ce9e16f9a6447f86a3e82a816200fed473fa0b6f84b447ce29f96210c92874a8d5e619a0b453d92a352e93252baa214e376a9a08489e96337c65
+  checksum: 10c0/a58b9df05bb452f7d105d9e7229ac82fa873741c0c40ddcc7bb82f8a909fbe3f7814c9ebe9bc9a2bef9b737c0ec6e2d699d179048ef06ad3ec46315df0ebe6ad
   languageName: node
   linkType: hard
 
@@ -12206,19 +12213,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:15.1.1":
-  version: 15.1.1
-  resolution: "next@npm:15.1.1"
+"next@npm:15.1.2":
+  version: 15.1.2
+  resolution: "next@npm:15.1.2"
   dependencies:
-    "@next/env": "npm:15.1.1"
-    "@next/swc-darwin-arm64": "npm:15.1.1"
-    "@next/swc-darwin-x64": "npm:15.1.1"
-    "@next/swc-linux-arm64-gnu": "npm:15.1.1"
-    "@next/swc-linux-arm64-musl": "npm:15.1.1"
-    "@next/swc-linux-x64-gnu": "npm:15.1.1"
-    "@next/swc-linux-x64-musl": "npm:15.1.1"
-    "@next/swc-win32-arm64-msvc": "npm:15.1.1"
-    "@next/swc-win32-x64-msvc": "npm:15.1.1"
+    "@next/env": "npm:15.1.2"
+    "@next/swc-darwin-arm64": "npm:15.1.2"
+    "@next/swc-darwin-x64": "npm:15.1.2"
+    "@next/swc-linux-arm64-gnu": "npm:15.1.2"
+    "@next/swc-linux-arm64-musl": "npm:15.1.2"
+    "@next/swc-linux-x64-gnu": "npm:15.1.2"
+    "@next/swc-linux-x64-musl": "npm:15.1.2"
+    "@next/swc-win32-arm64-msvc": "npm:15.1.2"
+    "@next/swc-win32-x64-msvc": "npm:15.1.2"
     "@swc/counter": "npm:0.1.3"
     "@swc/helpers": "npm:0.5.15"
     busboy: "npm:1.6.0"
@@ -12263,7 +12270,7 @@ __metadata:
       optional: true
   bin:
     next: dist/bin/next
-  checksum: 10c0/2908eb539b21a7149f1a5e1cf6ff15f2de1687cc6b445af6cc8b32b33f3d3befc3971c0548bf9bcacd1237e0d06d77b0a21e13d03e5393c3e7bf47280ea1288f
+  checksum: 10c0/320b949336fa41210ebe5cee66fce7edb4dc3474b438898590e43f6dfe30212620b090801d6f8cc4d37bfb54cb316680f65b58110cc8885f8c2b108a80e4ecee
   languageName: node
   linkType: hard
 
@@ -13331,15 +13338,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.202.2":
-  version: 1.202.2
-  resolution: "posthog-js@npm:1.202.2"
+"posthog-js@npm:1.202.5":
+  version: 1.202.5
+  resolution: "posthog-js@npm:1.202.5"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.2.0"
-  checksum: 10c0/47aac87618cbbce225b50e11db0c153185fc746e013018d80335d6fa4260e4fa662259e3d597d2b308d0124b263bdbc62cd1c994253b308c57ee70a427847fcc
+  checksum: 10c0/822f0529360f8ac134bdbb3449d8f6ffce53e5024e694a7c20043486a4d708270d5c100f196c5355034a0fab416a3d8d71364d84d4559778cc394406e5c74f75
   languageName: node
   linkType: hard
 
@@ -13487,8 +13494,8 @@ __metadata:
     "@types/webpack": "npm:5.28.5"
     "@vercel/style-guide": "npm:6.0.0"
     autoprefixer: "npm:10.4.20"
-    chalk: "npm:5.3.0"
-    chokidar: "npm:4.0.2"
+    chalk: "npm:5.4.0"
+    chokidar: "npm:4.0.3"
     clsx: "npm:2.1.1"
     commander: "npm:12.1.0"
     debounce: "npm:2.2.0"
@@ -13500,7 +13507,7 @@ __metadata:
     glob: "npm:11.0.0"
     log-symbols: "npm:7.0.0"
     mime-types: "npm:2.1.35"
-    next: "npm:15.1.1"
+    next: "npm:15.1.2"
     normalize-path: "npm:3.0.0"
     ora: "npm:8.1.1"
     postcss: "npm:8.4.49"
