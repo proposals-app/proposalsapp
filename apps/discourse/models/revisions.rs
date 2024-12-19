@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -57,241 +58,73 @@ impl Revision {
     }
 
     fn extract_before_content(content: &str) -> String {
-        let mut result = content.to_string();
+        let re_wrapper_div = Regex::new(r#"^<div class="inline-diff">|</div>$"#).unwrap();
+        let mut result = re_wrapper_div.replace_all(content, "").to_string();
 
-        // Remove wrapper div if present
-        if result.starts_with(r#"<div class="inline-diff">"#) {
-            if let Some(last_div_pos) = result.rfind("</div>") {
-                result = result[25..last_div_pos].to_string();
-            }
+        // Handle <del>...</del>
+        let re_del = Regex::new(r#"<del>(.*?)</del>"#).unwrap();
+        for caps in re_del.captures_iter(&result.clone()) {
+            result = result.replace(&caps[0], &caps[1]);
         }
 
-        // First remove all ins tags and their content
-        while let Some(start) = result.find("<ins>") {
-            if let Some(end) = result[start..].find("</ins>") {
-                let end = start + end + 6;
-                result.replace_range(start..end, "");
-            } else {
-                break;
-            }
+        // Remove <ins>...</ins>
+        let re_ins = Regex::new(r#"<ins>.*?</ins>"#).unwrap();
+        result = re_ins.replace_all(&result, "").to_string();
+
+        // Handle <tag class="diff-del">...</tag>
+        let re_diff_del_class = Regex::new(r#"<([^>]+) class="diff-del">(.*?)</[^>]+>"#).unwrap();
+        for caps in re_diff_del_class.captures_iter(&result.clone()) {
+            result = result.replace(
+                &caps[0],
+                &format!("<{}>{}</{}>", &caps[1], &caps[2], &caps[1]),
+            );
         }
 
-        // Handle diff-ins class elements
-        while let Some(start) = find_tag_with_class(&result, "diff-ins") {
-            if let Some(end_tag) = find_closing_tag(&result[start..]) {
-                let end = start + end_tag;
-                result.replace_range(start..end, "");
-            }
+        println!("Remove <tag class=\"diff-ins\">...</tag>");
+        // Remove <tag class="diff-ins">...</tag>
+        let re_diff_ins_class = Regex::new(r#"<([^>]+) class="diff-ins">(.*?)</[^>]+>"#).unwrap();
+        for caps in re_diff_ins_class.captures_iter(&result.clone()) {
+            println!("caps");
+            println!("{:?}", caps);
+            result = result.replace(&caps[0], "");
         }
-
-        // Clean up deletion markers but keep content
-        let mut final_result = String::with_capacity(result.len());
-        let mut current_pos = 0;
-
-        while let Some(start) = result[current_pos..].find("<del>") {
-            let absolute_start = current_pos + start;
-            if let Some(end) = result[absolute_start..].find("</del>") {
-                let absolute_end = absolute_start + end;
-                // Add content before the del tag
-                final_result.push_str(&result[current_pos..absolute_start]);
-                // Add content inside the del tag
-                final_result.push_str(&result[absolute_start + 5..absolute_end]);
-                current_pos = absolute_end + 6;
-            } else {
-                break;
-            }
-        }
-        final_result.push_str(&result[current_pos..]);
-        result = final_result;
-
-        // Remove diff-del class but keep content
-        let mut current_pos = 0;
-        let mut final_result = String::new();
-
-        while let Some(start) = find_tag_with_class(&result[current_pos..], "diff-del") {
-            let absolute_start = current_pos + start;
-            if let Some(end_tag) = find_closing_tag(&result[absolute_start..]) {
-                let absolute_end = absolute_start + end_tag;
-
-                // Extract tag name and content
-                if let Some(tag_name) = extract_tag_name(&result[absolute_start..absolute_end]) {
-                    let content_start = result[absolute_start..absolute_end]
-                        .find('>')
-                        .map(|pos| absolute_start + pos + 1);
-                    let content_end = absolute_end - tag_name.len() - 3; // "</tag>"
-
-                    if let Some(content_start) = content_start {
-                        // Add content before the tag
-                        final_result.push_str(&result[current_pos..absolute_start]);
-                        // Add the tag without the class
-                        final_result.push_str(&format!("<{}>", tag_name));
-                        // Add the content
-                        final_result.push_str(&result[content_start..content_end]);
-                        // Add the closing tag
-                        final_result.push_str(&format!("</{}>", tag_name));
-
-                        current_pos = absolute_end;
-                        continue;
-                    }
-                }
-            }
-            // If we couldn't process the tag properly, just add everything up to this point
-            final_result.push_str(&result[current_pos..absolute_start + 1]);
-            current_pos = absolute_start + 1;
-        }
-        final_result.push_str(&result[current_pos..]);
 
         // Clean up whitespace and normalize newlines
-        final_result.replace("\r\n", "\n").trim().to_string()
+        result.replace("\r\n", "\n").trim().to_string()
     }
 
     fn extract_after_content(content: &str) -> String {
-        let mut result = content.to_string();
+        let re_wrapper_div = Regex::new(r#"^<div class="inline-diff">|</div>$"#).unwrap();
+        let mut result = re_wrapper_div.replace_all(content, "").to_string();
 
-        // Remove wrapper div if present
-        if result.starts_with(r#"<div class="inline-diff">"#) {
-            if let Some(last_div_pos) = result.rfind("</div>") {
-                result = result[25..last_div_pos].to_string();
-            }
+        // Remove <del>...</del>
+        let re_del = Regex::new(r#"<del>.*?</del>"#).unwrap();
+        result = re_del.replace_all(&result, "").to_string();
+
+        // Handle <ins>...</ins>
+        let re_ins = Regex::new(r#"<ins>(.*?)</ins>"#).unwrap();
+        for caps in re_ins.captures_iter(&result.clone()) {
+            result = result.replace(&caps[0], &caps[1]);
         }
 
-        // First remove all del tags and their content
-        while let Some(start) = result.find("<del>") {
-            if let Some(end) = result[start..].find("</del>") {
-                let end = start + end + 6;
-                result.replace_range(start..end, "");
-            } else {
-                break;
-            }
+        // Remove <tag class="diff-del">...</tag>
+        let re_diff_del_class = Regex::new(r#"<([^>]+) class="diff-del">(.*?)</[^>]+>"#).unwrap();
+        for caps in re_diff_del_class.captures_iter(&result.clone()) {
+            result = result.replace(&caps[0], "");
         }
 
-        // Handle diff-del class elements
-        while let Some(start) = find_tag_with_class(&result, "diff-del") {
-            if let Some(end_tag) = find_closing_tag(&result[start..]) {
-                let end = start + end_tag;
-                result.replace_range(start..end, "");
-            }
+        // Handle <tag class="diff-ins">...</tag>
+        let re_diff_ins_class = Regex::new(r#"<([^>]+) class="diff-ins">(.*?)</[^>]+>"#).unwrap();
+        for caps in re_diff_ins_class.captures_iter(&result.clone()) {
+            result = result.replace(
+                &caps[0],
+                &format!("<{}>{}</{}>", &caps[1], &caps[2], &caps[1]),
+            );
         }
-
-        // Clean up insertion markers but keep content
-        let mut final_result = String::with_capacity(result.len());
-        let mut current_pos = 0;
-
-        while let Some(start) = result[current_pos..].find("<ins>") {
-            let absolute_start = current_pos + start;
-            if let Some(end) = result[absolute_start..].find("</ins>") {
-                let absolute_end = absolute_start + end;
-                // Add content before the ins tag
-                final_result.push_str(&result[current_pos..absolute_start]);
-                // Add content inside the ins tag
-                final_result.push_str(&result[absolute_start + 5..absolute_end]);
-                current_pos = absolute_end + 6;
-            } else {
-                break;
-            }
-        }
-        final_result.push_str(&result[current_pos..]);
-        result = final_result;
-
-        // Remove diff-ins class but keep content
-        let mut current_pos = 0;
-        let mut final_result = String::new();
-
-        while let Some(start) = find_tag_with_class(&result[current_pos..], "diff-ins") {
-            let absolute_start = current_pos + start;
-            if let Some(end_tag) = find_closing_tag(&result[absolute_start..]) {
-                let absolute_end = absolute_start + end_tag;
-
-                // Extract tag name and content
-                if let Some(tag_name) = extract_tag_name(&result[absolute_start..absolute_end]) {
-                    let content_start = result[absolute_start..absolute_end]
-                        .find('>')
-                        .map(|pos| absolute_start + pos + 1);
-                    let content_end = absolute_end - tag_name.len() - 3; // "</tag>"
-
-                    if let Some(content_start) = content_start {
-                        // Add content before the tag
-                        final_result.push_str(&result[current_pos..absolute_start]);
-                        // Add the tag without the class
-                        final_result.push_str(&format!("<{}>", tag_name));
-                        // Add the content
-                        final_result.push_str(&result[content_start..content_end]);
-                        // Add the closing tag
-                        final_result.push_str(&format!("</{}>", tag_name));
-
-                        current_pos = absolute_end;
-                        continue;
-                    }
-                }
-            }
-            // If we couldn't process the tag properly, just add everything up to this point
-            final_result.push_str(&result[current_pos..absolute_start + 1]);
-            current_pos = absolute_start + 1;
-        }
-        final_result.push_str(&result[current_pos..]);
 
         // Clean up whitespace and normalize newlines
-        final_result.replace("\r\n", "\n").trim().to_string()
+        result.replace("\r\n", "\n").trim().to_string()
     }
-}
-
-fn find_closing_tag(content: &str) -> Option<usize> {
-    let mut depth = 0;
-    let mut pos = 0;
-    let bytes = content.as_bytes();
-
-    while pos < bytes.len() {
-        match bytes[pos] {
-            b'<' => {
-                if pos + 1 < bytes.len() {
-                    match bytes[pos + 1] {
-                        b'/' => {
-                            depth -= 1;
-                            if depth == 0 {
-                                // Find the end of this closing tag
-                                while pos < bytes.len() && bytes[pos] != b'>' {
-                                    pos += 1;
-                                }
-                                return Some(pos + 1);
-                            }
-                        }
-                        _ => depth += 1,
-                    }
-                }
-            }
-            b'>' => {
-                if pos > 0 && bytes[pos - 1] == b'/' {
-                    depth -= 1;
-                    if depth == 0 {
-                        return Some(pos + 1);
-                    }
-                }
-            }
-            _ => {}
-        }
-        pos += 1;
-    }
-    None
-}
-
-fn extract_tag_name(tag: &str) -> Option<String> {
-    let start = tag.find('<')? + 1;
-    let remaining = &tag[start..];
-    let end = remaining.find(|c: char| c.is_whitespace() || c == '>')?;
-    Some(remaining[..end].to_string())
-}
-
-fn find_tag_with_class(content: &str, class_name: &str) -> Option<usize> {
-    let class_attr = format!("class=\"{}\"", class_name);
-    content.find(&class_attr).and_then(|class_pos| {
-        // Search backwards for the opening '<'
-        for i in (0..class_pos).rev() {
-            if content.as_bytes()[i] == b'<' {
-                return Some(i);
-            }
-        }
-        None
-    })
 }
 
 #[cfg(test)]
@@ -524,6 +357,32 @@ mod tests {
     }
 
     #[test]
+    fn test_complex_diff_ins_p() {
+        let revision = create_basic_revision(
+            r#"<div class="inline-diff"><p class="diff-ins">inserted</p><p class="diff-del">removed</p></div>"#,
+        );
+
+        let expected_before = "<p>removed</p>";
+        let expected_after = r#"<p>inserted</p>"#;
+
+        assert_eq!(revision.get_cooked_before().trim(), expected_before);
+        assert_eq!(revision.get_cooked_after().trim(), expected_after);
+    }
+
+    #[test]
+    fn test_complex_diff_ins_ul() {
+        let revision = create_basic_revision(
+            r#"<div class="inline-diff"><ul class="diff-ins"><li>inserted</li></ul><ul class="diff-del"><li>removed</li></ul></div>"#,
+        );
+
+        let expected_before = "<ul><li>removed</li></ul>";
+        let expected_after = r#"<ul><li>inserted</li></ul>"#;
+
+        assert_eq!(revision.get_cooked_before().trim(), expected_before);
+        assert_eq!(revision.get_cooked_after().trim(), expected_after);
+    }
+
+    #[test]
     fn test_complex_diff_with_lists() {
         let revision = create_basic_revision(
             r#"<div class="inline-diff"><ul class="diff-ins">
@@ -535,10 +394,10 @@ mod tests {
 
         let expected_before = "<p>The previous structure has been removed.</p>";
         let expected_after = r#"<ul>
-                <li>4M ARB allocated to a bonus pool for internal employees and OpCo's oversight committee.</li>
-                <li>Of the remaining 18M ARB, tokens will be liquidated until $12M worth of cash equivalents has been attained.</li>
-                <li>After subtracting the bonus allocation and the liquidation is complete, the remaining ARB will be transferred back.</li>
-            </ul>"#;
+                    <li>4M ARB allocated to a bonus pool for internal employees and OpCo's oversight committee.</li>
+                    <li>Of the remaining 18M ARB, tokens will be liquidated until $12M worth of cash equivalents has been attained.</li>
+                    <li>After subtracting the bonus allocation and the liquidation is complete, the remaining ARB will be transferred back.</li>
+                </ul>"#;
 
         assert_eq!(revision.get_cooked_before().trim(), expected_before);
         assert_eq!(revision.get_cooked_after().trim(), expected_after);
@@ -638,20 +497,33 @@ mod tests {
     }
 
     #[test]
-    fn test_opco_complex_team_and_cost_changes() {
+    fn test_opco_complex_team_and_cost_changes_before() {
         let inline_content = r#"<div class="inline-diff"><li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li>
-        <li class="diff-ins"><strong class="diff-ins"><ins>Cost</ins><ins>:</ins></strong class="diff-ins"><ins> </ins><ins>Up </ins><ins>to </ins><ins>$</ins><ins>263</ins><ins>,</ins><ins>260 </ins><ins>for </ins><ins>the </ins><ins>continuation </ins><ins>of </ins><ins>the </ins><ins>reporting </ins><ins>function</ins><ins>,</ins><ins> </ins><ins>4 </ins><ins>months </ins><ins>of </ins><ins>backpay</ins><ins>,</ins><ins> </ins><ins>grants </ins><ins>to </ins><ins>incorporate </ins><ins>the </ins><ins>community </ins><ins>and </ins><ins>research </ins><ins>areas </ins><ins>such </ins><ins>as </ins><ins>information </ins><ins>dissemination </ins><ins>and </ins><ins>how </ins><ins>to </ins><ins>incorporate </ins><ins>other </ins><ins>tools </ins><ins>the </ins><ins>community </ins><ins>has </ins><ins>built</ins><ins>.</ins></li class="diff-ins"><ins>
-        </ins></div>"#;
+        <li><strong class="diff-del">Cost:</strong class="diff-del"> <ins>a </ins><ins>maximum </ins><ins>of </ins><del>Up </del><del>to </del>$263,260 for the continuation of the reporting <ins>function </ins><ins>for </ins><ins>up </ins><ins>to </ins><ins>12 </ins><ins>months</ins><del>function</del>, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>
+        </div>"#;
 
         let revision = create_basic_revision(inline_content);
 
         // Expected content before and after changes
-        let expected_before = r#"<li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li><li><strong>Cost:</strong> Up to $263,260 for the continuation of the reporting function, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>"#;
-
-        let expected_after = r#"<li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li><li>Cost: a maximum of $263,260 for the continuation of the reporting function or up to 12 months, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>"#;
+        let expected_before = r#"<li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li>
+        <li><strong>Cost:</strong> Up to $263,260 for the continuation of the reporting function, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>"#;
 
         // Assert that the extracted content matches the expected content
         assert_eq!(revision.get_cooked_before().trim(), expected_before);
+    }
+
+    #[test]
+    fn test_opco_complex_team_and_cost_changes_after() {
+        let inline_content = r#"<div class="inline-diff"><li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li>
+        <li><strong class="diff-del">Cost:</strong class="diff-del"> <ins>a </ins><ins>maximum </ins><ins>of </ins><del>Up </del><del>to </del>$263,260 for the continuation of the reporting <ins>function </ins><ins>for </ins><ins>up </ins><ins>to </ins><ins>12 </ins><ins>months</ins><del>function</del>, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>
+        </div>"#;
+
+        let revision = create_basic_revision(inline_content);
+
+        let expected_after = r#"<li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li>
+        <li>Cost: a maximum of $263,260 for the continuation of the reporting function for up to 12 months, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>"#;
+
+        // Assert that the extracted content matches the expected content
         assert_eq!(revision.get_cooked_after().trim(), expected_after);
     }
 }
