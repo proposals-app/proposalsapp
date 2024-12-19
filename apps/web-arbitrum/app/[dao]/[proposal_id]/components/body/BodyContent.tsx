@@ -81,13 +81,6 @@ const COMMON_STYLES = {
   img: "my-4 h-auto max-w-full rounded-lg",
 };
 
-// Utility function to detect content type
-const detectContentType = (content: string): "html" | "markdown" => {
-  if (!content?.trim()) return "markdown";
-  const firstLine = content.trim().split("\n")[0];
-  return /<[^>]+>/g.test(firstLine) ? "html" : "markdown";
-};
-
 // Convert markdown to HTML
 const markdownToHtml = (markdownContent: string): string => {
   try {
@@ -122,8 +115,7 @@ const applyCommonStyles = (html: string): string => {
 
 // Normalize content to styled HTML
 const normalizeContent = (content: string): string => {
-  const contentType = detectContentType(content);
-  let html = contentType === "markdown" ? markdownToHtml(content) : content;
+  let html = markdownToHtml(content);
   html = applyCommonStyles(html);
   return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
 };
@@ -158,7 +150,6 @@ const BodyContent = ({
     // Normalize both contents for diffing
     const normalizedPrevious = normalizeContent(previousContent);
     const normalizedCurrent = normalizeContent(content);
-
     // Create diff
     const dmp = new diff_match_patch();
     // Standard diff
@@ -176,7 +167,7 @@ const BodyContent = ({
     //   text2: normalizedCurrent,
     // });
 
-    // dmp.diff_cleanupSemanticLossless(diffs);
+    dmp.diff_cleanupSemanticLossless(diffs);
 
     // Generate HTML with diff highlights
     const diffHtml = diffs
@@ -194,7 +185,6 @@ const BodyContent = ({
         }
       })
       .join("");
-
     return DOMPurify.sanitize(diffHtml, { ALLOWED_TAGS, ALLOWED_ATTR });
   }, [content, allBodies, version, diff]);
 
@@ -246,6 +236,11 @@ const BodyContent = ({
 };
 
 export default BodyContent;
+
+function diff_standardMode(text1: string, text2: string) {
+  const dmp = new diff_match_patch();
+  return dmp.diff_main(text1, text2);
+}
 
 function diff_lineMode({ text1, text2 }: { text1: string; text2: string }) {
   var dmp = new diff_match_patch();
