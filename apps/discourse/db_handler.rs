@@ -472,7 +472,7 @@ impl DbHandler {
                 post_update.name = Set(post.name.clone());
                 post_update.username = Set(post.username.clone());
                 post_update.created_at = Set(post.created_at.naive_utc());
-                post_update.cooked = Set(post.cooked.clone());
+                post_update.cooked = Set(post.raw.clone());
                 post_update.post_number = Set(post.post_number);
                 post_update.post_type = Set(post.post_type);
                 post_update.updated_at = Set(post.updated_at.naive_utc());
@@ -513,7 +513,7 @@ impl DbHandler {
                     name: Set(post.name.clone()),
                     username: Set(post.username.clone()),
                     created_at: Set(post.created_at.naive_utc()),
-                    cooked: Set(post.cooked.clone()),
+                    cooked: Set(post.raw.clone()),
                     post_number: Set(post.post_number),
                     post_type: Set(post.post_type),
                     updated_at: Set(post.updated_at.naive_utc()),
@@ -584,8 +584,8 @@ impl DbHandler {
             "Upserting revision"
         );
 
-        let cooked_body_before = Some(revision.get_cooked_before());
-        let cooked_body_after = Some(revision.get_cooked_after());
+        let cooked_body_before = Some("".into());
+        let cooked_body_after = Some("".into());
 
         let cooked_title_before = revision
             .title_changes
@@ -610,7 +610,8 @@ impl DbHandler {
                     existing_revision.into();
                 revision_update.created_at = Set(revision.created_at.naive_utc());
                 revision_update.username = Set(revision.username.clone());
-                revision_update.body_changes = Set(revision.body_changes.inline.clone());
+                revision_update.body_changes =
+                    Set(revision.body_changes.side_by_side_markdown.clone());
                 if revision.title_changes.is_some() {
                     revision_update.title_changes = Set(Some(
                         revision.title_changes.as_ref().unwrap().inline.clone(),
@@ -632,7 +633,7 @@ impl DbHandler {
                     version: Set(revision.current_version),
                     created_at: Set(revision.created_at.naive_utc()),
                     username: Set(revision.username.clone()),
-                    body_changes: Set(revision.body_changes.inline.clone()),
+                    body_changes: Set(revision.body_changes.side_by_side_markdown.clone()),
                     title_changes: match revision.title_changes.as_ref() {
                         Some(title) => Set(Some(title.inline.clone())),
                         None => NotSet,

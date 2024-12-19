@@ -1,12 +1,13 @@
-use crate::db_handler::DbHandler;
-use crate::discourse_api::DiscourseApi;
-use crate::indexers::users::UserIndexer;
-use crate::models::posts::{Post, PostResponse};
+use crate::{
+    db_handler::DbHandler,
+    discourse_api::DiscourseApi,
+    indexers::users::UserIndexer,
+    models::posts::{Post, PostResponse},
+};
 use anyhow::Result;
 use futures::stream::{self, StreamExt};
 use sea_orm::prelude::Uuid;
-use std::collections::HashSet;
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 use tokio::task;
 use tracing::{error, info, instrument, warn};
 
@@ -33,7 +34,7 @@ impl PostIndexer {
         let mut seen_post_ids: HashSet<i32> = HashSet::new();
 
         loop {
-            let url = format!("/t/{}.json?page={}", topic_id, page);
+            let url = format!("/t/{}.json?include_raw=true&page={}", topic_id, page);
             info!(url = %url, "Fetching posts");
             match self
                 .discourse_api

@@ -3,11 +3,12 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import React, { useState, useEffect, useMemo } from "react";
 import DOMPurify from "isomorphic-dompurify";
-import ReactMarkdown from "react-markdown";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import type { Components } from "react-markdown";
-import { parseAsBoolean, parseAsInteger, useQueryState } from "nuqs";
+import remarkRehype from "remark-rehype";
+import rehypeStringify from "rehype-stringify";
+import { parseAsBoolean, useQueryState } from "nuqs";
 import { diff_match_patch } from "diff-match-patch";
 
 interface ContentSectionClientProps {
@@ -16,15 +17,7 @@ interface ContentSectionClientProps {
   version: number;
 }
 
-const detectContentType = (content: string): "html" | "markdown" => {
-  if (!content?.trim()) {
-    return "markdown";
-  }
-  const firstLine = content.trim().split("\n")[0];
-  const hasHtmlTags = /<[^>]+>/g.test(firstLine);
-  return hasHtmlTags ? "html" : "markdown";
-};
-
+// Security configurations
 const ALLOWED_TAGS = [
   "span",
   "del",
@@ -70,69 +63,69 @@ const ALLOWED_ATTR = [
   "name",
 ];
 
-const sharedMarkdownStyles: Components = {
-  h1: ({ children }: { children: React.ReactNode }) => (
-    <h1 className="mb-4 mt-6 text-2xl font-bold">{children}</h1>
-  ),
-  h2: ({ children }: { children: React.ReactNode }) => (
-    <h2 className="mb-3 mt-5 text-xl font-bold">{children}</h2>
-  ),
-  h3: ({ children }: { children: React.ReactNode }) => (
-    <h3 className="mb-2 mt-4 text-lg font-bold">{children}</h3>
-  ),
-  p: ({ children }: { children: React.ReactNode }) => (
-    <p className="mb-4 leading-relaxed">{children}</p>
-  ),
-  ul: ({ children }: { children: React.ReactNode }) => (
-    <ul className="mb-4 list-disc space-y-2 pl-6">{children}</ul>
-  ),
-  ol: ({ children }: { children: React.ReactNode }) => (
-    <ol className="mb-4 list-decimal space-y-2 pl-6">{children}</ol>
-  ),
-  li: ({ children }: { children: React.ReactNode }) => (
-    <li className="leading-relaxed">{children}</li>
-  ),
-  strong: ({ children }: { children: React.ReactNode }) => (
-    <strong className="font-bold">{children}</strong>
-  ),
-  a: ({ href, children }: { href?: string; children: React.ReactNode }) => (
-    <a
-      href={href}
-      className="underline"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      {children}
-    </a>
-  ),
-  blockquote: ({ children }: { children: React.ReactNode }) => (
-    <blockquote className="border-l-4 border-gray-300 pl-4 italic">
-      {children}
-    </blockquote>
-  ),
-  table: ({ children }: { children: React.ReactNode }) => (
-    <div className="my-4 overflow-x-auto">
-      <table className="min-w-full border-collapse border border-gray-300">
-        {children}
-      </table>
-    </div>
-  ),
-  th: ({ children }: { children: React.ReactNode }) => (
-    <th className="border border-gray-300 bg-gray-100 p-2 text-left">
-      {children}
-    </th>
-  ),
-  td: ({ children }: { children: React.ReactNode }) => (
-    <td className="border border-gray-300 p-2">{children}</td>
-  ),
-  img: ({ src, alt }: { src?: string; alt?: string }) => (
-    <img
-      src={src}
-      alt={alt}
-      className="my-4 h-auto max-w-full rounded-lg"
-      loading="lazy"
-    />
-  ),
+// Common styles to be applied via DOMPurify
+const COMMON_STYLES = {
+  h1: "mb-4 mt-6 text-2xl font-bold",
+  h2: "mb-3 mt-5 text-xl font-bold",
+  h3: "mb-2 mt-4 text-lg font-bold",
+  p: "mb-4 leading-relaxed",
+  ul: "mb-4 list-disc space-y-2 pl-6",
+  ol: "mb-4 list-decimal space-y-2 pl-6",
+  li: "leading-relaxed",
+  strong: "font-bold",
+  a: "underline",
+  blockquote: "border-l-4 border-gray-300 pl-4 italic",
+  table: "min-w-full border-collapse border border-gray-300 my-4",
+  th: "border border-gray-300 bg-gray-100 p-2 text-left",
+  td: "border border-gray-300 p-2",
+  img: "my-4 h-auto max-w-full rounded-lg",
+};
+
+// Utility function to detect content type
+const detectContentType = (content: string): "html" | "markdown" => {
+  if (!content?.trim()) return "markdown";
+  const firstLine = content.trim().split("\n")[0];
+  return /<[^>]+>/g.test(firstLine) ? "html" : "markdown";
+};
+
+// Convert markdown to HTML
+const markdownToHtml = (markdownContent: string): string => {
+  try {
+    const processor = unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkRehype)
+      .use(rehypeStringify);
+
+    return String(processor.processSync(markdownContent));
+  } catch (error) {
+    console.error("Error converting Markdown to HTML:", error);
+    return markdownContent;
+  }
+};
+
+// Apply common styles to HTML elements
+const applyCommonStyles = (html: string): string => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  Object.entries(COMMON_STYLES).forEach(([tag, className]) => {
+    doc.querySelectorAll(tag).forEach((element) => {
+      if (tag == "a") element.setAttribute("rel", "noopener noreferrer");
+      element.className = `${element.className} ${className}`.trim();
+      if (tag == "a") element.setAttribute("target", "_blank");
+    });
+  });
+
+  return doc.body.innerHTML;
+};
+
+// Normalize content to styled HTML
+const normalizeContent = (content: string): string => {
+  const contentType = detectContentType(content);
+  let html = contentType === "markdown" ? markdownToHtml(content) : content;
+  html = applyCommonStyles(html);
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
 };
 
 const BodyContent = ({
@@ -141,21 +134,11 @@ const BodyContent = ({
   version,
 }: ContentSectionClientProps) => {
   const [expanded, setExpanded] = useState(false);
-
-  const [diff, _] = useQueryState(
-    "diff",
-    parseAsBoolean.withDefault(false).withOptions({ shallow: false }),
-  );
-
-  const [viewportHeight, setViewportHeight] = useState<number>(0);
-
-  const actualContentType = detectContentType(content);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [diff] = useQueryState("diff", parseAsBoolean.withDefault(false));
 
   useEffect(() => {
-    const updateViewportHeight = () => {
-      setViewportHeight(window.innerHeight);
-    };
-
+    const updateViewportHeight = () => setViewportHeight(window.innerHeight);
     updateViewportHeight();
     window.addEventListener("resize", updateViewportHeight);
     return () => window.removeEventListener("resize", updateViewportHeight);
@@ -163,57 +146,57 @@ const BodyContent = ({
 
   const collapsedHeight = viewportHeight * 0.25;
 
-  const sanitizedContent =
-    actualContentType === "html"
-      ? DOMPurify.sanitize(content, {
-          ALLOWED_TAGS,
-          ALLOWED_ATTR,
-        })
-      : content;
-
-  const previousContent = useMemo(() => {
-    if (version > 0) {
-      return allBodies[version - 1];
-    }
-    return null;
-  }, [allBodies, version]);
-
-  const diffedContent = useMemo(() => {
-    if (!diff || !previousContent) {
-      return sanitizedContent;
+  // Process content based on diff mode
+  const processedContent = useMemo(() => {
+    if (!diff) {
+      return normalizeContent(content);
     }
 
-    const diffA = DOMPurify.sanitize(previousContent, {
-      ALLOWED_TAGS,
-      ALLOWED_ATTR,
-    });
+    const previousContent = version > 0 ? allBodies[version - 1] : null;
+    if (!previousContent) return normalizeContent(content);
 
-    const diffB = DOMPurify.sanitize(content, {
-      ALLOWED_TAGS,
-      ALLOWED_ATTR,
-    });
+    // Normalize both contents for diffing
+    const normalizedPrevious = normalizeContent(previousContent);
+    const normalizedCurrent = normalizeContent(content);
 
+    // Create diff
     const dmp = new diff_match_patch();
-    const diffs = dmp.diff_main(diffA, diffB);
-    dmp.diff_cleanupSemantic(diffs);
+    // Standard diff
+    const diffs = dmp.diff_main(normalizedPrevious, normalizedCurrent);
 
-    let output = "";
-    for (const [op, text] of diffs) {
-      switch (op) {
-        case 0: // Equal
-          output += `<span>${text}</span>`;
-          break;
-        case -1: // Delete
-          output += `<del style="background-color:#ffe6e6;">${text}</del>`;
-          break;
-        case 1: // Insert
-          output += `<ins style="background-color:#e6ffe6;">${text}</ins>`;
-          break;
-      }
-    }
+    // Create line diff
+    // const diffs = diff_lineMode({
+    //   text1: normalizedPrevious,
+    //   text2: normalizedCurrent,
+    // });
 
-    return output;
-  }, [diff, previousContent, sanitizedContent]);
+    // Create word diff
+    // const diffs = diff_wordMode({
+    //   text1: normalizedPrevious,
+    //   text2: normalizedCurrent,
+    // });
+
+    // dmp.diff_cleanupSemanticLossless(diffs);
+
+    // Generate HTML with diff highlights
+    const diffHtml = diffs
+      .map(([op, text]) => {
+        console.log(op);
+        switch (op) {
+          case 0:
+            return `<span>${text}</span>`;
+          case -1:
+            return `<del style="background-color:#ffe6e6;">${text}</del>`;
+          case 1:
+            return `<ins style="background-color:#e6ffe6;">${text}</ins>`;
+          default:
+            return "";
+        }
+      })
+      .join("");
+
+    return DOMPurify.sanitize(diffHtml, { ALLOWED_TAGS, ALLOWED_ATTR });
+  }, [content, allBodies, version, diff]);
 
   return (
     <div className="relative pb-16">
@@ -221,28 +204,12 @@ const BodyContent = ({
         className={`relative transition-all duration-500 ease-in-out ${
           !expanded ? "" : "overflow-hidden"
         }`}
-        style={{
-          maxHeight: !expanded ? "none" : `${collapsedHeight}px`,
-        }}
+        style={{ maxHeight: !expanded ? "none" : `${collapsedHeight}px` }}
       >
-        <div className="prose prose-lg max-w-none">
-          {actualContentType === "markdown" && !diff ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-              components={sharedMarkdownStyles}
-            >
-              {content}
-            </ReactMarkdown>
-          ) : diff ? (
-            <div dangerouslySetInnerHTML={{ __html: diffedContent }} />
-          ) : (
-            <div
-              dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-              className="prose prose-lg max-w-none"
-            />
-          )}
-        </div>
+        <div
+          dangerouslySetInnerHTML={{ __html: processedContent }}
+          className="prose prose-lg max-w-none"
+        />
 
         {expanded && (
           <div
@@ -252,34 +219,109 @@ const BodyContent = ({
         )}
       </div>
 
-      {expanded ? (
-        <button
-          onClick={() => {
-            setExpanded(!expanded);
-          }}
-          className="mt-4 flex w-full cursor-pointer items-center justify-start gap-2 rounded-full border bg-white p-2 text-sm font-bold transition-colors hover:bg-gray-50"
-          aria-label="Expand proposal content"
-        >
-          <ArrowDown className="rounded-full border p-1" />
-          Read Full Proposal
-        </button>
-      ) : (
-        <button
-          onClick={() => {
-            setExpanded(!expanded);
-          }}
-          className="mt-4 flex w-full cursor-pointer items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold transition-colors hover:bg-gray-50"
-          aria-label="Collapse proposal content"
-        >
-          <ArrowUp className="rounded-full border p-1" />
-          <div className="flex flex-row items-center gap-2">
-            Comments and Votes
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="mt-4 flex w-full cursor-pointer items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold transition-colors hover:bg-gray-50"
+        aria-label={
+          expanded ? "Expand proposal content" : "Collapse proposal content"
+        }
+      >
+        {expanded ? (
+          <>
             <ArrowDown className="rounded-full border p-1" />
-          </div>
-        </button>
-      )}
+            Read Full Proposal
+          </>
+        ) : (
+          <>
+            <ArrowUp className="rounded-full border p-1" />
+            <div className="flex flex-row items-center gap-2">
+              Comments and Votes
+              <ArrowDown className="rounded-full border p-1" />
+            </div>
+          </>
+        )}
+      </button>
     </div>
   );
 };
 
 export default BodyContent;
+
+function diff_lineMode({ text1, text2 }: { text1: string; text2: string }) {
+  var dmp = new diff_match_patch();
+  var a = dmp.diff_linesToChars_(text1, text2);
+  var lineText1 = a.chars1;
+  var lineText2 = a.chars2;
+  var lineArray = a.lineArray;
+  var diffs = dmp.diff_main(lineText1, lineText2, false);
+  dmp.diff_charsToLines_(diffs, lineArray);
+  return diffs;
+}
+
+function diff_wordMode({ text1, text2 }: { text1: string; text2: string }) {
+  function diff_linesToWords(text1: string, text2: string) {
+    var lineArray: string[] = []; // e.g. lineArray[4] == 'Hello\n'
+    var lineHash: { [key: string]: number } = {}; // e.g. lineHash['Hello\n'] == 4
+
+    // '\x00' is a valid character, but various debuggers don't like it.
+    // So we'll insert a junk entry to avoid generating a null character.
+    lineArray[0] = "";
+
+    /**
+     * Split a text into an array of strings.  Reduce the texts to a string of
+     * hashes where each Unicode character represents one line.
+     * Modifies linearray and linehash through being a closure.
+     * @param {string} text String to encode.
+     * @return {string} Encoded string.
+     * @private
+     */
+    function diff_linesToCharsMunge_(text: string) {
+      var chars = "";
+      // Walk the text, pulling out a substring for each line.
+      // text.split('\n') would would temporarily double our memory footprint.
+      // Modifying text would create many large strings to garbage collect.
+      var lineStart = 0;
+      var lineEnd = -1;
+      // Keeping our own length variable is faster than looking it up.
+      var lineArrayLength = lineArray.length;
+      while (lineEnd < text.length - 1) {
+        lineEnd = text.indexOf(" ", lineStart);
+        if (lineEnd == -1) {
+          lineEnd = text.length - 1;
+        }
+        var line = text.substring(lineStart, lineEnd + 1);
+
+        if (Object.prototype.hasOwnProperty.call(lineHash, line)) {
+          chars += String.fromCharCode(lineHash[line]);
+        } else {
+          if (lineArrayLength == maxLines) {
+            // Bail out at 65535 because
+            // String.fromCharCode(65536) == String.fromCharCode(0)
+            line = text.substring(lineStart);
+            lineEnd = text.length;
+          }
+          chars += String.fromCharCode(lineArrayLength);
+          lineHash[line] = lineArrayLength;
+          lineArray[lineArrayLength++] = line;
+        }
+        lineStart = lineEnd + 1;
+      }
+      return chars;
+    }
+    // Allocate 2/3rds of the space for text1, the rest for text2.
+    var maxLines = 40000;
+    var chars1 = diff_linesToCharsMunge_(text1);
+    maxLines = 65535;
+    var chars2 = diff_linesToCharsMunge_(text2);
+    return { chars1: chars1, chars2: chars2, lineArray: lineArray };
+  }
+
+  var dmp = new diff_match_patch();
+  var a = diff_linesToWords(text1, text2);
+  var lineText1 = a.chars1;
+  var lineText2 = a.chars2;
+  var lineArray = a.lineArray;
+  var diffs = dmp.diff_main(lineText1, lineText2, false);
+  dmp.diff_charsToLines_(diffs, lineArray);
+  return diffs;
+}
