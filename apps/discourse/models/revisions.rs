@@ -1024,4 +1024,28 @@ mod tests {
         assert_eq!(before, expected_before);
         assert_eq!(after, expected_after);
     }
+
+    #[test]
+    fn test_title_div() {
+        let revision = create_revision_html(
+            r#"<div class="inline-diff"><div><del>[</del><del>PROPOSAL</del><del>]</del><del> </del><del>-</del><del> </del>Transaction Fee Distribution</div></div>"#,
+        );
+
+        let expected_before = r#"[PROPOSAL] - Transaction Fee Distribution"#;
+        let expected_after = r#"Transaction Fee Distribution"#;
+
+        let before = revision
+            .title_changes
+            .as_ref()
+            .map(|tc| tc.get_cooked_before_html())
+            .unwrap();
+        let after = revision
+            .title_changes
+            .as_ref()
+            .map(|tc| tc.get_cooked_after_html())
+            .unwrap();
+
+        assert_eq!(before, expected_before);
+        assert_eq!(after, expected_after);
+    }
 }
