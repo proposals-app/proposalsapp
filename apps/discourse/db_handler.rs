@@ -590,11 +590,11 @@ impl DbHandler {
         let cooked_title_before = revision
             .title_changes
             .as_ref()
-            .map(|tc| tc.get_cooked_before());
+            .map(|tc| tc.get_cooked_before_html());
         let cooked_title_after = revision
             .title_changes
             .as_ref()
-            .map(|tc| tc.get_cooked_after());
+            .map(|tc| tc.get_cooked_after_html());
 
         let existing_revision = discourse_post_revision::Entity::find()
             .filter(discourse_post_revision::Column::ExternalPostId.eq(revision.post_id))
