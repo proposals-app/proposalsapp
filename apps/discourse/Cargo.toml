@@ -10,6 +10,7 @@ chrono = { workspace = true }
 dotenv = { workspace = true }
 fancy-regex = "0.14.0"
 futures = { workspace = true }
+html-escape = "0.2.13"
 lazy_static = { workspace = true }
 oneshot = { workspace = true }
 opentelemetry = { workspace = true }

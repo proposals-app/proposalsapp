@@ -150,64 +150,59 @@ impl Revision {
     }
 
     fn extract_before_content_markdown(content: &str) -> Result<String, fancy_regex::Error> {
-        // Create regex patterns for matching table cells
-        let table_pattern = Regex::new(r#"<table class="markdown">(.*?)</table>"#)?;
-        let row_pattern = Regex::new(r#"<tr>(.*?)</tr>"#)?;
-        let first_cell_pattern = Regex::new(r#"<td(?:\s+class="[^"]*")?>([^<]*)</td>"#)?;
+        // Match the content of the left column (diff-del)
+        let diff_del_pattern = Regex::new(r#"<td class="diff-del">([\s\S]*?)</td>"#)?;
+        if let Some(captures) = diff_del_pattern.captures(content)? {
+            if let Some(content) = captures.get(1) {
+                let mut result = content.as_str().to_string();
 
-        let mut result = String::new();
+                // Preserve content inside <del> tags while removing the tags
+                let del_tag = Regex::new(r#"<del>([\s\S]*?)</del>"#)?;
+                result = del_tag.replace_all(&result, "$1").to_string();
 
-        // Extract table content
-        if let Some(table_cap) = table_pattern.captures(content)? {
-            if let Some(table_content) = table_cap.get(1) {
-                // Process each row - handle the Result from find_iter
-                for row_match in row_pattern.find_iter(table_content.as_str()) {
-                    if let Ok(match_content) = row_match {
-                        // Get the row content and process it
-                        if let Some(cell_cap) =
-                            first_cell_pattern.captures(match_content.as_str())?
-                        {
-                            if let Some(cell_content) = cell_cap.get(1) {
-                                result.push_str(cell_content.as_str());
-                            }
-                        }
-                    }
-                }
+                // Clean up any remaining HTML tags
+                let tags = Regex::new(r#"<[^>]+>"#)?;
+                result = tags.replace_all(&result, "").to_string();
+
+                // Decode HTML entities
+                result = html_escape::decode_html_entities(&result).to_string();
+
+                // Cleanup extra whitespace
+                let whitespace = Regex::new(r#"\s+"#)?;
+                result = whitespace.replace_all(&result, " ").to_string();
+
+                return Ok(result.trim().to_string());
             }
         }
-
-        Ok(result)
+        Ok(String::new())
     }
 
     fn extract_after_content_markdown(content: &str) -> Result<String, fancy_regex::Error> {
-        // Create regex patterns for matching table cells
-        let table_pattern = Regex::new(r#"<table class="markdown">(.*?)</table>"#)?;
-        let row_pattern = Regex::new(r#"<tr>(.*?)</tr>"#)?;
-        let second_cell_pattern =
-            Regex::new(r#"<td(?:[^>]*?)>([^<]*)</td>(?:[^<]*)<td(?:[^>]*?)>([^<]*)</td>"#)?;
+        // Match the content of the right column (diff-ins)
+        let diff_ins_pattern = Regex::new(r#"<td class="diff-ins">([\s\S]*?)</td>"#)?;
+        if let Some(captures) = diff_ins_pattern.captures(content)? {
+            if let Some(content) = captures.get(1) {
+                let mut result = content.as_str().to_string();
 
-        let mut result = String::new();
+                // Preserve content inside <ins> tags while removing the tags
+                let ins_tag = Regex::new(r#"<ins>([\s\S]*?)</ins>"#)?;
+                result = ins_tag.replace_all(&result, "$1").to_string();
 
-        // Extract table content
-        if let Some(table_cap) = table_pattern.captures(content)? {
-            if let Some(table_content) = table_cap.get(1) {
-                // Process each row - handle the Result from find_iter
-                for row_match in row_pattern.find_iter(table_content.as_str()) {
-                    if let Ok(match_content) = row_match {
-                        // Get the row content and process it
-                        if let Some(cell_cap) =
-                            second_cell_pattern.captures(match_content.as_str())?
-                        {
-                            if let Some(cell_content) = cell_cap.get(2) {
-                                result.push_str(cell_content.as_str());
-                            }
-                        }
-                    }
-                }
+                // Clean up any remaining HTML tags
+                let tags = Regex::new(r#"<[^>]+>"#)?;
+                result = tags.replace_all(&result, "").to_string();
+
+                // Decode HTML entities
+                result = html_escape::decode_html_entities(&result).to_string();
+
+                // Cleanup extra whitespace
+                let whitespace = Regex::new(r#"\s+"#)?;
+                result = whitespace.replace_all(&result, " ").to_string();
+
+                return Ok(result.trim().to_string());
             }
         }
-
-        Ok(result)
+        Ok(String::new())
     }
 }
 
@@ -269,6 +264,59 @@ mod tests {
             title_changes: None,
             can_edit: true,
         }
+    }
+
+    #[test]
+    fn test_markdown_extraction_1() {
+        let markdown_content = r#"<table class="markdown"><tr><td class="diff-del">I also just received confirmation from this admin that tokens received through means other than grants (donation, airdrop, purchasing) *are* eligible to be used in governance.</td><td class="diff-ins">I also just received confirmation from this admin that tokens received through means other than grants (donation, airdrop, purchasing) *are* eligible to be used in governance.<ins>
+
+        Not only this, they also confirmed this policy prohibiting grant tokens from being used was only formally established last month and would likely not have applied to these year-old tokens had they been delegated sooner. I think the implication in discussions that this has always been a bright red line misses the mark.</ins></td></tr></table>"#;
+
+        let revision = create_markdown_revision(markdown_content);
+
+        assert_eq!(
+            revision.get_cooked_markdown_before().trim(),
+            "I also just received confirmation from this admin that tokens received through means other than grants (donation, airdrop, purchasing) *are* eligible to be used in governance."
+        );
+        assert_eq!(
+            revision.get_cooked_markdown_after().trim(),
+            "I also just received confirmation from this admin that tokens received through means other than grants (donation, airdrop, purchasing) *are* eligible to be used in governance. Not only this, they also confirmed this policy prohibiting grant tokens from being used was only formally established last month and would likely not have applied to these year-old tokens had they been delegated sooner. I think the implication in discussions that this has always been a bright red line misses the mark."
+        );
+    }
+
+    #[test]
+    fn test_markdown_extraction_2() {
+        let markdown_content = r#"<table class="markdown"><tr><td class="diff-del">Sure thing, i would like to  give <del>7</del>$ in uni to get newbies to learn about uniswap #1dex.</td><td class="diff-ins">Sure thing, i would like to  give <ins>10</ins>$ in uni to get newbies to learn about uniswap #1dex.<ins>
+        Furthermore. I would also like more involvement from coinbase towards usability for the uni token. Same like they do for staking dai, tezos , usdc.
+        I would like to be able to vote/use/stake with my uni from coinbase directly.
+        Because new users won&#39;t have a wallet and honestly (apart from not your keys not your crypto) most of them will ruin the keys in some way.</ins></td></tr></table>"#;
+
+        let revision = create_markdown_revision(markdown_content);
+
+        assert_eq!(
+            revision.get_cooked_markdown_before().trim(),
+            "Sure thing, i would like to give 7$ in uni to get newbies to learn about uniswap #1dex."
+        );
+        assert_eq!(
+            revision.get_cooked_markdown_after().trim(),
+            "Sure thing, i would like to give 10$ in uni to get newbies to learn about uniswap #1dex. Furthermore. I would also like more involvement from coinbase towards usability for the uni token. Same like they do for staking dai, tezos , usdc. I would like to be able to vote/use/stake with my uni from coinbase directly. Because new users won't have a wallet and honestly (apart from not your keys not your crypto) most of them will ruin the keys in some way."
+        );
+    }
+
+    #[test]
+    fn test_markdown_extraction_3() {
+        let markdown_content = r#"<table class="markdown"><tr><td>I have a family emergency, I’d like to make an emergency withdrawal please to my uniswap 0x3De64a2C0d91E247950f8dCa3381B1486b658d20 I need 500,000 Usdc or tether right away. I tried to find the withdrawal button, to no avail. If you would kindly handle this for me it would be of great appreciation to myself and fam. Thanks Frax Gov       Christina</td><td>I have a family emergency, I’d like to make an emergency withdrawal please to my uniswap 0x3De64a2C0d91E247950f8dCa3381B1486b658d20 I need 500,000 Usdc or tether right away. I tried to find the withdrawal button, to no avail. If you would kindly handle this for me it would be of great appreciation to myself and fam. Thanks Frax Gov       Christina</td></tr></table>"#;
+
+        let revision = create_markdown_revision(markdown_content);
+
+        assert_eq!(
+            revision.get_cooked_markdown_before().trim(),
+            r#"I have a family emergency, I’d like to make an emergency withdrawal please to my uniswap 0x3De64a2C0d91E247950f8dCa3381B1486b658d20 I need 500,000 Usdc or tether right away. I tried to find the withdrawal button, to no avail. If you would kindly handle this for me it would be of great appreciation to myself and fam. Thanks Frax Gov Christina"#
+        );
+        assert_eq!(
+            revision.get_cooked_markdown_after().trim(),
+            r#"I have a family emergency, I’d like to make an emergency withdrawal please to my uniswap 0x3De64a2C0d91E247950f8dCa3381B1486b658d20 I need 500,000 Usdc or tether right away. I tried to find the withdrawal button, to no avail. If you would kindly handle this for me it would be of great appreciation to myself and fam. Thanks Frax Gov Christina"#
+        );
     }
 
     #[test]
