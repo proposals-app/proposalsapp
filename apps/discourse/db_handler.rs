@@ -584,8 +584,8 @@ impl DbHandler {
             "Upserting revision"
         );
 
-        let cooked_body_before = Some("".into());
-        let cooked_body_after = Some("".into());
+        let cooked_body_before = Some(revision.get_cooked_markdown_before().into());
+        let cooked_body_after = Some(revision.get_cooked_markdown_after().into());
 
         let cooked_title_before = revision
             .title_changes

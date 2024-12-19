@@ -150,24 +150,8 @@ const BodyContent = ({
     // Normalize both contents for diffing
     const normalizedPrevious = normalizeContent(previousContent);
     const normalizedCurrent = normalizeContent(content);
-    // Create diff
-    const dmp = new diff_match_patch();
-    // Standard diff
-    const diffs = dmp.diff_main(normalizedPrevious, normalizedCurrent);
 
-    // Create line diff
-    // const diffs = diff_lineMode({
-    //   text1: normalizedPrevious,
-    //   text2: normalizedCurrent,
-    // });
-
-    // Create word diff
-    // const diffs = diff_wordMode({
-    //   text1: normalizedPrevious,
-    //   text2: normalizedCurrent,
-    // });
-
-    dmp.diff_cleanupSemanticLossless(diffs);
+    const diffs = diff_standardMode(normalizedPrevious, normalizedCurrent);
 
     // Generate HTML with diff highlights
     const diffHtml = diffs
@@ -239,10 +223,12 @@ export default BodyContent;
 
 function diff_standardMode(text1: string, text2: string) {
   const dmp = new diff_match_patch();
-  return dmp.diff_main(text1, text2);
+  const diffs = dmp.diff_main(text1, text2);
+  dmp.diff_cleanupSemanticLossless(diffs);
+  return diffs;
 }
 
-function diff_lineMode({ text1, text2 }: { text1: string; text2: string }) {
+function diff_lineMode(text1: string, text2: string) {
   var dmp = new diff_match_patch();
   var a = dmp.diff_linesToChars_(text1, text2);
   var lineText1 = a.chars1;
@@ -250,10 +236,11 @@ function diff_lineMode({ text1, text2 }: { text1: string; text2: string }) {
   var lineArray = a.lineArray;
   var diffs = dmp.diff_main(lineText1, lineText2, false);
   dmp.diff_charsToLines_(diffs, lineArray);
+  dmp.diff_cleanupSemanticLossless(diffs);
   return diffs;
 }
 
-function diff_wordMode({ text1, text2 }: { text1: string; text2: string }) {
+function diff_wordMode(text1: string, text2: string) {
   function diff_linesToWords(text1: string, text2: string) {
     var lineArray: string[] = []; // e.g. lineArray[4] == 'Hello\n'
     var lineHash: { [key: string]: number } = {}; // e.g. lineHash['Hello\n'] == 4
@@ -308,6 +295,7 @@ function diff_wordMode({ text1, text2 }: { text1: string; text2: string }) {
     var chars1 = diff_linesToCharsMunge_(text1);
     maxLines = 65535;
     var chars2 = diff_linesToCharsMunge_(text2);
+
     return { chars1: chars1, chars2: chars2, lineArray: lineArray };
   }
 
@@ -318,5 +306,6 @@ function diff_wordMode({ text1, text2 }: { text1: string; text2: string }) {
   var lineArray = a.lineArray;
   var diffs = dmp.diff_main(lineText1, lineText2, false);
   dmp.diff_charsToLines_(diffs, lineArray);
+  dmp.diff_cleanupSemanticLossless(diffs);
   return diffs;
 }
