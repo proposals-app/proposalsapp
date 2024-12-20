@@ -1,16 +1,18 @@
 "use client";
 
-import { ArrowDown, ArrowUp } from "lucide-react";
-import React, { useState, useEffect, useMemo } from "react";
 import DOMPurify from "isomorphic-dompurify";
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
-import remarkRehype from "remark-rehype";
-import rehypeStringify from "rehype-stringify";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { parseAsBoolean, useQueryState } from "nuqs";
-import { Root } from "mdast";
-import { toString } from "mdast-util-to-string";
+import React, { useEffect, useMemo, useState } from "react";
+import rehypeStringify from "rehype-stringify";
+import remarkGfm from "remark-gfm";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import { unified } from "unified";
+import { toHtml } from "hast-util-to-html";
+import { toHast } from "mdast-util-to-hast";
+import { diff_match_patch, Diff } from "diff-match-patch";
+import { Element, Text, Node, Root } from "hast";
 
 interface ContentSectionClientProps {
   content: string;
@@ -18,54 +20,6 @@ interface ContentSectionClientProps {
   version: number;
 }
 
-// Security configurations remain the same
-const ALLOWED_TAGS = [
-  "span",
-  "del",
-  "ins",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "p",
-  "ul",
-  "li",
-  "ol",
-  "strong",
-  "em",
-  "a",
-  "table",
-  "thead",
-  "tbody",
-  "tr",
-  "th",
-  "td",
-  "div",
-  "img",
-  "br",
-  "code",
-  "pre",
-  "blockquote",
-  "hr",
-];
-
-const ALLOWED_ATTR = [
-  "href",
-  "src",
-  "class",
-  "style",
-  "alt",
-  "title",
-  "target",
-  "rel",
-  "id",
-  "name",
-  "data-diff-type",
-];
-
-// Common styles remain the same
 const COMMON_STYLES = {
   h1: "mb-4 mt-6 text-2xl font-bold",
   h2: "mb-3 mt-5 text-xl font-bold",
@@ -83,7 +37,7 @@ const COMMON_STYLES = {
   img: "my-4 h-auto max-w-full rounded-lg",
 };
 
-function applyCommonStyles(html: string): string {
+function applyStyle(html: string): string {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
@@ -100,186 +54,191 @@ function applyCommonStyles(html: string): string {
   return doc.body.innerHTML;
 }
 
-function processMarkdownDiffHtmlFirst(
-  currentContent: string,
-  previousContent: string,
-): string {
-  const currentHtml = markdownToHtml(currentContent);
-  const previousHtml = markdownToHtml(previousContent);
+function markdownToHtml(markdown: string): string {
+  const processor = unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkRehype)
+    .use(rehypeStringify);
 
-  const currentDiv = document.createElement("div");
-  const previousDiv = document.createElement("div");
-  currentDiv.innerHTML = currentHtml;
-  previousDiv.innerHTML = previousHtml;
+  return applyStyle(
+    DOMPurify.sanitize(String(processor.processSync(markdown))),
+  );
+}
 
-  let resultHtml = "";
-  const currentBlocks = Array.from(currentDiv.children);
-  const previousBlocks = Array.from(previousDiv.children);
-  const maxBlocks = Math.max(currentBlocks.length, previousBlocks.length);
+// Helper type guards
+function isElement(node: Node): node is Element {
+  return node.type === "element";
+}
 
-  for (let i = 0; i < maxBlocks; i++) {
-    const currentBlock = currentBlocks[i];
-    const previousBlock = previousBlocks[i];
+function isText(node: Node): node is Text {
+  return node.type === "text";
+}
 
-    if (!previousBlock && currentBlock) {
-      resultHtml += `<div class="diff-add">${currentBlock.outerHTML}</div>`;
-    } else if (!currentBlock && previousBlock) {
-      resultHtml += `<div class="diff-delete">${previousBlock.outerHTML}</div>`;
-    } else if (currentBlock && previousBlock) {
-      if (currentBlock.tagName === previousBlock.tagName) {
-        if (currentBlock.innerHTML.trim() === previousBlock.innerHTML.trim()) {
-          resultHtml += currentBlock.outerHTML;
-        } else {
-          const comparedContent = compareSentences(
-            previousBlock.innerHTML,
-            currentBlock.innerHTML,
-          );
-          resultHtml += `<${currentBlock.tagName.toLowerCase()}>${comparedContent}</${currentBlock.tagName.toLowerCase()}>`;
-        }
-      } else {
-        resultHtml += `<div class="diff-modified">${currentBlock.outerHTML}</div>`;
+function generateDiff(previousTree: Node, currentTree: Node): Root {
+  const dmp = new diff_match_patch();
+
+  function wrapInSpan(node: Node, className?: string): Element {
+    // Convert node's children to Element | Text only
+    const children: (Element | Text)[] = isElement(node)
+      ? node.children.filter(
+          (child): child is Element | Text => isElement(child) || isText(child),
+        )
+      : isText(node)
+        ? [node]
+        : [];
+
+    return {
+      type: "element",
+      tagName: "span",
+      properties: { className },
+      children,
+    };
+  }
+
+  function compareTextNodes(prev: Text, curr: Text): (Element | Text)[] {
+    const diffs = dmp.diff_main(prev.value, curr.value);
+    dmp.diff_cleanupSemantic(diffs);
+
+    return diffs.map((diff: Diff): Element | Text => {
+      const [operation, text] = diff;
+      const textNode: Text = { type: "text", value: text };
+
+      switch (operation) {
+        case -1: // Deletion
+          return wrapInSpan(textNode, "diff-deleted");
+        case 1: // Insertion
+          return wrapInSpan(textNode, "diff-added");
+        default: // No change
+          return wrapInSpan(textNode);
       }
+    });
+  }
+
+  function compareNodes(
+    prev: Node | null,
+    curr: Node | null,
+  ): (Element | Text)[] {
+    // If both nodes are null, return empty array
+    if (!prev && !curr) return [];
+
+    // If only current node exists, it's an addition
+    if (!prev && curr) {
+      return [wrapInSpan(curr, "diff-added")];
     }
-  }
 
-  return resultHtml;
-}
-
-// Approach 1: HTML-first diffing
-function splitIntoSentences(text: string): string[] {
-  return text.match(/[^.!?]+[.!?]+/g) || [text];
-}
-
-function compareSentences(oldText: string, newText: string): string {
-  const oldSentences = splitIntoSentences(oldText);
-  const newSentences = splitIntoSentences(newText);
-
-  let result = "";
-  const maxLen = Math.max(oldSentences.length, newSentences.length);
-
-  for (let i = 0; i < maxLen; i++) {
-    const oldSentence = oldSentences[i] || "";
-    const newSentence = newSentences[i] || "";
-
-    if (!oldSentence) {
-      result += `<span class="diff-add">${newSentence}</span>`;
-    } else if (!newSentence) {
-      result += `<span class="diff-delete">${oldSentence}</span>`;
-    } else if (oldSentence.trim() !== newSentence.trim()) {
-      result += `<span class="diff-modified">${newSentence}</span>`;
-    } else {
-      result += newSentence;
+    // If only previous node exists, it's a deletion
+    if (prev && !curr) {
+      return [wrapInSpan(prev, "diff-deleted")];
     }
-  }
 
-  return result;
-}
+    // At this point, both prev and curr are non-null
+    const prevNode = prev!;
+    const currNode = curr!;
 
-// Approach 2: Markdown AST diffing
-interface MarkdownNode {
-  type: string;
-  value?: string;
-  children?: MarkdownNode[];
-  position?: any;
-  [key: string]: any;
-}
+    // Special handling for root nodes
+    if (prevNode.type === "root" && currNode.type === "root") {
+      const root = currNode as Root;
+      const prevRoot = prevNode as Root;
 
-function compareMarkdownASTs(
-  oldAst: MarkdownNode,
-  newAst: MarkdownNode,
-): MarkdownNode {
-  if (oldAst.type !== newAst.type) {
-    return {
-      ...newAst,
-      diffType: "modified",
-    };
-  }
+      const newChildren: (Element | Text)[] = [];
+      const maxLength = Math.max(
+        root.children.length,
+        prevRoot.children.length,
+      );
 
-  if (oldAst.value !== newAst.value) {
-    return {
-      ...newAst,
-      diffType: oldAst.value ? "modified" : "added",
-    };
-  }
-
-  if (oldAst.children && newAst.children) {
-    const maxLength = Math.max(oldAst.children.length, newAst.children.length);
-    const diffChildren = [];
-
-    for (let i = 0; i < maxLength; i++) {
-      const oldChild = oldAst.children[i];
-      const newChild = newAst.children[i];
-
-      if (!oldChild) {
-        diffChildren.push({ ...newChild, diffType: "added" });
-      } else if (!newChild) {
-        diffChildren.push({ ...oldChild, diffType: "deleted" });
-      } else {
-        diffChildren.push(compareMarkdownASTs(oldChild, newChild));
+      for (let i = 0; i < maxLength; i++) {
+        const prevChild = prevRoot.children[i] || null;
+        const currChild = root.children[i] || null;
+        newChildren.push(...compareNodes(prevChild, currChild));
       }
+
+      return newChildren;
     }
 
-    return {
-      ...newAst,
-      children: diffChildren,
-    };
+    // Both nodes exist but have different types
+    if (prevNode.type !== currNode.type) {
+      return [
+        wrapInSpan(prevNode, "diff-deleted"),
+        wrapInSpan(currNode, "diff-added"),
+      ];
+    }
+
+    // Handle text nodes
+    if (isText(prevNode) && isText(currNode)) {
+      if (prevNode.value === currNode.value) {
+        return [currNode];
+      }
+      return compareTextNodes(prevNode, currNode);
+    }
+
+    // Handle element nodes
+    if (isElement(prevNode) && isElement(currNode)) {
+      if (prevNode.tagName !== currNode.tagName) {
+        return [
+          wrapInSpan(prevNode, "diff-deleted"),
+          wrapInSpan(currNode, "diff-added"),
+        ];
+      }
+
+      // Same tag name, compare children
+      const maxLength = Math.max(
+        prevNode.children.length,
+        currNode.children.length,
+      );
+      const newChildren: (Element | Text)[] = [];
+
+      for (let i = 0; i < maxLength; i++) {
+        const prevChild = prevNode.children[i] || null;
+        const currChild = currNode.children[i] || null;
+        newChildren.push(...compareNodes(prevChild, currChild));
+      }
+
+      return [
+        {
+          type: "element",
+          tagName: currNode.tagName,
+          properties: { ...currNode.properties },
+          children: newChildren,
+        },
+      ];
+    }
+
+    // For other node types, convert to text node
+    return [
+      {
+        type: "text",
+        value: String(currNode.type),
+      },
+    ];
   }
 
-  return newAst;
+  // Create a proper Root node with the compared children
+  return {
+    type: "root",
+    children: compareNodes(previousTree, currentTree),
+  } as Root;
 }
 
-function astToHtml(ast: MarkdownNode): string {
-  let className = "";
-  if (ast.diffType === "added") className = "diff-add";
-  if (ast.diffType === "deleted") className = "diff-delete";
-  if (ast.diffType === "modified") className = "diff-modified";
+function processDiff(currentContent: string, previousContent: string): string {
+  const processor = unified().use(remarkParse).use(remarkGfm);
 
-  if (ast.value) {
-    return className
-      ? `<span class="${className}">${ast.value}</span>`
-      : ast.value;
+  // Parse both contents into ASTs
+  const currentTree = toHast(processor.parse(currentContent));
+  const previousTree = toHast(processor.parse(previousContent));
+
+  if (!currentTree || !previousTree) {
+    throw new Error("Failed to parse markdown content");
   }
 
-  let innerHTML = "";
-  if (ast.children) {
-    innerHTML = ast.children.map((child) => astToHtml(child)).join("");
-  }
+  // Generate the diff
+  const diffTree = generateDiff(previousTree, currentTree);
 
-  if (ast.type === "root") return innerHTML;
+  console.log({ currentTree, previousTree, diffTree });
+  // Convert the diff AST to HTML
+  const html = toHtml(diffTree);
 
-  const tag = ast.type === "paragraph" ? "p" : ast.type;
-  return className
-    ? `<${tag} class="${className}">${innerHTML}</${tag}>`
-    : `<${tag}>${innerHTML}</${tag}>`;
-}
-
-// Unified processor setup
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkRehype)
-  .use(rehypeStringify);
-
-function markdownToHtml(markdownContent: string): string {
-  try {
-    return String(processor.processSync(markdownContent));
-  } catch (error) {
-    console.error("Error converting Markdown to HTML:", error);
-    return markdownContent;
-  }
-}
-
-function processMarkdownDiffAstFirst(
-  currentContent: string,
-  previousContent: string,
-): string {
-  const currentAst = processor.parse(currentContent) as unknown as MarkdownNode;
-  const previousAst = processor.parse(
-    previousContent,
-  ) as unknown as MarkdownNode;
-
-  const diffAst = compareMarkdownASTs(previousAst, currentAst);
-  return astToHtml(diffAst);
+  return DOMPurify.sanitize(applyStyle(html));
 }
 
 const BodyContent = ({
@@ -290,7 +249,6 @@ const BodyContent = ({
   const [expanded, setExpanded] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [diff] = useQueryState("diff", parseAsBoolean.withDefault(false));
-  const [astDiff] = useQueryState("astDiff", parseAsBoolean.withDefault(false));
 
   useEffect(() => {
     const updateViewportHeight = () => setViewportHeight(window.innerHeight);
@@ -302,19 +260,12 @@ const BodyContent = ({
   const collapsedHeight = viewportHeight * 0.25;
 
   const processedContent = useMemo(() => {
-    let html;
     if (diff && version > 0) {
       const previousContent = allBodies[version - 1];
-      html = astDiff
-        ? processMarkdownDiffAstFirst(content, previousContent)
-        : processMarkdownDiffHtmlFirst(content, previousContent);
-    } else {
-      html = markdownToHtml(content);
+      return processDiff(content, previousContent);
     }
-
-    html = applyCommonStyles(html);
-    return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
-  }, [content, allBodies, version, diff, astDiff]);
+    return markdownToHtml(content);
+  }, [content, allBodies, version, diff]);
 
   return (
     <div className="relative pb-16">
@@ -326,7 +277,7 @@ const BodyContent = ({
       >
         <div
           dangerouslySetInnerHTML={{ __html: processedContent }}
-          className={`prose prose-lg max-w-none [&_.diff-add]:!bg-emerald-200 [&_.diff-delete]:!bg-red-200`}
+          className={`prose prose-lg max-w-none`}
         />
 
         {expanded && (
