@@ -28,7 +28,8 @@ const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 lazy_static::lazy_static! {
     static ref DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS: HashMap<Uuid, Vec<i32>> = {
         let mut m = HashMap::new();
-        m.insert(Uuid::parse_str("099352eb-b859-44ff-acbc-76806d304086").unwrap(), vec![7]);
+        //forum.arbitrum.foundation
+        m.insert(Uuid::parse_str("099352eb-b859-44ff-acbc-76806d304086").unwrap(), vec![7,8,9]);
         // Add more mappings as needed
         m
     };
