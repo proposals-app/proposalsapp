@@ -20,13 +20,23 @@ fn cleanup_html(content: &str) -> String {
     // Trim leading/trailing whitespace
     let mut result = result.trim().to_string();
 
-    // Final step: Remove outer container <div> if it only contains inline content
-    let re_wrapper_div = Regex::new(r#"<div>(.*?)</div>"#).unwrap();
+    // Remove outer container <div> if it has no classes and only contains text or inline elements
+    let re_wrapper_div = Regex::new(r#"^<div>(.*?)</div>$"#).unwrap();
     if let Ok(Some(mat)) = re_wrapper_div.find(&result) {
-        let inner_content = mat.as_str().replace("<div>", "").replace("</div>", "");
-        // Check if the inner content is the same as the original result without <div> tags
-        if format!("<div>{}</div>", inner_content.trim()) == result {
-            result = inner_content;
+        let inner_content = mat
+            .as_str()
+            .trim_start_matches("<div>")
+            .trim_end_matches("</div>")
+            .trim();
+
+        // Check if the inner content doesn't contain block-level elements
+        if !inner_content.contains("<div")
+            && !inner_content.contains("<p")
+            && !inner_content.contains("<ul")
+            && !inner_content.contains("<ol")
+            && !inner_content.contains("<table")
+        {
+            result = inner_content.to_string();
         }
     }
 
@@ -179,6 +189,17 @@ mod inline_changes {
         let after = extract_after_content_inline(&content).unwrap();
         assert_eq!(before, r#"<div class="something"><p>old</p></div>"#);
         assert_eq!(after, r#"<div class="something"><p>new</p></div>"#);
+    }
+
+    #[test]
+    fn test_with_wrapper_empty_div() {
+        let content =
+            r#"<div class="inline-diff"><div>Hackathon Continuation Program </div></div>"#;
+
+        let before = extract_before_content_inline(&content).unwrap();
+        let after = extract_after_content_inline(&content).unwrap();
+        assert_eq!(before, r#"Hackathon Continuation Program"#);
+        assert_eq!(after, r#"Hackathon Continuation Program"#);
     }
 
     #[test]
