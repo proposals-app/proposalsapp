@@ -151,7 +151,7 @@ const BodyContent = ({
     const normalizedPrevious = normalizeContent(previousContent);
     const normalizedCurrent = normalizeContent(content);
 
-    const diffs = diff_lineMode(normalizedPrevious, normalizedCurrent);
+    const diffs = diff_standardMode(normalizedPrevious, normalizedCurrent);
 
     // Generate HTML with diff highlights
     const diffHtml = diffs
@@ -228,6 +228,9 @@ function diff_standardMode(text1: string, text2: string) {
   return diffs;
 }
 
+// Computing a line-mode diff is really easy.
+// What's happening here is that the texts are rebuilt by the diff_linesToChars function so that each line is represented by a single Unicode character. Then these Unicode characters are diffed. Finally the diff is rebuilt by the diff_charsToLines function to replace the Unicode characters with the original lines.
+// Adding dmp.diff_cleanupSemantic(diffs); before returning the diffs is probably a good idea so that the diff is more human-readable.
 function diff_lineMode(text1: string, text2: string) {
   var dmp = new diff_match_patch();
   var a = dmp.diff_linesToChars_(text1, text2);
@@ -240,41 +243,37 @@ function diff_lineMode(text1: string, text2: string) {
   return diffs;
 }
 
+// Computing a word-mode diff is exactly the same as the line-mode diff, except you will have to make a copy of diff_linesToChars and call it diff_linesToWords. Look for the line that identifies the next line boundary:
+// lineEnd = text.indexOf('\n', lineStart);
+// Change this line to look for any runs of whitespace, not just end of lines.
+// Despite the name, the diff_charsToLines function will continue to work fine in word-mode.
 function diff_wordMode(text1: string, text2: string) {
   function diff_linesToWords(text1: string, text2: string) {
-    var lineArray: string[] = []; // e.g. lineArray[4] == 'Hello\n'
-    var lineHash: { [key: string]: number } = {}; // e.g. lineHash['Hello\n'] == 4
+    const lineArray: string[] = []; // e.g. lineArray[4] == 'Hello\n'
+    const lineHash: Map<string, number> = new Map(); // e.g. lineHash['Hello\n'] == 4
 
     // '\x00' is a valid character, but various debuggers don't like it.
     // So we'll insert a junk entry to avoid generating a null character.
     lineArray[0] = "";
 
-    /**
-     * Split a text into an array of strings.  Reduce the texts to a string of
-     * hashes where each Unicode character represents one line.
-     * Modifies linearray and linehash through being a closure.
-     * @param {string} text String to encode.
-     * @return {string} Encoded string.
-     * @private
-     */
     function diff_linesToCharsMunge_(text: string) {
-      var chars = "";
-      // Walk the text, pulling out a substring for each line.
-      // text.split('\n') would would temporarily double our memory footprint.
+      let chars = "";
+      // Walk the text, pulling out a substring for each word.
+      // text.split(' ') would would temporarily double our memory footprint.
       // Modifying text would create many large strings to garbage collect.
-      var lineStart = 0;
-      var lineEnd = -1;
+      let lineStart = 0;
+      let lineEnd = -1;
       // Keeping our own length variable is faster than looking it up.
-      var lineArrayLength = lineArray.length;
+      let lineArrayLength = lineArray.length;
       while (lineEnd < text.length - 1) {
         lineEnd = text.indexOf(" ", lineStart);
         if (lineEnd == -1) {
           lineEnd = text.length - 1;
         }
-        var line = text.substring(lineStart, lineEnd + 1);
+        let line = text.substring(lineStart, lineEnd + 1);
 
-        if (Object.prototype.hasOwnProperty.call(lineHash, line)) {
-          chars += String.fromCharCode(lineHash[line]);
+        if (lineHash.has(line)) {
+          chars += String.fromCharCode(lineHash.get(line)!);
         } else {
           if (lineArrayLength == maxLines) {
             // Bail out at 65535 because
@@ -283,20 +282,20 @@ function diff_wordMode(text1: string, text2: string) {
             lineEnd = text.length;
           }
           chars += String.fromCharCode(lineArrayLength);
-          lineHash[line] = lineArrayLength;
+          lineHash.set(line, lineArrayLength);
           lineArray[lineArrayLength++] = line;
         }
         lineStart = lineEnd + 1;
       }
       return chars;
     }
-    // Allocate 2/3rds of the space for text1, the rest for text2.
-    var maxLines = 40000;
-    var chars1 = diff_linesToCharsMunge_(text1);
-    maxLines = 65535;
-    var chars2 = diff_linesToCharsMunge_(text2);
 
-    return { chars1: chars1, chars2: chars2, lineArray: lineArray };
+    // Allocate 2/3rds of the space for text1, the rest for text2.
+    let maxLines = 40000;
+    const chars1 = diff_linesToCharsMunge_(text1);
+    maxLines = 65535;
+    const chars2 = diff_linesToCharsMunge_(text2);
+    return { chars1, chars2, lineArray };
   }
 
   var dmp = new diff_match_patch();
