@@ -9,7 +9,8 @@ import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
 import rehypeStringify from "rehype-stringify";
 import { parseAsBoolean, useQueryState } from "nuqs";
-import { diff_match_patch } from "diff-match-patch";
+import { Root } from "mdast";
+import { toString } from "mdast-util-to-string";
 
 interface ContentSectionClientProps {
   content: string;
@@ -17,7 +18,7 @@ interface ContentSectionClientProps {
   version: number;
 }
 
-// Security configurations
+// Security configurations remain the same
 const ALLOWED_TAGS = [
   "span",
   "del",
@@ -61,9 +62,10 @@ const ALLOWED_ATTR = [
   "rel",
   "id",
   "name",
+  "data-diff-type",
 ];
 
-// Common styles to be applied via DOMPurify
+// Common styles remain the same
 const COMMON_STYLES = {
   h1: "mb-4 mt-6 text-2xl font-bold",
   h2: "mb-3 mt-5 text-xl font-bold",
@@ -81,44 +83,120 @@ const COMMON_STYLES = {
   img: "my-4 h-auto max-w-full rounded-lg",
 };
 
-// Convert markdown to HTML
-const markdownToHtml = (markdownContent: string): string => {
-  try {
-    const processor = unified()
-      .use(remarkParse)
-      .use(remarkGfm)
-      .use(remarkRehype)
-      .use(rehypeStringify);
+function splitIntoSentences(text: string): string[] {
+  // This is a simple sentence splitter. You might want to use a more sophisticated one
+  return text.match(/[^.!?]+[.!?]+/g) || [text];
+}
 
+function compareSentences(oldText: string, newText: string): string {
+  const oldSentences = splitIntoSentences(oldText);
+  const newSentences = splitIntoSentences(newText);
+
+  let result = "";
+  const maxLen = Math.max(oldSentences.length, newSentences.length);
+
+  for (let i = 0; i < maxLen; i++) {
+    const oldSentence = oldSentences[i] || "";
+    const newSentence = newSentences[i] || "";
+
+    if (!oldSentence) {
+      result += `<span class="diff-add">${newSentence}</span>`;
+    } else if (!newSentence) {
+      result += `<span class="diff-delete">${oldSentence}</span>`;
+    } else if (oldSentence.trim() !== newSentence.trim()) {
+      result += `<span>${newSentence}</span>`;
+    } else {
+      result += newSentence;
+    }
+  }
+
+  return result;
+}
+
+// Process markdown content with unified
+const processor = unified()
+  .use(remarkParse)
+  .use(remarkGfm)
+  .use(remarkRehype)
+  .use(rehypeStringify);
+
+function markdownToHtml(markdownContent: string): string {
+  try {
     return String(processor.processSync(markdownContent));
   } catch (error) {
     console.error("Error converting Markdown to HTML:", error);
     return markdownContent;
   }
-};
+}
 
-// Apply common styles to HTML elements
-const applyCommonStyles = (html: string): string => {
+function processMarkdownDiff(
+  currentContent: string,
+  previousContent: string,
+): string {
+  const currentHtml = markdownToHtml(currentContent);
+  const previousHtml = markdownToHtml(previousContent);
+
+  // Create temporary elements to parse the HTML
+  const currentDiv = document.createElement("div");
+  const previousDiv = document.createElement("div");
+  currentDiv.innerHTML = currentHtml;
+  previousDiv.innerHTML = previousHtml;
+
+  // Compare and mark differences at block level
+  const currentBlocks = Array.from(currentDiv.children);
+  const previousBlocks = Array.from(previousDiv.children);
+
+  let resultHtml = "";
+  const maxBlocks = Math.max(currentBlocks.length, previousBlocks.length);
+
+  for (let i = 0; i < maxBlocks; i++) {
+    const currentBlock = currentBlocks[i];
+    const previousBlock = previousBlocks[i];
+
+    if (!previousBlock && currentBlock) {
+      // New block added
+      resultHtml += `<div class="diff-add">${currentBlock.outerHTML}</div>`;
+    } else if (!currentBlock && previousBlock) {
+      // Block removed
+      resultHtml += `<div class="diff-delete">${previousBlock.outerHTML}</div>`;
+    } else if (currentBlock && previousBlock) {
+      // Compare block contents
+      if (currentBlock.tagName === previousBlock.tagName) {
+        if (currentBlock.innerHTML.trim() === previousBlock.innerHTML.trim()) {
+          resultHtml += currentBlock.outerHTML;
+        } else {
+          // Compare the contents sentence by sentence
+          const comparedContent = compareSentences(
+            previousBlock.innerHTML,
+            currentBlock.innerHTML,
+          );
+          resultHtml += `<${currentBlock.tagName.toLowerCase()}>${comparedContent}</${currentBlock.tagName.toLowerCase()}>`;
+        }
+      } else {
+        resultHtml += `<div>${currentBlock.outerHTML}</div>`;
+      }
+    }
+  }
+
+  return resultHtml;
+}
+
+function applyCommonStyles(html: string): string {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
   Object.entries(COMMON_STYLES).forEach(([tag, className]) => {
     doc.querySelectorAll(tag).forEach((element) => {
-      if (tag == "a") element.setAttribute("rel", "noopener noreferrer");
+      if (tag === "a") {
+        element.setAttribute("rel", "noopener noreferrer");
+        element.setAttribute("target", "_blank");
+      }
       element.className = `${element.className} ${className}`.trim();
-      if (tag == "a") element.setAttribute("target", "_blank");
     });
   });
 
   return doc.body.innerHTML;
-};
-
-// Normalize content to styled HTML
-const normalizeContent = (content: string): string => {
-  let html = markdownToHtml(content);
-  html = applyCommonStyles(html);
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
-};
+}
 
 const BodyContent = ({
   content,
@@ -138,38 +216,17 @@ const BodyContent = ({
 
   const collapsedHeight = viewportHeight * 0.25;
 
-  // Process content based on diff mode
   const processedContent = useMemo(() => {
-    if (!diff) {
-      return normalizeContent(content);
+    let html;
+    if (diff && version > 0) {
+      const previousContent = allBodies[version - 1];
+      html = processMarkdownDiff(content, previousContent);
+    } else {
+      html = markdownToHtml(content);
     }
 
-    const previousContent = version > 0 ? allBodies[version - 1] : null;
-    if (!previousContent) return normalizeContent(content);
-
-    // Normalize both contents for diffing
-    const normalizedPrevious = normalizeContent(previousContent);
-    const normalizedCurrent = normalizeContent(content);
-
-    const diffs = diff_standardMode(normalizedPrevious, normalizedCurrent);
-
-    // Generate HTML with diff highlights
-    const diffHtml = diffs
-      .map(([op, text]) => {
-        switch (op) {
-          case 0:
-            return `<span>${text}</span>`;
-          case 1:
-            return `<span class="diff-add !border-2">${text}</span>`;
-          case -1:
-            return `<span class="diff-delete !border-2">${text}</span>`;
-          default:
-            return "";
-        }
-      })
-      .join("");
-
-    return DOMPurify.sanitize(diffHtml, { ALLOWED_TAGS, ALLOWED_ATTR });
+    html = applyCommonStyles(html);
+    return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
   }, [content, allBodies, version, diff]);
 
   return (
@@ -182,7 +239,7 @@ const BodyContent = ({
       >
         <div
           dangerouslySetInnerHTML={{ __html: processedContent }}
-          className="prose prose-lg max-w-none [&_.diff-add]:!bg-emerald-200 [&_.diff-delete]:!bg-red-200"
+          className={`prose prose-lg max-w-none [&_.diff-add]:!bg-emerald-200 [&_.diff-delete]:!bg-red-200`}
         />
 
         {expanded && (
@@ -220,91 +277,3 @@ const BodyContent = ({
 };
 
 export default BodyContent;
-
-function diff_standardMode(text1: string, text2: string) {
-  const dmp = new diff_match_patch();
-  const diffs = dmp.diff_main(text1, text2);
-  dmp.diff_cleanupSemanticLossless(diffs);
-  return diffs;
-}
-
-// Computing a line-mode diff is really easy.
-// What's happening here is that the texts are rebuilt by the diff_linesToChars function so that each line is represented by a single Unicode character. Then these Unicode characters are diffed. Finally the diff is rebuilt by the diff_charsToLines function to replace the Unicode characters with the original lines.
-// Adding dmp.diff_cleanupSemantic(diffs); before returning the diffs is probably a good idea so that the diff is more human-readable.
-function diff_lineMode(text1: string, text2: string) {
-  var dmp = new diff_match_patch();
-  var a = dmp.diff_linesToChars_(text1, text2);
-  var lineText1 = a.chars1;
-  var lineText2 = a.chars2;
-  var lineArray = a.lineArray;
-  var diffs = dmp.diff_main(lineText1, lineText2, false);
-  dmp.diff_charsToLines_(diffs, lineArray);
-  dmp.diff_cleanupSemanticLossless(diffs);
-  return diffs;
-}
-
-// Computing a word-mode diff is exactly the same as the line-mode diff, except you will have to make a copy of diff_linesToChars and call it diff_linesToWords. Look for the line that identifies the next line boundary:
-// lineEnd = text.indexOf('\n', lineStart);
-// Change this line to look for any runs of whitespace, not just end of lines.
-// Despite the name, the diff_charsToLines function will continue to work fine in word-mode.
-function diff_wordMode(text1: string, text2: string) {
-  function diff_linesToWords(text1: string, text2: string) {
-    const lineArray: string[] = []; // e.g. lineArray[4] == 'Hello\n'
-    const lineHash: Map<string, number> = new Map(); // e.g. lineHash['Hello\n'] == 4
-
-    // '\x00' is a valid character, but various debuggers don't like it.
-    // So we'll insert a junk entry to avoid generating a null character.
-    lineArray[0] = "";
-
-    function diff_linesToCharsMunge_(text: string) {
-      let chars = "";
-      // Walk the text, pulling out a substring for each word.
-      // text.split(' ') would would temporarily double our memory footprint.
-      // Modifying text would create many large strings to garbage collect.
-      let lineStart = 0;
-      let lineEnd = -1;
-      // Keeping our own length variable is faster than looking it up.
-      let lineArrayLength = lineArray.length;
-      while (lineEnd < text.length - 1) {
-        lineEnd = text.indexOf(" ", lineStart);
-        if (lineEnd == -1) {
-          lineEnd = text.length - 1;
-        }
-        let line = text.substring(lineStart, lineEnd + 1);
-
-        if (lineHash.has(line)) {
-          chars += String.fromCharCode(lineHash.get(line)!);
-        } else {
-          if (lineArrayLength == maxLines) {
-            // Bail out at 65535 because
-            // String.fromCharCode(65536) == String.fromCharCode(0)
-            line = text.substring(lineStart);
-            lineEnd = text.length;
-          }
-          chars += String.fromCharCode(lineArrayLength);
-          lineHash.set(line, lineArrayLength);
-          lineArray[lineArrayLength++] = line;
-        }
-        lineStart = lineEnd + 1;
-      }
-      return chars;
-    }
-
-    // Allocate 2/3rds of the space for text1, the rest for text2.
-    let maxLines = 40000;
-    const chars1 = diff_linesToCharsMunge_(text1);
-    maxLines = 65535;
-    const chars2 = diff_linesToCharsMunge_(text2);
-    return { chars1, chars2, lineArray };
-  }
-
-  var dmp = new diff_match_patch();
-  var a = diff_linesToWords(text1, text2);
-  var lineText1 = a.chars1;
-  var lineText2 = a.chars2;
-  var lineArray = a.lineArray;
-  var diffs = dmp.diff_main(lineText1, lineText2, false);
-  dmp.diff_charsToLines_(diffs, lineArray);
-  dmp.diff_cleanupSemanticLossless(diffs);
-  return diffs;
-}

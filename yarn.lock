@@ -2644,6 +2644,7 @@ __metadata:
     "@serwist/next": "npm:9.0.11"
     "@tailwindcss/typography": "npm:^0.5.15"
     "@types/diff-match-patch": "npm:^1"
+    "@types/mdast": "npm:^3"
     "@types/node": "npm:22.10.2"
     "@types/react": "npm:19.0.2"
     "@types/react-day-picker": "npm:5.3.0"
@@ -2663,6 +2664,7 @@ __metadata:
     isomorphic-dompurify: "npm:^2.19.0"
     lucia: "npm:3.2.2"
     lucide-react: "npm:^0.468.0"
+    mdast: "npm:^3.0.0"
     moment: "npm:2.30.1"
     next: "npm:15.1.2"
     next-themes: "npm:^0.4.4"
@@ -2697,6 +2699,7 @@ __metadata:
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:5.7.2"
     unified: "npm:^11.0.5"
+    unist: "npm:^0.0.1"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
     viem: "npm:2.21.55"
@@ -5315,6 +5318,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/mdast@npm:^3":
+  version: 3.0.15
+  resolution: "@types/mdast@npm:3.0.15"
+  dependencies:
+    "@types/unist": "npm:^2"
+  checksum: 10c0/fcbf716c03d1ed5465deca60862e9691414f9c43597c288c7d2aefbe274552e1bbd7aeee91b88a02597e88a28c139c57863d0126fcf8416a95fdc681d054ee3d
+  languageName: node
+  linkType: hard
+
 "@types/mdast@npm:^4.0.0":
   version: 4.0.4
   resolution: "@types/mdast@npm:4.0.4"
@@ -5492,7 +5504,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/unist@npm:^2.0.0":
+"@types/unist@npm:^2, @types/unist@npm:^2.0.0":
   version: 2.0.11
   resolution: "@types/unist@npm:2.0.11"
   checksum: 10c0/24dcdf25a168f453bb70298145eb043cfdbb82472db0bc0b56d6d51cd2e484b9ed8271d4ac93000a80da568f2402e9339723db262d0869e2bf13bc58e081768d
@@ -11458,6 +11470,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"mdast@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "mdast@npm:3.0.0"
+  checksum: 10c0/dce2d68e9772705b675e7ebb543640e9f1361ff874eed818677304a351486904f427f87deff8bbd21942e58ed0d2ee3ddcfc1d010aea0de92b4a62ff0f94f0ff
+  languageName: node
+  linkType: hard
+
 "media-typer@npm:0.3.0":
   version: 0.3.0
   resolution: "media-typer@npm:0.3.0"
@@ -16067,6 +16086,13 @@ __metadata:
     unist-util-is: "npm:^6.0.0"
     unist-util-visit-parents: "npm:^6.0.0"
   checksum: 10c0/51434a1d80252c1540cce6271a90fd1a106dbe624997c09ed8879279667fb0b2d3a685e02e92bf66598dcbe6cdffa7a5f5fb363af8fdf90dda6c855449ae39a5
+  languageName: node
+  linkType: hard
+
+"unist@npm:^0.0.1":
+  version: 0.0.1
+  resolution: "unist@npm:0.0.1"
+  checksum: 10c0/af7ca198dafc336cd8d4808387dc02a5ad0830147a932db750dd0efea3c1c0d08fa08c22025c84423cb065be9796dc235460744a1db964eeeb7560324ea7c6c9
   languageName: node
   linkType: hard
 
