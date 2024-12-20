@@ -13,7 +13,6 @@ import { toHtml } from "hast-util-to-html";
 import { toHast } from "mdast-util-to-hast";
 import { diff_match_patch, Diff } from "diff-match-patch";
 import { Element, Text, Node, Root } from "hast";
-import { sanitize } from "hast-util-sanitize";
 
 interface ContentSectionClientProps {
   content: string;
@@ -230,12 +229,12 @@ function processDiff(currentContent: string, previousContent: string): string {
 
   // Generate the diff
   const diffTree = generateDiff(previousTree, currentTree);
-  const sanitizedDiffTree = sanitize(diffTree);
-  const html = toHtml(sanitizedDiffTree);
+
+  const html = toHtml(diffTree);
   const styledHtml = applyStyle(html);
 
-  console.log({ currentTree, previousTree, sanitizedDiffTree });
-  return applyStyle(styledHtml);
+  console.log({ currentTree, previousTree, diffTree });
+  return styledHtml;
 }
 
 const BodyContent = ({
