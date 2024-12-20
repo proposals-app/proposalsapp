@@ -151,7 +151,7 @@ const BodyContent = ({
     const normalizedPrevious = normalizeContent(previousContent);
     const normalizedCurrent = normalizeContent(content);
 
-    const diffs = diff_standardMode(normalizedPrevious, normalizedCurrent);
+    const diffs = diff_lineMode(normalizedPrevious, normalizedCurrent);
 
     // Generate HTML with diff highlights
     const diffHtml = diffs
