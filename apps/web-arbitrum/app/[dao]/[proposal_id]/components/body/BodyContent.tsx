@@ -93,8 +93,7 @@ function generateDiff(previousTree: Node, currentTree: Node): Root {
   }
 
   function compareTextNodes(prev: Text, curr: Text): (Element | Text)[] {
-    const diffs = dmp.diff_main(prev.value, curr.value);
-    dmp.diff_cleanupSemantic(diffs);
+    const diffs = diff_wordMode(prev.value, curr.value);
 
     return diffs.map((diff: Diff): Element | Text => {
       const [operation, text] = diff;
@@ -311,3 +310,65 @@ const BodyContent = ({
 };
 
 export default BodyContent;
+
+function diff_wordMode(text1: string, text2: string) {
+  function diff_linesToWords(text1: string, text2: string) {
+    const lineArray: string[] = []; // e.g. lineArray[4] == 'Hello\n'
+    const lineHash: Map<string, number> = new Map(); // e.g. lineHash['Hello\n'] == 4
+
+    // '\x00' is a valid character, but various debuggers don't like it.
+    // So we'll insert a junk entry to avoid generating a null character.
+    lineArray[0] = "";
+
+    function diff_linesToCharsMunge_(text: string) {
+      let chars = "";
+      // Walk the text, pulling out a substring for each word.
+      // text.split(' ') would would temporarily double our memory footprint.
+      // Modifying text would create many large strings to garbage collect.
+      let lineStart = 0;
+      let lineEnd = -1;
+      // Keeping our own length variable is faster than looking it up.
+      let lineArrayLength = lineArray.length;
+      while (lineEnd < text.length - 1) {
+        lineEnd = text.indexOf(" ", lineStart);
+        if (lineEnd == -1) {
+          lineEnd = text.length - 1;
+        }
+        let line = text.substring(lineStart, lineEnd + 1);
+
+        if (lineHash.has(line)) {
+          chars += String.fromCharCode(lineHash.get(line)!);
+        } else {
+          if (lineArrayLength == maxLines) {
+            // Bail out at 65535 because
+            // String.fromCharCode(65536) == String.fromCharCode(0)
+            line = text.substring(lineStart);
+            lineEnd = text.length;
+          }
+          chars += String.fromCharCode(lineArrayLength);
+          lineHash.set(line, lineArrayLength);
+          lineArray[lineArrayLength++] = line;
+        }
+        lineStart = lineEnd + 1;
+      }
+      return chars;
+    }
+
+    // Allocate 2/3rds of the space for text1, the rest for text2.
+    let maxLines = 40000;
+    const chars1 = diff_linesToCharsMunge_(text1);
+    maxLines = 65535;
+    const chars2 = diff_linesToCharsMunge_(text2);
+    return { chars1, chars2, lineArray };
+  }
+
+  var dmp = new diff_match_patch();
+  var a = diff_linesToWords(text1, text2);
+  var lineText1 = a.chars1;
+  var lineText2 = a.chars2;
+  var lineArray = a.lineArray;
+  var diffs = dmp.diff_main(lineText1, lineText2, false);
+  dmp.diff_charsToLines_(diffs, lineArray);
+  dmp.diff_cleanupSemanticLossless(diffs);
+  return diffs;
+}
