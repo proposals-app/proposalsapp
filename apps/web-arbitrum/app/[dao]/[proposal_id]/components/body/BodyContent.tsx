@@ -83,8 +83,70 @@ const COMMON_STYLES = {
   img: "my-4 h-auto max-w-full rounded-lg",
 };
 
+function applyCommonStyles(html: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  Object.entries(COMMON_STYLES).forEach(([tag, className]) => {
+    doc.querySelectorAll(tag).forEach((element) => {
+      if (tag === "a") {
+        element.setAttribute("rel", "noopener noreferrer");
+        element.setAttribute("target", "_blank");
+      }
+      element.className = `${element.className} ${className}`.trim();
+    });
+  });
+
+  return doc.body.innerHTML;
+}
+
+function processMarkdownDiffHtmlFirst(
+  currentContent: string,
+  previousContent: string,
+): string {
+  const currentHtml = markdownToHtml(currentContent);
+  const previousHtml = markdownToHtml(previousContent);
+
+  const currentDiv = document.createElement("div");
+  const previousDiv = document.createElement("div");
+  currentDiv.innerHTML = currentHtml;
+  previousDiv.innerHTML = previousHtml;
+
+  let resultHtml = "";
+  const currentBlocks = Array.from(currentDiv.children);
+  const previousBlocks = Array.from(previousDiv.children);
+  const maxBlocks = Math.max(currentBlocks.length, previousBlocks.length);
+
+  for (let i = 0; i < maxBlocks; i++) {
+    const currentBlock = currentBlocks[i];
+    const previousBlock = previousBlocks[i];
+
+    if (!previousBlock && currentBlock) {
+      resultHtml += `<div class="diff-add">${currentBlock.outerHTML}</div>`;
+    } else if (!currentBlock && previousBlock) {
+      resultHtml += `<div class="diff-delete">${previousBlock.outerHTML}</div>`;
+    } else if (currentBlock && previousBlock) {
+      if (currentBlock.tagName === previousBlock.tagName) {
+        if (currentBlock.innerHTML.trim() === previousBlock.innerHTML.trim()) {
+          resultHtml += currentBlock.outerHTML;
+        } else {
+          const comparedContent = compareSentences(
+            previousBlock.innerHTML,
+            currentBlock.innerHTML,
+          );
+          resultHtml += `<${currentBlock.tagName.toLowerCase()}>${comparedContent}</${currentBlock.tagName.toLowerCase()}>`;
+        }
+      } else {
+        resultHtml += `<div class="diff-modified">${currentBlock.outerHTML}</div>`;
+      }
+    }
+  }
+
+  return resultHtml;
+}
+
+// Approach 1: HTML-first diffing
 function splitIntoSentences(text: string): string[] {
-  // This is a simple sentence splitter. You might want to use a more sophisticated one
   return text.match(/[^.!?]+[.!?]+/g) || [text];
 }
 
@@ -104,7 +166,7 @@ function compareSentences(oldText: string, newText: string): string {
     } else if (!newSentence) {
       result += `<span class="diff-delete">${oldSentence}</span>`;
     } else if (oldSentence.trim() !== newSentence.trim()) {
-      result += `<span>${newSentence}</span>`;
+      result += `<span class="diff-modified">${newSentence}</span>`;
     } else {
       result += newSentence;
     }
@@ -113,7 +175,85 @@ function compareSentences(oldText: string, newText: string): string {
   return result;
 }
 
-// Process markdown content with unified
+// Approach 2: Markdown AST diffing
+interface MarkdownNode {
+  type: string;
+  value?: string;
+  children?: MarkdownNode[];
+  position?: any;
+  [key: string]: any;
+}
+
+function compareMarkdownASTs(
+  oldAst: MarkdownNode,
+  newAst: MarkdownNode,
+): MarkdownNode {
+  if (oldAst.type !== newAst.type) {
+    return {
+      ...newAst,
+      diffType: "modified",
+    };
+  }
+
+  if (oldAst.value !== newAst.value) {
+    return {
+      ...newAst,
+      diffType: oldAst.value ? "modified" : "added",
+    };
+  }
+
+  if (oldAst.children && newAst.children) {
+    const maxLength = Math.max(oldAst.children.length, newAst.children.length);
+    const diffChildren = [];
+
+    for (let i = 0; i < maxLength; i++) {
+      const oldChild = oldAst.children[i];
+      const newChild = newAst.children[i];
+
+      if (!oldChild) {
+        diffChildren.push({ ...newChild, diffType: "added" });
+      } else if (!newChild) {
+        diffChildren.push({ ...oldChild, diffType: "deleted" });
+      } else {
+        diffChildren.push(compareMarkdownASTs(oldChild, newChild));
+      }
+    }
+
+    return {
+      ...newAst,
+      children: diffChildren,
+    };
+  }
+
+  return newAst;
+}
+
+function astToHtml(ast: MarkdownNode): string {
+  let className = "";
+  if (ast.diffType === "added") className = "diff-add";
+  if (ast.diffType === "deleted") className = "diff-delete";
+  if (ast.diffType === "modified") className = "diff-modified";
+
+  if (ast.value) {
+    return className
+      ? `<span class="${className}">${ast.value}</span>`
+      : ast.value;
+  }
+
+  let innerHTML = "";
+  if (ast.children) {
+    innerHTML = ast.children.map((child) => astToHtml(child)).join("");
+  }
+
+  if (ast.type === "root") return innerHTML;
+
+  const tag = ast.type === "paragraph" ? "p" : ast.type;
+  return className
+    ? `<${tag} class="${className}">${innerHTML}</${tag}>`
+    : `<${tag}>${innerHTML}</${tag}>`;
+}
+
+// Unified processor setup
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
@@ -129,73 +269,17 @@ function markdownToHtml(markdownContent: string): string {
   }
 }
 
-function processMarkdownDiff(
+function processMarkdownDiffAstFirst(
   currentContent: string,
   previousContent: string,
 ): string {
-  const currentHtml = markdownToHtml(currentContent);
-  const previousHtml = markdownToHtml(previousContent);
+  const currentAst = processor.parse(currentContent) as unknown as MarkdownNode;
+  const previousAst = processor.parse(
+    previousContent,
+  ) as unknown as MarkdownNode;
 
-  // Create temporary elements to parse the HTML
-  const currentDiv = document.createElement("div");
-  const previousDiv = document.createElement("div");
-  currentDiv.innerHTML = currentHtml;
-  previousDiv.innerHTML = previousHtml;
-
-  // Compare and mark differences at block level
-  const currentBlocks = Array.from(currentDiv.children);
-  const previousBlocks = Array.from(previousDiv.children);
-
-  let resultHtml = "";
-  const maxBlocks = Math.max(currentBlocks.length, previousBlocks.length);
-
-  for (let i = 0; i < maxBlocks; i++) {
-    const currentBlock = currentBlocks[i];
-    const previousBlock = previousBlocks[i];
-
-    if (!previousBlock && currentBlock) {
-      // New block added
-      resultHtml += `<div class="diff-add">${currentBlock.outerHTML}</div>`;
-    } else if (!currentBlock && previousBlock) {
-      // Block removed
-      resultHtml += `<div class="diff-delete">${previousBlock.outerHTML}</div>`;
-    } else if (currentBlock && previousBlock) {
-      // Compare block contents
-      if (currentBlock.tagName === previousBlock.tagName) {
-        if (currentBlock.innerHTML.trim() === previousBlock.innerHTML.trim()) {
-          resultHtml += currentBlock.outerHTML;
-        } else {
-          // Compare the contents sentence by sentence
-          const comparedContent = compareSentences(
-            previousBlock.innerHTML,
-            currentBlock.innerHTML,
-          );
-          resultHtml += `<${currentBlock.tagName.toLowerCase()}>${comparedContent}</${currentBlock.tagName.toLowerCase()}>`;
-        }
-      } else {
-        resultHtml += `<div>${currentBlock.outerHTML}</div>`;
-      }
-    }
-  }
-
-  return resultHtml;
-}
-
-function applyCommonStyles(html: string): string {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-
-  Object.entries(COMMON_STYLES).forEach(([tag, className]) => {
-    doc.querySelectorAll(tag).forEach((element) => {
-      if (tag === "a") {
-        element.setAttribute("rel", "noopener noreferrer");
-        element.setAttribute("target", "_blank");
-      }
-      element.className = `${element.className} ${className}`.trim();
-    });
-  });
-
-  return doc.body.innerHTML;
+  const diffAst = compareMarkdownASTs(previousAst, currentAst);
+  return astToHtml(diffAst);
 }
 
 const BodyContent = ({
@@ -206,6 +290,7 @@ const BodyContent = ({
   const [expanded, setExpanded] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [diff] = useQueryState("diff", parseAsBoolean.withDefault(false));
+  const [astDiff] = useQueryState("astDiff", parseAsBoolean.withDefault(false));
 
   useEffect(() => {
     const updateViewportHeight = () => setViewportHeight(window.innerHeight);
@@ -220,14 +305,16 @@ const BodyContent = ({
     let html;
     if (diff && version > 0) {
       const previousContent = allBodies[version - 1];
-      html = processMarkdownDiff(content, previousContent);
+      html = astDiff
+        ? processMarkdownDiffAstFirst(content, previousContent)
+        : processMarkdownDiffHtmlFirst(content, previousContent);
     } else {
       html = markdownToHtml(content);
     }
 
     html = applyCommonStyles(html);
     return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
-  }, [content, allBodies, version, diff]);
+  }, [content, allBodies, version, diff, astDiff]);
 
   return (
     <div className="relative pb-16">
