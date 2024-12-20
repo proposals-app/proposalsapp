@@ -159,10 +159,10 @@ const BodyContent = ({
         switch (op) {
           case 0:
             return `<span>${text}</span>`;
-          case -1:
-            return `<span class="diff-delete !bg-red-200 !border !border-red-200">${text}</span>`;
           case 1:
-            return `<span class="diff-add !bg-emerald-200 !border !border-emerald-200">${text}</span>`;
+            return `<span class="diff-add !border-2">${text}</span>`;
+          case -1:
+            return `<span class="diff-delete !border-2">${text}</span>`;
           default:
             return "";
         }
