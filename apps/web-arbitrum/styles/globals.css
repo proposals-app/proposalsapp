@@ -113,12 +113,22 @@
   }
 }
 
-.prose .diff-deleted,
-.prose .diff-deleted * {
+.prose .text-diff-deleted,
+.prose .text-diff-deleted * {
   @apply !border !border-red-400 !bg-red-200;
 }
 
-.prose .diff-added,
-.prose .diff-added * {
+.prose .text-diff-added,
+.prose .text-diff-added * {
   @apply !border !border-emerald-400 !bg-emerald-200;
+}
+
+.prose .element-diff-deleted,
+.prose .element-diff-deleted * {
+  @apply !border !border-red-200 !bg-red-200;
+}
+
+.prose .element-diff-added,
+.prose .element-diff-added * {
+  @apply !border !border-emerald-200 !bg-emerald-200;
 }

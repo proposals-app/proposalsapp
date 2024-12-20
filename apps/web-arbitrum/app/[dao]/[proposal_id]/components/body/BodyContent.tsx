@@ -13,6 +13,7 @@ import { toHtml } from "hast-util-to-html";
 import { toHast } from "mdast-util-to-hast";
 import { diff_match_patch, Diff } from "diff-match-patch";
 import { Element, Text, Node, Root } from "hast";
+import { sanitize } from "hast-util-sanitize";
 
 interface ContentSectionClientProps {
   content: string;
@@ -43,10 +44,6 @@ function applyStyle(html: string): string {
 
   Object.entries(COMMON_STYLES).forEach(([tag, className]) => {
     doc.querySelectorAll(tag).forEach((element) => {
-      if (tag === "a") {
-        element.setAttribute("rel", "noopener noreferrer");
-        element.setAttribute("target", "_blank");
-      }
       element.className = `${element.className} ${className}`.trim();
     });
   });
@@ -106,9 +103,9 @@ function generateDiff(previousTree: Node, currentTree: Node): Root {
 
       switch (operation) {
         case -1: // Deletion
-          return wrapInSpan(textNode, "diff-deleted");
+          return wrapInSpan(textNode, "text-diff-deleted");
         case 1: // Insertion
-          return wrapInSpan(textNode, "diff-added");
+          return wrapInSpan(textNode, "text-diff-added");
         default: // No change
           return wrapInSpan(textNode);
       }
@@ -124,12 +121,12 @@ function generateDiff(previousTree: Node, currentTree: Node): Root {
 
     // If only current node exists, it's an addition
     if (!prev && curr) {
-      return [wrapInSpan(curr, "diff-added")];
+      return [wrapInSpan(curr, "element-diff-added")];
     }
 
     // If only previous node exists, it's a deletion
     if (prev && !curr) {
-      return [wrapInSpan(prev, "diff-deleted")];
+      return [wrapInSpan(prev, "element-diff-deleted")];
     }
 
     // At this point, both prev and curr are non-null
@@ -159,8 +156,8 @@ function generateDiff(previousTree: Node, currentTree: Node): Root {
     // Both nodes exist but have different types
     if (prevNode.type !== currNode.type) {
       return [
-        wrapInSpan(prevNode, "diff-deleted"),
-        wrapInSpan(currNode, "diff-added"),
+        wrapInSpan(prevNode, "element-diff-deleted"),
+        wrapInSpan(currNode, "element-diff-added"),
       ];
     }
 
@@ -176,8 +173,8 @@ function generateDiff(previousTree: Node, currentTree: Node): Root {
     if (isElement(prevNode) && isElement(currNode)) {
       if (prevNode.tagName !== currNode.tagName) {
         return [
-          wrapInSpan(prevNode, "diff-deleted"),
-          wrapInSpan(currNode, "diff-added"),
+          wrapInSpan(prevNode, "element-diff-deleted"),
+          wrapInSpan(currNode, "element-diff-added"),
         ];
       }
 
@@ -233,12 +230,12 @@ function processDiff(currentContent: string, previousContent: string): string {
 
   // Generate the diff
   const diffTree = generateDiff(previousTree, currentTree);
+  const sanitizedDiffTree = sanitize(diffTree);
+  const html = toHtml(sanitizedDiffTree);
+  const styledHtml = applyStyle(html);
 
-  console.log({ currentTree, previousTree, diffTree });
-  // Convert the diff AST to HTML
-  const html = toHtml(diffTree);
-
-  return DOMPurify.sanitize(applyStyle(html));
+  console.log({ currentTree, previousTree, sanitizedDiffTree });
+  return applyStyle(styledHtml);
 }
 
 const BodyContent = ({
