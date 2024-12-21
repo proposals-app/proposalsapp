@@ -13,6 +13,7 @@ COPY package.json yarn.lock .yarnrc.yml ./
 COPY apps/web-arbitrum/package.json apps/web-arbitrum/
 COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
+COPY libs/ts/visual-dom-diff/package.json libs/ts/visual-dom-diff/
 
 # Update lockfile and install dependencies
 RUN yarn install --mode=update-lockfile
@@ -49,6 +50,7 @@ RUN apt-get update && apt-get install -y curl && \
 COPY --from=builder /app/apps/web-arbitrum/ /app/apps/web-arbitrum/
 COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
 COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
+COPY --from=builder /app/libs/ts/visual-dom-diff/ /app/libs/ts/visual-dom-diff/
 COPY --from=builder /app/node_modules/ /app/node_modules/
 COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
