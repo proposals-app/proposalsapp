@@ -12,6 +12,51 @@ import {
   never,
 } from './util'
 
+function isWrapperChange(oldNode: Node, newNode: Node): boolean {
+  // Get text content of both nodes
+  const oldText = oldNode.textContent?.trim() || ''
+  const newText = newNode.textContent?.trim() || ''
+
+  // If text content is different, it's not a wrapper change
+  if (oldText !== newText) {
+    return false
+  }
+
+  // If they're the same content, but different node types, it's a wrapper change
+  if (oldNode.nodeType !== newNode.nodeType) {
+    return true
+  }
+
+  // If they're both text nodes with same content, not a wrapper change
+  if (isText(oldNode) && isText(newNode)) {
+    return false
+  }
+
+  // If they're both elements
+  if (isElement(oldNode) && isElement(newNode)) {
+    // If they're different elements, it's a wrapper change
+    if (oldNode.nodeName !== newNode.nodeName) {
+      return true
+    }
+
+    // Recursively check children
+    const oldChildren = Array.from(oldNode.childNodes)
+    const newChildren = Array.from(newNode.childNodes)
+
+    // If different number of children, it's a wrapper change
+    if (oldChildren.length !== newChildren.length) {
+      return true
+    }
+
+    // Check each child recursively
+    return oldChildren.some((oldChild, i) =>
+      isWrapperChange(oldChild, newChildren[i]),
+    )
+  }
+
+  return false
+}
+
 /**
  * A simple helper which allows us to treat TH as TD in certain situations.
  */
@@ -556,8 +601,8 @@ export function visualDomDiff(
 
   // Mark up the content which has been modified.
   if (!config.skipModified) {
-    modifiedNodes.forEach((modifiedNode) => {
-      markUpNode(modifiedNode, 'INS', modifiedClass)
+    modifiedNodes.forEach((node) => {
+      markUpNode(node, 'INS', modifiedClass)
     })
   }
 
