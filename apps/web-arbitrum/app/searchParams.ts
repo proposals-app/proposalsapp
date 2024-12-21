@@ -1,17 +1,20 @@
 import {
   createSearchParamsCache,
+  parseAsBoolean,
   parseAsInteger,
   parseAsStringEnum,
 } from "nuqs/server";
 
 export enum ViewType {
   BODY = "body",
-  TIMELINE = "timeline",
+  FULL = "full",
+  COMMENTS = "comments",
 }
 
 export const searchParamsCache = createSearchParamsCache({
   version: parseAsInteger,
   view: parseAsStringEnum<ViewType>(Object.values(ViewType)).withDefault(
-    ViewType.TIMELINE,
+    ViewType.FULL,
   ),
+  expanded: parseAsBoolean.withDefault(false),
 });

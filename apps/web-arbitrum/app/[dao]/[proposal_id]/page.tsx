@@ -5,6 +5,7 @@ import { SideBar } from "./components/SideBar";
 import { DetailsBar } from "./components/detailsbar/DetailsBar";
 import { searchParamsCache } from "@/app/searchParams";
 import { StickyHeader } from "./components/StickyHeader";
+import { MenuBar } from "./components/menubar/MenuBar";
 
 export default async function ProposalPage({
   params,
@@ -36,9 +37,16 @@ export default async function ProposalPage({
       <div className="flex flex-row pl-20">
         <div className="flex flex-col">
           <Body bodies={bodies} version={version ?? defaultVersion} />
-          <div>comments</div>
+          <MenuBar />
+          <div className="flex flex-col items-center">
+            {Array.from({ length: 100 }).map((_, index) => (
+              <div key={index} className="text-7xl">
+                comments
+              </div>
+            ))}
+          </div>
         </div>
-        <DetailsBar group={group} />
+        {/* <DetailsBar group={group} /> */}
       </div>
     </div>
   );

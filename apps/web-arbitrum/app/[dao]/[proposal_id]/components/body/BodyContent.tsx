@@ -1,5 +1,8 @@
 "use client";
 
+"use client";
+
+import { ViewType } from "@/app/searchParams";
 import {
   cleanUpNodeMarkers,
   visualDomDiff,
@@ -7,17 +10,115 @@ import {
 import { Diff, DIFF_EQUAL, diff_match_patch } from "diff-match-patch";
 import { sanitize } from "hast-util-sanitize";
 import { toDom } from "hast-util-to-dom";
-import { ArrowDown, ArrowUp } from "lucide-react";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { toHast } from "mdast-util-to-hast";
-import { parseAsBoolean, useQueryState } from "nuqs";
-import { useEffect, useMemo, useState } from "react";
+import { parseAsBoolean, parseAsStringEnum, useQueryState } from "nuqs";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface ContentSectionClientProps {
   content: string;
   allBodies: Array<string>;
   version: number;
 }
+
+const BodyContent = ({
+  content,
+  allBodies,
+  version,
+}: ContentSectionClientProps) => {
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [diff] = useQueryState("diff", parseAsBoolean.withDefault(false));
+  const [view, setView] = useQueryState(
+    "view",
+    parseAsStringEnum<ViewType>(Object.values(ViewType)).withDefault(
+      ViewType.FULL,
+    ),
+  );
+
+  const [expanded, setExpanded] = useQueryState(
+    "expanded",
+    parseAsBoolean.withDefault(false),
+  );
+
+  const [scrolledOut, setScrolledOut] = useState(false);
+
+  const bodyContentRef = useRef<HTMLDivElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    const updateViewportHeight = () => setViewportHeight(window.innerHeight);
+    updateViewportHeight();
+    window.addEventListener("resize", updateViewportHeight);
+    return () => window.removeEventListener("resize", updateViewportHeight);
+  }, []);
+
+  useEffect(() => {
+    if (bodyContentRef.current) {
+      observerRef.current = new IntersectionObserver(([entry]) => {
+        if (!entry.isIntersecting && view === ViewType.FULL && !expanded) {
+          setView(ViewType.COMMENTS);
+        }
+        if (entry.isIntersecting && view === ViewType.COMMENTS && !expanded) {
+          setView(ViewType.FULL);
+        }
+        if (!entry.isIntersecting && view === ViewType.BODY && expanded) {
+          setView(ViewType.COMMENTS);
+        }
+        if (entry.isIntersecting && view === ViewType.COMMENTS && expanded) {
+          setView(ViewType.BODY);
+        }
+      });
+
+      observerRef.current.observe(bodyContentRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+    };
+  }, [view, setView]);
+
+  const collapsedHeight = viewportHeight * 0.25;
+
+  const processedContent = useMemo(() => {
+    if (diff && version > 0) {
+      const previousContent = allBodies[version - 1];
+      return processDiff(content, previousContent);
+    }
+    return markdownToHtml(content);
+  }, [content, allBodies, version, diff]);
+
+  return (
+    <div className="relative pb-16">
+      <div
+        ref={bodyContentRef}
+        className={`relative transition-all duration-500 ease-in-out ${
+          expanded ? "overflow-hidden" : ""
+        }`}
+        style={{
+          maxHeight: expanded ? "none" : `${collapsedHeight}px`,
+          overflow: expanded ? "visible" : "hidden",
+        }}
+      >
+        <div
+          dangerouslySetInnerHTML={{ __html: processedContent }}
+          className={`prose prose-lg max-w-none`}
+        />
+
+        {!expanded && (
+          <div
+            className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-100 to-transparent"
+            aria-hidden="true"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default BodyContent;
 
 const MARKDOWN_STYLES = {
   h1: "mb-4 mt-6 text-2xl font-bold",
@@ -80,81 +181,6 @@ function processDiff(currentContent: string, previousContent: string): string {
 
   return styledHtml;
 }
-
-const BodyContent = ({
-  content,
-  allBodies,
-  version,
-}: ContentSectionClientProps) => {
-  const [expanded, setExpanded] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState(0);
-  const [diff] = useQueryState("diff", parseAsBoolean.withDefault(false));
-
-  useEffect(() => {
-    const updateViewportHeight = () => setViewportHeight(window.innerHeight);
-    updateViewportHeight();
-    window.addEventListener("resize", updateViewportHeight);
-    return () => window.removeEventListener("resize", updateViewportHeight);
-  }, []);
-
-  const collapsedHeight = viewportHeight * 0.25;
-
-  const processedContent = useMemo(() => {
-    if (diff && version > 0) {
-      const previousContent = allBodies[version - 1];
-      return processDiff(content, previousContent);
-    }
-    return markdownToHtml(content);
-  }, [content, allBodies, version, diff]);
-
-  return (
-    <div className="relative pb-16">
-      <div
-        className={`relative transition-all duration-500 ease-in-out ${
-          !expanded ? "" : "overflow-hidden"
-        }`}
-        style={{ maxHeight: !expanded ? "none" : `${collapsedHeight}px` }}
-      >
-        <div
-          dangerouslySetInnerHTML={{ __html: processedContent }}
-          className={`prose prose-lg max-w-none`}
-        />
-
-        {expanded && (
-          <div
-            className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-100 to-transparent"
-            aria-hidden="true"
-          />
-        )}
-      </div>
-
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="mt-4 flex w-full cursor-pointer items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold transition-colors hover:bg-gray-50"
-        aria-label={
-          expanded ? "Expand proposal content" : "Collapse proposal content"
-        }
-      >
-        {expanded ? (
-          <>
-            <ArrowDown className="rounded-full border p-1" />
-            Read Full Proposal
-          </>
-        ) : (
-          <>
-            <ArrowUp className="rounded-full border p-1" />
-            <div className="flex flex-row items-center gap-2">
-              Comments and Votes
-              <ArrowDown className="rounded-full border p-1" />
-            </div>
-          </>
-        )}
-      </button>
-    </div>
-  );
-};
-
-export default BodyContent;
 
 function diffText_word(oldText: string, newText: string): Diff[] {
   const dmp = new diff_match_patch();
