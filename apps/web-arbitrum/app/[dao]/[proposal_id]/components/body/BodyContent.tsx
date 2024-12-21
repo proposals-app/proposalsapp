@@ -1,19 +1,14 @@
 "use client";
 
-import DOMPurify from "isomorphic-dompurify";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import React, { useEffect, useMemo, useState } from "react";
-import rehypeStringify from "rehype-stringify";
-import remarkGfm from "remark-gfm";
-import remarkParse from "remark-parse";
-import remarkRehype from "remark-rehype";
-import { unified } from "unified";
 import { toHast } from "mdast-util-to-hast";
 import { Diff, DIFF_EQUAL, diff_match_patch } from "diff-match-patch";
 import { toDom } from "hast-util-to-dom";
 import { visualDomDiff } from "visual-dom-diff";
 import { cleanUpNodeMarkers } from "visual-dom-diff/lib/util";
+import { fromMarkdown } from "mdast-util-from-markdown";
 
 interface ContentSectionClientProps {
   content: string;
@@ -52,29 +47,24 @@ function applyStyle(html: string): string {
 }
 
 function markdownToHtml(markdown: string): string {
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype)
-    .use(rehypeStringify);
+  const markdownDom = toDom(toHast(fromMarkdown(markdown)));
 
-  return applyStyle(
-    DOMPurify.sanitize(String(processor.processSync(markdown))),
-  );
+  const container = document.createElement("div");
+  container.appendChild(markdownDom.cloneNode(true));
+
+  const styledHtml = applyStyle(container.innerHTML);
+
+  return styledHtml;
 }
 
 function processDiff(currentContent: string, previousContent: string): string {
-  const processor = unified().use(remarkParse).use(remarkGfm);
-
-  // Parse both contents into ASTs
-  const currentTree = toDom(toHast(processor.parse(currentContent)));
-  const previousTree = toDom(toHast(processor.parse(previousContent)));
+  // Parse both contents into DOM
+  const currentTree = toDom(toHast(fromMarkdown(currentContent)));
+  const previousTree = toDom(toHast(fromMarkdown(previousContent)));
 
   if (!currentTree || !previousTree) {
     throw new Error("Failed to parse markdown content");
   }
-
-  var dmp = new diff_match_patch();
 
   // Generate the diff
   const diffFragment = visualDomDiff(previousTree, currentTree, {
@@ -179,7 +169,6 @@ function diffText_word(oldText: string, newText: string): Diff[] {
   }
 
   function diff_wordMode(text1: string, text2: string) {
-    console.log({ text1, text2 });
     function diff_linesToWords(text1: string, text2: string) {
       const lineArray: string[] = []; // e.g. lineArray[4] == 'Hello\n'
       const lineHash: Map<string, number> = new Map(); // e.g. lineHash['Hello\n'] == 4
@@ -236,8 +225,7 @@ function diffText_word(oldText: string, newText: string): Diff[] {
     var lineArray = a.lineArray;
     var diffs = dmp.diff_main(lineText1, lineText2);
     dmp.diff_charsToLines_(diffs, lineArray);
-    //  dmp.diff_cleanupSemanticLossless(diffs);
-    console.log(diffs);
+
     return diffs;
   }
 
