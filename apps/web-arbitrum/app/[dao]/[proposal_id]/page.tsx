@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
-import { getBodiesForGroup, getGroup } from "./actions";
+import { getBodiesForGroup, getFeedForGroup, getGroup } from "./actions";
 import Body from "./components/body/Body";
 import { SideBar } from "./components/SideBar";
-import { DetailsBar } from "./components/detailsbar/DetailsBar";
 import { searchParamsCache } from "@/app/searchParams";
 import { StickyHeader } from "./components/StickyHeader";
 import { MenuBar } from "./components/menubar/MenuBar";
+import Feed from "./components/feed/Feed";
+import { Suspense } from "react";
 
 export default async function ProposalPage({
   params,
@@ -20,10 +21,6 @@ export default async function ProposalPage({
     notFound();
   }
 
-  const bodies = await getBodiesForGroup(group.group.id);
-
-  const defaultVersion = bodies ? bodies.length - 1 : 0;
-
   const { version } = await searchParamsCache.parse(searchParams);
 
   return (
@@ -31,24 +28,17 @@ export default async function ProposalPage({
       <div className="hidden md:flex">
         <SideBar dao={group.dao} />
       </div>
-      <StickyHeader
-        bodies={bodies}
-        group={group}
-        version={version ?? defaultVersion}
-      />
-      <div className="flex flex-row md:pl-20">
-        <div className="flex flex-col">
-          <Body bodies={bodies} version={version ?? defaultVersion} />
+
+      <div className="flex w-full flex-row md:pl-20">
+        <div className="flex w-full flex-col items-center gap-4">
+          <Suspense fallback={<div>Loading body</div>}>
+            <Body group={group} version={version ?? 0} />
+          </Suspense>
           <MenuBar />
-          <div className="flex flex-col items-center">
-            {Array.from({ length: 100 }).map((_, index) => (
-              <div key={index} className="text-7xl">
-                comments
-              </div>
-            ))}
-          </div>
+          <Suspense fallback={<div>Loading feed</div>}>
+            <Feed group={group} />
+          </Suspense>
         </div>
-        {/* <DetailsBar group={group} /> */}
       </div>
     </div>
   );

@@ -1,17 +1,24 @@
-import { BodiesDataType } from "../../actions";
+import { getBodiesForGroup, GroupType } from "../../actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import BodyContent from "./BodyContent";
 import { PostedTime } from "./PostedTime";
 import { VersionChange } from "./VersionChange";
 import { VersionDiff } from "./VersionDiff";
+import { StickyHeader } from "../StickyHeader";
+import { notFound } from "next/navigation";
 
 export default async function Body({
-  bodies,
+  group,
   version,
 }: {
-  bodies: BodiesDataType;
+  group: GroupType;
   version: number;
 }) {
+  if (!group) {
+    notFound();
+  }
+  const bodies = await getBodiesForGroup(group.group.id);
+
   if (!bodies || bodies.length === 0) {
     return <div className="w-full bg-gray-100 p-4">No bodies found.</div>;
   }
@@ -21,8 +28,15 @@ export default async function Body({
   const latestBody = bodies[bodies.length - 1];
   const visibleBody = bodies[version];
 
+  const defaultVersion = bodies ? bodies.length - 1 : 0;
+
   return (
     <div className="flex w-full justify-center bg-gray-100 p-4">
+      <StickyHeader
+        bodies={bodies}
+        group={group}
+        version={version ?? defaultVersion}
+      />
       <div className="flex w-3/4 flex-col gap-4">
         <div className="text-4xl font-bold">{visibleBody.title}</div>
 
