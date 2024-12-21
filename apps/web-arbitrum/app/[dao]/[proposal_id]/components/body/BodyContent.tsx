@@ -6,7 +6,6 @@ import {
   visualDomDiff,
 } from "@proposalsapp/visual-dom-diff";
 import { Diff, DIFF_EQUAL, diff_match_patch } from "diff-match-patch";
-import { sanitize } from "hast-util-sanitize";
 import { toDom } from "hast-util-to-dom";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { toHast } from "mdast-util-to-hast";
@@ -149,7 +148,7 @@ function applyStyle(
 }
 
 function markdownToHtml(markdown: string): string {
-  const markdownDom = toDom(sanitize(toHast(fromMarkdown(markdown))));
+  const markdownDom = toDom(toHast(fromMarkdown(markdown)));
 
   const styledHtml = applyStyle(markdownDom);
 
@@ -158,8 +157,8 @@ function markdownToHtml(markdown: string): string {
 
 function processDiff(currentContent: string, previousContent: string): string {
   // Parse both contents into DOM
-  const currentTree = toDom(sanitize(toHast(fromMarkdown(currentContent))));
-  const previousTree = toDom(sanitize(toHast(fromMarkdown(previousContent))));
+  const currentTree = toDom(toHast(fromMarkdown(currentContent)));
+  const previousTree = toDom(toHast(fromMarkdown(previousContent)));
 
   if (!currentTree || !previousTree) {
     throw new Error("Failed to parse markdown content");

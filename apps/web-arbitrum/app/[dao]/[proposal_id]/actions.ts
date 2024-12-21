@@ -449,6 +449,16 @@ export async function getFeedForGroup(groupID: string) {
   return { votes, posts };
 }
 
+export async function getProposalsByIds(proposalIds: string[]) {
+  const proposals = await db
+    .selectFrom("proposal")
+    .selectAll()
+    .where("proposal.id", "in", proposalIds)
+    .execute();
+
+  return proposals;
+}
+
 export type FeedDataType = AsyncReturnType<typeof getFeedForGroup>;
 export type GroupType = AsyncReturnType<typeof getGroup>;
 export type GroupDataType = AsyncReturnType<typeof getGroupData>;

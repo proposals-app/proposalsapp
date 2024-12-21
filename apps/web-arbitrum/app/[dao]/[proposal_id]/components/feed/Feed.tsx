@@ -1,5 +1,5 @@
 import { DiscoursePost, Selectable, Vote } from "@proposalsapp/db";
-import { getFeedForGroup, GroupType } from "../../actions";
+import { getFeedForGroup, getProposalsByIds, GroupType } from "../../actions";
 import { VoteItem } from "./VoteItem";
 import { PostItem } from "./PostItem";
 import { notFound } from "next/navigation";
@@ -10,13 +10,21 @@ export default async function Feed({ group }: { group: GroupType }) {
   }
   const feed = await getFeedForGroup(group.group.id);
 
+  const proposalsIds = Array.from(new Set(feed.votes.map((v) => v.proposalId)));
+  const proposals = await getProposalsByIds(proposalsIds);
+
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
   return (
     <div className="w-3/4 space-y-4">
       {sortedItems.map((item, index) => (
         <div key={index} className="rounded-lg border bg-white p-4 shadow-sm">
-          {item.type === "vote" && <VoteItem content={item} />}
-          {item.type === "post" && <PostItem content={item} />}
+          {item.type === "vote" && (
+            <VoteItem
+              item={item}
+              proposal={proposals.find((p) => p.id == item.proposalId)}
+            />
+          )}
+          {item.type === "post" && <PostItem item={item} />}
         </div>
       ))}
     </div>
@@ -43,13 +51,13 @@ export function mergeAndSortFeedItems(
     ...votes.map((vote) => ({
       type: "vote" as const,
       ...vote,
-      timeCreated: undefined, // Remove the original timeCreated field
+      timeCreated: undefined,
       timestamp: new Date(vote.timeCreated!),
     })),
     ...posts.map((post) => ({
       type: "post" as const,
       ...post,
-      createdAt: undefined, // Remove the original createdAt field
+      createdAt: undefined,
       timestamp: new Date(post.createdAt),
     })),
   ];
