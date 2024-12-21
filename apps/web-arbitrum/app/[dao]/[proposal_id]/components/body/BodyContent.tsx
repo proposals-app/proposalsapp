@@ -7,7 +7,7 @@ import { toHast } from "mdast-util-to-hast";
 import { Diff, DIFF_EQUAL, diff_match_patch } from "diff-match-patch";
 import { toDom } from "hast-util-to-dom";
 import { visualDomDiff } from "visual-dom-diff";
-import { cleanUpNodeMarkers } from "visual-dom-diff/lib/util";
+import { cleanUpNodeMarkers } from "visual-dom-diff";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { sanitize } from "hast-util-sanitize";
 

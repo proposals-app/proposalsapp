@@ -23,6 +23,7 @@
     "paths": {
       "@proposalsapp/db": ["../../libs/ts/db/src/index.ts"],
       "@proposalsapp/emails": ["../../libs/ts/emails/src/index.ts"],
+      "visual-dom-diff": ["../../libs/visual-dom-diff/src/index.ts"],
       "@/*": ["./*"]
     }
   },

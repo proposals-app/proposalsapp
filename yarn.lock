@@ -2267,7 +2267,7 @@ __metadata:
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
     viem: "npm:2.21.56"
-    visual-dom-diff: "npm:^0.7.2"
+    visual-dom-diff: "file:./../../libs/visual-dom-diff"
     web-push: "npm:3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -14155,13 +14155,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"visual-dom-diff@npm:^0.7.2":
+"visual-dom-diff@file:./../../libs/visual-dom-diff::locator=%40proposalsapp%2Fweb-arbitrum%40workspace%3Aapps%2Fweb-arbitrum":
   version: 0.7.2
-  resolution: "visual-dom-diff@npm:0.7.2"
+  resolution: "visual-dom-diff@file:./../../libs/visual-dom-diff#./../../libs/visual-dom-diff::hash=c02cef&locator=%40proposalsapp%2Fweb-arbitrum%40workspace%3Aapps%2Fweb-arbitrum"
   dependencies:
     "@types/diff-match-patch": "npm:^1.0.32"
     diff-match-patch: "npm:^1.0.4"
-  checksum: 10c0/78f6f659ea0f341990dea2d3583efa9530efae8c761235de6a30da137aa76d2c3ad1a180f6aeab649e5994cb3190de285026588b14b9b8feb9b6e369dc16c60d
+  checksum: 10c0/adad56b766b80f1ae7098009eaad77bcb5a5f752f970600a528dfc0503350297473aecf8c32a5e4c62a66cfa3a6c7117f34c85930880c5e0459dee256e7a3aed
   languageName: node
   linkType: hard
 
