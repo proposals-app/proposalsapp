@@ -31,7 +31,7 @@ const MARKDOWN_STYLES = {
   table: "min-w-full border-collapse border border-gray-300 my-4",
   th: "border border-gray-300 bg-gray-100 p-2 text-left",
   td: "border border-gray-300 p-2",
-  img: "my-4 h-auto max-w-full rounded-lg",
+  img: "my-4 h-auto max-w-full",
 };
 
 function applyStyle(
