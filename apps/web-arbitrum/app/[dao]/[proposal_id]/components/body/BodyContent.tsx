@@ -1,15 +1,17 @@
 "use client";
 
-import { ArrowDown, ArrowUp } from "lucide-react";
-import { parseAsBoolean, useQueryState } from "nuqs";
-import React, { useEffect, useMemo, useState } from "react";
-import { toHast } from "mdast-util-to-hast";
+import {
+  cleanUpNodeMarkers,
+  visualDomDiff,
+} from "@proposalsapp/visual-dom-diff";
 import { Diff, DIFF_EQUAL, diff_match_patch } from "diff-match-patch";
-import { toDom } from "hast-util-to-dom";
-import { visualDomDiff } from "visual-dom-diff";
-import { cleanUpNodeMarkers } from "visual-dom-diff";
-import { fromMarkdown } from "mdast-util-from-markdown";
 import { sanitize } from "hast-util-sanitize";
+import { toDom } from "hast-util-to-dom";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { toHast } from "mdast-util-to-hast";
+import { parseAsBoolean, useQueryState } from "nuqs";
+import { useEffect, useMemo, useState } from "react";
 
 interface ContentSectionClientProps {
   content: string;

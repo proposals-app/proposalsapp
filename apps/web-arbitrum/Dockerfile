@@ -23,6 +23,7 @@ RUN yarn install
 COPY apps/web-arbitrum/ apps/web-arbitrum/
 COPY libs/ts/db/ libs/ts/db/
 COPY libs/ts/emails/ libs/ts/emails/
+COPY libs/ts/visual-dom-diff/ libs/ts/visual-dom-diff/
 
 # Build the project
 ARG DATABASE_URL=postgresql://user:password@host:5432/database
