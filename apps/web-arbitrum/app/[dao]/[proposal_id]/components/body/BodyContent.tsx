@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import { ViewType } from "@/app/searchParams";
 import {
   cleanUpNodeMarkers,
@@ -35,12 +33,10 @@ const BodyContent = ({
     ),
   );
 
-  const [expanded, setExpanded] = useQueryState(
+  const [expanded, _] = useQueryState(
     "expanded",
     parseAsBoolean.withDefault(false),
   );
-
-  const [scrolledOut, setScrolledOut] = useState(false);
 
   const bodyContentRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);

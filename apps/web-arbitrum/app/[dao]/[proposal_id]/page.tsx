@@ -28,13 +28,15 @@ export default async function ProposalPage({
 
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">
-      <SideBar dao={group.dao} />
+      <div className="hidden md:flex">
+        <SideBar dao={group.dao} />
+      </div>
       <StickyHeader
         bodies={bodies}
         group={group}
         version={version ?? defaultVersion}
       />
-      <div className="flex flex-row pl-20">
+      <div className="flex flex-row md:pl-20">
         <div className="flex flex-col">
           <Body bodies={bodies} version={version ?? defaultVersion} />
           <MenuBar />

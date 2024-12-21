@@ -45,7 +45,7 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
       }`}
     >
       <div className="mx-auto flex h-full w-full items-center px-6 lg:px-24">
-        <div className="flex flex-row items-center gap-4 pl-10 lg:pl-20">
+        <div className="flex flex-row items-center gap-4 md:pl-10 lg:pl-20">
           <Avatar className="bg-gray-500">
             <AvatarImage src={authorPicture} />
             <AvatarFallback>{authorName.slice(0, 2)}</AvatarFallback>

@@ -6,11 +6,9 @@ import { parseAsBoolean, parseAsStringEnum, useQueryState } from "nuqs";
 export const MenuBar = () => {
   const [view, setView] = useQueryState(
     "view",
-    parseAsStringEnum<ViewType>(Object.values(ViewType))
-      .withOptions({
-        shallow: false,
-      })
-      .withDefault(ViewType.FULL),
+    parseAsStringEnum<ViewType>(Object.values(ViewType)).withDefault(
+      ViewType.FULL,
+    ),
   );
 
   const [expanded, setExpanded] = useQueryState(
@@ -20,13 +18,13 @@ export const MenuBar = () => {
 
   return (
     <div
-      className={`max-w-[50%] self-center ${
+      className={`w-full self-center px-2 md:max-w-[50%] ${
         view === ViewType.BODY
           ? "fixed bottom-0 z-50 flex transform justify-center px-4 pb-4 transition-all duration-300 ease-in-out"
           : view === ViewType.COMMENTS
             ? "fixed top-0 z-50 flex transform justify-center px-4 pt-24 transition-all duration-300 ease-in-out"
             : "mt-4"
-      } w-full`}
+      }`}
     >
       <button
         onClick={() => {
@@ -35,7 +33,6 @@ export const MenuBar = () => {
             setExpanded(true);
           }
           if (view == ViewType.FULL && expanded) {
-            setView(ViewType.FULL);
             setExpanded(false);
             window.scrollTo({ top: 0, behavior: "smooth" });
           }
@@ -45,17 +42,12 @@ export const MenuBar = () => {
             window.scrollTo({ top: 0, behavior: "smooth" });
           }
           if (view == ViewType.COMMENTS) {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            setExpanded(true);
             setView(ViewType.BODY);
+            setExpanded(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
           }
         }}
         className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50"
-        aria-label={
-          view == ViewType.BODY
-            ? "Expand proposal content"
-            : "Collapse proposal content"
-        }
       >
         {view == ViewType.FULL && !expanded && (
           <>
