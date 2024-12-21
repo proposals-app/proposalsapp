@@ -42,7 +42,7 @@ const trIteratorOptions = {
   skipSelf: isNotTr,
 }
 
-export { Options as VisualDomDiffOptions } from './config'
+export { type Options as VisualDomDiffOptions } from './config'
 export function visualDomDiff(
   oldRootNode: Node,
   newRootNode: Node,
