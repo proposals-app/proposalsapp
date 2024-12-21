@@ -10,9 +10,10 @@ import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import { toHast } from "mdast-util-to-hast";
-import { diff_match_patch } from "diff-match-patch";
+import { Diff, DIFF_EQUAL, diff_match_patch } from "diff-match-patch";
 import { toDom } from "hast-util-to-dom";
 import { visualDomDiff } from "visual-dom-diff";
+import { cleanUpNodeMarkers } from "visual-dom-diff/lib/util";
 
 interface ContentSectionClientProps {
   content: string;
@@ -73,11 +74,14 @@ function processDiff(currentContent: string, previousContent: string): string {
     throw new Error("Failed to parse markdown content");
   }
 
+  var dmp = new diff_match_patch();
+
   // Generate the diff
   const diffFragment = visualDomDiff(previousTree, currentTree, {
     addedClass: "diff-added",
     removedClass: "diff-deleted",
     modifiedClass: "diff-modified",
+    diffText: diffText_word,
   });
   const container = document.createElement("div");
   container.appendChild(diffFragment.cloneNode(true));
@@ -162,64 +166,128 @@ const BodyContent = ({
 
 export default BodyContent;
 
-function diff_wordMode(text1: string, text2: string) {
-  function diff_linesToWords(text1: string, text2: string) {
-    const lineArray: string[] = []; // e.g. lineArray[4] == 'Hello\n'
-    const lineHash: Map<string, number> = new Map(); // e.g. lineHash['Hello\n'] == 4
+function diffText_word(oldText: string, newText: string): Diff[] {
+  const dmp = new diff_match_patch();
+  function pushAll<T>(array: T[], items: T[]): void {
+    let destination = array.length;
+    let source = 0;
+    const length = items.length;
 
-    // '\x00' is a valid character, but various debuggers don't like it.
-    // So we'll insert a junk entry to avoid generating a null character.
-    lineArray[0] = "";
-
-    function diff_linesToCharsMunge_(text: string) {
-      let chars = "";
-      // Walk the text, pulling out a substring for each word.
-      // text.split(' ') would would temporarily double our memory footprint.
-      // Modifying text would create many large strings to garbage collect.
-      let lineStart = 0;
-      let lineEnd = -1;
-      // Keeping our own length variable is faster than looking it up.
-      let lineArrayLength = lineArray.length;
-      while (lineEnd < text.length - 1) {
-        lineEnd = text.indexOf(" ", lineStart);
-        if (lineEnd == -1) {
-          lineEnd = text.length - 1;
-        }
-        let line = text.substring(lineStart, lineEnd + 1);
-
-        if (lineHash.has(line)) {
-          chars += String.fromCharCode(lineHash.get(line)!);
-        } else {
-          if (lineArrayLength == maxLines) {
-            // Bail out at 65535 because
-            // String.fromCharCode(65536) == String.fromCharCode(0)
-            line = text.substring(lineStart);
-            lineEnd = text.length;
-          }
-          chars += String.fromCharCode(lineArrayLength);
-          lineHash.set(line, lineArrayLength);
-          lineArray[lineArrayLength++] = line;
-        }
-        lineStart = lineEnd + 1;
-      }
-      return chars;
+    while (source < length) {
+      array[destination++] = items[source++];
     }
-
-    // Allocate 2/3rds of the space for text1, the rest for text2.
-    let maxLines = 40000;
-    const chars1 = diff_linesToCharsMunge_(text1);
-    maxLines = 65535;
-    const chars2 = diff_linesToCharsMunge_(text2);
-    return { chars1, chars2, lineArray };
   }
 
-  var dmp = new diff_match_patch();
-  var a = diff_linesToWords(text1, text2);
-  var lineText1 = a.chars1;
-  var lineText2 = a.chars2;
-  var lineArray = a.lineArray;
-  var diffs = dmp.diff_main(lineText1, lineText2, false);
-  dmp.diff_charsToLines_(diffs, lineArray);
-  dmp.diff_cleanupSemanticLossless(diffs);
-  return diffs;
+  function diff_wordMode(text1: string, text2: string) {
+    console.log({ text1, text2 });
+    function diff_linesToWords(text1: string, text2: string) {
+      const lineArray: string[] = []; // e.g. lineArray[4] == 'Hello\n'
+      const lineHash: Map<string, number> = new Map(); // e.g. lineHash['Hello\n'] == 4
+
+      // '\x00' is a valid character, but various debuggers don't like it.
+      // So we'll insert a junk entry to avoid generating a null character.
+      lineArray[0] = "";
+
+      function diff_linesToCharsMunge_(text: string) {
+        let chars = "";
+        // Walk the text, pulling out a substring for each word.
+        // text.split(' ') would would temporarily double our memory footprint.
+        // Modifying text would create many large strings to garbage collect.
+        let lineStart = 0;
+        let lineEnd = -1;
+        // Keeping our own length variable is faster than looking it up.
+        let lineArrayLength = lineArray.length;
+        while (lineEnd < text.length - 1) {
+          lineEnd = text.indexOf(" ", lineStart);
+          if (lineEnd == -1) {
+            lineEnd = text.length - 1;
+          }
+          let line = text.substring(lineStart, lineEnd + 1);
+
+          if (lineHash.has(line)) {
+            chars += String.fromCharCode(lineHash.get(line)!);
+          } else {
+            if (lineArrayLength == maxLines) {
+              // Bail out at 65535 because
+              // String.fromCharCode(65536) == String.fromCharCode(0)
+              line = text.substring(lineStart);
+              lineEnd = text.length;
+            }
+            chars += String.fromCharCode(lineArrayLength);
+            lineHash.set(line, lineArrayLength);
+            lineArray[lineArrayLength++] = line;
+          }
+          lineStart = lineEnd + 1;
+        }
+        return chars;
+      }
+
+      // Allocate 2/3rds of the space for text1, the rest for text2.
+      let maxLines = 40000;
+      const chars1 = diff_linesToCharsMunge_(text1);
+      maxLines = 65535;
+      const chars2 = diff_linesToCharsMunge_(text2);
+      return { chars1, chars2, lineArray };
+    }
+
+    var a = diff_linesToWords(text1, text2);
+    var lineText1 = a.chars1;
+    var lineText2 = a.chars2;
+    var lineArray = a.lineArray;
+    var diffs = dmp.diff_main(lineText1, lineText2);
+    dmp.diff_charsToLines_(diffs, lineArray);
+    //  dmp.diff_cleanupSemanticLossless(diffs);
+    console.log(diffs);
+    return diffs;
+  }
+
+  const diff = diff_wordMode(oldText, newText);
+  const result: Diff[] = [];
+  const temp: Diff[] = [];
+
+  cleanUpNodeMarkers(diff);
+
+  // Execute `dmp.diff_cleanupSemantic` excluding equal node markers.
+  for (let i = 0, l = diff.length; i < l; ++i) {
+    const item = diff[i];
+
+    if (item[0] === DIFF_EQUAL) {
+      const text = item[1];
+      const totalLength = text.length;
+      const prefixLength = /^[^\uE000-\uF8FF]*/.exec(text)![0].length;
+
+      if (prefixLength < totalLength) {
+        const suffixLength = /[^\uE000-\uF8FF]*$/.exec(text)![0].length;
+
+        if (prefixLength > 0) {
+          temp.push([DIFF_EQUAL, text.substring(0, prefixLength)]);
+        }
+
+        dmp.diff_cleanupSemantic(temp);
+        pushAll(result, temp);
+        temp.length = 0;
+
+        result.push([
+          DIFF_EQUAL,
+          text.substring(prefixLength, totalLength - suffixLength),
+        ]);
+
+        if (suffixLength > 0) {
+          temp.push([DIFF_EQUAL, text.substring(totalLength - suffixLength)]);
+        }
+      } else {
+        temp.push(item);
+      }
+    } else {
+      temp.push(item);
+    }
+  }
+
+  dmp.diff_cleanupSemantic(temp);
+  pushAll(result, temp);
+  temp.length = 0;
+
+  dmp.diff_cleanupMerge(result);
+  cleanUpNodeMarkers(result);
+  return result;
 }
