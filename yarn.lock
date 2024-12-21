@@ -14157,11 +14157,11 @@ __metadata:
 
 "visual-dom-diff@file:./../../libs/visual-dom-diff::locator=%40proposalsapp%2Fweb-arbitrum%40workspace%3Aapps%2Fweb-arbitrum":
   version: 0.7.2
-  resolution: "visual-dom-diff@file:./../../libs/visual-dom-diff#./../../libs/visual-dom-diff::hash=c02cef&locator=%40proposalsapp%2Fweb-arbitrum%40workspace%3Aapps%2Fweb-arbitrum"
+  resolution: "visual-dom-diff@file:./../../libs/visual-dom-diff#./../../libs/visual-dom-diff::hash=55e971&locator=%40proposalsapp%2Fweb-arbitrum%40workspace%3Aapps%2Fweb-arbitrum"
   dependencies:
     "@types/diff-match-patch": "npm:^1.0.32"
     diff-match-patch: "npm:^1.0.4"
-  checksum: 10c0/adad56b766b80f1ae7098009eaad77bcb5a5f752f970600a528dfc0503350297473aecf8c32a5e4c62a66cfa3a6c7117f34c85930880c5e0459dee256e7a3aed
+  checksum: 10c0/6b97c6397c2024af6b581d6e6bada484b79c672974a6e1a89c408cbc9a788ff603832b8a4f40c6f61d54d97aa88ca3e6f65798e1b79fb13d5de6ae5a961ea907
   languageName: node
   linkType: hard
 

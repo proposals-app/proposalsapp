@@ -7,6 +7,7 @@
     "libs/ts/db",
     "libs/ts/emails",
     "libs/ts/emails/.react-email",
+    "libs/ts/visual-dom-diff",
     "apps/web",
     "apps/web-arbitrum",
     "apps/email-service",

@@ -40,11 +40,6 @@
     "url": "https://github.com/Teamwork/visual-dom-diff/issues"
   },
   "homepage": "https://github.com/Teamwork/visual-dom-diff#readme",
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run build"
-    }
-  },
   "devDependencies": {
     "@types/jest": "^24.0.22",
     "@types/jsdom": "^12.2.4",
