@@ -10,10 +10,8 @@ import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import { toHast } from "mdast-util-to-hast";
-import { diff_match_patch, Diff } from "diff-match-patch";
-import { Element, Text, Node, Root } from "hast";
+import { diff_match_patch } from "diff-match-patch";
 import { toDom } from "hast-util-to-dom";
-import ReactDiffViewer, { DiffMethod } from "react-diff-viewer";
 import { visualDomDiff } from "visual-dom-diff";
 
 interface ContentSectionClientProps {
@@ -68,22 +66,15 @@ function processDiff(currentContent: string, previousContent: string): string {
   const processor = unified().use(remarkParse).use(remarkGfm);
 
   // Parse both contents into ASTs
-  const currentTree = toHast(processor.parse(currentContent));
-  const previousTree = toHast(processor.parse(previousContent));
+  const currentTree = toDom(toHast(processor.parse(currentContent)));
+  const previousTree = toDom(toHast(processor.parse(previousContent)));
 
   if (!currentTree || !previousTree) {
     throw new Error("Failed to parse markdown content");
   }
 
-  const currentDom = toDom(currentTree);
-  const previousDom = toDom(previousTree);
-
-  if (!currentDom || !previousDom) {
-    throw new Error("Failed to parse hast content");
-  }
-
   // Generate the diff
-  const diffFragment = visualDomDiff(previousDom, currentDom, {
+  const diffFragment = visualDomDiff(previousTree, currentTree, {
     addedClass: "diff-added",
     removedClass: "diff-deleted",
     modifiedClass: "diff-modified",
