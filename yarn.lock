@@ -2231,6 +2231,7 @@ __metadata:
     diff-match-patch: "npm:^1.0.5"
     embla-carousel-react: "npm:^8.5.1"
     fuse.js: "npm:^7.0.0"
+    hast-util-sanitize: "npm:^5.0.2"
     hast-util-to-dom: "npm:^4.0.0"
     input-otp: "npm:^1.4.1"
     lucia: "npm:3.2.2"

@@ -9,6 +9,7 @@ import { toDom } from "hast-util-to-dom";
 import { visualDomDiff } from "visual-dom-diff";
 import { cleanUpNodeMarkers } from "visual-dom-diff/lib/util";
 import { fromMarkdown } from "mdast-util-from-markdown";
+import { sanitize } from "hast-util-sanitize";
 
 interface ContentSectionClientProps {
   content: string;
@@ -16,7 +17,7 @@ interface ContentSectionClientProps {
   version: number;
 }
 
-const COMMON_STYLES = {
+const MARKDOWN_STYLES = {
   h1: "mb-4 mt-6 text-2xl font-bold",
   h2: "mb-3 mt-5 text-xl font-bold",
   h3: "mb-2 mt-4 text-lg font-bold",
@@ -33,34 +34,33 @@ const COMMON_STYLES = {
   img: "my-4 h-auto max-w-full rounded-lg",
 };
 
-function applyStyle(html: string): string {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
+function applyStyle(
+  dom: Document | Element | Comment | DocumentFragment | DocumentType | Text,
+): string {
+  const container = document.createElement("div");
+  container.appendChild(dom.cloneNode(true));
 
-  Object.entries(COMMON_STYLES).forEach(([tag, className]) => {
-    doc.querySelectorAll(tag).forEach((element) => {
+  Object.entries(MARKDOWN_STYLES).forEach(([tag, className]) => {
+    container.querySelectorAll(tag).forEach((element) => {
       element.className = `${element.className} ${className}`.trim();
     });
   });
 
-  return doc.body.innerHTML;
+  return container.innerHTML;
 }
 
 function markdownToHtml(markdown: string): string {
-  const markdownDom = toDom(toHast(fromMarkdown(markdown)));
+  const markdownDom = toDom(sanitize(toHast(fromMarkdown(markdown))));
 
-  const container = document.createElement("div");
-  container.appendChild(markdownDom.cloneNode(true));
-
-  const styledHtml = applyStyle(container.innerHTML);
+  const styledHtml = applyStyle(markdownDom);
 
   return styledHtml;
 }
 
 function processDiff(currentContent: string, previousContent: string): string {
   // Parse both contents into DOM
-  const currentTree = toDom(toHast(fromMarkdown(currentContent)));
-  const previousTree = toDom(toHast(fromMarkdown(previousContent)));
+  const currentTree = toDom(sanitize(toHast(fromMarkdown(currentContent))));
+  const previousTree = toDom(sanitize(toHast(fromMarkdown(previousContent))));
 
   if (!currentTree || !previousTree) {
     throw new Error("Failed to parse markdown content");
@@ -73,10 +73,8 @@ function processDiff(currentContent: string, previousContent: string): string {
     modifiedClass: "diff-modified",
     diffText: diffText_word,
   });
-  const container = document.createElement("div");
-  container.appendChild(diffFragment.cloneNode(true));
 
-  const styledHtml = applyStyle(container.innerHTML);
+  const styledHtml = applyStyle(diffFragment);
 
   return styledHtml;
 }

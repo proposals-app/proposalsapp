@@ -58,6 +58,7 @@
     "diff-match-patch": "^1.0.5",
     "embla-carousel-react": "^8.5.1",
     "fuse.js": "^7.0.0",
+    "hast-util-sanitize": "^5.0.2",
     "hast-util-to-dom": "^4.0.0",
     "input-otp": "^1.4.1",
     "lucia": "3.2.2",
