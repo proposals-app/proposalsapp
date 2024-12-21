@@ -113,16 +113,23 @@
   }
 }
 
-.prose .diff-deleted,
+.prose .diff-deleted {
+  @apply border border-red-300 bg-red-100 line-through; /* Outer diff-deleted */
+}
+
 .prose .diff-deleted * {
-  @apply !border !border-red-400 !bg-red-100;
+  @apply border-none bg-red-200; /* Inner diff-deleted */
 }
 
-.prose .diff-added,
+.prose .diff-added {
+  @apply border border-emerald-300 bg-emerald-100 no-underline; /* Outer diff-added */
+}
+
 .prose .diff-added * {
-  @apply !border !border-emerald-400 !bg-emerald-100;
+  @apply border-none bg-emerald-200; /* Inner diff-added */
 }
 
+/* Keeping the modified styles unchanged */
 .prose .diff-modified,
 .prose .diff-modified * {
   @apply !border !border-amber-400 !bg-amber-100;
