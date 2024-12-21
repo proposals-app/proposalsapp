@@ -9,10 +9,12 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
-import { toHtml } from "hast-util-to-html";
 import { toHast } from "mdast-util-to-hast";
 import { diff_match_patch, Diff } from "diff-match-patch";
 import { Element, Text, Node, Root } from "hast";
+import { toDom } from "hast-util-to-dom";
+import ReactDiffViewer, { DiffMethod } from "react-diff-viewer";
+import { visualDomDiff } from "visual-dom-diff";
 
 interface ContentSectionClientProps {
   content: string;
@@ -62,159 +64,6 @@ function markdownToHtml(markdown: string): string {
   );
 }
 
-// Helper type guards
-function isElement(node: Node): node is Element {
-  return node.type === "element";
-}
-
-function isText(node: Node): node is Text {
-  return node.type === "text";
-}
-
-function generateDiff(previousTree: Node, currentTree: Node): Root {
-  const dmp = new diff_match_patch();
-
-  function wrapInSpan(node: Node, className?: string): Element {
-    // Convert node's children to Element | Text only
-    const children: (Element | Text)[] = isElement(node)
-      ? node.children.filter(
-          (child): child is Element | Text => isElement(child) || isText(child),
-        )
-      : isText(node)
-        ? [node]
-        : [];
-
-    return {
-      type: "element",
-      tagName: "span",
-      properties: { className },
-      children,
-    };
-  }
-
-  function compareTextNodes(prev: Text, curr: Text): (Element | Text)[] {
-    const diffs = diff_wordMode(prev.value, curr.value);
-
-    return diffs.map((diff: Diff): Element | Text => {
-      const [operation, text] = diff;
-      const textNode: Text = { type: "text", value: text };
-
-      switch (operation) {
-        case -1: // Deletion
-          return wrapInSpan(textNode, "text-diff-deleted");
-        case 1: // Insertion
-          return wrapInSpan(textNode, "text-diff-added");
-        default: // No change
-          return wrapInSpan(textNode);
-      }
-    });
-  }
-
-  function compareNodes(
-    prev: Node | null,
-    curr: Node | null,
-  ): (Element | Text)[] {
-    // If both nodes are null, return empty array
-    if (!prev && !curr) return [];
-
-    // If only current node exists, it's an addition
-    if (!prev && curr) {
-      return [wrapInSpan(curr, "element-diff-added")];
-    }
-
-    // If only previous node exists, it's a deletion
-    if (prev && !curr) {
-      return [wrapInSpan(prev, "element-diff-deleted")];
-    }
-
-    // At this point, both prev and curr are non-null
-    const prevNode = prev!;
-    const currNode = curr!;
-
-    // Special handling for root nodes
-    if (prevNode.type === "root" && currNode.type === "root") {
-      const root = currNode as Root;
-      const prevRoot = prevNode as Root;
-
-      const newChildren: (Element | Text)[] = [];
-      const maxLength = Math.max(
-        root.children.length,
-        prevRoot.children.length,
-      );
-
-      for (let i = 0; i < maxLength; i++) {
-        const prevChild = prevRoot.children[i] || null;
-        const currChild = root.children[i] || null;
-        newChildren.push(...compareNodes(prevChild, currChild));
-      }
-
-      return newChildren;
-    }
-
-    // Both nodes exist but have different types
-    if (prevNode.type !== currNode.type) {
-      return [
-        wrapInSpan(prevNode, "element-diff-deleted"),
-        wrapInSpan(currNode, "element-diff-added"),
-      ];
-    }
-
-    // Handle text nodes
-    if (isText(prevNode) && isText(currNode)) {
-      if (prevNode.value === currNode.value) {
-        return [currNode];
-      }
-      return compareTextNodes(prevNode, currNode);
-    }
-
-    // Handle element nodes
-    if (isElement(prevNode) && isElement(currNode)) {
-      if (prevNode.tagName !== currNode.tagName) {
-        return [
-          wrapInSpan(prevNode, "element-diff-deleted"),
-          wrapInSpan(currNode, "element-diff-added"),
-        ];
-      }
-
-      // Same tag name, compare children
-      const maxLength = Math.max(
-        prevNode.children.length,
-        currNode.children.length,
-      );
-      const newChildren: (Element | Text)[] = [];
-
-      for (let i = 0; i < maxLength; i++) {
-        const prevChild = prevNode.children[i] || null;
-        const currChild = currNode.children[i] || null;
-        newChildren.push(...compareNodes(prevChild, currChild));
-      }
-
-      return [
-        {
-          type: "element",
-          tagName: currNode.tagName,
-          properties: { ...currNode.properties },
-          children: newChildren,
-        },
-      ];
-    }
-
-    // For other node types, convert to text node
-    return [
-      {
-        type: "text",
-        value: String(currNode.type),
-      },
-    ];
-  }
-
-  // Create a proper Root node with the compared children
-  return {
-    type: "root",
-    children: compareNodes(previousTree, currentTree),
-  } as Root;
-}
-
 function processDiff(currentContent: string, previousContent: string): string {
   const processor = unified().use(remarkParse).use(remarkGfm);
 
@@ -226,13 +75,24 @@ function processDiff(currentContent: string, previousContent: string): string {
     throw new Error("Failed to parse markdown content");
   }
 
+  const currentDom = toDom(currentTree);
+  const previousDom = toDom(previousTree);
+
+  if (!currentDom || !previousDom) {
+    throw new Error("Failed to parse hast content");
+  }
+
   // Generate the diff
-  const diffTree = generateDiff(previousTree, currentTree);
+  const diffFragment = visualDomDiff(previousDom, currentDom, {
+    addedClass: "diff-added",
+    removedClass: "diff-deleted",
+    modifiedClass: "diff-modified",
+  });
+  const container = document.createElement("div");
+  container.appendChild(diffFragment.cloneNode(true));
 
-  const html = toHtml(diffTree);
-  const styledHtml = applyStyle(html);
+  const styledHtml = applyStyle(container.innerHTML);
 
-  console.log({ currentTree, previousTree, diffTree });
   return styledHtml;
 }
 

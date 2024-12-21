@@ -59,6 +59,7 @@
     "embla-carousel-react": "^8.5.1",
     "fuse.js": "^7.0.0",
     "hast": "^1.0.0",
+    "hast-util-to-dom": "^4.0.0",
     "hast-util-to-html": "^9.0.4",
     "input-otp": "^1.4.1",
     "isomorphic-dompurify": "^2.19.0",
@@ -77,6 +78,7 @@
     "postmark": "4.0.5",
     "react": "19.0.0",
     "react-day-picker": "9.4.4",
+    "react-diff-viewer": "^3.1.1",
     "react-dom": "19.0.0",
     "react-hook-form": "^7.54.2",
     "react-icons": "5.4.0",
@@ -102,6 +104,7 @@
     "uuid": "^11.0.3",
     "vaul": "^1.1.2",
     "viem": "2.21.56",
+    "visual-dom-diff": "^0.7.2",
     "web-push": "3.6.7",
     "zod": "^3.24.1"
   },
