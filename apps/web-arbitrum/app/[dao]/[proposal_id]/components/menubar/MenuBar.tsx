@@ -84,18 +84,6 @@ export const MenuBar = () => {
             </div>
           </>
         )}
-        {view == ViewType.FULL && expanded && (
-          <>
-            <div className="flex flex-row items-center gap-2">
-              <ArrowUp className="rounded-full border p-1" />
-              <div className="px-2">Collapse Proposal</div>
-            </div>
-            <div className="flex gap-2">
-              <div>filter</div>
-              <div>filter</div>
-            </div>
-          </>
-        )}
       </button>
     </div>
   );
