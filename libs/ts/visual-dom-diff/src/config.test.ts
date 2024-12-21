@@ -42,12 +42,12 @@ describe('skipChildren', () => {
         return node.nodeName === 'SPAN'
           ? true
           : node.nodeName === 'VIDEO'
-          ? false
-          : isText(node) || isComment(node)
-          ? false
-          : isDocumentFragment(node)
-          ? true
-          : undefined
+            ? false
+            : isText(node) || isComment(node)
+              ? false
+              : isDocumentFragment(node)
+                ? true
+                : undefined
       },
     })
     test('return true given a text node', () => {
@@ -102,14 +102,14 @@ describe('skipSelf', () => {
         return isText(node)
           ? true
           : isComment(node)
-          ? false
-          : isDocumentFragment(node)
-          ? false
-          : node.nodeName === 'SPAN'
-          ? false
-          : node.nodeName === 'VIDEO'
-          ? true
-          : undefined
+            ? false
+            : isDocumentFragment(node)
+              ? false
+              : node.nodeName === 'SPAN'
+                ? false
+                : node.nodeName === 'VIDEO'
+                  ? true
+                  : undefined
       },
     })
     test('return true given a text node', () => {

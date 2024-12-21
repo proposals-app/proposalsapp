@@ -411,8 +411,8 @@ test.each<[string, Node, Node, string, Options | undefined]>([
         return node.nodeName === 'VIDEO'
           ? false
           : node.nodeName === 'P'
-          ? true
-          : undefined
+            ? true
+            : undefined
       },
     },
   ],
@@ -429,8 +429,8 @@ test.each<[string, Node, Node, string, Options | undefined]>([
         return node.nodeName === 'EM'
           ? false
           : node.nodeName === 'P'
-          ? true
-          : undefined
+            ? true
+            : undefined
       },
     },
   ],

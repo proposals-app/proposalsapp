@@ -54,7 +54,7 @@ test('iterate many nodes', () => {
 test('skip some nodes', () => {
   expect(
     new DomIterator(fragment, {
-      skipSelf: node => node.nodeName === 'TR',
+      skipSelf: (node) => node.nodeName === 'TR',
     }).toArray(),
   ).toStrictEqual([
     fragment,
@@ -76,7 +76,7 @@ test('skip some nodes', () => {
 test('skip children of some nodes', () => {
   expect(
     new DomIterator(fragment, {
-      skipChildren: node => node.nodeName === 'TR',
+      skipChildren: (node) => node.nodeName === 'TR',
     }).toArray(),
   ).toStrictEqual([fragment, table, tr1, tr2, img1, img2, img3])
 })
@@ -84,8 +84,8 @@ test('skip children of some nodes', () => {
 test('skip some nodes and their children', () => {
   expect(
     new DomIterator(fragment, {
-      skipChildren: node => node.nodeName === 'TR',
-      skipSelf: node => node.nodeName === 'TR',
+      skipChildren: (node) => node.nodeName === 'TR',
+      skipSelf: (node) => node.nodeName === 'TR',
     }).toArray(),
   ).toStrictEqual([fragment, table, img1, img2, img3])
 })
@@ -93,7 +93,7 @@ test('skip some nodes and their children', () => {
 test('skip the root node', () => {
   expect(
     new DomIterator(fragment, {
-      skipSelf: node => node === fragment,
+      skipSelf: (node) => node === fragment,
     }).toArray(),
   ).toStrictEqual([
     table,
@@ -116,7 +116,7 @@ test('skip the root node', () => {
 test('skip the children of the root node', () => {
   expect(
     new DomIterator(fragment, {
-      skipChildren: node => node === fragment,
+      skipChildren: (node) => node === fragment,
     }).toArray(),
   ).toStrictEqual([fragment])
 })
@@ -124,8 +124,8 @@ test('skip the children of the root node', () => {
 test('skip the root node and its children', () => {
   expect(
     new DomIterator(fragment, {
-      skipChildren: node => node === fragment,
-      skipSelf: node => node === fragment,
+      skipChildren: (node) => node === fragment,
+      skipSelf: (node) => node === fragment,
     }).toArray(),
   ).toStrictEqual([])
 })

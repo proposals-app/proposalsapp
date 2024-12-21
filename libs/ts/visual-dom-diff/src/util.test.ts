@@ -267,8 +267,9 @@ describe.each<[string, (() => string[]) | undefined]>([
       })
       test('child with a different attribute', () => {
         const differentRootNode = rootNode.cloneNode(true)
-        ;((differentRootNode.lastChild as Node)
-          .lastChild as Element).setAttribute('data-a', 'a')
+        ;(
+          (differentRootNode.lastChild as Node).lastChild as Element
+        ).setAttribute('data-a', 'a')
         expect(
           areNodesEqual(rootNode.cloneNode(true), differentRootNode, true),
         ).toBe(false)
@@ -304,8 +305,9 @@ describe('getAncestors', () => {
   ]
 
   testData.forEach(([node, rootNode, ancestors]) => {
-    test(`node: ${node.nodeName}; root: ${rootNode &&
-      rootNode.nodeName}`, () => {
+    test(`node: ${node.nodeName}; root: ${
+      rootNode && rootNode.nodeName
+    }`, () => {
       expect(getAncestors(node, rootNode)).toStrictEqual(ancestors)
     })
   })
@@ -505,7 +507,7 @@ describe('diffText', () => {
       '\uDFFF\uF900',
     ])(
       'identical text without node markers inside changed text (%#)',
-      string => {
+      (string) => {
         expect(
           diffText(`abcdef${string}ghijkl`, `123456${string}7890-=`),
         ).toStrictEqual([
@@ -520,17 +522,20 @@ describe('diffText', () => {
       '\uF8FF',
       '\uE000\uF8FF',
       '\uE000!\uF8FF',
-    ])('identical text with node markers inside changed text (%#)', string => {
-      expect(
-        diffText(`abcdef${string}ghijkl`, `123456${string}7890-=`),
-      ).toStrictEqual([
-        [DIFF_DELETE, 'abcdef'],
-        [DIFF_INSERT, '123456'],
-        [DIFF_EQUAL, string],
-        [DIFF_DELETE, 'ghijkl'],
-        [DIFF_INSERT, '7890-='],
-      ])
-    })
+    ])(
+      'identical text with node markers inside changed text (%#)',
+      (string) => {
+        expect(
+          diffText(`abcdef${string}ghijkl`, `123456${string}7890-=`),
+        ).toStrictEqual([
+          [DIFF_DELETE, 'abcdef'],
+          [DIFF_INSERT, '123456'],
+          [DIFF_EQUAL, string],
+          [DIFF_DELETE, 'ghijkl'],
+          [DIFF_INSERT, '7890-='],
+        ])
+      },
+    )
   })
 })
 

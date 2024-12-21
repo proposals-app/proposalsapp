@@ -64,47 +64,6 @@ function getAttributeNames(element: Element): string[] {
   }
 }
 
-// Add these new helper functions
-export function getTextContent(node: Node): string {
-  return node.textContent || ''
-}
-
-export function isFormattingElement(node: Node): boolean {
-  if (!isElement(node)) return false
-
-  // Only consider standard HTML text formatting elements
-  // These are well-defined elements that typically only affect presentation
-  const formattingTags = new Set([
-    'P',
-    'DIV',
-    'SPAN',
-    'B',
-    'STRONG',
-    'I',
-    'EM',
-    'MARK',
-    'SMALL',
-    'DEL',
-    'INS',
-    'SUB',
-    'SUP',
-  ])
-
-  return formattingTags.has(node.nodeName)
-}
-
-export function unwrapFormattingElements(node: Node): Node[] {
-  if (!isElement(node)) return [node]
-
-  const element = node as Element
-  if (!isFormattingElement(element)) return [node]
-
-  const children = Array.from(element.childNodes)
-  if (children.length === 0) return [node]
-
-  return children.flatMap(child => unwrapFormattingElements(child))
-}
-
 /**
  * Compares DOM nodes for equality.
  * @param node1 The first node to compare.
@@ -148,6 +107,16 @@ export function areNodesEqual(
     }
   }
 
+  // // Check if node1 is equal to the single child of node2
+  // if (!deep && node2.childNodes.length === 1) {
+  //   return areNodesEqual(node1, node2.firstChild!, deep)
+  // }
+
+  // // Check if node2 is equal to the single child of node1
+  // if (!deep && node1.childNodes.length === 1) {
+  //   return areNodesEqual(node1.firstChild!, node2, deep)
+  // }
+
   if (deep) {
     const childNodes1 = node1.childNodes
     const childNodes2 = node2.childNodes
@@ -164,125 +133,6 @@ export function areNodesEqual(
   }
 
   return true
-}
-
-export function areNodesEqualNew(
-  node1: Node,
-  node2: Node,
-  deep: boolean = false,
-): boolean {
-  // If nodes are exactly the same reference
-  if (node1 === node2) {
-    return true
-  }
-
-  // Special case: if we're comparing a text node with a paragraph/formatting element containing only text
-  if (
-    (isText(node1) || isElement(node1)) &&
-    (isText(node2) || isElement(node2))
-  ) {
-    const text1 = getTextContent(node1).trim()
-    const text2 = getTextContent(node2).trim()
-
-    // If one is a simple text node and the other is a formatting element with the same text
-    if (text1 === text2) {
-      if (
-        (isText(node1) && isFormattingElement(node2)) ||
-        (isText(node2) && isFormattingElement(node1)) ||
-        (isFormattingElement(node1) && isFormattingElement(node2))
-      ) {
-        return true
-      }
-    }
-  }
-
-  // If nodes are of different types
-  if (node1.nodeType !== node2.nodeType) {
-    return false
-  }
-
-  // Handle text nodes
-  if (isText(node1) && isText(node2)) {
-    const result = node1.data.trim() === node2.data.trim()
-
-    return result
-  }
-
-  // Handle element nodes
-  if (isElement(node1) && isElement(node2)) {
-    // For non-formatting elements, we need exact tag name matches
-    if (node1.nodeName !== node2.nodeName) {
-      // Special case: check if we're dealing with formatting elements
-      if (isFormattingElement(node1) || isFormattingElement(node2)) {
-        const unwrapped1 = unwrapFormattingElements(node1)
-        const unwrapped2 = unwrapFormattingElements(node2)
-
-        // Compare unwrapped contents
-        if (unwrapped1.length === unwrapped2.length) {
-          const allEqual = unwrapped1.every((n1, i) =>
-            areNodesEqual(n1, unwrapped2[i], deep),
-          )
-          if (allEqual) {
-            return true
-          }
-        }
-      }
-
-      return false
-    }
-
-    // Compare attributes
-    const attrs1 = getAttributeNames(node1).sort()
-    const attrs2 = getAttributeNames(node2).sort()
-
-    if (!areArraysEqual(attrs1, attrs2)) {
-      return false
-    }
-
-    for (const name of attrs1) {
-      if (node1.getAttribute(name) !== node2.getAttribute(name)) {
-        return false
-      }
-    }
-
-    // Deep comparison if requested
-    if (deep) {
-      const children1 = Array.from(node1.childNodes)
-      const children2 = Array.from(node2.childNodes)
-
-      // If we're dealing with formatting elements, unwrap them before comparison
-      if (isFormattingElement(node1) || isFormattingElement(node2)) {
-        const unwrapped1 = children1.flatMap(unwrapFormattingElements)
-        const unwrapped2 = children2.flatMap(unwrapFormattingElements)
-
-        if (unwrapped1.length === unwrapped2.length) {
-          const allEqual = unwrapped1.every((n1, i) =>
-            areNodesEqual(n1, unwrapped2[i], deep),
-          )
-
-          return allEqual
-        }
-      }
-
-      // Regular child comparison
-      if (children1.length !== children2.length) {
-        return false
-      }
-
-      for (let i = 0; i < children1.length; i++) {
-        if (!areNodesEqual(children1[i], children2[i], deep)) {
-          return false
-        }
-      }
-    }
-
-    return true
-  }
-
-  // For all other node types, compare node names
-  const result = node1.nodeName === node2.nodeName
-
-  return result
 }
 
 /**

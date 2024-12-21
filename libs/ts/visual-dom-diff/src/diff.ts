@@ -65,9 +65,7 @@ export function visualDomDiff(
   const isFormattingNode = (node: Node): boolean =>
     isElement(node) && skipSelf(node)
   const getFormattingAncestors = (node: Node, rootNode: Node): Node[] =>
-    getAncestors(node, rootNode)
-      .filter(isFormattingNode)
-      .reverse()
+    getAncestors(node, rootNode).filter(isFormattingNode).reverse()
   const getColumnValue = (node: Node) =>
     addedNodes.has(node) ? 1 : removedNodes.has(node) ? -1 : 0
 
@@ -379,7 +377,7 @@ export function visualDomDiff(
   }
 
   // Move deletes before inserts.
-  removedNodes.forEach(node => {
+  removedNodes.forEach((node) => {
     const parentNode = node.parentNode as Node
     let previousSibling = node.previousSibling
 
@@ -390,7 +388,7 @@ export function visualDomDiff(
   })
 
   // Ensure a user friendly result for tables.
-  equalTables.forEach(equalTable => {
+  equalTables.forEach((equalTable) => {
     const { newTable, oldTable, outputTable } = equalTable
     // Handle tables which can't be diffed nicely.
     if (
@@ -399,7 +397,7 @@ export function visualDomDiff(
       !isTableValid(outputTable, false)
     ) {
       // Remove all values which were previously recorded for outputTable.
-      new DomIterator(outputTable).forEach(node => {
+      new DomIterator(outputTable).forEach((node) => {
         addedNodes.delete(node)
         removedNodes.delete(node)
         modifiedNodes.delete(node)
@@ -426,7 +424,7 @@ export function visualDomDiff(
     // - -1: column removed
     const columns: number[] = []
 
-    new DomIterator(outputTable, trIteratorOptions).some(row => {
+    new DomIterator(outputTable, trIteratorOptions).some((row) => {
       const diffedRows = equalRows.get(row)
       if (!diffedRows) {
         return false
@@ -466,7 +464,7 @@ export function visualDomDiff(
     }
 
     // Fix up the rows which do not align with `columns`.
-    new DomIterator(outputTable, trIteratorOptions).forEach(row => {
+    new DomIterator(outputTable, trIteratorOptions).forEach((row) => {
       const cells = row.childNodes
 
       if (addedNodes.has(row) || addedNodes.has(row.parentNode!)) {
@@ -502,7 +500,7 @@ export function visualDomDiff(
           // Remove all values which were previously recorded for row's content.
           const iterator = new DomIterator(row)
           iterator.next() // Skip the row itself.
-          iterator.forEach(node => {
+          iterator.forEach((node) => {
             addedNodes.delete(node)
             removedNodes.delete(node)
             modifiedNodes.delete(node)
@@ -547,25 +545,25 @@ export function visualDomDiff(
   })
 
   // Mark up the content which has been removed.
-  removedNodes.forEach(node => {
+  removedNodes.forEach((node) => {
     markUpNode(node, 'DEL', removedClass)
   })
 
   // Mark up the content which has been added.
-  addedNodes.forEach(node => {
+  addedNodes.forEach((node) => {
     markUpNode(node, 'INS', addedClass)
   })
 
   // Mark up the content which has been modified.
   if (!config.skipModified) {
-    modifiedNodes.forEach(modifiedNode => {
+    modifiedNodes.forEach((modifiedNode) => {
       markUpNode(modifiedNode, 'INS', modifiedClass)
     })
   }
 
   // Add formatting.
   formattingMap.forEach((formattingNodes, textNode) => {
-    formattingNodes.forEach(formattingNode => {
+    formattingNodes.forEach((formattingNode) => {
       const parentNode = textNode.parentNode as Node
       const previousSibling = textNode.previousSibling
 
