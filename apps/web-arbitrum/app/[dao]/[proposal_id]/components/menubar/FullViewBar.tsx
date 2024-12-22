@@ -1,6 +1,6 @@
 "use client";
 
-import { VotesFilterEnum } from "@/app/searchParams";
+import { ViewEnum, VotesFilterEnum } from "@/app/searchParams";
 import { cn } from "@/shadcn/lib/utils";
 import { Button } from "@/shadcn/ui/button";
 import {
@@ -18,11 +18,7 @@ import { ArrowDown, Check, ChevronsUpDown } from "lucide-react";
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from "nuqs";
 import { voteFilters } from "./MenuBar";
 
-export const FullViewBar = ({
-  onClickAction,
-}: {
-  onClickAction: () => void;
-}) => {
+export const FullViewBar = ({ enabled }: { enabled: boolean }) => {
   const [comments, setComments] = useQueryState(
     "comments",
     parseAsBoolean.withDefault(true).withOptions({ shallow: false }),
@@ -35,65 +31,88 @@ export const FullViewBar = ({
       .withOptions({ shallow: false }),
   );
 
-  return (
-    <div className="flex w-full justify-between">
-      <div
-        className="flex cursor-pointer items-center hover:underline"
-        onClick={onClickAction}
-      >
-        <ArrowDown className="rounded-full border p-1" />
-        <div className="px-2">Read Full Proposal</div>
-      </div>
-      <div className="flex items-center gap-2">
-        <Switch
-          id="comments"
-          checked={comments}
-          onCheckedChange={(checked) => setComments(checked)}
-        />
-        <Label htmlFor="comments">Show comments</Label>
-      </div>
+  const [view, setView] = useQueryState(
+    "view",
+    parseAsStringEnum<ViewEnum>(Object.values(ViewEnum)).withDefault(
+      ViewEnum.FULL,
+    ),
+  );
 
-      <div className="flex items-center gap-2">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={false}
-              className={cn(`h-8 w-[200px] justify-between rounded-full`)}
-            >
-              {voteFilters.find((filter) => filter.value === votesFilter)
-                ?.label || "Select vote filter..."}
-              <ChevronsUpDown className="opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[200px] p-0">
-            <Command>
-              <CommandList>
-                <CommandGroup>
-                  {voteFilters.map((filter) => (
-                    <CommandItem
-                      key={filter.value}
-                      value={filter.value}
-                      onSelect={(currentValue) => {
-                        setVotesFilter(
-                          currentValue === votesFilter
-                            ? VotesFilterEnum.NONE
-                            : (currentValue as VotesFilterEnum),
-                        );
-                      }}
-                    >
-                      {filter.label}
-                      <Check
-                        className={`ml-auto ${votesFilter === filter.value ? "opacity-100" : "opacity-0"}`}
-                      />
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+  const [expanded, setExpanded] = useQueryState(
+    "expanded",
+    parseAsBoolean.withDefault(false),
+  );
+
+  return (
+    <div
+      className={`mt-4 w-full self-center px-2 ${!enabled ? "pointer-events-none opacity-25" : ""}`}
+    >
+      <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
+        <div className="flex w-full justify-between">
+          <div
+            className="flex cursor-pointer items-center hover:underline"
+            onClick={() => {
+              setView(ViewEnum.BODY);
+              setExpanded(true);
+            }}
+          >
+            <ArrowDown className="rounded-full border p-1" />
+            <div className="px-2">Read Full Proposal</div>
+          </div>
+          <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="comments"
+                checked={comments}
+                onCheckedChange={(checked) => setComments(checked)}
+              />
+              <Label htmlFor="comments">Show comments</Label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={false}
+                    className={cn(`h-8 w-[200px] justify-between rounded-full`)}
+                  >
+                    {voteFilters.find((filter) => filter.value === votesFilter)
+                      ?.label || "Select vote filter..."}
+                    <ChevronsUpDown className="opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command>
+                    <CommandList>
+                      <CommandGroup>
+                        {voteFilters.map((filter) => (
+                          <CommandItem
+                            key={filter.value}
+                            value={filter.value}
+                            onSelect={(currentValue) => {
+                              setVotesFilter(
+                                currentValue === votesFilter
+                                  ? VotesFilterEnum.NONE
+                                  : (currentValue as VotesFilterEnum),
+                              );
+                            }}
+                          >
+                            {filter.label}
+                            <Check
+                              className={`ml-auto ${votesFilter === filter.value ? "opacity-100" : "opacity-0"}`}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
