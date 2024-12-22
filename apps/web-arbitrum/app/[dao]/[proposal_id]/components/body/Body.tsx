@@ -2,10 +2,9 @@ import { getBodiesForGroup, GroupType } from "../../actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import BodyContent from "./BodyContent";
 import { PostedTime } from "./PostedTime";
-import { VersionChange } from "./VersionChange";
-import { VersionDiff } from "./VersionDiff";
 import { StickyHeader } from "./StickyHeader";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 export default async function Body({
   group,
@@ -36,11 +35,13 @@ export default async function Body({
 
   return (
     <div className="flex w-full justify-center bg-gray-100 p-4">
-      <StickyHeader
-        bodies={bodies}
-        group={group}
-        version={version ?? defaultVersion}
-      />
+      <Suspense>
+        <StickyHeader
+          bodies={bodies}
+          group={group}
+          version={version ?? defaultVersion}
+        />
+      </Suspense>
       <div className="flex w-full flex-col gap-4">
         <div className="text-4xl font-bold">{visibleBody.title}</div>
 
@@ -53,11 +54,11 @@ export default async function Body({
 
             <div className="flex flex-col items-center gap-2">
               <div className="flex flex-row">
-                <VersionChange
+                {/* <VersionChange
                   toVersion={version - 1}
                   dir="dec"
                   disabled={version - 1 < 0}
-                />
+                /> */}
                 <PostedTime
                   label="initially posted"
                   createdAt={initialBody.createdAt}
@@ -68,13 +69,13 @@ export default async function Body({
                   createdAt={latestBody.createdAt}
                   border
                 />
-                <VersionChange
+                {/* <VersionChange
                   toVersion={version + 1}
                   dir="inc"
                   disabled={version + 1 > bodies.length - 1}
-                />
+                /> */}
               </div>
-              <VersionDiff />
+              {/* <VersionDiff /> */}
             </div>
           </div>
         </div>

@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Tooltip,
   TooltipContent,
@@ -9,7 +7,7 @@ import {
 import { format, formatDistanceToNow, formatISO } from "date-fns";
 
 // Helper component to display the time with a tooltip
-export const PostedTime = ({
+export async function PostedTime({
   label,
   createdAt,
   border,
@@ -17,7 +15,7 @@ export const PostedTime = ({
   label: string;
   createdAt: Date;
   border?: true;
-}) => {
+}) {
   const relativeTime = formatDistanceToNow(new Date(createdAt), {
     addSuffix: true,
   });
@@ -44,4 +42,4 @@ export const PostedTime = ({
       </Tooltip>
     </TooltipProvider>
   );
-};
+}
