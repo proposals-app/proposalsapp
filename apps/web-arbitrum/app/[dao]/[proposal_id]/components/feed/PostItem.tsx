@@ -8,6 +8,26 @@ const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === "post";
 };
 
+export const PostItem = ({ item }: { item: CombinedFeedItem }) => {
+  if (!isPostItem(item)) {
+    return null;
+  }
+
+  const processedContent = markdownToHtml(item.cooked);
+  const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
+
+  return (
+    <div id={postAnchorId}>
+      <h3>{item.timestamp.toLocaleString()}</h3>
+      <p>Posted by: {item.username || "Unknown"}</p>
+      <div
+        dangerouslySetInnerHTML={{ __html: processedContent }}
+        className={`prose prose-lg max-w-none`}
+      />
+    </div>
+  );
+};
+
 // Quote card styles
 const QUOTE_STYLES = {
   wrapper: "my-4 bg-gray-50 rounded-lg border border-gray-200 p-4",
@@ -35,27 +55,6 @@ const MARKDOWN_STYLES = {
 } as const;
 
 type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
-
-export const PostItem = ({ item }: { item: CombinedFeedItem }) => {
-  if (!isPostItem(item)) {
-    return null;
-  }
-
-  const processedContent = markdownToHtml(item.cooked);
-  const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
-
-  return (
-    <div id={postAnchorId}>
-      <h3>{item.timestamp.toLocaleString()}</h3>
-      <p>Posted by: {item.username || "Unknown"}</p>
-      {postAnchorId}
-      <div
-        dangerouslySetInnerHTML={{ __html: processedContent }}
-        className={`prose prose-lg max-w-none`}
-      />
-    </div>
-  );
-};
 
 // Process quotes after HTML conversion
 function processQuotes(html: string): string {
