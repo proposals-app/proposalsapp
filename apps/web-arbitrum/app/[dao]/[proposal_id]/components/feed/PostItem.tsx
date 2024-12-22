@@ -38,7 +38,9 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
       <div className="flex flex-row justify-between">
         {author && (
           <AuthorInfo
-            authorName={author.name ?? author.username}
+            authorName={
+              author.name && author.name.length ? author.name : author.username
+            }
             authorPicture={author.avatarTemplate}
           />
         )}
