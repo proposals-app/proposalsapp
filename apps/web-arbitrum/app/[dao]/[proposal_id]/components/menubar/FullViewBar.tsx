@@ -1,6 +1,7 @@
 "use client";
 
 import { VotesFilterEnum } from "@/app/searchParams";
+import { cn } from "@/shadcn/lib/utils";
 import { Button } from "@/shadcn/ui/button";
 import {
   Command,
@@ -15,25 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/shadcn/ui/popover";
 import { Switch } from "@/shadcn/ui/switch";
 import { ArrowDown, Check, ChevronsUpDown } from "lucide-react";
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from "nuqs";
-
-const voteFilters = [
-  {
-    value: VotesFilterEnum.NONE,
-    label: "No Filter",
-  },
-  {
-    value: VotesFilterEnum.FIFTY_THOUSAND,
-    label: "Votes > 50k ARB",
-  },
-  {
-    value: VotesFilterEnum.FIVE_HUNDRED_THOUSAND,
-    label: "Votes > 500k ARB",
-  },
-  {
-    value: VotesFilterEnum.FIVE_MILLION,
-    label: "Votes > 5m ARB",
-  },
-];
+import { voteFilters } from "./MenuBar";
 
 export const FullViewBar = ({
   onClickAction,
@@ -77,7 +60,7 @@ export const FullViewBar = ({
               variant="outline"
               role="combobox"
               aria-expanded={false}
-              className="w-[200px] justify-between"
+              className={cn(`h-8 w-[200px] justify-between rounded-full`)}
             >
               {voteFilters.find((filter) => filter.value === votesFilter)
                 ?.label || "Select vote filter..."}

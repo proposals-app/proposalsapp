@@ -17,7 +17,7 @@ export const VoteItem = ({
   }
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm">
+    <div className="w-full rounded-lg border bg-white p-4 shadow-sm">
       <h3>{item.timestamp.toLocaleString()}</h3>
       <h3>Vote by {item.voterAddress}</h3>
       <p>Voting Power: {item.votingPower?.toString()}</p>

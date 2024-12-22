@@ -34,7 +34,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
   );
 
   return (
-    <div id={postAnchorId} className="p-4">
+    <div id={postAnchorId} className="w-full p-4">
       <div className="flex flex-row justify-between">
         {author && (
           <AuthorInfo
