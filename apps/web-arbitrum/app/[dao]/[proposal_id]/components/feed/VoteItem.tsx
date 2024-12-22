@@ -16,14 +16,14 @@ export const VoteItem = ({
     return null;
   }
 
-  const className = choiceToClass(
+  const result = choiceToClass(
     (proposal?.choices ?? []) as string[],
     item.choice as number,
   );
 
   return (
     <div
-      className={`w-2/3 rounded-lg border bg-white p-4 shadow-sm ${className}`}
+      className={`w-2/3 rounded-lg border p-4 shadow-sm ${result == Result.FOR && "place-self-start bg-green-200 text-green-800"} ${result == Result.AGAINST && "ml-20 place-self-end bg-red-200 text-red-800"} ${result == Result.ABSTAIN && "place-self-center self-center bg-amber-100 text-amber-600"}`}
     >
       <h3>{item.timestamp.toLocaleString()}</h3>
       <h3>Vote by {item.voterAddress}</h3>
@@ -33,27 +33,28 @@ export const VoteItem = ({
   );
 };
 
+enum Result {
+  FOR,
+  ABSTAIN,
+  AGAINST,
+}
 export const choiceToClass = (
   proposalChoices: string[],
   choiceIndex: number,
 ) => {
-  let className = "";
-
   switch (proposalChoices[choiceIndex].toLowerCase()) {
     case "for":
     case "yes":
     case "yae":
-      className = "bg-green-200 text-green-800 place-self-start";
+      return Result.FOR;
       break;
     case "against":
     case "no":
     case "nay":
-      className = "bg-red-200 text-red-800 ml-20 place-self-end";
+      return Result.AGAINST;
       break;
     // Add additional cases for other choice patterns as needed
     default:
-      className = "bg-amber-100 text-gray-600 self-center place-self-center";
+      return Result.ABSTAIN;
   }
-
-  return className;
 };
