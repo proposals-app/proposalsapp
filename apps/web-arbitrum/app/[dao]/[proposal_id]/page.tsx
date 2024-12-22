@@ -5,7 +5,6 @@ import { SideBar } from "./components/SideBar";
 import { searchParamsCache } from "@/app/searchParams";
 import { MenuBar } from "./components/menubar/MenuBar";
 import Feed from "./components/feed/Feed";
-import { Suspense } from "react";
 import { Timeline } from "./components/timeline/Timeline";
 
 export default async function ProposalPage({
@@ -32,20 +31,16 @@ export default async function ProposalPage({
 
       <div className="flex w-full justify-between lg:pl-20">
         <div className="mx-auto flex w-3/4 flex-col justify-center lg:w-1/2">
-          <Suspense fallback={<div>Loading body</div>}>
-            <Body
-              group={group}
-              version={version ?? 0}
-              diff={diff}
-              expanded={expanded}
-            />
-          </Suspense>
-          <Suspense fallback={<div>Loading MenuBar</div>}>
-            <MenuBar />
-          </Suspense>
-          <Suspense fallback={<div>Loading feed</div>}>
-            <Feed group={group} commentsFilter={comments} votesFilter={votes} />
-          </Suspense>
+          <Body
+            group={group}
+            version={version ?? 0}
+            diff={diff}
+            expanded={expanded}
+          />
+
+          <MenuBar />
+
+          <Feed group={group} commentsFilter={comments} votesFilter={votes} />
         </div>
 
         <div className="hidden lg:flex">

@@ -4,7 +4,6 @@ import BodyContent from "./BodyContent";
 import { PostedTime } from "./PostedTime";
 import { StickyHeader } from "./StickyHeader";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 export default async function Body({
   group,
@@ -35,13 +34,11 @@ export default async function Body({
 
   return (
     <div className="flex w-full justify-center bg-gray-100 p-4">
-      <Suspense>
-        <StickyHeader
-          bodies={bodies}
-          group={group}
-          version={version ?? defaultVersion}
-        />
-      </Suspense>
+      <StickyHeader
+        bodies={bodies}
+        group={group}
+        version={version ?? defaultVersion}
+      />
       <div className="flex w-full flex-col gap-4">
         <div className="text-4xl font-bold">{visibleBody.title}</div>
 

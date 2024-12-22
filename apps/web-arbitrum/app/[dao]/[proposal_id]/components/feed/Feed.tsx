@@ -4,7 +4,6 @@ import { VoteItem } from "./VoteItem";
 import { PostItem } from "./PostItem";
 import { notFound } from "next/navigation";
 import { getFeedForGroup, getProposalsByIds } from "./actions";
-import { Suspense } from "react";
 import { VotesFilterEnum } from "@/app/searchParams";
 
 export default async function Feed({
@@ -47,11 +46,7 @@ export default async function Feed({
               proposal={proposals.find((p) => p.id == item.proposalId)}
             />
           )}
-          {item.type === "post" && (
-            <Suspense fallback={<div>Loading post</div>}>
-              <PostItem item={item} />
-            </Suspense>
-          )}
+          {item.type === "post" && <PostItem item={item} />}
         </div>
       ))}
     </div>
