@@ -39,7 +39,7 @@ export const MenuBar = () => {
 
   return (
     <div className="w-full">
-      <FullViewBar enabled={view == ViewEnum.FULL && !expanded} />
+      <FullViewBar />
       {view == ViewEnum.BODY && <BodyViewBar />}
       {view == ViewEnum.COMMENTS && <CommentsViewBar />}
     </div>

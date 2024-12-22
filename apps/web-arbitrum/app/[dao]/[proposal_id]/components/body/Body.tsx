@@ -10,9 +10,13 @@ import { notFound } from "next/navigation";
 export default async function Body({
   group,
   version,
+  diff,
+  expanded,
 }: {
   group: GroupType;
   version: number;
+  diff: boolean;
+  expanded: boolean;
 }) {
   if (!group) {
     notFound();
@@ -79,6 +83,8 @@ export default async function Body({
           content={visibleBody.content}
           allBodies={bodies.map((b) => b.content)}
           version={version}
+          diff={diff}
+          expanded={expanded}
         />
       </div>
     </div>

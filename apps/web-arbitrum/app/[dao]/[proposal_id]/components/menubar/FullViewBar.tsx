@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { ViewEnum, VotesFilterEnum } from "@/app/searchParams";
 import { cn } from "@/shadcn/lib/utils";
 import { Button } from "@/shadcn/ui/button";
@@ -18,7 +19,7 @@ import { ArrowDown, Check, ChevronsUpDown } from "lucide-react";
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from "nuqs";
 import { voteFilters } from "./MenuBar";
 
-export const FullViewBar = ({ enabled }: { enabled: boolean }) => {
+export const FullViewBar = () => {
   const [comments, setComments] = useQueryState(
     "comments",
     parseAsBoolean.withDefault(true).withOptions({ shallow: false }),
@@ -33,19 +34,93 @@ export const FullViewBar = ({ enabled }: { enabled: boolean }) => {
 
   const [view, setView] = useQueryState(
     "view",
-    parseAsStringEnum<ViewEnum>(Object.values(ViewEnum)).withDefault(
-      ViewEnum.FULL,
-    ),
+    parseAsStringEnum<ViewEnum>(Object.values(ViewEnum))
+      .withDefault(ViewEnum.FULL)
+      .withOptions({ shallow: false }),
   );
 
   const [expanded, setExpanded] = useQueryState(
     "expanded",
-    parseAsBoolean.withDefault(false),
+    parseAsBoolean.withDefault(false).withOptions({ shallow: false }),
   );
+
+  const fullViewBarRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!fullViewBarRef.current) return;
+
+    // Track the last known scroll position
+    let lastScrollY = window.scrollY;
+
+    // Helper function to determine view based on element position
+    const updateViewState = () => {
+      if (!fullViewBarRef.current) return;
+
+      const rect = fullViewBarRef.current.getBoundingClientRect();
+      const currentScrollY = window.scrollY;
+      const scrollingDown = currentScrollY > lastScrollY;
+      lastScrollY = currentScrollY;
+
+      // Element is fully visible
+      if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
+        setView(ViewEnum.FULL);
+      }
+      // Scrolling down and element is above viewport
+      else if (scrollingDown && rect.bottom < 0) {
+        setView(ViewEnum.COMMENTS);
+      }
+      // Scrolling up and element is below viewport
+      else if (!scrollingDown && rect.top > window.innerHeight) {
+        setView(ViewEnum.BODY);
+      }
+    };
+
+    // Debounce function to limit update frequency
+    let timeoutId: NodeJS.Timeout | null = null;
+    const debouncedUpdate = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateViewState, 50); // 50ms debounce
+    };
+
+    // Set up Intersection Observer
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting) {
+          setView(ViewEnum.FULL);
+        } else {
+          updateViewState();
+        }
+      },
+      {
+        threshold: [0, 1],
+        rootMargin: "-10px 0px -10px 0px",
+      },
+    );
+
+    // Add scroll event listener
+    const handleScroll = () => {
+      debouncedUpdate();
+    };
+
+    // Set up observers and listeners
+    observer.observe(fullViewBarRef.current);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    // Cleanup
+    return () => {
+      if (fullViewBarRef.current) {
+        observer.unobserve(fullViewBarRef.current);
+      }
+      window.removeEventListener("scroll", handleScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [setView]);
 
   return (
     <div
-      className={`mt-4 w-full self-center px-2 transition-all duration-300 ease-in ${enabled ? "" : "pointer-events-none opacity-0"}`}
+      ref={fullViewBarRef}
+      className={`mt-4 w-full self-center px-2 transition-all duration-300 ease-in ${view == ViewEnum.FULL ? "" : "pointer-events-none opacity-25"}`}
     >
       <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
         <div className="flex w-full justify-between">

@@ -1,105 +1,59 @@
-"use client";
-
-import { ViewEnum } from "@/app/searchParams";
 import {
   cleanUpNodeMarkers,
   visualDomDiff,
 } from "@proposalsapp/visual-dom-diff";
-import { Diff, DIFF_EQUAL, diff_match_patch } from "diff-match-patch";
+import { diff_match_patch, DIFF_EQUAL, Diff } from "diff-match-patch";
 import { toDom } from "hast-util-to-dom";
-import { fromMarkdown } from "mdast-util-from-markdown";
 import { toHast } from "mdast-util-to-hast";
-import { parseAsBoolean, parseAsStringEnum, useQueryState } from "nuqs";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { JSDOM } from "jsdom";
 
-interface ContentSectionClientProps {
-  content: string;
-  allBodies: Array<string>;
-  version: number;
-}
+// Create a JSDOM instance for server-side DOM manipulation
+const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>");
+const serverDocument = dom.window.document;
 
-const BodyContent = ({
+// Helper function to get the appropriate document object
+const getDocument = () => {
+  if (typeof window !== "undefined") {
+    return document;
+  }
+  return serverDocument;
+};
+
+const COLLAPSED_HEIGHT = "25rem";
+
+export async function BodyContent({
   content,
   allBodies,
   version,
-}: ContentSectionClientProps) => {
-  const [viewportHeight, setViewportHeight] = useState(0);
-  const [diff] = useQueryState("diff", parseAsBoolean.withDefault(false));
-  const [view, setView] = useQueryState(
-    "view",
-    parseAsStringEnum<ViewEnum>(Object.values(ViewEnum)).withDefault(
-      ViewEnum.FULL,
-    ),
-  );
-
-  const [expanded, _] = useQueryState(
-    "expanded",
-    parseAsBoolean.withDefault(false),
-  );
-
-  const bodyContentRef = useRef<HTMLDivElement | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-
-  useEffect(() => {
-    const updateViewportHeight = () => setViewportHeight(window.innerHeight);
-    updateViewportHeight();
-    window.addEventListener("resize", updateViewportHeight);
-    return () => window.removeEventListener("resize", updateViewportHeight);
-  }, []);
-
-  useEffect(() => {
-    if (bodyContentRef.current) {
-      observerRef.current = new IntersectionObserver(([entry]) => {
-        if (!entry.isIntersecting && view === ViewEnum.FULL && !expanded) {
-          setView(ViewEnum.COMMENTS);
-        }
-        if (entry.isIntersecting && view === ViewEnum.COMMENTS && !expanded) {
-          setView(ViewEnum.FULL);
-        }
-        if (!entry.isIntersecting && view === ViewEnum.BODY && expanded) {
-          setView(ViewEnum.COMMENTS);
-        }
-        if (entry.isIntersecting && view === ViewEnum.COMMENTS && expanded) {
-          setView(ViewEnum.BODY);
-        }
-      });
-
-      observerRef.current.observe(bodyContentRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
-      }
-    };
-  }, [view, setView]);
-
-  const collapsedHeight = viewportHeight * 0.25;
-
-  const processedContent = useMemo(() => {
-    if (diff && version > 0) {
-      const previousContent = allBodies[version - 1];
-      return processDiff(content, previousContent);
-    }
-    return markdownToHtml(content);
-  }, [content, allBodies, version, diff]);
+  diff,
+  expanded,
+}: {
+  content: string;
+  allBodies: Array<string>;
+  version: number;
+  diff: boolean;
+  expanded: boolean;
+}) {
+  // Process the content based on whether diff is enabled
+  const processedContent =
+    diff && version > 0
+      ? processDiff(content, allBodies[version - 1])
+      : markdownToHtml(content);
 
   return (
     <div className="relative pb-16">
       <div
-        ref={bodyContentRef}
         className={`relative transition-all duration-500 ease-in-out ${
-          expanded ? "overflow-hidden" : ""
+          expanded ? "overflow-visible" : "overflow-hidden"
         }`}
         style={{
-          maxHeight: expanded ? "none" : `${collapsedHeight}px`,
-          overflow: expanded ? "visible" : "hidden",
+          maxHeight: expanded ? "none" : COLLAPSED_HEIGHT,
         }}
       >
         <div
           dangerouslySetInnerHTML={{ __html: processedContent }}
-          className={`prose prose-lg max-w-none`}
+          className="diff-content prose prose-lg max-w-none"
         />
 
         {!expanded && (
@@ -111,7 +65,7 @@ const BodyContent = ({
       </div>
     </div>
   );
-};
+}
 
 export default BodyContent;
 
@@ -135,7 +89,8 @@ const MARKDOWN_STYLES = {
 function applyStyle(
   dom: Document | Element | Comment | DocumentFragment | DocumentType | Text,
 ): string {
-  const container = document.createElement("div");
+  const doc = getDocument();
+  const container = doc.createElement("div");
   container.appendChild(dom.cloneNode(true));
 
   Object.entries(MARKDOWN_STYLES).forEach(([tag, className]) => {
@@ -148,17 +103,25 @@ function applyStyle(
 }
 
 function markdownToHtml(markdown: string): string {
-  const markdownDom = toDom(toHast(fromMarkdown(markdown)));
+  // Create custom implementation of toDom that uses the server document
+  const customToDom = (node: any) => {
+    const doc = getDocument();
+    return toDom(node, { document: doc });
+  };
 
-  const styledHtml = applyStyle(markdownDom);
-
-  return styledHtml;
+  const markdownDom = customToDom(toHast(fromMarkdown(markdown)));
+  return applyStyle(markdownDom);
 }
 
 function processDiff(currentContent: string, previousContent: string): string {
+  const customToDom = (node: any) => {
+    const doc = getDocument();
+    return toDom(node, { document: doc });
+  };
+
   // Parse both contents into DOM
-  const currentTree = toDom(toHast(fromMarkdown(currentContent)));
-  const previousTree = toDom(toHast(fromMarkdown(previousContent)));
+  const currentTree = customToDom(toHast(fromMarkdown(currentContent)));
+  const previousTree = customToDom(toHast(fromMarkdown(previousContent)));
 
   if (!currentTree || !previousTree) {
     throw new Error("Failed to parse markdown content");

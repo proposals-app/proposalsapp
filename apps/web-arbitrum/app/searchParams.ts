@@ -24,6 +24,7 @@ export const searchParamsCache = createSearchParamsCache({
     ViewEnum.FULL,
   ),
   expanded: parseAsBoolean.withDefault(false),
+  diff: parseAsBoolean.withDefault(false),
   comments: parseAsBoolean.withDefault(true),
   votes: parseAsStringEnum<VotesFilterEnum>(
     Object.values(VotesFilterEnum),
