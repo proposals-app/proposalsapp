@@ -34,7 +34,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
   );
 
   return (
-    <div id={postAnchorId} className="w-full p-4">
+    <div id={postAnchorId} className="smooth-scroll-target w-full p-4">
       <div className="flex flex-row justify-between">
         {author && (
           <AuthorInfo
@@ -84,7 +84,7 @@ const QUOTE_STYLES = {
   header: "flex items-center gap-2 text-sm text-gray-600 mb-2",
   content: "text-gray-800",
   linkWrapper: "w-full flex justify-end mt-2",
-  link: "text-blue-600 hover:text-blue-800 hover:underline text-sm",
+  link: "text-blue-600 hover:text-blue-800 hover:underline text-sm smooth-scroll-link",
 } as const;
 
 const MARKDOWN_STYLES = {
