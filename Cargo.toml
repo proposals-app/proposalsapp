@@ -10,7 +10,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 async-trait = "0.1.83"
 chrono = "0.4.39"
 dotenv = "0.15.0"
@@ -23,7 +23,7 @@ reqwest-middleware = "0.4.0"
 reqwest-retry = "0.7.0"
 sea-orm = { version = "1.1.2", default-features = false }
 serde = "1.0.216"
-serde_json = "1.0.133"
+serde_json = "1.0.134"
 tokio = "1.42.0"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
@@ -50,7 +50,7 @@ alloy = "0.8.3"
 fancy-regex = "0.14.0"
 html-escape = "0.2.13"
 scraper = "0.22.0"
-thiserror = "2.0.8"
+thiserror = "2.0.9"
 
 [profile.release]
 opt-level = 3

@@ -2598,7 +2598,7 @@ __metadata:
     dotenv: "npm:16.4.7"
     kysely: "npm:0.27.5"
     kysely-codegen: "npm:0.17.0"
-    kysely-ctl: "npm:0.10.0"
+    kysely-ctl: "npm:0.10.1"
     pg: "npm:8.13.1"
     typescript: "npm:5.7.2"
   languageName: unknown
@@ -12147,9 +12147,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely-ctl@npm:0.10.0":
-  version: 0.10.0
-  resolution: "kysely-ctl@npm:0.10.0"
+"kysely-ctl@npm:0.10.1":
+  version: 0.10.1
+  resolution: "kysely-ctl@npm:0.10.1"
   dependencies:
     c12: "npm:^2.0.1"
     citty: "npm:^0.1.6"
@@ -12168,7 +12168,7 @@ __metadata:
       optional: true
   bin:
     kysely: dist/bin.js
-  checksum: 10c0/57028e10d89830dfda9d89622e00ae9f0a3ac6eed4d81cd03f2357156924db37c3ae1d217821f9d2aa3915d68d72449461a703b0e611e3ed79052d0835a90505
+  checksum: 10c0/c0b31eeb3a1859dfcf9fdbd043f50a81d226d573b0572ec79360683e57177b22c775923a1b38db2f3b59b19bb8b57247cf2d90e43d32ea9b02eb25a3a300a441
   languageName: node
   linkType: hard
 

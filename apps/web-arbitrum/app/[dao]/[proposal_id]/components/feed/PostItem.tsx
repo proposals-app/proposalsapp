@@ -81,10 +81,10 @@ const AuthorInfo = ({
 // Quote card styles
 const QUOTE_STYLES = {
   wrapper: "my-4 border-l-2 border-gray-200 p-4",
-  header: "flex items-center gap-2 text-sm text-gray-600 mb-2",
+  header: "flex text-sm text-gray-600 mb-2 font-bold",
   content: "text-gray-800",
   linkWrapper: "w-full flex justify-end mt-2",
-  link: "text-blue-600 hover:text-blue-800 hover:underline text-sm smooth-scroll-link",
+  link: "text-gray-500 hover:underline text-sm smooth-scroll-link font-bold no-underline",
 } as const;
 
 const MARKDOWN_STYLES = {
@@ -121,7 +121,7 @@ function processQuotes(html: string): string {
     return `
       <div class="${QUOTE_STYLES.wrapper}">
         <div class="${QUOTE_STYLES.header}">
-          <span>Quoted from</span>
+          <span>Quoted from&nbsp;</span>
           <span>${username}</span>
         </div>
         <div class="${QUOTE_STYLES.content}">
@@ -129,7 +129,7 @@ function processQuotes(html: string): string {
         </div>
         <div class="${QUOTE_STYLES.linkWrapper}">
           <a href="${anchorHref}" class="${QUOTE_STYLES.link}">
-                    ${postNumber === "1" ? "back to top" : "jump to post"}
+                    ${postNumber === "1" ? "back to top ↑" : "jump to post →"}
           </a>
         </div>
       </div>
