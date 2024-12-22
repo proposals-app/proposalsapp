@@ -25,14 +25,45 @@ export const VoteItem = ({
     },
   );
 
+  const formattedVotingPower = item.votingPower
+    ? formatNumberWithSuffix(item.votingPower)
+    : "0";
+
   const result = choiceToClass(
     (proposal?.choices ?? []) as string[],
     item.choice as number,
   );
 
-  const resultClass = `${result == Result.FOR ? "place-self-start bg-green-100 text-green-800" : ""} ${result == Result.AGAINST ? "ml-20 place-self-end bg-red-100 text-red-800" : ""} ${result == Result.ABSTAIN ? "place-self-center self-center bg-amber-100 text-amber-800" : ""} ${result == Result.UNKNOWN ? "place-self-center self-center bg-sky-100 text-sky-800" : ""}`;
+  let resultClass = "";
+  switch (result) {
+    case Result.FOR:
+      resultClass = "place-self-start";
+      break;
+    case Result.AGAINST:
+      resultClass = "ml-20 place-self-end";
+      break;
+    case Result.ABSTAIN:
+    case Result.UNKNOWN:
+      resultClass = "place-self-center self-center";
+      break;
+    default:
+      resultClass = "place-self-center self-center w-full";
+  }
+
+  const urlPattern =
+    /https:\/\/forum\.arbitrum\.foundation\/t\/[^/]+\/(\d+)\/(\d+)\?u=[^&]+/;
+  const match = item.reason?.match(urlPattern);
+
+  let anchorHref: string | null = null;
+  if (match) {
+    const topicId = match[1];
+    const postNumber = match[2];
+    anchorHref = `#post-${postNumber}-${topicId}`;
+  }
   return (
-    <div className={`${resultClass} w-2/3 rounded-lg border p-4 shadow-sm`}>
+    <div
+      className={`${resultClass} flex w-2/3 flex-col gap-2 rounded-lg border p-4 shadow-sm`}
+    >
       <div className="flex flex-row justify-between">
         {<AuthorInfo authorName={item.voterAddress} />}
         <div className="flex flex-col items-end text-sm text-gray-500">
@@ -42,10 +73,42 @@ export const VoteItem = ({
         </div>
       </div>
 
-      <p>Voting Power: {item.votingPower?.toString()}</p>
-      <p>Choice: {JSON.stringify(item.choice)}</p>
+      <div>
+        <p className="font-bold">{formattedVotingPower} ARB</p>
+        <p className="font-bold">
+          {((proposal?.choices ?? []) as string[])[item.choice as number]}
+        </p>
+      </div>
+
+      <div className="flex flex-col">
+        <p className="text-gray-500">{item.reason}</p>
+        <p className="self-end text-gray-500">
+          {match ? (
+            <>
+              <a
+                href={anchorHref ?? ""}
+                className="smooth-scroll-link text-sm font-bold text-gray-500 no-underline hover:underline"
+              >
+                jump to post →
+              </a>{" "}
+            </>
+          ) : (
+            <></>
+          )}
+        </p>
+      </div>
     </div>
   );
+};
+
+const formatNumberWithSuffix = (num: number): string => {
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1)}m`;
+  } else if (num >= 1_000) {
+    return `${(num / 1_000).toFixed(1)}k`;
+  } else {
+    return num.toString();
+  }
 };
 
 const AuthorInfo = ({ authorName }: { authorName: string }) => {
