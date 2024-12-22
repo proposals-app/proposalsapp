@@ -40,7 +40,7 @@ export default async function Feed({
   return (
     <div className="flex w-full flex-col items-center divide-y">
       {itemsToDisplay.map((item, index) => (
-        <div key={index} className="w-full p-4">
+        <div key={index} className="flex w-full flex-col p-4">
           {item.type === "vote" && (
             <VoteItem
               item={item}
