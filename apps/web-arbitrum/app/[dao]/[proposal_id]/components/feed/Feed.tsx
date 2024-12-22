@@ -5,40 +5,55 @@ import { PostItem } from "./PostItem";
 import { notFound } from "next/navigation";
 import { getFeedForGroup, getProposalsByIds } from "./actions";
 import { Suspense } from "react";
+import { VotesFilterEnum } from "@/app/searchParams";
 
-export default async function Feed({ group }: { group: GroupType }) {
+export default async function Feed({
+  group,
+  commentsFilter,
+  votesFilter,
+}: {
+  group: GroupType;
+  commentsFilter: boolean;
+  votesFilter: VotesFilterEnum;
+}) {
   if (!group) {
     notFound();
   }
-  const feed = await getFeedForGroup(group.group.id);
+  const feed = await getFeedForGroup(
+    group.group.id,
+    commentsFilter,
+    votesFilter,
+  );
 
   const proposalsIds = Array.from(new Set(feed.votes.map((v) => v.proposalId)));
   const proposals = await getProposalsByIds(proposalsIds);
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
+
+  // Filter out posts if comments is false
+  const itemsToDisplay = sortedItems.filter(
+    (item) =>
+      (item.type == "post" && commentsFilter && item.postNumber != 1) ||
+      item.type == "vote",
+  );
+
   return (
     <div className="space-y-4 divide-y">
-      {sortedItems
-        .filter(
-          (item) =>
-            (item.type == "post" && item.postNumber != 1) ||
-            item.type == "vote",
-        )
-        .map((item, index) => (
-          <div key={index}>
-            {item.type === "vote" && (
-              <VoteItem
-                item={item}
-                proposal={proposals.find((p) => p.id == item.proposalId)}
-              />
-            )}
-            {item.type === "post" && (
-              <Suspense fallback={<div>Loading post</div>}>
-                <PostItem item={item} />
-              </Suspense>
-            )}
-          </div>
-        ))}
+      {itemsToDisplay.map((item, index) => (
+        <div key={index}>
+          {item.type === "vote" && (
+            <VoteItem
+              item={item}
+              proposal={proposals.find((p) => p.id == item.proposalId)}
+            />
+          )}
+          {item.type === "post" && (
+            <Suspense fallback={<div>Loading post</div>}>
+              <PostItem item={item} />
+            </Suspense>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

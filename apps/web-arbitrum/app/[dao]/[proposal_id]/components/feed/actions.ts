@@ -1,7 +1,12 @@
+import { VotesFilterEnum } from "@/app/searchParams";
 import { AsyncReturnType } from "@/lib/utils";
 import { db, DiscoursePost, Selectable, Vote } from "@proposalsapp/db";
 
-export async function getFeedForGroup(groupID: string) {
+export async function getFeedForGroup(
+  groupID: string,
+  commentsFilter: boolean,
+  votesFilter: VotesFilterEnum,
+) {
   let votes: Selectable<Vote>[] = [];
   let posts: Selectable<DiscoursePost>[] = [];
 
@@ -53,18 +58,32 @@ export async function getFeedForGroup(groupID: string) {
     // Fetch votes for proposals
     if (proposalIds.length > 0) {
       try {
-        votes = await db
+        let voteQuery = db
           .selectFrom("vote")
           .selectAll()
-          .where("proposalId", "in", proposalIds)
-          .execute();
+          .where("proposalId", "in", proposalIds);
+
+        // Apply vote filter based on the votesFilter parameter
+        switch (votesFilter) {
+          case VotesFilterEnum.FIFTY_THOUSAND:
+            voteQuery = voteQuery.where("votingPower", ">", 50000);
+            break;
+          case VotesFilterEnum.FIVE_HUNDRED_THOUSAND:
+            voteQuery = voteQuery.where("votingPower", ">", 500000);
+            break;
+          case VotesFilterEnum.FIVE_MILLION:
+            voteQuery = voteQuery.where("votingPower", ">", 5000000);
+            break;
+        }
+
+        votes = await voteQuery.execute();
       } catch (error) {
         console.error("Error fetching votes:", error);
       }
     }
 
     // Fetch posts for topics
-    if (topics.length > 0) {
+    if (topics.length > 0 && commentsFilter) {
       try {
         const fetchedPosts = await db
           .selectFrom("discoursePost")

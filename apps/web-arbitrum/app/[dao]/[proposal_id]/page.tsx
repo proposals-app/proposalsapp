@@ -20,7 +20,8 @@ export default async function ProposalPage({
     notFound();
   }
 
-  const { version } = await searchParamsCache.parse(searchParams);
+  const { version, comments, votes } =
+    await searchParamsCache.parse(searchParams);
 
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">
@@ -37,7 +38,7 @@ export default async function ProposalPage({
             <MenuBar />
           </Suspense>
           <Suspense fallback={<div>Loading feed</div>}>
-            <Feed group={group} />
+            <Feed group={group} commentsFilter={comments} votesFilter={votes} />
           </Suspense>
         </div>
       </div>

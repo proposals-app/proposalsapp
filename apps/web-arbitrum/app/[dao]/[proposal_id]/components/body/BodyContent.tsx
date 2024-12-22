@@ -1,6 +1,6 @@
 "use client";
 
-import { ViewType } from "@/app/searchParams";
+import { ViewEnum } from "@/app/searchParams";
 import {
   cleanUpNodeMarkers,
   visualDomDiff,
@@ -27,8 +27,8 @@ const BodyContent = ({
   const [diff] = useQueryState("diff", parseAsBoolean.withDefault(false));
   const [view, setView] = useQueryState(
     "view",
-    parseAsStringEnum<ViewType>(Object.values(ViewType)).withDefault(
-      ViewType.FULL,
+    parseAsStringEnum<ViewEnum>(Object.values(ViewEnum)).withDefault(
+      ViewEnum.FULL,
     ),
   );
 
@@ -50,17 +50,17 @@ const BodyContent = ({
   useEffect(() => {
     if (bodyContentRef.current) {
       observerRef.current = new IntersectionObserver(([entry]) => {
-        if (!entry.isIntersecting && view === ViewType.FULL && !expanded) {
-          setView(ViewType.COMMENTS);
+        if (!entry.isIntersecting && view === ViewEnum.FULL && !expanded) {
+          setView(ViewEnum.COMMENTS);
         }
-        if (entry.isIntersecting && view === ViewType.COMMENTS && !expanded) {
-          setView(ViewType.FULL);
+        if (entry.isIntersecting && view === ViewEnum.COMMENTS && !expanded) {
+          setView(ViewEnum.FULL);
         }
-        if (!entry.isIntersecting && view === ViewType.BODY && expanded) {
-          setView(ViewType.COMMENTS);
+        if (!entry.isIntersecting && view === ViewEnum.BODY && expanded) {
+          setView(ViewEnum.COMMENTS);
         }
-        if (entry.isIntersecting && view === ViewType.COMMENTS && expanded) {
-          setView(ViewType.BODY);
+        if (entry.isIntersecting && view === ViewEnum.COMMENTS && expanded) {
+          setView(ViewEnum.BODY);
         }
       });
 
