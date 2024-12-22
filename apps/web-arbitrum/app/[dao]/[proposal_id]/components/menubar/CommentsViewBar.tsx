@@ -55,7 +55,7 @@ export const CommentsViewBar = () => {
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
           >
-            <ArrowUp className="rounded-full border p-1" />
+            <ArrowUp className="h-8 w-8 rounded-full border p-1" />
             <div className="cursor-pointer px-2">Read Full Proposal</div>
           </div>
           <div className="flex gap-2">

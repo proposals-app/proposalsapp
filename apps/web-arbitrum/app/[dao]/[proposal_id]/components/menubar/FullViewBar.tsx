@@ -131,7 +131,7 @@ export const FullViewBar = () => {
               setExpanded(true);
             }}
           >
-            <ArrowDown className="rounded-full border p-1" />
+            <ArrowDown className="h-8 w-8 rounded-full border p-1" />
             <div className="px-2">Read Full Proposal</div>
           </div>
           <div className="flex gap-2">

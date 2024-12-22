@@ -51,7 +51,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
         <div className="flex w-full justify-between">
           <div className="flex items-center gap-2">
             <Link href="#">
-              <ArrowUp className="rounded-full border p-1" />
+              <ArrowUp className="h-8 w-8 rounded-full border p-1" />
             </Link>
             <div className="flex items-center gap-2 text-nowrap">
               <Switch
@@ -64,7 +64,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
           </div>
 
           <Pagination>
-            <PaginationContent>
+            <PaginationContent className={cn(`h-8`)}>
               <PaginationItem className={cn(`cursor-pointer`)}>
                 <PaginationPrevious
                   onClick={() => setVersion(Math.max(0, currentVersion - 1))}
@@ -100,7 +100,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
             }}
           >
             <div className="px-2">Comments and Votes</div>
-            <ArrowDown className="rounded-full border p-1" />
+            <ArrowDown className="h-8 w-8 rounded-full border p-1" />
           </div>
         </div>
       </div>
