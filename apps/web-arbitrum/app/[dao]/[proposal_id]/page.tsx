@@ -30,7 +30,7 @@ export default async function ProposalPage({
       </div>
 
       <div className="flex w-full justify-between lg:pl-20">
-        <div className="mx-auto flex w-3/4 flex-col justify-center lg:w-1/2">
+        <div className="mx-auto flex w-[90%] flex-col justify-center md:w-3/4 lg:w-1/2">
           <Body
             group={group}
             version={version ?? 0}
