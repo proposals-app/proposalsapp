@@ -47,6 +47,7 @@ export default async function Feed({
               item={item}
               proposal={proposals.find((p) => p.id == item.proposalId)}
               topicIds={topicIds}
+              daoSlug={group.dao.slug}
             />
           )}
           {item.type === "post" && <PostItem item={item} />}

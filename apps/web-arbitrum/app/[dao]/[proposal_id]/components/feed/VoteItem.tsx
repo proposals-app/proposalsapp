@@ -11,10 +11,12 @@ export const VoteItem = ({
   item,
   proposal,
   topicIds,
+  daoSlug,
 }: {
   item: CombinedFeedItem;
   proposal?: Selectable<Proposal>;
   topicIds: number[];
+  daoSlug: string;
 }) => {
   if (!isVoteItem(item)) {
     return null;
@@ -52,8 +54,8 @@ export const VoteItem = ({
       resultClass = "place-self-center self-center w-full";
   }
 
-  const urlPattern =
-    /https:\/\/forum\.arbitrum\.foundation\/t\/[^/]+\/(\d+)\/(\d+)(?:\?.*)?/;
+  const baseUrl = daoBaseUrlMap[daoSlug] || "";
+  const urlPattern = new RegExp(`${baseUrl}/t/[^/]+/(\\d+)/(\\d+)(?:\\?.*)?`);
   let match = item.reason?.match(urlPattern);
 
   let anchorHref: string | null = null;
@@ -103,6 +105,10 @@ export const VoteItem = ({
       </div>
     </div>
   );
+};
+
+const daoBaseUrlMap: { [key: string]: string } = {
+  arbitrum_dao: "https://forum.arbitrum.foundation",
 };
 
 const formatNumberWithSuffix = (num: number): string => {
