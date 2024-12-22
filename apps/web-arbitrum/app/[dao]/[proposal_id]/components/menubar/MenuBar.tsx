@@ -39,11 +39,11 @@ export const MenuBar = () => {
 
   return (
     <div
-      className={`w-full self-center px-2 md:max-w-[50%] ${
+      className={`w-full self-center px-2 ${
         view === ViewEnum.BODY
-          ? "fixed bottom-0 z-50 flex transform justify-center px-4 pb-4 transition-all duration-300 ease-in-out"
+          ? "fixed bottom-0 z-50 flex transform justify-center px-4 pb-4 transition-all duration-300 ease-in-out md:max-w-[75%]"
           : view === ViewEnum.COMMENTS
-            ? "fixed top-0 z-50 flex transform justify-center px-4 pt-24 transition-all duration-300 ease-in-out"
+            ? "fixed top-0 z-50 flex transform justify-center px-4 pt-24 transition-all duration-300 ease-in-out md:max-w-[75%]"
             : "mt-4"
       }`}
     >

@@ -2,7 +2,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 
 export const BodyViewBar = ({ onClick }: { onClick: () => void }) => (
   <div
-    className="flex w-full justify-between hover:underline"
+    className="flex w-full cursor-pointer justify-between hover:underline"
     onClick={onClick}
   >
     <ArrowUp className="rounded-full border p-1" />

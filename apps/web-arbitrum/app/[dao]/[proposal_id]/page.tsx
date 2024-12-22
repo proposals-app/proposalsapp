@@ -6,6 +6,7 @@ import { searchParamsCache } from "@/app/searchParams";
 import { MenuBar } from "./components/menubar/MenuBar";
 import Feed from "./components/feed/Feed";
 import { Suspense } from "react";
+import { Timeline } from "./components/timeline/Timeline";
 
 export default async function ProposalPage({
   params,
@@ -29,18 +30,26 @@ export default async function ProposalPage({
         <SideBar dao={group.dao} />
       </div>
 
-      <div className="flex w-full justify-center md:pl-20">
-        <div className="flex w-3/4 flex-col items-center gap-4">
-          <Suspense fallback={<div>Loading body</div>}>
-            <Body group={group} version={version ?? 0} />
-          </Suspense>
-          <Suspense fallback={<div>Loading MenuBar</div>}>
-            <MenuBar />
-          </Suspense>
-          <Suspense fallback={<div>Loading feed</div>}>
-            <Feed group={group} commentsFilter={comments} votesFilter={votes} />
-          </Suspense>
+      <div className="flex w-full justify-between md:pl-20">
+        <div className="flex w-full justify-center">
+          <div className="flex w-3/4 flex-col gap-4">
+            <Suspense fallback={<div>Loading body</div>}>
+              <Body group={group} version={version ?? 0} />
+            </Suspense>
+            <Suspense fallback={<div>Loading MenuBar</div>}>
+              <MenuBar />
+            </Suspense>
+            <Suspense fallback={<div>Loading feed</div>}>
+              <Feed
+                group={group}
+                commentsFilter={comments}
+                votesFilter={votes}
+              />
+            </Suspense>
+          </div>{" "}
         </div>
+
+        <Timeline />
       </div>
     </div>
   );

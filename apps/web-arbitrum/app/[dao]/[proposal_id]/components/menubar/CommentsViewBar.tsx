@@ -37,7 +37,10 @@ export const CommentsViewBar = ({
     <div className="flex w-full justify-between">
       <div className="flex flex-row items-center gap-2">
         <ArrowUp className="rounded-full border p-1" />
-        <div className="px-2 hover:underline" onClick={onClickAction}>
+        <div
+          className="cursor-pointer px-2 hover:underline"
+          onClick={onClickAction}
+        >
           Read Full Proposal
         </div>
       </div>
