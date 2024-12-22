@@ -1,7 +1,7 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import { BodiesDataType, GroupType } from "../actions";
+import { BodiesDataType, GroupType } from "../../actions";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 

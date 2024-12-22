@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
-import { getBodiesForGroup, getFeedForGroup, getGroup } from "./actions";
+import { getGroup } from "./actions";
 import Body from "./components/body/Body";
 import { SideBar } from "./components/SideBar";
 import { searchParamsCache } from "@/app/searchParams";
-import { StickyHeader } from "./components/StickyHeader";
 import { MenuBar } from "./components/menubar/MenuBar";
 import Feed from "./components/feed/Feed";
 import { Suspense } from "react";
@@ -29,12 +28,14 @@ export default async function ProposalPage({
         <SideBar dao={group.dao} />
       </div>
 
-      <div className="flex w-full flex-row md:pl-20">
-        <div className="flex w-full flex-col items-center gap-4">
+      <div className="flex w-full justify-center md:pl-20">
+        <div className="flex w-3/4 flex-col items-center gap-4">
           <Suspense fallback={<div>Loading body</div>}>
             <Body group={group} version={version ?? 0} />
           </Suspense>
-          <MenuBar />
+          <Suspense fallback={<div>Loading MenuBar</div>}>
+            <MenuBar />
+          </Suspense>
           <Suspense fallback={<div>Loading feed</div>}>
             <Feed group={group} />
           </Suspense>

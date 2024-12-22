@@ -4,7 +4,7 @@ import BodyContent from "./BodyContent";
 import { PostedTime } from "./PostedTime";
 import { VersionChange } from "./VersionChange";
 import { VersionDiff } from "./VersionDiff";
-import { StickyHeader } from "../StickyHeader";
+import { StickyHeader } from "./StickyHeader";
 import { notFound } from "next/navigation";
 
 export default async function Body({
@@ -37,7 +37,7 @@ export default async function Body({
         group={group}
         version={version ?? defaultVersion}
       />
-      <div className="flex w-3/4 flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <div className="text-4xl font-bold">{visibleBody.title}</div>
 
         <div className="flex flex-col">

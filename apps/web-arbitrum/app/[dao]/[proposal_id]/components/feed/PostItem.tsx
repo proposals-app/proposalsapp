@@ -3,34 +3,84 @@ import { toHast } from "mdast-util-to-hast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import rehypeStringify from "rehype-stringify";
 import { unified } from "unified";
+import { formatDistanceToNowStrict } from "date-fns";
+import { getDiscourseUser } from "./actions";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === "post";
 };
 
-export const PostItem = ({ item }: { item: CombinedFeedItem }) => {
+export async function PostItem({ item }: { item: CombinedFeedItem }) {
   if (!isPostItem(item)) {
     return null;
   }
 
+  const author = await getDiscourseUser(item.userId, item.daoDiscourseId);
+
   const processedContent = markdownToHtml(item.cooked);
   const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
+  const relativeCreateTime = formatDistanceToNowStrict(
+    new Date(item.timestamp),
+    {
+      addSuffix: true,
+    },
+  );
+  const relativeUpdateTime = formatDistanceToNowStrict(
+    new Date(item.updatedAt),
+    {
+      addSuffix: true,
+    },
+  );
 
   return (
-    <div id={postAnchorId}>
-      <h3>{item.timestamp.toLocaleString()}</h3>
-      <p>Posted by: {item.username || "Unknown"}</p>
+    <div id={postAnchorId} className="p-4">
+      <div className="flex flex-row justify-between">
+        {author && (
+          <AuthorInfo
+            authorName={author.name ?? author.username}
+            authorPicture={author.avatarTemplate}
+          />
+        )}
+        <div className="flex flex-col items-end text-sm text-gray-500">
+          <div>
+            posted <span className="font-bold">{relativeCreateTime}</span>
+          </div>
+          {item.timestamp.getTime() != item.updatedAt.getTime() && (
+            <div>
+              <span>edited {relativeUpdateTime}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div
         dangerouslySetInnerHTML={{ __html: processedContent }}
-        className={`prose prose-lg max-w-none`}
+        className={`prose prose-lg mt-4 max-w-none`}
       />
     </div>
   );
-};
+}
+
+const AuthorInfo = ({
+  authorName,
+  authorPicture,
+}: {
+  authorName: string;
+  authorPicture: string;
+}) => (
+  <div className="flex flex-row items-center gap-2">
+    <Avatar className="bg-gray-500">
+      <AvatarImage src={authorPicture} />
+      <AvatarFallback>{authorName.slice(0, 2)}</AvatarFallback>
+    </Avatar>
+    <div className="font-bold">{authorName}</div>
+  </div>
+);
 
 // Quote card styles
 const QUOTE_STYLES = {
-  wrapper: "my-4 bg-gray-50 rounded-lg border border-gray-200 p-4",
+  wrapper: "my-4 border-l-2 border-gray-200 p-4",
   header: "flex items-center gap-2 text-sm text-gray-600 mb-2",
   content: "text-gray-800",
   linkWrapper: "w-full flex justify-end mt-2",

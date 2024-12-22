@@ -1,8 +1,10 @@
 import { DiscoursePost, Selectable, Vote } from "@proposalsapp/db";
-import { getFeedForGroup, getProposalsByIds, GroupType } from "../../actions";
+import { GroupType } from "../../actions";
 import { VoteItem } from "./VoteItem";
 import { PostItem } from "./PostItem";
 import { notFound } from "next/navigation";
+import { getFeedForGroup, getProposalsByIds } from "./actions";
+import { Suspense } from "react";
 
 export default async function Feed({ group }: { group: GroupType }) {
   if (!group) {
@@ -15,7 +17,7 @@ export default async function Feed({ group }: { group: GroupType }) {
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
   return (
-    <div className="w-3/4 space-y-4">
+    <div className="space-y-4 divide-y">
       {sortedItems
         .filter(
           (item) =>
@@ -23,14 +25,18 @@ export default async function Feed({ group }: { group: GroupType }) {
             item.type == "vote",
         )
         .map((item, index) => (
-          <div key={index} className="rounded-lg border bg-white p-4 shadow-sm">
+          <div key={index}>
             {item.type === "vote" && (
               <VoteItem
                 item={item}
                 proposal={proposals.find((p) => p.id == item.proposalId)}
               />
             )}
-            {item.type === "post" && <PostItem item={item} />}
+            {item.type === "post" && (
+              <Suspense fallback={<div>Loading post</div>}>
+                <PostItem item={item} />
+              </Suspense>
+            )}
           </div>
         ))}
     </div>
