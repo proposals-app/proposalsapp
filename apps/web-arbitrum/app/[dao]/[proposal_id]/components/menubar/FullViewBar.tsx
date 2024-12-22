@@ -15,7 +15,7 @@ import {
 import { Label } from "@/shadcn/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shadcn/ui/popover";
 import { Switch } from "@/shadcn/ui/switch";
-import { ArrowDown, Check, ChevronsUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronsUpDown } from "lucide-react";
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from "nuqs";
 import { voteFilters } from "./MenuBar";
 
@@ -61,16 +61,24 @@ export const FullViewBar = () => {
       const scrollingDown = currentScrollY > lastScrollY;
       lastScrollY = currentScrollY;
 
-      // Element is fully visible
-      if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
-        setView(ViewEnum.FULL);
-      }
-      // Scrolling down and element is above viewport
-      else if (scrollingDown && rect.bottom < 0) {
+      // Scrolling down and element is above viewport, accounting for sticky header
+      if (scrollingDown && rect.top < 80 && view != ViewEnum.COMMENTS) {
         setView(ViewEnum.COMMENTS);
       }
+      // Element is fully visible
+      else if (
+        rect.top >= 80 &&
+        rect.bottom <= window.innerHeight &&
+        view != ViewEnum.FULL
+      ) {
+        setView(ViewEnum.FULL);
+      }
       // Scrolling up and element is below viewport
-      else if (!scrollingDown && rect.top > window.innerHeight) {
+      else if (
+        !scrollingDown &&
+        rect.top > window.innerHeight &&
+        view != ViewEnum.BODY
+      ) {
         setView(ViewEnum.BODY);
       }
     };
@@ -94,7 +102,7 @@ export const FullViewBar = () => {
       },
       {
         threshold: [0, 1],
-        rootMargin: "-10px 0px -10px 0px",
+        rootMargin: "-80px 0px -10px 0px", // Adjusted for sticky header height
       },
     );
 
@@ -120,20 +128,35 @@ export const FullViewBar = () => {
   return (
     <div
       ref={fullViewBarRef}
-      className={`mt-4 w-full self-center px-2 transition-all duration-300 ease-in ${view == ViewEnum.FULL ? "" : "pointer-events-none opacity-25"}`}
+      className={`mt-4 w-full self-center px-2 ${view == ViewEnum.FULL ? "" : "pointer-events-none opacity-0"}`}
     >
       <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
         <div className="flex w-full justify-between">
-          <div
-            className="flex cursor-pointer items-center gap-4 hover:underline"
-            onClick={() => {
-              setView(ViewEnum.BODY);
-              setExpanded(true);
-            }}
-          >
-            <ArrowDown className="h-8 w-8 rounded-full border p-1" />
-            <div>Read Full Proposal</div>
-          </div>
+          {expanded ? (
+            <div
+              className="flex cursor-pointer items-center gap-4 hover:underline"
+              onClick={() => {
+                setView(ViewEnum.FULL);
+                setExpanded(false);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            >
+              <ArrowUp className="h-8 w-8 rounded-full border p-1" />
+              <div>Collapse Proposal</div>
+            </div>
+          ) : (
+            <div
+              className="flex cursor-pointer items-center gap-4 hover:underline"
+              onClick={() => {
+                setView(ViewEnum.BODY);
+                setExpanded(true);
+              }}
+            >
+              <ArrowDown className="h-8 w-8 rounded-full border p-1" />
+              <div>Read Full Proposal</div>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <div className="flex items-center gap-2">
               <Switch

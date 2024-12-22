@@ -45,7 +45,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
   const currentVersion = version ?? 0;
   return (
     <div
-      className={`fixed bottom-0 z-50 flex w-full max-w-[90%] transform justify-center self-center px-4 pb-4 transition-all duration-300 ease-in md:max-w-[75%] lg:max-w-[48%]`}
+      className={`fixed bottom-0 z-50 flex w-full max-w-[90%] justify-center self-center px-4 pb-4 md:max-w-[75%] lg:max-w-[48%]`}
     >
       <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
         <div className="flex w-full justify-between">
@@ -69,7 +69,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
                 <PaginationPrevious
                   onClick={() => setVersion(Math.max(0, currentVersion - 1))}
                   isActive={currentVersion != 0}
-                  className={cn(`h-8`)}
+                  className={cn(`h-8 select-none`)}
                 />
               </PaginationItem>
               <PaginationItem className={cn(`pointer-events-none`)}>
@@ -83,7 +83,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
                     setVersion(Math.min(totalVersions - 1, currentVersion + 1))
                   }
                   isActive={currentVersion != totalVersions - 1}
-                  className={cn(`h-8`)}
+                  className={cn(`h-8 select-none`)}
                 />
               </PaginationItem>
             </PaginationContent>
