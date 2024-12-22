@@ -49,7 +49,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
     >
       <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
         <div className="flex w-full justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Link href="#">
               <ArrowUp className="h-8 w-8 rounded-full border p-1" />
             </Link>
@@ -90,7 +90,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
           </Pagination>
 
           <div
-            className="flex cursor-pointer flex-row items-center gap-2 text-nowrap hover:underline"
+            className="flex cursor-pointer flex-row items-center gap-4 text-nowrap hover:underline"
             onClick={() => {
               if (expanded) {
                 setView(ViewEnum.FULL);
@@ -99,7 +99,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
               }
             }}
           >
-            <div className="px-2">Comments and Votes</div>
+            <div>Comments and Votes</div>
             <ArrowDown className="h-8 w-8 rounded-full border p-1" />
           </div>
         </div>
