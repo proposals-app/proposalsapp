@@ -10,9 +10,11 @@ const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
 export const VoteItem = ({
   item,
   proposal,
+  topicIds,
 }: {
   item: CombinedFeedItem;
   proposal?: Selectable<Proposal>;
+  topicIds: number[];
 }) => {
   if (!isVoteItem(item)) {
     return null;
@@ -52,13 +54,15 @@ export const VoteItem = ({
 
   const urlPattern =
     /https:\/\/forum\.arbitrum\.foundation\/t\/[^/]+\/(\d+)\/(\d+)\?u=[^&]+/;
-  const match = item.reason?.match(urlPattern);
+  let match = item.reason?.match(urlPattern);
 
   let anchorHref: string | null = null;
   if (match) {
     const topicId = match[1];
     const postNumber = match[2];
-    anchorHref = `#post-${postNumber}-${topicId}`;
+    if (topicIds.includes(parseInt(topicId)))
+      anchorHref = `#post-${postNumber}-${topicId}`;
+    else match = null;
   }
   return (
     <div

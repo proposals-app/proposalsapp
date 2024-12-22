@@ -36,6 +36,8 @@ export default async function Feed({
       item.type == "vote",
   );
 
+  const topicIds = Array.from(new Set(feed.posts.map((p) => p.topicId)));
+
   return (
     <div className="flex w-full flex-col items-center divide-y">
       {itemsToDisplay.map((item, index) => (
@@ -44,6 +46,7 @@ export default async function Feed({
             <VoteItem
               item={item}
               proposal={proposals.find((p) => p.id == item.proposalId)}
+              topicIds={topicIds}
             />
           )}
           {item.type === "post" && <PostItem item={item} />}
