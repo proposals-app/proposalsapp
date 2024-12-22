@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getBodiesForGroup, GroupType } from "../../actions";
 import BodyVersion from "./BodyVersions";
-import { searchParamsCache, ViewType } from "@/app/searchParams";
+import { searchParamsCache, ViewEnum } from "@/app/searchParams";
 
 interface DetailsBarProps {
   group: GroupType | null;
@@ -24,7 +24,7 @@ export async function DetailsBar({ group }: DetailsBarProps) {
 
   const view = searchParamsCache.get("view");
 
-  if (view == ViewType.BODY)
+  if (view == ViewEnum.BODY)
     return (
       <div className="flex min-w-80 flex-col gap-4 bg-red-300 p-4">
         {bodies.map((body, index) => (
