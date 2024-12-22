@@ -16,17 +16,23 @@ export default async function Feed({ group }: { group: GroupType }) {
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
   return (
     <div className="w-3/4 space-y-4">
-      {sortedItems.map((item, index) => (
-        <div key={index} className="rounded-lg border bg-white p-4 shadow-sm">
-          {item.type === "vote" && (
-            <VoteItem
-              item={item}
-              proposal={proposals.find((p) => p.id == item.proposalId)}
-            />
-          )}
-          {item.type === "post" && <PostItem item={item} />}
-        </div>
-      ))}
+      {sortedItems
+        .filter(
+          (item) =>
+            (item.type == "post" && item.postNumber != 1) ||
+            item.type == "vote",
+        )
+        .map((item, index) => (
+          <div key={index} className="rounded-lg border bg-white p-4 shadow-sm">
+            {item.type === "vote" && (
+              <VoteItem
+                item={item}
+                proposal={proposals.find((p) => p.id == item.proposalId)}
+              />
+            )}
+            {item.type === "post" && <PostItem item={item} />}
+          </div>
+        ))}
     </div>
   );
 }

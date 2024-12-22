@@ -1,7 +1,6 @@
 import { CombinedFeedItem, PostFeedItem } from "./Feed";
 import { toHast } from "mdast-util-to-hast";
 import { fromMarkdown } from "mdast-util-from-markdown";
-import { toString } from "hast-util-to-string";
 import rehypeStringify from "rehype-stringify";
 import { unified } from "unified";
 
@@ -9,38 +8,14 @@ const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === "post";
 };
 
-export const PostItem = ({ item }: { item: CombinedFeedItem }) => {
-  if (!isPostItem(item)) {
-    return null;
-  }
-
-  const processedContent = markdownToHtml(item.cooked);
-
-  return (
-    <div>
-      <h3>{item.timestamp.toLocaleString()}</h3>
-      <p>Posted by: {item.username || "Unknown"}</p>
-      <div
-        dangerouslySetInnerHTML={{ __html: processedContent }}
-        className={`prose prose-lg max-w-none`}
-      />
-    </div>
-  );
-};
-
-// Define allowed tag names type
-type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
-
-// Define the Node interface
-interface HastNode {
-  tagName?: string;
-  properties?: {
-    className?: string;
-    [key: string]: any;
-  };
-  children?: HastNode[];
-  type?: string;
-}
+// Quote card styles
+const QUOTE_STYLES = {
+  wrapper: "my-4 bg-gray-50 rounded-lg border border-gray-200 p-4",
+  header: "flex items-center gap-2 text-sm text-gray-600 mb-2",
+  content: "text-gray-800",
+  linkWrapper: "w-full flex justify-end mt-2",
+  link: "text-blue-600 hover:text-blue-800 hover:underline text-sm",
+} as const;
 
 const MARKDOWN_STYLES = {
   h1: "mb-4 mt-6 text-2xl font-bold",
@@ -51,7 +26,7 @@ const MARKDOWN_STYLES = {
   ol: "mb-4 list-decimal space-y-2 pl-6",
   li: "leading-relaxed",
   strong: "font-bold",
-  a: "underline",
+  a: "underline text-blue-600 hover:text-blue-800",
   blockquote: "border-l-4 border-gray-300 pl-4 italic",
   table: "min-w-full border-collapse border border-gray-300 my-4",
   th: "border border-gray-300 bg-gray-100 p-2 text-left",
@@ -59,10 +34,94 @@ const MARKDOWN_STYLES = {
   img: "my-4 h-auto max-w-full",
 } as const;
 
+type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
+
+export const PostItem = ({ item }: { item: CombinedFeedItem }) => {
+  if (!isPostItem(item)) {
+    return null;
+  }
+
+  const processedContent = markdownToHtml(item.cooked);
+  const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
+
+  return (
+    <div id={postAnchorId}>
+      <h3>{item.timestamp.toLocaleString()}</h3>
+      <p>Posted by: {item.username || "Unknown"}</p>
+      {postAnchorId}
+      <div
+        dangerouslySetInnerHTML={{ __html: processedContent }}
+        className={`prose prose-lg max-w-none`}
+      />
+    </div>
+  );
+};
+
+// Process quotes after HTML conversion
+function processQuotes(html: string): string {
+  if (!html.includes('[quote="')) return html;
+  // Helper function to create a quote HTML structure
+  function createQuoteHtml(
+    username: string,
+    postNumber: string,
+    topicId: string,
+    content: string,
+  ) {
+    const anchorHref =
+      postNumber === "1" ? "#" : `#post-${postNumber}-${topicId}`;
+    return `
+      <div class="${QUOTE_STYLES.wrapper}">
+        <div class="${QUOTE_STYLES.header}">
+          <span>Quoted from</span>
+          <span>${username}</span>
+        </div>
+        <div class="${QUOTE_STYLES.content}">
+          ${content.trim()}
+        </div>
+        <div class="${QUOTE_STYLES.linkWrapper}">
+          <a href="${anchorHref}" class="${QUOTE_STYLES.link}">
+                    ${postNumber === "1" ? "back to top" : "jump to post"}
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  // Find the innermost quote first
+  let processedHtml = html;
+  let wasProcessed = true;
+
+  while (wasProcessed) {
+    wasProcessed = false;
+
+    // Process one level of quotes at a time, starting with the innermost
+    processedHtml = processedHtml.replace(
+      /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)"\]((?!\[quote=)[\s\S]*?)\[\/quote\]/g,
+      (_, username, postNumber, topicId, content) => {
+        wasProcessed = true;
+        return createQuoteHtml(username, postNumber, topicId, content);
+      },
+    );
+  }
+
+  return processedHtml;
+}
+
+// Define interfaces
+interface HastNode {
+  type?: string;
+  tagName?: string;
+  properties?: {
+    className?: string;
+    [key: string]: any;
+  };
+  children?: HastNode[];
+  value?: string;
+}
+
 function applyStyleToNode(node: HastNode): void {
   if (!node || typeof node !== "object") return;
 
-  // Type guard to check if tagName is a valid key of MARKDOWN_STYLES
   if (
     node.tagName &&
     Object.prototype.hasOwnProperty.call(MARKDOWN_STYLES, node.tagName)
@@ -82,6 +141,7 @@ function applyStyleToNode(node: HastNode): void {
 
 function markdownToHtml(markdown: string): string {
   try {
+    // First convert markdown to HTML
     const mdast = fromMarkdown(markdown);
     const hast = toHast(mdast);
 
@@ -96,7 +156,8 @@ function markdownToHtml(markdown: string): string {
       })
       .stringify(hast as any);
 
-    return html;
+    // Process quotes after HTML conversion
+    return processQuotes(html);
   } catch (error) {
     console.error("Error converting markdown to HTML:", error);
     return "<div>Error processing content</div>";
