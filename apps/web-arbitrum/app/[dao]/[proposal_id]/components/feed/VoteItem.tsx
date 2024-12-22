@@ -53,7 +53,7 @@ export const VoteItem = ({
   }
 
   const urlPattern =
-    /https:\/\/forum\.arbitrum\.foundation\/t\/[^/]+\/(\d+)\/(\d+)\?u=[^&]+/;
+    /https:\/\/forum\.arbitrum\.foundation\/t\/[^/]+\/(\d+)\/(\d+)/;
   let match = item.reason?.match(urlPattern);
 
   let anchorHref: string | null = null;
