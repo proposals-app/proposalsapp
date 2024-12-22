@@ -31,22 +31,16 @@ export default async function ProposalPage({
       </div>
 
       <div className="flex w-full justify-between md:pl-20">
-        <div className="flex w-full justify-center">
-          <div className="flex w-3/4 flex-col gap-4">
-            <Suspense fallback={<div>Loading body</div>}>
-              <Body group={group} version={version ?? 0} />
-            </Suspense>
-            <Suspense fallback={<div>Loading MenuBar</div>}>
-              <MenuBar />
-            </Suspense>
-            <Suspense fallback={<div>Loading feed</div>}>
-              <Feed
-                group={group}
-                commentsFilter={comments}
-                votesFilter={votes}
-              />
-            </Suspense>
-          </div>{" "}
+        <div className="mx-auto flex w-1/2 flex-col justify-center">
+          <Suspense fallback={<div>Loading body</div>}>
+            <Body group={group} version={version ?? 0} />
+          </Suspense>
+          <Suspense fallback={<div>Loading MenuBar</div>}>
+            <MenuBar />
+          </Suspense>
+          <Suspense fallback={<div>Loading feed</div>}>
+            <Feed group={group} commentsFilter={comments} votesFilter={votes} />
+          </Suspense>
         </div>
 
         <Timeline />
