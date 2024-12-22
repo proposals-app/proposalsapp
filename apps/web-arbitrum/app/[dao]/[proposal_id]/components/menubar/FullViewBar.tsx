@@ -45,7 +45,7 @@ export const FullViewBar = ({ enabled }: { enabled: boolean }) => {
 
   return (
     <div
-      className={`mt-4 w-full self-center px-2 ${!enabled ? "pointer-events-none opacity-25" : ""}`}
+      className={`mt-4 w-full self-center px-2 transition-all duration-300 ease-in ${enabled ? "" : "pointer-events-none opacity-0"}`}
     >
       <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
         <div className="flex w-full justify-between">

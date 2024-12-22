@@ -17,7 +17,7 @@ export const BodyViewBar = () => {
 
   return (
     <div
-      className={`fixed bottom-0 z-50 flex w-full transform justify-center self-center px-4 pb-4 transition-all duration-300 ease-in-out md:max-w-[50%]`}
+      className={`fixed bottom-0 z-50 flex w-full transform justify-center self-center px-4 pb-4 transition-all duration-300 ease-in md:max-w-[50%]`}
     >
       <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
         <div
