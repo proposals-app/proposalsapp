@@ -2800,7 +2800,7 @@ __metadata:
     unified: "npm:^11.0.5"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.21.56"
+    viem: "npm:2.21.57"
     web-push: "npm:3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -2894,7 +2894,7 @@ __metadata:
     typescript: "npm:5.7.2"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.21.56"
+    viem: "npm:2.21.57"
     web-push: "npm:3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -17846,9 +17846,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.56":
-  version: 2.21.56
-  resolution: "viem@npm:2.21.56"
+"viem@npm:2.21.57":
+  version: 2.21.57
+  resolution: "viem@npm:2.21.57"
   dependencies:
     "@noble/curves": "npm:1.7.0"
     "@noble/hashes": "npm:1.6.1"
@@ -17864,7 +17864,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/99b55ab1925035b16088f5e0169fa742708a923eb8e50edc23347c3f91a0d126203d47371b56e3bca88f2430fed9c541118afe1b97142ac1f37c829cb1b38444
+  checksum: 10c0/16d59f746dad68a34bcba8df26ad42fb0f919f2f11f7425e3298dc189694b17b66c3e4ba06495226b02020676f6ebab3b72f4f8fb39cfd06c6e03c9d6b3d4b27
   languageName: node
   linkType: hard
 
