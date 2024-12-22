@@ -357,6 +357,87 @@ export async function getBodiesForGroup(groupID: string) {
   return bodies;
 }
 
+export async function getTotalVersions(groupID: string) {
+  let totalVersions = 0;
+
+  const group = await db
+    .selectFrom("proposalGroup")
+    .selectAll()
+    .where("id", "=", groupID)
+    .executeTakeFirstOrThrow();
+
+  if (!group) {
+    return null;
+  }
+
+  const items = group.items as Array<{
+    id: string;
+    type: "proposal" | "topic";
+  }>;
+
+  const proposalIds = items
+    .filter((item) => item.type === "proposal")
+    .map((item) => item.id);
+
+  const topicIds = items
+    .filter((item) => item.type === "topic")
+    .map((item) => item.id);
+
+  let proposals: Selectable<Proposal>[] = [];
+  if (proposalIds.length > 0) {
+    try {
+      proposals = await db
+        .selectFrom("proposal")
+        .selectAll()
+        .where("proposal.id", "in", proposalIds)
+        .execute();
+    } catch (error) {
+      console.error("Error fetching proposals:", error);
+    }
+  }
+
+  totalVersions += proposals.length;
+
+  let discourseTopics: Selectable<DiscourseTopic>[] = [];
+  if (topicIds.length > 0) {
+    try {
+      discourseTopics = await db
+        .selectFrom("discourseTopic")
+        .selectAll()
+        .where("discourseTopic.id", "in", topicIds)
+        .execute();
+    } catch (error) {
+      console.error("Error fetching topics:", error);
+    }
+  }
+
+  for (const discourseTopic of discourseTopics) {
+    const discourseFirstPost = await db
+      .selectFrom("discoursePost")
+      .where("discoursePost.topicId", "=", discourseTopic.externalId)
+      .where("daoDiscourseId", "=", discourseTopic.daoDiscourseId)
+      .where("discoursePost.postNumber", "=", 1)
+      .selectAll()
+      .executeTakeFirstOrThrow();
+
+    totalVersions++;
+
+    const discourseFirstPostRevisions = await db
+      .selectFrom("discoursePostRevision")
+      .where(
+        "discoursePostRevision.discoursePostId",
+        "=",
+        discourseFirstPost.id,
+      )
+      .selectAll()
+      .execute();
+
+    totalVersions += discourseFirstPostRevisions.length;
+  }
+
+  return totalVersions;
+}
+
 export type GroupType = AsyncReturnType<typeof getGroup>;
 export type GroupDataType = AsyncReturnType<typeof getGroupData>;
 export type BodiesDataType = AsyncReturnType<typeof getBodiesForGroup>;

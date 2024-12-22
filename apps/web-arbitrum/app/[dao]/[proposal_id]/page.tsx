@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getGroup } from "./actions";
+import { getGroup, getTotalVersions } from "./actions";
 import Body from "./components/body/Body";
 import { SideBar } from "./components/SideBar";
 import { searchParamsCache } from "@/app/searchParams";
@@ -20,6 +20,8 @@ export default async function ProposalPage({
     notFound();
   }
 
+  const totalVersions = await getTotalVersions(group.group.id);
+
   const { version, comments, votes, diff, expanded } =
     await searchParamsCache.parse(searchParams);
 
@@ -38,7 +40,7 @@ export default async function ProposalPage({
             expanded={expanded}
           />
 
-          <MenuBar />
+          <MenuBar totalVersions={totalVersions ?? 1} />
 
           <Feed group={group} commentsFilter={comments} votesFilter={votes} />
         </div>

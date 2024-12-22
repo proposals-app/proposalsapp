@@ -24,7 +24,7 @@ export const voteFilters = [
   },
 ];
 
-export const MenuBar = () => {
+export const MenuBar = ({ totalVersions }: { totalVersions: number }) => {
   const [view] = useQueryState(
     "view",
     parseAsStringEnum<ViewEnum>(Object.values(ViewEnum)).withDefault(
@@ -40,7 +40,7 @@ export const MenuBar = () => {
   return (
     <div className="w-full">
       <FullViewBar />
-      {view == ViewEnum.BODY && <BodyViewBar />}
+      {view == ViewEnum.BODY && <BodyViewBar totalVersions={totalVersions} />}
       {view == ViewEnum.COMMENTS && <CommentsViewBar />}
     </div>
   );
