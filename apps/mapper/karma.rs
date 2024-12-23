@@ -23,7 +23,7 @@ struct KarmaDelegate {
     #[serde(rename = "publicAddress")]
     public_address: String,
     #[serde(rename = "forumHandle")]
-    forum_handle: String,
+    forum_handle: Option<String>,
 }
 
 // Static mapping from dao.slug to karma_dao_name
@@ -108,6 +108,18 @@ async fn update_delegate(
     delegate_data: &KarmaDelegate,
     dao_discourse_id: Uuid,
 ) -> Result<()> {
+    // Early return if forum_handle is None
+    let forum_handle = match &delegate_data.forum_handle {
+        Some(handle) => handle,
+        None => {
+            warn!(
+                "No forum handle provided for address: {}",
+                delegate_data.public_address
+            );
+            return Ok(());
+        }
+    };
+
     // Check if the voter exists
     let voter: Option<voter::Model> = voter::Entity::find()
         .filter(voter::Column::Address.eq(delegate_data.public_address.clone()))
@@ -125,14 +137,14 @@ async fn update_delegate(
     // Check if the discourse user exists by dao_discourse_id and forum_handle
     let discourse_user: Option<discourse_user::Model> = discourse_user::Entity::find()
         .filter(discourse_user::Column::DaoDiscourseId.eq(dao_discourse_id))
-        .filter(discourse_user::Column::Username.eq(&delegate_data.forum_handle))
+        .filter(discourse_user::Column::Username.eq(forum_handle))
         .one(conn)
         .await?;
 
     if discourse_user.is_none() {
         warn!(
             "Discourse user not found for forum handle: {} and dao_discourse_id: {}",
-            delegate_data.forum_handle, dao_discourse_id
+            forum_handle, dao_discourse_id
         );
         return Ok(());
     }
