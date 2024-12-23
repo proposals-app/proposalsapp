@@ -4,8 +4,8 @@ use chrono::{Duration, Utc};
 use csv::ReaderBuilder;
 use reqwest::Client;
 use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, DatabaseConnection, EntityTrait,
-    IntoActiveModel, QueryFilter, Set, TransactionTrait,
+    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
+    EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait,
 };
 use seaorm::{
     dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user,
@@ -38,7 +38,14 @@ lazy_static::lazy_static! {
 
 async fn fetch_karma_data(database_url: &str) -> Result<()> {
     let client = Client::new();
-    let conn = sea_orm::Database::connect(database_url).await?;
+
+    let mut opt = ConnectOptions::new(database_url);
+
+    opt.sqlx_logging(false);
+
+    let conn = Database::connect(opt)
+        .await
+        .context("Failed to connect to the database")?;
 
     // Fetch all DAOs along with their associated dao_discourse information
     let daos = dao::Entity::find()
