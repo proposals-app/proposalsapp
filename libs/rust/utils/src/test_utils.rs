@@ -8,7 +8,7 @@ pub struct ExpectedProposal {
     pub name: &'static str,
     pub body_contains: Option<Vec<&'static str>>,
     pub url: &'static str,
-    pub discussion_url: &'static str,
+    pub discussion_url: Option<String>,
     pub choices: Value,
     pub scores: Value,
     pub scores_total: f64,

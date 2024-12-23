@@ -325,7 +325,7 @@ mod nouns_mainnet_proposals_tests {
                     name: "Explore Nouns via Nouns.world",
                     body_contains: Some(vec!["Nouns.world — A one-stop shop for learning about Nouns, a place to find active resources, by category, and a completed project explorer made up of rich blog posts that let people dive into all the amazing work Nouns has funded in one place."]),
                     url: "https://nouns.wtf/vote/645",
-                    discussion_url: "",
+                    discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),
                     scores: json!([112.0, 0.0, 0.0]),
                     scores_total: 112.0,

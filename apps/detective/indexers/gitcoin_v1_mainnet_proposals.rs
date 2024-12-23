@@ -329,7 +329,7 @@ mod gitcoin_1_mainnet_proposals {
                     name: "S18-S19 Gitcoin Public Goods Funding Workstream Budget",
                     body_contains: None,
                     url: "https://www.tally.xyz/gov/gitcoin/proposal/57",
-                    discussion_url: "",
+                    discussion_url: None,
                     choices: json!(["For", "Against"]),
                     scores: json!([4684322.90448519, 0.0]),
                     scores_total: 4684322.90448519,

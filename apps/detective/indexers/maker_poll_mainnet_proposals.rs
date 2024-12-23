@@ -368,7 +368,7 @@ mod maker_poll_mainnet_proposals_tests {
                     name: "LITE-PSM-USDC-A Phase 3 (Final Migration) Parameter Proposal - September 23, 2024",
                     body_contains: Some(vec![""]),
                     url: "https://vote.makerdao.com/polling/QmRjrFYG",
-                    discussion_url: "",
+                    discussion_url: None,
                     choices: json!(["Abstain", "Yes", "No"]),
                     scores: json!([0.0, 87700.50889104782, 0.0]),
                     scores_total: 87700.50889104782,

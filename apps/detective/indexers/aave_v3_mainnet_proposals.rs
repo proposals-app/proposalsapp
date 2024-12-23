@@ -195,9 +195,7 @@ async fn data_for_proposal(
         .await
         .context("get_body")?;
 
-    let discussionurl = get_discussion(hex::encode(hash.clone()))
-        .await
-        .context("get_discussion")?;
+    let discussionurl = get_discussion(hex::encode(hash)).await;
 
     let proposal_state = gov_contract
         .getProposalState(event.proposalId)
@@ -319,10 +317,10 @@ async fn get_title(hexhash: String) -> Result<String> {
     }
 }
 
-async fn get_discussion(hexhash: String) -> Result<String> {
+async fn get_discussion(hexhash: String) -> Option<String> {
     let mut retries = 0;
     let mut current_gateway = 0;
-    let re = Regex::new(r"discussions:\s*(.*?)\n")?; // Move regex out of loop
+    let re = Regex::new(r"discussions:\s*(.*?)\n").expect("Invalid regex pattern");
 
     let gateways = [
         format!("https://ipfs.proposals.app/ipfs/f01701220{hexhash}"),
@@ -330,7 +328,7 @@ async fn get_discussion(hexhash: String) -> Result<String> {
         format!("https://gateway.pinata.cloud/ipfs/f01701220{hexhash}"),
     ];
 
-    loop {
+    while retries < 5 {
         let response = reqwest::Client::new()
             .get(gateways[current_gateway].clone())
             .timeout(Duration::from_secs(5))
@@ -339,57 +337,37 @@ async fn get_discussion(hexhash: String) -> Result<String> {
 
         match response {
             Ok(res) if res.status().is_success() => {
-                // Check for any success status
-                let text = res.text().await?;
+                let text = res.text().await.expect("Failed to read response body");
 
-                let mut discussions = String::from("");
                 // Check if the text is JSON
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
-                    discussions = json["discussions"]
-                        .as_str()
-                        .unwrap_or("Unknown")
-                        .to_string();
+                    if let Some(discussions) = json["discussions"].as_str() {
+                        return Some(discussions.trim().to_string());
+                    }
                 } else if let Some(captures) = re.captures(&text) {
                     // Fall back to regex if not JSON
                     if let Some(matched) = captures.get(1) {
-                        discussions = matched.as_str().trim().to_string();
+                        let mut discussions = matched.as_str().trim().to_string();
+                        if discussions.starts_with('\"') {
+                            discussions.remove(0);
+                        }
+                        if discussions.ends_with('\"') {
+                            discussions.pop();
+                        }
+                        return Some(discussions);
                     }
                 }
-
-                discussions = discussions.trim().to_string();
-
-                if discussions.starts_with("# ") {
-                    discussions = discussions.split_off(2).trim().to_string();
-                }
-
-                if discussions.starts_with('\"') {
-                    discussions.remove(0);
-                }
-
-                if discussions.ends_with('\"') {
-                    discussions.pop();
-                }
-
-                if discussions.is_empty() {
-                    discussions = "Unknown".into()
-                }
-
-                return Ok(discussions);
             }
-            Err(_) | Ok(_) => {
-                // On any failure or non-success status, try next gateway
-                current_gateway = (current_gateway + 1) % gateways.len();
-            }
+            _ => {}
         }
 
-        if retries < 12 {
-            retries += 1;
-            let backoff_duration = Duration::from_millis(2u64.pow(retries as u32));
-            tokio::time::sleep(backoff_duration).await;
-        } else {
-            return Ok("Unknown".to_string()); // Exit after 12 retries
-        }
+        current_gateway = (current_gateway + 1) % gateways.len();
+        retries += 1;
+        let backoff_duration = Duration::from_millis(2u64.pow(retries as u32));
+        tokio::time::sleep(backoff_duration).await;
     }
+
+    None
 }
 
 async fn get_body(hexhash: String) -> Result<String> {
@@ -477,7 +455,7 @@ mod aave_v3_proposals {
                     name: "Polygon V2 Reserve Factor Updates",
                     body_contains: Some(vec!["This AIP is a continuation of AIP-284 and increases the Reserve Factor (RF) for assets on Polygon v2 by 5.00%, up to a maximum of 99.99%.","TokenLogic and karpatkey receive no compensation beyond Aave protocol for the creation of this proposal. TokenLogic and karpatkey are both delegates within the Aave ecosystem."]),
                     url: "https://app.aave.com/governance/v3/proposal/?proposalId=1",
-                    discussion_url: "https://governance.aave.com/t/arfc-reserve-factor-updates-polygon-aave-v2/13937",
+                    discussion_url: Some("https://governance.aave.com/t/arfc-reserve-factor-updates-polygon-aave-v2/13937".into()),
                     choices: json!(["For", "Against"]),
                     scores: json!([368222.2477753108, 445.092704273313]),
                     scores_total: 368667.3404795841,
@@ -538,7 +516,7 @@ mod aave_v3_proposals {
                         name: "Generalized LT/LTV Reductions on Aave V3 Step 2",
                         body_contains: Some(vec!["Reduce stablecoin LTs and LTVs across all markets.","adjust DAI and sDAI risk parameters, it has been excluded from this proposal."]),
                         url: "https://app.aave.com/governance/v3/proposal/?proposalId=100",
-                        discussion_url: "https://governance.aave.com/t/arfc-generalized-lt-ltv-reductions-on-aave-v3-step-2-04-23-2024/17455",
+                        discussion_url: Some("https://governance.aave.com/t/arfc-generalized-lt-ltv-reductions-on-aave-v3-step-2-04-23-2024/17455".into()),
                         choices: json!(["For", "Against"]),
                         scores: json!([673483.6390054198, 0.0]),
                         scores_total: 673483.6390054198,
@@ -559,7 +537,7 @@ mod aave_v3_proposals {
                         name: "weETH Onbaording",
                         body_contains: Some(vec!["The intention behind this initiative is to enhance the diversity of assets on Aave and bolster liquidity within the ecosystem."]),
                         url: "https://app.aave.com/governance/v3/proposal/?proposalId=101",
-                        discussion_url: "https://governance.aave.com/t/arfc-onboard-weeth-to-aave-v3-on-ethereum/16758",
+                        discussion_url: Some("https://governance.aave.com/t/arfc-onboard-weeth-to-aave-v3-on-ethereum/16758".into()),
                         choices: json!(["For", "Against"]),
                         scores: json!([0.0, 0.0]),
                         scores_total: 0.0,
@@ -620,7 +598,7 @@ mod aave_v3_proposals {
                     name: "Activation of A-C Prime Foundation",
                     body_contains: Some(vec!["giving mandate to Centrifuge to create a Association to represent the Aave DAO off-chain, this AIP proposes the activation of the A-C Prime Foundation.","References"]),
                     url: "https://app.aave.com/governance/v3/proposal/?proposalId=47",
-                    discussion_url: "https://governance.aave.com/t/arfc-aave-treasury-rwa-allocation/14790",
+                    discussion_url: Some("https://governance.aave.com/t/arfc-aave-treasury-rwa-allocation/14790".into()),
                     choices: json!(["For", "Against"]),
                     scores: json!([69575.82853768951, 425389.02729258186]),
                     scores_total: 494964.8558302714,

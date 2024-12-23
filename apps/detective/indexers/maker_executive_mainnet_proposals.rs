@@ -442,7 +442,7 @@ mod maker_executive_mainnet_proposals_tests {
                     name: "Stability Fee Changes, Spark Protocol D3M Parameter Changes, Housekeeping Actions, Spark Proxy Spell - February 22, 2024",
                     body_contains: Some(vec!["The Governance Facilitators, Sidestream, and Dewiz have placed an executive proposal into the voting system. MKR Holders should vote for this proposal if they support the following alterations to the Maker Protocol."]),
                     url: "https://vote.makerdao.com/executive/template-executive-vote-stability-fee-changes-spark-protocol-d3m-parameter-changes-housekeeping-actions-spark-proxy-spell-february-22-2024",
-                    discussion_url: "",
+                    discussion_url: None,
                     choices: json!(["Yes"]),
                     scores: json!(0.0),
                     scores_total: 0.0,

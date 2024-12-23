@@ -333,7 +333,7 @@ mod ens_mainnet_proposals {
                     name: "[EP 5.5] Funding Request: ENS Public Goods Working Group Term 5 (Q1/Q2)",
                     body_contains: Some(vec!["The Public Goods working group funds projects and builders improving the Web3 ecosystems."]),
                     url: "https://www.tally.xyz/gov/ens/proposal/48839151689001950442481252711111182244814765601408465024742109276815020082612",
-                    discussion_url: "",
+                    discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),
                     scores: json!([1147743.2227877711, 0.0, 100517.72338324414]),
                     scores_total: 1248260.9461710153,

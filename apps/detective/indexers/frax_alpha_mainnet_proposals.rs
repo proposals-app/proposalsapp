@@ -298,7 +298,7 @@ mod frax_alpha_mainnet_proposals_tests {
                     name: "Burn FXS (reject me)",
                     body_contains: Some(vec!["(reject me)"]),
                     url: "https://app.frax.finance/gov/frax/proposals/60708560165412810316461688580050204590455881433802935484090906527522033434551",
-                    discussion_url: "",
+                    discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),
                     scores: json!([0.0, 125542.27490011408, 0.0]),
                     scores_total: 125542.27490011408,

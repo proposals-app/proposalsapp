@@ -264,9 +264,7 @@ async fn data_for_proposal(
     let body = get_body(hex::encode(hash.clone()))
         .await
         .context("get_body")?;
-    let discussionurl = get_discussion(hex::encode(hash.clone()))
-        .await
-        .context("get_discussion")?;
+    let discussionurl = get_discussion(hex::encode(hash)).await;
 
     let proposal_state = gov_contract
         .getProposalState(event.id)
@@ -396,10 +394,10 @@ async fn get_title(hexhash: String) -> Result<String> {
     }
 }
 
-async fn get_discussion(hexhash: String) -> Result<String> {
+async fn get_discussion(hexhash: String) -> Option<String> {
     let mut retries = 0;
     let mut current_gateway = 0;
-    let re = Regex::new(r"discussions:\s*(.*?)\n")?; // Move regex out of loop
+    let re = Regex::new(r"discussions:\s*(.*?)\n").expect("Invalid regex pattern");
 
     let gateways = [
         format!("https://ipfs.proposals.app/ipfs/f01701220{hexhash}"),
@@ -407,7 +405,7 @@ async fn get_discussion(hexhash: String) -> Result<String> {
         format!("https://gateway.pinata.cloud/ipfs/f01701220{hexhash}"),
     ];
 
-    loop {
+    while retries < 5 {
         let response = reqwest::Client::new()
             .get(gateways[current_gateway].clone())
             .timeout(Duration::from_secs(5))
@@ -416,57 +414,37 @@ async fn get_discussion(hexhash: String) -> Result<String> {
 
         match response {
             Ok(res) if res.status().is_success() => {
-                // Check for any success status
-                let text = res.text().await?;
+                let text = res.text().await.expect("Failed to read response body");
 
-                let mut discussions = String::from("");
                 // Check if the text is JSON
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
-                    discussions = json["discussions"]
-                        .as_str()
-                        .unwrap_or("Unknown")
-                        .to_string();
+                    if let Some(discussions) = json["discussions"].as_str() {
+                        return Some(discussions.trim().to_string());
+                    }
                 } else if let Some(captures) = re.captures(&text) {
                     // Fall back to regex if not JSON
                     if let Some(matched) = captures.get(1) {
-                        discussions = matched.as_str().trim().to_string();
+                        let mut discussions = matched.as_str().trim().to_string();
+                        if discussions.starts_with('\"') {
+                            discussions.remove(0);
+                        }
+                        if discussions.ends_with('\"') {
+                            discussions.pop();
+                        }
+                        return Some(discussions);
                     }
                 }
-
-                discussions = discussions.trim().to_string();
-
-                if discussions.starts_with("# ") {
-                    discussions = discussions.split_off(2).trim().to_string();
-                }
-
-                if discussions.starts_with('\"') {
-                    discussions.remove(0);
-                }
-
-                if discussions.ends_with('\"') {
-                    discussions.pop();
-                }
-
-                if discussions.is_empty() {
-                    discussions = "Unknown".into()
-                }
-
-                return Ok(discussions);
             }
-            Err(_) | Ok(_) => {
-                // On any failure or non-success status, try next gateway
-                current_gateway = (current_gateway + 1) % gateways.len();
-            }
+            _ => {}
         }
 
-        if retries < 5 {
-            retries += 1;
-            let backoff_duration = Duration::from_millis(2u64.pow(retries as u32));
-            tokio::time::sleep(backoff_duration).await;
-        } else {
-            return Ok("Unknown".to_string()); // Exit after 5 retries
-        }
+        current_gateway = (current_gateway + 1) % gateways.len();
+        retries += 1;
+        let backoff_duration = Duration::from_millis(2u64.pow(retries as u32));
+        tokio::time::sleep(backoff_duration).await;
     }
+
+    None
 }
 
 async fn get_body(hexhash: String) -> Result<String> {
@@ -653,7 +631,7 @@ mod aave_v2_proposals {
                         "Aave governance proposal to enable CRV as a base asset",
                     ]),
                     url: "https://app.aave.com/governance/proposal/?proposalId=0",
-                    discussion_url: "Unknown",
+                    discussion_url: None,
                     choices: json!(["For", "Against"]),
                     scores: json!([414202.51861143525, 100.20000140213439]),
                     scores_total: 414302.7186128374,
@@ -716,7 +694,7 @@ mod aave_v2_proposals {
                         name: "Reserve Factor Updates - Polygon Aave v2",
                         body_contains: Some(vec!["This AIP is a continuation of [AIP 284](https://app.aave.com/governance/proposal/284/) and increases the Reserve Factor (RF) for assets on Polygon v2 by 5%, up to a maximum of 99.99%."]),
                         url: "https://app.aave.com/governance/proposal/?proposalId=389",
-                        discussion_url: "https://governance.aave.com/t/arfc-reserve-factor-updates-polygon-aave-v2/13937/5",
+                        discussion_url: Some("https://governance.aave.com/t/arfc-reserve-factor-updates-polygon-aave-v2/13937/5".into()),
                         choices: json!(["For", "Against"]),
                         scores: json!([42312.786398795535, 0.0]),
                         scores_total: 42312.786398795535,
@@ -777,7 +755,7 @@ mod aave_v2_proposals {
                     name: "Transfer all CRV positions from Ethereum Mainnet Collector to GLC Safe",
                     body_contains: Some(vec!["Transfer all available CRV from Aave Mainnet Treasury to GHO Liquidity Committee (GLC) SAFE where it will be deployed to sdCRV."]),
                     url: "https://app.aave.com/governance/proposal/?proposalId=412",
-                    discussion_url: "https://governance.aave.com/t/arfc-deploy-acrv-crv-to-vecrv/11628",
+                    discussion_url: Some("https://governance.aave.com/t/arfc-deploy-acrv-crv-to-vecrv/11628".into()),
                     choices: json!(["For", "Against"]),
                     scores: json!([536551.6296395722, 0.0]),
                     scores_total: 536551.6296395722,

@@ -334,7 +334,7 @@ mod gitcoin_2_mainnet_proposals {
                     name: "MMM S19 Budget Re-Post",
                     body_contains: None,
                     url: "https://www.tally.xyz/gov/gitcoin/proposal/83370444265186051506036240751499191729551923064564972278212022875236597720544",
-                    discussion_url: "",
+                    discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),
                     scores: json!([3394262.350150614, 646452.194172896, 1045320.5505893645]),
                     scores_total: 5086035.0949128745,

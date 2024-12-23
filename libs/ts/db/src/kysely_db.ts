@@ -287,7 +287,7 @@ export interface Proposal {
   choices: Generated<Json>;
   daoId: string;
   daoIndexerId: string;
-  discussionUrl: string;
+  discussionUrl: string | null;
   externalId: string;
   id: Generated<string>;
   indexCreated: Generated<number>;

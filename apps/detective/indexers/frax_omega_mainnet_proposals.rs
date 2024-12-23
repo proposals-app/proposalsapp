@@ -298,7 +298,7 @@ mod frax_omega_mainnet_proposals_tests {
                     name: "Unknown",
                     body_contains: None,
                     url: "https://app.frax.finance/gov/frax/proposals/13188625904006835440767987719926620826555007330177610401086772491902691415820",
-                    discussion_url: "",
+                    discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),
                     scores: json!([719.152434289242, 0.0, 0.0]),
                     scores_total: 719.152434289242,

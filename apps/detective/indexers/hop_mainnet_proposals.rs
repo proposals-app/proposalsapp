@@ -333,7 +333,7 @@ mod hop_mainnet_proposals_tests {
                     name: "[HIP-39] Community Multisig Refill (6)",
                     body_contains: Some(vec!["The Hop Community Multisig has continued to distribute payments for the Hop DAO to delegates, multisig signers, bonders, and AMM reward contracts (liquidity incentives)."]),
                     url: "https://www.tally.xyz/gov/hop/proposal/51305966013437649942436285826738882927850963257079969027071347095796508382089",
-                    discussion_url: "",
+                    discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),
                     scores: json!([6133710.747652273, 1478.6211328143681, 0.0]),
                     scores_total: 6135189.368785087,
