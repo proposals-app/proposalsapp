@@ -199,13 +199,12 @@ export async function getVotingPower(
     // Determine the start time as the earliest creation time among proposals and topics
     const proposalStartTime = new Date(proposal.timeCreated);
     const topicStartTimes = topics.map((topic) => topic.createdAt);
-    // const startTime = new Date(
-    //   Math.min(
-    //     proposalStartTime.getTime(),
-    //     ...topicStartTimes.map((time) => time.getTime()),
-    //   ),
-    // );
-    const startTime = new Date(2024, 1, 1);
+    const startTime = new Date(
+      Math.min(
+        proposalStartTime.getTime(),
+        ...topicStartTimes.map((time) => time.getTime()),
+      ),
+    );
 
     const endTime = proposal.timeEnd;
 
