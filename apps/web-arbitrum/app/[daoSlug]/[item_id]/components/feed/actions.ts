@@ -114,6 +114,10 @@ export async function getFeedForGroup(
 }
 
 export async function getProposalsByIds(proposalIds: string[]) {
+  if (!proposalIds || proposalIds.length === 0) {
+    return [];
+  }
+
   const proposals = await db
     .selectFrom("proposal")
     .selectAll()

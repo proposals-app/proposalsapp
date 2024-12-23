@@ -11,11 +11,11 @@ export default async function ProposalPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ dao: string; proposal_id: string }>;
+  params: Promise<{ daoSlug: string; item_id: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { dao, proposal_id } = await params;
-  const group = await getGroup(dao, proposal_id);
+  const { daoSlug, item_id } = await params;
+  const group = await getGroup(daoSlug, item_id);
   if (!group) {
     notFound();
   }
@@ -28,7 +28,7 @@ export default async function ProposalPage({
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">
       <div className="hidden lg:flex">
-        <SideBar dao={group.dao} />
+        <SideBar dao={group.dao} daoSlug={daoSlug} />
       </div>
 
       <div className="flex w-full justify-between lg:pl-20">

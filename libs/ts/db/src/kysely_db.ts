@@ -308,6 +308,7 @@ export interface Proposal {
 
 export interface ProposalGroup {
   createdAt: Generated<Timestamp>;
+  daoId: Generated<string>;
   id: Generated<string>;
   items: Generated<Json>;
   name: string;

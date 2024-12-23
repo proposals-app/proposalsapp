@@ -144,6 +144,7 @@ impl Mapper {
             // Create new proposal group
             let new_group = proposal_group::ActiveModel {
                 id: NotSet,
+                dao_id: Set(discourse_indexer.clone().unwrap().dao_id),
                 name: Set(topic.title.clone()),
                 items: Set(serde_json::to_value(vec![ProposalGroupItem {
                     id: topic.id.to_string(),

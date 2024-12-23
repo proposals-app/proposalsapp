@@ -1,20 +1,18 @@
 import { AsyncReturnType } from "@/lib/utils";
 import {
   db,
-  DiscoursePost,
   DiscourseTopic,
   Proposal,
   ProposalGroup,
   Selectable,
   sql,
-  Vote,
 } from "@proposalsapp/db";
 
-export async function getGroup(slug: string, proposalOrTopicId: string) {
+export async function getGroup(daoSlug: string, proposalOrGroupId: string) {
   // Fetch the DAO based on the slug
   const dao = await db
     .selectFrom("dao")
-    .where("slug", "=", slug)
+    .where("slug", "=", daoSlug)
     .selectAll()
     .executeTakeFirst();
 
@@ -22,37 +20,62 @@ export async function getGroup(slug: string, proposalOrTopicId: string) {
     return null;
   }
 
-  let proposal: Selectable<Proposal> | null = null;
-  let topic: Selectable<DiscourseTopic> | null = null;
+  let group: Selectable<ProposalGroup> | null = null;
 
   try {
+    // Fetch the group based on ID
+    group =
+      (await db
+        .selectFrom("proposalGroup")
+        .where("id", "=", proposalOrGroupId)
+        .selectAll()
+        .executeTakeFirst()) ?? null;
+  } catch (error) {
+    console.error("Error fetching group:", error);
+  }
+
+  if (group) {
+    return {
+      dao,
+      group: group,
+      daoSlug: daoSlug,
+      proposalOrTopicId: proposalOrGroupId,
+    };
+  }
+
+  let proposal: Selectable<Proposal> | null = null;
+  try {
     // Fetch the proposal based on externalId
-    proposal = await db
-      .selectFrom("proposal")
-      .selectAll()
-      .where("externalId", "=", proposalOrTopicId)
-      .where("proposal.daoId", "=", dao.id)
-      .executeTakeFirstOrThrow();
+    proposal =
+      (await db
+        .selectFrom("proposal")
+        .selectAll()
+        .where("externalId", "=", proposalOrGroupId)
+        .where("proposal.daoId", "=", dao.id)
+        .executeTakeFirst()) ?? null;
   } catch (error) {
     console.error("Error fetching proposal:", error);
   }
 
-  try {
-    if (!proposal)
+  let topic: Selectable<DiscourseTopic> | null = null;
+  if (!proposal) {
+    try {
       // Fetch the topic based on externalId
-      topic = await db
-        .selectFrom("discourseTopic")
-        .selectAll()
-        .where("externalId", "=", parseInt(proposalOrTopicId))
-        .leftJoin(
-          "daoDiscourse",
-          "daoDiscourse.id",
-          "discourseTopic.daoDiscourseId",
-        )
-        .where("daoDiscourse.daoId", "=", dao.id)
-        .executeTakeFirstOrThrow();
-  } catch (error) {
-    console.error("Error fetching topic:", error);
+      topic =
+        (await db
+          .selectFrom("discourseTopic")
+          .selectAll()
+          .where("externalId", "=", parseInt(proposalOrGroupId, 10))
+          .leftJoin(
+            "daoDiscourse",
+            "daoDiscourse.id",
+            "discourseTopic.daoDiscourseId",
+          )
+          .where("daoDiscourse.daoId", "=", dao.id)
+          .executeTakeFirst()) ?? null;
+    } catch (error) {
+      console.error("Error fetching topic:", error);
+    }
   }
 
   if (!proposal && !topic) {
@@ -60,8 +83,6 @@ export async function getGroup(slug: string, proposalOrTopicId: string) {
   }
 
   // Find a proposal group containing this item
-  let matchingGroup: Selectable<ProposalGroup> | null = null;
-
   const fetchMatchingGroup = async (
     id: string,
     type: "proposal" | "topic",
@@ -78,6 +99,8 @@ export async function getGroup(slug: string, proposalOrTopicId: string) {
     return result ?? null;
   };
 
+  let matchingGroup: Selectable<ProposalGroup> | null = null;
+
   if (proposal) {
     matchingGroup = await fetchMatchingGroup(proposal.id, "proposal");
   }
@@ -93,8 +116,8 @@ export async function getGroup(slug: string, proposalOrTopicId: string) {
   return {
     dao,
     group: matchingGroup,
-    daoSlug: slug,
-    proposalOrTopicId: proposalOrTopicId,
+    daoSlug: daoSlug,
+    proposalOrTopicId: proposalOrGroupId,
   };
 }
 
@@ -115,12 +138,13 @@ export async function getGroupData(slug: string, proposalOrTopicId: string) {
 
   try {
     // Fetch the proposal based on externalId
-    proposal = await db
-      .selectFrom("proposal")
-      .selectAll()
-      .where("externalId", "=", proposalOrTopicId)
-      .where("proposal.daoId", "=", dao.id)
-      .executeTakeFirstOrThrow();
+    proposal =
+      (await db
+        .selectFrom("proposal")
+        .selectAll()
+        .where("externalId", "=", proposalOrTopicId)
+        .where("proposal.daoId", "=", dao.id)
+        .executeTakeFirst()) ?? null;
   } catch (error) {
     console.error("Error fetching proposal:", error);
   }
@@ -128,17 +152,18 @@ export async function getGroupData(slug: string, proposalOrTopicId: string) {
   try {
     if (!proposal)
       // Fetch the topic based on externalId
-      topic = await db
-        .selectFrom("discourseTopic")
-        .selectAll()
-        .where("externalId", "=", parseInt(proposalOrTopicId))
-        .leftJoin(
-          "daoDiscourse",
-          "daoDiscourse.id",
-          "discourseTopic.daoDiscourseId",
-        )
-        .where("daoDiscourse.daoId", "=", dao.id)
-        .executeTakeFirstOrThrow();
+      topic =
+        (await db
+          .selectFrom("discourseTopic")
+          .selectAll()
+          .where("externalId", "=", parseInt(proposalOrTopicId, 10))
+          .leftJoin(
+            "daoDiscourse",
+            "daoDiscourse.id",
+            "discourseTopic.daoDiscourseId",
+          )
+          .where("daoDiscourse.daoId", "=", dao.id)
+          .executeTakeFirst()) ?? null;
   } catch (error) {
     console.error("Error fetching topic:", error);
   }

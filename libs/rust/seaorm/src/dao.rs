@@ -53,6 +53,7 @@ pub enum Relation {
     Delegate,
     Delegation,
     Proposal,
+    ProposalGroup,
     Subscription,
     Vote,
     VotingPower,
@@ -81,6 +82,7 @@ impl RelationTrait for Relation {
             Self::Delegate => Entity::has_many(super::delegate::Entity).into(),
             Self::Delegation => Entity::has_many(super::delegation::Entity).into(),
             Self::Proposal => Entity::has_many(super::proposal::Entity).into(),
+            Self::ProposalGroup => Entity::has_many(super::proposal_group::Entity).into(),
             Self::Subscription => Entity::has_many(super::subscription::Entity).into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
             Self::VotingPower => Entity::has_many(super::voting_power::Entity).into(),
@@ -115,6 +117,12 @@ impl Related<super::delegation::Entity> for Entity {
 impl Related<super::proposal::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Proposal.def()
+    }
+}
+
+impl Related<super::proposal_group::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ProposalGroup.def()
     }
 }
 

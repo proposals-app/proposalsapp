@@ -18,6 +18,7 @@ pub struct Model {
     pub name: String,
     pub items: Json,
     pub created_at: DateTime,
+    pub dao_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -26,6 +27,7 @@ pub enum Column {
     Name,
     Items,
     CreatedAt,
+    DaoId,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -41,7 +43,9 @@ impl PrimaryKeyTrait for PrimaryKey {
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
-pub enum Relation {}
+pub enum Relation {
+    Dao,
+}
 
 impl ColumnTrait for Column {
     type EntityName = Entity;
@@ -51,13 +55,25 @@ impl ColumnTrait for Column {
             Self::Name => ColumnType::Text.def(),
             Self::Items => ColumnType::JsonBinary.def(),
             Self::CreatedAt => ColumnType::DateTime.def(),
+            Self::DaoId => ColumnType::Uuid.def(),
         }
     }
 }
 
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
-        panic!("No RelationDef")
+        match self {
+            Self::Dao => Entity::belongs_to(super::dao::Entity)
+                .from(Column::DaoId)
+                .to(super::dao::Column::Id)
+                .into(),
+        }
+    }
+}
+
+impl Related<super::dao::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Dao.def()
     }
 }
 
