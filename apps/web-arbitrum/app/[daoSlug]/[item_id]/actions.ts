@@ -31,7 +31,7 @@ export async function getGroup(daoSlug: string, proposalOrGroupId: string) {
         .selectAll()
         .executeTakeFirst()) ?? null;
   } catch (error) {
-    console.error("Error fetching group:", error);
+    // console.error("Error fetching group:", error);
   }
 
   if (group) {

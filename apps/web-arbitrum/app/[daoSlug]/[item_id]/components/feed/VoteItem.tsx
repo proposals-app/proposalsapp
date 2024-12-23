@@ -2,12 +2,14 @@ import { Proposal, Selectable } from "@proposalsapp/db";
 import { CombinedFeedItem, VoteFeedItem } from "./Feed";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
+import { VotingPowerTag } from "./VotingPowerTag";
+import { Suspense } from "react";
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === "vote";
 };
 
-export const VoteItem = ({
+export async function VoteItem({
   item,
   proposal,
   topicIds,
@@ -17,7 +19,7 @@ export const VoteItem = ({
   proposal?: Selectable<Proposal>;
   topicIds: number[];
   daoSlug: string;
-}) => {
+}) {
   if (!isVoteItem(item)) {
     return null;
   }
@@ -71,7 +73,18 @@ export const VoteItem = ({
       className={`${resultClass} flex w-2/3 flex-col gap-2 rounded-lg border p-4 shadow-sm`}
     >
       <div className="flex flex-row justify-between">
-        {<AuthorInfo authorName={item.voterAddress} />}
+        <div className="flex flex-col gap-2">
+          {<AuthorInfo authorName={item.voterAddress} />}
+
+          <Suspense>
+            <VotingPowerTag
+              item={item}
+              proposal={proposal}
+              topicIds={topicIds}
+            />
+          </Suspense>
+        </div>
+
         <div className="flex flex-col items-end text-sm text-gray-500">
           <div>
             voted <span className="font-bold">{relativeCreateTime}</span>
@@ -105,7 +118,7 @@ export const VoteItem = ({
       </div>
     </div>
   );
-};
+}
 
 const daoBaseUrlMap: { [key: string]: string } = {
   arbitrum_dao: "https://forum.arbitrum.foundation",
@@ -137,7 +150,7 @@ const AuthorInfo = ({ authorName }: { authorName: string }) => {
         <AvatarImage src={displayPicture} />
         <AvatarFallback>{displayName.slice(0, 2)}</AvatarFallback>
       </Avatar>
-      <div className="font-bold">{displayName}</div>
+      <div className="flex items-center font-bold">{displayName}</div>
     </div>
   );
 };
