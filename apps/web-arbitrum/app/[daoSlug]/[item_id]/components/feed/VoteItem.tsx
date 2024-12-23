@@ -130,7 +130,7 @@ const formatNumberWithSuffix = (num: number): string => {
   } else if (num >= 1_000) {
     return `${(num / 1_000).toFixed(1)}k`;
   } else {
-    return num.toString();
+    return num.toFixed(2).toString();
   }
 };
 
