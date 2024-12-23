@@ -147,7 +147,7 @@ function processQuotes(html: string): string {
 
     // Process one level of quotes at a time, starting with the innermost
     processedHtml = processedHtml.replace(
-      /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)"\]((?!\[quote=)[\s\S]*?)\[\/quote\]/g,
+      /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)(?:,\s*full:\w+)?"]((?!\[quote=)[\s\S]*?)\[\/quote\]/g,
       (_, username, postNumber, topicId, content) => {
         wasProcessed = true;
         return createQuoteHtml(username, postNumber, topicId, content);
