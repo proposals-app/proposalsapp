@@ -4,8 +4,10 @@ use chrono::{Duration, Utc};
 use csv::ReaderBuilder;
 use reqwest::Client;
 use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
-    EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait,
+    prelude::{Expr, Uuid},
+    ActiveValue::NotSet,
+    ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, IntoActiveModel,
+    QueryFilter, Set, TransactionTrait,
 };
 use seaorm::{
     dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user,
@@ -133,8 +135,8 @@ async fn update_delegate(
 
     // Check if the discourse user exists by dao_discourse_id and forum_handle
     let discourse_user: Option<discourse_user::Model> = discourse_user::Entity::find()
+        .filter(Expr::cust("LOWER(username)").eq(forum_handle.to_lowercase()))
         .filter(discourse_user::Column::DaoDiscourseId.eq(dao_discourse_id))
-        .filter(discourse_user::Column::Username.eq(forum_handle))
         .one(conn)
         .await?;
 

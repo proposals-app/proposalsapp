@@ -94,7 +94,7 @@ pub fn parse_markdown_diff(content: &str) -> Result<DiffNode, MarkdownDiffError>
                 if !is_left_diff && !is_right_diff {
                     let mut left_content_with_newline = left_content;
                     if !is_first_row {
-                        left_content_with_newline.insert_str(0, "\n");
+                        left_content_with_newline.insert(0, '\n');
                     }
                     root.add_child(DiffNode::new(
                         left_content_with_newline,
@@ -105,7 +105,7 @@ pub fn parse_markdown_diff(content: &str) -> Result<DiffNode, MarkdownDiffError>
                     if is_left_diff {
                         let mut left_content_with_newline = left_content;
                         if !is_first_row {
-                            left_content_with_newline.insert_str(0, "\n");
+                            left_content_with_newline.insert(0, '\n');
                         }
                         root.add_child(DiffNode::new(
                             left_content_with_newline,
@@ -115,7 +115,7 @@ pub fn parse_markdown_diff(content: &str) -> Result<DiffNode, MarkdownDiffError>
                     if is_right_diff {
                         let mut right_content_with_newline = right_content;
                         if !is_first_row {
-                            right_content_with_newline.insert_str(0, "\n");
+                            right_content_with_newline.insert(0, '\n');
                         }
                         root.add_child(DiffNode::new(
                             right_content_with_newline,
@@ -144,7 +144,7 @@ fn extract_text_content(element: &scraper::ElementRef) -> String {
         .replace("</ins>", "");
 
     // Normalize newlines and ensure proper spacing
-    text.lines().map(|line| line).collect::<Vec<_>>().join("\n")
+    text.lines().collect::<Vec<_>>().join("\n")
 }
 
 pub fn extract_before_content_markdown(content: &str) -> Result<String, MarkdownDiffError> {
@@ -167,11 +167,11 @@ mod markdown_changes {
         let content = r#"<table class="markdown"><tr><td class="diff-del">This is <del>a simple </del>paragraph.</td><td class="diff-ins">This is <ins>an inline addition what to this </ins>paragraph.</td></tr></table>"#;
 
         // Extracting "before" content, which should not include the deleted part.
-        let before = extract_before_content_markdown(&content).unwrap();
+        let before = extract_before_content_markdown(content).unwrap();
         assert_eq!(before, "This is a simple paragraph.");
 
         // Extracting "after" content, which should include the inserted part.
-        let after = extract_after_content_markdown(&content).unwrap();
+        let after = extract_after_content_markdown(content).unwrap();
         assert_eq!(after, "This is an inline addition what to this paragraph.");
     }
 
@@ -181,11 +181,11 @@ mod markdown_changes {
         let content = r#"<table class="markdown"><tr><td class="diff-del">This is an inline addition <del>what </del>to this paragraph.</td><td class="diff-ins">This is an inline addition to this paragraph.</td></tr></table>"#;
 
         // Extracting "before" content, which should include the deleted part.
-        let before = extract_before_content_markdown(&content).unwrap();
+        let before = extract_before_content_markdown(content).unwrap();
         assert_eq!(before, "This is an inline addition what to this paragraph.");
 
         // Extracting "after" content, which should not include the deleted part.
-        let after = extract_after_content_markdown(&content).unwrap();
+        let after = extract_after_content_markdown(content).unwrap();
         assert_eq!(after, "This is an inline addition to this paragraph.");
     }
 
@@ -195,14 +195,14 @@ mod markdown_changes {
         let content = r#"<table class="markdown"><tr><td class="diff-del">I would love to take on the project as a whole. I just don&#39;t have the ability to put up any sort of funds to get it started. Maybe it would be better if the DAO purchased at bulk, then the purchaser could just send whatever amount and details through a simple terminal be placed in a queue generate a slip, pack and pick up from FedEx.</td><td class="diff-ins">I would love to take on the project as a whole. I just don&#39;t have the ability to put up any sort of funds to get it started. Maybe it would be better if the DAO purchased at bulk, then the purchaser could just send whatever amount and details through a simple terminal be placed in a queue generate a slip, pack and pick up from FedEx.<ins> I do have a taxable business account in the State of California.</ins></td></tr></table>"#;
 
         // Extracting "before" content, which should not include the inserted part.
-        let before = extract_before_content_markdown(&content).unwrap();
+        let before = extract_before_content_markdown(content).unwrap();
         assert_eq!(
             before,
             r#"I would love to take on the project as a whole. I just don't have the ability to put up any sort of funds to get it started. Maybe it would be better if the DAO purchased at bulk, then the purchaser could just send whatever amount and details through a simple terminal be placed in a queue generate a slip, pack and pick up from FedEx."#
         );
 
         // Extracting "after" content, which should include the inserted part.
-        let after = extract_after_content_markdown(&content).unwrap();
+        let after = extract_after_content_markdown(content).unwrap();
         assert_eq!(
             after,
             r#"I would love to take on the project as a whole. I just don't have the ability to put up any sort of funds to get it started. Maybe it would be better if the DAO purchased at bulk, then the purchaser could just send whatever amount and details through a simple terminal be placed in a queue generate a slip, pack and pick up from FedEx. I do have a taxable business account in the State of California."#
@@ -219,7 +219,7 @@ mod markdown_changes {
 </td></tr></table>"#;
 
         // Extracting "before" content, which should be the same as the original content.
-        let before = extract_before_content_markdown(&content).unwrap();
+        let before = extract_before_content_markdown(content).unwrap();
         assert_eq!(
             before,
             r#"# [[Non-constitutional] Proposal to fund Plurality Labs Milestone 1B(ridge)]((https://snapshot.org/#/arbitrumfoundation.eth/proposal/0x24344ab10eb905a4d7fa5885c6f681290e765a08a5f558ff6cfc5fedab42afb6))
@@ -227,7 +227,7 @@ mod markdown_changes {
         );
 
         // Extracting "after" content, which should be the same as the original content.
-        let after = extract_after_content_markdown(&content).unwrap();
+        let after = extract_after_content_markdown(content).unwrap();
         assert_eq!(
             after,
             r#"# [[Non-constitutional] Proposal to fund Plurality Labs Milestone 1B(ridge)]((https://snapshot.org/#/arbitrumfoundation.eth/proposal/0x24344ab10eb905a4d7fa5885c6f681290e765a08a5f558ff6cfc5fedab42afb6))
@@ -249,7 +249,7 @@ We support the improvement of their team of experts.</td><td>We support the effi
 We support the improvement of their team of experts.</td></tr></table>"#;
 
         // Extracting "before" content, which should include the deleted part.
-        let before = extract_before_content_markdown(&content).unwrap();
+        let before = extract_before_content_markdown(content).unwrap();
         assert_eq!(
             before,
             r#"# [[Non-constitutional] Proposal to fund Plurality Labs Milestone 1B(ridge)]((https://snapshot.org/#/arbitrumfoundation.eth/proposal/0x24344ab10eb905a4d7fa5885c6f681290e765a08a5f558ff6cfc5fedab42afb6))
@@ -260,7 +260,7 @@ We support the improvement of their team of experts."#
         );
 
         // Extracting "after" content, which should include the inserted part.
-        let after = extract_after_content_markdown(&content).unwrap();
+        let after = extract_after_content_markdown(content).unwrap();
         assert_eq!(
             after,
             r#"# [[Non-constitutional] Proposal to fund Plurality Labs Milestone 1B(ridge)]((https://snapshot.org/#/arbitrumfoundation.eth/proposal/0x24344ab10eb905a4d7fa5885c6f681290e765a08a5f558ff6cfc5fedab42afb6))
@@ -284,7 +284,7 @@ The current doc on whats considered a sybil attack by Gitcoin is quite broad whi
 Congrats to everyone that made this happen. Looking forward to the next roller coaster</ins></td></tr></table>"#;
 
         // Extracting "before" content, which should include the deleted part.
-        let before = extract_before_content_markdown(&content).unwrap();
+        let before = extract_before_content_markdown(content).unwrap();
         assert_eq!(
             before,
             r#"thanks for the detailed response. This clarity will def helps us navigate future rounds better.
@@ -294,7 +294,7 @@ Have DMed on twitter/TG"#
         );
 
         // Extracting "after" content, which should include the inserted part.
-        let after = extract_after_content_markdown(&content).unwrap();
+        let after = extract_after_content_markdown(content).unwrap();
         assert_eq!(
             after,
             r#"thanks for the detailed response. This clarity will def helps us navigate future rounds better.

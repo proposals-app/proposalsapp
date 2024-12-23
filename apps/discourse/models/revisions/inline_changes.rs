@@ -2,7 +2,7 @@ use fancy_regex::Regex;
 
 fn cleanup_html(content: &str) -> String {
     // First normalize all whitespace/newlines to single spaces
-    let mut result = content.replace('\n', " ").replace('\r', " ");
+    let mut result = content.replace(['\n', '\r'], " ");
 
     // Remove spaces between tags
     let between_tags = Regex::new(r">\s+<").unwrap();
@@ -132,8 +132,8 @@ mod inline_changes {
     #[test]
     fn test_simple_ins_del() {
         let content = r#"<div class="inline-diff"><del>old text</del><ins>new text</ins></div>"#;
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert_eq!(before, "old text");
         assert_eq!(after, "new text");
@@ -144,8 +144,8 @@ mod inline_changes {
         let content = r#"<div class="inline-diff"><del>
             </del><ins>new text</ins></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
         assert_eq!(before, r#""#);
         assert_eq!(after, "new text");
     }
@@ -153,8 +153,8 @@ mod inline_changes {
     #[test]
     fn test_nested_tags() {
         let content = r#"<div class="inline-diff"><p><del>old <strong>formatted</strong> text</del></p><p><ins>new <em>styled</em> text</ins></p></div>"#;
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert_eq!(before, "<p>old <strong>formatted</strong> text</p><p></p>");
         assert_eq!(after, "<p></p><p>new <em>styled</em> text</p>");
@@ -164,8 +164,8 @@ mod inline_changes {
     fn test_diff_classes() {
         let content = r#"<div class="inline-diff"><p class="diff-del">removed paragraph</p><p class="diff-ins">added paragraph</p></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert_eq!(before.trim(), "<p>removed paragraph</p>");
         assert_eq!(after.trim(), "<p>added paragraph</p>");
@@ -175,8 +175,8 @@ mod inline_changes {
     fn test_mixed_changes() {
         let content = r#"<div class="inline-diff"><p>unchanged <del>removed</del><ins>added</ins> text</p><p class="diff-del">old para</p><p class="diff-ins">new para</p></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
         assert_eq!(before, "<p>unchanged removed text</p><p>old para</p>");
         assert_eq!(after, "<p>unchanged added text</p><p>new para</p>");
     }
@@ -185,8 +185,8 @@ mod inline_changes {
     fn test_with_wrapper_div() {
         let content = r#"<div class="inline-diff"><div class="something"><p><del>old</del><ins>new</ins></p></div></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
         assert_eq!(before, r#"<div class="something"><p>old</p></div>"#);
         assert_eq!(after, r#"<div class="something"><p>new</p></div>"#);
     }
@@ -196,8 +196,8 @@ mod inline_changes {
         let content =
             r#"<div class="inline-diff"><div>Hackathon Continuation Program </div></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
         assert_eq!(before, r#"Hackathon Continuation Program"#);
         assert_eq!(after, r#"Hackathon Continuation Program"#);
     }
@@ -213,8 +213,8 @@ mod inline_changes {
                 </ul>
             </div></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert!(before.contains("Old Title"));
         assert!(before.contains("Removed paragraph"));
@@ -236,8 +236,8 @@ mod inline_changes {
                 <p>Third unchanged paragraph</p>
             </div></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert!(before.contains("First unchanged paragraph"));
         assert!(before.contains("Second removed paragraph"));
@@ -254,8 +254,8 @@ mod inline_changes {
     fn test_complex_inline_diff() {
         let content = r#"<div class="inline-diff"><p>I’ve listened to most of the Alisha twitter space yesterday and while I understand the pov opposing brantly I still think we haven’t given him the freedom of expression and the chance to apologize, neither have we considered other alternative solutions like sanctions and punishments instead of radical termination.</p><p>So the way it is now, if the proposal has only the Yes/No options, I might lean towards No.<ins> </ins><ins>Not </ins><ins>because </ins><ins>I </ins><ins>agree </ins><ins>with </ins><ins>him</ins><ins>,</ins><ins> </ins><ins>but </ins><ins>because </ins><ins>of </ins><ins>the </ins><ins>short</ins><ins>-</ins><ins>sightedness </ins><ins>of </ins><ins>this </ins><ins>proposal </ins><ins>and </ins><ins>the </ins><ins>lack </ins><ins>of </ins><ins>responsability</ins><ins>.</ins><ins> </ins><ins>None </ins><ins>of </ins><ins>you </ins><ins>have </ins><ins>come </ins><ins>up </ins><ins>with </ins><ins>alternatives </ins><ins>or </ins><ins>seriously </ins><ins>considered </ins><ins>the </ins><ins>aftermath </ins><ins>of </ins><ins>this </ins><ins>decision </ins><ins>on </ins><ins>ENS</ins><ins>.</ins></p><p>Please discuss this thoroughly before taking terminal decisions. Drastic decisions pushed by people that have absolutely no skin in ENS, that joined the community just yesterday… and will get what they want, and never contribute here again.</p></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         // Expected content before and after changes
         let expected_before = r#"<p>I’ve listened to most of the Alisha twitter space yesterday and while I understand the pov opposing brantly I still think we haven’t given him the freedom of expression and the chance to apologize, neither have we considered other alternative solutions like sanctions and punishments instead of radical termination.</p><p>So the way it is now, if the proposal has only the Yes/No options, I might lean towards No.</p><p>Please discuss this thoroughly before taking terminal decisions. Drastic decisions pushed by people that have absolutely no skin in ENS, that joined the community just yesterday… and will get what they want, and never contribute here again.</p>"#;
@@ -271,8 +271,8 @@ mod inline_changes {
     fn test_non_ascii_characters() {
         let content = r#"<div class="inline-diff"><p><del>caffé</del><ins>café</ins></p></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert_eq!(before, "<p>caffé</p>");
         assert_eq!(after, "<p>café</p>");
@@ -282,8 +282,8 @@ mod inline_changes {
     fn test_mixed_content() {
         let content = r#"<div class="inline-diff"><p><del>old <strong>text</strong></del><ins>new <em>content</em></ins></p></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
         assert_eq!(before, "<p>old <strong>text</strong></p>");
         assert_eq!(after, "<p>new <em>content</em></p>");
     }
@@ -292,8 +292,8 @@ mod inline_changes {
     fn test_multiple_nested_tags() {
         let content = r#"<div class="inline-diff"><div><p><del>old text</del><ins>new text</ins></p><div><ul><li><del>item 1</del></li><li class="diff-ins">item 2</li></ul></div></div></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
         assert_eq!(
             before,
             "<div><p>old text</p><div><ul><li>item 1</li></ul></div></div>"
@@ -312,8 +312,8 @@ mod inline_changes {
 
         let expected_after = r#"<p>To OpCo will be able to utilize the $12M in cash equivalents as follows:</p><div class="lightbox-wrapper"><a class="lightbox" href="https://example.com/image.png" data-download-href="/uploads/image.png" title="OpCo Budget"><img src="https://example.com/image.png" alt="OpCo Budget" width="690" height="389"><div class="meta">Budget Image</div></a></div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert_eq!(before, expected_before);
         assert_eq!(after, expected_after);
@@ -326,8 +326,8 @@ mod inline_changes {
         let expected_before = "<p>removed</p>";
         let expected_after = r#"<p>inserted</p>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
         assert_eq!(before, expected_before);
         assert_eq!(after, expected_after);
     }
@@ -339,8 +339,8 @@ mod inline_changes {
         let expected_before = "<ul><li>removed</li></ul>";
         let expected_after = r#"<ul><li>inserted</li></ul>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert_eq!(before, expected_before);
         assert_eq!(after, expected_after);
@@ -364,8 +364,8 @@ mod inline_changes {
                 <p>The Chief of Coins, together with relevant parties, will be responsible for maintaining an adequate runway for covering <del>USD-denominated</del> expenses as well as establishing a low-risk management strategy for idle capital.</p>
             </div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         // Test the before content
         assert!(before.contains("To cover OpCo's operating expenses over the first 30 months"));
@@ -402,8 +402,8 @@ mod inline_changes {
                 </ul>
             </div>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         // Test the before content
         assert!(before.contains("required to abstain"));
@@ -433,7 +433,7 @@ mod inline_changes {
         // Expected content before and after changes
         let expected_before = r#"<li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li><li><strong>Cost:</strong> Up to $263,260 for the continuation of the reporting function, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
 
         // Assert that the extracted content matches the expected content
         assert_eq!(before, expected_before);
@@ -447,7 +447,7 @@ mod inline_changes {
 
         let expected_after = r#"<li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li><li>Cost: a maximum of $263,260 for the continuation of the reporting function for up to 12 months, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li>"#;
 
-        let after = extract_after_content_inline(&content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
         // Assert that the extracted content matches the expected content
         assert_eq!(after, expected_after);
     }
@@ -463,8 +463,8 @@ mod inline_changes {
         let expected_after = r#"<h1><a name="p-62786-tldr-1" class="anchor" href="\#p-62786-tldr-1"></a><strong>TLDR:</strong></h1><ul><li>Overview: The DAO has existed for 18 months, <a href="https://online.flippingbook.com/view/927107714/2/" rel="noopener nofollow ugc">total expenditures of 425M ARB</a> with 40+ initiatives that have passed Tally; and only in the last three months did we create a single list with the live initiatives. We can do better.</li><li>Still, reporting has had inconsistent processes, making it difficult to see all the initiatives, let alone determine relative performance.</li><li>This proposal enables the DAO to create a Reporting and Information function that will enable transparency and visibility into the status and performance of initiatives.</li><li>Critical Importance: Reporting and information management are a critical component of growing organizations as it enables them to learn and improve. As the DAO evolves, a reporting function is a critical way to improve and show investors it is more than just "the teenager with the trust fund".</li><li>This lack of a DAO-wide reporting function has led to issues for delegates and initiatives, reducing our speed of learning.</li><li>The problem is that while the Arbitrum DAO has made strides in data capture and reporting, gaps remain in transparency, documentation, and the distribution of data to stakeholders.</li><li>The work, Basic Reporting continuation [Stream]: the ongoing work required to maintain, document, and incrementally improve current data capture and reporting workflows.</li><li>Team: Alex Lumley, Lumen of PowerHouse, Customer Stakeholder Representative Group and potentially a group of SPs who will leverage reporting &amp; information and Incorporate community stakeholders into workflows to enhance transparency and collaboration.</li><li>Cost: a maximum of $263,260 for the continuation of the reporting function for up to 12 months, 4 months of backpay, grants to incorporate the community and research areas such as information dissemination and how to incorporate other tools the community has built.</li></ul>"#;
 
         // Get the actual before and after content
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         // Assert the full content matches
         assert_eq!(before.trim(), expected_before);
@@ -507,8 +507,8 @@ mod inline_changes {
         let expected_before = r#"<p>old text</p><span>removed</span>"#;
         let expected_after = r#"<p>new text</p><span>added</span>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert_eq!(before, expected_before);
         assert_eq!(after, expected_after);
@@ -534,8 +534,8 @@ mod inline_changes {
         let expected_after =
             r#"<h1>New Title</h1><p>Added paragraph</p><ul><li>New item</li></ul>"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert_eq!(before, expected_before);
         assert_eq!(after, expected_after);
@@ -548,8 +548,8 @@ mod inline_changes {
         let expected_before = r#"[PROPOSAL] - Transaction Fee Distribution"#;
         let expected_after = r#"Transaction Fee Distribution"#;
 
-        let before = extract_before_content_inline(&content).unwrap();
-        let after = extract_after_content_inline(&content).unwrap();
+        let before = extract_before_content_inline(content).unwrap();
+        let after = extract_after_content_inline(content).unwrap();
 
         assert_eq!(before, expected_before);
         assert_eq!(after, expected_after);
