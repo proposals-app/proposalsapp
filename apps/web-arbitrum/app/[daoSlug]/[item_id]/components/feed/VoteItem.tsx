@@ -1,9 +1,20 @@
 import { Proposal, Selectable } from "@proposalsapp/db";
 import { CombinedFeedItem, VoteFeedItem } from "./Feed";
-import { formatDistanceToNowStrict } from "date-fns";
+import {
+  format,
+  formatDistanceToNowStrict,
+  formatISO,
+  parseISO,
+} from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import { VotingPowerTag } from "./VotingPowerTag";
 import { Suspense } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shadcn/ui/tooltip";
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === "vote";
@@ -31,6 +42,10 @@ export async function VoteItem({
     {
       addSuffix: true,
     },
+  );
+  const utcTime = format(
+    formatISO(item.timestamp),
+    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
   );
 
   const formattedVotingPower = item.votingPower
@@ -88,9 +103,18 @@ export async function VoteItem({
         </div>
 
         <div className="flex flex-col items-end text-sm text-gray-500">
-          <div>
-            voted <span className="font-bold">{relativeCreateTime}</span>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  voted <span className="font-bold">{relativeCreateTime}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{utcTime}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 

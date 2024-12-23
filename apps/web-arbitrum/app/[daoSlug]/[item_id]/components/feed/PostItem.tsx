@@ -3,9 +3,20 @@ import { toHast } from "mdast-util-to-hast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import rehypeStringify from "rehype-stringify";
 import { unified } from "unified";
-import { formatDistanceToNowStrict } from "date-fns";
+import {
+  format,
+  formatDistanceToNowStrict,
+  formatISO,
+  parseISO,
+} from "date-fns";
 import { getDiscourseUser } from "./actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shadcn/ui/tooltip";
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === "post";
@@ -32,6 +43,10 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
       addSuffix: true,
     },
   );
+  const utcTime = format(
+    formatISO(item.timestamp),
+    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
+  );
 
   return (
     <div id={postAnchorId} className="w-full scroll-mt-36 p-4">
@@ -45,8 +60,20 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
           />
         )}
         <div className="flex flex-col items-end text-sm text-gray-500">
-          <div>
-            posted <span className="font-bold">{relativeCreateTime}</span>
+          <div className="flex flex-col items-end text-sm text-gray-500">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    posted{" "}
+                    <span className="font-bold">{relativeCreateTime}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{utcTime}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           {item.timestamp.getTime() != item.updatedAt.getTime() && (
             <div>

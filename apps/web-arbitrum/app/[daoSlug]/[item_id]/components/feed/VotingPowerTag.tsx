@@ -1,6 +1,13 @@
 import { Proposal, Selectable } from "@proposalsapp/db";
 import { CombinedFeedItem } from "./Feed";
 import { getVotingPower } from "./actions";
+import { format, formatISO } from "date-fns";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shadcn/ui/tooltip";
 
 export async function VotingPowerTag({
   item,
@@ -19,15 +26,40 @@ export async function VotingPowerTag({
 
   if (!votingPower.initialVotingPower) return <></>;
 
+  const utcStartTime = format(
+    formatISO(votingPower.startTime),
+    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
+  );
+
+  const utcEndTime = format(
+    formatISO(votingPower.endTime),
+    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
+  );
+
   return (
     <div className="flex w-fit gap-4 rounded-lg border-2 border-gray-200 p-1 text-xs text-gray-500">
-      {formatNumberWithSuffix(votingPower?.finalVotingPower)} ARB
-      {votingPower.change && votingPower.change !== 0 && (
-        <div className="flex items-center gap-2">
-          <div>{votingPower.change.toFixed(0)} %</div>
-          {votingPower.change > 0 ? <div>↑</div> : <div>↓</div>}
-        </div>
-      )}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              {formatNumberWithSuffix(votingPower?.finalVotingPower)} ARB
+              {votingPower.change && votingPower.change !== 0 && (
+                <div className="flex items-center gap-2">
+                  <div>{votingPower.change.toFixed(0)} %</div>
+                  {votingPower.change > 0 ? <div>↑</div> : <div>↓</div>}
+                </div>
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              {utcStartTime} to
+              <br />
+              {utcEndTime}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 }
