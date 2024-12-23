@@ -190,7 +190,7 @@ async fn main() -> Result<()> {
                 }
 
                 // Wait for a short duration before the next check
-                sleep(Duration::from_secs(30)).await;
+                sleep(Duration::from_secs(5)).await;
             }
         }
     });
