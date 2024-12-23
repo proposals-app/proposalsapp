@@ -22,14 +22,12 @@ export async function VotingPowerTag({
   return (
     <div className="flex w-fit gap-4 rounded-lg border-2 border-gray-200 p-1 text-xs text-gray-500">
       {formatNumberWithSuffix(votingPower?.finalVotingPower)} ARB
-      <div className="flex items-center gap-2">
-        {votingPower.change && <div>{votingPower.change.toFixed(0)} %</div>}
-        {votingPower.change && votingPower.change > 0 ? (
-          <div>↑</div>
-        ) : (
-          <div>↓</div>
-        )}
-      </div>
+      {votingPower.change && votingPower.change !== 0 && (
+        <div className="flex items-center gap-2">
+          <div>{votingPower.change.toFixed(0)} %</div>
+          {votingPower.change > 0 ? <div>↑</div> : <div>↓</div>}
+        </div>
+      )}
     </div>
   );
 }

@@ -192,7 +192,7 @@ export const FullViewBar = () => {
                             onSelect={(currentValue) => {
                               setVotesFilter(
                                 currentValue === votesFilter
-                                  ? VotesFilterEnum.NONE
+                                  ? VotesFilterEnum.ALL
                                   : (currentValue as VotesFilterEnum),
                               );
                             }}

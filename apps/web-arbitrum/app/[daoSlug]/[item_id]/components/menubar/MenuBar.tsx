@@ -7,7 +7,7 @@ import { CommentsViewBar } from "./CommentsViewBar";
 
 export const voteFilters = [
   {
-    value: VotesFilterEnum.NONE,
+    value: VotesFilterEnum.ALL,
     label: "No Filter",
   },
   {
