@@ -72,7 +72,7 @@ impl Indexer for SnapshotVotesIndexer {
         IndexerType::Votes
     }
     fn timeout(&self) -> Duration {
-        Duration::from_secs(5 * 60)
+        Duration::from_secs(30 * 60)
     }
 }
 
