@@ -12,11 +12,13 @@ const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
 export async function VoteItem({
   item,
   proposal,
+  proposalIds,
   topicIds,
   daoSlug,
 }: {
   item: CombinedFeedItem;
   proposal?: Selectable<Proposal>;
+  proposalIds?: string[];
   topicIds: number[];
   daoSlug: string;
 }) {
@@ -79,7 +81,7 @@ export async function VoteItem({
           <Suspense>
             <VotingPowerTag
               item={item}
-              proposal={proposal}
+              proposalIds={proposalIds}
               topicIds={topicIds}
             />
           </Suspense>

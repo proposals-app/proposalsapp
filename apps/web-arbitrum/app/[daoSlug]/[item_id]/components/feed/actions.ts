@@ -3,6 +3,8 @@ import { AsyncReturnType } from "@/lib/utils";
 import {
   db,
   DiscoursePost,
+  DiscourseTopic,
+  Proposal,
   Selectable,
   Vote,
   VotingPower,
@@ -146,9 +148,11 @@ export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
 
 export async function getVotingPower(
   voteId: string,
-  proposalId: string,
+  proposalIds: string[],
   topicExternalIds: number[],
 ): Promise<{
+  startTime: Date;
+  endTime: Date;
   initialVotingPower: number;
   finalVotingPower: number;
   change: number | null;
@@ -161,58 +165,78 @@ export async function getVotingPower(
       .where("id", "=", voteId)
       .executeTakeFirstOrThrow();
 
-    // Fetch the proposal to get creation time and end time
-    const proposal = await db
-      .selectFrom("proposal")
-      .selectAll()
-      .where("id", "=", proposalId)
-      .executeTakeFirstOrThrow();
-
-    if (!vote || !proposal) {
-      throw new Error("Vote or Proposal not found");
+    // Fetch the proposals
+    let proposals: Selectable<Proposal>[] = [];
+    if (proposalIds.length > 0) {
+      proposals = await db
+        .selectFrom("proposal")
+        .selectAll()
+        .where("id", "in", proposalIds)
+        .execute();
     }
 
-    // Fetch the DAO and its discourse to get the start time
-    const dao = await db
-      .selectFrom("dao")
-      .selectAll()
-      .where("id", "=", proposal.daoId)
-      .executeTakeFirstOrThrow();
-
-    const daoDiscourse = await db
-      .selectFrom("daoDiscourse")
-      .selectAll()
-      .where("daoDiscourse.daoId", "=", dao.id)
-      .executeTakeFirstOrThrow();
-
-    // Fetch topics related to the proposal (if any)
-    let topics: { createdAt: Date }[] = [];
-    if (topicExternalIds.length) {
+    // Fetch the topics
+    let topics: Selectable<DiscourseTopic>[] = [];
+    if (topicExternalIds.length > 0) {
       topics = await db
         .selectFrom("discourseTopic")
         .selectAll()
-        .where("discourseTopic.daoDiscourseId", "=", daoDiscourse.id)
         .where("externalId", "in", topicExternalIds)
         .execute();
     }
 
+    // Ensure there are either proposals or topics available
+    if (!proposals.length && !topics.length) {
+      throw new Error("No proposals or topics found");
+    }
+
+    // Fetch the DAO and its discourse to get the start time
+    let daoId: string | undefined;
+    if (proposals.length > 0) {
+      const dao = await db
+        .selectFrom("dao")
+        .selectAll()
+        .where("id", "=", proposals[0].daoId)
+        .executeTakeFirst();
+      daoId = dao?.id;
+    } else {
+      const topicDaoDiscourseId = topics[0].daoDiscourseId;
+      const topicDao = await db
+        .selectFrom("daoDiscourse")
+        .innerJoin("dao", "dao.id", "daoDiscourse.daoId")
+        .selectAll()
+        .where("daoDiscourse.id", "=", topicDaoDiscourseId)
+        .executeTakeFirst();
+      daoId = topicDao?.daoId;
+    }
+
+    if (!daoId) {
+      throw new Error("DAO not found");
+    }
+
     // Determine the start time as the earliest creation time among proposals and topics
-    const proposalStartTime = new Date(proposal.timeCreated);
-    const topicStartTimes = topics.map((topic) => topic.createdAt);
+    const proposalStartTimes = proposals.map((proposal) =>
+      proposal.timeStart.getTime(),
+    );
+    const topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
+
+    const proposalEndTimes = proposals.map((proposal) =>
+      proposal.timeEnd.getTime(),
+    );
+    const topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
+
     const startTime = new Date(
-      Math.min(
-        proposalStartTime.getTime(),
-        ...topicStartTimes.map((time) => time.getTime()),
-      ),
+      Math.min(...proposalStartTimes, ...topicStartTimes),
     );
 
-    const endTime = proposal.timeEnd;
+    const endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
 
     // Fetch the closest voting power record to the start time
     const initialVotingPowerRecord = await db
       .selectFrom("votingPower")
       .selectAll()
       .where("voter", "=", vote.voterAddress)
+      .where("daoId", "=", daoId)
       .where("timestamp", "<=", startTime)
       .orderBy("timestamp", "desc")
       .limit(1)
@@ -223,6 +247,7 @@ export async function getVotingPower(
       .selectFrom("votingPower")
       .selectAll()
       .where("voter", "=", vote.voterAddress)
+      .where("daoId", "=", daoId)
       .where("timestamp", "<=", endTime)
       .orderBy("timestamp", "desc")
       .limit(1)
@@ -237,7 +262,7 @@ export async function getVotingPower(
         ((finalVotingPower - initialVotingPower) / initialVotingPower) * 100;
     }
 
-    return { initialVotingPower, finalVotingPower, change };
+    return { startTime, endTime, initialVotingPower, finalVotingPower, change };
   } catch (error) {
     console.error("Error fetching voting power:", error);
     throw error; // Re-throw the error after logging

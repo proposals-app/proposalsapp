@@ -46,6 +46,7 @@ export default async function Feed({
             <VoteItem
               item={item}
               proposal={proposals.find((p) => p.id == item.proposalId)}
+              proposalIds={proposals.map((p) => p.id)}
               topicIds={topicIds}
               daoSlug={group.dao.slug}
             />

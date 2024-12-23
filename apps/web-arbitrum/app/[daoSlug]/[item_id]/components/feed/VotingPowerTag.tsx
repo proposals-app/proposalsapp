@@ -4,15 +4,15 @@ import { getVotingPower } from "./actions";
 
 export async function VotingPowerTag({
   item,
-  proposal,
+  proposalIds,
   topicIds,
 }: {
   item: CombinedFeedItem;
-  proposal?: Selectable<Proposal>;
+  proposalIds?: string[];
   topicIds: number[];
 }) {
-  const votingPower = proposal
-    ? await getVotingPower(item.id, proposal.id, topicIds)
+  const votingPower = proposalIds?.length
+    ? await getVotingPower(item.id, proposalIds, topicIds)
     : null;
 
   if (!votingPower) return <></>;
