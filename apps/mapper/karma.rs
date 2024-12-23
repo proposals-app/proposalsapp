@@ -39,13 +39,9 @@ lazy_static::lazy_static! {
 async fn fetch_karma_data(database_url: &str) -> Result<()> {
     let client = Client::new();
 
-    let mut opt = ConnectOptions::new(database_url);
-
+    let mut opt = ConnectOptions::new(database_url.to_string());
     opt.sqlx_logging(false);
-
-    let conn = Database::connect(opt)
-        .await
-        .context("Failed to connect to the database")?;
+    let conn = Database::connect(opt).await?;
 
     // Fetch all DAOs along with their associated dao_discourse information
     let daos = dao::Entity::find()
