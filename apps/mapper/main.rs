@@ -16,6 +16,7 @@ use utils::{
     tracing::setup_tracing,
     types::{DiscussionJobData, JobType, ProposalJobData},
 };
+mod karma;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ProposalGroupItem {
@@ -333,6 +334,13 @@ async fn main() -> Result<()> {
         }
     });
 
+    // Start karma task
+    let karma_handle = tokio::spawn(async move {
+        if let Err(e) = karma::run_karma_task(&database_url).await {
+            error!(error = %e, "Karma task runtime error");
+        }
+    });
+
     // Uptime ping task
     let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
     let client = Client::new();
@@ -347,7 +355,7 @@ async fn main() -> Result<()> {
     });
 
     // Join the handles to keep the main thread running
-    futures::future::join_all(vec![mapper_handle, uptime_handle]).await;
+    futures::future::join_all(vec![mapper_handle, karma_handle, uptime_handle]).await;
 
     Ok(())
 }

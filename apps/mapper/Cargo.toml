@@ -5,11 +5,13 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true, features = ["backtrace"] }
+alloy = { workspace = true, features = ["full"] }
 axum = { workspace = true }
 chrono = { workspace = true }
+csv = "1.3.1"
 dotenv = { workspace = true }
 futures = { workspace = true }
-lazy_static = { workspace = true }
+lazy_static.workspace = true
 opentelemetry = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
