@@ -79,7 +79,7 @@ async fn fetch_karma_data(database_url: &str) -> Result<()> {
             }
 
             for delegate in &delegates {
-                if let Err(e) = update_delegates(&conn, &dao.slug, &delegates).await {
+                if let Err(e) = update_delegate(&conn, &dao.slug, &delegate).await {
                     error!(error = %e, "Error updating delegate: {:?}", delegate);
                 }
             }
@@ -91,10 +91,10 @@ async fn fetch_karma_data(database_url: &str) -> Result<()> {
     Ok(())
 }
 
-async fn update_delegates(
+async fn update_delegate(
     conn: &sea_orm::DatabaseConnection,
     dao_slug: &str,
-    delegates: &[KarmaDelegate],
+    delegates: &KarmaDelegate,
 ) -> Result<(), anyhow::Error> {
     Ok(())
 }
