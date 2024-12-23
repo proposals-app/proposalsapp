@@ -114,13 +114,7 @@ async fn update_delegate(
     // Early return if forum_handle is None
     let forum_handle = match &delegate_data.forum_handle {
         Some(handle) => handle,
-        None => {
-            warn!(
-                "No forum handle provided for address: {}",
-                delegate_data.public_address
-            );
-            return Ok(());
-        }
+        None => return Ok(()),
     };
 
     // Check if the voter exists
