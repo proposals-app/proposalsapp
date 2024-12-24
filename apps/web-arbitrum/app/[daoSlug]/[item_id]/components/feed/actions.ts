@@ -242,6 +242,8 @@ export async function getVotingPower(
       .limit(1)
       .executeTakeFirst();
 
+    initialVotingPowerRecord?.timestamp;
+
     // Fetch the closest voting power record to the end time
     const finalVotingPowerRecord = await db
       .selectFrom("votingPower")
@@ -256,13 +258,26 @@ export async function getVotingPower(
     const initialVotingPower = initialVotingPowerRecord?.votingPower ?? 0;
     const finalVotingPower = finalVotingPowerRecord?.votingPower ?? 0;
 
+    const initialVotingPowerTime = new Date(
+      initialVotingPowerRecord?.timestamp ?? 0,
+    );
+    const finalVotingPowerTime = new Date(
+      finalVotingPowerRecord?.timestamp ?? 0,
+    );
+
     let change: number | null = null;
     if (initialVotingPower !== finalVotingPower) {
       change =
         ((finalVotingPower - initialVotingPower) / initialVotingPower) * 100;
     }
 
-    return { startTime, endTime, initialVotingPower, finalVotingPower, change };
+    return {
+      startTime: initialVotingPowerTime,
+      endTime: finalVotingPowerTime,
+      initialVotingPower,
+      finalVotingPower,
+      change,
+    };
   } catch (error) {
     console.error("Error fetching voting power:", error);
     throw error; // Re-throw the error after logging
