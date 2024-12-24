@@ -15,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
+import { getDelegate } from "./actions";
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === "vote";
@@ -36,6 +37,8 @@ export async function VoteItem({
   if (!isVoteItem(item)) {
     return null;
   }
+
+  const delegate = await getDelegate(item.voterAddress, daoSlug);
 
   const relativeCreateTime = formatDistanceToNowStrict(
     new Date(item.timestamp),
@@ -85,13 +88,22 @@ export async function VoteItem({
       anchorHref = `#post-${postNumber}-${topicId}`;
     else match = null;
   }
+
   return (
     <div
       className={`${resultClass} flex w-2/3 flex-col gap-2 rounded-lg border p-4 shadow-sm`}
     >
       <div className="flex flex-row justify-between">
         <div className="flex flex-col gap-2">
-          {<AuthorInfo authorName={item.voterAddress} />}
+          {
+            <AuthorInfo
+              authorName={
+                delegate?.delegatetovoter?.ens ??
+                delegate?.delegatetodiscourseuser?.name ??
+                item.voterAddress
+              }
+            />
+          }
 
           <Suspense>
             <VotingPowerTag

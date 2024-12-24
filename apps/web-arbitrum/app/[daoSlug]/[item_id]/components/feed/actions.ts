@@ -284,6 +284,63 @@ export async function getVotingPower(
   }
 }
 
-export type VotingPowerChangeType = AsyncReturnType<typeof getVotingPower>;
+export async function getDelegate(voterAddress: string, daoSlug: string) {
+  const dao = await db
+    .selectFrom("dao")
+    .where("slug", "=", daoSlug)
+    .selectAll()
+    .executeTakeFirst();
 
+  if (!dao) return null;
+
+  const voter = await db
+    .selectFrom("voter")
+    .where("address", "=", voterAddress)
+    .selectAll()
+    .executeTakeFirst();
+
+  if (!voter) return null;
+
+  // Fetch the delegate data
+  const delegateData = await db
+    .selectFrom("delegate")
+    .innerJoin("delegateToVoter", "delegate.id", "delegateToVoter.delegateId")
+    .where("delegateToVoter.voterId", "=", voter.id)
+    .where("delegate.daoId", "=", dao.id)
+    .select("delegate.id")
+    .executeTakeFirst();
+
+  if (!delegateData) return null;
+
+  // Fetch the DelegateToDiscourseUser data
+  const delegateToDiscourseUserData = await db
+    .selectFrom("delegateToDiscourseUser")
+    .where("delegateId", "=", delegateData.id)
+    .leftJoin(
+      "discourseUser",
+      "discourseUser.id",
+      "delegateToDiscourseUser.discourseUserId",
+    )
+    .selectAll()
+    .executeTakeFirst();
+
+  // Fetch the DelegateToVoter data
+  const delegateToVoterData = await db
+    .selectFrom("delegateToVoter")
+    .where("delegateId", "=", delegateData.id)
+    .leftJoin("voter", "voter.id", "delegateToVoter.voterId")
+    .selectAll()
+    .executeTakeFirst();
+
+  // Combine the results into a single object
+  const result = {
+    delegate: delegateData,
+    delegatetodiscourseuser: delegateToDiscourseUserData,
+    delegatetovoter: delegateToVoterData,
+  };
+
+  return result;
+}
+
+export type VotingPowerChangeType = AsyncReturnType<typeof getVotingPower>;
 export type FeedDataType = AsyncReturnType<typeof getFeedForGroup>;
