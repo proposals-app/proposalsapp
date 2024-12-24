@@ -93,7 +93,7 @@ export async function VoteItem({
     <div
       className={`${resultClass} flex w-2/3 flex-col gap-2 rounded-lg border p-4 shadow-sm`}
     >
-      <div className="flex flex-row justify-between">
+      <div className="flex cursor-default select-none flex-row justify-between">
         <div className="flex flex-col gap-2">
           {
             <AuthorInfo
@@ -130,7 +130,7 @@ export async function VoteItem({
         </div>
       </div>
 
-      <div>
+      <div className="cursor-default select-none">
         <p className="font-bold">{formattedVotingPower} ARB</p>
         <p className="font-bold">
           {((proposal?.choices ?? []) as string[])[item.choice as number]}

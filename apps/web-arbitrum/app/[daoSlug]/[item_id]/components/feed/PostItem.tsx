@@ -50,7 +50,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
 
   return (
     <div id={postAnchorId} className="w-full scroll-mt-36 p-4">
-      <div className="flex flex-row justify-between">
+      <div className="flex cursor-default select-none flex-row justify-between">
         {author && (
           <AuthorInfo
             authorName={
@@ -59,7 +59,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
             authorPicture={author.avatarTemplate}
           />
         )}
-        <div className="flex flex-col items-end text-sm text-gray-500">
+        <div className="flex cursor-default select-none flex-col items-end text-sm text-gray-500">
           <div className="flex flex-col items-end text-sm text-gray-500">
             <TooltipProvider>
               <Tooltip>
@@ -112,7 +112,7 @@ const QUOTE_STYLES = {
   wrapper: "my-4 border-l-2 border-gray-200 p-4",
   header: "flex text-sm text-gray-600 mb-2 font-bold",
   content: "text-gray-800",
-  linkWrapper: "w-full flex justify-end mt-2",
+  linkWrapper: "w-full flex justify-end mt-2 cursor-default select-none",
   link: "text-gray-500 hover:underline text-sm font-bold no-underline",
 } as const;
 
