@@ -38,7 +38,12 @@ export async function VoteItem({
     return null;
   }
 
-  const delegate = await getDelegate(item.voterAddress, daoSlug);
+  const delegate = await getDelegate(
+    item.voterAddress,
+    daoSlug,
+    topicIds,
+    proposalIds,
+  );
 
   const relativeCreateTime = formatDistanceToNowStrict(
     new Date(item.timestamp),

@@ -284,7 +284,12 @@ export async function getVotingPower(
   }
 }
 
-export async function getDelegate(voterAddress: string, daoSlug: string) {
+export async function getDelegate(
+  voterAddress: string,
+  daoSlug: string,
+  topicExternalIds: number[],
+  proposalIds?: string[],
+) {
   const dao = await db
     .selectFrom("dao")
     .where("slug", "=", daoSlug)
@@ -300,6 +305,44 @@ export async function getDelegate(voterAddress: string, daoSlug: string) {
     .executeTakeFirst();
 
   if (!voter) return null;
+
+  // Fetch the timestamps from proposals and topics
+  let proposalStartTimes: number[] = [];
+  let proposalEndTimes: number[] = [];
+
+  if (proposalIds && proposalIds.length > 0) {
+    const proposals = await db
+      .selectFrom("proposal")
+      .selectAll()
+      .where("id", "in", proposalIds)
+      .execute();
+
+    proposalStartTimes = proposals.map((proposal) =>
+      proposal.timeStart.getTime(),
+    );
+    proposalEndTimes = proposals.map((proposal) => proposal.timeEnd.getTime());
+  }
+
+  let topicStartTimes: number[] = [];
+  let topicEndTimes: number[] = [];
+
+  if (topicExternalIds.length > 0) {
+    const topics = await db
+      .selectFrom("discourseTopic")
+      .selectAll()
+      .where("externalId", "in", topicExternalIds)
+      .execute();
+
+    topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
+    topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
+  }
+
+  // Determine the start and end times based on proposals and topics
+  const startTime = new Date(
+    Math.min(...proposalStartTimes, ...topicStartTimes),
+  );
+
+  const endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
 
   // Fetch the delegate data
   const delegateData = await db
@@ -321,6 +364,8 @@ export async function getDelegate(voterAddress: string, daoSlug: string) {
       "discourseUser.id",
       "delegateToDiscourseUser.discourseUserId",
     )
+    .where("periodStart", ">=", startTime)
+    .where("periodEnd", "<=", endTime)
     .selectAll()
     .executeTakeFirst();
 
@@ -329,6 +374,8 @@ export async function getDelegate(voterAddress: string, daoSlug: string) {
     .selectFrom("delegateToVoter")
     .where("delegateId", "=", delegateData.id)
     .leftJoin("voter", "voter.id", "delegateToVoter.voterId")
+    .where("periodStart", ">=", startTime)
+    .where("periodEnd", "<=", endTime)
     .selectAll()
     .executeTakeFirst();
 
