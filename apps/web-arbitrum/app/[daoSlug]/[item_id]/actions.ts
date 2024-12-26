@@ -288,18 +288,6 @@ export async function getBodiesForGroup(groupID: string) {
       .selectAll()
       .executeTakeFirstOrThrow();
 
-    bodies.push({
-      title: discourseTopic.title,
-      content: discourseFirstPost.cooked ?? "Unknown",
-      author_name:
-        discourseFirstPostAuthor.name ??
-        discourseFirstPostAuthor.username ??
-        "Unknown",
-      author_picture: discourseFirstPostAuthor.avatarTemplate,
-      createdAt: discourseFirstPost.createdAt,
-      type: "topic",
-    });
-
     const discourseFirstPostRevisions = await db
       .selectFrom("discoursePostRevision")
       .where(
@@ -310,7 +298,37 @@ export async function getBodiesForGroup(groupID: string) {
       .selectAll()
       .execute();
 
+    if (!discourseFirstPostRevisions.length)
+      bodies.push({
+        title: discourseTopic.title,
+        content: discourseFirstPost.cooked ?? "Unknown",
+        author_name:
+          discourseFirstPostAuthor.name ??
+          discourseFirstPostAuthor.username ??
+          "Unknown",
+        author_picture: discourseFirstPostAuthor.avatarTemplate,
+        createdAt: discourseFirstPost.createdAt,
+        type: "topic",
+      });
+
     for (const discourseFirstPostRevision of discourseFirstPostRevisions) {
+      if (discourseFirstPostRevision.version == 2)
+        bodies.push({
+          title:
+            discourseFirstPostRevision.cookedTitleBefore ??
+            discourseTopic.title,
+          content:
+            discourseFirstPostRevision.cookedBodyBefore ??
+            discourseFirstPost.cooked,
+          author_name:
+            discourseFirstPostAuthor.name ??
+            discourseFirstPostAuthor.username ??
+            "Unknown",
+          author_picture: discourseFirstPostAuthor.avatarTemplate,
+          createdAt: discourseFirstPost.createdAt,
+          type: "topic",
+        });
+
       bodies.push({
         title:
           discourseFirstPostRevision.cookedTitleAfter ?? discourseTopic.title,
