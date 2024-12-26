@@ -298,6 +298,7 @@ export async function getBodiesForGroup(groupID: string) {
       .selectAll()
       .execute();
 
+    // If there are no revisions, use the post itself
     if (!discourseFirstPostRevisions.length)
       bodies.push({
         title: discourseTopic.title,
@@ -312,6 +313,7 @@ export async function getBodiesForGroup(groupID: string) {
       });
 
     for (const discourseFirstPostRevision of discourseFirstPostRevisions) {
+      // If there are revisions, the initial post is in fact the before of version 2
       if (discourseFirstPostRevision.version == 2)
         bodies.push({
           title:
