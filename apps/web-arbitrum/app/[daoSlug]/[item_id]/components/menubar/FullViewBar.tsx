@@ -123,7 +123,7 @@ export const FullViewBar = () => {
       window.removeEventListener("scroll", handleScroll);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [setView]);
+  }, [setView, expanded, view]);
 
   return (
     <div
