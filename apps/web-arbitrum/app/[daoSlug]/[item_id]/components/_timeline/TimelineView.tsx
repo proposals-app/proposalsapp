@@ -7,7 +7,7 @@ import {
 } from "./types";
 import { processTimelineData } from "./utils";
 import { notFound } from "next/navigation";
-import { GroupDataType } from "../../actions";
+import { GroupWithDataType } from "../../actions";
 
 interface CollapsibleCard {
   id: number;
@@ -16,7 +16,7 @@ interface CollapsibleCard {
 }
 
 interface DetailsBarProps {
-  groupData: GroupDataType | null;
+  groupData: GroupWithDataType | null;
 }
 
 export default function TimelineView({ groupData }: DetailsBarProps) {

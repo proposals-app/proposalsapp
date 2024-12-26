@@ -7,7 +7,6 @@ import {
   Proposal,
   Selectable,
   Vote,
-  VotingPower,
 } from "@proposalsapp/db";
 
 export async function getFeedForGroup(
@@ -48,17 +47,11 @@ export async function getFeedForGroup(
       .where("discourseTopic.id", "in", topicIds)
       .execute();
 
-    if (topics.length === 0) {
-      return { votes, posts };
-    }
-
     // Check if all topics have the same daoDiscourseId
-    const firstDaoDiscourseId = topics[0].daoDiscourseId;
-    for (const topic of topics) {
-      if (topic.daoDiscourseId !== firstDaoDiscourseId) {
-        console.error("Inconsistent daoDiscourseId across topics");
-        return { votes, posts }; // or handle the error as needed
-      }
+    const firstDaoDiscourseId = topics[0]?.daoDiscourseId;
+    if (topics.length > 0 && !firstDaoDiscourseId) {
+      console.error("Inconsistent daoDiscourseId across topics");
+      return { votes, posts };
     }
 
     const topicsExternalIds = topics.map((t) => t.externalId);
@@ -149,7 +142,7 @@ export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
 export async function getVotingPower(
   voteId: string,
   proposalIds: string[],
-  topicExternalIds: number[],
+  topicIds: string[],
 ): Promise<{
   startTime: Date;
   endTime: Date;
@@ -177,11 +170,11 @@ export async function getVotingPower(
 
     // Fetch the topics
     let topics: Selectable<DiscourseTopic>[] = [];
-    if (topicExternalIds.length > 0) {
+    if (topicIds.length > 0) {
       topics = await db
         .selectFrom("discourseTopic")
         .selectAll()
-        .where("externalId", "in", topicExternalIds)
+        .where("id", "in", topicIds)
         .execute();
     }
 
@@ -287,7 +280,7 @@ export async function getVotingPower(
 export async function getDelegate(
   voterAddress: string,
   daoSlug: string,
-  topicExternalIds: number[],
+  topicIds: string[],
   proposalIds?: string[],
 ) {
   const dao = await db
@@ -326,11 +319,11 @@ export async function getDelegate(
   let topicStartTimes: number[] = [];
   let topicEndTimes: number[] = [];
 
-  if (topicExternalIds.length > 0) {
+  if (topicIds.length > 0) {
     const topics = await db
       .selectFrom("discourseTopic")
       .selectAll()
-      .where("externalId", "in", topicExternalIds)
+      .where("id", "in", topicIds)
       .execute();
 
     topicStartTimes = topics.map((topic) => topic.createdAt.getTime());

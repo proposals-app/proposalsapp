@@ -148,7 +148,7 @@ async fn main() -> Result<()> {
                     // Check if enough time has passed since last processing
                     let should_process = last_processed
                         .get(&indexer_id)
-                        .map_or(true, |last| last.elapsed() >= interval);
+                        .is_none_or(|last| last.elapsed() >= interval);
 
                     if !should_process {
                         continue;

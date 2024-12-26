@@ -1,11 +1,6 @@
 import { Proposal, Selectable } from "@proposalsapp/db";
 import { CombinedFeedItem, VoteFeedItem } from "./Feed";
-import {
-  format,
-  formatDistanceToNowStrict,
-  formatISO,
-  parseISO,
-} from "date-fns";
+import { format, formatDistanceToNowStrict, formatISO } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import { VotingPowerTag } from "./VotingPowerTag";
 import { Suspense } from "react";
@@ -16,6 +11,8 @@ import {
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
 import { getDelegate } from "./actions";
+import { GroupWithDataType } from "../../actions";
+import { notFound } from "next/navigation";
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === "vote";
@@ -23,24 +20,26 @@ const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
 
 export async function VoteItem({
   item,
-  proposal,
-  proposalIds,
-  topicIds,
-  daoSlug,
+  group,
 }: {
   item: CombinedFeedItem;
-  proposal?: Selectable<Proposal>;
-  proposalIds?: string[];
-  topicIds: number[];
-  daoSlug: string;
+  group: GroupWithDataType;
 }) {
-  if (!isVoteItem(item)) {
-    return null;
+  if (!isVoteItem(item) || !group) {
+    notFound();
   }
+
+  const proposalIds = Array.from(new Set(group.proposals.map((p) => p.id)));
+  const topicIds = Array.from(new Set(group.topics.map((t) => t.id)));
+  const topicExternalIds = Array.from(
+    new Set(group.topics.map((t) => t.externalId)),
+  );
+
+  const proposal = group.proposals.find((p) => p.id == item.proposalId);
 
   const delegate = await getDelegate(
     item.voterAddress,
-    daoSlug,
+    group.daoSlug,
     topicIds,
     proposalIds,
   );
@@ -81,7 +80,7 @@ export async function VoteItem({
       resultClass = "place-self-center self-center w-full";
   }
 
-  const baseUrl = daoBaseUrlMap[daoSlug] || "";
+  const baseUrl = daoBaseUrlMap[group.daoSlug] || "";
   const urlPattern = new RegExp(`${baseUrl}/t/[^/]+/(\\d+)/(\\d+)(?:\\?.*)?`);
   let match = item.reason?.match(urlPattern);
 
@@ -89,7 +88,7 @@ export async function VoteItem({
   if (match) {
     const topicId = match[1];
     const postNumber = match[2];
-    if (topicIds.includes(parseInt(topicId)))
+    if (topicExternalIds.includes(parseInt(topicId)))
       anchorHref = `#post-${postNumber}-${topicId}`;
     else match = null;
   }

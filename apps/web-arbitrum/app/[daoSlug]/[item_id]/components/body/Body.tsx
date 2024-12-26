@@ -1,4 +1,4 @@
-import { getBodiesForGroup, GroupType } from "../../actions";
+import { getBodiesForGroup, GroupWithDataType } from "../../actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import BodyContent from "./BodyContent";
 import { PostedTime } from "./PostedTime";
@@ -11,7 +11,7 @@ export default async function Body({
   diff,
   expanded,
 }: {
-  group: GroupType;
+  group: GroupWithDataType;
   version: number;
   diff: boolean;
   expanded: boolean;

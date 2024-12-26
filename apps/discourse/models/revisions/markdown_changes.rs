@@ -1,3 +1,4 @@
+use anyhow::Result;
 use scraper::{Html, Selector};
 use thiserror::Error;
 
@@ -61,7 +62,7 @@ impl DiffNode {
     }
 }
 
-pub fn parse_markdown_diff(content: &str) -> Result<DiffNode, MarkdownDiffError> {
+pub fn parse_markdown_diff(content: &str) -> Result<DiffNode> {
     let html = Html::parse_fragment(content);
     let table_selector = Selector::parse("table.markdown").map_err(|e| {
         MarkdownDiffError::SelectorError(format!("Failed to create table selector: {}", e))
@@ -147,18 +148,18 @@ fn extract_text_content(element: &scraper::ElementRef) -> String {
     text.lines().collect::<Vec<_>>().join("\n")
 }
 
-pub fn extract_before_content_markdown(content: &str) -> Result<String, MarkdownDiffError> {
+pub fn extract_before_content_markdown(content: &str) -> Result<String> {
     let ast = parse_markdown_diff(content)?;
     Ok(ast.get_before_content())
 }
 
-pub fn extract_after_content_markdown(content: &str) -> Result<String, MarkdownDiffError> {
+pub fn extract_after_content_markdown(content: &str) -> Result<String> {
     let ast = parse_markdown_diff(content)?;
     Ok(ast.get_after_content())
 }
 
 #[cfg(test)]
-mod markdown_changes {
+mod markdown_changes_tests {
     use super::*;
 
     #[test]

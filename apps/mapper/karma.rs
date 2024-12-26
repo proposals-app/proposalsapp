@@ -190,7 +190,6 @@ async fn update_delegate(
         let new_delegate = delegate::ActiveModel {
             id: NotSet,
             dao_id: Set(dao.id),
-            ..Default::default()
         };
         let last_insert_id = delegate::Entity::insert(new_delegate)
             .exec(conn)
@@ -311,11 +310,7 @@ async fn update_delegates_ens(
 
     for delegate in filtered_delegates {
         if let Some(voter) = voters_to_update.remove(&delegate.public_address) {
-            if voter
-                .ens
-                .as_ref()
-                .map_or(true, |current_ens| current_ens != &delegate.ens_name)
-            {
+            if voter.ens.as_ref() != Some(&delegate.ens_name) {
                 // Convert Model to ActiveModel for updating
                 let mut active_voter = voter.into_active_model();
                 active_voter.ens = Set(Some(delegate.ens_name.clone()));

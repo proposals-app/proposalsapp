@@ -3,12 +3,7 @@ import { toHast } from "mdast-util-to-hast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import rehypeStringify from "rehype-stringify";
 import { unified } from "unified";
-import {
-  format,
-  formatDistanceToNowStrict,
-  formatISO,
-  parseISO,
-} from "date-fns";
+import { format, formatDistanceToNowStrict, formatISO } from "date-fns";
 import { getDiscourseUser } from "./actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import {

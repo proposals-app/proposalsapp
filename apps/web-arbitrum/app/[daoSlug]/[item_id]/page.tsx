@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getGroup, getTotalVersions } from "./actions";
+import { getGroupWithData, getTotalVersions } from "./actions";
 import Body from "./components/body/Body";
 import { SideBar } from "./components/SideBar";
 import { searchParamsCache } from "@/app/searchParams";
@@ -15,7 +15,7 @@ export default async function ProposalPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { daoSlug, item_id } = await params;
-  const group = await getGroup(daoSlug, item_id);
+  const group = await getGroupWithData(daoSlug, item_id);
   if (!group) {
     notFound();
   }

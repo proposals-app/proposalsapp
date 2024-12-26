@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import { getBodiesForGroup, GroupType } from "../../actions";
+import { getBodiesForGroup, GroupWithDataType } from "../../actions";
 import BodyVersion from "./BodyVersions";
 import { searchParamsCache, ViewEnum } from "@/app/searchParams";
 
 interface DetailsBarProps {
-  group: GroupType | null;
+  group: GroupWithDataType | null;
 }
 
 export async function DetailsBar({ group }: DetailsBarProps) {

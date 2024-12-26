@@ -16,7 +16,7 @@ export async function VotingPowerTag({
 }: {
   item: CombinedFeedItem;
   proposalIds?: string[];
-  topicIds: number[];
+  topicIds: string[];
 }) {
   const votingPower = proposalIds?.length
     ? await getVotingPower(item.id, proposalIds, topicIds)

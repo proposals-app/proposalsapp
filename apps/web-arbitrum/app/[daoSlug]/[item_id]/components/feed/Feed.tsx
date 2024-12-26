@@ -1,5 +1,5 @@
 import { DiscoursePost, Selectable, Vote } from "@proposalsapp/db";
-import { GroupType } from "../../actions";
+import { GroupWithDataType } from "../../actions";
 import { VoteItem } from "./VoteItem";
 import { PostItem } from "./PostItem";
 import { notFound } from "next/navigation";
@@ -11,7 +11,7 @@ export default async function Feed({
   commentsFilter,
   votesFilter,
 }: {
-  group: GroupType;
+  group: GroupWithDataType;
   commentsFilter: boolean;
   votesFilter: VotesFilterEnum;
 }) {
@@ -24,9 +24,6 @@ export default async function Feed({
     votesFilter,
   );
 
-  const proposalsIds = Array.from(new Set(feed.votes.map((v) => v.proposalId)));
-  const proposals = await getProposalsByIds(proposalsIds);
-
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
 
   // Filter out posts if comments is false
@@ -36,21 +33,11 @@ export default async function Feed({
       item.type == "vote",
   );
 
-  const topicIds = Array.from(new Set(feed.posts.map((p) => p.topicId)));
-
   return (
     <div className="flex w-full flex-col items-center divide-y">
       {itemsToDisplay.map((item, index) => (
         <div key={index} className="flex w-full flex-col p-4">
-          {item.type === "vote" && (
-            <VoteItem
-              item={item}
-              proposal={proposals.find((p) => p.id == item.proposalId)}
-              proposalIds={proposals.map((p) => p.id)}
-              topicIds={topicIds}
-              daoSlug={group.dao.slug}
-            />
-          )}
+          {item.type === "vote" && <VoteItem item={item} group={group} />}
           {item.type === "post" && <PostItem item={item} />}
         </div>
       ))}

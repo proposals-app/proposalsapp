@@ -1,3 +1,4 @@
+use anyhow::Result;
 use fancy_regex::Regex;
 
 fn cleanup_html(content: &str) -> String {
@@ -43,7 +44,7 @@ fn cleanup_html(content: &str) -> String {
     result
 }
 
-pub fn extract_before_content_inline(content: &str) -> Result<String, fancy_regex::Error> {
+pub fn extract_before_content_inline(content: &str) -> Result<String> {
     let mut result = content.to_string();
 
     // Rule 1 & 2: Remove outer inline-diff div if both opening and closing tags exist
@@ -84,7 +85,7 @@ pub fn extract_before_content_inline(content: &str) -> Result<String, fancy_rege
     Ok(cleanup_html(&result))
 }
 
-pub fn extract_after_content_inline(content: &str) -> Result<String, fancy_regex::Error> {
+pub fn extract_after_content_inline(content: &str) -> Result<String> {
     let mut result = content.to_string();
 
     // Rule 1 & 2: Remove outer inline-diff div if both opening and closing tags exist
@@ -124,7 +125,7 @@ pub fn extract_after_content_inline(content: &str) -> Result<String, fancy_regex
 }
 
 #[cfg(test)]
-mod inline_changes {
+mod inline_changes_tests {
     use crate::models::revisions::inline_changes::{
         extract_after_content_inline, extract_before_content_inline,
     };
