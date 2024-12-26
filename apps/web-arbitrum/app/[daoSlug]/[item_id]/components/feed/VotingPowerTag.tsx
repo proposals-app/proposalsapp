@@ -41,11 +41,11 @@ export async function VotingPowerTag({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div>
+            <div className="flex gap-2">
               {formatNumberWithSuffix(votingPower?.finalVotingPower)} ARB
               {votingPower.change && votingPower.change !== 0 && (
-                <div className="flex items-center gap-2">
-                  <div>{votingPower.change.toFixed(0)} %</div>
+                <div className="flex items-center gap-1">
+                  <div>{votingPower.change.toFixed(2)} %</div>
                   {votingPower.change > 0 ? <div>↑</div> : <div>↓</div>}
                 </div>
               )}

@@ -364,8 +364,8 @@ export async function getDelegate(
       "discourseUser.id",
       "delegateToDiscourseUser.discourseUserId",
     )
-    .where("periodStart", ">=", startTime)
-    .where("periodEnd", "<=", endTime)
+    .where("periodStart", "<=", startTime)
+    .where("periodEnd", ">=", endTime)
     .selectAll()
     .executeTakeFirst();
 
@@ -374,8 +374,8 @@ export async function getDelegate(
     .selectFrom("delegateToVoter")
     .where("delegateId", "=", delegateData.id)
     .leftJoin("voter", "voter.id", "delegateToVoter.voterId")
-    .where("periodStart", ">=", startTime)
-    .where("periodEnd", "<=", endTime)
+    .where("periodStart", "<=", startTime)
+    .where("periodEnd", ">=", endTime)
     .selectAll()
     .executeTakeFirst();
 

@@ -103,9 +103,14 @@ export async function VoteItem({
           {
             <AuthorInfo
               authorName={
-                delegate?.delegatetovoter?.ens ??
                 delegate?.delegatetodiscourseuser?.name ??
+                delegate?.delegatetovoter?.ens ??
                 item.voterAddress
+              }
+              authorPicture={delegate?.delegatetodiscourseuser?.avatarTemplate}
+              voterAddress={
+                delegate?.delegatetovoter?.ens ??
+                `${item.voterAddress.slice(0, 6)}...${item.voterAddress.slice(-4)}`
               }
             />
           }
@@ -177,15 +182,25 @@ const formatNumberWithSuffix = (num: number): string => {
   }
 };
 
-const AuthorInfo = ({ authorName }: { authorName: string }) => {
+const AuthorInfo = ({
+  authorName,
+  authorPicture,
+  voterAddress,
+}: {
+  authorName: string;
+  authorPicture: string | null | undefined;
+  voterAddress: string;
+}) => {
   const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
 
   let displayName = authorName;
-  let displayPicture;
   if (ethAddressRegex.test(authorName)) {
     displayName = `${authorName.slice(0, 6)}...${authorName.slice(-4)}`;
-    displayPicture = `https://api.dicebear.com/9.x/pixel-art/svg?seed=${authorName}`;
   }
+
+  let displayPicture =
+    authorPicture ??
+    `https://api.dicebear.com/9.x/pixel-art/svg?seed=${authorName}`;
 
   return (
     <div className="flex flex-row items-center gap-2">
@@ -193,7 +208,10 @@ const AuthorInfo = ({ authorName }: { authorName: string }) => {
         <AvatarImage src={displayPicture} />
         <AvatarFallback>{displayName.slice(0, 2)}</AvatarFallback>
       </Avatar>
-      <div className="flex items-center font-bold">{displayName}</div>
+      <div className="font-bold">
+        {displayName}{" "}
+        <span className="text-gray-500"> with {voterAddress}</span>
+      </div>
     </div>
   );
 };
