@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
+import { Suspense } from "react";
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === "post";
@@ -47,12 +48,16 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
     <div id={postAnchorId} className="w-full scroll-mt-36 p-4">
       <div className="flex cursor-default select-none flex-row justify-between">
         {author && (
-          <AuthorInfo
-            authorName={
-              author.name && author.name.length ? author.name : author.username
-            }
-            authorPicture={author.avatarTemplate}
-          />
+          <Suspense>
+            <AuthorInfo
+              authorName={
+                author.name && author.name.length
+                  ? author.name
+                  : author.username
+              }
+              authorPicture={author.avatarTemplate}
+            />
+          </Suspense>
         )}
         <div className="flex cursor-default select-none flex-col items-end text-sm text-gray-500">
           <div className="flex flex-col items-end text-sm text-gray-500">

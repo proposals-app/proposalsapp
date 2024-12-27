@@ -99,7 +99,7 @@ export async function VoteItem({
     >
       <div className="flex cursor-default select-none flex-row justify-between">
         <div className="flex flex-col gap-2">
-          {
+          <Suspense>
             <AuthorInfo
               authorName={
                 delegate?.delegatetodiscourseuser?.name ??
@@ -112,9 +112,7 @@ export async function VoteItem({
                 `${item.voterAddress.slice(0, 6)}...${item.voterAddress.slice(-4)}`
               }
             />
-          }
 
-          <Suspense>
             <VotingPowerTag
               item={item}
               proposalIds={proposalIds}
