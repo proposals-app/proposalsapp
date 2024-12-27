@@ -226,7 +226,9 @@ async fn get_votes(
         if !proposals_map.contains_key(&event.proposalId.to_string()) {
             let db = DatabaseStore::connect().await?;
             // If not found in proposals_map, fetch from the database once
-            if !db_proposals_fetched.contains_key(&event.proposalId.to_string()) {
+            if let std::collections::hash_map::Entry::Vacant(e) =
+                db_proposals_fetched.entry(event.proposalId.to_string())
+            {
                 match proposal::Entity::find()
                     .filter(
                         Condition::all()
@@ -236,10 +238,10 @@ async fn get_votes(
                     .one(&db)
                     .await?
                 {
-                    Some(active_proposal) => db_proposals_fetched.insert(
-                        event.proposalId.to_string(),
-                        active_proposal.into_active_model(),
-                    ),
+                    Some(active_proposal) => {
+                        e.insert(active_proposal.into_active_model());
+                        None::<()> // Explicitly specify the type for `None`
+                    }
                     None => bail!("Proposal not found for external ID: {}", event.proposalId),
                 };
             }
@@ -426,6 +428,8 @@ async fn get_created_proposals(
 ) -> Result<Vec<proposal::ActiveModel>> {
     let mut proposals: Vec<proposal::ActiveModel> = vec![];
 
+    let url_regex = Regex::new(r"Security Council Election #(\d+)").unwrap();
+
     for (event, log) in logs {
         let created_block_timestamp = rpc
             .get_block_by_number(
@@ -502,11 +506,11 @@ async fn get_created_proposals(
                 }
             };
 
-        let url = Regex::new(r"Security Council Election #(\d+)").unwrap().captures(&event.description)
-                           .and_then(|caps| caps.get(1).map(|m| m.as_str()))
-                           .map_or_else(String::new, |election_number| {
-                               format!("https://www.tally.xyz/gov/arbitrum/council/security-council/election/{}/round-1", election_number)
-                           });
+        let url = url_regex.captures(&event.description)
+                    .and_then(|caps| caps.get(1).map(|m| m.as_str()))
+                    .map_or_else(String::new, |election_number| {
+                        format!("https://www.tally.xyz/gov/arbitrum/council/security-council/election/{}/round-1", election_number)
+                    });
 
         let proposal_snapshot = contract.proposalSnapshot(event.proposalId).call().await?._0;
         let quorum = contract
