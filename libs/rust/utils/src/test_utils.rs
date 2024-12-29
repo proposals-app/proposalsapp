@@ -57,11 +57,19 @@ pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProp
         expected.url,
         "Proposal URL mismatch"
     );
-    assert_eq!(
-        proposal.discussion_url.clone().take().unwrap(),
-        expected.discussion_url,
-        "Proposal discussion URL mismatch"
-    );
+
+    match proposal.discussion_url.clone().take() {
+        Some(discussion_url) => assert_eq!(
+            discussion_url,
+            expected.discussion_url.clone(),
+            "Proposal discussion URL mismatch"
+        ),
+        None => assert!(
+            expected.discussion_url.is_none(),
+            "Proposal discussion URL mismatch"
+        ),
+    }
+
     assert_eq!(
         proposal.choices.clone().take().unwrap(),
         expected.choices,

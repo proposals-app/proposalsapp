@@ -527,21 +527,22 @@ mod aave_v2_content {
             get_discussion(
                 "f76d79693a81a1c0acd23c6ee151369752142b0d832daeaef9a4dd9f8c4bc7ce".into()
             )
-            .await
-            .unwrap(),
-            "https://governance.aave.com/t/arfc-polygon-v3-supply-cap-update-2023-05-21/13161"
+            .await,
+            Some(
+                "https://governance.aave.com/t/arfc-polygon-v3-supply-cap-update-2023-05-21/13161"
+                    .to_string()
+            )
         );
 
         assert_eq!(
             get_discussion(
                 "e7e93497d3847536f07fe8dba53485cf68a275c7b07ca38b53d2cc2d43fab3b0".into()
             )
-            .await
-            .unwrap(),
-            "Unknown"
+            .await,
+            None
         );
 
-        assert_eq!(get_discussion("deadbeef".into()).await.unwrap(), "Unknown");
+        assert_eq!(get_discussion("deadbeef".into()).await, None);
     }
 
     #[tokio::test]
@@ -550,12 +551,11 @@ mod aave_v2_content {
             get_discussion(
                 "8d4f6f42043d8db567d5e733762bb84a6f507997a779a66b2d17fdf9de403c13".into()
             )
-            .await
-            .unwrap(),
-            "https://governance.aave.com/t/arfc-add-reth-to-aave-v3-arbitrum-liquidity-pool/12810"
+            .await,
+            Some("https://governance.aave.com/t/arfc-add-reth-to-aave-v3-arbitrum-liquidity-pool/12810".to_string())
         );
 
-        assert_eq!(get_discussion("deadbeef".into()).await.unwrap(), "Unknown");
+        assert_eq!(get_discussion("deadbeef".into()).await, None);
     }
 
     #[tokio::test]
