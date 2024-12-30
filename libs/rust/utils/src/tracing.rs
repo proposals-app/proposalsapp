@@ -43,7 +43,7 @@ fn init_meter_provider() -> SdkMeterProvider {
         .unwrap();
 
     let reader = PeriodicReader::builder(exporter, runtime::Tokio)
-        .with_interval(std::time::Duration::from_secs(30))
+        .with_interval(std::time::Duration::from_secs(1))
         .build();
 
     let meter_provider = MeterProviderBuilder::default()
@@ -69,9 +69,7 @@ fn init_tracer_provider() -> TracerProvider {
         .unwrap();
 
     TracerProvider::builder()
-        .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
-            1.0,
-        ))))
+        .with_sampler(Sampler::AlwaysOn)
         .with_id_generator(RandomIdGenerator::default())
         .with_resource(resource())
         .with_batch_exporter(exporter, runtime::Tokio)
