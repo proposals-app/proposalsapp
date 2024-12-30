@@ -120,17 +120,27 @@ async fn update_delegate(
     };
 
     // Check if the voter exists
-    let voter: Option<voter::Model> = voter::Entity::find()
+    let mut voter: Option<voter::Model> = voter::Entity::find()
         .filter(voter::Column::Address.eq(delegate_data.public_address.clone()))
         .one(conn)
         .await?;
 
+    // If voter does not exist, create a new one
     if voter.is_none() {
-        warn!(
-            "Voter not found for address: {}",
-            delegate_data.public_address
-        );
-        return Ok(());
+        let new_voter = voter::ActiveModel {
+            id: NotSet,
+            address: Set(delegate_data.public_address.clone()),
+            ens: Set(Some(delegate_data.ens_name.clone())),
+        };
+        let last_insert_id = voter::Entity::insert(new_voter)
+            .exec(conn)
+            .await?
+            .last_insert_id;
+        voter = Some(voter::Model {
+            id: last_insert_id,
+            address: delegate_data.public_address.clone(),
+            ens: Some(delegate_data.ens_name.clone()),
+        });
     }
 
     // Check if the discourse user exists by dao_discourse_id and forum_handle
@@ -305,7 +315,7 @@ async fn update_delegates_ens(
         }
     }
 
-    // Prepare updates
+    // Prepare updates and new voters
     let mut active_voters_to_save = Vec::new();
 
     for delegate in filtered_delegates {
@@ -317,20 +327,32 @@ async fn update_delegates_ens(
                 active_voters_to_save.push(active_voter);
             }
         } else {
-            warn!("No voter found with address: {}", delegate.public_address);
+            // If voter does not exist, create a new one
+            let new_voter = voter::ActiveModel {
+                id: NotSet,
+                address: Set(delegate.public_address.clone()),
+                ens: Set(Some(delegate.ens_name.clone())),
+            };
+            active_voters_to_save.push(new_voter);
         }
     }
 
-    // Batch update voters
+    // Batch update or insert voters
     if !active_voters_to_save.is_empty() {
         let tx = conn.begin().await?;
 
         for voter in active_voters_to_save.clone() {
-            voter::Entity::update(voter).exec(&tx).await?;
+            if voter.id.is_not_set() {
+                // Insert new voter
+                voter::Entity::insert(voter).exec(&tx).await?;
+            } else {
+                // Update existing voter
+                voter::Entity::update(voter).exec(&tx).await?;
+            }
         }
 
         info!(
-            "Updated ENS names for {} voters.",
+            "Updated or inserted ENS names for {} voters.",
             active_voters_to_save.len()
         );
         tx.commit().await?;
