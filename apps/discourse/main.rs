@@ -38,7 +38,8 @@ lazy_static::lazy_static! {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let _tracing = setup_tracing();
+    let _tracing = setup_tracing().await?;
+
     info!("Application starting up");
 
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;

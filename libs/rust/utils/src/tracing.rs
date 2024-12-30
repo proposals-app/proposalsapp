@@ -1,3 +1,4 @@
+use anyhow::Result;
 use futures::FutureExt;
 use once_cell::sync::Lazy;
 use opentelemetry::{global, trace::TraceError, KeyValue};
@@ -10,7 +11,7 @@ use opentelemetry_sdk::{
     trace::{self as sdktrace, TracerProvider},
     Resource,
 };
-use std::{error::Error, time::Duration};
+use std::time::Duration;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[derive(Debug)]
@@ -98,7 +99,7 @@ pub fn get_meter() -> opentelemetry::metrics::Meter {
     global::meter(&SERVICE_NAME)
 }
 
-pub fn setup_tracing() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+pub async fn setup_tracing() -> Result<()> {
     let tracer_provider = init_tracer_provider().map_err(|e| {
         tracing::error!("Failed to initialize tracer provider: {:?}", e);
         e
@@ -140,20 +141,19 @@ pub fn setup_tracing() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     tracing_subscriber::registry()
         .with(otel_layer)
         .with(fmt_layer)
-        .try_init()
-        .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?;
+        .try_init()?;
+
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
     Ok(())
 }
 
-pub async fn run_with_tracing<F, Fut>(
-    future: F,
-) -> Result<(), Box<dyn Error + Send + Sync + 'static>>
+pub async fn run_with_tracing<F, Fut>(future: F) -> Result<()>
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'static,
 {
-    setup_tracing()?;
+    setup_tracing().await?;
 
     let result = std::panic::AssertUnwindSafe(future()).catch_unwind().await;
 

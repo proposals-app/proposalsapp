@@ -95,7 +95,8 @@ lazy_static::lazy_static! {
 #[instrument]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let _tracing = setup_tracing();
+    let _tracing = setup_tracing().await?;
+
     let db: DatabaseConnection = DatabaseStore::connect().await?;
 
     // Heartbeat task
