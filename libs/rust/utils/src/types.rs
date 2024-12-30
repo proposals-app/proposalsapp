@@ -1,6 +1,15 @@
 use ::serde::{Deserialize, Serialize};
 use sea_orm::prelude::Uuid;
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProposalGroupItem {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub type_field: String,
+    pub name: String,
+    pub indexer_name: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum JobType {

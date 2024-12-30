@@ -6,8 +6,8 @@ use reqwest::Client;
 use sea_orm::{
     prelude::{Expr, Uuid},
     ActiveValue::NotSet,
-    ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, IntoActiveModel,
-    QueryFilter, Set, TransactionTrait,
+    ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter, Set,
+    TransactionTrait,
 };
 use seaorm::{
     dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user,
@@ -38,17 +38,13 @@ lazy_static::lazy_static! {
     };
 }
 
-async fn fetch_karma_data(database_url: &str) -> Result<()> {
+async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
     let client = Client::new();
-
-    let mut opt = ConnectOptions::new(database_url.to_string());
-    opt.sqlx_logging(false);
-    let conn = Database::connect(opt).await?;
 
     // Fetch all DAOs along with their associated dao_discourse information
     let daos = dao::Entity::find()
         .find_with_related(dao_discourse::Entity)
-        .all(&conn)
+        .all(db)
         .await?
         .into_iter()
         .map(|(dao, discourse)| (dao, discourse.into_iter().next()))
@@ -89,12 +85,12 @@ async fn fetch_karma_data(database_url: &str) -> Result<()> {
                     .collect();
 
                 // Update voters based on delegates with ENS set
-                if let Err(e) = update_delegates_ens(&conn, &delegates).await {
+                if let Err(e) = update_delegates_ens(db, &delegates).await {
                     error!(error = %e, "Error updating voters from delegates");
                 }
 
                 for delegate in &delegates {
-                    if let Err(e) = update_delegate(&conn, &dao, delegate, discourse.id).await {
+                    if let Err(e) = update_delegate(db, &dao, delegate, discourse.id).await {
                         error!(error = %e, "Error updating delegate: {:?}", delegate);
                     }
                 }
@@ -363,12 +359,12 @@ async fn update_delegates_ens(
     Ok(())
 }
 
-pub async fn run_karma_task(database_url: &str) -> Result<()> {
+pub async fn run_karma_task(db: &DatabaseConnection) -> Result<()> {
     let interval = Duration::minutes(10);
     let mut next_tick = Instant::now() + StdDuration::from_secs(interval.num_seconds() as u64);
 
     loop {
-        if let Err(e) = fetch_karma_data(database_url).await {
+        if let Err(e) = fetch_karma_data(db).await {
             error!(error = %e, "Error fetching karma data");
         }
 
