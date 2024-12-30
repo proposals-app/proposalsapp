@@ -120,30 +120,17 @@ async fn update_delegate(
     };
 
     // Check if the voter exists
-    let mut voter: Option<voter::Model> = voter::Entity::find()
+    let voter: Option<voter::Model> = voter::Entity::find()
         .filter(voter::Column::Address.eq(delegate_data.public_address.clone()))
         .one(conn)
         .await?;
 
-    // If the voter does not exist, create a new one
     if voter.is_none() {
-        info!(
-            "Voter not found for address: {}, creating new voter.",
+        warn!(
+            "Voter not found for address: {}",
             delegate_data.public_address
         );
-
-        let new_voter = voter::ActiveModel {
-            id: NotSet,
-            address: Set(delegate_data.public_address.clone()),
-            ..Default::default()
-        };
-
-        voter::Entity::insert(new_voter).exec(conn).await?;
-
-        voter = voter::Entity::find()
-            .filter(voter::Column::Address.eq(delegate_data.public_address.clone()))
-            .one(conn)
-            .await?;
+        return Ok(());
     }
 
     // Check if the discourse user exists by dao_discourse_id and forum_handle
@@ -303,7 +290,7 @@ async fn update_delegates_ens(
         .map(|delegate| delegate.public_address.as_str())
         .collect();
 
-    let mut voters_to_update_or_create = HashMap::new();
+    let mut voters_to_update = HashMap::new();
 
     const BATCH_SIZE: usize = 100;
     for batch_addresses in addresses.chunks(BATCH_SIZE) {
@@ -313,57 +300,42 @@ async fn update_delegates_ens(
             .all(conn)
             .await?;
 
-        for delegate in filtered_delegates.iter() {
-            if !chunk_voters
-                .iter()
-                .any(|v| v.address == delegate.public_address)
-            {
-                // Voter not found, prepare to create
-                let new_voter = voter::ActiveModel {
-                    id: NotSet,
-                    address: Set(delegate.public_address.clone()),
-                    ens: Set(Some(delegate.ens_name.clone())),
-                    ..Default::default()
-                };
-                voters_to_update_or_create.insert(delegate.public_address.clone(), new_voter);
-            } else {
-                // Voter found, prepare to update
-                if let Some(voter) = chunk_voters
-                    .iter()
-                    .find(|v| v.address == delegate.public_address)
-                {
-                    if voter.ens.as_ref() != Some(&delegate.ens_name) {
-                        // Convert Model to ActiveModel for updating
-                        let mut active_voter = voter.clone().into_active_model();
-                        active_voter.ens = Set(Some(delegate.ens_name.clone()));
-                        voters_to_update_or_create
-                            .insert(delegate.public_address.clone(), active_voter);
-                    }
-                }
-            }
+        for voter in chunk_voters {
+            voters_to_update.insert(voter.address.clone(), voter);
         }
     }
 
-    // Batch update or create voters
-    if !voters_to_update_or_create.is_empty() {
+    // Prepare updates
+    let mut active_voters_to_save = Vec::new();
+
+    for delegate in filtered_delegates {
+        if let Some(voter) = voters_to_update.remove(&delegate.public_address) {
+            if voter.ens.as_ref() != Some(&delegate.ens_name) {
+                // Convert Model to ActiveModel for updating
+                let mut active_voter = voter.into_active_model();
+                active_voter.ens = Set(Some(delegate.ens_name.clone()));
+                active_voters_to_save.push(active_voter);
+            }
+        } else {
+            warn!("No voter found with address: {}", delegate.public_address);
+        }
+    }
+
+    // Batch update voters
+    if !active_voters_to_save.is_empty() {
         let tx = conn.begin().await?;
 
-        for voter in voters_to_update_or_create.values_mut() {
-            if voter.id == NotSet {
-                voter::Entity::insert(voter.clone()).exec(&tx).await?;
-                info!("Created new voter with address: {:?}", voter.address);
-            } else {
-                voter::Entity::update(voter.clone()).exec(&tx).await?;
-                info!(
-                    "Updated ENS name for voter with address: {:?}",
-                    voter.address
-                );
-            }
+        for voter in active_voters_to_save.clone() {
+            voter::Entity::update(voter).exec(&tx).await?;
         }
 
+        info!(
+            "Updated ENS names for {} voters.",
+            active_voters_to_save.len()
+        );
         tx.commit().await?;
     } else {
-        info!("No updates or creations needed for voters.");
+        info!("No updates needed for voters.");
     }
 
     Ok(())
