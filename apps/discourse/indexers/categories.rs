@@ -3,7 +3,7 @@ use crate::{
     models::categories::{Category, CategoryResponse},
     DbHandler,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tracing::{error, info, instrument};
@@ -30,7 +30,11 @@ impl CategoryIndexer {
         loop {
             let url = format!("/categories.json?include_subcategories=true&page={}", page);
             info!(url, "Fetching categories");
-            let response: CategoryResponse = self.discourse_api.fetch(&url, false).await?;
+            let response: CategoryResponse = self
+                .discourse_api
+                .fetch(&url, false)
+                .await
+                .with_context(|| format!("Failed to fetch categories from {}", url))?;
 
             let mut all_categories = Vec::new();
             flatten_categories(&response.category_list.categories, &mut all_categories);
@@ -48,7 +52,7 @@ impl CategoryIndexer {
                         category_id = category.id,
                         "Failed to upsert category"
                     );
-                    return Err(e);
+                    return Err(e).context("Failed to upsert category")?;
                 }
             }
 

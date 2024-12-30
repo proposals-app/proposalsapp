@@ -1,5 +1,5 @@
 use crate::{db_handler::DbHandler, discourse_api::DiscourseApi, models::revisions::Revision};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::{discourse_post, discourse_post_revision};
@@ -24,7 +24,8 @@ impl RevisionIndexer {
     ) -> Result<()> {
         let posts = self
             .fetch_posts_with_revisions(db_handler.clone(), dao_discourse_id)
-            .await?;
+            .await
+            .context("Failed to fetch posts with revisions")?;
         let mut join_set = JoinSet::new();
 
         for post in posts {
@@ -56,6 +57,7 @@ impl RevisionIndexer {
             }
         }
 
+        info!("Finished updating all revisions");
         Ok(())
     }
 
@@ -67,7 +69,8 @@ impl RevisionIndexer {
     ) -> Result<()> {
         let posts = self
             .fetch_recent_posts_with_revisions(db_handler.clone(), dao_discourse_id)
-            .await?;
+            .await
+            .context("Failed to fetch recent posts with revisions")?;
         let mut join_set = JoinSet::new();
 
         for post in posts {
@@ -99,6 +102,7 @@ impl RevisionIndexer {
             }
         }
 
+        info!("Finished updating recent revisions");
         Ok(())
     }
 
@@ -114,7 +118,8 @@ impl RevisionIndexer {
             .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
             .find_with_related(discourse_post_revision::Entity)
             .all(&db_handler.conn)
-            .await?;
+            .await
+            .context("Failed to fetch posts with revisions")?;
 
         let filtered_posts: Vec<discourse_post::Model> = posts
             .into_iter()
@@ -146,7 +151,8 @@ impl RevisionIndexer {
             .filter(seaorm::discourse_post::Column::UpdatedAt.gte(six_hours_ago.naive_utc()))
             .find_with_related(discourse_post_revision::Entity)
             .all(&db_handler.conn)
-            .await?;
+            .await
+            .context("Failed to fetch recent posts with revisions")?;
 
         let filtered_posts: Vec<seaorm::discourse_post::Model> = posts
             .into_iter()
@@ -178,7 +184,8 @@ async fn update_revisions_for_post(
         .filter(seaorm::discourse_post::Column::ExternalId.eq(post_id))
         .filter(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
         .one(&db_handler.conn)
-        .await?;
+        .await
+        .context("Failed to fetch discourse post")?;
 
     let discourse_post = match discourse_post {
         Some(post) => post,
@@ -195,11 +202,15 @@ async fn update_revisions_for_post(
     for rev_num in 2..=version {
         let url = format!("/posts/{}/revisions/{}.json", post_id, rev_num);
         info!(url, "Fetching revision");
-        let revision: Revision = discourse_api.fetch(&url, priority).await?;
+        let revision: Revision = discourse_api
+            .fetch(&url, priority)
+            .await
+            .with_context(|| format!("Failed to fetch revision for post {}", post_id))?;
 
         db_handler
             .upsert_revision(&revision, dao_discourse_id, discourse_post.id)
-            .await?;
+            .await
+            .with_context(|| format!("Failed to upsert revision for post {}", post_id))?;
     }
 
     Ok(())

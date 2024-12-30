@@ -3,7 +3,7 @@ use crate::{
     discourse_api::DiscourseApi,
     models::users::{User, UserDetailResponse, UserResponse},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tracing::{error, info, instrument};
@@ -58,7 +58,11 @@ impl UserIndexer {
                 page, period
             );
             info!(url, "Fetching users");
-            let response: UserResponse = self.discourse_api.fetch(&url, priority).await?;
+            let response: UserResponse = self
+                .discourse_api
+                .fetch(&url, priority)
+                .await
+                .with_context(|| format!("Failed to fetch users from {}", url))?;
 
             let page_users: Vec<User> = response
                 .directory_items
@@ -86,7 +90,7 @@ impl UserIndexer {
                         user_id = user.id,
                         "Failed to upsert user"
                     );
-                    return Err(e);
+                    return Err(e).context("Failed to upsert user")?;
                 }
             }
 
@@ -141,7 +145,8 @@ impl UserIndexer {
         let response = self
             .discourse_api
             .fetch::<UserDetailResponse>(&url, priority)
-            .await?;
+            .await
+            .with_context(|| format!("Failed to fetch user by username: {}", username))?;
 
         let user = User {
             id: response.user.id,

@@ -2,7 +2,7 @@ use crate::{
     db_handler::DbHandler, discourse_api::DiscourseApi, indexers::posts::PostIndexer,
     models::topics::TopicResponse,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tokio::task::JoinSet;
@@ -75,7 +75,7 @@ impl TopicIndexer {
                                 topic_id = topic.id,
                                 "Failed to upsert topic"
                             );
-                            return Err(e);
+                            return Err(e).context("Failed to upsert topic")?;
                         }
 
                         let post_fetcher = PostIndexer::new(Arc::clone(&self.discourse_api));
@@ -131,7 +131,7 @@ impl TopicIndexer {
                         page,
                         "Failed to fetch topics"
                     );
-                    return Err(e);
+                    return Err(e).context("Failed to fetch topics")?;
                 }
             }
         }

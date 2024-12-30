@@ -4,7 +4,7 @@ use crate::{
     indexers::users::UserIndexer,
     models::posts::{Post, PostResponse},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures::stream::{self, StreamExt};
 use sea_orm::prelude::Uuid;
 use std::{collections::HashSet, sync::Arc};
@@ -113,7 +113,7 @@ impl PostIndexer {
                             page,
                             "Failed to fetch posts for topic"
                         );
-                        return Err(e);
+                        return Err(e).context("Failed to fetch posts for topic")?;
                     }
                 }
             }
