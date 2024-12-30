@@ -107,7 +107,7 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip(conn, dao, delegate_data))]
+#[instrument(skip(conn, dao, delegate_data), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
 async fn update_delegate(
     conn: &DatabaseConnection,
     dao: &dao::Model,
@@ -300,7 +300,7 @@ async fn update_delegate(
     Ok(())
 }
 
-#[instrument(skip(conn, delegates))]
+#[instrument(skip(conn, delegates), fields(delegate_count = delegates.len()))]
 async fn update_delegates_ens(
     conn: &DatabaseConnection,
     delegates: &[KarmaDelegate],

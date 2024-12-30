@@ -24,7 +24,7 @@ pub async fn run_group_task(db: &DatabaseConnection) -> Result<()> {
     }
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip(conn), fields(job_count = 0))]
 async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
     let pending_jobs = job_queue::Entity::find()
         .filter(
@@ -38,6 +38,8 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
         .order_by_asc(job_queue::Column::CreatedAt)
         .all(conn)
         .await?;
+
+    Span::current().record("job_count", pending_jobs.len());
 
     for job in pending_jobs {
         let span = Span::current();
@@ -96,7 +98,7 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip(conn), fields(job_id = job_id, discourse_topic_id = %discourse_topic_id))]
 async fn process_new_discussion_job(
     conn: &DatabaseConnection,
     job_id: i32,
@@ -165,7 +167,7 @@ async fn process_new_discussion_job(
     Ok(())
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip(conn), fields(job_id = job_id, proposal_id = %proposal_id))]
 async fn process_snapshot_proposal_job(
     conn: &DatabaseConnection,
     job_id: i32,
