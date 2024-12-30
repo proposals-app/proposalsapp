@@ -303,67 +303,45 @@ async fn update_delegates_ens(
         .map(|delegate| delegate.public_address.as_str())
         .collect();
 
-    let mut voters_to_update_or_create = HashMap::new();
-
     const BATCH_SIZE: usize = 100;
     for batch_addresses in addresses.chunks(BATCH_SIZE) {
         // Convert &str to Vec<&str>
-        let chunk_voters: Vec<voter::Model> = voter::Entity::find()
+        let chunk_voters: HashMap<String, voter::Model> = voter::Entity::find()
             .filter(voter::Column::Address.is_in(batch_addresses.to_vec()))
             .all(conn)
-            .await?;
+            .await?
+            .into_iter()
+            .map(|voter| (voter.address.clone(), voter))
+            .collect();
 
         for delegate in filtered_delegates.iter() {
-            if !chunk_voters
-                .iter()
-                .any(|v| v.address == delegate.public_address)
-            {
+            let address = &delegate.public_address;
+
+            if let Some(existing_voter) = chunk_voters.get(address).cloned() {
+                // Voter found, prepare to update
+                if existing_voter
+                    .ens
+                    .as_ref()
+                    .map_or(true, |ens| ens != &delegate.ens_name)
+                {
+                    // Convert Model to ActiveModel for updating
+                    let mut active_voter = existing_voter.into_active_model();
+                    active_voter.ens = Set(Some(delegate.ens_name.clone()));
+                    voter::Entity::update(active_voter).exec(conn).await?;
+                    info!("Updated ENS name for voter with address: {:?}", address);
+                }
+            } else {
                 // Voter not found, prepare to create
                 let new_voter = voter::ActiveModel {
                     id: NotSet,
-                    address: Set(delegate.public_address.clone()),
+                    address: Set(address.clone()),
                     ens: Set(Some(delegate.ens_name.clone())),
                     ..Default::default()
                 };
-                voters_to_update_or_create.insert(delegate.public_address.clone(), new_voter);
-            } else {
-                // Voter found, prepare to update
-                if let Some(voter) = chunk_voters
-                    .iter()
-                    .find(|v| v.address == delegate.public_address)
-                {
-                    if voter.ens.as_ref() != Some(&delegate.ens_name) {
-                        // Convert Model to ActiveModel for updating
-                        let mut active_voter = voter.clone().into_active_model();
-                        active_voter.ens = Set(Some(delegate.ens_name.clone()));
-                        voters_to_update_or_create
-                            .insert(delegate.public_address.clone(), active_voter);
-                    }
-                }
+                voter::Entity::insert(new_voter).exec(conn).await?;
+                info!("Created new voter with address: {:?}", address);
             }
         }
-    }
-
-    // Batch update or create voters
-    if !voters_to_update_or_create.is_empty() {
-        let tx = conn.begin().await?;
-
-        for voter in voters_to_update_or_create.values_mut() {
-            if voter.id == NotSet {
-                voter::Entity::insert(voter.clone()).exec(&tx).await?;
-                info!("Created new voter with address: {:?}", voter.address);
-            } else {
-                voter::Entity::update(voter.clone()).exec(&tx).await?;
-                info!(
-                    "Updated ENS name for voter with address: {:?}",
-                    voter.address
-                );
-            }
-        }
-
-        tx.commit().await?;
-    } else {
-        info!("No updates or creations needed for voters.");
     }
 
     Ok(())
