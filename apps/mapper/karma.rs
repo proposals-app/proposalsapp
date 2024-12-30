@@ -93,7 +93,12 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
                     error!(error = %e, "Error updating voters from delegates");
                 }
 
-                for delegate in &delegates {
+                let delegates_with_forum_handle: Vec<&KarmaDelegate> = delegates
+                    .iter()
+                    .filter(|d| d.forum_handle.is_some())
+                    .collect();
+
+                for delegate in &delegates_with_forum_handle {
                     if let Err(e) = update_delegate(db, &dao, delegate, discourse.id).await {
                         error!(error = %e, "Error updating delegate: {:?}", delegate);
                     }

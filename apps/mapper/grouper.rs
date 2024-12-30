@@ -1,18 +1,19 @@
 use anyhow::Result;
+use chrono::Duration;
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
     QueryOrder, Set,
 };
 use seaorm::{dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group};
-use std::time::Duration;
+use std::time::Duration as StdDuration;
 use tokio::time::{sleep, Instant};
 use tracing::{error, info, instrument, warn, Span};
 use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalJobData};
 
 #[instrument(skip(db))]
 pub async fn run_group_task(db: &DatabaseConnection) -> Result<()> {
-    let interval = Duration::from_secs(60);
-    let mut next_tick = Instant::now() + interval;
+    let interval = Duration::minutes(1);
+    let mut next_tick = Instant::now() + StdDuration::from_secs(interval.num_seconds() as u64);
 
     loop {
         if let Err(e) = process_jobs(db).await {
@@ -20,7 +21,7 @@ pub async fn run_group_task(db: &DatabaseConnection) -> Result<()> {
         }
 
         sleep(next_tick.saturating_duration_since(Instant::now())).await;
-        next_tick += interval;
+        next_tick += StdDuration::from_secs(interval.num_seconds() as u64);
     }
 }
 
@@ -43,7 +44,7 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
 
     for job in pending_jobs {
         let span = Span::current();
-        span.record("job_id", &job.id);
+        span.record("job_id", job.id);
         span.record("job_type", &job.r#type);
 
         info!(job_id = job.id, job_type = %job.r#type, "Processing job");

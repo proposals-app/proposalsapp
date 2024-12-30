@@ -1,185 +1,141 @@
 use anyhow::Result;
-use futures::FutureExt;
-use once_cell::sync::Lazy;
-use opentelemetry::{global, trace::TraceError, KeyValue};
+use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use opentelemetry_otlp::{LogExporter, MetricExporter, Protocol, SpanExporter, WithExportConfig};
+use opentelemetry_otlp::{LogExporter, Protocol, WithExportConfig};
 use opentelemetry_sdk::{
-    logs::{self as sdklogs, LoggerProvider},
-    metrics::{MetricError, PeriodicReader, SdkMeterProvider},
+    logs::LoggerProvider,
+    metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
     runtime,
-    trace::{self as sdktrace, TracerProvider},
+    trace::{RandomIdGenerator, Sampler, TracerProvider},
     Resource,
 };
-use std::time::Duration;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use opentelemetry_semantic_conventions::{attribute::SERVICE_NAME, SCHEMA_URL};
+use tracing::Level;
+use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-#[derive(Debug)]
-pub struct MetricsError(String);
-
-impl std::error::Error for MetricsError {}
-
-impl std::fmt::Display for MetricsError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Metrics error: {}", self.0)
-    }
-}
-
-static RESOURCE: Lazy<Resource> = Lazy::new(|| {
+// Create a Resource that captures information about the entity for which telemetry is recorded.
+fn resource() -> Resource {
     let crate_name = std::env::var("CARGO_PKG_NAME")
         .or_else(|_| std::env::var("PROPOSALS_BIN"))
         .unwrap_or_else(|_| "unknown".to_string());
 
-    Resource::new(vec![KeyValue::new(
-        opentelemetry_semantic_conventions::resource::SERVICE_NAME,
-        crate_name.to_lowercase(),
-    )])
-});
-
-static SERVICE_NAME: Lazy<&'static str> = Lazy::new(|| {
-    let crate_name = std::env::var("CARGO_PKG_NAME")
-        .or_else(|_| std::env::var("PROPOSALS_BIN"))
-        .unwrap_or_else(|_| "unknown".to_string());
-
-    Box::leak(crate_name.to_lowercase().into_boxed_str())
-});
-
-fn get_endpoint() -> String {
-    std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!")
+    Resource::from_schema_url(
+        [KeyValue::new(SERVICE_NAME, crate_name.to_lowercase())],
+        SCHEMA_URL,
+    )
 }
 
-fn init_logs() -> Result<sdklogs::LoggerProvider, opentelemetry_sdk::logs::LogError> {
-    let endpoint = get_endpoint();
+pub fn get_meter() -> opentelemetry::metrics::Meter {
+    global::meter(SERVICE_NAME)
+}
+
+// Construct MeterProvider for MetricsLayer
+fn init_meter_provider() -> SdkMeterProvider {
+    let endpoint =
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
+
+    let exporter = opentelemetry_otlp::MetricExporter::builder()
+        .with_http()
+        .with_endpoint(format!("{}/v1/metrics", endpoint))
+        .with_protocol(opentelemetry_otlp::Protocol::HttpBinary)
+        .build()
+        .unwrap();
+
+    let reader = PeriodicReader::builder(exporter, runtime::Tokio)
+        .with_interval(std::time::Duration::from_secs(30))
+        .build();
+
+    let meter_provider = MeterProviderBuilder::default()
+        .with_resource(resource())
+        .with_reader(reader)
+        .build();
+
+    global::set_meter_provider(meter_provider.clone());
+
+    meter_provider
+}
+
+// Construct TracerProvider for OpenTelemetryLayer
+fn init_tracer_provider() -> TracerProvider {
+    let endpoint =
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
+
+    let exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_http()
+        .with_endpoint(format!("{}/v1/traces", endpoint))
+        .with_protocol(opentelemetry_otlp::Protocol::HttpBinary)
+        .build()
+        .unwrap();
+
+    TracerProvider::builder()
+        .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
+            1.0,
+        ))))
+        .with_id_generator(RandomIdGenerator::default())
+        .with_resource(resource())
+        .with_batch_exporter(exporter, runtime::Tokio)
+        .build()
+}
+
+fn init_log_provider() -> LoggerProvider {
+    let endpoint =
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
 
     let exporter = LogExporter::builder()
         .with_http()
         .with_endpoint(format!("{}/v1/logs", endpoint))
         .with_protocol(Protocol::HttpBinary)
-        .build()?;
-
-    Ok(LoggerProvider::builder()
-        .with_batch_exporter(exporter, runtime::Tokio)
-        .with_resource(RESOURCE.clone())
-        .build())
-}
-
-fn init_tracer_provider() -> Result<sdktrace::TracerProvider, TraceError> {
-    let endpoint = get_endpoint();
-
-    let exporter = SpanExporter::builder()
-        .with_http()
-        .with_endpoint(format!("{}/v1/traces", endpoint))
-        .with_protocol(Protocol::HttpBinary)
-        .build()?;
-
-    Ok(TracerProvider::builder()
-        .with_batch_exporter(exporter, runtime::Tokio)
-        .with_resource(RESOURCE.clone())
-        .with_sampler(opentelemetry_sdk::trace::Sampler::AlwaysOn)
-        .build())
-}
-
-fn init_metrics() -> Result<SdkMeterProvider, MetricError> {
-    let endpoint = get_endpoint();
-
-    let exporter = MetricExporter::builder()
-        .with_http()
-        .with_endpoint(format!("{}/v1/metrics", endpoint))
-        .with_protocol(Protocol::HttpBinary)
         .build()
-        .map_err(|e| MetricError::Other(e.to_string()))?;
+        .unwrap();
 
-    Ok(SdkMeterProvider::builder()
-        .with_reader(PeriodicReader::builder(exporter, runtime::Tokio).build())
-        .with_resource(RESOURCE.clone())
-        .build())
+    LoggerProvider::builder()
+        .with_batch_exporter(exporter, runtime::Tokio)
+        .with_resource(resource())
+        .build()
 }
 
-pub fn get_meter() -> opentelemetry::metrics::Meter {
-    global::meter(&SERVICE_NAME)
-}
+// Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
+fn init_tracing_subscriber() -> OtelGuard {
+    let tracer_provider = init_tracer_provider();
+    let meter_provider = init_meter_provider();
+    let logs_provider = init_log_provider();
 
-pub async fn setup_tracing() -> Result<()> {
-    let tracer_provider = init_tracer_provider().map_err(|e| {
-        tracing::error!("Failed to initialize tracer provider: {:?}", e);
-        e
-    })?;
-    global::set_tracer_provider(tracer_provider.clone());
+    let tracer = tracer_provider.tracer("tracing-otel-subscriber");
 
-    let meter_provider = init_metrics().map_err(|e| {
-        tracing::error!("Failed to initialize metrics: {:?}", e);
-        e
-    })?;
-    global::set_meter_provider(meter_provider.clone());
-
-    let logger_provider = init_logs().map_err(|e| {
-        tracing::error!("Failed to initialize logger provider: {:?}", e);
-        e
-    })?;
-
-    // Create a new OpenTelemetryTracingBridge using the LoggerProvider
-    let otel_layer = OpenTelemetryTracingBridge::new(&logger_provider);
-
-    // Filter for OpenTelemetry layer to prevent infinite telemetry generation
-    let filter_otel = EnvFilter::new("info")
-        .add_directive("hyper=off".parse().unwrap())
-        .add_directive("opentelemetry=off".parse().unwrap())
-        .add_directive("tonic=off".parse().unwrap())
-        .add_directive("h2=off".parse().unwrap())
-        .add_directive("reqwest=off".parse().unwrap());
-    let otel_layer = otel_layer.with_filter(filter_otel);
-
-    // Create fmt layer with custom filter
-    let filter_fmt = EnvFilter::new("info").add_directive("opentelemetry=debug".parse().unwrap());
-    let fmt_layer = fmt::layer()
-        .with_line_number(true)
-        .compact()
-        .with_thread_names(true)
-        .with_filter(filter_fmt);
-
-    // Initialize the tracing subscriber
     tracing_subscriber::registry()
-        .with(otel_layer)
-        .with(fmt_layer)
-        .try_init()?;
+        .with(tracing_subscriber::filter::LevelFilter::from_level(
+            Level::INFO,
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .with(MetricsLayer::new(meter_provider.clone()))
+        .with(OpenTelemetryLayer::new(tracer))
+        .with(OpenTelemetryTracingBridge::new(&logs_provider))
+        .init();
 
-    tokio::time::sleep(Duration::from_secs(5)).await;
-
-    Ok(())
-}
-
-pub async fn run_with_tracing<F, Fut>(future: F) -> Result<()>
-where
-    F: FnOnce() -> Fut,
-    Fut: std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'static,
-{
-    setup_tracing().await?;
-
-    let result = std::panic::AssertUnwindSafe(future()).catch_unwind().await;
-
-    if let Err(e) = result {
-        capture_panic_details(e);
-    }
-
-    shutdown_tracing().await;
-    Ok(())
-}
-
-fn capture_panic_details(e: Box<dyn std::any::Any + Send>) {
-    let backtrace = backtrace::Backtrace::new();
-    if let Some(s) = e.downcast_ref::<&str>() {
-        tracing::error!(panic_message = *s, backtrace = ?backtrace, "Panic occurred with message");
-    } else if let Some(s) = e.downcast_ref::<String>() {
-        tracing::error!(panic_message = s, backtrace = ?backtrace, "Panic occurred with message");
-    } else {
-        tracing::error!(backtrace = ?backtrace, "Panic occurred but the payload is not a string");
+    OtelGuard {
+        tracer_provider,
+        meter_provider,
     }
 }
 
-pub async fn shutdown_tracing() {
-    // Allow time for final exports
-    tokio::time::sleep(Duration::from_secs(5)).await;
+pub struct OtelGuard {
+    tracer_provider: TracerProvider,
+    meter_provider: SdkMeterProvider,
+}
 
-    // Shut down tracer provider
-    global::shutdown_tracer_provider();
+impl Drop for OtelGuard {
+    fn drop(&mut self) {
+        if let Err(err) = self.tracer_provider.shutdown() {
+            eprintln!("{err:?}");
+        }
+        if let Err(err) = self.meter_provider.shutdown() {
+            eprintln!("{err:?}");
+        }
+    }
+}
+
+pub async fn setup_tracing() -> Result<OtelGuard> {
+    let guard = init_tracing_subscriber();
+    Ok(guard)
 }
