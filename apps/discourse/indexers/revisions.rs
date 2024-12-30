@@ -5,7 +5,7 @@ use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::{discourse_post, discourse_post_revision};
 use std::sync::Arc;
 use tokio::task::JoinSet;
-use tracing::{info, instrument, warn};
+use tracing::{error, info, instrument, warn};
 
 pub struct RevisionIndexer {
     discourse_api: Arc<DiscourseApi>,
@@ -41,9 +41,10 @@ impl RevisionIndexer {
                 )
                 .await
                 {
-                    eprintln!(
-                        "Error updating revisions for post {}: {:?}",
-                        post.external_id, e
+                    error!(
+                        error = ?e,
+                        post_id = post.external_id,
+                        "Error updating revisions for post"
                     );
                 }
             });
@@ -51,7 +52,7 @@ impl RevisionIndexer {
 
         while let Some(result) = join_set.join_next().await {
             if let Err(e) = result {
-                eprintln!("Error in revision tasks: {:?}", e);
+                error!(error = ?e, "Error in revision tasks");
             }
         }
 
@@ -83,9 +84,10 @@ impl RevisionIndexer {
                 )
                 .await
                 {
-                    eprintln!(
-                        "Error updating revisions for post {}: {:?}",
-                        post.external_id, e
+                    error!(
+                        error = ?e,
+                        post_id = post.external_id,
+                        "Error updating revisions for post"
                     );
                 }
             });
@@ -93,7 +95,7 @@ impl RevisionIndexer {
 
         while let Some(result) = join_set.join_next().await {
             if let Err(e) = result {
-                eprintln!("Error in revision tasks: {:?}", e);
+                error!(error = ?e, "Error in revision tasks");
             }
         }
 
@@ -163,6 +165,7 @@ impl RevisionIndexer {
     }
 }
 
+#[instrument(skip(discourse_api, db_handler), fields(post_id = %post_id, dao_discourse_id = %dao_discourse_id))]
 async fn update_revisions_for_post(
     discourse_api: &DiscourseApi,
     db_handler: Arc<DbHandler>,
@@ -180,14 +183,18 @@ async fn update_revisions_for_post(
     let discourse_post = match discourse_post {
         Some(post) => post,
         None => {
-            warn!("Discourse post not found for external_id: {} and dao_discourse_id: {}. Skipping revisions.", post_id, dao_discourse_id);
+            warn!(
+                post_id = post_id.to_string(),
+                dao_discourse_id = dao_discourse_id.to_string(),
+                "Discourse post not found. Skipping revisions."
+            );
             return Ok(());
         }
     };
 
     for rev_num in 2..=version {
         let url = format!("/posts/{}/revisions/{}.json", post_id, rev_num);
-        info!(url = %url, "Fetching revision");
+        info!(url, "Fetching revision");
         let revision: Revision = discourse_api.fetch(&url, priority).await?;
 
         db_handler

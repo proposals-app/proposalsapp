@@ -1,10 +1,12 @@
-use crate::db_handler::DbHandler;
-use crate::discourse_api::DiscourseApi;
-use crate::models::users::{User, UserDetailResponse, UserResponse};
+use crate::{
+    db_handler::DbHandler,
+    discourse_api::DiscourseApi,
+    models::users::{User, UserDetailResponse, UserResponse},
+};
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use tracing::{info, instrument};
+use tracing::{error, info, instrument};
 
 pub struct UserIndexer {
     discourse_api: Arc<DiscourseApi>,
@@ -49,12 +51,13 @@ impl UserIndexer {
         let mut total_users = 0;
         let mut previous_response: Option<UserResponse> = None;
         let mut previous_repeat = 0;
+
         loop {
             let url = format!(
                 "/directory_items.json?page={}&order=asc&period={}",
                 page, period
             );
-            info!(url = %url, "Fetching users");
+            info!(url, "Fetching users");
             let response: UserResponse = self.discourse_api.fetch(&url, priority).await?;
 
             let page_users: Vec<User> = response
@@ -77,15 +80,19 @@ impl UserIndexer {
 
             for mut user in page_users {
                 user.avatar_template = self.process_avatar_url(&user.avatar_template);
-                db_handler.upsert_user(&user, dao_discourse_id).await?;
+                if let Err(e) = db_handler.upsert_user(&user, dao_discourse_id).await {
+                    error!(
+                        error = ?e,
+                        user_id = user.id,
+                        "Failed to upsert user"
+                    );
+                    return Err(e);
+                }
             }
 
             info!(
                 page = page + 1,
-                num_users = num_users,
-                total_users = total_users,
-                url = url,
-                "Fetched and upserted users"
+                num_users, total_users, url, "Fetched and upserted users"
             );
 
             if response.directory_items.is_empty() {
@@ -116,7 +123,7 @@ impl UserIndexer {
             }
         }
 
-        info!(total_users = total_users, "Finished updating all users");
+        info!(total_users, "Finished updating all users");
         Ok(())
     }
 
@@ -129,7 +136,7 @@ impl UserIndexer {
         priority: bool,
     ) -> Result<()> {
         let url = format!("/u/{}.json", username);
-        info!("Fetch user by username: {}", username);
+        info!(url, "Fetching user by username");
 
         let response = self
             .discourse_api

@@ -1,13 +1,12 @@
-use crate::discourse_api::DiscourseApi;
-use crate::models::categories::Category;
-use crate::models::categories::CategoryResponse;
-use crate::DbHandler;
+use crate::{
+    discourse_api::DiscourseApi,
+    models::categories::{Category, CategoryResponse},
+    DbHandler,
+};
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use tracing::error;
-use tracing::info;
-use tracing::instrument;
+use tracing::{error, info, instrument};
 
 pub struct CategoryIndexer {
     discourse_api: Arc<DiscourseApi>,
@@ -30,7 +29,7 @@ impl CategoryIndexer {
 
         loop {
             let url = format!("/categories.json?include_subcategories=true&page={}", page);
-            info!(url = %url, "Fetching categories");
+            info!(url, "Fetching categories");
             let response: CategoryResponse = self.discourse_api.fetch(&url, false).await?;
 
             let mut all_categories = Vec::new();
@@ -40,24 +39,22 @@ impl CategoryIndexer {
             total_categories += num_categories;
 
             for category in all_categories {
-                db_handler
+                if let Err(e) = db_handler
                     .upsert_category(&category, dao_discourse_id)
                     .await
-                    .map_err(|e| {
-                        error!(
-                            error = %e,
-                            category_id = category.id,
-                            "Failed to upsert category"
-                        );
-                        e
-                    })?;
+                {
+                    error!(
+                        error = ?e,
+                        category_id = category.id,
+                        "Failed to upsert category"
+                    );
+                    return Err(e);
+                }
             }
 
             info!(
                 page = page + 1,
-                categories_fetched = num_categories,
-                total_categories = total_categories,
-                "Fetched and upserted categories"
+                num_categories, total_categories, "Fetched and upserted categories"
             );
 
             if response.category_list.categories.is_empty() {

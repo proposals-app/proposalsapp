@@ -28,6 +28,7 @@ const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 lazy_static::lazy_static! {
     static ref DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS: HashMap<Uuid, Vec<i32>> = {
         let mut m = HashMap::new();
+
         //forum.arbitrum.foundation
         m.insert(Uuid::parse_str("099352eb-b859-44ff-acbc-76806d304086").unwrap(), vec![7,8,9]);
         // Add more mappings as needed
@@ -45,22 +46,18 @@ async fn main() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
 
     let db_handler = Arc::new(DbHandler::new(&database_url).await?);
-    info!(database_url = %database_url, "Initial database connection");
+    info!(database_url = %database_url, "Initial database connection established");
 
-    let app = Router::new().route("/", get("OK"));
+    let app = Router::new().route("/", get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move {
         info!(address = %addr, "Starting health check server");
         if let Err(e) = axum::serve(listener, app).await {
-            error!(error = %e, "Health check server error");
+            error!(error = ?e, "Health check server error");
         }
     });
-    info!(
-        port = 3000,
-        address = %addr,
-        "Health check server initialized and listening"
-    );
+    info!(port = 3000, address = %addr, "Health check server initialized and listening");
 
     let dao_discourses = seaorm::dao_discourse::Entity::find()
         .filter(dao_discourse::Column::Enabled.eq(true))
@@ -101,7 +98,7 @@ async fn main() -> Result<()> {
                     }
                     Err(e) => {
                         error!(
-                            error = %e,
+                            error = ?e,
                             discourse_url = %dao_discourse_category_clone.discourse_base_url,
                             discourse_id = %dao_discourse_category_clone.id,
                             "Error updating categories"
@@ -140,7 +137,7 @@ async fn main() -> Result<()> {
                     }
                     Err(e) => {
                         error!(
-                            error = %e,
+                            error = ?e,
                             discourse_url = %dao_discourse_users_clone.discourse_base_url,
                             discourse_id = %dao_discourse_users_clone.id,
                             "Error updating users"
@@ -179,7 +176,7 @@ async fn main() -> Result<()> {
                     }
                     Err(e) => {
                         error!(
-                            error = %e,
+                            error = ?e,
                             discourse_url = %dao_discourse_topic_clone.discourse_base_url,
                             discourse_id = %dao_discourse_topic_clone.id,
                             "Error updating topics"
@@ -192,6 +189,7 @@ async fn main() -> Result<()> {
             }
         });
 
+        // Spawn revision fetcher thread
         let db_handler_revision_clone = Arc::clone(&db_handler);
         let dao_discourse_revision_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
@@ -219,7 +217,7 @@ async fn main() -> Result<()> {
                     }
                     Err(e) => {
                         error!(
-                            error = %e,
+                            error = ?e,
                             discourse_url = %dao_discourse_revision_clone.discourse_base_url,
                             discourse_id = %dao_discourse_revision_clone.id,
                             "Error updating revisions"
@@ -232,6 +230,7 @@ async fn main() -> Result<()> {
             }
         });
 
+        // Spawn new content fetcher thread
         let db_handler_newcontent_clone = Arc::clone(&db_handler);
         let dao_discourse_newcontent_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
@@ -266,7 +265,7 @@ async fn main() -> Result<()> {
                     }
                     Err(e) => {
                         error!(
-                            error = %e,
+                            error = ?e,
                             discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
                             discourse_id = %dao_discourse_newcontent_clone.id,
                             "Error updating new users"
@@ -283,7 +282,7 @@ async fn main() -> Result<()> {
                     }
                     Err(e) => {
                         error!(
-                            error = %e,
+                            error = ?e,
                             discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
                             discourse_id = %dao_discourse_newcontent_clone.id,
                             "Error updating new topics"
@@ -300,7 +299,7 @@ async fn main() -> Result<()> {
                     }
                     Err(e) => {
                         error!(
-                            error = %e,
+                            error = ?e,
                             discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
                             discourse_id = %dao_discourse_newcontent_clone.id,
                             "Error updating new revisions"
@@ -319,6 +318,7 @@ async fn main() -> Result<()> {
         handles.push(newcontent_handle);
     }
 
+    // Spawn uptime ping thread
     let uptime_handle = tokio::spawn(async move {
         let client = Client::new();
         loop {
@@ -332,7 +332,7 @@ async fn main() -> Result<()> {
                 .await
             {
                 Ok(_) => info!("Uptime ping sent successfully"),
-                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+                Err(e) => warn!(error = ?e, "Failed to send uptime ping"),
             }
             tokio::time::sleep(Duration::from_secs(10)).await;
         }

@@ -35,7 +35,7 @@ impl PostIndexer {
 
         loop {
             let url = format!("/t/{}.json?include_raw=true&page={}", topic_id, page);
-            info!(url = %url, "Fetching posts");
+            info!(url, "Fetching posts");
             match self
                 .discourse_api
                 .fetch::<PostResponse>(&url, priority)
@@ -79,19 +79,19 @@ impl PostIndexer {
                             .await;
                     }
                     info!(
-                        topic_id = topic_id,
+                        topic_id,
                         page = page + 1,
-                        num_new_unique_posts = num_new_unique_posts,
-                        num_posts = num_posts,
-                        total_unique_posts_fetched = total_unique_posts_fetched,
-                        total_posts_count = total_posts_count,
-                        url = url,
+                        num_new_unique_posts,
+                        num_posts,
+                        total_unique_posts_fetched,
+                        total_posts_count,
+                        url,
                         "Fetched and processed posts for topic"
                     );
 
                     if total_unique_posts_fetched >= total_posts_count {
                         info!(
-                            topic_id = topic_id,
+                            topic_id,
                             "Finished fetching all unique posts for topic. Stopping."
                         );
                         break;
@@ -102,33 +102,31 @@ impl PostIndexer {
                 Err(e) => {
                     if e.to_string().contains("404") {
                         info!(
-                            topic_id = topic_id,
-                            page = page,
-                            "Reached end of pages (404 error). Stopping."
+                            topic_id,
+                            page, "Reached end of pages (404 error). Stopping."
                         );
                         break;
                     } else {
                         error!(
-                            error = %e,
-                            topic_id = topic_id,
-                            page = page,
+                            error = ?e,
+                            topic_id,
+                            page,
                             "Failed to fetch posts for topic"
                         );
-                        return Err(anyhow::anyhow!("Failed to fetch posts for topic: {}", e));
+                        return Err(e);
                     }
                 }
             }
         }
 
         info!(
-            topic_id = topic_id,
-            total_unique_posts_fetched = total_unique_posts_fetched,
-            total_posts_count = total_posts_count,
-            "Finished updating posts for topic"
+            topic_id,
+            total_unique_posts_fetched, total_posts_count, "Finished updating posts for topic"
         );
         Ok(())
     }
 
+    #[instrument(skip(db_handler, discourse_api), fields(post_id = %post.id, username = %post.username))]
     async fn process_post(
         post: Post,
         db_handler: Arc<DbHandler>,
@@ -161,7 +159,7 @@ impl PostIndexer {
                             // Try to upsert the post again with the fetched user
                             if let Err(e) = db_handler.upsert_post(&post, dao_discourse_id).await {
                                 error!(
-                                    error = %e,
+                                    error = ?e,
                                     post_id = post.id,
                                     "Failed to upsert post after fetching user"
                                 );
@@ -169,7 +167,7 @@ impl PostIndexer {
                         }
                         Err(e) => {
                             warn!(
-                                error = %e,
+                                error = ?e,
                                 post_id = post.id,
                                 username = post.username,
                                 "Failed to fetch user, using unknown user"
@@ -191,7 +189,7 @@ impl PostIndexer {
                                         .await
                                     {
                                         error!(
-                                            error = %e,
+                                            error = ?e,
                                             post_id = post.id,
                                             "Failed to upsert post with unknown user"
                                         );
@@ -199,7 +197,7 @@ impl PostIndexer {
                                 }
                                 Err(e) => {
                                     error!(
-                                        error = %e,
+                                        error = ?e,
                                         post_id = post.id,
                                         "Failed to get or create unknown user"
                                     );
@@ -209,7 +207,7 @@ impl PostIndexer {
                     }
                 } else {
                     error!(
-                        error = %e,
+                        error = ?e,
                         post_id = post.id,
                         "Failed to upsert post"
                     );

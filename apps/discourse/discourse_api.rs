@@ -203,9 +203,9 @@ impl DiscourseApi {
         let result = self.execute_request(&job.url).await;
         if let Err(e) = &result {
             if is_priority {
-                error!(error = %e, url = %job.url, "Priority request failed");
+                error!(error = ?e, url = %job.url, "Priority request failed");
             } else {
-                error!(error = %e, url = %job.url, "Request failed");
+                error!(error = ?e, url = %job.url, "Request failed");
             }
         } else {
             info!(url = %job.url, priority = is_priority, "Request processed successfully");
@@ -285,10 +285,10 @@ impl DiscourseApi {
                 Err(e) => {
                     attempt += 1;
                     if attempt > self.max_retries {
-                        error!(url, error = %e, attempt, max_retries = self.max_retries, "Max retries reached");
+                        error!(url, error = ?e, attempt, max_retries = self.max_retries, "Max retries reached");
                         return Err(anyhow!("Max retries reached. Last error: {}", e));
                     }
-                    warn!(url, error = %e, attempt, delay = ?delay, "Request error, retrying");
+                    warn!(url, error = ?e, attempt, delay = ?delay, "Request error, retrying");
                     sleep(delay).await;
                     delay *= 2; // Exponential backoff
                 }

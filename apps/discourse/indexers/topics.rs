@@ -1,11 +1,12 @@
-use crate::indexers::posts::PostIndexer;
-use crate::models::topics::TopicResponse;
-use crate::{db_handler::DbHandler, discourse_api::DiscourseApi};
+use crate::{
+    db_handler::DbHandler, discourse_api::DiscourseApi, indexers::posts::PostIndexer,
+    models::topics::TopicResponse,
+};
 use anyhow::Result;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tokio::task::JoinSet;
-use tracing::{info, instrument};
+use tracing::{error, info, instrument};
 
 pub struct TopicIndexer {
     discourse_api: Arc<DiscourseApi>,
@@ -55,7 +56,7 @@ impl TopicIndexer {
                 "/latest.json?order=created&ascending={}&page={}",
                 ascending, page
             );
-            info!(url = %url, "Fetching topic");
+            info!(url, "Fetching topics");
 
             match self
                 .discourse_api
@@ -68,7 +69,14 @@ impl TopicIndexer {
                     total_topics += num_topics;
 
                     for topic in &response.topic_list.topics {
-                        db_handler.upsert_topic(topic, dao_discourse_id).await?;
+                        if let Err(e) = db_handler.upsert_topic(topic, dao_discourse_id).await {
+                            error!(
+                                error = ?e,
+                                topic_id = topic.id,
+                                "Failed to upsert topic"
+                            );
+                            return Err(e);
+                        }
 
                         let post_fetcher = PostIndexer::new(Arc::clone(&self.discourse_api));
                         let db_handler_clone = Arc::clone(&db_handler);
@@ -85,17 +93,18 @@ impl TopicIndexer {
                                 )
                                 .await
                             {
-                                eprintln!("Error updating posts for topic {}: {:?}", topic_id, e);
+                                error!(
+                                    error = ?e,
+                                    topic_id = topic_id,
+                                    "Error updating posts for topic"
+                                );
                             }
                         });
                     }
 
                     info!(
-                        url = url,
-                        "Fetched and upserted page {}: {} new topics (total topics so far: {})",
-                        page,
-                        num_topics,
-                        total_topics
+                        page = page + 1,
+                        num_topics, total_topics, url, "Fetched and upserted topics"
                     );
 
                     if response.topic_list.topics.is_empty() || num_topics < per_page {
@@ -114,23 +123,24 @@ impl TopicIndexer {
                 }
                 Err(e) => {
                     if e.to_string().contains("404") {
-                        info!(page = page, "Reached end of pages (404 error). Stopping.");
+                        info!(page, "Reached end of pages (404 error). Stopping.");
                         break;
                     }
-                    // If it's not a 404 error, propagate the error
+                    error!(
+                        error = ?e,
+                        page,
+                        "Failed to fetch topics"
+                    );
                     return Err(e);
                 }
             }
         }
 
-        info!(
-            "Finished updating new topics. Total topics: {}",
-            total_topics
-        );
+        info!(total_topics, "Finished updating topics");
 
         while let Some(result) = join_set.join_next().await {
             if let Err(e) = result {
-                eprintln!("Error in topic tasks: {:?}", e);
+                error!(error = ?e, "Error in topic tasks");
             }
         }
 

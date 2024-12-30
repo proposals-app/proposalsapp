@@ -9,7 +9,7 @@ use opentelemetry::{
 };
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
-    DbErr, EntityTrait, QueryFilter, Set,
+    EntityTrait, QueryFilter, Set,
 };
 use seaorm::{discourse_post_revision, discourse_user};
 use tracing::{debug, info, instrument};
@@ -71,6 +71,7 @@ impl DbHandler {
         })
     }
 
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn get_or_create_unknown_user(&self, dao_discourse_id: Uuid) -> Result<User> {
         let unknown_user = User {
             id: -1,
@@ -87,20 +88,13 @@ impl DbHandler {
             days_visited: Some(0),
         };
 
-        match self.upsert_user(&unknown_user, dao_discourse_id).await {
-            Ok(_) => Ok(unknown_user),
-            Err(e) => Err(anyhow::anyhow!("Failed to create unknown user: {}", e)),
-        }
+        self.upsert_user(&unknown_user, dao_discourse_id).await?;
+        info!("Created or retrieved unknown user");
+        Ok(unknown_user)
     }
 
-    #[instrument(skip(self, user, dao_discourse_id), fields(user_id = user.id, user_username = %user.username))]
+    #[instrument(skip(self, user), fields(user_id = user.id, user_username = %user.username, dao_discourse_id = %dao_discourse_id))]
     pub async fn upsert_user(&self, user: &User, dao_discourse_id: Uuid) -> Result<()> {
-        info!(
-            user_id = user.id,
-            user_username = %user.username,
-            dao_discourse_id = %dao_discourse_id,
-            "Upserting user"
-        );
         let existing_user = discourse_user::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -108,15 +102,7 @@ impl DbHandler {
                     .add(discourse_user::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await
-            .map_err(|err: DbErr| {
-                anyhow::anyhow!(
-                    "Failed to find existing user {:?} for DAO discourse ID {}: {}",
-                    user,
-                    dao_discourse_id,
-                    err
-                )
-            })?;
+            .await?;
 
         match existing_user {
             Some(existing_user) => {
@@ -135,15 +121,7 @@ impl DbHandler {
                 user_update.days_visited = Set(Some(user.days_visited.unwrap_or(0) as i64));
                 discourse_user::Entity::update(user_update)
                     .exec(&self.conn)
-                    .await
-                    .map_err(|err: DbErr| {
-                        anyhow::anyhow!(
-                            "Failed to update existing user {:?} for DAO discourse ID {}: {}",
-                            user,
-                            dao_discourse_id,
-                            err
-                        )
-                    })?;
+                    .await?;
             }
             None => {
                 debug!("Inserting new user");
@@ -165,15 +143,7 @@ impl DbHandler {
                 };
                 discourse_user::Entity::insert(user_model)
                     .exec(&self.conn)
-                    .await
-                    .map_err(|err: DbErr| {
-                        anyhow::anyhow!(
-                            "Failed to insert new user {:?} for DAO discourse ID {}: {}",
-                            user,
-                            dao_discourse_id,
-                            err
-                        )
-                    })?;
+                    .await?;
                 self.total_users_counter.add(
                     1,
                     &[KeyValue::new(
@@ -194,14 +164,8 @@ impl DbHandler {
         Ok(())
     }
 
-    #[instrument(skip(self, category, dao_discourse_id), fields(category_id = category.id, cateogory_name = %category.name))]
+    #[instrument(skip(self, category), fields(category_id = category.id, category_name = %category.name, dao_discourse_id = %dao_discourse_id))]
     pub async fn upsert_category(&self, category: &Category, dao_discourse_id: Uuid) -> Result<()> {
-        info!(
-            category_id = category.id,
-            category_name = %category.name,
-            dao_discourse_id = %dao_discourse_id,
-            "Upserting category"
-        );
         let existing_category = seaorm::discourse_category::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -209,15 +173,7 @@ impl DbHandler {
                     .add(seaorm::discourse_category::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await
-            .map_err(|err: DbErr| {
-                anyhow::anyhow!(
-                    "Failed to find existing category {:?} for DAO discourse ID {}: {}",
-                    category,
-                    dao_discourse_id,
-                    err
-                )
-            })?;
+            .await?;
 
         match existing_category {
             Some(existing_category) => {
@@ -239,15 +195,7 @@ impl DbHandler {
                 category_update.topics_all_time = Set(category.topics_all_time);
                 seaorm::discourse_category::Entity::update(category_update)
                     .exec(&self.conn)
-                    .await
-                    .map_err(|err: DbErr| {
-                        anyhow::anyhow!(
-                            "Failed to update existing category {:?} for DAO discourse ID {}: {}",
-                            category,
-                            dao_discourse_id,
-                            err
-                        )
-                    })?;
+                    .await?;
             }
             None => {
                 debug!("Inserting new category");
@@ -271,15 +219,7 @@ impl DbHandler {
                 };
                 seaorm::discourse_category::Entity::insert(category_model)
                     .exec(&self.conn)
-                    .await
-                    .map_err(|err: DbErr| {
-                        anyhow::anyhow!(
-                            "Failed to insert new category {:?} for DAO discourse ID {}: {}",
-                            category,
-                            dao_discourse_id,
-                            err
-                        )
-                    })?;
+                    .await?;
                 self.total_categories_counter.add(
                     1,
                     &[KeyValue::new(
@@ -300,14 +240,8 @@ impl DbHandler {
         Ok(())
     }
 
-    #[instrument(skip(self, topic, dao_discourse_id), fields(topic_id = topic.id, topic_title = %topic.title))]
+    #[instrument(skip(self, topic), fields(topic_id = topic.id, topic_title = %topic.title, dao_discourse_id = %dao_discourse_id))]
     pub async fn upsert_topic(&self, topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
-        info!(
-            topic_id = topic.id,
-            topic_title = %topic.title,
-            dao_discourse_id = %dao_discourse_id,
-            "Upserting topic"
-        );
         let existing_topic = seaorm::discourse_topic::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -315,15 +249,7 @@ impl DbHandler {
                     .add(seaorm::discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await
-            .map_err(|err: DbErr| {
-                anyhow::anyhow!(
-                    "Failed to find existing topic {:?} for DAO discourse ID {}: {}",
-                    topic,
-                    dao_discourse_id,
-                    err
-                )
-            })?;
+            .await?;
 
         match existing_topic {
             Some(existing_topic) => {
@@ -347,15 +273,7 @@ impl DbHandler {
                 topic_update.pinned_globally = Set(topic.pinned_globally);
                 seaorm::discourse_topic::Entity::update(topic_update)
                     .exec(&self.conn)
-                    .await
-                    .map_err(|err: DbErr| {
-                        anyhow::anyhow!(
-                            "Failed to update existing topic {:?} for DAO discourse ID {}: {}",
-                            topic,
-                            dao_discourse_id,
-                            err
-                        )
-                    })?;
+                    .await?;
             }
             None => {
                 debug!("Inserting new topic");
@@ -382,15 +300,7 @@ impl DbHandler {
                 };
                 let result = seaorm::discourse_topic::Entity::insert(topic_model)
                     .exec(&self.conn)
-                    .await
-                    .map_err(|err: DbErr| {
-                        anyhow::anyhow!(
-                            "Failed to insert new topic {:?} for DAO discourse ID {}: {}",
-                            topic,
-                            dao_discourse_id,
-                            err
-                        )
-                    })?;
+                    .await?;
 
                 if let Some(category_ids) =
                     DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id)
@@ -403,19 +313,12 @@ impl DbHandler {
                         seaorm::job_queue::Entity::insert(seaorm::job_queue::ActiveModel {
                             id: NotSet,
                             r#type: Set(DiscussionJobData::job_type().to_string()),
-                               data: Set(serde_json::to_value(job_data)?),
+                            data: Set(serde_json::to_value(job_data)?),
                             status: Set("PENDING".into()),
                             created_at: NotSet,
                         })
                         .exec(&self.conn)
-                        .await
-                        .map_err(|err: DbErr| {
-                            anyhow::anyhow!(
-                                "Failed to create MAPPER_NEW_PROPOSAL_DISCUSSION job for topic ID {}: {}",
-                                result.last_insert_id,
-                                err
-                            )
-                        })?;
+                        .await?;
                     }
                 }
 
@@ -436,18 +339,11 @@ impl DbHandler {
                 dao_discourse_id.to_string(),
             )],
         );
-
         Ok(())
     }
 
-    #[instrument(skip(self, post, dao_discourse_id), fields(post_id = post.id, post_username = %post.username))]
+    #[instrument(skip(self, post), fields(post_id = post.id, post_username = %post.username, dao_discourse_id = %dao_discourse_id))]
     pub async fn upsert_post(&self, post: &Post, dao_discourse_id: Uuid) -> Result<()> {
-        info!(
-            post_id = post.id,
-            post_username = %post.username,
-            dao_discourse_id = %dao_discourse_id,
-            "Upserting post"
-        );
         let existing_post = seaorm::discourse_post::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -455,15 +351,7 @@ impl DbHandler {
                     .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await
-            .map_err(|err: DbErr| {
-                anyhow::anyhow!(
-                    "Failed to find existing post {:?} for DAO discourse ID {}: {}",
-                    post,
-                    dao_discourse_id,
-                    err
-                )
-            })?;
+            .await?;
 
         match existing_post {
             Some(existing_post) => {
@@ -496,15 +384,7 @@ impl DbHandler {
                 post_update.can_view_edit_history = Set(post.can_view_edit_history);
                 seaorm::discourse_post::Entity::update(post_update)
                     .exec(&self.conn)
-                    .await
-                    .map_err(|err: DbErr| {
-                        anyhow::anyhow!(
-                            "Failed to update existing post {:?} for DAO discourse ID {}: {}.",
-                            post,
-                            dao_discourse_id,
-                            err,
-                        )
-                    })?;
+                    .await?;
             }
             None => {
                 debug!("Inserting new post");
@@ -540,15 +420,7 @@ impl DbHandler {
                 };
                 seaorm::discourse_post::Entity::insert(post_model)
                     .exec(&self.conn)
-                    .await
-                    .map_err(|err: DbErr| {
-                        anyhow::anyhow!(
-                            "Failed to insert new post {:?} for DAO discourse ID {}: {}",
-                            post,
-                            dao_discourse_id,
-                            err,
-                        )
-                    })?;
+                    .await?;
                 self.total_posts_counter.add(
                     1,
                     &[KeyValue::new(
@@ -566,24 +438,16 @@ impl DbHandler {
                 dao_discourse_id.to_string(),
             )],
         );
-
         Ok(())
     }
 
-    #[instrument(skip(self, revision, dao_discourse_id), fields(revision_version = revision.current_version, post_id = revision.post_id))]
+    #[instrument(skip(self, revision), fields(revision_version = revision.current_version, post_id = revision.post_id, dao_discourse_id = %dao_discourse_id))]
     pub async fn upsert_revision(
         &self,
         revision: &Revision,
         dao_discourse_id: Uuid,
         discourse_post_id: Uuid,
     ) -> Result<()> {
-        info!(
-            revision = revision.current_version,
-            post_id = %revision.post_id,
-            dao_discourse_id = %dao_discourse_id,
-            "Upserting revision"
-        );
-
         let cooked_body_before = Some(revision.get_cooked_markdown_before());
         let cooked_body_after = Some(revision.get_cooked_markdown_after());
 
@@ -667,7 +531,6 @@ impl DbHandler {
                 dao_discourse_id.to_string(),
             )],
         );
-
         Ok(())
     }
 }
