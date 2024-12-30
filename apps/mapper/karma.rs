@@ -224,6 +224,11 @@ async fn update_delegate(
         delegate_to_voter::Entity::update(active_dtv)
             .exec(conn)
             .await?;
+        info!(
+            delegate_id = delegate.id.to_string(),
+            voter_id = voter_id.to_string(),
+            "Updated delegate_to_voter mapping"
+        );
     } else {
         // Insert new delegate_to_voter mapping
         let new_dtv = delegate_to_voter::ActiveModel {
@@ -239,6 +244,11 @@ async fn update_delegate(
         delegate_to_voter::Entity::insert(new_dtv)
             .exec(conn)
             .await?;
+        info!(
+            delegate_id = delegate.id.to_string(),
+            voter_id = voter_id.to_string(),
+            "Created new delegate_to_voter mapping"
+        );
     }
 
     // Insert or update the delegate_to_discourse_user mapping
@@ -255,6 +265,11 @@ async fn update_delegate(
         delegate_to_discourse_user::Entity::update(active_dtdu)
             .exec(conn)
             .await?;
+        info!(
+            delegate_id = delegate.id.to_string(),
+            discourse_user_id = discourse_user_id.to_string(),
+            "Updated delegate_to_discourse_user mapping"
+        );
     } else {
         // Insert new delegate_to_discourse_user mapping
         let new_dtdu = delegate_to_discourse_user::ActiveModel {
@@ -270,6 +285,11 @@ async fn update_delegate(
         delegate_to_discourse_user::Entity::insert(new_dtdu)
             .exec(conn)
             .await?;
+        info!(
+            delegate_id = delegate.id.to_string(),
+            discourse_user_id = discourse_user_id.to_string(),
+            "Created new delegate_to_discourse_user mapping"
+        );
     }
 
     Ok(())

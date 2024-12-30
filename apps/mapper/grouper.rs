@@ -38,7 +38,7 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
         .await?;
 
     for job in pending_jobs {
-        info!(job_id = job.id, "Processing job");
+        info!(job_id = job.id, job_type = %job.r#type, "Processing job");
 
         let job_type: JobType = job.r#type.parse()?;
 
@@ -82,6 +82,8 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
                 job_id = job_id,
                 "Failed to update job status"
             );
+        } else {
+            info!(job_id = job_id, "Job completed successfully");
         }
     }
 
