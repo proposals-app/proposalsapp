@@ -6,9 +6,10 @@ use sea_orm::{
 use seaorm::{dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group};
 use std::time::Duration;
 use tokio::time::{sleep, Instant};
-use tracing::{error, info, warn};
+use tracing::{error, info, instrument, warn, Span};
 use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalJobData};
 
+#[instrument(skip(db))]
 pub async fn run_group_task(db: &DatabaseConnection) -> Result<()> {
     let interval = Duration::from_secs(60);
     let mut next_tick = Instant::now() + interval;
@@ -23,6 +24,7 @@ pub async fn run_group_task(db: &DatabaseConnection) -> Result<()> {
     }
 }
 
+#[instrument(skip(conn))]
 async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
     let pending_jobs = job_queue::Entity::find()
         .filter(
@@ -38,6 +40,10 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
         .await?;
 
     for job in pending_jobs {
+        let span = Span::current();
+        span.record("job_id", &job.id);
+        span.record("job_type", &job.r#type);
+
         info!(job_id = job.id, job_type = %job.r#type, "Processing job");
 
         let job_type: JobType = job.r#type.parse()?;
@@ -90,6 +96,7 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip(conn))]
 async fn process_new_discussion_job(
     conn: &DatabaseConnection,
     job_id: i32,
@@ -158,6 +165,7 @@ async fn process_new_discussion_job(
     Ok(())
 }
 
+#[instrument(skip(conn))]
 async fn process_snapshot_proposal_job(
     conn: &DatabaseConnection,
     job_id: i32,

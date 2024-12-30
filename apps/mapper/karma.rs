@@ -16,7 +16,7 @@ use seaorm::{
 use serde::Deserialize;
 use std::{collections::HashMap, str::FromStr, time::Duration as StdDuration};
 use tokio::time::{sleep, Instant};
-use tracing::{error, info, warn};
+use tracing::{error, info, instrument, warn, Span};
 
 #[derive(Debug, Deserialize)]
 struct KarmaDelegate {
@@ -38,6 +38,7 @@ lazy_static::lazy_static! {
     };
 }
 
+#[instrument(skip(db))]
 async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
     let client = Client::new();
 
@@ -51,6 +52,9 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
         .collect::<Vec<_>>();
 
     for (dao, maybe_dao_discourse) in daos {
+        let span = Span::current();
+        span.record("dao_slug", &dao.slug);
+
         if let Some(discourse) = maybe_dao_discourse {
             if let Some(karma_dao_name) = DAO_SLUG_TO_KARMA_DAO_NAME.get(dao.slug.as_str()) {
                 let url = format!(
@@ -103,6 +107,7 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip(conn, dao, delegate_data))]
 async fn update_delegate(
     conn: &DatabaseConnection,
     dao: &dao::Model,
@@ -295,6 +300,7 @@ async fn update_delegate(
     Ok(())
 }
 
+#[instrument(skip(conn, delegates))]
 async fn update_delegates_ens(
     conn: &DatabaseConnection,
     delegates: &[KarmaDelegate],
@@ -379,6 +385,7 @@ async fn update_delegates_ens(
     Ok(())
 }
 
+#[instrument(skip(db))]
 pub async fn run_karma_task(db: &DatabaseConnection) -> Result<()> {
     let interval = Duration::minutes(10);
     let mut next_tick = Instant::now() + StdDuration::from_secs(interval.num_seconds() as u64);
