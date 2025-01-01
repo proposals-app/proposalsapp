@@ -2745,7 +2745,7 @@ __metadata:
     "@types/diff-match-patch": "npm:^1"
     "@types/jsdom": "npm:^21.1.7"
     "@types/mdast": "npm:^4"
-    "@types/node": "npm:22.10.2"
+    "@types/node": "npm:22.10.3"
     "@types/react": "npm:19.0.2"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:19.0.2"
@@ -2787,7 +2787,7 @@ __metadata:
     react-dom: "npm:19.0.0"
     react-hook-form: "npm:^7.54.2"
     react-icons: "npm:5.4.0"
-    react-intersection-observer: "npm:9.14.0"
+    react-intersection-observer: "npm:9.14.1"
     react-resizable-panels: "npm:^2.1.7"
     recharts: "npm:^2.15.0"
     rehype-stringify: "npm:^10.0.1"
@@ -2800,7 +2800,7 @@ __metadata:
     unified: "npm:^11.0.5"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.21.59"
+    viem: "npm:2.22.1"
     web-push: "npm:3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -2850,7 +2850,7 @@ __metadata:
     "@radix-ui/react-toggle-group": "npm:^1.1.1"
     "@radix-ui/react-tooltip": "npm:^1.1.6"
     "@serwist/next": "npm:9.0.11"
-    "@types/node": "npm:22.10.2"
+    "@types/node": "npm:22.10.3"
     "@types/react": "npm:19.0.2"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:19.0.2"
@@ -2883,7 +2883,7 @@ __metadata:
     react-dom: "npm:19.0.0"
     react-hook-form: "npm:^7.54.2"
     react-icons: "npm:5.4.0"
-    react-intersection-observer: "npm:9.14.0"
+    react-intersection-observer: "npm:9.14.1"
     react-resizable-panels: "npm:^2.1.7"
     recharts: "npm:^2.15.0"
     serwist: "npm:9.0.11"
@@ -2894,7 +2894,7 @@ __metadata:
     typescript: "npm:5.7.2"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.21.59"
+    viem: "npm:2.22.1"
     web-push: "npm:3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -5191,12 +5191,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:22.10.2, @types/node@npm:>=10.0.0":
+"@types/node@npm:*, @types/node@npm:>=10.0.0":
   version: 22.10.2
   resolution: "@types/node@npm:22.10.2"
   dependencies:
     undici-types: "npm:~6.20.0"
   checksum: 10c0/2c7b71a040f1ef5320938eca8ebc946e6905caa9bbf3d5665d9b3774a8d15ea9fab1582b849a6d28c7fc80756a62c5666bc66b69f42f4d5dafd1ccb193cdb4ac
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:22.10.3":
+  version: 22.10.3
+  resolution: "@types/node@npm:22.10.3"
+  dependencies:
+    undici-types: "npm:~6.20.0"
+  checksum: 10c0/0471a73c8672c803b1f2b912c2c466d00a217186933e8ff38ec7779b4a3f88a0eea3b513a59f2abf9de17cc8bbca688a3c6643c6513ac8dd1c3e45d25fab93b1
   languageName: node
   linkType: hard
 
@@ -13846,9 +13855,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ox@npm:0.4.4":
-  version: 0.4.4
-  resolution: "ox@npm:0.4.4"
+"ox@npm:0.6.0":
+  version: 0.6.0
+  resolution: "ox@npm:0.6.0"
   dependencies:
     "@adraffy/ens-normalize": "npm:^1.10.1"
     "@noble/curves": "npm:^1.6.0"
@@ -13862,7 +13871,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/ce1539ec41c97f6d8386ea8f0cdd85d4af025d3b7a6762607aa1a6545f550ca637abba8c9be4b26f6bf2136f16ccd579454e6976ee06ddde7225ac8fcfd4254d
+  checksum: 10c0/1fe8cfe71df8b69d2240fa8d106ef7b2639534e117ba986243c82d747e98cc9f08b706eeb5e0665d48ddc2dd7935d6a8dd4d214b971169504d6af00a12802f90
   languageName: node
   linkType: hard
 
@@ -14811,7 +14820,7 @@ __metadata:
     "@types/babel__core": "npm:7.20.5"
     "@types/fs-extra": "npm:11.0.4"
     "@types/mime-types": "npm:2.1.4"
-    "@types/node": "npm:22.10.2"
+    "@types/node": "npm:22.10.3"
     "@types/normalize-path": "npm:3.0.2"
     "@types/react": "npm:^19.0.2"
     "@types/react-dom": "npm:^19.0.2"
@@ -15108,16 +15117,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-intersection-observer@npm:9.14.0":
-  version: 9.14.0
-  resolution: "react-intersection-observer@npm:9.14.0"
+"react-intersection-observer@npm:9.14.1":
+  version: 9.14.1
+  resolution: "react-intersection-observer@npm:9.14.1"
   peerDependencies:
     react: ^17.0.0 || ^18.0.0 || ^19.0.0
     react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
   peerDependenciesMeta:
     react-dom:
       optional: true
-  checksum: 10c0/a91785984525997d01afdeac12538649b8929d6ca44b5e070f02dbf352628f49cce5930a5eaf32fbbecafb0f9577fc1996dcd3328d20b375d3cef54eea028f0e
+  checksum: 10c0/66587560e9f74672fa62aabe13cc3aabe0e55cbc69c206324f0628ea5d25b6b70f138716074350c945ca390362b35bc8b64568a4fc3f2508c68829cdeb9c96cc
   languageName: node
   linkType: hard
 
@@ -17873,9 +17882,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.21.59":
-  version: 2.21.59
-  resolution: "viem@npm:2.21.59"
+"viem@npm:2.22.1":
+  version: 2.22.1
+  resolution: "viem@npm:2.22.1"
   dependencies:
     "@noble/curves": "npm:1.7.0"
     "@noble/hashes": "npm:1.6.1"
@@ -17883,7 +17892,7 @@ __metadata:
     "@scure/bip39": "npm:1.5.0"
     abitype: "npm:1.0.7"
     isows: "npm:1.0.6"
-    ox: "npm:0.4.4"
+    ox: "npm:0.6.0"
     webauthn-p256: "npm:0.0.10"
     ws: "npm:8.18.0"
   peerDependencies:
@@ -17891,7 +17900,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/262517b25852569911396fe289fd26438fbd2cdc07d37dd53d94a053d4e08a2643685f48ba3011403eaf92ad50ee2a3333dc63a84c38f98eb7e24ebb0d1cc007
+  checksum: 10c0/08ca9cbb5e7c0376a23ad07fcce8b77dd4b2d74dc03c88c8f8f9b3ef1e5b2eccba99052cf4f487aef1145b14e36c749cb254a93bac1e4676a2c5d10ee8575021
   languageName: node
   linkType: hard
 
