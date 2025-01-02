@@ -2588,19 +2588,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@proposalsapp/db@npm:*, @proposalsapp/db@workspace:libs/ts/db":
+"@proposalsapp/db@npm:1.0.0, @proposalsapp/db@workspace:libs/ts/db":
   version: 0.0.0-use.local
   resolution: "@proposalsapp/db@workspace:libs/ts/db"
   dependencies:
-    "@tsconfig/recommended": "npm:1.0.8"
-    "@types/dotenv": "npm:8.2.3"
+    "@tsconfig/recommended": "npm:^1.0.8"
+    "@types/dotenv": "npm:^8.2.3"
     "@types/pg": "npm:8"
-    dotenv: "npm:16.4.7"
+    dotenv: "npm:^16.4.7"
     kysely: "npm:0.27.5"
     kysely-codegen: "npm:0.17.0"
     kysely-ctl: "npm:0.10.1"
     pg: "npm:8.13.1"
-    typescript: "npm:5.7.2"
+    typescript: "npm:^5.7.2"
   languageName: unknown
   linkType: soft
 
@@ -2608,8 +2608,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/email-service@workspace:apps/email-service"
   dependencies:
-    "@proposalsapp/db": "npm:*"
-    "@proposalsapp/emails": "npm:*"
+    "@proposalsapp/db": "npm:1.0.0"
+    "@proposalsapp/emails": "npm:1.0.0"
     "@tsconfig/recommended": "npm:^1.0.8"
     "@types/dotenv": "npm:^8.2.3"
     "@types/express": "npm:^5.0.0"
@@ -2624,24 +2624,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@proposalsapp/emails@npm:*, @proposalsapp/emails@workspace:libs/ts/emails":
+"@proposalsapp/emails@npm:1.0.0, @proposalsapp/emails@workspace:libs/ts/emails":
   version: 0.0.0-use.local
   resolution: "@proposalsapp/emails@workspace:libs/ts/emails"
   dependencies:
     "@react-email/components": "npm:0.0.31"
     "@react-email/render": "npm:1.0.3"
-    "@tsconfig/recommended": "npm:1.0.8"
+    "@tsconfig/recommended": "npm:^1.0.8"
     "@types/react": "npm:^19.0.2"
-    dotenv: "npm:16.4.7"
+    dotenv: "npm:^16.4.7"
     moment: "npm:2.30.1"
-    postmark: "npm:4.0.5"
-    prettier: "npm:3.4.2"
+    postmark: "npm:^4.0.5"
+    prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
     react-email: "npm:3.0.4"
     tailwindcss: "npm:3.4.17"
-    typescript: "npm:5.7.2"
+    typescript: "npm:^5.7.2"
   languageName: unknown
   linkType: soft
 
@@ -2649,7 +2649,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/push-service@workspace:apps/push-service"
   dependencies:
-    "@proposalsapp/db": "npm:*"
+    "@proposalsapp/db": "npm:1.0.0"
     "@tsconfig/recommended": "npm:^1.0.8"
     "@types/dotenv": "npm:^8.2.3"
     "@types/express": "npm:^5.0.0"
@@ -2665,7 +2665,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@proposalsapp/visual-dom-diff@npm:*, @proposalsapp/visual-dom-diff@workspace:libs/ts/visual-dom-diff":
+"@proposalsapp/visual-dom-diff@npm:0.7.2, @proposalsapp/visual-dom-diff@workspace:libs/ts/visual-dom-diff":
   version: 0.0.0-use.local
   resolution: "@proposalsapp/visual-dom-diff@workspace:libs/ts/visual-dom-diff"
   dependencies:
@@ -2689,7 +2689,7 @@ __metadata:
     ts-jest: "npm:^29.2.5"
     tslint: "npm:^6.1.3"
     tslint-config-prettier: "npm:^1.18.0"
-    typescript: "npm:5.7.2"
+    typescript: "npm:^5.7.2"
     webpack: "npm:^5.97.1"
     webpack-cli: "npm:^6.0.1"
     webpack-dev-server: "npm:^5.2.0"
@@ -2709,9 +2709,9 @@ __metadata:
     "@opentelemetry/sdk-logs": "npm:^0.57.0"
     "@opentelemetry/sdk-metrics": "npm:^1.30.0"
     "@opentelemetry/sdk-trace-base": "npm:^1.30.0"
-    "@proposalsapp/db": "npm:*"
-    "@proposalsapp/emails": "npm:*"
-    "@proposalsapp/visual-dom-diff": "npm:*"
+    "@proposalsapp/db": "npm:1.0.0"
+    "@proposalsapp/emails": "npm:1.0.0"
+    "@proposalsapp/visual-dom-diff": "npm:0.7.2"
     "@radix-ui/react-accordion": "npm:^1.2.2"
     "@radix-ui/react-alert-dialog": "npm:^1.1.4"
     "@radix-ui/react-aspect-ratio": "npm:^1.1.1"
@@ -2742,13 +2742,13 @@ __metadata:
     "@radix-ui/react-tooltip": "npm:^1.1.6"
     "@serwist/next": "npm:9.0.11"
     "@tailwindcss/typography": "npm:^0.5.15"
-    "@types/diff-match-patch": "npm:^1"
+    "@types/diff-match-patch": "npm:^1.0.36"
     "@types/jsdom": "npm:^21.1.7"
     "@types/mdast": "npm:^4"
-    "@types/node": "npm:22.10.3"
-    "@types/react": "npm:19.0.2"
+    "@types/node": "npm:22.10.4"
+    "@types/react": "npm:^19.0.2"
     "@types/react-day-picker": "npm:5.3.0"
-    "@types/react-dom": "npm:19.0.2"
+    "@types/react-dom": "npm:^19.0.2"
     "@types/unist": "npm:3.0.3"
     "@types/uuid": "npm:^10"
     "@types/web-push": "npm:3.6.4"
@@ -2779,8 +2779,8 @@ __metadata:
     pino-pretty: "npm:13.0.0"
     postcss: "npm:8.4.49"
     posthog-js: "npm:1.203.2"
-    postmark: "npm:4.0.5"
-    prettier: "npm:3.4.2"
+    postmark: "npm:^4.0.5"
+    prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
     react: "npm:19.0.0"
     react-day-picker: "npm:9.5.0"
@@ -2796,12 +2796,12 @@ __metadata:
     tailwind-merge: "npm:2.6.0"
     tailwindcss: "npm:3.4.17"
     tailwindcss-animate: "npm:1.0.7"
-    typescript: "npm:5.7.2"
+    typescript: "npm:^5.7.2"
     unified: "npm:^11.0.5"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
     viem: "npm:2.22.1"
-    web-push: "npm:3.6.7"
+    web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
   linkType: soft
@@ -2819,8 +2819,8 @@ __metadata:
     "@opentelemetry/sdk-logs": "npm:^0.57.0"
     "@opentelemetry/sdk-metrics": "npm:^1.30.0"
     "@opentelemetry/sdk-trace-base": "npm:^1.30.0"
-    "@proposalsapp/db": "npm:*"
-    "@proposalsapp/emails": "npm:*"
+    "@proposalsapp/db": "npm:1.0.0"
+    "@proposalsapp/emails": "npm:1.0.0"
     "@radix-ui/react-accordion": "npm:^1.2.2"
     "@radix-ui/react-alert-dialog": "npm:^1.1.4"
     "@radix-ui/react-aspect-ratio": "npm:^1.1.1"
@@ -2850,10 +2850,10 @@ __metadata:
     "@radix-ui/react-toggle-group": "npm:^1.1.1"
     "@radix-ui/react-tooltip": "npm:^1.1.6"
     "@serwist/next": "npm:9.0.11"
-    "@types/node": "npm:22.10.3"
-    "@types/react": "npm:19.0.2"
+    "@types/node": "npm:22.10.4"
+    "@types/react": "npm:^19.0.2"
     "@types/react-day-picker": "npm:5.3.0"
-    "@types/react-dom": "npm:19.0.2"
+    "@types/react-dom": "npm:^19.0.2"
     "@types/uuid": "npm:^10"
     "@types/web-push": "npm:3.6.4"
     "@vercel/otel": "npm:^1.10.0"
@@ -2875,8 +2875,8 @@ __metadata:
     pino-pretty: "npm:13.0.0"
     postcss: "npm:8.4.49"
     posthog-js: "npm:1.203.2"
-    postmark: "npm:4.0.5"
-    prettier: "npm:3.4.2"
+    postmark: "npm:^4.0.5"
+    prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
     react: "npm:19.0.0"
     react-day-picker: "npm:9.5.0"
@@ -2891,11 +2891,11 @@ __metadata:
     tailwind-merge: "npm:2.6.0"
     tailwindcss: "npm:3.4.17"
     tailwindcss-animate: "npm:1.0.7"
-    typescript: "npm:5.7.2"
+    typescript: "npm:^5.7.2"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
     viem: "npm:2.22.1"
-    web-push: "npm:3.6.7"
+    web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
   linkType: soft
@@ -3449,7 +3449,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@radix-ui/react-popover@npm:1.1.4, @radix-ui/react-popover@npm:^1.1.4":
+"@radix-ui/react-popover@npm:^1.1.4":
   version: 1.1.4
   resolution: "@radix-ui/react-popover@npm:1.1.4"
   dependencies:
@@ -3854,7 +3854,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@radix-ui/react-toggle-group@npm:1.1.1, @radix-ui/react-toggle-group@npm:^1.1.1":
+"@radix-ui/react-toggle-group@npm:^1.1.1":
   version: 1.1.1
   resolution: "@radix-ui/react-toggle-group@npm:1.1.1"
   dependencies:
@@ -3900,7 +3900,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@radix-ui/react-tooltip@npm:1.1.6, @radix-ui/react-tooltip@npm:^1.1.6":
+"@radix-ui/react-tooltip@npm:^1.1.6":
   version: 1.1.6
   resolution: "@radix-ui/react-tooltip@npm:1.1.6"
   dependencies:
@@ -4728,7 +4728,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tsconfig/recommended@npm:1.0.8, @tsconfig/recommended@npm:^1.0.8":
+"@tsconfig/recommended@npm:^1.0.8":
   version: 1.0.8
   resolution: "@tsconfig/recommended@npm:1.0.8"
   checksum: 10c0/bd6517e3f69cf96108ab8b7d2ee70a7e64ee457bb72326524acdef6e2219813b298654e9aa57ce2f8899901c9b8fd66388b036b9ca0aa062952a83adb59bec17
@@ -4917,14 +4917,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/diff-match-patch@npm:^1, @types/diff-match-patch@npm:^1.0.36":
+"@types/diff-match-patch@npm:^1.0.36":
   version: 1.0.36
   resolution: "@types/diff-match-patch@npm:1.0.36"
   checksum: 10c0/0bad011ab138baa8bde94e7815064bb881f010452463272644ddbbb0590659cb93f7aa2776ff442c6721d70f202839e1053f8aa62d801cc4166f7a3ea9130055
   languageName: node
   linkType: hard
 
-"@types/dotenv@npm:8.2.3, @types/dotenv@npm:^8.2.3":
+"@types/dotenv@npm:^8.2.3":
   version: 8.2.3
   resolution: "@types/dotenv@npm:8.2.3"
   dependencies:
@@ -5191,21 +5191,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:>=10.0.0":
-  version: 22.10.2
-  resolution: "@types/node@npm:22.10.2"
+"@types/node@npm:*, @types/node@npm:22.10.4, @types/node@npm:>=10.0.0":
+  version: 22.10.4
+  resolution: "@types/node@npm:22.10.4"
   dependencies:
     undici-types: "npm:~6.20.0"
-  checksum: 10c0/2c7b71a040f1ef5320938eca8ebc946e6905caa9bbf3d5665d9b3774a8d15ea9fab1582b849a6d28c7fc80756a62c5666bc66b69f42f4d5dafd1ccb193cdb4ac
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:22.10.3":
-  version: 22.10.3
-  resolution: "@types/node@npm:22.10.3"
-  dependencies:
-    undici-types: "npm:~6.20.0"
-  checksum: 10c0/0471a73c8672c803b1f2b912c2c466d00a217186933e8ff38ec7779b4a3f88a0eea3b513a59f2abf9de17cc8bbca688a3c6643c6513ac8dd1c3e45d25fab93b1
+  checksum: 10c0/b2950f71dad821ef5103f42f3b4a804f8613f5799b8d96f427f904f49841b424e311fa38b3a92cf4710529abc82a355093b9258b030af3e94ee9b84bd1313063
   languageName: node
   linkType: hard
 
@@ -5264,7 +5255,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:19.0.2, @types/react-dom@npm:^19.0.2":
+"@types/react-dom@npm:^19.0.2":
   version: 19.0.2
   resolution: "@types/react-dom@npm:19.0.2"
   peerDependencies:
@@ -5273,7 +5264,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:19.0.2, @types/react@npm:^19.0.2":
+"@types/react@npm:^19.0.2":
   version: 19.0.2
   resolution: "@types/react@npm:19.0.2"
   dependencies:
@@ -6916,7 +6907,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:5.4.1":
+"chalk@npm:5.4.1, chalk@npm:^5.3.0":
   version: 5.4.1
   resolution: "chalk@npm:5.4.1"
   checksum: 10c0/b23e88132c702f4855ca6d25cb5538b1114343e41472d5263ee8a37cccfccd9c4216d111e1097c6a27830407a1dc81fecdf2a56f2c63033d4dbbd88c10b0dcef
@@ -6931,13 +6922,6 @@ __metadata:
     escape-string-regexp: "npm:^1.0.5"
     supports-color: "npm:^5.3.0"
   checksum: 10c0/e6543f02ec877732e3a2d1c3c3323ddb4d39fbab687c23f526e25bd4c6a9bf3b83a696e8c769d078e04e5754921648f7821b2a2acfd16c550435fd630026e073
-  languageName: node
-  linkType: hard
-
-"chalk@npm:^5.3.0":
-  version: 5.4.0
-  resolution: "chalk@npm:5.4.0"
-  checksum: 10c0/474266abd1a69879e367690b3090541deb985a54d3263efa4c82ffc623ea12b8ab9afdba082e853bb5e3f64c6619ac4951a154622b6cc8f66265f85c943d0481
   languageName: node
   linkType: hard
 
@@ -8182,7 +8166,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:*, dotenv@npm:16.4.7, dotenv@npm:^16.4.5, dotenv@npm:^16.4.7":
+"dotenv@npm:*, dotenv@npm:^16.4.5, dotenv@npm:^16.4.7":
   version: 16.4.7
   resolution: "dotenv@npm:16.4.7"
   checksum: 10c0/be9f597e36a8daf834452daa1f4cc30e5375a5968f98f46d89b16b983c567398a330580c88395069a77473943c06b877d1ca25b4afafcdd6d4adb549e8293462
@@ -14665,7 +14649,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postmark@npm:4.0.5, postmark@npm:^4.0.5":
+"postmark@npm:^4.0.5":
   version: 4.0.5
   resolution: "postmark@npm:4.0.5"
   dependencies:
@@ -14770,7 +14754,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:3.4.2, prettier@npm:^3.4.2":
+"prettier@npm:^3.4.2":
   version: 3.4.2
   resolution: "prettier@npm:3.4.2"
   bin:
@@ -14814,16 +14798,16 @@ __metadata:
     "@babel/core": "npm:7.26.0"
     "@babel/parser": "npm:7.26.3"
     "@radix-ui/colors": "npm:3.0.0"
-    "@radix-ui/react-collapsible": "npm:1.1.2"
-    "@radix-ui/react-popover": "npm:1.1.4"
-    "@radix-ui/react-slot": "npm:1.1.1"
-    "@radix-ui/react-toggle-group": "npm:1.1.1"
-    "@radix-ui/react-tooltip": "npm:1.1.6"
+    "@radix-ui/react-collapsible": "npm:^1.1.2"
+    "@radix-ui/react-popover": "npm:^1.1.4"
+    "@radix-ui/react-slot": "npm:^1.1.1"
+    "@radix-ui/react-toggle-group": "npm:^1.1.1"
+    "@radix-ui/react-tooltip": "npm:^1.1.6"
     "@swc/core": "npm:1.10.4"
     "@types/babel__core": "npm:7.20.5"
     "@types/fs-extra": "npm:11.0.4"
     "@types/mime-types": "npm:2.1.4"
-    "@types/node": "npm:22.10.3"
+    "@types/node": "npm:22.10.4"
     "@types/normalize-path": "npm:3.0.2"
     "@types/react": "npm:^19.0.2"
     "@types/react-dom": "npm:^19.0.2"
@@ -14853,14 +14837,14 @@ __metadata:
     sharp: "npm:0.33.5"
     socket.io: "npm:4.8.1"
     socket.io-client: "npm:4.8.1"
-    sonner: "npm:1.7.1"
+    sonner: "npm:^1.7.1"
     source-map-js: "npm:1.2.1"
     stacktrace-parser: "npm:0.1.10"
     tailwind-merge: "npm:2.6.0"
     tailwindcss: "npm:3.4.17"
     tsup: "npm:8.3.5"
-    tsx: "npm:4.19.2"
-    typescript: "npm:5.7.2"
+    tsx: "npm:^4.19.2"
+    typescript: "npm:^5.7.2"
     vitest: "npm:2.1.8"
   bin:
     email: ./dist/cli/index.js
@@ -14942,8 +14926,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "proposalsapp@workspace:."
   dependencies:
-    "@tsconfig/recommended": "npm:1.0.8"
-    hast-util-sanitize: "npm:^5.0.2"
+    "@tsconfig/recommended": "npm:^1.0.8"
   languageName: unknown
   linkType: soft
 
@@ -15042,19 +15025,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-day-picker@npm:*":
-  version: 9.4.4
-  resolution: "react-day-picker@npm:9.4.4"
-  dependencies:
-    "@date-fns/tz": "npm:^1.2.0"
-    date-fns: "npm:^4.1.0"
-  peerDependencies:
-    react: ">=16.8.0"
-  checksum: 10c0/0a8cfa99863854538cd58bfe28fc68febcf7c7f72e14be2e1a4f108ec9e803838bf5dae946e3f2b1900a6ddef520daf666a49bac4a551de35e8e37a347f694cb
-  languageName: node
-  linkType: hard
-
-"react-day-picker@npm:9.5.0":
+"react-day-picker@npm:*, react-day-picker@npm:9.5.0":
   version: 9.5.0
   resolution: "react-day-picker@npm:9.5.0"
   dependencies:
@@ -16382,7 +16353,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sonner@npm:1.7.1, sonner@npm:^1.7.1":
+"sonner@npm:^1.7.1":
   version: 1.7.1
   resolution: "sonner@npm:1.7.1"
   peerDependencies:
@@ -17437,7 +17408,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsx@npm:4.19.2, tsx@npm:^4.19.2":
+"tsx@npm:^4.19.2":
   version: 4.19.2
   resolution: "tsx@npm:4.19.2"
   dependencies:
@@ -17567,7 +17538,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.7.2, typescript@npm:^5.7.2":
+"typescript@npm:^5.7.2":
   version: 5.7.2
   resolution: "typescript@npm:5.7.2"
   bin:
@@ -17577,7 +17548,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A5.7.2#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.7.2#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A^5.7.2#optional!builtin<compat/typescript>":
   version: 5.7.2
   resolution: "typescript@patch:typescript@npm%3A5.7.2#optional!builtin<compat/typescript>::version=5.7.2&hash=5786d5"
   bin:
@@ -18068,7 +18039,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"web-push@npm:3.6.7, web-push@npm:^3.6.7":
+"web-push@npm:^3.6.7":
   version: 3.6.7
   resolution: "web-push@npm:3.6.7"
   dependencies:

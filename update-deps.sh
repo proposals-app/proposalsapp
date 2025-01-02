@@ -6,7 +6,9 @@ cargo upgrade
 cargo sort -w
 
 # Update root dependencies
-npx npm-check-updates -u
+npx syncpack update
+npx syncpack fix-mismatches
+npx syncpack format
 yarn install
 
 # Update dependencies in each workspace

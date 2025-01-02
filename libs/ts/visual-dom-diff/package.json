@@ -1,45 +1,13 @@
 {
   "name": "@proposalsapp/visual-dom-diff",
-  "version": "0.7.2",
   "description": "Highlight differences between two DOM trees.",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "files": [
-    "/lib",
-    "!/lib/**/*.test.js",
-    "!/lib/**/*.test.d.ts"
-  ],
-  "scripts": {
-    "clean": "rimraf lib",
-    "prettier-fix": "prettier \"./src/**/*\" \"./demo/**/*\" \"!./**/*.jpg\" --list-different --write",
-    "prettier": "prettier \"./src/**/*\" \"./demo/**/*\" \"!./**/*.jpg\" --list-different",
-    "tslint": "tslint --project .",
-    "tsc": "tsc -b .",
-    "test": "jest",
-    "build": "run-s clean prettier tslint tsc test",
-    "demo": "webpack -p",
-    "start": "run-p start:*",
-    "start:demo": "webpack-dev-server -d",
-    "start:tsc": "tsc -b -w .",
-    "preversion": "npm outdated && run-s build demo && git add docs",
-    "postversion": "git push && git push origin v${npm_package_version}",
-    "benchmark": "node benchmark"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Teamwork/visual-dom-diff.git"
-  },
-  "keywords": [
-    "visual",
-    "dom",
-    "diff"
-  ],
+  "version": "0.7.2",
   "author": "Greg Kubisa <gkubisa@gmail.com>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Teamwork/visual-dom-diff/issues"
+  "bugs": "https://github.com/Teamwork/visual-dom-diff/issues",
+  "dependencies": {
+    "@types/diff-match-patch": "^1.0.36",
+    "diff-match-patch": "^1.0.5"
   },
-  "homepage": "https://github.com/Teamwork/visual-dom-diff#readme",
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/jsdom": "^21.1.7",
@@ -59,13 +27,40 @@
     "ts-jest": "^29.2.5",
     "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "5.7.2",
+    "typescript": "^5.7.2",
     "webpack": "^5.97.1",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.0"
   },
-  "dependencies": {
-    "@types/diff-match-patch": "^1.0.36",
-    "diff-match-patch": "^1.0.5"
-  }
+  "files": [
+    "/lib",
+    "!/lib/**/*.test.js",
+    "!/lib/**/*.test.d.ts"
+  ],
+  "homepage": "https://github.com/Teamwork/visual-dom-diff#readme",
+  "keywords": [
+    "diff",
+    "dom",
+    "visual"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "repository": "Teamwork/visual-dom-diff.git",
+  "scripts": {
+    "benchmark": "node benchmark",
+    "build": "run-s clean prettier tslint tsc test",
+    "clean": "rimraf lib",
+    "demo": "webpack -p",
+    "postversion": "git push && git push origin v${npm_package_version}",
+    "prettier": "prettier \"./src/**/*\" \"./demo/**/*\" \"!./**/*.jpg\" --list-different",
+    "prettier-fix": "prettier \"./src/**/*\" \"./demo/**/*\" \"!./**/*.jpg\" --list-different --write",
+    "preversion": "npm outdated && run-s build demo && git add docs",
+    "start": "run-p start:*",
+    "start:demo": "webpack-dev-server -d",
+    "start:tsc": "tsc -b -w .",
+    "test": "jest",
+    "tsc": "tsc -b .",
+    "tslint": "tslint --project ."
+  },
+  "types": "lib/index.d.ts"
 }

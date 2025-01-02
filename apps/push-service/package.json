@@ -1,14 +1,8 @@
 {
   "name": "@proposalsapp/push-service",
   "version": "1.0.0",
-  "type": "module",
-  "main": "./src/index.ts",
-  "scripts": {
-    "build": "tsc --build",
-    "start": "tsx src/index.ts"
-  },
   "dependencies": {
-    "@proposalsapp/db": "*",
+    "@proposalsapp/db": "1.0.0",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
@@ -23,5 +17,11 @@
     "@types/web-push": "3.6.4",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
-  }
+  },
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "start": "tsx src/index.ts"
+  },
+  "type": "module"
 }

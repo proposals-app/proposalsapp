@@ -1,7 +1,27 @@
 {
   "name": "proposalsapp",
   "version": "0.1.0",
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.8"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "packageManager": "yarn@4.5.3",
   "private": true,
+  "scripts": {
+    "build-db": "yarn workspace @proposalsapp/db run db:gen:ts",
+    "build-email-service": "yarn run build-db && yarn workspace @proposalsapp/email-service run build",
+    "build-emails": "yarn workspace @proposalsapp/emails run build",
+    "build-push-service": "yarn run build-db && yarn workspace @proposalsapp/push-service run build",
+    "build-web": "yarn run build-db && yarn workspace @proposalsapp/web run build",
+    "build-web-arbitrum": "yarn run build-db && yarn workspace @proposalsapp/web-arbitrum run build",
+    "start-email-service": "yarn workspace @proposalsapp/email-service run start",
+    "start-push-service": "yarn workspace @proposalsapp/push-service run start",
+    "start-web": "yarn workspace @proposalsapp/web run start",
+    "start-web-arbitrum": "yarn workspace @proposalsapp/web-arbitrum run start",
+    "update-deps": "./update-deps.sh"
+  },
   "type": "module",
   "workspaces": [
     "libs/ts/db",
@@ -12,31 +32,5 @@
     "apps/web-arbitrum",
     "apps/email-service",
     "apps/push-service"
-  ],
-  "scripts": {
-    "build-db": "yarn workspace @proposalsapp/db run db:gen:ts",
-    "build-email-service": "yarn run build-db && yarn workspace @proposalsapp/email-service run build",
-    "build-push-service": "yarn run build-db && yarn workspace @proposalsapp/push-service run build",
-    "build-emails": "yarn workspace @proposalsapp/emails run build",
-    "build-web": "yarn run build-db && yarn workspace @proposalsapp/web run build",
-    "build-web-arbitrum": "yarn run build-db && yarn workspace @proposalsapp/web-arbitrum run build",
-    "start-email-service": "yarn workspace @proposalsapp/email-service run start",
-    "start-push-service": "yarn workspace @proposalsapp/push-service run start",
-    "start-web": "yarn workspace @proposalsapp/web run start",
-    "start-web-arbitrum": "yarn workspace @proposalsapp/web-arbitrum run start",
-    "update-deps": "./update-deps.sh"
-  },
-  "overrides": {
-    "undici": "6.6.2"
-  },
-  "devDependencies": {
-    "@tsconfig/recommended": "1.0.8"
-  },
-  "engines": {
-    "node": "20"
-  },
-  "packageManager": "yarn@4.5.3",
-  "dependencies": {
-    "hast-util-sanitize": "^5.0.2"
-  }
+  ]
 }
