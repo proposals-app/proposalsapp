@@ -2773,7 +2773,7 @@ __metadata:
     moment: "npm:2.30.1"
     next: "npm:15.1.3"
     next-themes: "npm:^0.4.4"
-    nuqs: "npm:^2.2.3"
+    nuqs: "npm:^2.3.0"
     oslo: "npm:1.2.1"
     pg: "npm:8.13.1"
     pino-pretty: "npm:13.0.0"
@@ -13553,24 +13553,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nuqs@npm:^2.2.3":
-  version: 2.2.3
-  resolution: "nuqs@npm:2.2.3"
+"nuqs@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "nuqs@npm:2.3.0"
   dependencies:
     mitt: "npm:^3.0.1"
   peerDependencies:
     "@remix-run/react": ">=2"
     next: ">=14.2.0"
     react: ">=18.2.0 || ^19.0.0-0"
-    react-router-dom: ">=6"
+    react-router: ^7
+    react-router-dom: ^6 || ^7
   peerDependenciesMeta:
     "@remix-run/react":
       optional: true
     next:
       optional: true
+    react-router:
+      optional: true
     react-router-dom:
       optional: true
-  checksum: 10c0/c240d5fb48d01832d747411da6137b5a42b9aceb2ac92042d6863133ca93d50726ebcafaaf993b995ea7bf4068329fe332a65ba61baa536c68cba05a6fc5f364
+  checksum: 10c0/ba3ff07dfe687a52a3d5da5570f7e54bd0adcbff8c4c6b666e5293f66c664403d22908ab96b7b52e3efcf41d113dc22e5e2cb65c1223297971138d9ddfc3a598
   languageName: node
   linkType: hard
 
