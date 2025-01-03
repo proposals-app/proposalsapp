@@ -45,7 +45,9 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
   const currentVersion = version ?? 0;
   return (
     <div
-      className={`fixed bottom-0 z-50 flex w-full max-w-[90%] justify-center self-center px-4 pb-4 md:max-w-[75%] lg:max-w-[48%]`}
+      className={`fixed bottom-0 z-50 flex w-full max-w-[90%] justify-center self-center px-4 pb-4 transition-transform duration-300 md:max-w-[75%] lg:max-w-[48%] ${
+        view === ViewEnum.BODY ? "translate-y-0" : "translate-y-full"
+      }`}
     >
       <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
         <div className="flex w-full justify-between">

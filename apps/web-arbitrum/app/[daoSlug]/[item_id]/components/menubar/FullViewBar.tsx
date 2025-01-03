@@ -8,7 +8,6 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from "@/shadcn/ui/command";
@@ -83,13 +82,13 @@ export const FullViewBar = () => {
     } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
       setView(ViewEnum.BODY);
     }
-  }, 24); // 100ms debounce
+  }, 10); // 100ms debounce
 
   return (
     <div
       ref={fullViewBarRef}
-      className={`mt-4 w-full self-center px-2 ${
-        view === ViewEnum.FULL ? "" : "pointer-events-none opacity-0"
+      className={`mt-4 w-full self-center px-2 transition-opacity duration-300 ${
+        view === ViewEnum.FULL ? "opacity-100" : "opacity-0"
       }`}
     >
       <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">

@@ -43,7 +43,9 @@ export const CommentsViewBar = () => {
 
   return (
     <div
-      className={`fixed top-0 z-50 flex w-full max-w-[90%] justify-center self-center px-4 pt-24 md:max-w-[75%] lg:max-w-[48%]`}
+      className={`fixed top-0 z-50 flex w-full max-w-[90%] justify-center self-center px-4 pt-24 transition-transform duration-300 md:max-w-[75%] lg:max-w-[48%] ${
+        view === ViewEnum.COMMENTS ? "translate-y-0" : "-translate-y-full"
+      }`}
     >
       <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
         <div className="flex w-full justify-between">
