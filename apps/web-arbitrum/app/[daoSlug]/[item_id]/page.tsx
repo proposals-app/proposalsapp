@@ -22,7 +22,7 @@ export default async function ProposalPage({
 
   const totalVersions = await getTotalVersions(group.group.id);
 
-  const { version, comments, votes, diff, expanded } =
+  const { version, comments, votes, diff } =
     await searchParamsCache.parse(searchParams);
 
   return (
@@ -33,12 +33,7 @@ export default async function ProposalPage({
 
       <div className="flex w-full justify-between lg:pl-20">
         <div className="mx-auto flex w-[90%] flex-col justify-center md:w-3/4 lg:w-1/2">
-          <Body
-            group={group}
-            version={version ?? 0}
-            diff={diff}
-            expanded={expanded}
-          />
+          <Body group={group} version={version ?? 0} diff={diff} />
 
           <MenuBar totalVersions={totalVersions ?? 1} />
 
