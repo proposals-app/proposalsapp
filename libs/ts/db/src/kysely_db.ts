@@ -118,6 +118,7 @@ export interface DaoIndexer {
   indexerVariant: IndexerVariant;
   portalUrl: string | null;
   speed: Generated<number>;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface Delegate {

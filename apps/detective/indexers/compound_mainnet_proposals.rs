@@ -305,6 +305,7 @@ mod compound_mainnet_proposals_tests {
             speed: 1,
             index: 12235671,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -365,6 +366,7 @@ mod compound_mainnet_proposals_tests {
             speed: 20215251 - 20214270,
             index: 20214270,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -448,6 +450,7 @@ mod compound_mainnet_proposals_tests {
             speed: 1,
             index: 20355844,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {

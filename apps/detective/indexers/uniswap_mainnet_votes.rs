@@ -177,6 +177,7 @@ mod uniswap_mainnet_votes_tests {
             speed: 1,
             index: 20870916,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -229,6 +230,7 @@ mod uniswap_mainnet_votes_tests {
             speed: 1,
             index: 13553144,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {

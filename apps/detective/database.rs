@@ -379,6 +379,22 @@ pub async fn update_indexer_speed(
     })
     .exec(db)
     .await?;
+
+    Ok(())
+}
+
+pub async fn update_indexer_updated_at(
+    db: &DatabaseConnection,
+    indexer: &dao_indexer::Model,
+) -> Result<()> {
+    dao_indexer::Entity::update(dao_indexer::ActiveModel {
+        id: Set(indexer.id),
+        updated_at: Set(chrono::Utc::now().naive_utc()),
+        ..Default::default()
+    })
+    .exec(db)
+    .await?;
+
     Ok(())
 }
 

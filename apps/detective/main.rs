@@ -5,7 +5,7 @@ use anyhow::{bail, Result};
 use axum::{routing::get, Router};
 use database::{
     fetch_dao_indexers, store_delegations, store_proposals, store_votes, store_voting_powers,
-    update_indexer_speed, update_indexer_speed_and_index, DatabaseStore,
+    update_indexer_speed, update_indexer_speed_and_index, update_indexer_updated_at, DatabaseStore,
 };
 use dotenv::dotenv;
 use indexer::{
@@ -404,6 +404,9 @@ async fn store_process_results(
             }
         }
     }
+
+    update_indexer_updated_at(db, indexer).await?;
+
     Ok(())
 }
 

@@ -1013,6 +1013,7 @@ mod optimism_proposals_tests {
             speed: 1,
             index: 72973366,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -1073,6 +1074,7 @@ mod optimism_proposals_tests {
             speed: 1,
             index: 110769479,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -1133,6 +1135,7 @@ mod optimism_proposals_tests {
             speed: 1,
             index: 99601892,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -1193,6 +1196,7 @@ mod optimism_proposals_tests {
             speed: 1,
             index: 111677431,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -1254,6 +1258,7 @@ mod optimism_proposals_tests {
             speed: 1,
             index: 115004187,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -1315,6 +1320,7 @@ mod optimism_proposals_tests {
             speed: 1,
             index: 115004502,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -1376,6 +1382,7 @@ mod optimism_proposals_tests {
             speed: 1,
             index: 115911400,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -1437,6 +1444,7 @@ mod optimism_proposals_tests {
             speed: 1,
             index: 121357490,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {

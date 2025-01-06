@@ -23,6 +23,7 @@ pub struct Model {
     pub index: i32,
     pub speed: i32,
     pub portal_url: Option<String>,
+    pub updated_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -35,6 +36,7 @@ pub enum Column {
     Index,
     Speed,
     PortalUrl,
+    UpdatedAt,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -68,6 +70,7 @@ impl ColumnTrait for Column {
             Self::Index => ColumnType::Integer.def(),
             Self::Speed => ColumnType::Integer.def(),
             Self::PortalUrl => ColumnType::Text.def().null(),
+            Self::UpdatedAt => ColumnType::DateTime.def(),
         }
     }
 }

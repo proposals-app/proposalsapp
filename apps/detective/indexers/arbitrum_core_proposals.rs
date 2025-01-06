@@ -327,6 +327,7 @@ mod arbitrum_core_proposals_tests {
             speed: 1,
             index: 98424027,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -387,6 +388,7 @@ mod arbitrum_core_proposals_tests {
             speed: 166717878 - 162413941,
             index: 162413941,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
@@ -470,6 +472,7 @@ mod arbitrum_core_proposals_tests {
             speed: 1,
             index: 214219081,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+            updated_at: chrono::Utc::now().naive_utc(),
         };
 
         let dao = dao::Model {
