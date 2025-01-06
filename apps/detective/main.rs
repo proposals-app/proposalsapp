@@ -78,7 +78,8 @@ mod indexers;
 mod snapshot_api;
 
 static MAX_JOBS: usize = 100;
-static CONCURRENT_JOBS: usize = 1;
+static CONCURRENT_JOBS_ONCHAIN: usize = 1;
+static CONCURRENT_JOBS_SNAPSHOT: usize = 3;
 static SNAPSHOT_MAX_RETRIES: usize = 5;
 static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
 static SNAPSHOT_MAX_QUEUE: usize = 100;
@@ -197,12 +198,20 @@ async fn main() -> Result<()> {
     });
 
     // Task 2: Process Snapshot jobs from the queue
-    let snapshot_job_consumer =
-        create_job_consumer(snapshot_rx, snapshot_queued_indexers.clone(), db.clone());
+    let snapshot_job_consumer = create_job_consumer(
+        snapshot_rx,
+        snapshot_queued_indexers.clone(),
+        db.clone(),
+        CONCURRENT_JOBS_SNAPSHOT,
+    );
 
     // Task 3: Process other jobs from the queue
-    let other_job_consumer =
-        create_job_consumer(other_rx, other_queued_indexers.clone(), db.clone());
+    let other_job_consumer = create_job_consumer(
+        other_rx,
+        other_queued_indexers.clone(),
+        db.clone(),
+        CONCURRENT_JOBS_ONCHAIN,
+    );
 
     // Set up the health check server
     let app = Router::new().route("/", get("OK"));
@@ -230,9 +239,10 @@ fn create_job_consumer(
     mut rx: mpsc::Receiver<(dao_indexer::Model, dao::Model)>,
     queued_indexers: Arc<Mutex<HashSet<Uuid>>>,
     db: DatabaseConnection,
+    concurrent_jobs: usize,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
-        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(CONCURRENT_JOBS));
+        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(concurrent_jobs));
 
         while let Some((indexer, dao)) = rx.recv().await {
             let permit = semaphore.clone().acquire_owned().await.unwrap();
