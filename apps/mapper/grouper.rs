@@ -123,13 +123,13 @@ async fn process_new_discussion_job(
 
     // Check if topic is already part of a proposal group
     let topic_already_mapped = !proposal_group::Entity::find()
-        .filter(proposal_group::Column::Items.contains(topic.id.to_string()))
+        .filter(proposal_group::Column::Items.contains(discourse_topic_id))
         .all(conn)
         .await?
         .is_empty();
 
     if !topic_already_mapped {
-        let discourse_indexer = dao_indexer::Entity::find_by_id(topic.dao_discourse_id)
+        let discourse_indexer = dao_discourse::Entity::find_by_id(topic.dao_discourse_id)
             .one(conn)
             .await?;
 
@@ -142,7 +142,7 @@ async fn process_new_discussion_job(
                 id: topic.id.to_string(),
                 type_field: "topic".to_string(),
                 name: topic.title.clone(),
-                indexer_name: discourse_indexer.unwrap().portal_url.unwrap().to_string(),
+                indexer_name: discourse_indexer.unwrap().discourse_base_url,
             }])
             .unwrap()),
             created_at: NotSet,
