@@ -85,11 +85,7 @@ static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
 static SNAPSHOT_MAX_QUEUE: usize = 100;
 
 lazy_static::lazy_static! {
-    static ref SNAPSHOT_API_HANDLER: Arc<SnapshotApiHandler> = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig {
-        max_retries: SNAPSHOT_MAX_RETRIES,
-        concurrency: SNAPSHOT_MAX_CONCURRENT_REQUESTS,
-        queue_size: SNAPSHOT_MAX_QUEUE,
-    }));
+    static ref SNAPSHOT_API_HANDLER: Arc<SnapshotApiHandler> = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig::default()));
 }
 
 #[tokio::main]

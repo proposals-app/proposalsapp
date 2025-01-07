@@ -1,11 +1,17 @@
 use anyhow::Result;
 use reqwest::Client;
 use serde::de::DeserializeOwned;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tokio::sync::{mpsc, oneshot, Semaphore};
-use tokio::time::sleep;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use tokio::{
+    sync::{mpsc, oneshot, Semaphore},
+    time::sleep,
+};
 use tracing::{debug, error, info, warn};
+
+use crate::{SNAPSHOT_MAX_CONCURRENT_REQUESTS, SNAPSHOT_MAX_QUEUE, SNAPSHOT_MAX_RETRIES};
 
 struct RateLimiter {
     remaining: std::sync::atomic::AtomicU32,
@@ -31,9 +37,9 @@ pub struct SnapshotApiConfig {
 impl Default for SnapshotApiConfig {
     fn default() -> Self {
         Self {
-            max_retries: 3,
-            concurrency: 5,
-            queue_size: 100,
+            max_retries: SNAPSHOT_MAX_RETRIES,
+            concurrency: SNAPSHOT_MAX_CONCURRENT_REQUESTS,
+            queue_size: SNAPSHOT_MAX_QUEUE,
         }
     }
 }
