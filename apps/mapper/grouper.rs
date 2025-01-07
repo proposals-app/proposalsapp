@@ -1,8 +1,10 @@
 use anyhow::Result;
 use chrono::Duration;
 use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder, Set,
+    prelude::{Expr, Uuid},
+    sea_query::Alias,
+    ActiveValue::NotSet,
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
 };
 use seaorm::{dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group};
 use std::time::Duration as StdDuration;
@@ -123,7 +125,10 @@ async fn process_new_discussion_job(
 
     // Check if topic is already part of a proposal group
     let topic_already_mapped = !proposal_group::Entity::find()
-        .filter(proposal_group::Column::Items.contains(discourse_topic_id))
+        .filter(
+            Expr::expr(Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text")))
+                .like(format!("%{}%", discourse_topic_id)),
+        )
         .all(conn)
         .await?
         .is_empty();
@@ -217,7 +222,12 @@ async fn process_snapshot_proposal_job(
             if let Some(topic) = discourse_topic {
                 // Find the proposal group containing this topic directly
                 let group = proposal_group::Entity::find()
-                    .filter(proposal_group::Column::Items.contains(topic.id.to_string()))
+                    .filter(
+                        Expr::expr(
+                            Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text")),
+                        )
+                        .like(format!("%{}%", topic.id)),
+                    )
                     .one(conn)
                     .await?;
 
@@ -281,4 +291,63 @@ fn extract_discourse_id(url: &str) -> Option<i32> {
                 .filter_map(|part| part.parse::<i32>().ok())
                 .next()
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_discourse_id_valid_url() {
+        let url = "https://example.com/t/12345";
+        assert_eq!(extract_discourse_id(url), Some(12345));
+    }
+
+    #[test]
+    fn test_extract_discourse_id_valid_url_with_query() {
+        let url = "https://example.com/t/12345?param=value";
+        assert_eq!(extract_discourse_id(url), Some(12345));
+    }
+
+    #[test]
+    fn test_extract_discourse_id_valid_url_with_multiple_numbers() {
+        let url = "https://example.com/t/12345/67890";
+        assert_eq!(extract_discourse_id(url), Some(12345));
+    }
+
+    #[test]
+    fn test_extract_discourse_id_invalid_url_no_number() {
+        let url = "https://example.com/t/";
+        assert_eq!(extract_discourse_id(url), None);
+    }
+
+    #[test]
+    fn test_extract_discourse_id_invalid_url_non_numeric() {
+        let url = "https://example.com/t/abcde";
+        assert_eq!(extract_discourse_id(url), None);
+    }
+
+    #[test]
+    fn test_extract_discourse_id_invalid_url_empty() {
+        let url = "";
+        assert_eq!(extract_discourse_id(url), None);
+    }
+
+    #[test]
+    fn test_extract_discourse_id_invalid_url_no_path() {
+        let url = "https://example.com";
+        assert_eq!(extract_discourse_id(url), None);
+    }
+
+    #[test]
+    fn test_extract_discourse_id_valid_url_with_multiple_slashes() {
+        let url = "https://example.com/t///12345";
+        assert_eq!(extract_discourse_id(url), Some(12345));
+    }
+
+    #[test]
+    fn test_extract_discourse_id_valid_url_with_trailing_slash() {
+        let url = "https://example.com/t/12345/";
+        assert_eq!(extract_discourse_id(url), Some(12345));
+    }
 }
