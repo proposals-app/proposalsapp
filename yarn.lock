@@ -2794,7 +2794,7 @@ __metadata:
     pg: "npm:8.13.1"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:8.4.49"
-    posthog-js: "npm:1.203.3"
+    posthog-js: "npm:1.204.0"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
@@ -2816,7 +2816,7 @@ __metadata:
     unified: "npm:^11.0.5"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.22.2"
+    viem: "npm:2.22.3"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -2890,7 +2890,7 @@ __metadata:
     pg: "npm:8.13.1"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:8.4.49"
-    posthog-js: "npm:1.203.3"
+    posthog-js: "npm:1.204.0"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
@@ -2910,7 +2910,7 @@ __metadata:
     typescript: "npm:^5.7.2"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.22.2"
+    viem: "npm:2.22.3"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -14713,15 +14713,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.203.3":
-  version: 1.203.3
-  resolution: "posthog-js@npm:1.203.3"
+"posthog-js@npm:1.204.0":
+  version: 1.204.0
+  resolution: "posthog-js@npm:1.204.0"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.2.0"
-  checksum: 10c0/5b389df393e5564931b564a93e3001ea1adcc37c8e3e45de70af993e77fc7f59536e32599f27c781413bb120842c9d969f41ae460e24dc9f940c54e47b0ce167
+  checksum: 10c0/1e04ee44852ef64cd77423a72d39fc0fc5f225d37d77d234ebe6e0efd99c6797e36b86c2335ec8729fdd551e2a7d7cd372f63eb5b315e5ba9a3cf8ebe0b93e94
   languageName: node
   linkType: hard
 
@@ -17955,9 +17955,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.22.2":
-  version: 2.22.2
-  resolution: "viem@npm:2.22.2"
+"viem@npm:2.22.3":
+  version: 2.22.3
+  resolution: "viem@npm:2.22.3"
   dependencies:
     "@noble/curves": "npm:1.7.0"
     "@noble/hashes": "npm:1.6.1"
@@ -17973,7 +17973,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/6f585331731a1f1a7762b41ae6fcafc0e18fe365e5db80638610aee6e290e14bbc02c5d2c2f4262557b166a50f45e32b4037d3022891590d9feed607e0025dad
+  checksum: 10c0/01c84440bd29b3e16f7e2752e2f753c4ee93e1f0a3ea16fd57dcb9403796c0f05fea5790cfb6af341b4cb3a8c0eb380530cdb3702c26d595ddfb0bf438f6430f
   languageName: node
   linkType: hard
 
