@@ -17,7 +17,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
 
   return (
     <TooltipProvider>
-      <div className="fixed right-0 top-0 flex h-screen w-80 flex-col items-end justify-start gap-1 overflow-y-auto bg-gray-200 p-4 pt-24 shadow-md">
+      <div className="fixed right-0 top-0 flex max-h-screen w-80 flex-col items-end justify-start gap-1 overflow-y-auto bg-gray-200 p-4 pt-24 shadow-md">
         {events.map((event, index) => (
           <Tooltip key={index}>
             <TooltipTrigger asChild>
@@ -36,7 +36,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     event.type === TimelineEventType.VotesVolume) &&
                   event.volume ? (
                   <div
-                    className={`mt-1 h-1 rounded-full ${
+                    className={`h-1 rounded-full ${
                       event.volumeType === "comments"
                         ? "bg-gray-400"
                         : "bg-gray-600"
