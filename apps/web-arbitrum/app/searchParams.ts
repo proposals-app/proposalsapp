@@ -29,4 +29,5 @@ export const searchParamsCache = createSearchParamsCache({
   votes: parseAsStringEnum<VotesFilterEnum>(
     Object.values(VotesFilterEnum),
   ).withDefault(VotesFilterEnum.FIVE_MILLION),
+  page: parseAsInteger,
 });

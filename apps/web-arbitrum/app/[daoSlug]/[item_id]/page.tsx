@@ -22,7 +22,7 @@ export default async function ProposalPage({
 
   const totalVersions = await getTotalVersions(group.group.id);
 
-  const { version, comments, votes, diff } =
+  const { version, comments, votes, diff, page } =
     await searchParamsCache.parse(searchParams);
 
   return (
@@ -37,7 +37,12 @@ export default async function ProposalPage({
 
           <MenuBar totalVersions={totalVersions ?? 1} />
 
-          <Feed group={group} commentsFilter={comments} votesFilter={votes} />
+          <Feed
+            group={group}
+            commentsFilter={comments}
+            votesFilter={votes}
+            page={page ? Number(page) : 1}
+          />
         </div>
 
         <div className="hidden lg:flex">

@@ -8,12 +8,14 @@ import {
   Selectable,
   sql,
 } from "@proposalsapp/db";
+import { validate } from "uuid";
 
 export async function getGroupWithData(
   daoSlug: string,
   proposalOrGroupId: string,
 ) {
   return otel("get-group-with-data", async () => {
+    if (daoSlug == "favicon.ico") return null;
     // Fetch the DAO based on the slug
     const dao = await db
       .selectFrom("dao")
@@ -27,16 +29,19 @@ export async function getGroupWithData(
 
     let group: Selectable<ProposalGroup> | null = null;
 
-    try {
-      // Fetch the group based on ID
-      group =
-        (await db
-          .selectFrom("proposalGroup")
-          .where("id", "=", proposalOrGroupId)
-          .selectAll()
-          .executeTakeFirst()) ?? null;
-    } catch (error) {
-      // console.error("Error fetching group:", error);
+    // Check if proposalOrGroupId is a UUIDv4
+    if (validate(proposalOrGroupId)) {
+      try {
+        // Fetch the group based on ID
+        group =
+          (await db
+            .selectFrom("proposalGroup")
+            .where("id", "=", proposalOrGroupId)
+            .selectAll()
+            .executeTakeFirst()) ?? null;
+      } catch (error) {
+        console.error("Error fetching group:", error);
+      }
     }
 
     if (group) {
@@ -103,19 +108,23 @@ export async function getGroupWithData(
     let topic: Selectable<DiscourseTopic> | null = null;
     if (!proposal) {
       try {
-        // Fetch the topic based on externalId
-        topic =
-          (await db
-            .selectFrom("discourseTopic")
-            .selectAll()
-            .where("externalId", "=", parseInt(proposalOrGroupId, 10))
-            .leftJoin(
-              "daoDiscourse",
-              "daoDiscourse.id",
-              "discourseTopic.daoDiscourseId",
-            )
-            .where("daoDiscourse.daoId", "=", dao.id)
-            .executeTakeFirst()) ?? null;
+        // Check if proposalOrGroupId is a valid integer
+        const parsedId = parseInt(proposalOrGroupId, 10);
+        if (!isNaN(parsedId)) {
+          // Fetch the topic based on externalId
+          topic =
+            (await db
+              .selectFrom("discourseTopic")
+              .selectAll()
+              .where("externalId", "=", parsedId)
+              .leftJoin(
+                "daoDiscourse",
+                "daoDiscourse.id",
+                "discourseTopic.daoDiscourseId",
+              )
+              .where("daoDiscourse.daoId", "=", dao.id)
+              .executeTakeFirst()) ?? null;
+        }
       } catch (error) {
         console.error("Error fetching topic:", error);
       }

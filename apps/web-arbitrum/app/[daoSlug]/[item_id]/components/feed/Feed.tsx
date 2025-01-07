@@ -5,23 +5,28 @@ import { PostItem } from "./PostItem";
 import { notFound } from "next/navigation";
 import { getFeedForGroup } from "./actions";
 import { VotesFilterEnum } from "@/app/searchParams";
+import { LazyLoadTrigger } from "./LazyLoadTrigger";
 
 export default async function Feed({
   group,
   commentsFilter,
   votesFilter,
+  page = 1,
 }: {
   group: GroupWithDataType;
   commentsFilter: boolean;
   votesFilter: VotesFilterEnum;
+  page?: number;
 }) {
   if (!group) {
     notFound();
   }
+
   const feed = await getFeedForGroup(
     group.group.id,
     commentsFilter,
     votesFilter,
+    page,
   );
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
@@ -41,6 +46,7 @@ export default async function Feed({
           {item.type === "post" && <PostItem item={item} />}
         </div>
       ))}
+      {feed.hasMore && <LazyLoadTrigger />}
     </div>
   );
 }

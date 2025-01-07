@@ -2,24 +2,39 @@ import { VotesFilterEnum } from "@/app/searchParams";
 import { otel } from "@/lib/otel";
 import { AsyncReturnType } from "@/lib/utils";
 import {
+  DB,
   db,
   DiscoursePost,
   DiscourseTopic,
   Proposal,
   Selectable,
+  SelectQueryBuilder,
+  sql,
   Vote,
 } from "@proposalsapp/db";
+
+type FeedItemType = {
+  id: string;
+  timestamp: Date;
+  type: "vote" | "post";
+  originalId: string;
+};
 
 export async function getFeedForGroup(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum,
+  page: number = 1,
 ) {
   return otel("get-feed-for-group", async () => {
+    const itemsPerPage = 10;
+    const totalItems = itemsPerPage * page;
+
     let votes: Selectable<Vote>[] = [];
     let posts: Selectable<DiscoursePost>[] = [];
 
     try {
+      // Fetch the proposal group
       const group = await db
         .selectFrom("proposalGroup")
         .selectAll()
@@ -27,9 +42,10 @@ export async function getFeedForGroup(
         .executeTakeFirstOrThrow();
 
       if (!group) {
-        return { votes, posts };
+        return { votes, posts, hasMore: false };
       }
 
+      // Extract proposal and topic IDs from group items
       const items = group.items as Array<{
         id: string;
         type: "proposal" | "topic";
@@ -43,77 +59,131 @@ export async function getFeedForGroup(
         .filter((item) => item.type === "topic")
         .map((item) => item.id);
 
-      const topics = await db
-        .selectFrom("discourseTopic")
-        .selectAll()
-        .where("discourseTopic.id", "in", topicIds)
-        .execute();
+      // Fetch topics to get daoDiscourseId and externalIds
+      let topicsExternalIds: number[] = [];
+      let firstDaoDiscourseId: string | undefined;
 
-      // Check if all topics have the same daoDiscourseId
-      const firstDaoDiscourseId = topics[0]?.daoDiscourseId;
-      if (topics.length > 0 && !firstDaoDiscourseId) {
-        console.error("Inconsistent daoDiscourseId across topics");
-        return { votes, posts };
+      if (topicIds.length > 0) {
+        const topics = await db
+          .selectFrom("discourseTopic")
+          .selectAll()
+          .where("discourseTopic.id", "in", topicIds)
+          .execute();
+
+        topicsExternalIds = topics.map((t) => t.externalId);
+        firstDaoDiscourseId = topics[0]?.daoDiscourseId;
       }
 
-      const topicsExternalIds = topics.map((t) => t.externalId);
-
-      // Fetch votes for proposals
-      if (proposalIds.length > 0) {
-        try {
-          let voteQuery = db
-            .selectFrom("vote")
-            .selectAll()
-            .where("proposalId", "in", proposalIds);
-
-          // Apply vote filter based on the votesFilter parameter
+      // Build the base query for votes
+      const votesQuery: SelectQueryBuilder<DB, "vote", FeedItemType> = db
+        .selectFrom("vote")
+        .where("proposalId", "in", proposalIds)
+        .$if(votesFilter !== VotesFilterEnum.ALL, (qb) => {
           switch (votesFilter) {
             case VotesFilterEnum.FIFTY_THOUSAND:
-              voteQuery = voteQuery.where("votingPower", ">", 50000);
-              break;
+              return qb.where("votingPower", ">", 50000);
             case VotesFilterEnum.FIVE_HUNDRED_THOUSAND:
-              voteQuery = voteQuery.where("votingPower", ">", 500000);
-              break;
+              return qb.where("votingPower", ">", 500000);
             case VotesFilterEnum.FIVE_MILLION:
-              voteQuery = voteQuery.where("votingPower", ">", 5000000);
-              break;
+              return qb.where("votingPower", ">", 5000000);
+            default:
+              return qb;
           }
+        })
+        .select([
+          "id",
+          sql<Date>`time_created`.as("timestamp"),
+          sql<"vote">`'vote'`.as("type"),
+          "id as originalId",
+        ]);
 
-          votes = await voteQuery.execute();
-        } catch (error) {
-          console.error("Error fetching votes:", error);
-        }
+      // Build the base query for posts if comments are enabled
+      const postsQuery: SelectQueryBuilder<
+        DB,
+        "discoursePost",
+        FeedItemType
+      > | null =
+        commentsFilter && topicsExternalIds.length > 0
+          ? db
+              .selectFrom("discoursePost")
+              .where("topicId", "in", topicsExternalIds)
+              .where("daoDiscourseId", "=", firstDaoDiscourseId!)
+              .where("postNumber", "!=", 1)
+              .select([
+                "id",
+                sql<Date>`created_at`.as("timestamp"),
+                sql<"post">`'post'`.as("type"),
+                "id as originalId",
+              ])
+          : null;
+
+      // Create the union query if both types are needed
+      let unionQuery = votesQuery;
+      if (postsQuery) {
+        unionQuery = unionQuery.union(postsQuery);
       }
 
-      // Fetch posts for topics
-      if (topics.length > 0 && commentsFilter) {
-        try {
-          const fetchedPosts = await db
-            .selectFrom("discoursePost")
-            .selectAll()
-            .where("topicId", "in", topicsExternalIds)
-            .where("discoursePost.daoDiscourseId", "=", firstDaoDiscourseId)
-            .where("postNumber", "!=", 1)
-            .execute();
+      // Get total count for pagination
+      const totalCount = await db
+        .selectFrom(unionQuery.as("combined"))
+        .select(sql<number>`count(*)`.as("count"))
+        .executeTakeFirst();
 
-          posts = fetchedPosts;
-        } catch (error) {
-          console.error("Error fetching posts:", error);
+      // Get paginated results
+      const paginatedItems = await unionQuery
+        .orderBy("timestamp", "desc")
+        .limit(totalItems)
+        .execute();
+
+      // Fetch full data for each paginated item
+      const votePromises: Promise<Selectable<Vote> | null>[] = [];
+      const postPromises: Promise<Selectable<DiscoursePost> | null>[] = [];
+
+      paginatedItems.forEach((item) => {
+        if (item.type === "vote") {
+          votePromises.push(
+            db
+              .selectFrom("vote")
+              .selectAll()
+              .where("id", "=", item.originalId)
+              .executeTakeFirst()
+              .then((result) => result ?? null),
+          );
+        } else {
+          postPromises.push(
+            db
+              .selectFrom("discoursePost")
+              .selectAll()
+              .where("id", "=", item.originalId)
+              .executeTakeFirst()
+              .then((result) => result ?? null),
+          );
         }
-      }
+      });
+
+      // Wait for all promises to resolve
+      const [resolvedVotes, resolvedPosts] = await Promise.all([
+        Promise.all(votePromises),
+        Promise.all(postPromises),
+      ]);
+
+      // Filter out null values and assign to result arrays
+      votes = resolvedVotes.filter((v): v is Selectable<Vote> => v !== null);
+      posts = resolvedPosts.filter(
+        (p): p is Selectable<DiscoursePost> => p !== null,
+      );
+
+      const hasMore = (totalCount?.count ?? 0) > totalItems;
+
+      return {
+        votes,
+        posts,
+        hasMore,
+      };
     } catch (error) {
-      console.error("Error fetching group or related data:", error);
+      console.error("Error fetching feed:", error);
+      return { votes: [], posts: [], hasMore: false };
     }
-
-    votes.sort((a, b) => {
-      if (a.timeCreated && b.timeCreated) {
-        return a.timeCreated.getTime() - b.timeCreated.getTime();
-      } else return 1;
-    });
-
-    posts.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-    return { votes, posts };
   });
 }
 
