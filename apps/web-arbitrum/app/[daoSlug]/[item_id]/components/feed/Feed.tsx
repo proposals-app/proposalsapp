@@ -3,7 +3,7 @@ import { GroupWithDataType } from "../../actions";
 import { VoteItem } from "./VoteItem";
 import { PostItem } from "./PostItem";
 import { notFound } from "next/navigation";
-import { getFeedForGroup, getProposalsByIds } from "./actions";
+import { getFeedForGroup } from "./actions";
 import { VotesFilterEnum } from "@/app/searchParams";
 
 export default async function Feed({

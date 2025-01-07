@@ -1,4 +1,3 @@
-import { Proposal, Selectable } from "@proposalsapp/db";
 import { CombinedFeedItem } from "./Feed";
 import { getVotingPower } from "./actions";
 import { format, formatISO } from "date-fns";

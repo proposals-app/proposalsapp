@@ -31,7 +31,7 @@ export default async function ProposalPage({
         <SideBar dao={group.dao} daoSlug={daoSlug} />
       </div>
 
-      <div className="flex w-full justify-between lg:pl-20">
+      <div className="flex w-full justify-between lg:pl-20 lg:pr-80">
         <div className="mx-auto flex w-[90%] flex-col justify-center md:w-3/4 lg:w-1/2">
           <Body group={group} version={version ?? 0} diff={diff} />
 
@@ -41,7 +41,7 @@ export default async function ProposalPage({
         </div>
 
         <div className="hidden lg:flex">
-          <Timeline />
+          <Timeline group={group} />
         </div>
       </div>
     </div>
