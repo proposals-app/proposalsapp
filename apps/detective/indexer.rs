@@ -1,7 +1,8 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use seaorm::{
-    dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerType, vote, voting_power,
+    dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote,
+    voting_power,
 };
 use std::time::Duration;
 
@@ -9,16 +10,54 @@ use std::time::Duration;
 pub trait Indexer: Send + Sync {
     fn min_refresh_speed(&self) -> i32;
     fn max_refresh_speed(&self) -> i32;
-    fn indexer_type(&self) -> IndexerType;
+    fn indexer_variant(&self) -> IndexerVariant;
     fn timeout(&self) -> Duration;
 
     fn refresh_interval(&self) -> Duration {
-        match self.indexer_type() {
-            IndexerType::Proposals => Duration::from_secs(5 * 60),
-            IndexerType::Votes => Duration::from_secs(5),
-            IndexerType::ProposalsAndVotes => Duration::from_secs(5 * 60),
-            IndexerType::VotingPower => Duration::from_secs(60),
-            IndexerType::Delegation => Duration::from_secs(60),
+        match self.indexer_variant() {
+            IndexerVariant::AaveV2MainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::AaveV2MainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::AaveV3AvalancheVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::AaveV3MainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::AaveV3MainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::AaveV3PolygonVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::ArbitrumCouncilElections => Duration::from_secs(5 * 60),
+            IndexerVariant::ArbitrumCouncilNominations => Duration::from_secs(5 * 60),
+            IndexerVariant::ArbArbitrumDelegation => Duration::from_secs(60),
+            IndexerVariant::ArbArbitrumVotingPower => Duration::from_secs(60),
+            IndexerVariant::ArbCoreArbitrumProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::ArbCoreArbitrumVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::ArbTreasuryArbitrumProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::ArbTreasuryArbitrumVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::CompoundMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::CompoundMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::DydxMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::DydxMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::EnsMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::EnsMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::FraxAlphaMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::FraxAlphaMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::FraxOmegaMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::FraxOmegaMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::GitcoinMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::GitcoinMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::GitcoinV2MainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::GitcoinV2MainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::HopMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::HopMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::MakerExecutiveMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::MakerExecutiveMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::MakerPollArbitrumVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::MakerPollMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::MakerPollMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::NounsProposalsMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::NounsProposalsMainnetVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::OpOptimismProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::OpOptimismVotes => Duration::from_secs(5 * 60),
+            IndexerVariant::SnapshotProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::SnapshotVotes => Duration::from_secs(5),
+            IndexerVariant::UniswapMainnetProposals => Duration::from_secs(5 * 60),
+            IndexerVariant::UniswapMainnetVotes => Duration::from_secs(5 * 60),
         }
     }
 

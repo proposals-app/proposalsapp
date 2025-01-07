@@ -19,7 +19,7 @@ use sea_orm::{
 };
 use seaorm::{
     dao, dao_indexer, proposal,
-    sea_orm_active_enums::{IndexerType, ProposalState},
+    sea_orm_active_enums::{IndexerVariant, ProposalState},
 };
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
@@ -42,8 +42,8 @@ impl Indexer for FraxAlphaMainnetProposalsIndexer {
     fn max_refresh_speed(&self) -> i32 {
         1_000_000
     }
-    fn indexer_type(&self) -> IndexerType {
-        IndexerType::Proposals
+    fn indexer_variant(&self) -> IndexerVariant {
+        IndexerVariant::FraxAlphaMainnetProposals
     }
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)

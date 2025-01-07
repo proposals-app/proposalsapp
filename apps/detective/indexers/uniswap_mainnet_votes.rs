@@ -13,11 +13,7 @@ use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{
-    dao, dao_indexer,
-    sea_orm_active_enums::{IndexerType, IndexerVariant},
-    vote,
-};
+use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use std::{sync::Arc, time::Duration};
 use tracing::info;
 use uniswap_gov::VoteCast;
@@ -46,8 +42,8 @@ impl Indexer for UniswapMainnetVotesIndexer {
     fn max_refresh_speed(&self) -> i32 {
         100_000
     }
-    fn indexer_type(&self) -> IndexerType {
-        IndexerType::Votes
+    fn indexer_variant(&self) -> IndexerVariant {
+        IndexerVariant::UniswapMainnetVotes
     }
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)

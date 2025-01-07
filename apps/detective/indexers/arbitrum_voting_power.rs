@@ -14,7 +14,7 @@ use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerType, voting_power};
+use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, voting_power};
 use std::{sync::Arc, time::Duration};
 use tracing::info;
 
@@ -35,8 +35,8 @@ impl Indexer for ArbitrumVotingPowerIndexer {
     fn max_refresh_speed(&self) -> i32 {
         10_000_000
     }
-    fn indexer_type(&self) -> IndexerType {
-        IndexerType::VotingPower
+    fn indexer_variant(&self) -> IndexerVariant {
+        IndexerVariant::ArbArbitrumVotingPower
     }
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)

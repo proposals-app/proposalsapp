@@ -22,7 +22,7 @@ use sea_orm::{
 };
 use seaorm::{
     dao, dao_indexer, proposal,
-    sea_orm_active_enums::{IndexerType, ProposalState},
+    sea_orm_active_enums::{IndexerVariant, ProposalState},
     vote,
 };
 use serde_json::json;
@@ -46,8 +46,8 @@ impl Indexer for ArbitrumCouncilNominationsProposalsAndVotesIndexer {
     fn max_refresh_speed(&self) -> i32 {
         10_000_000
     }
-    fn indexer_type(&self) -> IndexerType {
-        IndexerType::ProposalsAndVotes
+    fn indexer_variant(&self) -> IndexerVariant {
+        IndexerVariant::ArbitrumCouncilNominations
     }
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)

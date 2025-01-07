@@ -12,7 +12,7 @@ use sea_orm::{
 };
 use seaorm::{
     dao, dao_indexer, proposal,
-    sea_orm_active_enums::{IndexerType, ProposalState},
+    sea_orm_active_enums::{IndexerVariant, ProposalState},
     vote,
 };
 use serde::Deserialize;
@@ -74,8 +74,8 @@ impl Indexer for SnapshotProposalsIndexer {
         1000
     }
 
-    fn indexer_type(&self) -> IndexerType {
-        IndexerType::Proposals
+    fn indexer_variant(&self) -> IndexerVariant {
+        IndexerVariant::SnapshotProposals
     }
 
     fn timeout(&self) -> Duration {

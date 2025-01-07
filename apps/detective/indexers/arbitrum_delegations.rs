@@ -14,7 +14,7 @@ use async_trait::async_trait;
 use chrono::DateTime;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_indexer, delegation, sea_orm_active_enums::IndexerType};
+use seaorm::{dao, dao_indexer, delegation, sea_orm_active_enums::IndexerVariant};
 use std::{sync::Arc, time::Duration};
 use tracing::info;
 
@@ -35,8 +35,8 @@ impl Indexer for ArbitrumDelegationsIndexer {
     fn max_refresh_speed(&self) -> i32 {
         10_000_000
     }
-    fn indexer_type(&self) -> IndexerType {
-        IndexerType::Delegation
+    fn indexer_variant(&self) -> IndexerVariant {
+        IndexerVariant::ArbArbitrumDelegation
     }
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)

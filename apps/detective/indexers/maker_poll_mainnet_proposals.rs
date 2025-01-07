@@ -20,7 +20,7 @@ use sea_orm::{
 };
 use seaorm::{
     dao, dao_indexer, proposal,
-    sea_orm_active_enums::{IndexerType, ProposalState},
+    sea_orm_active_enums::{IndexerVariant, ProposalState},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -46,8 +46,8 @@ impl Indexer for MakerPollMainnetProposalsIndexer {
     fn max_refresh_speed(&self) -> i32 {
         1_000_000
     }
-    fn indexer_type(&self) -> IndexerType {
-        IndexerType::Proposals
+    fn indexer_variant(&self) -> IndexerVariant {
+        IndexerVariant::MakerPollMainnetProposals
     }
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)

@@ -14,11 +14,7 @@ use chrono::DateTime;
 use dydx_gov::VoteEmitted;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{
-    dao, dao_indexer,
-    sea_orm_active_enums::{IndexerType, IndexerVariant},
-    vote,
-};
+use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use std::{sync::Arc, time::Duration};
 use tracing::info;
 
@@ -45,8 +41,8 @@ impl Indexer for DydxMainnetVotesIndexer {
     fn max_refresh_speed(&self) -> i32 {
         100_000
     }
-    fn indexer_type(&self) -> IndexerType {
-        IndexerType::Votes
+    fn indexer_variant(&self) -> IndexerVariant {
+        IndexerVariant::DydxMainnetVotes
     }
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
