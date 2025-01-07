@@ -27,7 +27,7 @@ export async function getFeedForGroup(
   page: number = 1,
 ) {
   return otel("get-feed-for-group", async () => {
-    const itemsPerPage = 10;
+    const itemsPerPage = 25;
     const totalItems = itemsPerPage * page;
 
     let votes: Selectable<Vote>[] = [];

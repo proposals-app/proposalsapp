@@ -64,4 +64,4 @@ export * from "./kysely_db";
 export { Kysely };
 export { sql, type Selectable, type Insertable } from "kysely";
 export { jsonArrayFrom } from "kysely/helpers/postgres";
-export { SelectQueryBuilder } from "kysely";
+export { type SelectQueryBuilder } from "kysely";

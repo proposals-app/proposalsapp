@@ -7,7 +7,7 @@ import {
 } from "./types";
 import { processTimelineData } from "./utils";
 import { notFound } from "next/navigation";
-import { GroupWithDataType } from "../../actions";
+import { GroupWithDataType } from "../../[daoSlug]/[item_id]/actions";
 
 interface CollapsibleCard {
   id: number;
