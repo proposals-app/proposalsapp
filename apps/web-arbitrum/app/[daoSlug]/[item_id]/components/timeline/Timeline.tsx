@@ -11,9 +11,20 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
 
   console.log(events);
   return (
-    <div className="fixed right-0 top-0 flex min-h-screen min-w-80 flex-col justify-end bg-gray-400">
-      {events.map((event) => (
-        <div className="my-2 flex bg-white p-2">{event.content}</div>
+    <div className="fixed right-0 top-0 flex h-full w-80 flex-col items-end bg-gray-200 p-4 pt-24 shadow-md">
+      {events.map((event, index) => (
+        <div
+          key={index}
+          className="flex w-full items-center justify-between gap-2"
+          style={{
+            marginTop: `${event.position * 95}%`, // Adjust as needed
+          }}
+        >
+          <div className={`h-4 w-4 rounded-full bg-blue-500`} />
+          <div className="w-full rounded-lg bg-white p-2 shadow-md">
+            {event.content}
+          </div>
+        </div>
       ))}
     </div>
   );
