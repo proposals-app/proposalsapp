@@ -11,7 +11,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
 
   console.log(events);
   return (
-    <div className="fixed right-0 top-0 flex h-full w-80 flex-col items-end bg-gray-200 p-4 pt-24 shadow-md">
+    <div className="fixed right-0 top-0 flex h-full w-80 flex-col items-end justify-end bg-gray-200 p-4 pt-24 shadow-md">
       {events.map((event, index) => (
         <div
           key={index}
