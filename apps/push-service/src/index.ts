@@ -119,6 +119,7 @@ const processJobQueue = async () => {
       .selectFrom("jobQueue")
       .selectAll()
       .where("status", "=", "PENDING")
+      .where("type", "in", ["PUSH_QUORUM_NOT_REACHED", "PUSH_TIMEEND"])
       .execute();
 
     for (const job of jobs) {
