@@ -1,8 +1,8 @@
 "use server";
 
 import { otel } from "@/lib/otel";
+import { AsyncReturnType } from "@/lib/utils";
 import {
-  DaoDiscourse,
   db,
   DiscoursePost,
   DiscourseTopic,
@@ -98,3 +98,5 @@ export async function getGroupDetails(groupId: string) {
     };
   });
 }
+
+export type GroupDetailsType = AsyncReturnType<typeof getGroupDetails>;

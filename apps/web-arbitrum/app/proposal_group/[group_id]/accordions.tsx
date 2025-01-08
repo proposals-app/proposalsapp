@@ -9,16 +9,30 @@ import {
 } from "@/shadcn/ui/accordion";
 import { Button } from "@/shadcn/ui/button";
 import { Badge } from "@/shadcn/ui/badge";
+import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 
-export function ProposalAccordion({ proposals }: { proposals: any[] }) {
+type ProposalType = Selectable<Proposal> & {
+  votes: Selectable<Vote>[];
+  indexerVariant: string | null;
+};
+
+export function ProposalAccordion({
+  proposals = [],
+}: {
+  proposals: ProposalType[];
+}) {
   return (
     <Accordion type="single" collapsible className="w-full">
-      {proposals.map((proposal) => {
-        const sortedVotes = [...proposal.votes].sort(
-          (a, b) =>
-            new Date(b.timeCreated).getTime() -
-            new Date(a.timeCreated).getTime(),
+      {proposals.map((proposal: ProposalType) => {
+        // Filter out null votes and then sort
+        const validVotes = proposal.votes.filter(
+          (vote): vote is Selectable<Vote> => vote !== null,
         );
+        const sortedVotes = [...validVotes].sort((a, b) => {
+          const timeA = a.timeCreated ? new Date(a.timeCreated).getTime() : 0;
+          const timeB = b.timeCreated ? new Date(b.timeCreated).getTime() : 0;
+          return timeB - timeA;
+        });
 
         return (
           <AccordionItem key={proposal.id} value={proposal.id}>
@@ -33,7 +47,7 @@ export function ProposalAccordion({ proposals }: { proposals: any[] }) {
                 <Badge
                   variant="outline"
                   className={
-                    proposal.indexerVariant === "SNAPSHOT"
+                    proposal.indexerVariant === "SNAPSHOT_PROPOSALS"
                       ? "bg-yellow-100"
                       : "bg-green-100"
                   }
@@ -49,10 +63,12 @@ export function ProposalAccordion({ proposals }: { proposals: any[] }) {
               </div>
               <h3 className="mb-2 font-semibold">Votes:</h3>
               <ul className="space-y-2 text-sm">
-                {sortedVotes.map((vote: any) => (
+                {sortedVotes.map((vote: Selectable<Vote>) => (
                   <li key={vote.id} className="rounded-md bg-gray-100 p-2">
                     <span className="font-medium">Timestamp:</span>{" "}
-                    {vote.timeCreated}
+                    {vote.timeCreated
+                      ? new Date(vote.timeCreated).toLocaleString()
+                      : "unknown time"}
                     <br />
                     <span className="font-medium">Address:</span>{" "}
                     {vote.voterAddress}
