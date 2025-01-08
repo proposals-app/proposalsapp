@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { GroupWithDataType } from "../../actions";
-import { extractEvents, TimelineEventType } from "./timeline_events";
+import { extractEvents, TimelineEventType } from "./actions";
 import {
   Tooltip,
   TooltipContent,

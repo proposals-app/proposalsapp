@@ -7,7 +7,7 @@ import {
   sql,
   Vote,
 } from "@proposalsapp/db";
-import { format, formatDistanceToNow, startOfDay, endOfDay } from "date-fns";
+import { format, formatDistanceToNow, endOfDay } from "date-fns";
 
 export enum TimelineEventType {
   ResultOngoing = "ResultOngoing",
