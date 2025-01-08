@@ -7,6 +7,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
+import { GapEvent } from "./GapEvent";
+import { CommentsVolumeEvent } from "./CommentsVolumeEvent";
+import { VotesVolumeEvent } from "./VotesVolumeEvent";
+import { ResultOngoingEvent } from "./ResultOngoingEvent";
+import { ResultEndedEvent } from "./ResultEndedEvent";
+import { BasicEvent } from "./BasicEvent";
 
 export async function Timeline({ group }: { group: GroupWithDataType }) {
   if (!group) {
@@ -23,32 +29,42 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
             <TooltipTrigger asChild>
               <div className="flex w-full items-center justify-start">
                 {event.type === TimelineEventType.Gap ? (
-                  <div
-                    className="w-full opacity-30"
-                    style={{
-                      height: `${event.gapSize}vh`,
-                      minHeight: "1rem",
-                      borderLeft: "2px dashed #666",
-                      margin: "0.5rem 0 0.5rem 50%",
-                    }}
+                  <GapEvent
+                    content={event.content}
+                    timestamp={event.timestamp}
+                    gapSize={event.gapSize}
                   />
-                ) : (event.type === TimelineEventType.CommentsVolume ||
-                    event.type === TimelineEventType.VotesVolume) &&
-                  event.volume ? (
-                  <div
-                    className={`h-1 rounded-full ${
-                      event.volumeType === "comments"
-                        ? "bg-gray-400"
-                        : "bg-gray-600"
-                    }`}
-                    style={{
-                      width: `${Math.max(event.volume * 80, 1)}%`,
-                    }}
+                ) : event.type === TimelineEventType.CommentsVolume ? (
+                  <CommentsVolumeEvent
+                    content={event.content}
+                    timestamp={event.timestamp}
+                    volume={event.volume}
+                  />
+                ) : event.type === TimelineEventType.VotesVolume ? (
+                  <VotesVolumeEvent
+                    content={event.content}
+                    timestamp={event.timestamp}
+                    volume={event.volume}
+                  />
+                ) : event.type === TimelineEventType.ResultOngoing ? (
+                  <ResultOngoingEvent
+                    content={event.content}
+                    timestamp={event.timestamp}
+                    proposal={event.proposal}
+                    votes={event.votes}
+                  />
+                ) : event.type === TimelineEventType.ResultEnded ? (
+                  <ResultEndedEvent
+                    content={event.content}
+                    timestamp={event.timestamp}
+                    proposal={event.proposal}
+                    votes={event.votes}
                   />
                 ) : (
-                  <div className="w-full rounded-lg bg-white p-1 shadow-md">
-                    {event.content}
-                  </div>
+                  <BasicEvent
+                    content={event.content}
+                    timestamp={event.timestamp}
+                  />
                 )}
               </div>
             </TooltipTrigger>

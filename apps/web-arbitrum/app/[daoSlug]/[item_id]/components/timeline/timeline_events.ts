@@ -1,5 +1,12 @@
 import { GroupWithDataType } from "../../actions";
-import { db, IndexerVariant, sql } from "@proposalsapp/db";
+import {
+  db,
+  IndexerVariant,
+  Proposal,
+  Selectable,
+  sql,
+  Vote,
+} from "@proposalsapp/db";
 import { format, formatDistanceToNow, startOfDay, endOfDay } from "date-fns";
 
 export enum TimelineEventType {
@@ -11,14 +18,49 @@ export enum TimelineEventType {
   Gap = "Gap",
 }
 
-interface Event {
-  content: string;
+interface BaseEvent {
   type: TimelineEventType;
   timestamp: Date;
-  volume?: number;
-  volumeType?: "comments" | "votes";
-  gapSize?: number;
 }
+
+interface BasicEvent extends BaseEvent {
+  type: TimelineEventType.Basic;
+  content: string;
+}
+
+interface CommentsVolumeEvent extends BaseEvent {
+  type: TimelineEventType.CommentsVolume;
+  content: string;
+  volume: number;
+  volumeType: "comments";
+}
+
+interface VotesVolumeEvent extends BaseEvent {
+  type: TimelineEventType.VotesVolume;
+  content: string;
+  volume: number;
+  volumeType: "votes";
+}
+
+interface GapEvent extends BaseEvent {
+  type: TimelineEventType.Gap;
+  content: string;
+  gapSize: number;
+}
+
+interface ResultEvent extends BaseEvent {
+  type: TimelineEventType.ResultOngoing | TimelineEventType.ResultEnded;
+  content: string;
+  proposal: Selectable<Proposal>;
+  votes: Selectable<Vote>[];
+}
+
+type Event =
+  | BasicEvent
+  | CommentsVolumeEvent
+  | VotesVolumeEvent
+  | GapEvent
+  | ResultEvent;
 
 export async function extractEvents(
   group: GroupWithDataType,
@@ -78,17 +120,27 @@ export async function extractEvents(
         timestamp: createdAt,
       });
 
+      const votes = await db
+        .selectFrom("vote")
+        .selectAll()
+        .where("proposalId", "=", proposal.id)
+        .execute();
+
       if (new Date() > endedAt) {
         events.push({
           content: `${offchain ? "Offchain" : "Onchain"} vote ended ${formatDaysAgo(endedAt)}`,
           type: TimelineEventType.ResultEnded,
           timestamp: endedAt,
+          proposal: proposal,
+          votes: votes,
         });
       } else {
         events.push({
           content: `${offchain ? "Offchain" : "Onchain"} vote ends ${formatRelativeTime(endedAt)}`,
           type: TimelineEventType.ResultOngoing,
           timestamp: endedAt,
+          proposal: proposal,
+          votes: votes,
         });
       }
 
