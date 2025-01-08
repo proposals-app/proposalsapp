@@ -224,7 +224,7 @@ async fn process_snapshot_proposal_job(
                 .filter(
                     discourse_topic::Column::ExternalId
                         .eq(topic_id)
-                        .add(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
+                        .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
                 )
                 .one(conn)
                 .await
