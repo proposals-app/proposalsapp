@@ -63,11 +63,6 @@ export const SingleChoiceVote = ({
     return { winningChoice, totalVotingPower, winningPercentage };
   }, [votes, proposal.choices]);
 
-  const truncatedWinningChoice =
-    winningChoice.length > 30
-      ? `${winningChoice.slice(0, 27)}...`
-      : winningChoice;
-
   return (
     <div className="flex-col items-center justify-between">
       <div className="flex h-4 w-full overflow-hidden rounded-md bg-gray-200">
@@ -77,8 +72,8 @@ export const SingleChoiceVote = ({
         />
       </div>
       <div className="flex w-full justify-between">
-        <div className="text-sm font-bold text-gray-800">
-          {truncatedWinningChoice}
+        <div className="truncate text-sm font-bold text-gray-800">
+          {winningChoice}
         </div>
         <div className="text-sm text-gray-800">
           {formatNumberWithSuffix(totalVotingPower)}

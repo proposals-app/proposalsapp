@@ -10,6 +10,7 @@ import {
 import { cn } from "@/shadcn/lib/utils";
 import { formatNumberWithSuffix } from "@/lib/utils";
 import { Check } from "lucide-react";
+import React from "react";
 
 interface BasicVoteProps {
   proposal: Proposal;
@@ -280,7 +281,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
             if (!voteData) return null;
 
             return (
-              <>
+              <React.Fragment key={choice}>
                 {/* Top votes for this choice */}
                 {voteData.topVotes.map((vote, index) => (
                   <VoteSegment
@@ -305,7 +306,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
                     isAggregated={true}
                   />
                 )}
-              </>
+              </React.Fragment>
             );
           })}
         </div>
