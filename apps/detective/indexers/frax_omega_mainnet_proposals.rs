@@ -244,7 +244,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: NotSet,
+        metadata: Set(json!({"vote_type": "basic"}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -312,7 +312,7 @@ mod frax_omega_mainnet_proposals_tests {
                     time_end: parse_datetime("2023-09-22 17:14:23"),
                     block_created: Some(18178520),
                     txid: Some("0xcea444d5851255ba5c45a7ee5cfc46d62c3ca36b9c119c9b74dea28b3550aa55"),
-                    metadata: None,
+                    metadata: json!({"vote_type": "basic"}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

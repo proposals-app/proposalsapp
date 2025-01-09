@@ -241,7 +241,7 @@ async fn data_for_proposal(
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(0),
         txid: Set(None),
-        metadata: NotSet,
+        metadata: Set(json!({"vote_type": "single-choice"}).into()),
     })
 }
 
@@ -456,7 +456,7 @@ mod maker_executive_mainnet_proposals_tests {
                     time_end: parse_datetime("2024-02-28 15:26:59"),
                     block_created: None,
                     txid: None,
-                    metadata: None,
+                    metadata: json!({"vote_type": "single-choice"}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

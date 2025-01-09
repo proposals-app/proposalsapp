@@ -18,6 +18,7 @@ use seaorm::{
     dao, dao_indexer, proposal,
     sea_orm_active_enums::{IndexerVariant, ProposalState},
 };
+use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tracing::{info, warn};
 
@@ -236,7 +237,7 @@ async fn get_proposals(
             dao_indexer_id: Set(indexer.clone().id),
             dao_id: Set(indexer.clone().dao_id),
             index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-            metadata: NotSet,
+            metadata: Set(json!({"vote_type": "unknown"}).into()),
             txid: Set(Some(format!(
                 "0x{}",
                 hex::encode(log.transaction_hash.unwrap())
@@ -269,6 +270,7 @@ async fn get_proposals(
 //             speed: 1,
 //             index: 131335636,
 //             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+//             updated_at: chrono::Utc::now().naive_utc(),
 //         };
 
 //         let dao = dao::Model {
@@ -292,13 +294,13 @@ async fn get_proposals(
 //                     external_id: "1234567890", // Replace with the actual proposal ID
 //                     name: "Nomination Proposal for Example",
 //                     body_contains: Some(vec!["Description of the nomination proposal."]), // Add actual description if available
-//                     url: "",            // Add actual URL if available
-//                     discussion_url: "", // Add actual discussion URL if available
-//                     choices: json!([]), // Adjust based on actual data
-//                     scores: json!([]),  // Adjust based on actual data
-//                     scores_total: 0.0,  // Adjust based on actual data
-//                     scores_quorum: 0.0, // Adjust based on actual data
-//                     quorum: 1.0,        // Default value in the code is 1.0
+//                     url: "",              // Add actual URL if available
+//                     discussion_url: None, // Add actual discussion URL if available
+//                     choices: json!([]),   // Adjust based on actual data
+//                     scores: json!([]),    // Adjust based on actual data
+//                     scores_total: 0.0,    // Adjust based on actual data
+//                     scores_quorum: 0.0,   // Adjust based on actual data
+//                     quorum: 1.0,          // Default value in the code is 1.0
 //                     proposal_state: ProposalState::Active,
 //                     marked_spam: Some(false),
 //                     time_created: parse_datetime("2023-10-01 00:00:00"),

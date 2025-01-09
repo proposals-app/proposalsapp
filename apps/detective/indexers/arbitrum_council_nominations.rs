@@ -557,7 +557,7 @@ async fn get_created_proposals(
             dao_indexer_id: Set(indexer.clone().id),
             dao_id: Set(indexer.clone().dao_id),
             index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-            metadata: NotSet,
+            metadata: Set(json!({"vote_type": "unknown"}).into()),
             txid: Set(Some(format!(
                 "0x{}",
                 hex::encode(log.transaction_hash.unwrap())
@@ -742,7 +742,7 @@ mod arbitrum_council_nominations_tests {
                     time_end: parse_datetime("2023-09-22 15:35:11"),
                     block_created: Some(131335636),
                     txid: Some("0xcb6787863f4001e1190f76ae29f14927ba8a7af0ba4f42f1f8b74730948f11db"),
-                    metadata: None,
+                    metadata: json!({"vote_type": "unknown"}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -803,7 +803,7 @@ mod arbitrum_council_nominations_tests {
                     time_end: parse_datetime("2023-09-22 15:35:11"),
                     block_created: Some(131335636),
                     txid: Some("0xcb6787863f4001e1190f76ae29f14927ba8a7af0ba4f42f1f8b74730948f11db"),
-                    metadata: None,
+                    metadata: json!({"vote_type": "unknown"}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -864,7 +864,7 @@ mod arbitrum_council_nominations_tests {
                     time_end: parse_datetime("2023-09-22 15:35:11"),
                     block_created: Some(131335636),
                     txid: Some("0xcb6787863f4001e1190f76ae29f14927ba8a7af0ba4f42f1f8b74730948f11db"),
-                    metadata: None,
+                    metadata: json!({"vote_type": "unknown"}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -928,7 +928,7 @@ mod arbitrum_council_nominations_tests {
                     time_end: parse_datetime("2023-09-22 15:35:11"),
                     block_created: Some(131335636),
                     txid: Some("0xcb6787863f4001e1190f76ae29f14927ba8a7af0ba4f42f1f8b74730948f11db"),
-                    metadata: None,
+                    metadata: json!({"vote_type": "unknown"}).into(),
                 };
 
                 // Find the expected proposal

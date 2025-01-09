@@ -362,7 +362,9 @@ async fn data_for_proposal_one(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
         ))),
-        metadata: Set(json!({"proposal_type":1 , "voting_module":""}).into()),
+        metadata: Set(
+            json!({"proposal_type":1 , "voting_module":"", "vote_type":"unknown"}).into(),
+        ),
     })
 }
 
@@ -622,7 +624,7 @@ async fn data_for_proposal_two(
             hex::encode(log.transaction_hash.unwrap())
         ))),
         metadata: Set(
-            json!({"proposal_type":proposal_type, "voting_module" : voting_module}).into(),
+            json!({"proposal_type":proposal_type, "voting_module" : voting_module, "vote_type":"unknown"}).into(),
         ),
     })
 }
@@ -828,7 +830,10 @@ async fn data_for_proposal_three(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
         ))),
-        metadata: Set(json!({"proposal_type":3, "voting_module" : voting_module}).into()),
+        metadata: Set(
+            json!({"proposal_type":3, "voting_module" : voting_module, "vote_type":"unknown"})
+                .into(),
+        ),
     })
 }
 
@@ -987,7 +992,7 @@ async fn data_for_proposal_four(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
         ))),
-        metadata: Set(json!({"proposal_type":4, "voting_module":""}).into()),
+        metadata: Set(json!({"proposal_type":4, "voting_module":"", "vote_type":"unknown"}).into()),
     })
 }
 
@@ -1051,7 +1056,7 @@ mod optimism_proposals_tests {
                     time_end: parse_datetime("2023-02-20 07:16:50"),
                     block_created: Some(72973366),
                     txid: Some("0x76a30154da5f71854459a81106d0aaea2c21a2b515795c5b30395fd3c4cd71f9"),
-                    metadata: Some(json!({"proposal_type": 4, "voting_module":""})),
+                    metadata: Some(json!({"proposal_type": 4, "voting_module":"", "vote_type":"unknown"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1112,7 +1117,7 @@ mod optimism_proposals_tests {
                     time_end: parse_datetime("2023-10-25 19:15:55"),
                     block_created: Some(110769479),
                     txid: Some("0xcf90a49173d2e69f5b4848a1070da6fe26feadc7ec943597e6fcbd1694b12c26"),
-                    metadata: Some(json!({"proposal_type": 4, "voting_module":""})),
+                    metadata: Some(json!({"proposal_type": 4, "voting_module":"", "vote_type":"unknown"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1173,7 +1178,7 @@ mod optimism_proposals_tests {
                     time_end: parse_datetime("2023-05-31 23:43:30"),
                     block_created: Some(99601892),
                     txid: Some("0x466d42503a7158c027c6b3073b07af2addf14ab05e3400208e2344482f10da67"),
-                    metadata: Some(json!({"proposal_type": 3, "voting_module":"0x54a8fcbbf05ac14bef782a2060a8c752c7cc13a5"})),
+                    metadata: Some(json!({"proposal_type": 3, "voting_module":"0x54a8fcbbf05ac14bef782a2060a8c752c7cc13a5", "vote_type":"unknown"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1234,7 +1239,7 @@ mod optimism_proposals_tests {
                     time_end: parse_datetime("2023-11-15 19:53:59"),
                     block_created: Some(111677431),
                     txid: Some("0x2afa238e1a4928980781fabf2bca2229a8b860d217f21e8b904bc23a7d124bec"),
-                    metadata: Some(json!({"proposal_type": 3, "voting_module":"0x54a8fcbbf05ac14bef782a2060a8c752c7cc13a5"})),
+                    metadata: Some(json!({"proposal_type": 3, "voting_module":"0x54a8fcbbf05ac14bef782a2060a8c752c7cc13a5", "vote_type":"unknown"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1296,7 +1301,7 @@ mod optimism_proposals_tests {
                     time_end: parse_datetime("2024-01-24 19:45:51"),
                     block_created: Some(115004187),
                     txid: Some("0x614f36d22c7d5a84262628c28d191abccf80f41f91778562ad4a23e42e3dd916"),
-                    metadata: Some(json!({"proposal_type": 2, "voting_module":"0x27964c5f4f389b8399036e1076d84c6984576c33"})),
+                    metadata: Some(json!({"proposal_type": 2, "voting_module":"0x27964c5f4f389b8399036e1076d84c6984576c33", "vote_type":"unknown"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1358,7 +1363,7 @@ mod optimism_proposals_tests {
                     time_end: parse_datetime("2024-01-24 19:56:21"),
                     block_created: Some(115004502),
                     txid: Some("0xe9e68c1ca2c4e4678d3e6afc397fa56c8c1dc25359818f0ca7e4b7775e64a55a"),
-                    metadata: Some(json!({"proposal_type": 2, "voting_module":"0x27964c5f4f389b8399036e1076d84c6984576c33"})),
+                    metadata: Some(json!({"proposal_type": 2, "voting_module":"0x27964c5f4f389b8399036e1076d84c6984576c33", "vote_type":"unknown"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1420,7 +1425,7 @@ mod optimism_proposals_tests {
                     time_end: parse_datetime("2024-02-14 19:46:17"),
                     block_created: Some(115911400),
                     txid: Some("0x53426a899aea57645c3205f927f6e26fe6c2e64659a0788e46d5f57fb0175dee"),
-                    metadata: Some(json!({"proposal_type": 0, "voting_module":"0xdd0229d72a414dc821dec66f3cc4ef6db2c7b7df"})),
+                    metadata: Some(json!({"proposal_type": 0, "voting_module":"0xdd0229d72a414dc821dec66f3cc4ef6db2c7b7df", "vote_type":"unknown"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -1482,7 +1487,7 @@ mod optimism_proposals_tests {
                     time_end: parse_datetime("2024-06-19 21:22:37"),
                     block_created: Some(121357490),
                     txid: Some("0x4a8d10f7b38813df916a48d2e24c576f08e8bc43bf7c7a5c5c1977d5c9df3baa"),
-                    metadata: Some(json!({"proposal_type": 0, "voting_module":"0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df"})),
+                    metadata: Some(json!({"proposal_type": 0, "voting_module":"0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df", "vote_type":"unknown"})),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

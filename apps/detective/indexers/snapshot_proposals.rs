@@ -263,7 +263,7 @@ async fn parse_proposals(
             dao_indexer_id: Set(indexer.id),
             dao_id: Set(indexer.dao_id),
             index_created: Set(p.created),
-            metadata: Set(json!({"snapshot_type": p.proposal_type}).into()),
+            metadata: Set(json!({"vote_type": p.proposal_type}).into()),
             txid: Set(Some(p.ipfs)),
         };
 
@@ -599,7 +599,7 @@ mod snapshot_proposals_tests {
                     time_start: parse_datetime("2024-09-03 07:57:46"),
                     time_end: parse_datetime("2024-09-06 07:57:46"),
                     txid: Some("bafkreifbwvrbt4gg4sbzckidwzowhreg2t7hxcytwmgkp42fdgtt6h57bm"),
-                    metadata: None,
+                    metadata: json!({"vote_type": "single-choice"}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

@@ -280,7 +280,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: NotSet,
+        metadata: Set(json!({"vote_type": "basic"}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -350,7 +350,7 @@ mod gitcoin_2_mainnet_proposals {
                     txid: Some(
                         "0x12d10cc283b53d9602fc77352518d922762566093a2ed40a2eb92fbdc9e906e7",
                     ),
-                    metadata: None,
+                    metadata: json!({"vote_type": "basic"}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
