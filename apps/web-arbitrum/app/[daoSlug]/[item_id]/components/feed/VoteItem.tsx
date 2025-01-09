@@ -13,6 +13,7 @@ import {
 import { getDelegate } from "./actions";
 import { GroupWithDataType } from "../../actions";
 import { notFound } from "next/navigation";
+import { formatNumberWithSuffix } from "@/lib/utils";
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === "vote";
@@ -167,16 +168,6 @@ export async function VoteItem({
 
 const daoBaseUrlMap: { [key: string]: string } = {
   arbitrum_dao: "https://forum.arbitrum.foundation",
-};
-
-const formatNumberWithSuffix = (num: number): string => {
-  if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1)}m`;
-  } else if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(1)}k`;
-  } else {
-    return num.toFixed(2).toString();
-  }
 };
 
 const AuthorInfo = ({

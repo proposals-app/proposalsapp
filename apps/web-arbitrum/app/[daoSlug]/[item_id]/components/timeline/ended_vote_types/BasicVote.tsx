@@ -8,6 +8,8 @@ import {
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
 import { cn } from "@/shadcn/lib/utils";
+import { formatNumberWithSuffix } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 interface BasicVoteProps {
   proposal: Proposal;
@@ -245,6 +247,28 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
     );
   };
 
+  // Calculate total voting power for each choice
+  const totalForVotingPower = votesByChoice.For
+    ? votesByChoice.For.topVotes.reduce(
+        (sum, vote) => sum + vote.votingPower,
+        0,
+      ) + votesByChoice.For.aggregated.votingPower
+    : 0;
+
+  const totalAgainstVotingPower = votesByChoice.Against
+    ? votesByChoice.Against.topVotes.reduce(
+        (sum, vote) => sum + vote.votingPower,
+        0,
+      ) + votesByChoice.Against.aggregated.votingPower
+    : 0;
+
+  // Format the total voting power for display
+  const formattedForVotes = formatNumberWithSuffix(totalForVotingPower);
+  const formattedAgainstVotes = formatNumberWithSuffix(totalAgainstVotingPower);
+
+  // Determine the winning option based on voting power
+  const forWinning = totalForVotingPower > totalAgainstVotingPower;
+
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -282,6 +306,18 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
               </>
             );
           })}
+        </div>
+        <div className="flex justify-between text-sm text-gray-600">
+          <div className="flex items-center gap-1">
+            {forWinning && <Check size={12} />}
+            <span className="font-bold">For</span>
+            <span>{formattedForVotes}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {!forWinning && <Check size={12} />}
+            <span>{formattedAgainstVotes} </span>
+            <span className="font-bold">Against</span>
+          </div>
         </div>
       </div>
     </TooltipProvider>

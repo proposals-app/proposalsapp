@@ -11,7 +11,7 @@ export function GapEvent({ content, timestamp, gapSize }: GapEventProps) {
       style={{
         height: `${gapSize}vh`,
         minHeight: "1rem",
-        borderLeft: "2px dashed #666",
+        // borderLeft: "2px dashed #666",
         margin: "0.5rem 0 0.5rem 50%",
       }}
     ></div>

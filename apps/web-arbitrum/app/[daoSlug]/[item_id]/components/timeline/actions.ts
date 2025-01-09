@@ -26,6 +26,7 @@ interface BaseEvent {
 interface BasicEvent extends BaseEvent {
   type: TimelineEventType.Basic;
   content: string;
+  url: string;
 }
 
 interface CommentsVolumeEvent extends BaseEvent {
@@ -92,11 +93,18 @@ export async function extractEvents(
   const events: Event[] = [];
 
   if (group.topics && group.topics.length > 0) {
+    const discourse = await db
+      .selectFrom("daoDiscourse")
+      .where("daoDiscourse.id", "=", group.topics[0].daoDiscourseId)
+      .selectAll()
+      .executeTakeFirstOrThrow();
+
     const createdAt = new Date(group.topics[0].createdAt);
     events.push({
       content: `Proposal initially posted on ${formatDate(createdAt)}`,
       type: TimelineEventType.Basic,
       timestamp: createdAt,
+      url: `${discourse.discourseBaseUrl}/t/${group.topics[0].externalId}`,
     });
   }
 
@@ -118,6 +126,7 @@ export async function extractEvents(
         content: `${offchain ? "Offchain" : "Onchain"} vote started on ${formatDate(createdAt)}`,
         type: TimelineEventType.Basic,
         timestamp: createdAt,
+        url: proposal.url,
       });
 
       const votes = await db

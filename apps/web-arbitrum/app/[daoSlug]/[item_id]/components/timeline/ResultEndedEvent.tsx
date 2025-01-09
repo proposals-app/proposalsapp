@@ -63,20 +63,22 @@ export function ResultEndedEvent({
   const Component = voteType ? VoteComponents[voteType] : null;
 
   return (
-    <div className="w-full rounded-lg bg-white p-2 shadow-md">
-      <div className="flex w-full justify-between">
-        <div className="text-sm">{content}</div>
-        <Link href={proposal.url} target="_blank">
-          <ArrowRight size={14} />
-        </Link>
-      </div>
+    <div className="relative w-full">
+      <div className="-mr-4 rounded-l-lg border bg-white px-4 py-2">
+        <div className="flex w-full items-center justify-between">
+          <div className="text-sm">{content}</div>
+          <Link href="" target="_blank">
+            <ArrowRight size={14} />
+          </Link>
+        </div>
 
-      <div className="text-sm text-gray-600">
-        {Component ? (
-          <Component proposal={proposal} votes={votes} />
-        ) : (
-          <p>Invalid or unsupported vote type: {voteType}</p>
-        )}
+        <div className="text-sm text-gray-600">
+          {Component ? (
+            <Component proposal={proposal} votes={votes} />
+          ) : (
+            <p>Invalid or unsupported vote type: {voteType}</p>
+          )}
+        </div>
       </div>
     </div>
   );

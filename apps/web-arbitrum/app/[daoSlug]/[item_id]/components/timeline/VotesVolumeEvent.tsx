@@ -11,7 +11,7 @@ export function VotesVolumeEvent({
 }: VotesVolumeEventProps) {
   return (
     <div
-      className={`h-1 rounded-full bg-gray-600`}
+      className={`ml-4 h-1 bg-gray-600`}
       style={{
         width: `${Math.max(volume * 80, 1)}%`,
       }}

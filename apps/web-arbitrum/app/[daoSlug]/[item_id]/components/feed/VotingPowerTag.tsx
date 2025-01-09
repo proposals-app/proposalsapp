@@ -7,6 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
+import { formatNumberWithSuffix } from "@/lib/utils";
 
 export async function VotingPowerTag({
   item,
@@ -62,13 +63,3 @@ export async function VotingPowerTag({
     </div>
   );
 }
-
-const formatNumberWithSuffix = (num: number): string => {
-  if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1)}m`;
-  } else if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(1)}k`;
-  } else {
-    return num.toFixed(2).toString();
-  }
-};
