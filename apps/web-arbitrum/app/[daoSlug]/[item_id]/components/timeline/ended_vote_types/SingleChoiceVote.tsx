@@ -61,10 +61,10 @@ const calculateVotingPowerThreshold = (
   let cumulativePower = 0;
   let threshold = 0;
 
-  // Find the voting power that represents the top 80% of total voting power
+  // Find the voting power that represents the top 95% of total voting power
   for (const vote of sortedVotes) {
     cumulativePower += vote.votingPower;
-    if (cumulativePower >= totalVotingPower * 0.8) {
+    if (cumulativePower >= totalVotingPower * 0.95) {
       threshold = vote.votingPower;
       break;
     }
@@ -193,12 +193,12 @@ export const SingleChoiceVote = ({
               ...(isAggregated
                 ? {
                     background: `repeating-linear-gradient(
-                      90deg,
-                      ${color} 0px,
-                      ${color} 1px,
-                      transparent 1px,
-                      transparent 2px
-                    )`,
+                                  90deg,
+                                  ${color} 0px,
+                                  ${color} 1px,
+                                  transparent 1px,
+                                  transparent 2px
+                                )`,
                   }
                 : { backgroundColor: color }),
             }}
