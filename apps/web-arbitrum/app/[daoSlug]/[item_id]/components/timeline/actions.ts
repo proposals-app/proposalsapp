@@ -63,34 +63,91 @@ type Event =
   | GapEvent
   | ResultEvent;
 
+const MAX_EVENTS = 20;
+const MIN_TIME_BETWEEN_EVENTS = 1000 * 60 * 60 * 24; // 1 day in milliseconds
+
+const DEFAULT_MIN_GAP_DAYS = 1;
+
+const EVENT_HEIGHT_UNITS = {
+  [TimelineEventType.Basic]: 30,
+  [TimelineEventType.ResultEnded]: 110,
+  [TimelineEventType.ResultOngoing]: 110,
+  [TimelineEventType.CommentsVolume]: 3,
+  [TimelineEventType.VotesVolume]: 3,
+  [TimelineEventType.Gap]: 10, // Increased from 5
+} as const;
+
+function aggregateVolumeEvents(
+  events: Event[],
+  type: TimelineEventType.CommentsVolume | TimelineEventType.VotesVolume,
+  timeWindow: number,
+): Event[] {
+  const volumeEvents = events.filter((e) => e.type === type) as
+    | CommentsVolumeEvent[]
+    | VotesVolumeEvent[];
+
+  if (volumeEvents.length <= 1) return volumeEvents;
+
+  const aggregatedEvents: Event[] = [];
+  let currentWindow: (CommentsVolumeEvent | VotesVolumeEvent)[] = [];
+  let windowStart = volumeEvents[0].timestamp;
+
+  const createAggregatedEvent = (
+    windowEvents: (CommentsVolumeEvent | VotesVolumeEvent)[],
+    avgTime: Date,
+  ): CommentsVolumeEvent | VotesVolumeEvent => {
+    const totalVolume = windowEvents.reduce((sum, e) => sum + e.volume, 0);
+    const isComments = type === TimelineEventType.CommentsVolume;
+
+    return {
+      type, // This is now strictly typed
+      timestamp: avgTime,
+      content: `${windowEvents.length} ${isComments ? "comments" : "votes"} in this period`,
+      volume: totalVolume / windowEvents.length,
+      volumeType: isComments ? "comments" : "votes",
+    } as CommentsVolumeEvent | VotesVolumeEvent; // Type assertion to help TypeScript
+  };
+
+  volumeEvents.forEach((event) => {
+    if (event.timestamp.getTime() - windowStart.getTime() <= timeWindow) {
+      currentWindow.push(event);
+    } else {
+      if (currentWindow.length > 0) {
+        const avgTimestamp = new Date(
+          currentWindow.reduce((sum, e) => sum + e.timestamp.getTime(), 0) /
+            currentWindow.length,
+        );
+        aggregatedEvents.push(
+          createAggregatedEvent(currentWindow, avgTimestamp),
+        );
+      }
+      currentWindow = [event];
+      windowStart = event.timestamp;
+    }
+  });
+
+  if (currentWindow.length > 0) {
+    const avgTimestamp = new Date(
+      currentWindow.reduce((sum, e) => sum + e.timestamp.getTime(), 0) /
+        currentWindow.length,
+    );
+    aggregatedEvents.push(createAggregatedEvent(currentWindow, avgTimestamp));
+  }
+
+  return aggregatedEvents;
+}
+
+function calculateTotalHeightUnits(events: Event[]): number {
+  return events.reduce((sum, event) => sum + EVENT_HEIGHT_UNITS[event.type], 0);
+}
+
 export async function extractEvents(
   group: GroupWithDataType,
 ): Promise<Event[]> {
-  interface DailyVoteResult {
-    date: Date;
-    totalVotingPower: number;
+  let events: Event[] = [];
+  if (!group) {
+    return [];
   }
-
-  interface DailyPostResult {
-    date: Date;
-    count: number;
-  }
-
-  if (!group) return [];
-
-  const formatDate = (date: Date): string => {
-    return format(date, "MMM d"); // e.g., "Nov 12"
-  };
-
-  const formatRelativeTime = (date: Date): string => {
-    return formatDistanceToNow(date, { addSuffix: true }); // e.g., "in 4 hours" or "in 2 days"
-  };
-
-  const formatDaysAgo = (date: Date): string => {
-    return formatDistanceToNow(date, { addSuffix: true }); // e.g., "21 days ago"
-  };
-
-  const events: Event[] = [];
 
   if (group.topics && group.topics.length > 0) {
     const discourse = await db
@@ -101,7 +158,7 @@ export async function extractEvents(
 
     const createdAt = new Date(group.topics[0].createdAt);
     events.push({
-      content: `Proposal initially posted on ${formatDate(createdAt)}`,
+      content: `Proposal initially posted on ${format(createdAt, "MMM d")}`,
       type: TimelineEventType.Basic,
       timestamp: createdAt,
       url: `${discourse.discourseBaseUrl}/t/${group.topics[0].externalId}`,
@@ -123,7 +180,10 @@ export async function extractEvents(
         daoIndexer.indexerVariant == IndexerVariant.SNAPSHOT_PROPOSALS;
 
       events.push({
-        content: `${offchain ? "Offchain" : "Onchain"} vote started on ${formatDate(startedAt)}`,
+        content: `${offchain ? "Offchain" : "Onchain"} vote started on ${format(
+          startedAt,
+          "MMM d",
+        )}`,
         type: TimelineEventType.Basic,
         timestamp: startedAt,
         url: proposal.url,
@@ -137,7 +197,10 @@ export async function extractEvents(
 
       if (new Date() > endedAt) {
         events.push({
-          content: `${offchain ? "Offchain" : "Onchain"} vote ended ${formatDaysAgo(endedAt)}`,
+          content: `${offchain ? "Offchain" : "Onchain"} vote ended ${formatDistanceToNow(
+            endedAt,
+            { addSuffix: true },
+          )}`,
           type: TimelineEventType.ResultEnded,
           timestamp: endedAt,
           proposal: proposal,
@@ -145,7 +208,10 @@ export async function extractEvents(
         });
       } else {
         events.push({
-          content: `${offchain ? "Offchain" : "Onchain"} vote ends ${formatRelativeTime(endedAt)}`,
+          content: `${offchain ? "Offchain" : "Onchain"} vote ends ${formatDistanceToNow(
+            endedAt,
+            { addSuffix: true },
+          )}`,
           type: TimelineEventType.ResultOngoing,
           timestamp: endedAt,
           proposal: proposal,
@@ -153,31 +219,36 @@ export async function extractEvents(
         });
       }
 
-      // Calculate daily votes volume for the proposal based on total voting power
       const dailyVotes = (await db
         .selectFrom("vote")
         .select([
           sql<Date>`DATE_TRUNC('day', "time_created")`.as("date"),
           sql<number>`SUM("voting_power")`.as("totalVotingPower"),
-          sql<Date>`MIN("time_created")`.as("firstVoteTime"), // Get the first vote time in the group
+          sql<Date>`MIN("time_created")`.as("firstVoteTime"),
         ])
         .where("proposalId", "=", proposal.id)
         .groupBy(sql`DATE_TRUNC('day', "time_created")`)
-        .execute()) as (DailyVoteResult & { firstVoteTime: Date })[];
+        .execute()) as {
+        date: Date;
+        totalVotingPower: number;
+        firstVoteTime: Date;
+      }[];
 
-      // Find the maximum total voting power in a single day
       const maxVotes = Math.max(
         ...dailyVotes.map((dv) => Number(dv.totalVotingPower)),
       );
 
       dailyVotes.forEach((dailyVote) => {
         const timestamp = new Date(dailyVote.firstVoteTime);
-        const normalizedVolume = Number(dailyVote.totalVotingPower) / maxVotes; // Normalize to 0-1
+        const normalizedVolume = Number(dailyVote.totalVotingPower) / maxVotes;
         events.push({
-          content: `${Number(dailyVote.totalVotingPower).toFixed(2)} voting power on ${formatDate(timestamp)}`,
+          content: `${Number(dailyVote.totalVotingPower).toFixed(2)} voting power on ${format(
+            timestamp,
+            "MMM d",
+          )}`,
           type: TimelineEventType.VotesVolume,
           timestamp,
-          volume: normalizedVolume, // Add normalized volume
+          volume: normalizedVolume,
           volumeType: "votes",
         });
       });
@@ -186,7 +257,6 @@ export async function extractEvents(
 
   if (group.topics && group.topics.length > 0) {
     for (const topic of group.topics) {
-      // Calculate daily comments volume for the topic
       const dailyPosts = (await db
         .selectFrom("discoursePost")
         .select([
@@ -196,62 +266,70 @@ export async function extractEvents(
         .where("postNumber", "!=", 1)
         .where("topicId", "=", topic.externalId)
         .groupBy(sql`DATE_TRUNC('day', "created_at")`)
-        .execute()) as DailyPostResult[];
+        .execute()) as { date: Date; count: number }[];
 
-      // Find the maximum number of comments in a single day
       const maxComments = Math.max(...dailyPosts.map((dp) => Number(dp.count)));
 
       dailyPosts.forEach((dailyPost) => {
         const timestamp = endOfDay(new Date(dailyPost.date));
-        const normalizedVolume = Number(dailyPost.count) / maxComments; // Normalize to 0-1
+        const normalizedVolume = Number(dailyPost.count) / maxComments;
         events.push({
-          content: `${dailyPost.count} post(s) on ${formatDate(timestamp)}`,
+          content: `${dailyPost.count} post(s) on ${format(timestamp, "MMM d")}`,
           type: TimelineEventType.CommentsVolume,
           timestamp,
-          volume: normalizedVolume, // Add normalized volume
+          volume: normalizedVolume,
           volumeType: "comments",
         });
       });
     }
   }
 
-  // Sort events by timestamp in descending order (newest to oldest)
+  // Sort events by timestamp in descending order
   events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-  // Calculate total time span
-  const newest = events[0].timestamp.getTime();
-  const oldest = events[events.length - 1].timestamp.getTime();
-  const totalTimeSpan = newest - oldest;
+  const totalHeightUnits = calculateTotalHeightUnits(events);
+  const maxHeightUnits =
+    MAX_EVENTS * EVENT_HEIGHT_UNITS[TimelineEventType.Basic];
 
-  // Insert gaps and calculate relative positions
-  const finalEvents: Event[] = [];
-  const MIN_GAP = 0.02; // Minimum 2% gap
-  const SIGNIFICANT_GAP = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+  if (totalHeightUnits > maxHeightUnits) {
+    const timeSpan =
+      events[0].timestamp.getTime() -
+      events[events.length - 1].timestamp.getTime();
+    const aggregationWindow = Math.max(
+      timeSpan / MAX_EVENTS,
+      MIN_TIME_BETWEEN_EVENTS,
+    );
 
-  for (let i = 0; i < events.length; i++) {
-    const currentEvent = events[i];
-    const nextEvent = events[i + 1];
+    const commentEvents = aggregateVolumeEvents(
+      events,
+      TimelineEventType.CommentsVolume,
+      aggregationWindow,
+    );
+    const voteEvents = aggregateVolumeEvents(
+      events,
+      TimelineEventType.VotesVolume,
+      aggregationWindow,
+    );
 
-    // Add the current event
-    finalEvents.push(currentEvent);
+    const importantEvents = events.filter(
+      (e) =>
+        e.type === TimelineEventType.Basic ||
+        e.type === TimelineEventType.ResultOngoing ||
+        e.type === TimelineEventType.ResultEnded,
+    );
 
-    if (nextEvent) {
-      const timeDifference =
-        currentEvent.timestamp.getTime() - nextEvent.timestamp.getTime();
-      const relativeGap = timeDifference / totalTimeSpan;
+    events = [...importantEvents, ...commentEvents, ...voteEvents].sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+    );
 
-      if (timeDifference > SIGNIFICANT_GAP) {
-        // Add a gap event with calculated size
-        const gapSize = Math.max(relativeGap * 100, MIN_GAP * 100); // Convert to percentage
-        finalEvents.push({
-          content: `Gap of ${formatDistanceToNow(nextEvent.timestamp, { addSuffix: false })}`,
-          type: TimelineEventType.Gap,
-          timestamp: new Date(
-            nextEvent.timestamp.getTime() + timeDifference / 2,
-          ),
-          gapSize,
-        });
-      }
+    while (calculateTotalHeightUnits(events) > maxHeightUnits) {
+      const volumeEventIndex = events.findIndex(
+        (e) =>
+          e.type === TimelineEventType.CommentsVolume ||
+          e.type === TimelineEventType.VotesVolume,
+      );
+      if (volumeEventIndex === -1) break;
+      events.splice(volumeEventIndex, 1);
     }
   }
 
@@ -284,8 +362,42 @@ export async function extractEvents(
     }
   }
 
+  events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+  // Calculate the total time span between the first and last event
+  const firstEventTimestamp = events[0].timestamp.getTime();
+  const lastEventTimestamp = events[events.length - 1].timestamp.getTime();
+  const totalTimeSpan = firstEventTimestamp - lastEventTimestamp;
+
+  // Determine the minimum gap size as 10% of the total time span
+  const dynamicMinGapDays = (totalTimeSpan / (1000 * 60 * 60 * 24)) * 0.1;
+
+  // Calculate time spans and insert gaps
+  const eventsWithGaps = events.reduce<Event[]>((acc, event, index) => {
+    acc.push(event);
+
+    const nextEvent = events[index + 1];
+    if (nextEvent) {
+      const timeDiff =
+        event.timestamp.getTime() - nextEvent.timestamp.getTime();
+      const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+
+      // Add a gap if events are more than the dynamic minimum gap size apart
+      if (daysDiff > dynamicMinGapDays) {
+        acc.push({
+          type: TimelineEventType.Gap,
+          timestamp: new Date(nextEvent.timestamp.getTime() + timeDiff / 2),
+          content: `${Math.floor(daysDiff)} days`,
+          gapSize: Math.min(daysDiff * 2, 10), // Scale gap size with days, but cap it
+        });
+      }
+    }
+
+    return acc;
+  }, []);
+
   // Check if the last event is a volume type event
-  const lastEvent = finalEvents[0];
+  const lastEvent = eventsWithGaps[0];
   if (
     lastEvent &&
     (lastEvent.type === TimelineEventType.CommentsVolume ||
@@ -293,7 +405,7 @@ export async function extractEvents(
   ) {
     // Create a new basic event with the current timestamp and total comments and votes
     const currentTimestamp = new Date();
-    finalEvents.unshift({
+    eventsWithGaps.unshift({
       content: `${totalComments} comments and ${totalVotes} votes`,
       type: TimelineEventType.Basic,
       timestamp: currentTimestamp,
@@ -301,6 +413,5 @@ export async function extractEvents(
     });
   }
 
-  console.log(finalEvents);
-  return finalEvents;
+  return eventsWithGaps;
 }

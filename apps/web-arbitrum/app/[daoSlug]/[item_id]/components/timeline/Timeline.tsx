@@ -16,31 +16,14 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
   const events = await extractEvents(group);
 
   return (
-    <div className="fixed right-0 top-0 flex max-h-screen w-80 flex-col items-end justify-start gap-1 overflow-y-auto pl-4 pt-24">
-      {/* Vertical Line Container */}
-      <div className="relative w-full">
-        {/* Vertical Line */}
+    <div className="fixed right-0 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
+      <div className="relative h-[calc(100vh-96px)] w-full">
         <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
-
-        {events.map((event, index) => {
-          const previousEvent = index > 0 ? events[index - 1] : null;
-          const isSameDayAsPrevious =
-            previousEvent &&
-            (event.type === TimelineEventType.CommentsVolume ||
-              event.type === TimelineEventType.VotesVolume) &&
-            (previousEvent.type === TimelineEventType.CommentsVolume ||
-              previousEvent.type === TimelineEventType.VotesVolume) &&
-            event.timestamp.getDate() === previousEvent.timestamp.getDate() &&
-            event.timestamp.getMonth() === previousEvent.timestamp.getMonth() &&
-            event.timestamp.getFullYear() ===
-              previousEvent.timestamp.getFullYear();
-
-          return (
+        <div className="flex h-full flex-col justify-between">
+          {events.map((event, index) => (
             <div
               key={index}
-              className={`relative flex w-full items-center justify-start ${
-                isSameDayAsPrevious ? "" : "pt-1"
-              }`}
+              className="relative flex w-full items-center justify-start"
             >
               {event.type === TimelineEventType.Gap ? (
                 <GapEvent
@@ -80,12 +63,10 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                   timestamp={event.timestamp}
                   url={event.url}
                 />
-              ) : (
-                <></>
-              )}
+              ) : null}
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
   );
