@@ -273,7 +273,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
+      <div className="space-y-1">
         <div className="flex h-4 w-full overflow-hidden rounded">
           {(["For", "Abstain", "Against", "Unknown"] as const).map((choice) => {
             const voteData = votesByChoice[choice];
