@@ -11,7 +11,7 @@ export function CommentsVolumeEvent({
 }: CommentsVolumeEventProps) {
   return (
     <div
-      className={`ml-4 h-1 bg-gray-400`}
+      className={`ml-4 h-1 bg-black opacity-5`}
       style={{
         width: `${Math.max(volume * 80, 1)}%`,
       }}
