@@ -14,9 +14,12 @@ export function ResultOngoingEvent({
   votes,
 }: ResultOngoingEventProps) {
   return (
-    <div className="w-full rounded-lg bg-white p-1 shadow-md">
-      <div>{content}</div>
-      <div className="text-sm text-gray-600">Votes: {votes.length}</div>
+    <div className="relative flex w-full items-center">
+      <div className="flex w-full flex-col rounded-l-xl border bg-white px-4 py-2">
+        <div className="absolute left-3 top-3 h-[7px] w-[7px] rounded-full border border-white bg-gray-500" />
+        <div className="ml-4 text-sm">{content}</div>
+        <div className="ml-4 text-sm text-gray-600">Votes: {votes.length}</div>
+      </div>
     </div>
   );
 }

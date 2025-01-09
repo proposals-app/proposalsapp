@@ -53,7 +53,6 @@ export function ResultEndedEvent({
   proposal,
   votes,
 }: ResultEndedEventProps) {
-  // Parse metadata if it's a string
   const metadata =
     typeof proposal.metadata === "string"
       ? (JSON.parse(proposal.metadata) as ProposalMetadata)
@@ -63,16 +62,16 @@ export function ResultEndedEvent({
   const Component = voteType ? VoteComponents[voteType] : null;
 
   return (
-    <div className="relative w-full">
-      <div className="-mr-4 rounded-l-xl border bg-white px-4 py-2">
-        <div className="flex w-full items-center justify-between">
+    <div className="relative flex w-full items-center">
+      <div className="-mr-4 flex w-full flex-col rounded-l-xl border bg-white px-4 py-2">
+        <div className="absolute left-3 top-3 h-[7px] w-[7px] rounded-full border border-white bg-gray-500" />
+        <div className="ml-2 flex w-full items-center justify-between">
           <div className="text-sm">{content}</div>
           <Link href="" target="_blank">
             <ArrowRight size={14} />
           </Link>
         </div>
-
-        <div className="text-sm text-gray-600">
+        <div className="ml-2 text-sm text-gray-600">
           {Component ? (
             <Component proposal={proposal} votes={votes} />
           ) : (
