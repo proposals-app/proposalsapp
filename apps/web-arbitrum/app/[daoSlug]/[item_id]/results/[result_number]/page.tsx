@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
-import { getGroupWithData } from "../../actions";
+import { getBodiesForGroup, getGroupWithData } from "../../actions";
+import { ProposalResult } from "./components/ProposalResult";
 import { db } from "@proposalsapp/db";
 import { Timeline } from "./timeline/Timeline";
+import { Header } from "./components/Header";
 
 export default async function ResultPage({
   params,
@@ -31,8 +33,21 @@ export default async function ResultPage({
     .where("proposalId", "=", proposal.id)
     .execute();
 
+  // Get the author information (assuming the first body is the author)
+  const bodies = await getBodiesForGroup(group.group.id);
+  const author = bodies?.[0];
+
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">
+      {/* Sticky Header */}
+      <Header
+        authorName={author?.author_name || "Unknown"}
+        authorPicture={author?.author_picture || ""}
+        proposalName={proposal.name}
+        daoSlug={daoSlug}
+        itemId={item_id}
+      />
+
       {/* Timeline on the left */}
       <div className="hidden lg:flex">
         <Timeline group={group} />
@@ -40,7 +55,7 @@ export default async function ResultPage({
 
       {/* Results on the right */}
       {/* <div className="flex w-full justify-between lg:pr-80">
-        <div className="mx-auto flex w-2/3 flex-col justify-center">
+        <div className="mx-auto flex w-2/3 flex-col justify-center pt-24">
           <ProposalResult proposal={proposal} votes={votes} />
         </div>
       </div> */}
