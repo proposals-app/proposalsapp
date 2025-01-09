@@ -7,7 +7,7 @@ interface GapEventProps {
 export function GapEvent({ content, timestamp, gapSize }: GapEventProps) {
   return (
     <div
-      className="w-full opacity-30"
+      className="relative min-h-[40px] w-full"
       style={{
         height: "100%",
         display: "flex",
@@ -15,7 +15,7 @@ export function GapEvent({ content, timestamp, gapSize }: GapEventProps) {
         justifyContent: "center",
       }}
     >
-      <div className="text-xs text-gray-500">{content}</div>
+      <div className="ml-30 z-50 h-full w-full bg-[repeating-linear-gradient(to_top,transparent,transparent_5px,#f3f4f6_5px,#f3f4f6_10px)]" />
     </div>
   );
 }
