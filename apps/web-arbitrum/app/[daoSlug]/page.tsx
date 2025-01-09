@@ -15,7 +15,7 @@ export default async function ListPage({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-row bg-gray-100">
+    <div className="flex min-h-screen w-full flex-row bg-gray-100 pl-20">
       <div className="w-full p-4">
         <h1 className="mb-6 text-3xl font-bold">DAO: {daoSlug}</h1>
         <div className="flex flex-col gap-2">
