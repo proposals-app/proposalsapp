@@ -16,11 +16,11 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
   const events = await extractEvents(group);
 
   return (
-    <div className="fixed right-0 top-0 flex max-h-screen w-80 flex-col items-end justify-start gap-1 overflow-y-auto p-4 pt-24">
+    <div className="fixed right-0 top-0 flex max-h-screen w-80 flex-col items-end justify-start gap-1 overflow-y-auto pl-4 pt-24">
       {/* Vertical Line Container */}
       <div className="relative w-full">
         {/* Vertical Line */}
-        <div className="absolute left-[14px] top-0 h-full w-0.5 bg-gray-300" />
+        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
 
         {events.map((event, index) => {
           const previousEvent = index > 0 ? events[index - 1] : null;

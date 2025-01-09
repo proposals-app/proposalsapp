@@ -254,5 +254,51 @@ export async function extractEvents(
     }
   }
 
+  // Calculate total comments and votes
+  let totalComments = 0;
+  let totalVotes = 0;
+
+  if (group.topics && group.topics.length > 0) {
+    for (const topic of group.topics) {
+      const commentsCount = await db
+        .selectFrom("discoursePost")
+        .select([sql<number>`COUNT(id)`.as("count")])
+        .where("postNumber", "!=", 1)
+        .where("topicId", "=", topic.externalId)
+        .executeTakeFirstOrThrow();
+
+      totalComments += Number(commentsCount.count);
+    }
+  }
+
+  if (group.proposals && group.proposals.length > 0) {
+    for (const proposal of group.proposals) {
+      const votesCount = await db
+        .selectFrom("vote")
+        .select([sql<number>`COUNT(id)`.as("count")])
+        .where("proposalId", "=", proposal.id)
+        .executeTakeFirstOrThrow();
+
+      totalVotes += Number(votesCount.count);
+    }
+  }
+
+  // Check if the last event is a volume type event
+  const lastEvent = finalEvents[0];
+  if (
+    lastEvent &&
+    (lastEvent.type === TimelineEventType.CommentsVolume ||
+      lastEvent.type === TimelineEventType.VotesVolume)
+  ) {
+    // Create a new basic event with the current timestamp and total comments and votes
+    const currentTimestamp = new Date();
+    finalEvents.unshift({
+      content: `${totalComments} comments and ${totalVotes} votes`,
+      type: TimelineEventType.Basic,
+      timestamp: currentTimestamp,
+      url: "",
+    });
+  }
+
   return finalEvents;
 }

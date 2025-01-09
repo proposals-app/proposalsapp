@@ -63,7 +63,7 @@ export function ResultEndedEvent({
 
   return (
     <div className="relative flex w-full items-center py-2">
-      <div className="-mr-4 flex w-full flex-col rounded-l-xl border bg-white px-4 py-2">
+      <div className="flex w-full flex-col rounded-l-xl border bg-white px-4 py-2 pr-8">
         <div className="absolute left-3 top-5 h-[7px] w-[7px] rounded-full border border-white bg-gray-500" />
         <div className="ml-2 flex w-full items-center justify-between">
           <div className="text-sm">{content}</div>
