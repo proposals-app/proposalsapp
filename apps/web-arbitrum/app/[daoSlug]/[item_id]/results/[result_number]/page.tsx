@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { getGroupWithData } from "../../actions";
-import { ProposalResult } from "./components/ProposalResult";
 import { db } from "@proposalsapp/db";
 import { Timeline } from "./timeline/Timeline";
 

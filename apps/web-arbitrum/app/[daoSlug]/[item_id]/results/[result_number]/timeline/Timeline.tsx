@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { extractEvents, TimelineEventType } from "./actions";
-import { GapEvent } from "./GapEvent";
-import { CommentsVolumeEvent } from "./CommentsVolumeEvent";
-import { VotesVolumeEvent } from "./VotesVolumeEvent";
 import { ResultOngoingEvent } from "./ResultOngoingEvent";
 import { ResultEndedEvent } from "./ResultEndedEvent";
-import { BasicEvent } from "./BasicEvent";
 import { GroupWithDataType } from "../../../actions";
+import {
+  BasicEvent,
+  CommentsVolumeEvent,
+  GapEvent,
+  VotesVolumeEvent,
+} from "./OtherEvents";
 
 export async function Timeline({ group }: { group: GroupWithDataType }) {
   if (!group) {
@@ -24,7 +26,54 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
   return (
     <div className="fixed left-20 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
       <div className="relative h-[calc(100vh-96px)] w-full">
+        {/* Top SVG */}
+        <div className="absolute left-[14px] top-5 w-0.5 bg-gray-300">
+          <svg
+            width="31"
+            height="31"
+            viewBox="0 0 31 31"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="absolute -left-[15px] -top-[15px]"
+          >
+            <rect
+              x="0.5"
+              y="0.5"
+              width="30"
+              height="30"
+              rx="15"
+              fill="white"
+              stroke="#D3D3D3"
+            />
+            <circle cx="15.5" cy="15.5" r="3.5" fill="#737373" />
+          </svg>
+        </div>
+
         <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
+
+        {/* Bottom SVG */}
+        <div className="absolute bottom-5 left-[14px] w-0.5 bg-gray-300">
+          <svg
+            width="31"
+            height="31"
+            viewBox="0 0 31 31"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="absolute -bottom-[15px] -left-[15px]"
+          >
+            <rect
+              x="0.5"
+              y="0.5"
+              width="30"
+              height="30"
+              rx="15"
+              fill="white"
+              stroke="#D3D3D3"
+            />
+            <circle cx="15.5" cy="15.5" r="3.5" fill="#737373" />
+          </svg>
+        </div>
+
         <div className="flex h-full flex-col justify-between">
           {events.map((event, index) => {
             // Add resultNumber for ResultEndedEvent and ResultOngoingEvent
