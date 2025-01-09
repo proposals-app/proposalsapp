@@ -11,7 +11,7 @@ export function VotesVolumeEvent({
 }: VotesVolumeEventProps) {
   return (
     <div
-      className={`ml-4 h-[3px] bg-black bg-opacity-20`}
+      className={`ml-4 h-[3px] bg-black bg-opacity-30`}
       style={{
         width: `${Math.max(volume * 80, 1)}%`,
       }}

@@ -110,7 +110,7 @@ export async function extractEvents(
 
   if (group.proposals && group.proposals.length > 0) {
     for (const proposal of group.proposals) {
-      const createdAt = new Date(proposal.timeCreated);
+      const startedAt = new Date(proposal.timeStart);
       const endedAt = new Date(proposal.timeEnd);
 
       const daoIndexer = await db
@@ -123,9 +123,9 @@ export async function extractEvents(
         daoIndexer.indexerVariant == IndexerVariant.SNAPSHOT_PROPOSALS;
 
       events.push({
-        content: `${offchain ? "Offchain" : "Onchain"} vote started on ${formatDate(createdAt)}`,
+        content: `${offchain ? "Offchain" : "Onchain"} vote started on ${formatDate(startedAt)}`,
         type: TimelineEventType.Basic,
-        timestamp: createdAt,
+        timestamp: startedAt,
         url: proposal.url,
       });
 
@@ -159,10 +159,11 @@ export async function extractEvents(
         .select([
           sql<Date>`DATE_TRUNC('day', "time_created")`.as("date"),
           sql<number>`SUM("voting_power")`.as("totalVotingPower"),
+          sql<Date>`MIN("time_created")`.as("firstVoteTime"), // Get the first vote time in the group
         ])
         .where("proposalId", "=", proposal.id)
         .groupBy(sql`DATE_TRUNC('day', "time_created")`)
-        .execute()) as DailyVoteResult[];
+        .execute()) as (DailyVoteResult & { firstVoteTime: Date })[];
 
       // Find the maximum total voting power in a single day
       const maxVotes = Math.max(
@@ -170,7 +171,7 @@ export async function extractEvents(
       );
 
       dailyVotes.forEach((dailyVote) => {
-        const timestamp = endOfDay(new Date(dailyVote.date));
+        const timestamp = new Date(dailyVote.firstVoteTime);
         const normalizedVolume = Number(dailyVote.totalVotingPower) / maxVotes; // Normalize to 0-1
         events.push({
           content: `${Number(dailyVote.totalVotingPower).toFixed(2)} voting power on ${formatDate(timestamp)}`,
@@ -300,5 +301,6 @@ export async function extractEvents(
     });
   }
 
+  console.log(finalEvents);
   return finalEvents;
 }
