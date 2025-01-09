@@ -269,6 +269,8 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   // Determine the winning option based on voting power
   const forWinning = totalForVotingPower > totalAgainstVotingPower;
 
+  const quorumReached = proposal.scoresQuorum > proposal.quorum;
+
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -309,14 +311,25 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
         </div>
         <div className="flex justify-between text-sm text-gray-600">
           <div className="flex items-center gap-1">
-            {forWinning && <Check size={12} />}
+            {forWinning && <Check size={14} />}
             <span className="font-bold">For</span>
             <span>{formattedForVotes}</span>
           </div>
           <div className="flex items-center gap-1">
-            {!forWinning && <Check size={12} />}
+            {!forWinning && <Check size={14} />}
             <span>{formattedAgainstVotes} </span>
             <span className="font-bold">Against</span>
+          </div>
+        </div>
+
+        <div className="flex justify-between text-sm text-gray-600">
+          <div className="flex items-center gap-1">
+            {quorumReached && <Check size={12} />}
+            <span className="font-bold">
+              {formatNumberWithSuffix(proposal.scoresQuorum)}
+            </span>
+            <span>of </span>
+            <span>{formatNumberWithSuffix(proposal.quorum)} needed</span>
           </div>
         </div>
       </div>

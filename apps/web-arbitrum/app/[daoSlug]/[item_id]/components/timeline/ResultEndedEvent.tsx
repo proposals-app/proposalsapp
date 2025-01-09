@@ -64,7 +64,7 @@ export function ResultEndedEvent({
 
   return (
     <div className="relative w-full">
-      <div className="-mr-4 rounded-l-lg border bg-white px-4 py-2">
+      <div className="-mr-4 rounded-l-xl border bg-white px-4 py-2">
         <div className="flex w-full items-center justify-between">
           <div className="text-sm">{content}</div>
           <Link href="" target="_blank">
