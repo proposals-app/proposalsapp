@@ -222,13 +222,20 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
               width: `${width}%`,
               ...(isAggregated
                 ? {
-                    background: `repeating-linear-gradient(
-                      90deg,
-                      ${cssColor} 0px,
-                      ${cssColor} 1px,
-                      transparent 1px,
-                      transparent 2px
-                    )`,
+                    background: `
+                               linear-gradient(
+                                 to right,
+                                 transparent calc(100% - 1px),
+                                 ${cssColor} calc(100% - 1px)
+                               ),
+                               repeating-linear-gradient(
+                                 90deg,
+                                 transparent 0px,
+                                 transparent 1px,
+                                 ${cssColor} 1px,
+                                 ${cssColor} 2px
+                               )
+                             `,
                   }
                 : { backgroundColor: cssColor }),
             }}
@@ -248,7 +255,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="flex h-4 w-full overflow-hidden rounded-md">
+        <div className="flex h-4 w-full overflow-hidden rounded">
           {(["For", "Abstain", "Against", "Unknown"] as const).map((choice) => {
             const voteData = votesByChoice[choice];
             if (!voteData) return null;
