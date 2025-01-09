@@ -36,6 +36,7 @@ interface ResultEndedEventProps {
   timestamp: Date;
   proposal: Proposal;
   votes: Selectable<Vote>[];
+  resultNumber: number;
 }
 
 const VoteComponents = {
@@ -52,6 +53,7 @@ export function ResultEndedEvent({
   timestamp,
   proposal,
   votes,
+  resultNumber,
 }: ResultEndedEventProps) {
   const metadata =
     typeof proposal.metadata === "string"
@@ -67,7 +69,10 @@ export function ResultEndedEvent({
         <div className="absolute left-3 top-5 h-[7px] w-[7px] rounded-full border border-white bg-gray-500" />
         <div className="ml-2 flex w-full items-center justify-between">
           <div className="text-xs">{content}</div>
-          <Link href="" target="_blank">
+          <Link
+            href={`${proposal.externalId}/results/${resultNumber}`} // Link to the results page
+            className="text-blue-500 hover:underline"
+          >
             <ArrowRight size={14} />
           </Link>
         </div>

@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { getGroupWithData, getTotalVersions } from "./actions";
 import Body from "./components/body/Body";
-import { SideBar } from "./components/SideBar";
 import { searchParamsCache } from "@/app/searchParams";
 import { MenuBar } from "./components/menubar/MenuBar";
 import Feed from "./components/feed/Feed";
@@ -27,12 +26,8 @@ export default async function ProposalPage({
 
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">
-      <div className="hidden lg:flex">
-        <SideBar dao={group.dao} daoSlug={daoSlug} />
-      </div>
-
-      <div className="flex w-full justify-between lg:pl-20 lg:pr-80">
-        <div className="mx-auto flex w-[90%] flex-col justify-center md:w-3/4 lg:w-1/2">
+      <div className="flex w-full justify-between lg:pr-80">
+        <div className="mx-auto flex w-2/3 flex-col justify-center">
           <Body group={group} version={version ?? 0} diff={diff} />
 
           <MenuBar totalVersions={totalVersions ?? 1} />

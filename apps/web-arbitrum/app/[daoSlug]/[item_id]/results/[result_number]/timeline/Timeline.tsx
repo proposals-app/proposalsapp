@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { GroupWithDataType } from "../../actions";
 import { extractEvents, TimelineEventType } from "./actions";
 import { GapEvent } from "./GapEvent";
 import { CommentsVolumeEvent } from "./CommentsVolumeEvent";
@@ -7,6 +6,7 @@ import { VotesVolumeEvent } from "./VotesVolumeEvent";
 import { ResultOngoingEvent } from "./ResultOngoingEvent";
 import { ResultEndedEvent } from "./ResultEndedEvent";
 import { BasicEvent } from "./BasicEvent";
+import { GroupWithDataType } from "../../../actions";
 
 export async function Timeline({ group }: { group: GroupWithDataType }) {
   if (!group) {
@@ -22,7 +22,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
   });
 
   return (
-    <div className="fixed right-0 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
+    <div className="fixed left-20 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
       <div className="relative h-[calc(100vh-96px)] w-full">
         <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
         <div className="flex h-full flex-col justify-between">
