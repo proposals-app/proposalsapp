@@ -17,63 +17,76 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
 
   return (
     <div className="fixed right-0 top-0 flex max-h-screen w-80 flex-col items-end justify-start gap-1 overflow-y-auto p-4 pt-24">
-      {events.map((event, index) => (
-        <div className="flex w-full items-center justify-start">
-          {event.type === TimelineEventType.Gap ? (
-            <GapEvent
-              content={event.content}
-              timestamp={event.timestamp}
-              gapSize={event.gapSize}
-            />
-          ) : event.type === TimelineEventType.CommentsVolume ? (
-            <CommentsVolumeEvent
-              content={event.content}
-              timestamp={event.timestamp}
-              volume={event.volume}
-            />
-          ) : event.type === TimelineEventType.VotesVolume ? (
-            <VotesVolumeEvent
-              content={event.content}
-              timestamp={event.timestamp}
-              volume={event.volume}
-            />
-          ) : event.type === TimelineEventType.ResultOngoing ? (
-            <ResultOngoingEvent
-              content={event.content}
-              timestamp={event.timestamp}
-              proposal={event.proposal}
-              votes={event.votes}
-            />
-          ) : event.type === TimelineEventType.ResultEnded ? (
-            <ResultEndedEvent
-              content={event.content}
-              timestamp={event.timestamp}
-              proposal={event.proposal}
-              votes={event.votes}
-            />
-          ) : event.type === TimelineEventType.Basic ? (
-            <BasicEvent
-              content={event.content}
-              timestamp={event.timestamp}
-              url={event.url}
-            />
-          ) : (
-            <></>
-          )}
-        </div>
-      ))}
+      {/* Vertical Line Container */}
+      <div className="relative w-full">
+        {/* Vertical Line */}
+        <div className="absolute left-[14px] top-0 h-full w-0.5 bg-gray-300" />
+
+        {events.map((event, index) => {
+          const previousEvent = index > 0 ? events[index - 1] : null;
+          const isSameDayAsPrevious =
+            previousEvent &&
+            (event.type === TimelineEventType.CommentsVolume ||
+              event.type === TimelineEventType.VotesVolume) &&
+            (previousEvent.type === TimelineEventType.CommentsVolume ||
+              previousEvent.type === TimelineEventType.VotesVolume) &&
+            event.timestamp.getDate() === previousEvent.timestamp.getDate() &&
+            event.timestamp.getMonth() === previousEvent.timestamp.getMonth() &&
+            event.timestamp.getFullYear() ===
+              previousEvent.timestamp.getFullYear();
+
+          return (
+            <div
+              key={index}
+              className={`relative flex w-full items-center justify-start ${
+                isSameDayAsPrevious ? "" : "pt-1"
+              }`}
+            >
+              {event.type === TimelineEventType.Gap ? (
+                <GapEvent
+                  content={event.content}
+                  timestamp={event.timestamp}
+                  gapSize={event.gapSize}
+                />
+              ) : event.type === TimelineEventType.CommentsVolume ? (
+                <CommentsVolumeEvent
+                  content={event.content}
+                  timestamp={event.timestamp}
+                  volume={event.volume}
+                />
+              ) : event.type === TimelineEventType.VotesVolume ? (
+                <VotesVolumeEvent
+                  content={event.content}
+                  timestamp={event.timestamp}
+                  volume={event.volume}
+                />
+              ) : event.type === TimelineEventType.ResultOngoing ? (
+                <ResultOngoingEvent
+                  content={event.content}
+                  timestamp={event.timestamp}
+                  proposal={event.proposal}
+                  votes={event.votes}
+                />
+              ) : event.type === TimelineEventType.ResultEnded ? (
+                <ResultEndedEvent
+                  content={event.content}
+                  timestamp={event.timestamp}
+                  proposal={event.proposal}
+                  votes={event.votes}
+                />
+              ) : event.type === TimelineEventType.Basic ? (
+                <BasicEvent
+                  content={event.content}
+                  timestamp={event.timestamp}
+                  url={event.url}
+                />
+              ) : (
+                <></>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
-}
-
-// Helper function to format the timestamp
-function format(date: Date, formatString: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: true,
-  }).format(date);
 }

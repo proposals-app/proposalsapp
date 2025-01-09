@@ -62,9 +62,9 @@ export function ResultEndedEvent({
   const Component = voteType ? VoteComponents[voteType] : null;
 
   return (
-    <div className="relative flex w-full items-center">
+    <div className="relative flex w-full items-center py-2">
       <div className="-mr-4 flex w-full flex-col rounded-l-xl border bg-white px-4 py-2">
-        <div className="absolute left-3 top-3 h-[7px] w-[7px] rounded-full border border-white bg-gray-500" />
+        <div className="absolute left-3 top-5 h-[7px] w-[7px] rounded-full border border-white bg-gray-500" />
         <div className="ml-2 flex w-full items-center justify-between">
           <div className="text-sm">{content}</div>
           <Link href="" target="_blank">
