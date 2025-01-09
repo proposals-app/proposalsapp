@@ -11,6 +11,8 @@ import { RankedChoiceVote } from "./ended_vote_types/RankedChoiceVote";
 import { SingleChoiceVote } from "./ended_vote_types/SingleChoiceVote";
 import { WeightedVote } from "./ended_vote_types/WeightedVote";
 import React from "react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 
 interface ProposalMetadata {
   voteType?: VoteType;
@@ -61,8 +63,14 @@ export function ResultEndedEvent({
   const Component = voteType ? VoteComponents[voteType] : null;
 
   return (
-    <div className="w-full rounded-lg bg-white p-1 shadow-md">
-      <div>{content}</div>
+    <div className="w-full rounded-lg bg-white p-2 shadow-md">
+      <div className="flex w-full justify-between">
+        <div className="text-sm">{content}</div>
+        <Link href={proposal.url} target="_blank">
+          <ArrowRight size={14} />
+        </Link>
+      </div>
+
       <div className="text-sm text-gray-600">
         {Component ? (
           <Component proposal={proposal} votes={votes} />

@@ -29,18 +29,26 @@ const VOTE_COLORS = {
   Unknown: "bg-gray-500",
 } as const;
 
+const MIN_VISIBLE_WIDTH_PERCENT = 1; // Minimum width for a vote to be visible (0.5% of total width)
+
 const calculateTopVotesCount = (
   totalVotes: number,
   votingPowerThreshold: number,
+  votes: ProcessedVote[],
 ) => {
   // If very few votes, show all of them
   if (totalVotes <= 5) return totalVotes;
 
+  // Calculate the number of votes that exceed the voting power threshold
+  const significantVotesCount = votes.filter(
+    (vote) => vote.votingPower >= votingPowerThreshold,
+  ).length;
+
   // For larger numbers, use a combination of count and voting power threshold
-  if (totalVotes <= 100) return Math.min(10, totalVotes);
-  if (totalVotes <= 1000) return Math.min(8, totalVotes);
-  if (totalVotes <= 10000) return Math.min(6, totalVotes);
-  return Math.min(4, totalVotes);
+  if (totalVotes <= 100) return Math.min(10, significantVotesCount);
+  if (totalVotes <= 1000) return Math.min(8, significantVotesCount);
+  if (totalVotes <= 10000) return Math.min(6, significantVotesCount);
+  return Math.min(4, significantVotesCount);
 };
 
 const calculateVotingPowerThreshold = (
@@ -148,6 +156,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
       const topVotesCount = calculateTopVotesCount(
         sortedVotes.length,
         votingPowerThreshold,
+        sortedVotes,
       );
 
       // Split votes into significant and remaining
@@ -156,10 +165,12 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
       );
 
       // Take either the calculated top votes or significant votes, whichever is smaller
-      const topVotes = sortedVotes.slice(
-        0,
-        Math.min(topVotesCount, significantVotes.length),
-      );
+      const topVotes = sortedVotes
+        .slice(0, Math.min(topVotesCount, significantVotes.length))
+        .filter(
+          (vote) =>
+            (vote.votingPower / total) * 100 >= MIN_VISIBLE_WIDTH_PERCENT,
+        ); // Ensure top votes are visible
 
       const remaining = sortedVotes.slice(topVotes.length);
 
@@ -237,7 +248,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="flex h-6 w-full overflow-hidden rounded-full">
+        <div className="flex h-4 w-full overflow-hidden rounded-md">
           {(["For", "Abstain", "Against", "Unknown"] as const).map((choice) => {
             const voteData = votesByChoice[choice];
             if (!voteData) return null;
@@ -272,27 +283,6 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
             );
           })}
         </div>
-
-        {/* Vote Type Legend */}
-        {/* <div className="flex flex-wrap gap-4 text-sm">
-          {(["For", "Against", "Abstain", "Unknown"] as const).map((type) => {
-            const voteData = votesByChoice[type];
-            if (!voteData) return null;
-
-            const totalCount =
-              voteData.topVotes.length + voteData.aggregated.count;
-            if (totalCount === 0) return null;
-
-            return (
-              <div key={type} className="flex items-center gap-2">
-                <div className={`h-3 w-3 rounded-full ${VOTE_COLORS[type]}`} />
-                <span>
-                  {type}: {totalCount} votes
-                </span>
-              </div>
-            );
-          })}
-        </div> */}
       </div>
     </TooltipProvider>
   );
