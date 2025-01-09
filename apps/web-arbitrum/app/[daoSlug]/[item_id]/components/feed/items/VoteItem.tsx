@@ -1,5 +1,4 @@
-import { Proposal, Selectable } from "@proposalsapp/db";
-import { CombinedFeedItem, VoteFeedItem } from "./Feed";
+import { CombinedFeedItem, VoteFeedItem } from "../Feed";
 import { format, formatDistanceToNowStrict, formatISO } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
 import { VotingPowerTag } from "./VotingPowerTag";
@@ -10,8 +9,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
-import { getDelegate } from "./actions";
-import { GroupWithDataType } from "../../actions";
+import { getDelegate } from "../actions";
+import { GroupWithDataType } from "../../../actions";
 import { notFound } from "next/navigation";
 import { formatNumberWithSuffix } from "@/lib/utils";
 

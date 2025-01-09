@@ -1,5 +1,5 @@
-import { CombinedFeedItem } from "./Feed";
-import { getVotingPower } from "./actions";
+import { CombinedFeedItem } from "../Feed";
+import { getVotingPower } from "../actions";
 import { format, formatISO } from "date-fns";
 import {
   Tooltip,

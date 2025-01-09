@@ -1,7 +1,7 @@
 import { DiscoursePost, Selectable, Vote } from "@proposalsapp/db";
 import { GroupWithDataType } from "../../actions";
-import { VoteItem } from "./VoteItem";
-import { PostItem } from "./PostItem";
+import { VoteItem } from "./items/VoteItem";
+import { PostItem } from "./items/PostItem";
 import { notFound } from "next/navigation";
 import { getFeedForGroup } from "./actions";
 import { VotesFilterEnum } from "@/app/searchParams";
