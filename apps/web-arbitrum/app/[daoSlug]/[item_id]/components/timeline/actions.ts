@@ -22,6 +22,10 @@ export enum TimelineEventType {
 interface BaseEvent {
   type: TimelineEventType;
   timestamp: Date;
+  metadata?: {
+    votingPower?: number;
+    commentCount?: number;
+  };
 }
 
 interface BasicEvent extends BaseEvent {
@@ -254,8 +258,8 @@ export async function extractEvents(
         url: proposal.url,
       });
 
-      // Fetch votes based on the votes filter
-      let votes = await db
+      // Fetch votes and include voting power metadata
+      const votes = await db
         .selectFrom("vote")
         .selectAll()
         .where("proposalId", "=", proposal.id)
@@ -271,6 +275,12 @@ export async function extractEvents(
           timestamp: endedAt,
           proposal: proposal,
           votes: votes,
+          metadata: {
+            votingPower: votes.reduce(
+              (sum, vote) => sum + Number(vote.votingPower),
+              0,
+            ),
+          },
         });
       } else {
         events.push({
@@ -282,11 +292,17 @@ export async function extractEvents(
           timestamp: endedAt,
           proposal: proposal,
           votes: votes,
+          metadata: {
+            votingPower: votes.reduce(
+              (sum, vote) => sum + Number(vote.votingPower),
+              0,
+            ),
+          },
         });
       }
 
-      // Fetch daily votes based on the votes filter
-      let dailyVotesQuery = db
+      // Fetch daily votes and include voting power metadata
+      const dailyVotes = await db
         .selectFrom("vote")
         .select([
           sql<Date>`DATE_TRUNC('day', "time_created")`.as("date"),
@@ -294,29 +310,8 @@ export async function extractEvents(
           sql<Date>`MIN("time_created")`.as("firstVoteTime"),
         ])
         .where("proposalId", "=", proposal.id)
-        .groupBy(sql`DATE_TRUNC('day', "time_created")`);
-
-      if (votesFilter !== VotesFilterEnum.ALL) {
-        switch (votesFilter) {
-          case VotesFilterEnum.FIFTY_THOUSAND:
-            dailyVotesQuery = dailyVotesQuery.where("votingPower", ">", 50000);
-            break;
-          case VotesFilterEnum.FIVE_HUNDRED_THOUSAND:
-            dailyVotesQuery = dailyVotesQuery.where("votingPower", ">", 500000);
-            break;
-          case VotesFilterEnum.FIVE_MILLION:
-            dailyVotesQuery = dailyVotesQuery.where(
-              "votingPower",
-              ">",
-              5000000,
-            );
-            break;
-          default:
-            break;
-        }
-      }
-
-      const dailyVotes = await dailyVotesQuery.execute();
+        .groupBy(sql`DATE_TRUNC('day', "time_created")`)
+        .execute();
 
       const maxVotes = Math.max(
         ...dailyVotes.map((dv) => Number(dv.totalVotingPower)),
@@ -334,13 +329,16 @@ export async function extractEvents(
           timestamp,
           volume: normalizedVolume,
           volumeType: "votes",
+          metadata: {
+            votingPower: Number(dailyVote.totalVotingPower),
+          },
         });
       });
     }
   }
 
-  // Add comment events if comments filter is enabled
-  if (commentsFilter && group.topics && group.topics.length > 0) {
+  // Add comment events and include comment count metadata
+  if (group.topics && group.topics.length > 0) {
     for (const topic of group.topics) {
       const dailyPosts = await db
         .selectFrom("discoursePost")
@@ -364,6 +362,9 @@ export async function extractEvents(
           timestamp,
           volume: normalizedVolume,
           volumeType: "comments",
+          metadata: {
+            commentCount: Number(dailyPost.count),
+          },
         });
       });
     }
@@ -423,7 +424,7 @@ export async function extractEvents(
   let totalComments = 0;
   let totalVotes = 0;
 
-  if (commentsFilter && group.topics && group.topics.length > 0) {
+  if (group.topics && group.topics.length > 0) {
     for (const topic of group.topics) {
       const commentsCount = await db
         .selectFrom("discoursePost")

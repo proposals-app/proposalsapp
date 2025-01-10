@@ -35,7 +35,24 @@ export async function Timeline({
         <div className="absolute bottom-5 left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-300" />
         <div className="flex h-full flex-col justify-between">
           {events.map((event, index) => {
-            // Add resultNumber for ResultEndedEvent and ResultOngoingEvent
+            // Determine visibility based on filters and metadata
+            const isVisible =
+              (event.type === TimelineEventType.CommentsVolume &&
+                commentsFilter) ||
+              (event.type === TimelineEventType.VotesVolume &&
+                event.metadata?.votingPower &&
+                (votesFilter === VotesFilterEnum.ALL ||
+                  (votesFilter === VotesFilterEnum.FIFTY_THOUSAND &&
+                    event.metadata.votingPower > 50000) ||
+                  (votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND &&
+                    event.metadata.votingPower > 500000) ||
+                  (votesFilter === VotesFilterEnum.FIVE_MILLION &&
+                    event.metadata.votingPower > 5000000))) ||
+              event.type === TimelineEventType.Basic ||
+              event.type === TimelineEventType.ResultOngoing ||
+              event.type === TimelineEventType.ResultEnded ||
+              event.type === TimelineEventType.Gap;
+
             const resultNumber =
               event.type === TimelineEventType.ResultEnded ||
               event.type === TimelineEventType.ResultOngoing
@@ -46,6 +63,10 @@ export async function Timeline({
               <div
                 key={index}
                 className="relative flex w-full items-center justify-start"
+                style={{
+                  opacity: isVisible ? 1 : 0,
+                  transition: "opacity 0.2s ease-in-out",
+                }}
               >
                 {event.type === TimelineEventType.Gap ? (
                   <GapEvent
