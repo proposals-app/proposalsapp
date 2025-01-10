@@ -502,7 +502,7 @@ mod arbitrum_core_proposals_tests {
                 let expected_proposals = [ExpectedProposal {
                     index_created: 214219081,
                     external_id: "108365944612843449282647711225577270624871742641825297712833904029381791489297",
-                    name: "Constitutional AIP - Security Council Improvement Proposal ",
+                    name: "Constitutional AIP - Security Council Improvement Proposal",
                     body_contains: Some(vec!["This AIP seeks to propose changes to the structure of the security council so Arbitrum can maintain the"]),
                     url: "https://www.tally.xyz/gov/arbitrum/proposal/108365944612843449282647711225577270624871742641825297712833904029381791489297",
                     discussion_url: None,
