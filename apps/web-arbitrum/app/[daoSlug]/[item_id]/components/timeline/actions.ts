@@ -1,3 +1,4 @@
+import { VotesFilterEnum } from "@/app/searchParams";
 import { GroupWithDataType } from "../../actions";
 import {
   db,
@@ -204,6 +205,8 @@ function addSummaryEvent(
 // Main function to extract events
 export async function extractEvents(
   group: GroupWithDataType,
+  commentsFilter: boolean,
+  votesFilter: VotesFilterEnum,
 ): Promise<Event[]> {
   if (!group) return [];
 
@@ -251,7 +254,8 @@ export async function extractEvents(
         url: proposal.url,
       });
 
-      const votes = await db
+      // Fetch votes based on the votes filter
+      let votes = await db
         .selectFrom("vote")
         .selectAll()
         .where("proposalId", "=", proposal.id)
@@ -281,7 +285,8 @@ export async function extractEvents(
         });
       }
 
-      const dailyVotes = await db
+      // Fetch daily votes based on the votes filter
+      let dailyVotesQuery = db
         .selectFrom("vote")
         .select([
           sql<Date>`DATE_TRUNC('day', "time_created")`.as("date"),
@@ -289,8 +294,29 @@ export async function extractEvents(
           sql<Date>`MIN("time_created")`.as("firstVoteTime"),
         ])
         .where("proposalId", "=", proposal.id)
-        .groupBy(sql`DATE_TRUNC('day', "time_created")`)
-        .execute();
+        .groupBy(sql`DATE_TRUNC('day', "time_created")`);
+
+      if (votesFilter !== VotesFilterEnum.ALL) {
+        switch (votesFilter) {
+          case VotesFilterEnum.FIFTY_THOUSAND:
+            dailyVotesQuery = dailyVotesQuery.where("votingPower", ">", 50000);
+            break;
+          case VotesFilterEnum.FIVE_HUNDRED_THOUSAND:
+            dailyVotesQuery = dailyVotesQuery.where("votingPower", ">", 500000);
+            break;
+          case VotesFilterEnum.FIVE_MILLION:
+            dailyVotesQuery = dailyVotesQuery.where(
+              "votingPower",
+              ">",
+              5000000,
+            );
+            break;
+          default:
+            break;
+        }
+      }
+
+      const dailyVotes = await dailyVotesQuery.execute();
 
       const maxVotes = Math.max(
         ...dailyVotes.map((dv) => Number(dv.totalVotingPower)),
@@ -313,8 +339,8 @@ export async function extractEvents(
     }
   }
 
-  // Add comment events
-  if (group.topics && group.topics.length > 0) {
+  // Add comment events if comments filter is enabled
+  if (commentsFilter && group.topics && group.topics.length > 0) {
     for (const topic of group.topics) {
       const dailyPosts = await db
         .selectFrom("discoursePost")
@@ -397,7 +423,7 @@ export async function extractEvents(
   let totalComments = 0;
   let totalVotes = 0;
 
-  if (group.topics && group.topics.length > 0) {
+  if (commentsFilter && group.topics && group.topics.length > 0) {
     for (const topic of group.topics) {
       const commentsCount = await db
         .selectFrom("discoursePost")

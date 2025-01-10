@@ -41,7 +41,11 @@ export default async function ProposalPage({
         </div>
 
         <div className="hidden lg:flex">
-          <Timeline group={group} />
+          <Timeline
+            group={group}
+            commentsFilter={comments}
+            votesFilter={votes}
+          />
         </div>
       </div>
     </div>

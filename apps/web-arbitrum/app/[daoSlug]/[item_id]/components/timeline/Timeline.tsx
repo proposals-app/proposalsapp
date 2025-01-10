@@ -6,13 +6,22 @@ import { CommentsVolumeEvent } from "./CommentsVolumeEvent";
 import { VotesVolumeEvent } from "./VotesVolumeEvent";
 import { ResultEvent } from "./ResultEvent";
 import { BasicEvent } from "./BasicEvent";
+import { VotesFilterEnum } from "@/app/searchParams";
 
-export async function Timeline({ group }: { group: GroupWithDataType }) {
+export async function Timeline({
+  group,
+  commentsFilter,
+  votesFilter,
+}: {
+  group: GroupWithDataType;
+  commentsFilter: boolean;
+  votesFilter: VotesFilterEnum;
+}) {
   if (!group) {
     notFound();
   }
 
-  const events = await extractEvents(group);
+  const events = await extractEvents(group, commentsFilter, votesFilter);
 
   // Map proposals to their chronological order
   const proposalOrderMap = new Map<string, number>();
