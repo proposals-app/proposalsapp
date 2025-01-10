@@ -2,9 +2,10 @@ interface GapEventProps {
   content: string;
   timestamp: Date;
   gapSize: number;
+  last: boolean;
 }
 
-export function GapEvent({ content, timestamp, gapSize }: GapEventProps) {
+export function GapEvent({ content, timestamp, gapSize, last }: GapEventProps) {
   return (
     <div
       className="relative min-h-[40px] w-full"

@@ -23,7 +23,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
   return (
     <div className="fixed right-0 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
       <div className="relative h-[calc(100vh-96px)] w-full">
-        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
+        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-300" />
         <div className="flex h-full flex-col justify-between">
           {events.map((event, index) => {
             // Add resultNumber for ResultEndedEvent and ResultOngoingEvent
@@ -43,18 +43,21 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     content={event.content}
                     timestamp={event.timestamp}
                     gapSize={event.gapSize}
+                    last={index == 0}
                   />
                 ) : event.type === TimelineEventType.CommentsVolume ? (
                   <CommentsVolumeEvent
                     content={event.content}
                     timestamp={event.timestamp}
                     volume={event.volume}
+                    last={index == 0}
                   />
                 ) : event.type === TimelineEventType.VotesVolume ? (
                   <VotesVolumeEvent
                     content={event.content}
                     timestamp={event.timestamp}
                     volume={event.volume}
+                    last={index == 0}
                   />
                 ) : event.type === TimelineEventType.ResultOngoing ? (
                   <ResultEvent
@@ -63,6 +66,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     proposal={event.proposal}
                     votes={event.votes}
                     resultNumber={resultNumber!} // Pass the resultNumber
+                    last={index == 0}
                   />
                 ) : event.type === TimelineEventType.ResultEnded ? (
                   <ResultEvent
@@ -71,12 +75,14 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     proposal={event.proposal}
                     votes={event.votes}
                     resultNumber={resultNumber!} // Pass the resultNumber
+                    last={index == 0}
                   />
                 ) : event.type === TimelineEventType.Basic ? (
                   <BasicEvent
                     content={event.content}
                     timestamp={event.timestamp}
                     url={event.url}
+                    last={index == 0}
                   />
                 ) : null}
               </div>

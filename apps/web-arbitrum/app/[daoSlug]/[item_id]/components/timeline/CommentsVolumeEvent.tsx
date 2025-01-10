@@ -2,12 +2,14 @@ interface CommentsVolumeEventProps {
   content: string;
   timestamp: Date;
   volume: number;
+  last: boolean;
 }
 
 export function CommentsVolumeEvent({
   content,
   timestamp,
   volume,
+  last,
 }: CommentsVolumeEventProps) {
   return (
     <div className="flex h-full w-full items-center">

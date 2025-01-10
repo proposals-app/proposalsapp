@@ -2,12 +2,14 @@ interface VotesVolumeEventProps {
   content: string;
   timestamp: Date;
   volume: number;
+  last: boolean;
 }
 
 export function VotesVolumeEvent({
   content,
   timestamp,
   volume,
+  last,
 }: VotesVolumeEventProps) {
   return (
     <div className="flex h-full w-full items-center">
