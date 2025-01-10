@@ -4,8 +4,7 @@ import { extractEvents, TimelineEventType } from "./actions";
 import { GapEvent } from "./GapEvent";
 import { CommentsVolumeEvent } from "./CommentsVolumeEvent";
 import { VotesVolumeEvent } from "./VotesVolumeEvent";
-import { ResultOngoingEvent } from "./ResultOngoingEvent";
-import { ResultEndedEvent } from "./ResultEndedEvent";
+import { ResultEvent } from "./ResultEvent";
 import { BasicEvent } from "./BasicEvent";
 
 export async function Timeline({ group }: { group: GroupWithDataType }) {
@@ -58,7 +57,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     volume={event.volume}
                   />
                 ) : event.type === TimelineEventType.ResultOngoing ? (
-                  <ResultOngoingEvent
+                  <ResultEvent
                     content={event.content}
                     timestamp={event.timestamp}
                     proposal={event.proposal}
@@ -66,7 +65,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     resultNumber={resultNumber!} // Pass the resultNumber
                   />
                 ) : event.type === TimelineEventType.ResultEnded ? (
-                  <ResultEndedEvent
+                  <ResultEvent
                     content={event.content}
                     timestamp={event.timestamp}
                     proposal={event.proposal}

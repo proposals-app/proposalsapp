@@ -75,62 +75,75 @@ export async function getFeedForGroup(
       }
 
       // Build the base query for votes
-      const votesQuery: SelectQueryBuilder<DB, "vote", FeedItemType> = db
-        .selectFrom("vote")
-        .where("proposalId", "in", proposalIds)
-        .$if(votesFilter !== VotesFilterEnum.ALL, (qb) => {
-          switch (votesFilter) {
-            case VotesFilterEnum.FIFTY_THOUSAND:
-              return qb.where("votingPower", ">", 50000);
-            case VotesFilterEnum.FIVE_HUNDRED_THOUSAND:
-              return qb.where("votingPower", ">", 500000);
-            case VotesFilterEnum.FIVE_MILLION:
-              return qb.where("votingPower", ">", 5000000);
-            default:
-              return qb;
-          }
-        })
-        .select([
-          "id",
-          sql<Date>`time_created`.as("timestamp"),
-          sql<"vote">`'vote'`.as("type"),
-          "id as originalId",
-        ]);
+      let queries: SelectQueryBuilder<DB, any, any>[] = [];
 
-      // Build the base query for posts if comments are enabled
-      const postsQuery: SelectQueryBuilder<
-        DB,
-        "discoursePost",
-        FeedItemType
-      > | null =
-        commentsFilter && topicsExternalIds.length > 0
-          ? db
-              .selectFrom("discoursePost")
-              .where("topicId", "in", topicsExternalIds)
-              .where("daoDiscourseId", "=", firstDaoDiscourseId!)
-              .where("postNumber", "!=", 1)
-              .select([
-                "id",
-                sql<Date>`created_at`.as("timestamp"),
-                sql<"post">`'post'`.as("type"),
-                "id as originalId",
-              ])
-          : null;
+      if (proposalIds.length > 0) {
+        const votesQuery = db
+          .selectFrom("vote")
+          .where("proposalId", "in", proposalIds)
+          .$if(votesFilter !== VotesFilterEnum.ALL, (qb) => {
+            switch (votesFilter) {
+              case VotesFilterEnum.FIFTY_THOUSAND:
+                return qb.where("votingPower", ">", 50000);
+              case VotesFilterEnum.FIVE_HUNDRED_THOUSAND:
+                return qb.where("votingPower", ">", 500000);
+              case VotesFilterEnum.FIVE_MILLION:
+                return qb.where("votingPower", ">", 5000000);
+              default:
+                return qb;
+            }
+          })
+          .select([
+            "id",
+            sql<Date>`time_created`.as("timestamp"),
+            sql<"vote">`'vote'`.as("type"),
+            "id as originalId",
+          ]);
 
-      // Create the union query if both types are needed
-      let unionQuery = votesQuery;
-      if (postsQuery) {
-        unionQuery = unionQuery.union(postsQuery);
+        queries.push(votesQuery);
       }
 
-      // Get total count for pagination
-      const totalCount = await db
-        .selectFrom(unionQuery.as("combined"))
+      // Add posts query if comments are enabled and there are topics
+      if (
+        commentsFilter &&
+        topicsExternalIds.length > 0 &&
+        firstDaoDiscourseId
+      ) {
+        const postsQuery = db
+          .selectFrom("discoursePost")
+          .where("topicId", "in", topicsExternalIds)
+          .where("daoDiscourseId", "=", firstDaoDiscourseId)
+          .where("postNumber", "!=", 1)
+          .select([
+            "id",
+            sql<Date>`created_at`.as("timestamp"),
+            sql<"post">`'post'`.as("type"),
+            "id as originalId",
+          ]);
+
+        queries.push(postsQuery);
+      }
+
+      // Combine queries if there are multiple
+      let finalQuery = queries[0];
+      for (let i = 1; i < queries.length; i++) {
+        finalQuery = finalQuery.union(queries[i]);
+      }
+
+      if (!finalQuery) {
+        return { votes: [], posts: [], hasMore: false };
+      }
+
+      // Get total count
+      const countResult = await db
+        .selectFrom(finalQuery.as("combined"))
         .select(sql<number>`count(*)`.as("count"))
         .executeTakeFirst();
 
-      // Get paginated results
-      const paginatedItems = await unionQuery
+      const totalCount = Number(countResult?.count ?? 0);
+
+      // Get paginated items
+      const paginatedItems = await finalQuery
         .orderBy("timestamp", "desc")
         .limit(totalItems)
         .execute();
@@ -173,7 +186,7 @@ export async function getFeedForGroup(
         (p): p is Selectable<DiscoursePost> => p !== null,
       );
 
-      const hasMore = (totalCount?.count ?? 0) > totalItems;
+      const hasMore = totalCount > totalItems;
 
       return {
         votes,

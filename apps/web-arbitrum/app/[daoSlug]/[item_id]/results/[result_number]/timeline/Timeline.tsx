@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { extractEvents, TimelineEventType } from "./actions";
-import { ResultOngoingEvent } from "./ResultOngoingEvent";
-import { ResultEndedEvent } from "./ResultEndedEvent";
+import { ResultEvent } from "./ResultEvent";
 import { GroupWithDataType } from "../../../actions";
 import {
   BasicEvent,
@@ -23,31 +22,41 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
     proposalOrderMap.set(proposal.id, index + 1); // +1 to make it 1-based
   });
 
+  // Get the current time
+  const currentTime = new Date();
+
+  // Check if the proposal end time is older than the current time
+  const isProposalEnded = group.proposals.some(
+    (proposal) => new Date(proposal.timeEnd) < currentTime,
+  );
+
   return (
     <div className="fixed left-20 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
       <div className="relative h-[calc(100vh-96px)] w-full">
-        {/* Top SVG */}
-        <div className="absolute left-[14px] top-5 w-0.5 bg-gray-300">
-          <svg
-            width="31"
-            height="31"
-            viewBox="0 0 31 31"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="absolute -left-[15px] -top-[15px]"
-          >
-            <rect
-              x="0.5"
-              y="0.5"
-              width="30"
-              height="30"
-              rx="15"
-              fill="white"
-              stroke="#D3D3D3"
-            />
-            <circle cx="15.5" cy="15.5" r="3.5" fill="#737373" />
-          </svg>
-        </div>
+        {/* Conditionally render the top SVG */}
+        {isProposalEnded && (
+          <div className="absolute left-[14px] top-5 w-0.5 bg-gray-300">
+            <svg
+              width="31"
+              height="31"
+              viewBox="0 0 31 31"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="absolute -left-[15px] -top-[15px]"
+            >
+              <rect
+                x="0.5"
+                y="0.5"
+                width="30"
+                height="30"
+                rx="15"
+                fill="white"
+                stroke="#D3D3D3"
+              />
+              <circle cx="15.5" cy="15.5" r="3.5" fill="#737373" />
+            </svg>
+          </div>
+        )}
 
         <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
 
@@ -107,7 +116,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     volume={event.volume}
                   />
                 ) : event.type === TimelineEventType.ResultOngoing ? (
-                  <ResultOngoingEvent
+                  <ResultEvent
                     content={event.content}
                     timestamp={event.timestamp}
                     proposal={event.proposal}
@@ -115,7 +124,7 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     resultNumber={resultNumber!} // Pass the resultNumber
                   />
                 ) : event.type === TimelineEventType.ResultEnded ? (
-                  <ResultEndedEvent
+                  <ResultEvent
                     content={event.content}
                     timestamp={event.timestamp}
                     proposal={event.proposal}

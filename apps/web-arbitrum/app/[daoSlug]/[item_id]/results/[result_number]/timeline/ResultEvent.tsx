@@ -1,7 +1,7 @@
 import { Selectable, Proposal, Vote } from "@proposalsapp/db";
 import { format } from "date-fns";
 
-interface ResultEndedEventProps {
+interface ResultEventProps {
   content: string;
   timestamp: Date;
   proposal: Selectable<Proposal>;
@@ -9,11 +9,11 @@ interface ResultEndedEventProps {
   resultNumber: number;
 }
 
-export function ResultEndedEvent({
+export function ResultEvent({
   content,
   timestamp,
   proposal,
-}: ResultEndedEventProps) {
+}: ResultEventProps) {
   // Determine if the vote is onchain or offchain
   const isOnchain = proposal.daoIndexerId !== null; // Adjust this logic based on your data model
   const voteType = isOnchain ? "Onchain" : "Offchain";

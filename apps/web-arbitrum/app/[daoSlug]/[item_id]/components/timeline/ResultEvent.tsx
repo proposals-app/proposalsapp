@@ -31,7 +31,7 @@ export interface Proposal extends Omit<Selectable<DbProposal>, "metadata"> {
   metadata: ProposalMetadata | JsonValue;
 }
 
-interface ResultEndedEventProps {
+interface ResultEventProps {
   content: string;
   timestamp: Date;
   proposal: Proposal;
@@ -48,13 +48,13 @@ const VoteComponents = {
   "ranked-choice": RankedChoiceVote,
 } as const;
 
-export function ResultEndedEvent({
+export function ResultEvent({
   content,
   timestamp,
   proposal,
   votes,
   resultNumber,
-}: ResultEndedEventProps) {
+}: ResultEventProps) {
   const metadata =
     typeof proposal.metadata === "string"
       ? (JSON.parse(proposal.metadata) as ProposalMetadata)
