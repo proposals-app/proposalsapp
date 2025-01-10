@@ -1,3 +1,4 @@
+import { GroupWithDataType } from "@/app/[daoSlug]/[item_id]/actions";
 import {
   db,
   IndexerVariant,
@@ -7,7 +8,6 @@ import {
   Vote,
 } from "@proposalsapp/db";
 import { format, formatDistanceToNow, endOfDay } from "date-fns";
-import { GroupWithDataType } from "../../../actions";
 
 export enum TimelineEventType {
   ResultOngoing = "ResultOngoing",

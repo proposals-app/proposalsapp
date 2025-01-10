@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getBodiesForGroup, getGroupWithData } from "../../actions";
 import { ProposalResult } from "./components/ProposalResult";
 import { db } from "@proposalsapp/db";
-import { Timeline } from "./timeline/Timeline";
+import { Timeline } from "./components/timeline/Timeline";
 import { Header } from "./components/Header";
 
 export default async function ResultPage({

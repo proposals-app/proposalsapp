@@ -198,23 +198,7 @@ async fn data_for_proposal(
             }
         };
 
-    let mut title = format!(
-        "{:.120}",
-        event
-            .description
-            .split('\n')
-            .next()
-            .unwrap_or("Unknown")
-            .to_string()
-    );
-
-    if title.starts_with("# ") {
-        title = title.split_off(2);
-    }
-
-    if title.is_empty() {
-        title = "Unknown".into()
-    }
+    let title = extract_title(&event.description);
 
     let proposal_url = format!(
         "https://www.tally.xyz/gov/arbitrum/proposal/{}",
@@ -303,6 +287,30 @@ async fn data_for_proposal(
             hex::encode(log.transaction_hash.unwrap())
         ))),
     })
+}
+
+fn extract_title(description: &str) -> String {
+    let mut lines = description
+        .split('\n')
+        .filter(|line| !line.trim().is_empty());
+
+    // Try to find the first non-empty line that isn't just "#" markers
+    let title = lines
+        .find(|line| {
+            let trimmed = line.trim_start_matches('#').trim();
+            !trimmed.is_empty()
+        })
+        .unwrap_or("Unknown")
+        .trim_start_matches('#')
+        .trim()
+        .to_string();
+
+    // Truncate to 120 chars if needed
+    if title.len() > 120 {
+        title.chars().take(120).collect()
+    } else {
+        title
+    }
 }
 
 #[cfg(test)]
