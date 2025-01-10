@@ -19,7 +19,7 @@ export const SubscriptionsSettings = ({
 
   useEffect(() => {
     setSelectedDaos(selectedDaos);
-  }, [selectedDaos]);
+  }, [selectedDaos, setSelectedDaos]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,8 +57,9 @@ export const SubscriptionsSettings = ({
               }
               style={{
                 maxWidth: "100%",
-                height: "auto"
-              }} />
+                height: "auto",
+              }}
+            />
           </div>
         ))}
       </div>

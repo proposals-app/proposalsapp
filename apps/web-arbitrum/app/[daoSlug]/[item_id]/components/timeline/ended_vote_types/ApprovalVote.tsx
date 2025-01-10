@@ -1,5 +1,5 @@
 import { Selectable, Vote } from "@proposalsapp/db";
-import { Proposal } from "../ResultEndedEvent";
+import { Proposal } from "../ResultEvent";
 
 interface ApprovalVoteProps {
   proposal: Proposal;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   saveGroups,
@@ -125,21 +125,21 @@ export default function GroupingInterface({
     setShouldSaveGroups(true);
   };
 
-  useEffect(() => {
-    if (shouldSaveGroups) {
-      handleSaveGroups();
-      setShouldSaveGroups(false);
-    }
-  }, [groups, shouldSaveGroups]);
-
-  const handleSaveGroups = async () => {
+  const handleSaveGroups = useCallback(async () => {
     try {
       await saveGroups(groups);
     } catch (error) {
       console.error("Failed to save groups:", error);
       alert("Failed to save groups");
     }
-  };
+  }, [groups]);
+
+  useEffect(() => {
+    if (shouldSaveGroups) {
+      handleSaveGroups();
+      setShouldSaveGroups(false);
+    }
+  }, [shouldSaveGroups, handleSaveGroups]);
 
   const handleDeleteGroup = async (groupId: string) => {
     if (window.confirm("Are you sure you want to delete this group?")) {

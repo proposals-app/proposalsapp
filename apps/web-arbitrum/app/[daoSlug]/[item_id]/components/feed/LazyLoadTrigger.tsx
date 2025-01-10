@@ -40,9 +40,10 @@ export function LazyLoadTrigger() {
       observer.observe(triggerRef.current);
     }
 
+    const currentTrigger = triggerRef.current;
     return () => {
-      if (triggerRef.current) {
-        observer.unobserve(triggerRef.current);
+      if (currentTrigger) {
+        observer.unobserve(currentTrigger);
       }
     };
   }, [page, setPage, wasOutOfView]);

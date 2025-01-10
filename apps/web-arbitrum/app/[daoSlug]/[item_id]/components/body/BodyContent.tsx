@@ -6,7 +6,7 @@ const COLLAPSED_HEIGHT = "25rem";
 
 import React, { memo } from "react";
 
-export const BodyContent = memo(
+const BodyContent = memo(
   ({ processedContent }: { processedContent: string }) => {
     const [expanded, _] = useQueryState(
       "expanded",
@@ -36,3 +36,6 @@ export const BodyContent = memo(
     );
   },
 );
+
+BodyContent.displayName = "BodyContent";
+export { BodyContent };
