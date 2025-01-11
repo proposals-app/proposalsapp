@@ -17,16 +17,28 @@ interface VotingPowerChartProps {
 
 const getColorForChoice = (choice: string): string => {
   const lowerCaseChoice = choice.toLowerCase();
+
+  // Fixed colors for common voting options
   if (["for", "yes", "yae"].includes(lowerCaseChoice)) {
     return "#10B981"; // Green
   } else if (["against", "no", "nay"].includes(lowerCaseChoice)) {
     return "#EF4444"; // Red
   } else if (lowerCaseChoice === "abstain") {
     return "#F59E0B"; // Yellow
-  } else {
-    const colors = ["#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#6EE7B7"];
-    return colors[Math.floor(Math.random() * colors.length)];
   }
+
+  // Fixed color palette for other choices
+  const colors = ["#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#6EE7B7"];
+
+  // Simple hash function
+  const hash = Array.from(choice.toLowerCase()).reduce(
+    (acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0,
+    0,
+  );
+
+  // Use absolute value of hash to ensure positive index
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
 };
 
 export const VotingPowerChart = ({
@@ -138,6 +150,12 @@ export const VotingPowerChart = ({
             color: color,
           },
           showSymbol: false,
+          emphasis: {
+            itemStyle: {
+              color: color,
+              borderColor: color,
+            },
+          },
           areaStyle: isQuorumChoice
             ? {
                 opacity: 0.8,
@@ -209,24 +227,25 @@ export const VotingPowerChart = ({
       sortedChoiceIndices.forEach((originalIndex) => {
         const lastValue = lastKnownValues[originalIndex];
         const choice = choices[originalIndex];
+        const isQuorumChoice = quorumChoices.includes(originalIndex);
         const color = getColorForChoice(choice);
 
         projectionSeries.push({
           name: `${choice} (Projection)`,
           type: "line",
-          stack: quorumChoices.includes(originalIndex)
-            ? "QuorumTotalProjection"
-            : undefined,
+          stack: isQuorumChoice ? "QuorumTotalProjection" : undefined,
           lineStyle: {
             width: 1,
             type: "dashed",
             color: color,
           },
           showSymbol: false,
-          areaStyle: {
-            opacity: 0.3,
-            color: color,
-          },
+          areaStyle: isQuorumChoice
+            ? {
+                opacity: 0.3,
+                color: color,
+              }
+            : undefined,
           data: [
             [format(lastVoteTime, "yyyy-MM-dd HH:mm"), lastValue],
             [format(proposalEndTime, "yyyy-MM-dd HH:mm"), lastValue],
@@ -250,9 +269,10 @@ export const VotingPowerChart = ({
           params.forEach((param: any) => {
             if (param.seriesName !== "Quorum") {
               tooltipText += `
-                  <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
-                    <span>${param.seriesName}: ${formatNumberWithSuffix(param.value[1])}</span>
-                  </div>`;
+                <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
+                  <span style="display:inline-block;width:10px;height:10px;border-radius:50%;"></span>
+                  <span>${param.seriesName}: ${formatNumberWithSuffix(param.value[1])}</span>
+                </div>`;
             }
           });
 
