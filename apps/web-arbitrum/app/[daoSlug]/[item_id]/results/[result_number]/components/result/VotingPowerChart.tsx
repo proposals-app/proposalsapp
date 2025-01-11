@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
-import { format } from "date-fns";
+import { format, addHours, startOfHour } from "date-fns";
 import { formatNumberWithSuffix } from "@/lib/utils";
 
 interface ProposalMetadata {
@@ -28,13 +28,6 @@ export const VotingPowerChart = ({
     const choices = proposal.choices as string[];
     const metadata = proposal.metadata as ProposalMetadata;
     const quorumChoices = metadata.quorumChoices || [];
-    const dataByChoice: { [key: number]: { time: Date; power: number }[] } = {};
-
-    console.log(quorumChoices);
-    // Initialize data structure for each choice
-    choices.forEach((_, index) => {
-      dataByChoice[index] = [];
-    });
 
     // Sort votes by timestamp
     const sortedVotes = [...votes].sort((a, b) => {
@@ -43,70 +36,100 @@ export const VotingPowerChart = ({
       return timeA - timeB;
     });
 
-    // Accumulate voting power over time for each choice
+    // Find start and end times
+    const startTime =
+      sortedVotes.length > 0
+        ? startOfHour(new Date(sortedVotes[0].timeCreated!))
+        : startOfHour(new Date());
+    const endTime =
+      sortedVotes.length > 0
+        ? startOfHour(
+            addHours(
+              new Date(sortedVotes[sortedVotes.length - 1].timeCreated!),
+              1,
+            ),
+          )
+        : startOfHour(addHours(new Date(), 1));
+
+    // Create hourly intervals
+    const hourlyData: {
+      [hour: string]: { [choice: number]: number };
+    } = {};
+
+    // Initialize all hours with zero values
+    let currentHour = startTime;
+    while (currentHour <= endTime) {
+      const hourKey = format(currentHour, "yyyy-MM-dd HH:mm");
+      hourlyData[hourKey] = {};
+      choices.forEach((_, index) => {
+        hourlyData[hourKey][index] = 0;
+      });
+      currentHour = addHours(currentHour, 1);
+    }
+
+    // Aggregate votes by hour
     sortedVotes.forEach((vote) => {
+      const voteTime = startOfHour(new Date(vote.timeCreated!));
+      const hourKey = format(voteTime, "yyyy-MM-dd HH:mm");
       const choiceIndex = vote.choice as number;
       const votingPower = Number(vote.votingPower);
-      const timestamp = vote.timeCreated
-        ? new Date(vote.timeCreated)
-        : new Date();
 
-      if (!dataByChoice[choiceIndex]) {
-        dataByChoice[choiceIndex] = [];
+      if (!hourlyData[hourKey]) {
+        hourlyData[hourKey] = {};
       }
+      if (!hourlyData[hourKey][choiceIndex]) {
+        hourlyData[hourKey][choiceIndex] = 0;
+      }
+      hourlyData[hourKey][choiceIndex] += votingPower;
+    });
 
-      const lastEntry =
-        dataByChoice[choiceIndex][dataByChoice[choiceIndex].length - 1];
-      const cumulativePower = lastEntry
-        ? lastEntry.power + votingPower
-        : votingPower;
+    // Convert to cumulative values and fill gaps
+    const timePoints = Object.keys(hourlyData).sort();
+    const cumulativeData: { [choice: number]: [string, number][] } = {};
 
-      dataByChoice[choiceIndex].push({
-        time: timestamp,
-        power: cumulativePower,
+    choices.forEach((_, choiceIndex) => {
+      cumulativeData[choiceIndex] = [];
+      let cumulative = 0;
+
+      timePoints.forEach((timePoint) => {
+        cumulative += hourlyData[timePoint][choiceIndex] || 0;
+        cumulativeData[choiceIndex].push([timePoint, cumulative]);
       });
     });
 
-    // Create series for both stacked and regular choices
-    const series: echarts.SeriesOption[] = [];
+    // Define gradient colors for the series
+    const gradientColors = [
+      ["#80FFA5", "#00DDFF"],
+      ["#00DDFF", "#37A2FF"],
+      ["#37A2FF", "#FF0087"],
+      ["#FF0087", "#FFBF00"],
+      ["#FFBF00", "#80FFA5"],
+    ];
 
-    // Add stacked series for quorum choices first
-    quorumChoices.forEach((choiceIndex) => {
-      series.push({
-        name: choices[choiceIndex],
-        type: "line",
-        stack: "quorum",
-        areaStyle: {},
-        data: dataByChoice[choiceIndex].map((entry) => [
-          format(entry.time, "yyyy-MM-dd HH:mm"),
-          entry.power,
-        ]),
-        smooth: true,
-        lineStyle: {
-          width: 2,
-        },
-        showSymbol: false,
-      });
-    });
-
-    // Add non-stacked series for other choices
-    choices.forEach((choice, index) => {
-      if (!quorumChoices.includes(index)) {
-        series.push({
-          name: choice,
-          type: "line",
-          data: dataByChoice[index].map((entry) => [
-            format(entry.time, "yyyy-MM-dd HH:mm"),
-            entry.power,
-          ]),
-          smooth: true,
-          lineStyle: {
-            width: 2,
+    // Create series
+    const series: echarts.SeriesOption[] = choices.map((choice, index) => ({
+      name: choice,
+      type: "line",
+      stack: quorumChoices.includes(index) ? "QuorumTotal" : undefined,
+      lineStyle: {
+        width: 0,
+      },
+      showSymbol: false,
+      areaStyle: {
+        opacity: 0.8,
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          {
+            offset: 0,
+            color: gradientColors[index % gradientColors.length][0],
           },
-          showSymbol: false,
-        });
-      }
-    });
+          {
+            offset: 1,
+            color: gradientColors[index % gradientColors.length][1],
+          },
+        ]),
+      },
+      data: cumulativeData[index],
+    }));
 
     // Add quorum line if proposal has quorum
     if (proposal.quorum) {
@@ -115,20 +138,20 @@ export const VotingPowerChart = ({
         type: "line",
         markLine: {
           silent: true,
-          symbol: "none", // Remove the arrow
+          symbol: "none",
           lineStyle: {
             color: "#F43F5E",
             type: "solid",
-            width: 2, // Make the line thicker
+            width: 2,
           },
           data: [
             {
               yAxis: Number(proposal.quorum),
               label: {
-                formatter: `${formatNumberWithSuffix(proposal.quorum)} Quorum threshold`, // Custom label text
+                formatter: `${formatNumberWithSuffix(proposal.quorum)} Quorum threshold`,
                 position: "insideEndTop",
-                fontSize: 12, // Adjust font size if needed
-                fontWeight: "bold", // Make the label bold
+                fontSize: 12,
+                fontWeight: "bold",
               },
             },
           ],
@@ -140,35 +163,14 @@ export const VotingPowerChart = ({
       tooltip: {
         trigger: "axis",
         formatter: (params: any) => {
-          const hoveredTime = new Date(params[0].axisValue).getTime(); // The time the user is hovering over
-          let tooltipText = `<strong>${new Date(hoveredTime).toLocaleString()}</strong><br/>`;
+          let tooltipText = `<strong>${format(new Date(params[0].axisValue), "MMM d, HH:mm")}</strong><br/>`;
 
-          // Iterate through each series to find the closest data point
-          series.forEach((s) => {
-            if (s.name == "Quorum") return;
-            const seriesData = s.data as [string, number][]; // Data points for this series
-            let closestPoint: [string, number] | null = null;
-            let closestDistance = Infinity;
-
-            // Find the closest data point to the hovered time
-            seriesData.forEach((point) => {
-              const pointTime = new Date(point[0]).getTime();
-              const distance = Math.abs(pointTime - hoveredTime);
-
-              if (distance < closestDistance) {
-                closestDistance = distance;
-                closestPoint = point;
-              }
-            });
-
-            const seriesName = s.name;
-
-            // Add the closest point to the tooltip
-            if (closestPoint) {
+          params.forEach((param: any) => {
+            if (param.seriesName !== "Quorum") {
               tooltipText += `
-                          <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
-                            <span>${seriesName}: ${formatNumberWithSuffix(closestPoint[1])}</span>
-                          </div>`;
+                <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
+                  <span>${param.seriesName}: ${formatNumberWithSuffix(param.value[1])}</span>
+                </div>`;
             }
           });
 
@@ -182,13 +184,15 @@ export const VotingPowerChart = ({
           formatter: (value: number) => format(new Date(value), "MMM d, HH:mm"),
         },
       },
-      yAxis: {
-        type: "value",
-        nameLocation: "middle",
-        nameGap: 30,
-      },
+      yAxis: [
+        {
+          type: "value",
+          nameLocation: "middle",
+          nameGap: 30,
+        },
+      ],
       legend: {
-        data: [...choices, "Quorum"],
+        data: [...choices],
         bottom: 0,
       },
       series,
