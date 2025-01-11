@@ -2865,6 +2865,7 @@ __metadata:
     cmdk: "npm:1.0.4"
     date-fns: "npm:^4.1.0"
     diff-match-patch: "npm:^1.0.5"
+    echarts: "npm:^5.6.0"
     embla-carousel-react: "npm:^8.5.1"
     eslint-config-next: "npm:^15.1.4"
     fuse.js: "npm:^7.0.0"
@@ -2891,6 +2892,7 @@ __metadata:
     react: "npm:19.0.0"
     react-day-picker: "npm:9.5.0"
     react-dom: "npm:19.0.0"
+    react-echarts: "npm:^0.1.1"
     react-hook-form: "npm:^7.54.2"
     react-icons: "npm:5.4.0"
     react-intersection-observer: "npm:9.14.1"
@@ -8457,6 +8459,25 @@ __metadata:
   dependencies:
     safe-buffer: "npm:^5.0.1"
   checksum: 10c0/ebfbf19d4b8be938f4dd4a83b8788385da353d63307ede301a9252f9f7f88672e76f2191618fd8edfc2f24679236064176fab0b78131b161ee73daa37125408c
+  languageName: node
+  linkType: hard
+
+"echarts@npm:^3.1.3":
+  version: 3.8.5
+  resolution: "echarts@npm:3.8.5"
+  dependencies:
+    zrender: "npm:3.7.4"
+  checksum: 10c0/655f44f886ade4558dfcd92e19126e26b746eaed10631d92134bda642b1a158048f7eb29abcb2c244d374dd828767c6400cba4f0b7cda531721407acbc93cee4
+  languageName: node
+  linkType: hard
+
+"echarts@npm:^5.6.0":
+  version: 5.6.0
+  resolution: "echarts@npm:5.6.0"
+  dependencies:
+    tslib: "npm:2.3.0"
+    zrender: "npm:5.6.1"
+  checksum: 10c0/6d6a2ee88534d1ff0433e935c542237b9896de1c94959f47ebc7e0e9da26f59bf11c91ed6fc135b62ad2786c779ee12bc536fa481e60532dad5b6a2f5167e9ea
   languageName: node
   linkType: hard
 
@@ -15379,6 +15400,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-echarts@npm:^0.1.1":
+  version: 0.1.1
+  resolution: "react-echarts@npm:0.1.1"
+  dependencies:
+    echarts: "npm:^3.1.3"
+  peerDependencies:
+    react: ">=0.14.0 || ^15.0.0-rc.2"
+  checksum: 10c0/7992b3a97aa82c2b0fa8a3d7a8f46ee63bc324d58d2ea2235dc1093a493cb1305a7cd86144e3b161f4f717587a03565005b6a79afd95144b959f9d3a9522d4fd
+  languageName: node
+  linkType: hard
+
 "react-email@npm:3.0.6":
   version: 3.0.6
   resolution: "react-email@npm:3.0.6"
@@ -17659,6 +17691,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tslib@npm:2.3.0":
+  version: 2.3.0
+  resolution: "tslib@npm:2.3.0"
+  checksum: 10c0/a845aed84e7e7dbb4c774582da60d7030ea39d67307250442d35c4c5dd77e4b44007098c37dd079e100029c76055f2a362734b8442ba828f8cc934f15ed9be61
+  languageName: node
+  linkType: hard
+
 "tslib@npm:^1.13.0, tslib@npm:^1.8.1":
   version: 1.14.1
   resolution: "tslib@npm:1.14.1"
@@ -18949,6 +18988,22 @@ __metadata:
   version: 3.24.1
   resolution: "zod@npm:3.24.1"
   checksum: 10c0/0223d21dbaa15d8928fe0da3b54696391d8e3e1e2d0283a1a070b5980a1dbba945ce631c2d1eccc088fdbad0f2dfa40155590bf83732d3ac4fcca2cc9237591b
+  languageName: node
+  linkType: hard
+
+"zrender@npm:3.7.4":
+  version: 3.7.4
+  resolution: "zrender@npm:3.7.4"
+  checksum: 10c0/2eb0aed5a0a60bcdc07baf7b309926d7c534800f9eb94cc5526b62279f97abb1583ab16773597741aa2a29f5160b3f120da6de500dcb347fab61f8cc8c4c054c
+  languageName: node
+  linkType: hard
+
+"zrender@npm:5.6.1":
+  version: 5.6.1
+  resolution: "zrender@npm:5.6.1"
+  dependencies:
+    tslib: "npm:2.3.0"
+  checksum: 10c0/dc1cc570054640cbd8fbb7b92e6252f225319522bfe3e8dc8bf02cc02d414e00a4c8d0a6f89bfc9d96e5e9511fdca94dd3d06bf53690df2b2f12b0fc560ac307
   languageName: node
   linkType: hard
 
