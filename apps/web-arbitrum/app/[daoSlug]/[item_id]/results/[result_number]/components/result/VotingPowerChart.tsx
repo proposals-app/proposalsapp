@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import { format } from "date-fns";
+import { formatNumberWithSuffix } from "@/lib/utils";
 
 interface VotingPowerChartProps {
   proposal: Selectable<Proposal>;
@@ -84,11 +85,37 @@ export const VotingPowerChart = ({
       tooltip: {
         trigger: "axis",
         formatter: (params: any) => {
-          const date = params[0].axisValue;
-          let tooltipText = `<strong>${new Date(date).toLocaleString()}</strong><br/>`;
-          params.forEach((param: any) => {
-            tooltipText += `${param.marker} ${param.seriesName}: ${param.value[1]} ARB<br/>`;
+          const hoveredTime = new Date(params[0].axisValue).getTime(); // The time the user is hovering over
+          let tooltipText = `<strong>${new Date(hoveredTime).toLocaleString()}</strong><br/>`;
+
+          // Iterate through each series to find the closest data point
+          series.forEach((s) => {
+            const seriesData = s.data as [string, number][]; // Data points for this series
+            let closestPoint: [string, number] | null = null;
+            let closestDistance = Infinity;
+
+            // Find the closest data point to the hovered time
+            seriesData.forEach((point) => {
+              const pointTime = new Date(point[0]).getTime();
+              const distance = Math.abs(pointTime - hoveredTime);
+
+              if (distance < closestDistance) {
+                closestDistance = distance;
+                closestPoint = point;
+              }
+            });
+
+            const seriesName = s.name;
+
+            // Add the closest point to the tooltip
+            if (closestPoint) {
+              tooltipText += `
+                      <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
+                        <span>${seriesName}: ${formatNumberWithSuffix(closestPoint[1])}</span>
+                      </div>`;
+            }
           });
+
           return tooltipText;
         },
       },
