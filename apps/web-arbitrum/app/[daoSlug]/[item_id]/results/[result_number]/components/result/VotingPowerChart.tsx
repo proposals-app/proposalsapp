@@ -9,7 +9,6 @@ import { VoteType } from "@/app/[daoSlug]/[item_id]/components/timeline/ResultEv
 
 interface ProposalMetadata {
   quorumChoices?: number[];
-  voteType?: VoteType;
 }
 
 interface VotingPowerChartProps {
@@ -62,7 +61,6 @@ export const VotingPowerChart = ({
     const choices = proposal.choices as string[];
     const metadata = proposal.metadata as ProposalMetadata;
     const quorumChoices = metadata.quorumChoices || [];
-    const voteType = metadata.voteType;
 
     const sortedVotes = [...votes].sort((a, b) => {
       const timeA = a.timeCreated ? new Date(a.timeCreated).getTime() : 0;
@@ -150,7 +148,7 @@ export const VotingPowerChart = ({
         const choice = choices[originalIndex];
         const color = getColorForChoice(choice);
         const shouldStack =
-          quorumChoices.includes(originalIndex) && voteType === "basic";
+          quorumChoices.includes(originalIndex) && proposal.quorum;
         return {
           name: choice,
           type: "line",
@@ -238,7 +236,7 @@ export const VotingPowerChart = ({
         const lastValue = lastKnownValues[originalIndex];
         const choice = choices[originalIndex];
         const shouldStack =
-          quorumChoices.includes(originalIndex) && voteType === "basic";
+          quorumChoices.includes(originalIndex) && proposal.quorum;
         const color = getColorForChoice(choice);
 
         projectionSeries.push({
