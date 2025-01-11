@@ -15,6 +15,22 @@ interface VotingPowerChartProps {
   votes: Selectable<Vote>[];
 }
 
+// Function to determine the color based on the choice name
+const getColorForChoice = (choice: string): string => {
+  const lowerCaseChoice = choice.toLowerCase();
+  if (["for", "yes", "yae"].includes(lowerCaseChoice)) {
+    return "#10B981"; // Green
+  } else if (["against", "no", "nay"].includes(lowerCaseChoice)) {
+    return "#EF4444"; // Red
+  } else if (lowerCaseChoice === "abstain") {
+    return "#F59E0B"; // Yellow
+  } else {
+    // Random color from a predefined palette
+    const colors = ["#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#6EE7B7"];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+};
+
 export const VotingPowerChart = ({
   proposal,
   votes,
@@ -126,19 +142,23 @@ export const VotingPowerChart = ({
     const series: echarts.SeriesOption[] = sortedChoiceIndices.map(
       (originalIndex, sortedIndex) => {
         const choice = choices[originalIndex];
+        const color = getColorForChoice(choice);
+        const isQuorumChoice = quorumChoices.includes(originalIndex);
         return {
           name: choice,
           type: "line",
-          stack: quorumChoices.includes(originalIndex)
-            ? "QuorumTotal"
-            : undefined,
+          stack: isQuorumChoice ? "QuorumTotal" : undefined,
           lineStyle: {
-            width: 0,
+            width: isQuorumChoice ? 0 : 2,
+            color: color,
           },
           showSymbol: false,
-          areaStyle: {
-            opacity: 0.8,
-          },
+          areaStyle: isQuorumChoice
+            ? {
+                opacity: 0.8,
+                color: color,
+              }
+            : undefined,
           data: cumulativeData[originalIndex],
         };
       },
@@ -210,9 +230,11 @@ export const VotingPowerChart = ({
     if (lastVoteTime < proposalEndTime) {
       sortedChoiceIndices.forEach((originalIndex, sortedIndex) => {
         const lastValue = lastKnownValues[originalIndex];
+        const choice = choices[originalIndex];
+        const color = getColorForChoice(choice);
 
         projectionSeries.push({
-          name: `${choices[originalIndex]} (Projection)`,
+          name: `${choice} (Projection)`,
           type: "line",
           stack: quorumChoices.includes(originalIndex)
             ? "QuorumTotalProjection"
@@ -220,10 +242,12 @@ export const VotingPowerChart = ({
           lineStyle: {
             width: 1,
             type: "dashed",
+            color: color,
           },
           showSymbol: false,
           areaStyle: {
             opacity: 0.3,
+            color: color,
           },
           data: [
             [format(lastVoteTime, "yyyy-MM-dd HH:mm"), lastValue],
@@ -279,7 +303,12 @@ export const VotingPowerChart = ({
         },
       ],
       legend: {
-        data: [...sortedChoices],
+        data: sortedChoices.map((choice) => ({
+          name: choice,
+          itemStyle: {
+            color: getColorForChoice(choice),
+          },
+        })),
         bottom: 0,
       },
       series: allSeries,
