@@ -101,7 +101,7 @@ export const VotingPowerChart = ({
       },
       yAxis: {
         type: "value",
-        name: "Cumulative Voting Power (ARB)",
+
         nameLocation: "middle",
         nameGap: 30,
       },
