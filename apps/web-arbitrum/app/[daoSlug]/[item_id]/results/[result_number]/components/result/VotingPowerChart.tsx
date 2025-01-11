@@ -36,29 +36,23 @@ export const VotingPowerChart = ({
       return timeA - timeB;
     });
 
-    // Find start and end times
-    const startTime =
-      sortedVotes.length > 0
-        ? startOfHour(new Date(sortedVotes[0].timeCreated!))
-        : startOfHour(new Date());
-    const endTime =
+    // Get the start time from proposal and last vote time
+    const startTime = startOfHour(new Date(proposal.timeStart));
+    const lastVoteTime =
       sortedVotes.length > 0
         ? startOfHour(
-            addHours(
-              new Date(sortedVotes[sortedVotes.length - 1].timeCreated!),
-              1,
-            ),
+            new Date(sortedVotes[sortedVotes.length - 1].timeCreated!),
           )
-        : startOfHour(addHours(new Date(), 1));
+        : startTime;
 
-    // Create hourly intervals
+    // Create hourly intervals only up to the last vote
     const hourlyData: {
       [hour: string]: { [choice: number]: number };
     } = {};
 
-    // Initialize all hours with zero values
+    // Initialize hours only up to the last vote
     let currentHour = startTime;
-    while (currentHour <= endTime) {
+    while (currentHour <= lastVoteTime) {
       const hourKey = format(currentHour, "yyyy-MM-dd HH:mm");
       hourlyData[hourKey] = {};
       choices.forEach((_, index) => {
@@ -83,7 +77,7 @@ export const VotingPowerChart = ({
       hourlyData[hourKey][choiceIndex] += votingPower;
     });
 
-    // Convert to cumulative values and fill gaps
+    // Convert to cumulative values
     const timePoints = Object.keys(hourlyData).sort();
     const cumulativeData: { [choice: number]: [string, number][] } = {};
 
@@ -97,39 +91,58 @@ export const VotingPowerChart = ({
       });
     });
 
-    // Define gradient colors for the series
-    const gradientColors = [
-      ["#80FFA5", "#00DDFF"],
-      ["#00DDFF", "#37A2FF"],
-      ["#37A2FF", "#FF0087"],
-      ["#FF0087", "#FFBF00"],
-      ["#FFBF00", "#80FFA5"],
-    ];
+    // Get the last known values for each choice
+    const lastKnownValues: { [choice: number]: number } = {};
+    choices.forEach((_, choiceIndex) => {
+      const choiceData = cumulativeData[choiceIndex];
+      if (choiceData.length > 0) {
+        lastKnownValues[choiceIndex] = choiceData[choiceData.length - 1][1];
+      } else {
+        lastKnownValues[choiceIndex] = 0;
+      }
+    });
 
-    // Create series
-    const series: echarts.SeriesOption[] = choices.map((choice, index) => ({
-      name: choice,
-      type: "line",
-      stack: quorumChoices.includes(index) ? "QuorumTotal" : undefined,
-      lineStyle: {
-        width: 0,
-      },
-      showSymbol: false,
-      areaStyle: {
-        opacity: 0.8,
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          {
-            offset: 0,
-            color: gradientColors[index % gradientColors.length][0],
+    // Define the explicit stacking order for "For", "Abstain"
+    const explicitOrder = ["For", "Abstain"];
+    const sortedChoices = [...choices].sort((a, b) => {
+      const indexA = explicitOrder.indexOf(a);
+      const indexB = explicitOrder.indexOf(b);
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB; // Use explicit order for these options
+      }
+      // Fallback to sorting by last known values for other options
+      return (
+        lastKnownValues[choices.indexOf(b)] -
+        lastKnownValues[choices.indexOf(a)]
+      );
+    });
+
+    // Create a mapping from the original choice index to the sorted choice index
+    const sortedChoiceIndices = sortedChoices.map((choice) =>
+      choices.indexOf(choice),
+    );
+
+    // Create series in the sorted order
+    const series: echarts.SeriesOption[] = sortedChoiceIndices.map(
+      (originalIndex, sortedIndex) => {
+        const choice = choices[originalIndex];
+        return {
+          name: choice,
+          type: "line",
+          stack: quorumChoices.includes(originalIndex)
+            ? "QuorumTotal"
+            : undefined,
+          lineStyle: {
+            width: 0,
           },
-          {
-            offset: 1,
-            color: gradientColors[index % gradientColors.length][1],
+          showSymbol: false,
+          areaStyle: {
+            opacity: 0.8,
           },
-        ]),
+          data: cumulativeData[originalIndex],
+        };
       },
-      data: cumulativeData[index],
-    }));
+    );
 
     // Add quorum line if proposal has quorum
     if (proposal.quorum) {
@@ -159,6 +172,74 @@ export const VotingPowerChart = ({
       });
     }
 
+    // Calculate the maximum stacked value at any time point
+    const maxVotingValue = Math.max(
+      ...timePoints.map((timePoint) => {
+        // Sum up values for choices that are part of the quorum stack
+        const quorumStackSum = quorumChoices.reduce((sum, choiceIndex) => {
+          const choiceData = cumulativeData[choiceIndex];
+          const pointData = choiceData.find((point) => point[0] === timePoint);
+          return sum + (pointData ? pointData[1] : 0);
+        }, 0);
+
+        // Sum up values for non-quorum choices
+        const nonQuorumStackSum = choices
+          .map((_, index) => index)
+          .filter((index) => !quorumChoices.includes(index))
+          .reduce((sum, choiceIndex) => {
+            const choiceData = cumulativeData[choiceIndex];
+            const pointData = choiceData.find(
+              (point) => point[0] === timePoint,
+            );
+            return sum + (pointData ? pointData[1] : 0);
+          }, 0);
+
+        // Return the maximum of quorum stack and non-quorum stack
+        return Math.max(quorumStackSum, nonQuorumStackSum);
+      }),
+    );
+
+    // Calculate the appropriate y-axis max value considering both voting data and quorum
+    const quorumValue = Number(proposal.quorum) || 0;
+    const yAxisMax = Math.max(maxVotingValue, quorumValue) * 1.1; // Add 10% padding
+
+    // Create projection series if there's a gap between last vote and proposal end
+    const proposalEndTime = new Date(proposal.timeEnd);
+    const projectionSeries: echarts.SeriesOption[] = [];
+
+    if (lastVoteTime < proposalEndTime) {
+      sortedChoiceIndices.forEach((originalIndex, sortedIndex) => {
+        const lastValue = lastKnownValues[originalIndex];
+
+        projectionSeries.push({
+          name: `${choices[originalIndex]} (Projection)`,
+          type: "line",
+          stack: quorumChoices.includes(originalIndex)
+            ? "QuorumTotalProjection"
+            : undefined,
+          lineStyle: {
+            width: 1,
+            type: "dashed",
+          },
+          showSymbol: false,
+          areaStyle: {
+            opacity: 0.3,
+          },
+          data: [
+            [format(lastVoteTime, "yyyy-MM-dd HH:mm"), lastValue],
+            [format(proposalEndTime, "yyyy-MM-dd HH:mm"), lastValue],
+          ],
+          silent: true, // Disable interactions with projection lines
+          tooltip: {
+            show: false, // Hide tooltip for projection lines
+          },
+        });
+      });
+    }
+
+    // Combine regular series with projection series
+    const allSeries = [...series, ...projectionSeries];
+
     const options: echarts.EChartsOption = {
       tooltip: {
         trigger: "axis",
@@ -180,6 +261,8 @@ export const VotingPowerChart = ({
       xAxis: {
         type: "time",
         name: "Time",
+        min: new Date(proposal.timeStart).getTime(),
+        max: new Date(proposal.timeEnd).getTime(),
         axisLabel: {
           formatter: (value: number) => format(new Date(value), "MMM d, HH:mm"),
         },
@@ -189,13 +272,17 @@ export const VotingPowerChart = ({
           type: "value",
           nameLocation: "middle",
           nameGap: 30,
+          max: yAxisMax,
+          axisLabel: {
+            formatter: (value: number) => formatNumberWithSuffix(value),
+          },
         },
       ],
       legend: {
-        data: [...choices],
+        data: [...sortedChoices],
         bottom: 0,
       },
-      series,
+      series: allSeries,
       grid: {
         left: "10%",
         right: "10%",
