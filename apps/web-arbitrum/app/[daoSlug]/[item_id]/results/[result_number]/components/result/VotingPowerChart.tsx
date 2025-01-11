@@ -18,25 +18,31 @@ interface VotingPowerChartProps {
 const getColorForChoice = (choice: string): string => {
   const lowerCaseChoice = choice.toLowerCase();
 
-  // Fixed colors for common voting options
-  if (["for", "yes", "yae"].includes(lowerCaseChoice)) {
+  // Check if choice starts with any of the positive vote indicators
+  if (/^(for|yes|yae)/.test(lowerCaseChoice)) {
     return "#10B981"; // Green
-  } else if (["against", "no", "nay"].includes(lowerCaseChoice)) {
+  }
+
+  // Check if choice starts with any of the negative vote indicators
+  if (/^(against|no|nay)/.test(lowerCaseChoice)) {
     return "#EF4444"; // Red
-  } else if (lowerCaseChoice === "abstain") {
+  }
+
+  // Check for abstain
+  if (lowerCaseChoice === "abstain") {
     return "#F59E0B"; // Yellow
   }
 
   // Fixed color palette for other choices
   const colors = ["#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#6EE7B7"];
 
-  // Simple hash function
-  const hash = Array.from(choice.toLowerCase()).reduce(
+  // Create a simple hash from the choice string
+  const hash = Array.from(lowerCaseChoice).reduce(
     (acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0,
     0,
   );
 
-  // Use absolute value of hash to ensure positive index
+  // Use the absolute value of hash to get a valid index
   const index = Math.abs(hash) % colors.length;
   return colors[index];
 };
