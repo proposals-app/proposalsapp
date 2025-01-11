@@ -131,6 +131,7 @@ export async function Timeline({
                     selectedResult={selectedResult}
                     daoSlug={group.daoSlug}
                     groupId={group.group.id}
+                    eventIndex={index}
                   />
                 ) : event.type === TimelineEventType.ResultEnded ? (
                   <ResultEvent
@@ -142,6 +143,7 @@ export async function Timeline({
                     selectedResult={selectedResult}
                     daoSlug={group.daoSlug}
                     groupId={group.group.id}
+                    eventIndex={index}
                   />
                 ) : event.type === TimelineEventType.Basic ? (
                   <BasicEvent

@@ -11,6 +11,7 @@ interface ResultEventProps {
   selectedResult: number;
   daoSlug: string;
   groupId: string;
+  eventIndex: number;
 }
 
 export function ResultEvent({
@@ -21,6 +22,7 @@ export function ResultEvent({
   selectedResult,
   daoSlug,
   groupId,
+  eventIndex,
 }: ResultEventProps) {
   // Determine if the vote is onchain or offchain
   const isOnchain = content.includes("Onchain vote"); // Adjust this logic based on your data model
@@ -35,7 +37,7 @@ export function ResultEvent({
 
   // Content to be rendered inside the div
   const eventContent = (
-    <div className="relative flex w-full items-center py-2">
+    <div className="relative flex items-center py-2">
       <div
         className={`flex flex-col gap-1 ${
           resultNumber == selectedResult
@@ -43,6 +45,9 @@ export function ResultEvent({
             : "w-28 rounded-xl border"
         } border-gray-400 bg-white px-4 py-2 pr-8`}
       >
+        {eventIndex == 0 && resultNumber == selectedResult && (
+          <div className="absolute -right-2 top-2 h-2 w-10 border-t border-gray-400 bg-white"></div>
+        )}
         <div className="absolute left-3 top-5 h-[7px] w-[7px] rounded-full border border-white bg-gray-500" />
 
         <div className="ml-2 text-sm font-semibold">{voteType}</div>

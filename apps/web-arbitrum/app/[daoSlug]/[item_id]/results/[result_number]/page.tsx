@@ -54,7 +54,7 @@ export default async function ResultPage({
       </div>
 
       {/* Results on the right */}
-      <div className="flex w-full flex-grow pb-16 pl-[159px] pt-24">
+      <div className={`flex w-full flex-grow pb-16 pl-[159px] pt-[104px]`}>
         <div className="h-full w-full pr-4">
           <ProposalResult proposal={proposal} votes={votes} />
         </div>
