@@ -85,7 +85,7 @@ export const VotingPowerChart = ({
         trigger: "axis",
         formatter: (params: any) => {
           const date = params[0].axisValue;
-          let tooltipText = `<strong>${date}</strong><br/>`;
+          let tooltipText = `<strong>${new Date(date).toLocaleString()}</strong><br/>`;
           params.forEach((param: any) => {
             tooltipText += `${param.marker} ${param.seriesName}: ${param.value[1]} ARB<br/>`;
           });
