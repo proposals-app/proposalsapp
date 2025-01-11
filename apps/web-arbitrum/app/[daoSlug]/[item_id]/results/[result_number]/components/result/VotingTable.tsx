@@ -1,14 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { FixedSizeList as List } from "react-window";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shadcn/ui/table";
 import { formatNumberWithSuffix } from "@/lib/utils";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import { format } from "date-fns";
