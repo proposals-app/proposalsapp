@@ -5,9 +5,11 @@ import * as echarts from "echarts";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import { format, addHours, startOfHour } from "date-fns";
 import { formatNumberWithSuffix } from "@/lib/utils";
+import { VoteType } from "@/app/[daoSlug]/[item_id]/components/timeline/ResultEvent";
 
 interface ProposalMetadata {
   quorumChoices?: number[];
+  voteType?: VoteType;
 }
 
 interface VotingPowerChartProps {
@@ -60,6 +62,7 @@ export const VotingPowerChart = ({
     const choices = proposal.choices as string[];
     const metadata = proposal.metadata as ProposalMetadata;
     const quorumChoices = metadata.quorumChoices || [];
+    const voteType = metadata.voteType;
 
     const sortedVotes = [...votes].sort((a, b) => {
       const timeA = a.timeCreated ? new Date(a.timeCreated).getTime() : 0;
@@ -146,13 +149,14 @@ export const VotingPowerChart = ({
       (originalIndex) => {
         const choice = choices[originalIndex];
         const color = getColorForChoice(choice);
-        const isQuorumChoice = quorumChoices.includes(originalIndex);
+        const shouldStack =
+          quorumChoices.includes(originalIndex) && voteType === "basic";
         return {
           name: choice,
           type: "line",
-          stack: isQuorumChoice ? "QuorumTotal" : undefined,
+          stack: shouldStack ? "QuorumTotal" : undefined,
           lineStyle: {
-            width: isQuorumChoice ? 0 : 2,
+            width: shouldStack ? 0 : 2,
             color: color,
           },
           showSymbol: false,
@@ -162,7 +166,7 @@ export const VotingPowerChart = ({
               borderColor: color,
             },
           },
-          areaStyle: isQuorumChoice
+          areaStyle: shouldStack
             ? {
                 opacity: 0.8,
                 color: color,
@@ -233,20 +237,21 @@ export const VotingPowerChart = ({
       sortedChoiceIndices.forEach((originalIndex) => {
         const lastValue = lastKnownValues[originalIndex];
         const choice = choices[originalIndex];
-        const isQuorumChoice = quorumChoices.includes(originalIndex);
+        const shouldStack =
+          quorumChoices.includes(originalIndex) && voteType === "basic";
         const color = getColorForChoice(choice);
 
         projectionSeries.push({
           name: `${choice} (Projection)`,
           type: "line",
-          stack: isQuorumChoice ? "QuorumTotalProjection" : undefined,
+          stack: shouldStack ? "QuorumTotalProjection" : undefined,
           lineStyle: {
             width: 1,
             type: "dashed",
             color: color,
           },
           showSymbol: false,
-          areaStyle: isQuorumChoice
+          areaStyle: shouldStack
             ? {
                 opacity: 0.3,
                 color: color,

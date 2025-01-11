@@ -19,7 +19,7 @@ interface ProposalMetadata {
   [key: string]: unknown;
 }
 
-type VoteType =
+export type VoteType =
   | "single-choice"
   | "weighted"
   | "approval"
