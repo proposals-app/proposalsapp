@@ -101,7 +101,6 @@ export const VotingPowerChart = ({
       },
       yAxis: {
         type: "value",
-
         nameLocation: "middle",
         nameGap: 30,
       },
