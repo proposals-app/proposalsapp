@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as echarts from "echarts";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import { format, addHours, startOfHour } from "date-fns";
@@ -15,7 +15,6 @@ interface VotingPowerChartProps {
   votes: Selectable<Vote>[];
 }
 
-// Function to determine the color based on the choice name
 const getColorForChoice = (choice: string): string => {
   const lowerCaseChoice = choice.toLowerCase();
   if (["for", "yes", "yae"].includes(lowerCaseChoice)) {
@@ -25,7 +24,6 @@ const getColorForChoice = (choice: string): string => {
   } else if (lowerCaseChoice === "abstain") {
     return "#F59E0B"; // Yellow
   } else {
-    // Random color from a predefined palette
     const colors = ["#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#6EE7B7"];
     return colors[Math.floor(Math.random() * colors.length)];
   }
@@ -45,14 +43,12 @@ export const VotingPowerChart = ({
     const metadata = proposal.metadata as ProposalMetadata;
     const quorumChoices = metadata.quorumChoices || [];
 
-    // Sort votes by timestamp
     const sortedVotes = [...votes].sort((a, b) => {
       const timeA = a.timeCreated ? new Date(a.timeCreated).getTime() : 0;
       const timeB = b.timeCreated ? new Date(b.timeCreated).getTime() : 0;
       return timeA - timeB;
     });
 
-    // Get the start time from proposal and last vote time
     const startTime = startOfHour(new Date(proposal.timeStart));
     const lastVoteTime =
       sortedVotes.length > 0
@@ -61,12 +57,8 @@ export const VotingPowerChart = ({
           )
         : startTime;
 
-    // Create hourly intervals only up to the last vote
-    const hourlyData: {
-      [hour: string]: { [choice: number]: number };
-    } = {};
+    const hourlyData: { [hour: string]: { [choice: number]: number } } = {};
 
-    // Initialize hours only up to the last vote
     let currentHour = startTime;
     while (currentHour <= lastVoteTime) {
       const hourKey = format(currentHour, "yyyy-MM-dd HH:mm");
@@ -77,7 +69,6 @@ export const VotingPowerChart = ({
       currentHour = addHours(currentHour, 1);
     }
 
-    // Aggregate votes by hour
     sortedVotes.forEach((vote) => {
       const voteTime = startOfHour(new Date(vote.timeCreated!));
       const hourKey = format(voteTime, "yyyy-MM-dd HH:mm");
@@ -93,7 +84,6 @@ export const VotingPowerChart = ({
       hourlyData[hourKey][choiceIndex] += votingPower;
     });
 
-    // Convert to cumulative values
     const timePoints = Object.keys(hourlyData).sort();
     const cumulativeData: { [choice: number]: [string, number][] } = {};
 
@@ -107,7 +97,6 @@ export const VotingPowerChart = ({
       });
     });
 
-    // Get the last known values for each choice
     const lastKnownValues: { [choice: number]: number } = {};
     choices.forEach((_, choiceIndex) => {
       const choiceData = cumulativeData[choiceIndex];
@@ -118,29 +107,25 @@ export const VotingPowerChart = ({
       }
     });
 
-    // Define the explicit stacking order for "For", "Abstain"
     const explicitOrder = ["For", "Abstain"];
     const sortedChoices = [...choices].sort((a, b) => {
       const indexA = explicitOrder.indexOf(a);
       const indexB = explicitOrder.indexOf(b);
       if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB; // Use explicit order for these options
+        return indexA - indexB;
       }
-      // Fallback to sorting by last known values for other options
       return (
         lastKnownValues[choices.indexOf(b)] -
         lastKnownValues[choices.indexOf(a)]
       );
     });
 
-    // Create a mapping from the original choice index to the sorted choice index
     const sortedChoiceIndices = sortedChoices.map((choice) =>
       choices.indexOf(choice),
     );
 
-    // Create series in the sorted order
     const series: echarts.SeriesOption[] = sortedChoiceIndices.map(
-      (originalIndex, sortedIndex) => {
+      (originalIndex) => {
         const choice = choices[originalIndex];
         const color = getColorForChoice(choice);
         const isQuorumChoice = quorumChoices.includes(originalIndex);
@@ -164,7 +149,6 @@ export const VotingPowerChart = ({
       },
     );
 
-    // Add quorum line if proposal has quorum
     if (proposal.quorum) {
       series.push({
         name: "Quorum",
@@ -192,17 +176,14 @@ export const VotingPowerChart = ({
       });
     }
 
-    // Calculate the maximum stacked value at any time point
     const maxVotingValue = Math.max(
       ...timePoints.map((timePoint) => {
-        // Sum up values for choices that are part of the quorum stack
         const quorumStackSum = quorumChoices.reduce((sum, choiceIndex) => {
           const choiceData = cumulativeData[choiceIndex];
           const pointData = choiceData.find((point) => point[0] === timePoint);
           return sum + (pointData ? pointData[1] : 0);
         }, 0);
 
-        // Sum up values for non-quorum choices
         const nonQuorumStackSum = choices
           .map((_, index) => index)
           .filter((index) => !quorumChoices.includes(index))
@@ -214,21 +195,18 @@ export const VotingPowerChart = ({
             return sum + (pointData ? pointData[1] : 0);
           }, 0);
 
-        // Return the maximum of quorum stack and non-quorum stack
         return Math.max(quorumStackSum, nonQuorumStackSum);
       }),
     );
 
-    // Calculate the appropriate y-axis max value considering both voting data and quorum
     const quorumValue = Number(proposal.quorum) || 0;
-    const yAxisMax = Math.max(maxVotingValue, quorumValue) * 1.1; // Add 10% padding
+    const yAxisMax = Math.max(maxVotingValue, quorumValue) * 1.1;
 
-    // Create projection series if there's a gap between last vote and proposal end
     const proposalEndTime = new Date(proposal.timeEnd);
     const projectionSeries: echarts.SeriesOption[] = [];
 
     if (lastVoteTime < proposalEndTime) {
-      sortedChoiceIndices.forEach((originalIndex, sortedIndex) => {
+      sortedChoiceIndices.forEach((originalIndex) => {
         const lastValue = lastKnownValues[originalIndex];
         const choice = choices[originalIndex];
         const color = getColorForChoice(choice);
@@ -253,15 +231,14 @@ export const VotingPowerChart = ({
             [format(lastVoteTime, "yyyy-MM-dd HH:mm"), lastValue],
             [format(proposalEndTime, "yyyy-MM-dd HH:mm"), lastValue],
           ],
-          silent: true, // Disable interactions with projection lines
+          silent: true,
           tooltip: {
-            show: false, // Hide tooltip for projection lines
+            show: false,
           },
         });
       });
     }
 
-    // Combine regular series with projection series
     const allSeries = [...series, ...projectionSeries];
 
     const options: echarts.EChartsOption = {
@@ -273,9 +250,9 @@ export const VotingPowerChart = ({
           params.forEach((param: any) => {
             if (param.seriesName !== "Quorum") {
               tooltipText += `
-                <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
-                  <span>${param.seriesName}: ${formatNumberWithSuffix(param.value[1])}</span>
-                </div>`;
+                  <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
+                    <span>${param.seriesName}: ${formatNumberWithSuffix(param.value[1])}</span>
+                  </div>`;
             }
           });
 
@@ -310,6 +287,7 @@ export const VotingPowerChart = ({
           },
         })),
         bottom: 0,
+        selectedMode: false,
       },
       series: allSeries,
       grid: {
