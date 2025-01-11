@@ -273,7 +273,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(created_block_number as i32),
-        metadata: Set(json!({"vote_type": "basic"}).into()),
+        metadata: Set(json!({"vote_type": "basic","quorum_choices":[0]}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -341,7 +341,7 @@ mod uniswap_mainnet_proposals_tests {
                     time_end: parse_datetime("2024-08-22 06:55:11"),
                     block_created: Some(20529031),
                     txid: Some("0x23ea669518d73d54f7cdb9320cd9b7408e086a84de2852652078ac813739c319"),
-                    metadata: json!({"vote_type": "basic"}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -404,7 +404,7 @@ mod uniswap_mainnet_proposals_tests {
                     txid: Some(
                         "0x52371bf3cc7dc7169203e70e2e914c31408021d38c6b44d8c8652099e2fa5c12",
                     ),
-                    metadata: json!({"vote_type": "basic"}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

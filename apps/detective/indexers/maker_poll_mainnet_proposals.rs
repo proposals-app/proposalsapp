@@ -218,7 +218,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(created_block_number as i32),
-        metadata: Set(json!({"vote_type": "single-choice"}).into()),
+        metadata: Set(json!({"vote_type": "single-choice","quorum_choices":(0..choices.len() as u32).collect::<Vec<u32>>()}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(meta.transaction_hash.unwrap())
@@ -384,7 +384,7 @@ mod maker_poll_mainnet_proposals_tests {
                     txid: Some(
                         "0x7ee3d65211b36ea87a3f10672018ed6e1a1e6fb1f4cf95076a8bb610d6b27b4a",
                     ),
-                    metadata: json!({"vote_type": "single-choice"}).into(),
+                    metadata: json!({"vote_type": "single-choice", "quorum_choices":[0,1,2]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

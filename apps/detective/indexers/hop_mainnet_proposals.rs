@@ -279,7 +279,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: Set(json!({"vote_type": "basic"}).into()),
+        metadata: Set(json!({"vote_type": "basic","quorum_choices":[0,2]}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -349,7 +349,7 @@ mod hop_mainnet_proposals_tests {
                     txid: Some(
                         "0xee04eb4dd4ff429ae485dd21b7ea0890a607f5b8e788b1f40c03f21b24daec57",
                     ),
-                    metadata: json!({"vote_type": "basic"}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

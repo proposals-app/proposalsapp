@@ -281,7 +281,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: Set(json!({"vote_type": "basic"}).into()),
+        metadata: Set(json!({"vote_type": "basic","quorum_choices":[0,2]}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -373,7 +373,7 @@ mod arbitrum_treasury_proposals_tests {
                     time_end: parse_datetime("2023-06-23 21:04:59"),
                     block_created: Some(98423914),
                     txid: Some("0x21c3f3db7304d3278f6e0c8d2d6e2fb65ceb876c5bced84eb276c817e8d934fe"),
-                    metadata: json!({"vote_type": "basic"}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -435,7 +435,7 @@ mod arbitrum_treasury_proposals_tests {
                         time_end: parse_datetime("2024-03-27 00:54:23"),
                         block_created: Some(188757729),
                         txid: Some("0x44dd69debf775a83e7a4317ce9aa6344c9085c821f1a3b19a4f56cd13cc853c2"),
-                        metadata: json!({"vote_type": "basic"}).into(),
+                        metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
                     },
                     ExpectedProposal {
                         index_created: 192337153,
@@ -456,7 +456,7 @@ mod arbitrum_treasury_proposals_tests {
                         time_end: parse_datetime("2024-04-06 22:13:59"),
                         block_created: Some(192337153),
                         txid: Some("0x8086f869ce5cc30ccffc03c044e18f17f6a8acffd697dfa18aba62d32cbfae15"),
-                        metadata: json!({"vote_type": "basic"}).into(),
+                        metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
                     }
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -518,7 +518,7 @@ mod arbitrum_treasury_proposals_tests {
                     time_end: parse_datetime("2024-06-25 00:50:23"),
                     block_created: Some(219487184),
                     txid: Some("0x7ecadf902e520383a48b3a305a4dcd947652569f0650e71f5d9e4b15735c6d9b"),
-                    metadata: json!({"vote_type": "basic"}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

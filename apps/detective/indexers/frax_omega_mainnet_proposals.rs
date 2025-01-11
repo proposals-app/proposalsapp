@@ -199,7 +199,7 @@ async fn data_for_proposal(
         / (10.0f64.powi(18));
 
     let scores_quorum =
-        (votes.forVotes + votes.againstVotes).to::<u128>() as f64 / (10.0f64.powi(18));
+        (votes.forVotes + votes.abstainVotes).to::<u128>() as f64 / (10.0f64.powi(18));
 
     let proposal_state = gov_contract
         .state(event.proposalId)
@@ -244,7 +244,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: Set(json!({"vote_type": "basic"}).into()),
+        metadata: Set(json!({"vote_type": "basic","quorum_choices":[0,2]}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -312,7 +312,7 @@ mod frax_omega_mainnet_proposals_tests {
                     time_end: parse_datetime("2023-09-22 17:14:23"),
                     block_created: Some(18178520),
                     txid: Some("0xcea444d5851255ba5c45a7ee5cfc46d62c3ca36b9c119c9b74dea28b3550aa55"),
-                    metadata: json!({"vote_type": "basic"}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

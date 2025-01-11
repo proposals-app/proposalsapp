@@ -275,7 +275,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: Set(json!({"vote_type": "basic"}).into()),
+        metadata: Set(json!({"vote_type": "basic","quorum_choices":[0]}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -343,7 +343,7 @@ mod compound_mainnet_proposals_tests {
                     time_end: parse_datetime("2021-04-16 19:13:09"),
                     block_created: Some(12235671),
                     txid: Some("0xe34419e8d64845b5fb920ce265d23c14def48de2bc09e4159fce5e09a819a56e"),
-                    metadata: json!({"vote_type": "basic"}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -405,7 +405,7 @@ mod compound_mainnet_proposals_tests {
                         time_end: parse_datetime("2024-07-06 11:18:59"),
                         block_created: Some(20214270),
                         txid: Some("0x486fa2537df83e619f600d4da86955c571715f4816199573b1add1e101a9ee7d"),
-                        metadata: json!({"vote_type": "basic"}).into(),
+                        metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                     },
                     ExpectedProposal {
                         index_created: 20215251,
@@ -426,7 +426,7 @@ mod compound_mainnet_proposals_tests {
                         time_end: parse_datetime("2024-07-06 14:35:47"),
                         block_created: Some(20215251),
                         txid: Some("0x17bab3c0096c127192d4da5af370b216d5cb3fe5c700c7d409421ea26f50b890"),
-                        metadata: json!({"vote_type": "basic"}).into(),
+                        metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                     }
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -488,7 +488,7 @@ mod compound_mainnet_proposals_tests {
                     time_end: parse_datetime("2024-07-26 05:40:47"),
                     block_created: Some(20355844),
                     txid: Some("0xdbf9ea5cd4404d9e47f5aa1f61701f6f83af7f6e619efcc578ac7340aedeac3e"),
-                    metadata: json!({"vote_type": "basic"}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

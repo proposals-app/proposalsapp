@@ -239,7 +239,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: Set(json!({"vote_type": "single-choice"}).into()),
+        metadata: Set(json!({"vote_type": "single-choice", "quorum_choices":[0]}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -469,7 +469,7 @@ mod aave_v3_proposals {
                     time_end: parse_datetime("2024-01-12 02:00:59"),
                     block_created: Some(18959200),
                     txid: Some("0xd5c3f2e3879fe7b5429df9068877cf41d3e18eeca7a064ce8ba7399bacc86d5d"),
-                    metadata: json!({"vote_type": "single-choice"}).into(),
+                    metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -531,7 +531,7 @@ mod aave_v3_proposals {
                         time_end: parse_datetime("2024-05-10 16:07:47"),
                         block_created: Some(19812127),
                         txid: Some("0xb45582da92bbd8b471871655b15142482e9233ef5edabd88f57ffe82287f43b2"),
-                        metadata: json!({"vote_type": "single-choice"}).into(),
+                        metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                     },
                     ExpectedProposal {
                         index_created: 19819808,
@@ -552,7 +552,7 @@ mod aave_v3_proposals {
                         time_end: parse_datetime("1970-01-01 00:00:00"),
                         block_created: Some(19819808),
                         txid: Some("0x9ec89471c1272a72e14db68ee2813f81eeb403a384c24ad79d3efe18d2f105b6"),
-                        metadata: json!({"vote_type": "single-choice"}).into(),
+                        metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                     }
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -614,7 +614,7 @@ mod aave_v3_proposals {
                     time_end: parse_datetime("2024-03-15 17:34:59"),
                     block_created: Some(19412601),
                     txid: Some("0xfa2a20615e1ff91d9fcb4cd4f5dd5488f41ec6b762d0e9ebbc9b04038db1bb37"),
-                    metadata: json!({"vote_type": "single-choice"}).into(),
+                    metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

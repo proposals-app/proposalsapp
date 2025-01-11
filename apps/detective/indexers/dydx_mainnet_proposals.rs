@@ -304,7 +304,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: Set(json!({"vote_type": "single-choice"}).into()),
+        metadata: Set(json!({"vote_type": "single-choice","quorum_choices":[0]}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -554,7 +554,7 @@ mod dydx_mainnet_proposals_tests {
                     time_end: parse_datetime("2021-11-21 23:51:38"),
                     block_created: Some(13628320),
                     txid: Some("0xd4a22490da1b095a5418186fd82268242fde6f231272ce038e03a5b27e539898"),
-                    metadata: json!({"vote_type": "single-choice"}).into(),
+                    metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -616,7 +616,7 @@ mod dydx_mainnet_proposals_tests {
                         time_end: parse_datetime("2023-04-23 14:23:59"),
                         block_created: Some(17076736),
                         txid: Some("0x193769203351daa7184463744f130c39ee0df05e6a711e2a5905e79ebe72aba7"),
-                        metadata: json!({"vote_type": "single-choice"}).into(),
+                        metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                     },
                     ExpectedProposal {
                         index_created: 17477983,
@@ -637,7 +637,7 @@ mod dydx_mainnet_proposals_tests {
                         time_end: parse_datetime("2023-06-19 02:30:47"),
                         block_created: Some(17477983),
                         txid: Some("0xdde79a41786a5331830cba25c50c3e8eef166c4913e72939c8d7116702db9bcf"),
-                        metadata: json!({"vote_type": "single-choice"}).into(),
+                        metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                     }
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {

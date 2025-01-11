@@ -316,7 +316,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: Set(json!({"vote_type": "single-choice"}).into()),
+        metadata: Set(json!({"vote_type": "single-choice", "quorum_choices":[0]}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -647,7 +647,7 @@ mod aave_v2_proposals {
                     txid: Some(
                         "0x26b2272e31c44dd009487e66eecf1319422476967ebac7a05b39f86d1ce9fd21",
                     ),
-                    metadata: json!({"vote_type": "single-choice"}).into(),
+                    metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -709,7 +709,7 @@ mod aave_v2_proposals {
                         time_end: parse_datetime("2023-12-04 12:55:47"),
                         block_created: Some(18686736),
                         txid: Some("0xff7553c76f8df8086e4d594b3468f25f21c729e6b7cc29887ad8299d5498298f"),
-                        metadata: json!({"vote_type": "single-choice"}).into(),
+                        metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                     }
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -771,7 +771,7 @@ mod aave_v2_proposals {
                     time_end: parse_datetime("2023-12-19 02:20:59"),
                     block_created: Some(18790604),
                     txid: Some("0xe80efe71357574155c123b43f08d32bc32191a3d7a8593787749c5b491f7c3ae"),
-                    metadata: json!({"vote_type": "single-choice"}).into(),
+                    metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
