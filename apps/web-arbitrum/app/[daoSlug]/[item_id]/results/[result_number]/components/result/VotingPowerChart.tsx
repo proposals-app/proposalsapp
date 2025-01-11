@@ -1,154 +1,69 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
-import { Proposal, Selectable, Vote } from "@proposalsapp/db";
-import { format, addHours, startOfHour } from "date-fns";
+import { format } from "date-fns";
 import { formatNumberWithSuffix } from "@/lib/utils";
-import { VoteType } from "@/app/[daoSlug]/[item_id]/components/timeline/ResultEvent";
-
-interface ProposalMetadata {
-  quorumChoices?: number[];
-}
+import { getColorForChoice, ProcessedResults } from "./processResults";
 
 interface VotingPowerChartProps {
-  proposal: Selectable<Proposal>;
-  votes: Selectable<Vote>[];
+  results: ProcessedResults;
 }
 
-const getColorForChoice = (choice: string): string => {
-  const lowerCaseChoice = choice.toLowerCase();
-
-  // Check if choice starts with any of the positive vote indicators
-  if (/^(for|yes|yae)/.test(lowerCaseChoice)) {
-    return "#10B981"; // Green
-  }
-
-  // Check if choice starts with any of the negative vote indicators
-  if (/^(against|no|nay)/.test(lowerCaseChoice)) {
-    return "#EF4444"; // Red
-  }
-
-  // Check for abstain
-  if (lowerCaseChoice === "abstain") {
-    return "#F59E0B"; // Yellow
-  }
-
-  // Fixed color palette for other choices
-  const colors = ["#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#6EE7B7"];
-
-  // Create a simple hash from the choice string
-  const hash = Array.from(lowerCaseChoice).reduce(
-    (acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0,
-    0,
-  );
-
-  // Use the absolute value of hash to get a valid index
-  const index = Math.abs(hash) % colors.length;
-  return colors[index];
-};
-
-export const VotingPowerChart = ({
-  proposal,
-  votes,
-}: VotingPowerChartProps) => {
+export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!chartRef.current) return;
 
     const chart = echarts.init(chartRef.current);
-    const choices = proposal.choices as string[];
-    const metadata = proposal.metadata as ProposalMetadata;
-    const quorumChoices = metadata.quorumChoices || [];
+    const timePoints = results.timeSeriesData.map((point) => point.timestamp);
 
-    const sortedVotes = [...votes].sort((a, b) => {
-      const timeA = a.timeCreated ? new Date(a.timeCreated).getTime() : 0;
-      const timeB = b.timeCreated ? new Date(b.timeCreated).getTime() : 0;
-      return timeA - timeB;
-    });
-
-    const startTime = startOfHour(new Date(proposal.timeStart));
-    const lastVoteTime =
-      sortedVotes.length > 0
-        ? startOfHour(
-            new Date(sortedVotes[sortedVotes.length - 1].timeCreated!),
-          )
-        : startTime;
-
-    const hourlyData: { [hour: string]: { [choice: number]: number } } = {};
-
-    let currentHour = startTime;
-    while (currentHour <= lastVoteTime) {
-      const hourKey = format(currentHour, "yyyy-MM-dd HH:mm");
-      hourlyData[hourKey] = {};
-      choices.forEach((_, index) => {
-        hourlyData[hourKey][index] = 0;
-      });
-      currentHour = addHours(currentHour, 1);
-    }
-
-    sortedVotes.forEach((vote) => {
-      const voteTime = startOfHour(new Date(vote.timeCreated!));
-      const hourKey = format(voteTime, "yyyy-MM-dd HH:mm");
-      const choiceIndex = vote.choice as number;
-      const votingPower = Number(vote.votingPower);
-
-      if (!hourlyData[hourKey]) {
-        hourlyData[hourKey] = {};
-      }
-      if (!hourlyData[hourKey][choiceIndex]) {
-        hourlyData[hourKey][choiceIndex] = 0;
-      }
-      hourlyData[hourKey][choiceIndex] += votingPower;
-    });
-
-    const timePoints = Object.keys(hourlyData).sort();
+    // Calculate cumulative data for each choice
     const cumulativeData: { [choice: number]: [string, number][] } = {};
-
-    choices.forEach((_, choiceIndex) => {
+    results.choices.forEach((_, choiceIndex) => {
       cumulativeData[choiceIndex] = [];
       let cumulative = 0;
 
-      timePoints.forEach((timePoint) => {
-        cumulative += hourlyData[timePoint][choiceIndex] || 0;
-        cumulativeData[choiceIndex].push([timePoint, cumulative]);
+      results.timeSeriesData.forEach((point) => {
+        cumulative += point.values[choiceIndex] || 0;
+        cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
       });
     });
 
+    // Get last known values for sorting
     const lastKnownValues: { [choice: number]: number } = {};
-    choices.forEach((_, choiceIndex) => {
+    results.choices.forEach((_, choiceIndex) => {
       const choiceData = cumulativeData[choiceIndex];
-      if (choiceData.length > 0) {
-        lastKnownValues[choiceIndex] = choiceData[choiceData.length - 1][1];
-      } else {
-        lastKnownValues[choiceIndex] = 0;
-      }
+      lastKnownValues[choiceIndex] =
+        choiceData.length > 0 ? choiceData[choiceData.length - 1][1] : 0;
     });
 
+    // Sort choices by voting power
     const explicitOrder = ["For", "Abstain"];
-    const sortedChoices = [...choices].sort((a, b) => {
+    const sortedChoices = [...results.choices].sort((a, b) => {
       const indexA = explicitOrder.indexOf(a);
       const indexB = explicitOrder.indexOf(b);
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
-      }
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
       return (
-        lastKnownValues[choices.indexOf(b)] -
-        lastKnownValues[choices.indexOf(a)]
+        lastKnownValues[results.choices.indexOf(b)] -
+        lastKnownValues[results.choices.indexOf(a)]
       );
     });
 
     const sortedChoiceIndices = sortedChoices.map((choice) =>
-      choices.indexOf(choice),
+      results.choices.indexOf(choice),
     );
 
+    // Create series for each choice
     const series: echarts.SeriesOption[] = sortedChoiceIndices.map(
-      (originalIndex) => {
-        const choice = choices[originalIndex];
+      (choiceIndex) => {
+        const choice = results.choices[choiceIndex];
         const color = getColorForChoice(choice);
         const shouldStack =
-          quorumChoices.includes(originalIndex) && proposal.quorum;
+          results.quorumChoices.includes(choiceIndex) &&
+          results.quorum !== null;
+
         return {
           name: choice,
           type: "line",
@@ -170,12 +85,13 @@ export const VotingPowerChart = ({
                 color: color,
               }
             : undefined,
-          data: cumulativeData[originalIndex],
+          data: cumulativeData[choiceIndex],
         };
       },
     );
 
-    if (proposal.quorum) {
+    // Add quorum line if needed
+    if (results.quorum !== null) {
       series.push({
         name: "Quorum",
         type: "line",
@@ -189,9 +105,9 @@ export const VotingPowerChart = ({
           },
           data: [
             {
-              yAxis: Number(proposal.quorum),
+              yAxis: results.quorum,
               label: {
-                formatter: `${formatNumberWithSuffix(proposal.quorum)} Quorum threshold`,
+                formatter: `${formatNumberWithSuffix(results.quorum)} Quorum threshold`,
                 position: "insideEndTop",
                 fontSize: 12,
                 fontWeight: "bold",
@@ -202,79 +118,18 @@ export const VotingPowerChart = ({
       });
     }
 
+    // Calculate y-axis max
     const maxVotingValue = Math.max(
-      ...timePoints.map((timePoint) => {
-        const quorumStackSum = quorumChoices.reduce((sum, choiceIndex) => {
-          const choiceData = cumulativeData[choiceIndex];
-          const pointData = choiceData.find((point) => point[0] === timePoint);
-          return sum + (pointData ? pointData[1] : 0);
-        }, 0);
-
-        const nonQuorumStackSum = choices
-          .map((_, index) => index)
-          .filter((index) => !quorumChoices.includes(index))
-          .reduce((sum, choiceIndex) => {
-            const choiceData = cumulativeData[choiceIndex];
-            const pointData = choiceData.find(
-              (point) => point[0] === timePoint,
-            );
-            return sum + (pointData ? pointData[1] : 0);
-          }, 0);
-
-        return Math.max(quorumStackSum, nonQuorumStackSum);
-      }),
+      ...Object.values(lastKnownValues),
+      results.quorum || 0,
     );
-
-    const quorumValue = Number(proposal.quorum) || 0;
-    const yAxisMax = Math.max(maxVotingValue, quorumValue) * 1.1;
-
-    const proposalEndTime = new Date(proposal.timeEnd);
-    const projectionSeries: echarts.SeriesOption[] = [];
-
-    if (lastVoteTime < proposalEndTime) {
-      sortedChoiceIndices.forEach((originalIndex) => {
-        const lastValue = lastKnownValues[originalIndex];
-        const choice = choices[originalIndex];
-        const shouldStack =
-          quorumChoices.includes(originalIndex) && proposal.quorum;
-        const color = getColorForChoice(choice);
-
-        projectionSeries.push({
-          name: `${choice} (Projection)`,
-          type: "line",
-          stack: shouldStack ? "QuorumTotalProjection" : undefined,
-          lineStyle: {
-            width: 1,
-            type: "dashed",
-            color: color,
-          },
-          showSymbol: false,
-          areaStyle: shouldStack
-            ? {
-                opacity: 0.3,
-                color: color,
-              }
-            : undefined,
-          data: [
-            [format(lastVoteTime, "yyyy-MM-dd HH:mm"), lastValue],
-            [format(proposalEndTime, "yyyy-MM-dd HH:mm"), lastValue],
-          ],
-          silent: true,
-          tooltip: {
-            show: false,
-          },
-        });
-      });
-    }
-
-    const allSeries = [...series, ...projectionSeries];
+    const yAxisMax = maxVotingValue * 1.1;
 
     const options: echarts.EChartsOption = {
       tooltip: {
         trigger: "axis",
         formatter: (params: any) => {
           let tooltipText = `<strong>${format(new Date(params[0].axisValue), "MMM d, HH:mm")}</strong><br/>`;
-
           params.forEach((param: any) => {
             if (param.seriesName !== "Quorum") {
               tooltipText += `
@@ -284,30 +139,24 @@ export const VotingPowerChart = ({
                 </div>`;
             }
           });
-
           return tooltipText;
         },
       },
       xAxis: {
         type: "time",
-        name: "Time",
-        min: new Date(proposal.timeStart).getTime(),
-        max: new Date(proposal.timeEnd).getTime(),
+        min: new Date(results.proposal.timeStart).getTime(),
+        max: new Date(results.proposal.timeEnd).getTime(),
         axisLabel: {
           formatter: (value: number) => format(new Date(value), "MMM d, HH:mm"),
         },
       },
-      yAxis: [
-        {
-          type: "value",
-          nameLocation: "middle",
-          nameGap: 30,
-          max: yAxisMax,
-          axisLabel: {
-            formatter: (value: number) => formatNumberWithSuffix(value),
-          },
+      yAxis: {
+        type: "value",
+        max: yAxisMax,
+        axisLabel: {
+          formatter: (value: number) => formatNumberWithSuffix(value),
         },
-      ],
+      },
       legend: {
         data: sortedChoices.map((choice) => ({
           name: choice,
@@ -318,7 +167,7 @@ export const VotingPowerChart = ({
         bottom: 0,
         selectedMode: false,
       },
-      series: allSeries,
+      series,
       grid: {
         left: "10%",
         right: "10%",
@@ -339,7 +188,7 @@ export const VotingPowerChart = ({
       window.removeEventListener("resize", handleResize);
       chart.dispose();
     };
-  }, [proposal, votes]);
+  }, [results]);
 
   return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
 };

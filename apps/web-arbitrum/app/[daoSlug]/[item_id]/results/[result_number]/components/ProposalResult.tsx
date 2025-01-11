@@ -1,6 +1,7 @@
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import { VotingPowerChart } from "./result/VotingPowerChart";
 import { VotingTable } from "./result/VotingTable";
+import { processResults } from "./result/processResults";
 
 interface ProposalResultProps {
   proposal: Selectable<Proposal>;
@@ -8,6 +9,8 @@ interface ProposalResultProps {
 }
 
 export const ProposalResult = ({ proposal, votes }: ProposalResultProps) => {
+  const processedResults = processResults(proposal, votes);
+
   return (
     <div className="flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border border-gray-400 bg-white p-6">
       <div className="mb-4">
@@ -17,9 +20,8 @@ export const ProposalResult = ({ proposal, votes }: ProposalResultProps) => {
         </p>
       </div>
 
-      <VotingPowerChart votes={votes} proposal={proposal} />
-
-      <VotingTable votes={votes} proposal={proposal} />
+      <VotingPowerChart results={processedResults} />
+      <VotingTable results={processedResults} />
     </div>
   );
 };

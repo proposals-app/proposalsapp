@@ -2,66 +2,48 @@
 import React, { useState, useMemo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { formatNumberWithSuffix } from "@/lib/utils";
-import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import { format } from "date-fns";
+import { ProcessedResults } from "./processResults";
 
 interface VotingTableProps {
-  proposal: Selectable<Proposal>;
-  votes: Selectable<Vote>[];
+  results: ProcessedResults;
 }
 
-export const VotingTable = ({ proposal, votes }: VotingTableProps) => {
-  // State to manage sorting
+export const VotingTable = ({ results }: VotingTableProps) => {
   const [sortColumn, setSortColumn] = useState<
-    "choice" | "timeCreated" | "votingPower"
+    "choice" | "timestamp" | "votingPower"
   >("votingPower");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const sortedVotes = useMemo(() => {
-    return [...votes].sort((a, b) => {
+    return [...results.votes].sort((a, b) => {
       let comparison = 0;
 
       switch (sortColumn) {
         case "choice":
-          // Sort by the actual choice text rather than the index
-          const choiceA =
-            (proposal.choices as string[])[a.choice as number] || "";
-          const choiceB =
-            (proposal.choices as string[])[b.choice as number] || "";
-          comparison = choiceA.localeCompare(choiceB);
+          comparison = a.choiceText.localeCompare(b.choiceText);
           break;
-
-        case "timeCreated":
-          const timeA = a.timeCreated ? new Date(a.timeCreated).getTime() : 0;
-          const timeB = b.timeCreated ? new Date(b.timeCreated).getTime() : 0;
-          comparison = timeA - timeB;
+        case "timestamp":
+          comparison = a.timestamp.getTime() - b.timestamp.getTime();
           break;
-
         case "votingPower":
-          const powerA = Number(a.votingPower) || 0;
-          const powerB = Number(b.votingPower) || 0;
-          comparison = powerA - powerB;
+          comparison = a.votingPower - b.votingPower;
           break;
       }
 
       return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [votes, sortColumn, sortDirection, proposal.choices]);
+  }, [results.votes, sortColumn, sortDirection]);
 
-  const handleSortChange = (
-    column: "choice" | "timeCreated" | "votingPower",
-  ) => {
+  const handleSortChange = (column: typeof sortColumn) => {
     if (sortColumn === column) {
-      // Toggle direction if clicking the same column
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      // Default to descending order when switching columns
       setSortColumn(column);
       setSortDirection("desc");
     }
   };
 
-  // Row renderer for react-window
   const Row = ({
     index,
     style,
@@ -70,28 +52,22 @@ export const VotingTable = ({ proposal, votes }: VotingTableProps) => {
     style: React.CSSProperties;
   }) => {
     const vote = sortedVotes[index];
-    const choiceIndex = vote.choice as number;
-    const choice = (proposal.choices as string[])[choiceIndex] || "Unknown";
 
     return (
       <div
         style={{
           ...style,
           display: "grid",
-          gridTemplateColumns: "25% 25% 25% 25%", // Match the header columns
+          gridTemplateColumns: "25% 25% 25% 25%",
           alignItems: "center",
           padding: "0.5rem",
           borderBottom: "1px solid #e5e7eb",
         }}
       >
         <div className="truncate">{vote.voterAddress}</div>
-        <div className="font-medium">{choice}</div>
-        <div>
-          {vote.timeCreated
-            ? format(new Date(vote.timeCreated), "MMM d, yyyy HH:mm")
-            : "Unknown"}
-        </div>
-        <div>{formatNumberWithSuffix(Number(vote.votingPower))} ARB</div>
+        <div className="font-medium">{vote.choiceText}</div>
+        <div>{format(vote.timestamp, "MMM d, yyyy HH:mm")}</div>
+        <div>{formatNumberWithSuffix(vote.votingPower)} ARB</div>
       </div>
     );
   };
@@ -124,11 +100,11 @@ export const VotingTable = ({ proposal, votes }: VotingTableProps) => {
           </div>
           <div>
             <button
-              onClick={() => handleSortChange("timeCreated")}
+              onClick={() => handleSortChange("timestamp")}
               className="flex items-center gap-1"
             >
               Date
-              {sortColumn === "timeCreated" && (
+              {sortColumn === "timestamp" && (
                 <span>{sortDirection === "asc" ? "▲" : "▼"}</span>
               )}
             </button>
@@ -146,7 +122,6 @@ export const VotingTable = ({ proposal, votes }: VotingTableProps) => {
           </div>
         </div>
 
-        {/* Virtualized List */}
         <List
           height={600}
           itemCount={sortedVotes.length}
