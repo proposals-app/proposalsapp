@@ -38,6 +38,8 @@ interface ResultEventProps {
   votes: Selectable<Vote>[];
   resultNumber: number;
   last: boolean;
+  daoSlug: string;
+  groupId: string;
 }
 
 const VoteComponents = {
@@ -56,6 +58,8 @@ export function ResultEvent({
   votes,
   resultNumber,
   last,
+  daoSlug,
+  groupId,
 }: ResultEventProps) {
   const metadata =
     typeof proposal.metadata === "string"
@@ -75,7 +79,7 @@ export function ResultEvent({
         <div className="ml-2 flex w-full items-center justify-between">
           <div className="text-xs">{content}</div>
           <Link
-            href={`${proposal.externalId}/results/${resultNumber}`} // Link to the results page
+            href={`/${daoSlug}/${groupId}/results/${resultNumber}`} // Link to the results page
             className="text-blue-500 hover:underline"
           >
             <ArrowRight size={14} />

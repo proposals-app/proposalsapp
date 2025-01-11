@@ -49,16 +49,16 @@ export default async function ResultPage({
       />
 
       {/* Timeline on the left */}
-      <div className="hidden lg:flex">
-        <Timeline group={group} />
+      <div className="z-10 hidden lg:flex">
+        <Timeline group={group} selectedResult={proposalIndex + 1} />
       </div>
 
       {/* Results on the right */}
-      {/* <div className="flex w-full justify-between lg:pr-80">
-        <div className="mx-auto flex w-2/3 flex-col justify-center pt-24">
+      <div className="flex w-full flex-grow pb-16 pl-[159px] pt-24">
+        <div className="h-full w-full pr-4">
           <ProposalResult proposal={proposal} votes={votes} />
         </div>
-      </div> */}
+      </div>
     </div>
   );
 }

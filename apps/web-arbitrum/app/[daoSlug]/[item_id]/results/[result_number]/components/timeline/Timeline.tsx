@@ -9,7 +9,13 @@ import {
 } from "./OtherEvents";
 import { GroupWithDataType } from "@/app/[daoSlug]/[item_id]/actions";
 
-export async function Timeline({ group }: { group: GroupWithDataType }) {
+export async function Timeline({
+  group,
+  selectedResult,
+}: {
+  group: GroupWithDataType;
+  selectedResult: number;
+}) {
   if (!group) {
     notFound();
   }
@@ -89,8 +95,8 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
             const resultNumber =
               event.type === TimelineEventType.ResultEnded ||
               event.type === TimelineEventType.ResultOngoing
-                ? proposalOrderMap.get(event.proposal.id)
-                : undefined;
+                ? (proposalOrderMap.get(event.proposal.id) ?? 0)
+                : 0;
 
             return (
               <div
@@ -121,7 +127,10 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     timestamp={event.timestamp}
                     proposal={event.proposal}
                     votes={event.votes}
-                    resultNumber={resultNumber!} // Pass the resultNumber
+                    resultNumber={resultNumber!}
+                    selectedResult={selectedResult}
+                    daoSlug={group.daoSlug}
+                    groupId={group.group.id}
                   />
                 ) : event.type === TimelineEventType.ResultEnded ? (
                   <ResultEvent
@@ -129,7 +138,10 @@ export async function Timeline({ group }: { group: GroupWithDataType }) {
                     timestamp={event.timestamp}
                     proposal={event.proposal}
                     votes={event.votes}
-                    resultNumber={resultNumber!} // Pass the resultNumber
+                    resultNumber={resultNumber!}
+                    selectedResult={selectedResult}
+                    daoSlug={group.daoSlug}
+                    groupId={group.group.id}
                   />
                 ) : event.type === TimelineEventType.Basic ? (
                   <BasicEvent

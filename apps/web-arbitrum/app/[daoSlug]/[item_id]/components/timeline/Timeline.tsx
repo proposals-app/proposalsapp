@@ -97,6 +97,8 @@ export async function Timeline({
                     votes={event.votes}
                     resultNumber={resultNumber!} // Pass the resultNumber
                     last={index == 0}
+                    daoSlug={group.daoSlug}
+                    groupId={group.group.id}
                   />
                 ) : event.type === TimelineEventType.ResultEnded ? (
                   <ResultEvent
@@ -106,6 +108,8 @@ export async function Timeline({
                     votes={event.votes}
                     resultNumber={resultNumber!} // Pass the resultNumber
                     last={index == 0}
+                    daoSlug={group.daoSlug}
+                    groupId={group.group.id}
                   />
                 ) : event.type === TimelineEventType.Basic ? (
                   <BasicEvent

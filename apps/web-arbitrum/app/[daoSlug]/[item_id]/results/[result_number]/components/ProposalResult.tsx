@@ -38,9 +38,9 @@ export const ProposalResult = ({ proposal, votes }: ProposalResultProps) => {
   const winningPercentage = (maxVotingPower / totalVotingPower) * 100;
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md">
-      <h2 className="mb-4 text-2xl font-semibold">{proposal.name}</h2>
-      <div className="space-y-4">
+    <div className="flex h-[calc(100vh-114px)] w-full flex-col rounded-lg border border-gray-600 bg-white p-6">
+      {/* <h2 className="mb-4 text-2xl font-semibold">{proposal.name}</h2>
+      <div className="flex flex-grow flex-col space-y-4">
         <div className="flex h-4 w-full overflow-hidden rounded-md bg-gray-200">
           <div
             className="h-full bg-green-500"
@@ -58,7 +58,7 @@ export const ProposalResult = ({ proposal, votes }: ProposalResultProps) => {
         <div className="text-sm text-gray-600">
           Winning with {winningPercentage.toFixed(2)}% of the votes.
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

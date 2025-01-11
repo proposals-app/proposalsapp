@@ -1,5 +1,6 @@
 import { Selectable, Proposal, Vote } from "@proposalsapp/db";
 import { format } from "date-fns";
+import Link from "next/link";
 
 interface ResultEventProps {
   content: string;
@@ -7,15 +8,22 @@ interface ResultEventProps {
   proposal: Selectable<Proposal>;
   votes: Selectable<Vote>[];
   resultNumber: number;
+  selectedResult: number;
+  daoSlug: string;
+  groupId: string;
 }
 
 export function ResultEvent({
   content,
   timestamp,
   proposal,
+  resultNumber,
+  selectedResult,
+  daoSlug,
+  groupId,
 }: ResultEventProps) {
   // Determine if the vote is onchain or offchain
-  const isOnchain = proposal.daoIndexerId !== null; // Adjust this logic based on your data model
+  const isOnchain = content.includes("Onchain vote"); // Adjust this logic based on your data model
   const voteType = isOnchain ? "Onchain" : "Offchain";
 
   // Determine if the vote is live or ended
@@ -25,9 +33,16 @@ export function ResultEvent({
   const startDate = format(new Date(proposal.timeStart), "MMM d");
   const endDate = format(new Date(proposal.timeEnd), "MMM d");
 
-  return (
+  // Content to be rendered inside the div
+  const eventContent = (
     <div className="relative flex w-full items-center py-2">
-      <div className="flex w-full flex-col gap-1 rounded-l-xl border bg-white px-4 py-2 pr-8">
+      <div
+        className={`flex flex-col gap-1 ${
+          resultNumber == selectedResult
+            ? "w-36 rounded-l-xl border-b border-l border-t"
+            : "w-28 rounded-xl border"
+        } border-gray-400 bg-white px-4 py-2 pr-8`}
+      >
         <div className="absolute left-3 top-5 h-[7px] w-[7px] rounded-full border border-white bg-gray-500" />
 
         <div className="ml-2 text-sm font-semibold">{voteType}</div>
@@ -48,4 +63,16 @@ export function ResultEvent({
       </div>
     </div>
   );
+
+  // If resultNumber is not equal to selectedResult, wrap the content in a Link
+  if (resultNumber !== selectedResult) {
+    return (
+      <Link href={`/${daoSlug}/${groupId}/results/${resultNumber}`}>
+        {eventContent}
+      </Link>
+    );
+  }
+
+  // Otherwise, return the content as is
+  return eventContent;
 }
