@@ -153,7 +153,7 @@ function processWeightedVotes(
 
       // Process each choice in the weighted vote
       Object.entries(weightedChoices).forEach(([choiceIndex, weight]) => {
-        const choice = parseInt(choiceIndex);
+        const choice = parseInt(choiceIndex) - 1; // Convert to 0-based index
         const normalizedPower =
           (Number(vote.votingPower) * weight) / totalWeight;
 
@@ -171,6 +171,23 @@ function processWeightedVotes(
         hourlyData[hourKey][choice] =
           (hourlyData[hourKey][choice] || 0) + normalizedPower;
       });
+    } else {
+      // Handle non-weighted votes (fallback to basic processing)
+      const choice = (vote.choice as number) - 1; // Convert to 0-based index
+      const timestamp = new Date(vote.timeCreated!);
+      const hourKey = format(startOfHour(timestamp), "yyyy-MM-dd HH:mm");
+
+      processedVotes.push({
+        choice,
+        choiceText: choices[choice] || "Unknown Choice",
+        votingPower: Number(vote.votingPower),
+        voterAddress: vote.voterAddress,
+        timestamp,
+        color: getColorForChoice(choices[choice]),
+      });
+
+      hourlyData[hourKey][choice] =
+        (hourlyData[hourKey][choice] || 0) + Number(vote.votingPower);
     }
   });
 
