@@ -86,6 +86,7 @@ export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
               }
             : undefined,
           data: cumulativeData[choiceIndex],
+          z: choice === "For" ? 2 : 1,
         };
       },
     );
@@ -123,7 +124,7 @@ export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
       ...Object.values(lastKnownValues),
       results.quorum || 0,
     );
-    const yAxisMax = maxVotingValue * 1.1;
+    const yAxisMax = roundToGoodValue(maxVotingValue * 1.1);
 
     const options: echarts.EChartsOption = {
       tooltip: {
@@ -157,16 +158,16 @@ export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
           formatter: (value: number) => formatNumberWithSuffix(value),
         },
       },
-      legend: {
-        data: sortedChoices.map((choice) => ({
-          name: choice,
-          itemStyle: {
-            color: getColorForChoice(choice),
-          },
-        })),
-        bottom: 0,
-        selectedMode: false,
-      },
+      // legend: {
+      //   data: sortedChoices.map((choice) => ({
+      //     name: choice,
+      //     itemStyle: {
+      //       color: getColorForChoice(choice),
+      //     },
+      //   })),
+      //   bottom: 0,
+      //   selectedMode: false,
+      // },
       series,
       grid: {
         left: "10%",
@@ -191,4 +192,30 @@ export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
   }, [results]);
 
   return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
+};
+
+// Helper function to round up to the nearest "good" value
+const roundToGoodValue = (value: number): number => {
+  const exponent = Math.floor(Math.log10(value)); // Get the magnitude of the number
+  const magnitude = Math.pow(10, exponent); // Get the base magnitude (e.g., 10, 100, 1000)
+  const normalized = value / magnitude; // Normalize the value to the base magnitude
+
+  // Define rounding increments based on the normalized value
+  if (normalized <= 1.5) {
+    return 1.5 * magnitude;
+  } else if (normalized <= 2) {
+    return 2 * magnitude;
+  } else if (normalized <= 2.5) {
+    return 2.5 * magnitude;
+  } else if (normalized <= 3) {
+    return 3 * magnitude;
+  } else if (normalized <= 4) {
+    return 4 * magnitude;
+  } else if (normalized <= 5) {
+    return 5 * magnitude;
+  } else if (normalized <= 7.5) {
+    return 7.5 * magnitude;
+  } else {
+    return 10 * magnitude;
+  }
 };
