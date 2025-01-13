@@ -231,22 +231,24 @@ function processApprovalVotes(
       : [vote.choice as number];
     const timestamp = new Date(vote.timeCreated!);
     const hourKey = format(startOfHour(timestamp), "yyyy-MM-dd HH:mm");
-    const powerPerChoice = Number(vote.votingPower) / approvedChoices.length;
 
+    // Each approved choice gets the full voting power of the voter
     approvedChoices.forEach((choice) => {
+      const choiceIndex = choice - 1; // Convert to 0-based index
+
       // Add to processed votes
       processedVotes.push({
-        choice,
-        choiceText: choices[choice] || "Unknown Choice",
-        votingPower: powerPerChoice,
+        choice: choiceIndex,
+        choiceText: choices[choiceIndex] || "Unknown Choice",
+        votingPower: Number(vote.votingPower), // Full voting power for each choice
         voterAddress: vote.voterAddress,
         timestamp,
-        color: getColorForChoice(choices[choice]),
+        color: getColorForChoice(choices[choiceIndex]),
       });
 
       // Accumulate in hourly data
-      hourlyData[hourKey][choice] =
-        (hourlyData[hourKey][choice] || 0) + powerPerChoice;
+      hourlyData[hourKey][choiceIndex] =
+        (hourlyData[hourKey][choiceIndex] || 0) + Number(vote.votingPower);
     });
   });
 
