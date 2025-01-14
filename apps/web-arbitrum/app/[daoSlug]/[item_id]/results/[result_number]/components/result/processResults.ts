@@ -25,7 +25,7 @@ export interface ProcessedResults {
   quorumChoices: number[];
 }
 
-type ProposalMetadata = {
+export type ProposalMetadata = {
   quorumChoices?: number[];
   voteType?: string;
 };
@@ -269,26 +269,26 @@ function processApprovalVotes(
   };
 }
 
-// Process ranked choice votes
 function processRankedChoiceVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
 ): ProcessedResults {
-  const processedVotes: VoteResult[] = [];
-  const timeSeriesData: TimeSeriesPoint[] = [];
-  let totalVotingPower = 0;
+  const DEBUG = false;
+  const log = (...args: any[]) => {
+    if (DEBUG) console.log(...args);
+  };
 
-  // Sort votes by timestamp
+  // Convert and sort votes
   const sortedVotes = votes
     .filter((vote) => vote.timeCreated && Array.isArray(vote.choice))
     .map((vote) => ({
-      timestamp: new Date(vote.timeCreated!),
+      timestamp: new Date(vote.timeCreated!).getTime(),
       votingPower: Number(vote.votingPower),
       choice: (vote.choice as number[]).map((c) => c - 1), // Convert to 0-based index
       voterAddress: vote.voterAddress,
     }))
-    .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    .sort((a, b) => a.timestamp - b.timestamp);
 
   if (sortedVotes.length === 0) {
     return {
@@ -298,136 +298,186 @@ function processRankedChoiceVotes(
       choices,
       totalVotingPower: 0,
       quorum: proposal.quorum ? Number(proposal.quorum) : null,
-      quorumChoices: (proposal.metadata as any)?.quorumChoices ?? [],
+      quorumChoices:
+        (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
     };
   }
 
-  // Initialize hourly data
-  const hourlyData = new Map<string, { [choice: number]: number }>();
-  const startTime = new Date(proposal.timeStart);
-  const endTime = sortedVotes[sortedVotes.length - 1].timestamp;
-  let currentHour = startOfHour(startTime);
-
-  while (currentHour <= endTime) {
-    const hourKey = format(currentHour, "yyyy-MM-dd HH:mm");
-    const hourData: { [choice: number]: number } = {};
-    choices.forEach((_, index) => {
-      hourData[index] = 0;
-    });
-    hourlyData.set(hourKey, hourData);
-    currentHour = new Date(currentHour.getTime() + 60 * 60 * 1000);
-  }
-
-  // Function to run one round of IRV counting
-  function countIRVRound(
-    currentVotes: typeof sortedVotes,
-    eliminatedChoices: number[],
-  ): {
-    voteCounts: { [choice: number]: number };
-    eliminated: number[];
-    winner?: number;
-  } {
-    const voteCounts: { [key: number]: number } = {};
-    let totalPower = 0;
-
-    // Count first-choice votes that haven't been eliminated
-    currentVotes.forEach((vote) => {
-      const validChoice = vote.choice.find(
-        (c) => !eliminatedChoices.includes(c),
-      );
-      if (validChoice !== undefined) {
-        voteCounts[validChoice] =
-          (voteCounts[validChoice] || 0) + vote.votingPower;
-        totalPower += vote.votingPower;
-      }
-    });
-
-    // Check for majority winner
-    const majorityThreshold = totalPower / 2;
+  // Helper function to run IRV rounds
+  const runIRV = (currentVotes: typeof sortedVotes) => {
+    let eliminatedChoices: number[] = [];
     let winner: number | undefined;
-    Object.entries(voteCounts).forEach(([choice, votes]) => {
-      if (votes > majorityThreshold) {
-        winner = parseInt(choice);
-      }
-    });
-
-    // If no winner, eliminate choice with fewest votes
-    let toEliminate: number | undefined;
-    if (!winner) {
-      let minVotes = Infinity;
-      Object.entries(voteCounts).forEach(([choice, votes]) => {
-        const choiceNum = parseInt(choice);
-        if (votes < minVotes && !eliminatedChoices.includes(choiceNum)) {
-          minVotes = votes;
-          toEliminate = choiceNum;
-        }
-      });
-    }
-
-    return {
-      voteCounts,
-      eliminated:
-        toEliminate !== undefined
-          ? [...eliminatedChoices, toEliminate]
-          : eliminatedChoices,
-      winner,
-    };
-  }
-
-  // Process votes for each timestamp
-  sortedVotes.forEach((vote) => {
-    const hourKey = format(startOfHour(vote.timestamp), "yyyy-MM-dd HH:mm");
-    const currentVotes = sortedVotes.filter(
-      (v) => v.timestamp.getTime() <= vote.timestamp.getTime(),
-    );
-
-    let eliminated: number[] = [];
-    let result: ReturnType<typeof countIRVRound>;
     let finalVoteCounts: { [key: number]: number } = {};
 
-    // Run IRV rounds until we have a winner or no more choices to eliminate
     do {
-      result = countIRVRound(currentVotes, eliminated);
-      finalVoteCounts = result.voteCounts;
-      eliminated = result.eliminated;
-    } while (!result.winner && eliminated.length < choices.length - 1);
+      const voteCounts: { [key: number]: number } = {};
 
-    // Update hourly data
-    const hourData = hourlyData.get(hourKey) || {};
+      // Initialize vote counts to 0 for all choices
+      choices.forEach((_, index) => {
+        voteCounts[index] = 0;
+      });
+
+      // Count votes for the highest-ranked non-eliminated choice for each voter
+      currentVotes.forEach((vote) => {
+        // Find the first non-eliminated choice in the voter's ranking
+        const validChoice = vote.choice.find(
+          (choice) => !eliminatedChoices.includes(choice),
+        );
+        if (validChoice !== undefined) {
+          voteCounts[validChoice] =
+            (voteCounts[validChoice] || 0) + vote.votingPower;
+        }
+      });
+
+      // Set eliminated choices to 0 votes
+      eliminatedChoices.forEach((choice) => {
+        voteCounts[choice] = 0;
+      });
+
+      const totalVotes = Object.values(voteCounts).reduce(
+        (sum, count) => sum + count,
+        0,
+      );
+      const majorityThreshold = totalVotes / 2;
+
+      log("Round Summary:");
+      log("Total Votes:", totalVotes);
+      log("Majority Threshold:", majorityThreshold);
+      log(
+        "Current Vote Counts:",
+        Object.entries(voteCounts).map(
+          ([choice, count]) =>
+            `${choices[Number(choice)]}: ${count} (${((count / totalVotes) * 100).toFixed(2)}%)`,
+        ),
+      );
+      log(
+        "Eliminated Choices:",
+        eliminatedChoices.map((c) => choices[c]).join(", "),
+      );
+
+      // Check for a winner
+      const winningEntry = Object.entries(voteCounts)
+        .filter(([choice]) => !eliminatedChoices.includes(Number(choice)))
+        .find(([_, votes]) => votes > majorityThreshold);
+
+      if (winningEntry) {
+        winner = Number(winningEntry[0]);
+        finalVoteCounts = voteCounts;
+        break;
+      }
+
+      // Find the choice with the fewest votes to eliminate
+      const activeChoices = Object.entries(voteCounts)
+        .filter(([choice]) => !eliminatedChoices.includes(Number(choice)))
+        .map(([choice, votes]) => ({
+          choice: Number(choice),
+          votes,
+        }));
+
+      if (activeChoices.length > 0) {
+        const minVotes = Math.min(...activeChoices.map((c) => c.votes));
+        const toEliminate = activeChoices.find((c) => c.votes === minVotes);
+
+        if (toEliminate) {
+          eliminatedChoices.push(toEliminate.choice);
+          log(
+            "Eliminating:",
+            choices[toEliminate.choice],
+            `(${toEliminate.votes} votes)`,
+          );
+        }
+      }
+
+      finalVoteCounts = voteCounts;
+    } while (!winner && eliminatedChoices.length < choices.length - 1);
+
+    return { winner, finalVoteCounts };
+  };
+
+  // Initialize hourly data
+  const startTime = new Date(proposal.timeStart);
+  const endTime = new Date(
+    Math.max(
+      ...sortedVotes.map((v) => v.timestamp),
+      new Date(proposal.timeEnd).getTime(),
+    ),
+  );
+  const hourlyData = initializeHourlyData(startTime, endTime, choices);
+
+  // Process votes hourly
+  Object.keys(hourlyData).forEach((hourKey) => {
+    const hourTimestamp = new Date(hourKey).getTime();
+    log("\n=== Processing hour:", hourKey, "===");
+
+    // Filter votes up to this hour
+    const currentVotes = sortedVotes.filter(
+      (v) => v.timestamp <= hourTimestamp,
+    );
+
+    if (currentVotes.length === 0) {
+      log("No votes in this hour.");
+      return;
+    }
+
+    // Run IRV for this hour
+    const { winner, finalVoteCounts } = runIRV(currentVotes);
+
+    // Verify we have a winner
+    const totalVotes = Object.values(finalVoteCounts).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
+    const winningVotes = winner !== undefined ? finalVoteCounts[winner] : 0;
+    const winningPercentage = (winningVotes / totalVotes) * 100;
+
+    log("Final Result:");
+    log(`Winner: ${winner !== undefined ? choices[winner] : "No winner"}`);
+    log(`Winning Percentage: ${winningPercentage.toFixed(2)}%`);
+
+    if (winner === undefined || winningPercentage <= 50) {
+      log("WARNING: No majority winner found at this hour!");
+    }
+
+    // Update hourly data with final vote counts
     choices.forEach((_, index) => {
-      hourData[index] = finalVoteCounts[index] || 0;
+      hourlyData[hourKey][index] = finalVoteCounts[index] || 0;
     });
-    hourlyData.set(hourKey, hourData);
-
-    // Add to processed votes
-    processedVotes.push({
-      choice: vote.choice[0], // Use first choice for display
-      choiceText: choices[vote.choice[0]] || "Unknown Choice",
-      votingPower: vote.votingPower,
-      voterAddress: vote.voterAddress,
-      timestamp: vote.timestamp,
-      color: getColorForChoice(choices[vote.choice[0]]),
-    });
-
-    totalVotingPower += vote.votingPower;
   });
 
-  // Convert hourly data to time series format
-  const timeSeriesPoints = Array.from(hourlyData.entries()).map(
-    ([timestamp, values]) => ({
+  // Convert hourly data to timeSeriesData format
+  const timeSeriesData: TimeSeriesPoint[] = Object.entries(hourlyData)
+    .map(([timestamp, values]) => ({
       timestamp,
       values,
-    }),
+    }))
+    .sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+
+  // Create processed votes array for the table
+  const processedVotes: VoteResult[] = sortedVotes.map((vote) => ({
+    choice: vote.choice[0], // Use first choice for display
+    choiceText: choices[vote.choice[0]] || "Unknown Choice",
+    votingPower: vote.votingPower,
+    voterAddress: vote.voterAddress,
+    timestamp: new Date(vote.timestamp),
+    color: getColorForChoice(choices[vote.choice[0]]),
+  }));
+
+  const totalVotingPower = processedVotes.reduce(
+    (sum, vote) => sum + vote.votingPower,
+    0,
   );
 
   return {
     votes: processedVotes,
     proposal,
-    timeSeriesData: timeSeriesPoints,
+    timeSeriesData,
     choices,
     totalVotingPower,
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
-    quorumChoices: (proposal.metadata as any)?.quorumChoices ?? [],
+    quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
   };
 }
 

@@ -4,7 +4,11 @@ import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import { format } from "date-fns";
 import { formatNumberWithSuffix } from "@/lib/utils";
-import { getColorForChoice, ProcessedResults } from "./processResults";
+import {
+  getColorForChoice,
+  ProcessedResults,
+  ProposalMetadata,
+} from "./processResults";
 
 interface VotingPowerChartProps {
   results: ProcessedResults;
@@ -17,26 +21,38 @@ export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
     if (!chartRef.current) return;
 
     const chart = echarts.init(chartRef.current);
-    const timePoints = results.timeSeriesData.map((point) => point.timestamp);
+
+    const metadata = results.proposal.metadata as ProposalMetadata;
+    const isRankedChoice = metadata.voteType === "ranked-choice";
 
     // Calculate cumulative data for each choice
     const cumulativeData: { [choice: number]: [string, number][] } = {};
-    results.choices.forEach((_, choiceIndex) => {
-      cumulativeData[choiceIndex] = [];
-      let cumulative = 0;
+    if (!isRankedChoice) {
+      results.choices.forEach((_, choiceIndex) => {
+        cumulativeData[choiceIndex] = [];
+        let cumulative = 0;
 
-      results.timeSeriesData.forEach((point) => {
-        cumulative += point.values[choiceIndex] || 0;
-        cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
+        results.timeSeriesData.forEach((point) => {
+          cumulative += point.values[choiceIndex] || 0;
+          cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
+        });
       });
-    });
+    }
 
     // Get last known values for sorting
     const lastKnownValues: { [choice: number]: number } = {};
     results.choices.forEach((_, choiceIndex) => {
-      const choiceData = cumulativeData[choiceIndex];
-      lastKnownValues[choiceIndex] =
-        choiceData.length > 0 ? choiceData[choiceData.length - 1][1] : 0;
+      if (isRankedChoice) {
+        // For ranked-choice, use the raw values from the last time series point
+        const lastPoint =
+          results.timeSeriesData[results.timeSeriesData.length - 1];
+        lastKnownValues[choiceIndex] = lastPoint?.values[choiceIndex] || 0;
+      } else {
+        // For other vote types, use the cumulative values
+        const choiceData = cumulativeData[choiceIndex];
+        lastKnownValues[choiceIndex] =
+          choiceData.length > 0 ? choiceData[choiceData.length - 1][1] : 0;
+      }
     });
 
     // Sort choices by voting power
@@ -64,6 +80,17 @@ export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
           results.quorumChoices.includes(choiceIndex) &&
           results.quorum !== null;
 
+        let zIndex: number;
+        if (choice === "Against") {
+          zIndex = 3; // Highest z-index
+        } else if (choice === "For") {
+          zIndex = 2; // Middle z-index
+        } else if (choice === "Abstain") {
+          zIndex = 1; // Lowest z-index
+        } else {
+          zIndex = 0; // Default for other choices
+        }
+
         return {
           name: choice,
           type: "line",
@@ -85,8 +112,13 @@ export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
                 color: color,
               }
             : undefined,
-          data: cumulativeData[choiceIndex],
-          z: choice === "For" ? 2 : 1,
+          data: isRankedChoice
+            ? results.timeSeriesData.map((point) => [
+                point.timestamp,
+                point.values[choiceIndex] || 0,
+              ])
+            : cumulativeData[choiceIndex],
+          z: zIndex,
         };
       },
     );
@@ -158,16 +190,6 @@ export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
           formatter: (value: number) => formatNumberWithSuffix(value),
         },
       },
-      // legend: {
-      //   data: sortedChoices.map((choice) => ({
-      //     name: choice,
-      //     itemStyle: {
-      //       color: getColorForChoice(choice),
-      //     },
-      //   })),
-      //   bottom: 0,
-      //   selectedMode: false,
-      // },
       series,
       grid: {
         left: "10%",

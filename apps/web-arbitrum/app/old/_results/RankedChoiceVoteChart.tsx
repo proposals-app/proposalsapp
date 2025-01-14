@@ -24,12 +24,6 @@ type ProcessedVote = {
   choice: number[];
 };
 
-type VoteTally = {
-  [timestamp: number]: {
-    [choice: string]: number;
-  };
-};
-
 type RoundResult = {
   voteCounts: { [choice: number]: number };
   eliminated: number[];
