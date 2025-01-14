@@ -68,14 +68,14 @@ function initializeHourlyData(
   return hourlyData;
 }
 
-const ACCUMULATED_VOTING_POWER_THRESHOLD = 5000;
-
 // Process basic (single-choice) votes
 async function processBasicVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
 ): Promise<ProcessedResults> {
+  const ACCUMULATED_VOTING_POWER_THRESHOLD = 5000;
+
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   const processedVotes: VoteResult[] = votes.map((vote) => {
