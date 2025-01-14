@@ -34,9 +34,7 @@ export type ProposalMetadata = {
   voteType?: string;
 };
 
-export const getColorForChoice = (
-  choice: string | undefined | null,
-): string => {
+export function getColorForChoice(choice: string | undefined | null): string {
   if (!choice) return "#CBD5E1"; // Default grey color
   const lowerCaseChoice = choice.toLowerCase();
   if (/^(for|yes|yae)/.test(lowerCaseChoice)) return "#10B981"; // Green
@@ -48,7 +46,7 @@ export const getColorForChoice = (
     0,
   );
   return colors[Math.abs(hash) % colors.length];
-};
+}
 
 function initializeHourlyData(
   startTime: Date,
