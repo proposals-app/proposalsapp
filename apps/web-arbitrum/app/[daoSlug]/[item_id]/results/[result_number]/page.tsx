@@ -52,9 +52,7 @@ export default async function ResultPage({
       {/* Timeline on the left */}
 
       <div className="z-10 hidden lg:flex">
-        <Suspense>
-          <Timeline group={group} selectedResult={proposalIndex + 1} />{" "}
-        </Suspense>
+        <Timeline group={group} selectedResult={proposalIndex + 1} />{" "}
       </div>
 
       {/* Results on the right */}
