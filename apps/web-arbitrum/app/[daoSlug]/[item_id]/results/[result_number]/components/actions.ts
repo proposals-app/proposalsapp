@@ -331,246 +331,161 @@ function processRankedChoiceVotes(
   choices: string[],
   proposal: Selectable<Proposal>,
 ): ProcessedResults {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
+  // Pre-compute colors once
+  const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
-  const DEBUG = false;
-  const log = (...args: any[]) => {
-    if (DEBUG) console.log(...args);
-  };
-
-  // Convert choices to a Set to ensure uniqueness
-  const uniqueChoices = [...new Set(choices)];
-
-  // Convert and sort votes
-  const sortedVotes = votes
-    .filter((vote) => vote.timeCreated && Array.isArray(vote.choice))
-    .map((vote) => ({
-      timestamp: new Date(vote.timeCreated!).getTime(),
-      votingPower: Number(vote.votingPower),
-      choice: (vote.choice as number[]).map((c) => c - 1), // Convert to 0-based index
-      voterAddress: vote.voterAddress,
-    }))
-    .sort((a, b) => a.timestamp - b.timestamp);
-
-  if (sortedVotes.length === 0) {
+  // Early return for empty votes
+  if (!votes.length) {
     return {
       votes: [],
       proposal,
       timeSeriesData: [],
-      choices: uniqueChoices,
-      choiceColors: uniqueChoices.map((choice) => getColorForChoice(choice)), // Include choice colors
+      choices,
+      choiceColors,
       totalVotingPower: 0,
       quorum: proposal.quorum ? Number(proposal.quorum) : null,
       quorumChoices:
         (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-      winner: null, // No winner
+      winner: null,
     };
   }
 
-  // Helper function to run IRV rounds
-  const runIRV = (currentVotes: typeof sortedVotes) => {
-    let eliminatedChoices = new Set<number>(); // Use a Set for eliminated choices
-    let winner: number | undefined;
-    let finalVoteCounts = new Map<number, number>(); // Use a Map for vote counts
+  // Pre-process votes once instead of filtering multiple times
+  const processedVotes = votes
+    .filter((vote) => vote.timeCreated && Array.isArray(vote.choice))
+    .map((vote) => ({
+      timestamp: new Date(vote.timeCreated!).getTime(),
+      votingPower: Number(vote.votingPower),
+      choice: (vote.choice as number[]).map((c) => c - 1),
+      voterAddress: vote.voterAddress,
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
 
-    do {
-      const voteCounts = new Map<number, number>(); // Use a Map for vote counts
-
-      // Initialize vote counts to 0 for all choices
-      uniqueChoices.forEach((_, index) => {
-        voteCounts.set(index, 0);
-      });
-
-      // Count votes for the highest-ranked non-eliminated choice for each voter
-      currentVotes.forEach((vote) => {
-        // Find the first non-eliminated choice in the voter's ranking
-        const validChoice = vote.choice.find(
-          (choice) => !eliminatedChoices.has(choice),
-        );
-        if (validChoice !== undefined) {
-          voteCounts.set(
-            validChoice,
-            (voteCounts.get(validChoice) || 0) + vote.votingPower,
-          );
-        }
-      });
-
-      // Set eliminated choices to 0 votes
-      eliminatedChoices.forEach((choice) => {
-        voteCounts.set(choice, 0);
-      });
-
-      const totalVotes = Array.from(voteCounts.values()).reduce(
-        (sum, count) => sum + count,
-        0,
-      );
-      const majorityThreshold = totalVotes / 2;
-
-      log("Round Summary:");
-      log("Total Votes:", totalVotes);
-      log("Majority Threshold:", majorityThreshold);
-      log(
-        "Current Vote Counts:",
-        Array.from(voteCounts.entries()).map(
-          ([choice, count]) =>
-            `${uniqueChoices[choice]}: ${count} (${((count / totalVotes) * 100).toFixed(2)}%)`,
-        ),
-      );
-      log(
-        "Eliminated Choices:",
-        Array.from(eliminatedChoices)
-          .map((c) => uniqueChoices[c])
-          .join(", "),
-      );
-
-      // Check for a winner
-      const winningEntry = Array.from(voteCounts.entries())
-        .filter(([choice]) => !eliminatedChoices.has(choice))
-        .find(([_, votes]) => votes > majorityThreshold);
-
-      if (winningEntry) {
-        winner = winningEntry[0];
-        finalVoteCounts = voteCounts;
-        break;
+  // Optimize IRV calculation with memoization
+  const memoizedIRV = (() => {
+    const cache = new Map<
+      string,
+      {
+        winner: number | undefined;
+        finalVoteCounts: Map<number, number>;
+        eliminatedChoices: Set<number>;
       }
+    >();
 
-      // Find the choice with the fewest votes to eliminate
-      const activeChoices = Array.from(voteCounts.entries())
-        .filter(([choice]) => !eliminatedChoices.has(choice))
-        .map(([choice, votes]) => ({
-          choice,
-          votes,
-        }));
+    return (currentVotes: typeof processedVotes) => {
+      const key = currentVotes.length.toString();
+      if (cache.has(key)) return cache.get(key)!;
 
-      if (activeChoices.length > 0) {
-        const minVotes = Math.min(...activeChoices.map((c) => c.votes));
-        const toEliminate = activeChoices.find((c) => c.votes === minVotes);
+      const eliminatedChoices = new Set<number>();
+      const voteCounts = new Map<number, number>();
+      let winner: number | undefined;
 
-        if (toEliminate) {
-          eliminatedChoices.add(toEliminate.choice);
-          log(
-            "Eliminating:",
-            uniqueChoices[toEliminate.choice],
-            `(${toEliminate.votes} votes)`,
+      // Initialize vote counts once
+      choices.forEach((_, index) => voteCounts.set(index, 0));
+
+      while (!winner && eliminatedChoices.size < choices.length - 1) {
+        // Reset vote counts for active choices
+        voteCounts.forEach((_, key) => voteCounts.set(key, 0));
+
+        // Count votes in a single pass
+        let totalVotes = 0;
+        currentVotes.forEach((vote) => {
+          const validChoice = vote.choice.find(
+            (choice) => !eliminatedChoices.has(choice),
           );
+          if (validChoice !== undefined) {
+            const currentCount = voteCounts.get(validChoice) || 0;
+            voteCounts.set(validChoice, currentCount + vote.votingPower);
+            totalVotes += vote.votingPower;
+          }
+        });
+
+        const majorityThreshold = totalVotes / 2;
+
+        // Find winner or choice to eliminate efficiently
+        let minVotes = Infinity;
+        let choiceToEliminate = -1;
+        let potentialWinner = -1;
+        let maxVotes = 0;
+
+        voteCounts.forEach((votes, choice) => {
+          if (eliminatedChoices.has(choice)) return;
+
+          if (votes > majorityThreshold) {
+            winner = choice;
+          }
+          if (votes < minVotes) {
+            minVotes = votes;
+            choiceToEliminate = choice;
+          }
+          if (votes > maxVotes) {
+            maxVotes = votes;
+            potentialWinner = choice;
+          }
+        });
+
+        if (!winner && choiceToEliminate !== -1) {
+          eliminatedChoices.add(choiceToEliminate);
         }
       }
 
-      finalVoteCounts = voteCounts;
-    } while (!winner && eliminatedChoices.size < uniqueChoices.length - 1);
+      // If no winner found, use the choice with most votes
+      if (!winner) {
+        winner = Array.from(voteCounts.entries())
+          .filter(([choice]) => !eliminatedChoices.has(choice))
+          .reduce((a, b) => (a[1] > b[1] ? a : b))[0];
+      }
 
-    return { winner, finalVoteCounts, eliminatedChoices };
-  };
+      const result = { winner, finalVoteCounts: voteCounts, eliminatedChoices };
+      cache.set(key, result);
+      return result;
+    };
+  })();
 
-  // Initialize time series data
-  const timeSeriesData: TimeSeriesPoint[] = [];
-  const timestampMap = new Map<string, TimeSeriesPoint>(); // Map to track unique timestamps
-  let currentVotes: typeof sortedVotes = [];
-  let eliminatedChoices = new Set<number>();
+  // Generate time series data more efficiently
+  const timeSeriesMap = new Map<string, TimeSeriesPoint>();
+  let runningVotes: typeof processedVotes = [];
 
-  // Process each vote individually
-  sortedVotes.forEach((vote, index) => {
-    currentVotes.push(vote);
+  processedVotes.forEach((vote) => {
+    runningVotes.push(vote);
+    const { finalVoteCounts, eliminatedChoices } = memoizedIRV(runningVotes);
 
-    // Run IRV for the current set of votes
-    const {
-      winner,
-      finalVoteCounts,
-      eliminatedChoices: currentEliminated,
-    } = runIRV(currentVotes);
+    const timestampKey = new Date(vote.timestamp).toISOString();
+    const values: Record<number, number> = {};
 
-    // Update the list of eliminated choices
-    eliminatedChoices = currentEliminated;
-
-    // Ensure eliminated choices are set to 0 in the final vote counts
-    eliminatedChoices.forEach((choice) => {
-      finalVoteCounts.set(choice, 0);
+    finalVoteCounts.forEach((count, choice) => {
+      if (!eliminatedChoices.has(choice)) {
+        values[choice] = count;
+      }
     });
 
-    // Check if a time series point for this timestamp already exists
-    const timestampKey = new Date(vote.timestamp).toISOString();
-    const existingTimeSeriesPoint = timestampMap.get(timestampKey);
-
-    if (existingTimeSeriesPoint) {
-      // Update the existing time series point
-      Array.from(finalVoteCounts.entries()).forEach(([choice, count]) => {
-        if (!eliminatedChoices.has(choice)) {
-          existingTimeSeriesPoint.values[choice] = count;
-        }
-      });
-    } else {
-      // Create a new time series point
-      const timeSeriesPoint: TimeSeriesPoint = {
-        timestamp: timestampKey,
-        values: {},
-      };
-
-      // Only include non-eliminated choices in the time series data
-      Array.from(finalVoteCounts.entries()).forEach(([choice, count]) => {
-        if (!eliminatedChoices.has(choice)) {
-          timeSeriesPoint.values[choice] = count;
-        }
-      });
-
-      // Add to the time series data and the map
-      timeSeriesData.push(timeSeriesPoint);
-      timestampMap.set(timestampKey, timeSeriesPoint);
-    }
-
-    log(`Processed vote ${index + 1}/${sortedVotes.length}`);
-    log(
-      "Current Winner:",
-      winner !== undefined ? uniqueChoices[winner] : "No winner",
-    );
+    timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
   });
 
-  // Create processed votes array for the table
-  const processedVotes: VoteResult[] = sortedVotes.map((vote) => ({
-    choice: vote.choice[0], // Use first choice for display
-    choiceText: uniqueChoices[vote.choice[0]] || "Unknown Choice",
-    votingPower: vote.votingPower,
-    voterAddress: vote.voterAddress,
-    timestamp: new Date(vote.timestamp),
-    color: choiceColors[vote.choice[0]], // Use the precomputed color
-  }));
-
+  // Calculate final result
+  const { winner, finalVoteCounts } = memoizedIRV(processedVotes);
   const totalVotingPower = processedVotes.reduce(
     (sum, vote) => sum + vote.votingPower,
     0,
   );
 
-  // Determine the final winner
-  const finalVoteCounts = new Map<number, number>();
-  uniqueChoices.forEach((_, index) => {
-    finalVoteCounts.set(index, 0);
-  });
-
-  sortedVotes.forEach((vote) => {
-    const validChoice = vote.choice.find(
-      (choice) => !finalVoteCounts.has(choice),
-    );
-    if (validChoice !== undefined) {
-      finalVoteCounts.set(
-        validChoice,
-        (finalVoteCounts.get(validChoice) || 0) + vote.votingPower,
-      );
-    }
-  });
-
-  const winner = Array.from(finalVoteCounts.entries()).reduce((a, b) =>
-    a[1] > b[1] ? a : b,
-  )[0];
-
   return {
-    votes: processedVotes,
+    votes: processedVotes.map((vote) => ({
+      choice: vote.choice[0],
+      choiceText: choices[vote.choice[0]] || "Unknown Choice",
+      votingPower: vote.votingPower,
+      voterAddress: vote.voterAddress,
+      timestamp: new Date(vote.timestamp),
+      color: choiceColors[vote.choice[0]],
+    })),
     proposal,
-    timeSeriesData,
-    choices: uniqueChoices,
-    choiceColors, // Include choice colors
+    timeSeriesData: Array.from(timeSeriesMap.values()),
+    choices,
+    choiceColors,
     totalVotingPower,
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-    winner: Number(winner),
+    winner: winner !== undefined ? Number(winner) : null,
   };
 }
 
