@@ -23,6 +23,7 @@ export interface ProcessedResults {
   totalVotingPower: number;
   quorum: number | null;
   quorumChoices: number[];
+  winner: number | null;
 }
 
 export type ProposalMetadata = {
@@ -103,6 +104,20 @@ function processBasicVotes(
       (hourlyData[hourKey][vote.choice] || 0) + vote.votingPower;
   });
 
+  // Determine the winner
+  const voteCounts: { [choice: number]: number } = {};
+  choices.forEach((_, index) => {
+    voteCounts[index] = 0;
+  });
+
+  processedVotes.forEach((vote) => {
+    voteCounts[vote.choice] = (voteCounts[vote.choice] || 0) + vote.votingPower;
+  });
+
+  const winner = Object.entries(voteCounts).reduce((a, b) =>
+    a[1] > b[1] ? a : b,
+  )[0];
+
   return {
     votes: processedVotes,
     proposal,
@@ -117,6 +132,7 @@ function processBasicVotes(
     ),
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
+    winner: Number(winner), // Add the winner
   };
 }
 
@@ -136,6 +152,11 @@ function processWeightedVotes(
       : new Date(proposal.timeStart),
     choices,
   );
+
+  const voteCounts: { [choice: number]: number } = {};
+  choices.forEach((_, index) => {
+    voteCounts[index] = 0;
+  });
 
   votes.forEach((vote) => {
     if (
@@ -170,6 +191,9 @@ function processWeightedVotes(
         // Accumulate in hourly data
         hourlyData[hourKey][choice] =
           (hourlyData[hourKey][choice] || 0) + normalizedPower;
+
+        // Accumulate in vote counts
+        voteCounts[choice] = (voteCounts[choice] || 0) + normalizedPower;
       });
     } else {
       // Handle non-weighted votes (fallback to basic processing)
@@ -188,8 +212,15 @@ function processWeightedVotes(
 
       hourlyData[hourKey][choice] =
         (hourlyData[hourKey][choice] || 0) + Number(vote.votingPower);
+
+      // Accumulate in vote counts
+      voteCounts[choice] = (voteCounts[choice] || 0) + Number(vote.votingPower);
     }
   });
+
+  const winner = Object.entries(voteCounts).reduce((a, b) =>
+    a[1] > b[1] ? a : b,
+  )[0];
 
   return {
     votes: processedVotes,
@@ -205,6 +236,7 @@ function processWeightedVotes(
     ),
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
+    winner: Number(winner), // Add the winner
   };
 }
 
@@ -224,6 +256,11 @@ function processApprovalVotes(
       : new Date(proposal.timeStart),
     choices,
   );
+
+  const voteCounts: { [choice: number]: number } = {};
+  choices.forEach((_, index) => {
+    voteCounts[index] = 0;
+  });
 
   votes.forEach((vote) => {
     const approvedChoices = Array.isArray(vote.choice)
@@ -249,8 +286,16 @@ function processApprovalVotes(
       // Accumulate in hourly data
       hourlyData[hourKey][choiceIndex] =
         (hourlyData[hourKey][choiceIndex] || 0) + Number(vote.votingPower);
+
+      // Accumulate in vote counts
+      voteCounts[choiceIndex] =
+        (voteCounts[choiceIndex] || 0) + Number(vote.votingPower);
     });
   });
+
+  const winner = Object.entries(voteCounts).reduce((a, b) =>
+    a[1] > b[1] ? a : b,
+  )[0];
 
   return {
     votes: processedVotes,
@@ -266,9 +311,11 @@ function processApprovalVotes(
     ),
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
+    winner: Number(winner), // Add the winner
   };
 }
 
+// Process ranked-choice votes
 function processRankedChoiceVotes(
   votes: Selectable<Vote>[],
   choices: string[],
@@ -300,6 +347,7 @@ function processRankedChoiceVotes(
       quorum: proposal.quorum ? Number(proposal.quorum) : null,
       quorumChoices:
         (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
+      winner: null, // No winner
     };
   }
 
@@ -470,6 +518,26 @@ function processRankedChoiceVotes(
     0,
   );
 
+  // Determine the final winner
+  const finalVoteCounts: { [key: number]: number } = {};
+  choices.forEach((_, index) => {
+    finalVoteCounts[index] = 0;
+  });
+
+  sortedVotes.forEach((vote) => {
+    const validChoice = vote.choice.find(
+      (choice) => !finalVoteCounts[choice] === undefined,
+    );
+    if (validChoice !== undefined) {
+      finalVoteCounts[validChoice] =
+        (finalVoteCounts[validChoice] || 0) + vote.votingPower;
+    }
+  });
+
+  const winner = Object.entries(finalVoteCounts).reduce((a, b) =>
+    a[1] > b[1] ? a : b,
+  )[0];
+
   return {
     votes: processedVotes,
     proposal,
@@ -478,6 +546,7 @@ function processRankedChoiceVotes(
     totalVotingPower,
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
+    winner: Number(winner),
   };
 }
 
