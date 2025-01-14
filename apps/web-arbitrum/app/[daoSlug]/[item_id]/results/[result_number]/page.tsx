@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { getBodiesForGroup, getGroupWithData } from "../../actions";
-import { ProposalResult } from "./components/ProposalResult";
-import { db } from "@proposalsapp/db";
+import ProposalResult from "./components/ProposalResult";
 import { Timeline } from "./components/timeline/Timeline";
 import { Header } from "./components/Header";
 import { Suspense } from "react";
+import { LoadingVotes } from "./components/result/LoadingVotes";
 
 export default async function ResultPage({
   params,
@@ -51,7 +51,9 @@ export default async function ResultPage({
       {/* Results on the right */}
       <div className={`flex w-full flex-grow pb-16 pl-[159px] pt-[104px]`}>
         <div className="h-full w-full pr-4">
-          <ProposalResult proposal={proposal} />
+          <Suspense fallback={<LoadingVotes />}>
+            <ProposalResult proposal={proposal} />
+          </Suspense>
         </div>
       </div>
     </div>

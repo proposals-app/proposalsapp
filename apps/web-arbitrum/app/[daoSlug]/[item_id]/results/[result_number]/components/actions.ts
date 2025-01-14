@@ -592,18 +592,22 @@ function processQuadraticVotes(
   };
 }
 
+export async function getVotes(proposalId: string) {
+  const votes = await db
+    .selectFrom("vote")
+    .selectAll()
+    .where("proposalId", "=", proposalId)
+    .execute();
+  return votes;
+}
+
 // Main processResults function
 export async function processResults(
   proposal: Selectable<Proposal>,
+  votes: Selectable<Vote>[],
 ): Promise<ProcessedResults> {
   return otel("process-results", async () => {
     const startTime = Date.now();
-
-    const votes = await db
-      .selectFrom("vote")
-      .selectAll()
-      .where("proposalId", "=", proposal.id)
-      .execute();
 
     const choices = proposal.choices as string[];
     const metadata = proposal.metadata as ProposalMetadata;

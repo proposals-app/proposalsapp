@@ -17,6 +17,7 @@ const messages = [
 
 export function LoadingVotes() {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [showLoading, setShowLoading] = useState(true); // Set to true immediately
 
   useEffect(() => {
     const interval = setInterval(() => {
