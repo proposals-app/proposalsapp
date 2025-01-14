@@ -330,7 +330,6 @@ async function processRankedChoiceVotes(
   choices: string[],
   proposal: Selectable<Proposal>,
 ): Promise<ProcessedResults> {
-  // Pre-compute colors once
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   // Early return for empty votes
@@ -349,7 +348,7 @@ async function processRankedChoiceVotes(
     };
   }
 
-  // Pre-process votes once instead of filtering multiple times
+  // Pre-process votes
   const processedVotes = votes
     .filter((vote) => vote.timeCreated && Array.isArray(vote.choice))
     .map((vote) => ({
@@ -360,95 +359,93 @@ async function processRankedChoiceVotes(
     }))
     .sort((a, b) => a.timestamp - b.timestamp);
 
-  // Optimize IRV calculation with memoization
-  const memoizedIRV = (() => {
-    const cache = new Map<
-      string,
-      {
-        winner: number | undefined;
-        finalVoteCounts: Map<number, number>;
-        eliminatedChoices: Set<number>;
-      }
-    >();
-
-    return async (currentVotes: typeof processedVotes) => {
-      const key = currentVotes.length.toString();
-      if (cache.has(key)) return cache.get(key)!;
-
+  // Create a promise-based chunked IRV calculation
+  const calculateIRV = (currentVotes: typeof processedVotes) => {
+    return new Promise<{
+      winner: number | undefined;
+      finalVoteCounts: Map<number, number>;
+      eliminatedChoices: Set<number>;
+    }>((resolve) => {
       const eliminatedChoices = new Set<number>();
       const voteCounts = new Map<number, number>();
       let winner: number | undefined;
 
-      // Initialize vote counts once
+      // Initialize vote counts
       choices.forEach((_, index) => voteCounts.set(index, 0));
 
-      while (!winner && eliminatedChoices.size < choices.length - 1) {
-        // Reset vote counts for active choices
-        voteCounts.forEach((_, key) => voteCounts.set(key, 0));
-
-        // Count votes in a single pass
-        let totalVotes = 0;
-        currentVotes.forEach((vote) => {
-          const validChoice = vote.choice.find(
-            (choice) => !eliminatedChoices.has(choice),
-          );
-          if (validChoice !== undefined) {
-            const currentCount = voteCounts.get(validChoice) || 0;
-            voteCounts.set(validChoice, currentCount + vote.votingPower);
-            totalVotes += vote.votingPower;
+      let round = 0;
+      const processRound = () => {
+        setTimeout(() => {
+          if (winner || eliminatedChoices.size >= choices.length - 1) {
+            // If no winner found, use the choice with most votes
+            if (!winner) {
+              winner = Array.from(voteCounts.entries())
+                .filter(([choice]) => !eliminatedChoices.has(choice))
+                .reduce((a, b) => (a[1] > b[1] ? a : b))[0];
+            }
+            resolve({ winner, finalVoteCounts: voteCounts, eliminatedChoices });
+            return;
           }
-        });
 
-        const majorityThreshold = totalVotes / 2;
+          // Reset vote counts for active choices
+          voteCounts.forEach((_, key) => voteCounts.set(key, 0));
 
-        // Find winner or choice to eliminate efficiently
-        let minVotes = Infinity;
-        let choiceToEliminate = -1;
-        let potentialWinner = -1;
-        let maxVotes = 0;
+          // Count votes in this round
+          let totalVotes = 0;
+          currentVotes.forEach((vote) => {
+            const validChoice = vote.choice.find(
+              (choice) => !eliminatedChoices.has(choice),
+            );
+            if (validChoice !== undefined) {
+              const currentCount = voteCounts.get(validChoice) || 0;
+              voteCounts.set(validChoice, currentCount + vote.votingPower);
+              totalVotes += vote.votingPower;
+            }
+          });
 
-        voteCounts.forEach((votes, choice) => {
-          if (eliminatedChoices.has(choice)) return;
+          const majorityThreshold = totalVotes / 2;
 
-          if (votes > majorityThreshold) {
-            winner = choice;
+          // Find winner or choice to eliminate
+          let minVotes = Infinity;
+          let choiceToEliminate = -1;
+          let maxVotes = 0;
+
+          voteCounts.forEach((votes, choice) => {
+            if (eliminatedChoices.has(choice)) return;
+
+            if (votes > majorityThreshold) {
+              winner = choice;
+            }
+            if (votes < minVotes) {
+              minVotes = votes;
+              choiceToEliminate = choice;
+            }
+            if (votes > maxVotes) {
+              maxVotes = votes;
+            }
+          });
+
+          if (!winner && choiceToEliminate !== -1) {
+            eliminatedChoices.add(choiceToEliminate);
           }
-          if (votes < minVotes) {
-            minVotes = votes;
-            choiceToEliminate = choice;
-          }
-          if (votes > maxVotes) {
-            maxVotes = votes;
-            potentialWinner = choice;
-          }
-        });
 
-        if (!winner && choiceToEliminate !== -1) {
-          eliminatedChoices.add(choiceToEliminate);
-        }
-      }
+          round++;
+          processRound(); // Process next round
+        }, 0); // Use 0 delay to yield to other tasks but continue as soon as possible
+      };
 
-      // If no winner found, use the choice with most votes
-      if (!winner) {
-        winner = Array.from(voteCounts.entries())
-          .filter(([choice]) => !eliminatedChoices.has(choice))
-          .reduce((a, b) => (a[1] > b[1] ? a : b))[0];
-      }
+      processRound(); // Start processing rounds
+    });
+  };
 
-      const result = { winner, finalVoteCounts: voteCounts, eliminatedChoices };
-      cache.set(key, result);
-      return result;
-    };
-  })();
-
-  // Generate time series data more efficiently
+  // Generate time series data with non-blocking calculations
   const timeSeriesMap = new Map<string, TimeSeriesPoint>();
   let runningVotes: typeof processedVotes = [];
 
   for (const vote of processedVotes) {
     runningVotes.push(vote);
     const { finalVoteCounts, eliminatedChoices } =
-      await memoizedIRV(runningVotes);
+      await calculateIRV(runningVotes);
 
     const timestampKey = new Date(vote.timestamp).toISOString();
     const values: Record<number, number> = {};
@@ -463,7 +460,7 @@ async function processRankedChoiceVotes(
   }
 
   // Calculate final result
-  const { winner, finalVoteCounts } = await memoizedIRV(processedVotes);
+  const { winner, finalVoteCounts } = await calculateIRV(processedVotes);
   const totalVotingPower = processedVotes.reduce(
     (sum, vote) => sum + vote.votingPower,
     0,
