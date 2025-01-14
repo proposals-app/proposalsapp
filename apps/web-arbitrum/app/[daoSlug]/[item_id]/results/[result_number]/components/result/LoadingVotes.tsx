@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 const messages = [
   "Counting votes...",
@@ -17,15 +17,15 @@ const messages = [
 
 export function LoadingVotes() {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-  const [showLoading, setShowLoading] = useState(true); // Set to true immediately
+
+  const rotateMessage = useCallback(() => {
+    setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
+  }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
-    }, 3000); // Change message every 3 seconds
-
+    const interval = setInterval(rotateMessage, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [rotateMessage]);
 
   return (
     <div className="flex h-full w-full items-center justify-center">

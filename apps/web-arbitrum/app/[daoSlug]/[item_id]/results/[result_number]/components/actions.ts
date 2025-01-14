@@ -71,11 +71,11 @@ function initializeHourlyData(
 }
 
 // Process basic (single-choice) votes
-function processBasicVotes(
+async function processBasicVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
-): ProcessedResults {
+): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
 
   const processedVotes: VoteResult[] = votes.map((vote) => {
@@ -143,11 +143,11 @@ function processBasicVotes(
 }
 
 // Process weighted votes
-function processWeightedVotes(
+async function processWeightedVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
-): ProcessedResults {
+): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
 
   const processedVotes: VoteResult[] = [];
@@ -250,11 +250,11 @@ function processWeightedVotes(
 }
 
 // Process approval votes
-function processApprovalVotes(
+async function processApprovalVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
-): ProcessedResults {
+): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
 
   const processedVotes: VoteResult[] = [];
@@ -326,11 +326,12 @@ function processApprovalVotes(
     winner: Number(winner),
   };
 }
-function processRankedChoiceVotes(
+
+async function processRankedChoiceVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
-): ProcessedResults {
+): Promise<ProcessedResults> {
   // Pre-compute colors once
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
@@ -372,7 +373,7 @@ function processRankedChoiceVotes(
       }
     >();
 
-    return (currentVotes: typeof processedVotes) => {
+    return async (currentVotes: typeof processedVotes) => {
       const key = currentVotes.length.toString();
       if (cache.has(key)) return cache.get(key)!;
 
@@ -446,9 +447,10 @@ function processRankedChoiceVotes(
   const timeSeriesMap = new Map<string, TimeSeriesPoint>();
   let runningVotes: typeof processedVotes = [];
 
-  processedVotes.forEach((vote) => {
+  for (const vote of processedVotes) {
     runningVotes.push(vote);
-    const { finalVoteCounts, eliminatedChoices } = memoizedIRV(runningVotes);
+    const { finalVoteCounts, eliminatedChoices } =
+      await memoizedIRV(runningVotes);
 
     const timestampKey = new Date(vote.timestamp).toISOString();
     const values: Record<number, number> = {};
@@ -460,10 +462,10 @@ function processRankedChoiceVotes(
     });
 
     timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
-  });
+  }
 
   // Calculate final result
-  const { winner, finalVoteCounts } = memoizedIRV(processedVotes);
+  const { winner, finalVoteCounts } = await memoizedIRV(processedVotes);
   const totalVotingPower = processedVotes.reduce(
     (sum, vote) => sum + vote.votingPower,
     0,
@@ -490,15 +492,15 @@ function processRankedChoiceVotes(
 }
 
 // Process quadratic votes
-function processQuadraticVotes(
+async function processQuadraticVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
-): ProcessedResults {
+): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
 
   // Temporary fallback to basic processing
-  const result = processBasicVotes(votes, choices, proposal);
+  const result = await processBasicVotes(votes, choices, proposal);
 
   // Include choice colors in the result
   return {
@@ -530,19 +532,19 @@ export async function processResults(
 
     switch (voteType) {
       case "weighted":
-        result = processWeightedVotes(votes, choices, proposal);
+        result = await processWeightedVotes(votes, choices, proposal);
         break;
       case "approval":
-        result = processApprovalVotes(votes, choices, proposal);
+        result = await processApprovalVotes(votes, choices, proposal);
         break;
       case "ranked-choice":
-        result = processRankedChoiceVotes(votes, choices, proposal);
+        result = await processRankedChoiceVotes(votes, choices, proposal);
         break;
       case "quadratic":
-        result = processQuadraticVotes(votes, choices, proposal);
+        result = await processQuadraticVotes(votes, choices, proposal);
         break;
       default:
-        result = processBasicVotes(votes, choices, proposal);
+        result = await processBasicVotes(votes, choices, proposal);
         break;
     }
 

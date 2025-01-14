@@ -1,7 +1,7 @@
-import { Proposal, Selectable } from "@proposalsapp/db";
 import { Suspense } from "react";
-import { LoadingVotes } from "./result/LoadingVotes";
 import { Results } from "./Results";
+import { LoadingVotes } from "./result/LoadingVotes";
+import { Proposal, Selectable } from "@proposalsapp/db";
 
 export interface ProposalResultProps {
   proposal: Selectable<Proposal>;
