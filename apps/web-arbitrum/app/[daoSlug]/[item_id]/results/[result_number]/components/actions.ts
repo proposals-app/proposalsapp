@@ -509,7 +509,7 @@ async function processQuadraticVotes(
   };
 }
 
-export async function getVotes(proposalId: string) {
+export async function getVotesAction(proposalId: string) {
   "use server";
   const votes = await db
     .selectFrom("vote")
@@ -520,7 +520,7 @@ export async function getVotes(proposalId: string) {
 }
 
 // Main processResults function
-export async function processResults(
+export async function processResultsAction(
   proposal: Selectable<Proposal>,
   votes: Selectable<Vote>[],
 ): Promise<ProcessedResults> {

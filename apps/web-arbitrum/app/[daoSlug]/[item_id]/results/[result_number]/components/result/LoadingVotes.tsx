@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 const messages = [
   "Counting votes...",
   "Consulting the DAO oracle...",
@@ -12,14 +16,24 @@ const messages = [
 ];
 
 export function LoadingVotes() {
-  // Select a random message to display
-  const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+  const [currentMessage, setCurrentMessage] = useState(messages[0]);
+
+  useEffect(() => {
+    let currentIndex = 0;
+
+    const intervalId = setInterval(() => {
+      currentIndex = (currentIndex + 1) % messages.length;
+      setCurrentMessage(messages[currentIndex]);
+    }, 3000); // Change message every 3 seconds
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+  }, []);
 
   return (
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-primary" />
-        <p className="text-lg font-medium text-gray-600">{randomMessage}</p>
+        <p className="text-lg font-medium text-gray-600">{currentMessage}</p>
       </div>
     </div>
   );
