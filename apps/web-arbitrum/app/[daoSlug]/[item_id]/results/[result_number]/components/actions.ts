@@ -68,13 +68,15 @@ function initializeHourlyData(
   return hourlyData;
 }
 
+const ACCUMULATED_VOTING_POWER_THRESHOLD = 5000;
+
 // Process basic (single-choice) votes
 async function processBasicVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
 ): Promise<ProcessedResults> {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
+  const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   const processedVotes: VoteResult[] = votes.map((vote) => {
     const choice = vote.choice as number;
@@ -84,7 +86,7 @@ async function processBasicVotes(
       votingPower: Number(vote.votingPower),
       voterAddress: vote.voterAddress,
       timestamp: new Date(vote.timeCreated!),
-      color: choiceColors[choice], // Use the precomputed color
+      color: choiceColors[choice],
     };
   });
 
@@ -92,20 +94,42 @@ async function processBasicVotes(
     (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
   );
 
-  const hourlyData = initializeHourlyData(
-    new Date(proposal.timeStart),
-    sortedVotes.length > 0
-      ? sortedVotes[sortedVotes.length - 1].timestamp
-      : new Date(proposal.timeStart),
-    choices,
-  );
+  const timeSeriesData: TimeSeriesPoint[] = [];
+  let accumulatedVotingPower = 0;
+  let lastAccumulatedTimestamp: Date | null = null;
 
-  // Accumulate votes
   sortedVotes.forEach((vote) => {
-    const hourKey = format(startOfHour(vote.timestamp), "yyyy-MM-dd HH:mm");
-    hourlyData[hourKey][vote.choice] =
-      (hourlyData[hourKey][vote.choice] || 0) + vote.votingPower;
+    if (vote.votingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+      // Create a new time series point for this vote
+      timeSeriesData.push({
+        timestamp: format(vote.timestamp, "yyyy-MM-dd HH:mm:ss"),
+        values: { [vote.choice]: vote.votingPower },
+      });
+    } else {
+      // Accumulate voting power
+      accumulatedVotingPower += vote.votingPower;
+      lastAccumulatedTimestamp = vote.timestamp;
+
+      if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+        // Create a new time series point for the accumulated votes
+        timeSeriesData.push({
+          timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+          values: { [vote.choice]: accumulatedVotingPower },
+        });
+        accumulatedVotingPower = 0; // Reset accumulation
+      }
+    }
   });
+
+  // If there's any remaining accumulated voting power, add it to the last timestamp
+  if (accumulatedVotingPower > 0 && lastAccumulatedTimestamp) {
+    timeSeriesData.push({
+      timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+      values: {
+        [sortedVotes[sortedVotes.length - 1].choice]: accumulatedVotingPower,
+      },
+    });
+  }
 
   // Determine the winner
   const voteCounts: { [choice: number]: number } = {};
@@ -124,12 +148,9 @@ async function processBasicVotes(
   return {
     votes: processedVotes,
     proposal,
-    timeSeriesData: Object.entries(hourlyData).map(([timestamp, values]) => ({
-      timestamp,
-      values,
-    })),
+    timeSeriesData,
     choices,
-    choiceColors, // Include choice colors
+    choiceColors,
     totalVotingPower: processedVotes.reduce(
       (sum, vote) => sum + vote.votingPower,
       0,
@@ -247,7 +268,6 @@ async function processWeightedVotes(
   };
 }
 
-// Process approval votes
 async function processApprovalVotes(
   votes: Selectable<Vote>[],
   choices: string[],
