@@ -119,6 +119,39 @@ export function VotingPowerChart({ results }: VotingPowerChartProps) {
       },
     );
 
+    // Add the "Total" series for ranked-choice voting
+    let totalSeriesMaxValue = 0;
+    if (isRankedChoice) {
+      const totalSeriesData = results.timeSeriesData.map((point) => {
+        const totalValue =
+          (point.values as Record<string | number, number>)[
+            "Winning threshold"
+          ] || 0;
+        totalSeriesMaxValue = Math.max(totalSeriesMaxValue, totalValue); // Track the max value of the Total series
+        return [point.timestamp, totalValue];
+      });
+
+      const totalSeries: echarts.SeriesOption = {
+        name: "Winning threshold",
+        type: "line",
+        lineStyle: {
+          width: 2,
+          color: "#6B7280", // Grey color for the total series
+          type: "dashed", // Make the line dashed
+        },
+        showSymbol: false,
+        emphasis: {
+          itemStyle: {
+            color: "#6B7280",
+            borderColor: "#6B7280",
+          },
+        },
+        data: totalSeriesData,
+        z: 0, // Default z-index
+      };
+      series.push(totalSeries);
+    }
+
     // Add quorum line if needed
     if (results.quorum !== null) {
       series.push({
@@ -150,6 +183,7 @@ export function VotingPowerChart({ results }: VotingPowerChartProps) {
     // Calculate y-axis max
     const maxVotingValue = Math.max(
       ...Object.values(lastKnownValues),
+      totalSeriesMaxValue, // Include the max value from the Total series
       results.quorum || 0,
     );
     const yAxisMax = roundToGoodValue(maxVotingValue * 1.1);

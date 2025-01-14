@@ -329,6 +329,7 @@ async function processRankedChoiceVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
+  intervalSeconds: number = 60 * 5,
 ): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
@@ -442,21 +443,41 @@ async function processRankedChoiceVotes(
   const timeSeriesMap = new Map<string, TimeSeriesPoint>();
   let runningVotes: typeof processedVotes = [];
 
+  // Calculate the interval in milliseconds
+  const intervalMs = intervalSeconds * 1000;
+
+  // Initialize the first interval
+  let nextIntervalTime = processedVotes[0].timestamp + intervalMs;
+
   for (const vote of processedVotes) {
     runningVotes.push(vote);
-    const { finalVoteCounts, eliminatedChoices } =
-      await calculateIRV(runningVotes);
 
-    const timestampKey = new Date(vote.timestamp).toISOString();
-    const values: Record<number, number> = {};
+    // Check if the vote timestamp exceeds the next interval time
+    if (vote.timestamp >= nextIntervalTime) {
+      const { finalVoteCounts, eliminatedChoices } =
+        await calculateIRV(runningVotes);
 
-    finalVoteCounts.forEach((count, choice) => {
-      if (!eliminatedChoices.has(choice)) {
-        values[choice] = count;
-      }
-    });
+      const timestampKey = new Date(nextIntervalTime).toISOString();
+      const values: Record<number | string, number> = {};
 
-    timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
+      // Calculate total votes for this interval
+      let totalVotes = 0;
+
+      finalVoteCounts.forEach((count, choice) => {
+        if (!eliminatedChoices.has(choice)) {
+          values[choice] = count;
+          totalVotes += count; // Accumulate total votes
+        }
+      });
+
+      // Add the total votes as a special key "Total"
+      values["Winning threshold"] = totalVotes / 2;
+
+      timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
+
+      // Update the next interval time
+      nextIntervalTime += intervalMs;
+    }
   }
 
   // Calculate final result
