@@ -431,7 +431,7 @@ async function processRankedChoiceVotes(
 
           round++;
           processRound(); // Process next round
-        }, 10);
+        }, 1);
       };
 
       processRound(); // Start processing rounds
