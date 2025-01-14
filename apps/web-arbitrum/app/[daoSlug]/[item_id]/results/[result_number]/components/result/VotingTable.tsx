@@ -10,7 +10,7 @@ interface VotingTableProps {
   results: ProcessedResults;
 }
 
-export const VotingTable = ({ results }: VotingTableProps) => {
+export function VotingTable({ results }: VotingTableProps) {
   const [sortColumn, setSortColumn] = useState<
     "choice" | "timestamp" | "votingPower"
   >("votingPower");
@@ -134,4 +134,4 @@ export const VotingTable = ({ results }: VotingTableProps) => {
       </div>
     </div>
   );
-};
+}

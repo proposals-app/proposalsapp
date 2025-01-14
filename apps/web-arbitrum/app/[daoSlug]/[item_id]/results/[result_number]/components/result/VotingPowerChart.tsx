@@ -14,7 +14,7 @@ interface VotingPowerChartProps {
   results: ProcessedResults;
 }
 
-export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
+export function VotingPowerChart({ results }: VotingPowerChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -214,7 +214,7 @@ export const VotingPowerChart = ({ results }: VotingPowerChartProps) => {
   }, [results]);
 
   return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
-};
+}
 
 // Helper function to round up to the nearest "good" value
 const roundToGoodValue = (value: number): number => {

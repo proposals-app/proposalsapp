@@ -572,11 +572,12 @@ function processQuadraticVotes(
 }
 
 // Main processResults function
-export function processResults(
+export async function processResults(
   proposal: Selectable<Proposal>,
   votes: Selectable<Vote>[],
 ): Promise<ProcessedResults> {
   return otel("process-results", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     const choices = proposal.choices as string[];
     const metadata = proposal.metadata as ProposalMetadata;
     const voteType = metadata.voteType || "basic";

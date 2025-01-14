@@ -41,6 +41,7 @@ export default async function ResultPage({
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">
       {/* Sticky Header */}
+
       <Header
         authorName={author?.author_name || "Unknown"}
         authorPicture={author?.author_picture || ""}
@@ -51,15 +52,13 @@ export default async function ResultPage({
 
       {/* Timeline on the left */}
       <div className="z-10 hidden lg:flex">
-        <Timeline group={group} selectedResult={proposalIndex + 1} />
+        <Timeline group={group} selectedResult={proposalIndex + 1} />{" "}
       </div>
 
       {/* Results on the right */}
       <div className={`flex w-full flex-grow pb-16 pl-[159px] pt-[104px]`}>
         <div className="h-full w-full pr-4">
-          <Suspense>
-            <ProposalResult proposal={proposal} votes={votes} />
-          </Suspense>
+          <ProposalResult proposal={proposal} votes={votes} />
         </div>
       </div>
     </div>
