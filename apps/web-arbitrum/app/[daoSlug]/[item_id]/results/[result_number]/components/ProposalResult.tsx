@@ -1,15 +1,16 @@
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import { VotingPowerChart } from "./result/VotingPowerChart";
 import { VotingTable } from "./result/VotingTable";
-import { processResults } from "./result/processResults";
+import { processResults } from "./actions";
+import { Suspense } from "react";
 
 interface ProposalResultProps {
   proposal: Selectable<Proposal>;
   votes: Selectable<Vote>[];
 }
 
-export const ProposalResult = ({ proposal, votes }: ProposalResultProps) => {
-  const processedResults = processResults(proposal, votes);
+export async function ProposalResult({ proposal, votes }: ProposalResultProps) {
+  const processedResults = await processResults(proposal, votes);
 
   return (
     <div className="flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border border-gray-400 bg-white p-6">
@@ -20,8 +21,15 @@ export const ProposalResult = ({ proposal, votes }: ProposalResultProps) => {
         </p>
       </div>
 
-      <VotingPowerChart results={processedResults} />
-      <VotingTable results={processedResults} />
+      {/* Voting Power Chart */}
+      <Suspense fallback={<div>Loading chart...</div>}>
+        <VotingPowerChart results={processedResults} />
+      </Suspense>
+
+      {/* Voting Table */}
+      <Suspense fallback={<div>Loading table...</div>}>
+        <VotingTable results={processedResults} />
+      </Suspense>
     </div>
   );
-};
+}

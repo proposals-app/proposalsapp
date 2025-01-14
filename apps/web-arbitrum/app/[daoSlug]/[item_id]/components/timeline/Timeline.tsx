@@ -21,7 +21,7 @@ export async function Timeline({
     notFound();
   }
 
-  const events = await extractEvents(group, commentsFilter, votesFilter);
+  const events = await extractEvents(group);
 
   // Map proposals to their chronological order
   const proposalOrderMap = new Map<string, number>();

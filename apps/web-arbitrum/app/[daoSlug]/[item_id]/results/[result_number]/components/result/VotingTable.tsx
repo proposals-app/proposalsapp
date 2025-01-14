@@ -1,9 +1,10 @@
 "use client";
+
 import React, { useState, useMemo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { formatNumberWithSuffix } from "@/lib/utils";
 import { format } from "date-fns";
-import { ProcessedResults } from "./processResults";
+import { ProcessedResults } from "../actions";
 
 interface VotingTableProps {
   results: ProcessedResults;

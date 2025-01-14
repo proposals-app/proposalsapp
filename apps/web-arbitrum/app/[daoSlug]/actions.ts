@@ -24,67 +24,69 @@ export async function getGroups(daoSlug: string) {
     const getNewestItemTimestamp = async (
       group: (typeof groups)[0],
     ): Promise<number> => {
-      let latestTimestamp = 0;
+      return otel("get-newest-item-timestamp", async () => {
+        let latestTimestamp = 0;
 
-      const items = group.items as Array<{
-        id: string;
-        type: "proposal" | "topic";
-      }>;
+        const items = group.items as Array<{
+          id: string;
+          type: "proposal" | "topic";
+        }>;
 
-      // Get proposal ids and topic ids
-      const proposalIds = items
-        .filter((item) => item.type === "proposal")
-        .map((item) => item.id);
+        // Get proposal ids and topic ids
+        const proposalIds = items
+          .filter((item) => item.type === "proposal")
+          .map((item) => item.id);
 
-      const topicIds = items
-        .filter((item) => item.type === "topic")
-        .map((item) => item.id);
+        const topicIds = items
+          .filter((item) => item.type === "topic")
+          .map((item) => item.id);
 
-      // Fetch the latest proposal timestamp
-      if (proposalIds.length > 0) {
-        try {
-          const latestProposal = await db
-            .selectFrom("proposal")
-            .selectAll()
-            .where("id", "in", proposalIds)
-            .orderBy("timeCreated", "desc")
-            .limit(1)
-            .executeTakeFirst();
+        // Fetch the latest proposal timestamp
+        if (proposalIds.length > 0) {
+          try {
+            const latestProposal = await db
+              .selectFrom("proposal")
+              .selectAll()
+              .where("id", "in", proposalIds)
+              .orderBy("timeCreated", "desc")
+              .limit(1)
+              .executeTakeFirst();
 
-          if (latestProposal?.timeCreated) {
-            latestTimestamp = Math.max(
-              latestTimestamp,
-              new Date(latestProposal.timeCreated).getTime(),
-            );
+            if (latestProposal?.timeCreated) {
+              latestTimestamp = Math.max(
+                latestTimestamp,
+                new Date(latestProposal.timeCreated).getTime(),
+              );
+            }
+          } catch (error) {
+            console.error("Error fetching proposals:", error);
           }
-        } catch (error) {
-          console.error("Error fetching proposals:", error);
         }
-      }
 
-      // Fetch the latest topic timestamp
-      if (topicIds.length > 0) {
-        try {
-          const latestTopic = await db
-            .selectFrom("discourseTopic")
-            .selectAll()
-            .where("id", "in", topicIds)
-            .orderBy("createdAt", "desc")
-            .limit(1)
-            .executeTakeFirst();
+        // Fetch the latest topic timestamp
+        if (topicIds.length > 0) {
+          try {
+            const latestTopic = await db
+              .selectFrom("discourseTopic")
+              .selectAll()
+              .where("id", "in", topicIds)
+              .orderBy("createdAt", "desc")
+              .limit(1)
+              .executeTakeFirst();
 
-          if (latestTopic?.createdAt) {
-            latestTimestamp = Math.max(
-              latestTimestamp,
-              new Date(latestTopic.createdAt).getTime(),
-            );
+            if (latestTopic?.createdAt) {
+              latestTimestamp = Math.max(
+                latestTimestamp,
+                new Date(latestTopic.createdAt).getTime(),
+              );
+            }
+          } catch (error) {
+            console.error("Error fetching topics:", error);
           }
-        } catch (error) {
-          console.error("Error fetching topics:", error);
         }
-      }
 
-      return latestTimestamp;
+        return latestTimestamp;
+      });
     };
 
     // Add timestamps to groups

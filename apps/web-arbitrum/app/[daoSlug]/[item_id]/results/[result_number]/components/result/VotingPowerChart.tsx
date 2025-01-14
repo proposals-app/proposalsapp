@@ -8,7 +8,7 @@ import {
   getColorForChoice,
   ProcessedResults,
   ProposalMetadata,
-} from "./processResults";
+} from "./../actions";
 
 interface VotingPowerChartProps {
   results: ProcessedResults;

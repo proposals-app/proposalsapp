@@ -1,3 +1,4 @@
+import { otel } from "@/lib/otel";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import { startOfHour, format } from "date-fns";
 
@@ -574,21 +575,23 @@ function processQuadraticVotes(
 export function processResults(
   proposal: Selectable<Proposal>,
   votes: Selectable<Vote>[],
-): ProcessedResults {
-  const choices = proposal.choices as string[];
-  const metadata = proposal.metadata as ProposalMetadata;
-  const voteType = metadata.voteType || "basic";
+): Promise<ProcessedResults> {
+  return otel("process-results", async () => {
+    const choices = proposal.choices as string[];
+    const metadata = proposal.metadata as ProposalMetadata;
+    const voteType = metadata.voteType || "basic";
 
-  switch (voteType) {
-    case "weighted":
-      return processWeightedVotes(votes, choices, proposal);
-    case "approval":
-      return processApprovalVotes(votes, choices, proposal);
-    case "ranked-choice":
-      return processRankedChoiceVotes(votes, choices, proposal);
-    case "quadratic":
-      return processQuadraticVotes(votes, choices, proposal);
-    default:
-      return processBasicVotes(votes, choices, proposal);
-  }
+    switch (voteType) {
+      case "weighted":
+        return processWeightedVotes(votes, choices, proposal);
+      case "approval":
+        return processApprovalVotes(votes, choices, proposal);
+      case "ranked-choice":
+        return processRankedChoiceVotes(votes, choices, proposal);
+      case "quadratic":
+        return processQuadraticVotes(votes, choices, proposal);
+      default:
+        return processBasicVotes(votes, choices, proposal);
+    }
+  });
 }

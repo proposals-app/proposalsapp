@@ -16,6 +16,7 @@ export async function getGroupWithData(
 ) {
   return otel("get-group-with-data", async () => {
     if (daoSlug == "favicon.ico") return null;
+
     // Fetch the DAO based on the slug
     const dao = await db
       .selectFrom("dao")
@@ -139,16 +140,18 @@ export async function getGroupWithData(
       id: string,
       type: "proposal" | "topic",
     ): Promise<Selectable<ProposalGroup> | null> => {
-      const result = await db
-        .selectFrom("proposalGroup")
-        .where(
-          sql<boolean>`exists (select 1 from jsonb_array_elements(proposal_group.items) as item where item->>'id' = ${id} and item->>'type' = ${type})`,
-        )
-        .selectAll()
-        .executeTakeFirst();
+      return otel("fetch-matching-group", async () => {
+        const result = await db
+          .selectFrom("proposalGroup")
+          .where(
+            sql<boolean>`exists (select 1 from jsonb_array_elements(proposal_group.items) as item where item->>'id' = ${id} and item->>'type' = ${type})`,
+          )
+          .selectAll()
+          .executeTakeFirst();
 
-      // Ensure the function returns null if no matching group is found
-      return result ?? null;
+        // Ensure the function returns null if no matching group is found
+        return result ?? null;
+      });
     };
 
     let matchingGroup: Selectable<ProposalGroup> | null = null;
