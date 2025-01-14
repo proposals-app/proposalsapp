@@ -431,7 +431,7 @@ async function processRankedChoiceVotes(
 
           round++;
           processRound(); // Process next round
-        }, 0); // Use 0 delay to yield to other tasks but continue as soon as possible
+        }, 10);
       };
 
       processRound(); // Start processing rounds
