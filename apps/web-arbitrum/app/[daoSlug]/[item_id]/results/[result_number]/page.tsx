@@ -50,9 +50,8 @@ export default async function ResultPage({
       />
 
       {/* Timeline on the left */}
-
       <div className="z-10 hidden lg:flex">
-        <Timeline group={group} selectedResult={proposalIndex + 1} />{" "}
+        <Timeline group={group} selectedResult={proposalIndex + 1} />
       </div>
 
       {/* Results on the right */}
