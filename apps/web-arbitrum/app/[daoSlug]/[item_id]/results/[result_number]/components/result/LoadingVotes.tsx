@@ -1,7 +1,3 @@
-"use client";
-
-import { useEffect, useState, useCallback } from "react";
-
 const messages = [
   "Counting votes...",
   "Consulting the DAO oracle...",
@@ -16,24 +12,14 @@ const messages = [
 ];
 
 export function LoadingVotes() {
-  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-
-  const rotateMessage = useCallback(() => {
-    setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(rotateMessage, 3000);
-    return () => clearInterval(interval);
-  }, [rotateMessage]);
+  // Select a random message to display
+  const randomMessage = messages[Math.floor(Math.random() * messages.length)];
 
   return (
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-primary" />
-        <p className="text-lg font-medium text-gray-600">
-          {messages[currentMessageIndex]}
-        </p>
+        <p className="text-lg font-medium text-gray-600">{randomMessage}</p>
       </div>
     </div>
   );

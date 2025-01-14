@@ -26,7 +26,7 @@ const nextConfig = {
   },
   skipTrailingSlashRedirect: true,
   experimental: {
-    ppr: true,
+    ppr: "incremental",
     serverActions: {
       bodySizeLimit: "10mb",
     },

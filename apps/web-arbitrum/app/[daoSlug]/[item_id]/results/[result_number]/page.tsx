@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getBodiesForGroup, getGroupWithData } from "../../actions";
-import { ResultsContainer } from "./components/ResultsContainer";
+import { Results } from "./components/Results";
 import { Timeline } from "./components/timeline/Timeline";
 import { Header } from "./components/Header";
 import { Suspense } from "react";
@@ -33,7 +33,6 @@ export default async function ResultPage({
 
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">
-      {/* Static SSR Components */}
       <Header
         authorName={author?.author_name || "Unknown"}
         authorPicture={author?.author_picture || ""}
@@ -46,18 +45,13 @@ export default async function ResultPage({
         <Timeline group={group} selectedResult={proposalIndex + 1} />
       </div>
 
-      {/* Dynamic Results Content */}
       <div className={`flex w-full flex-grow pb-16 pl-[159px] pt-[104px]`}>
         <div className="h-full w-full pr-4">
-          <Suspense
-            fallback={
-              <div className="flex h-full w-full items-center justify-center">
-                <LoadingVotes />
-              </div>
-            }
-          >
-            <ResultsContainer proposal={proposal} />
-          </Suspense>
+          <div className="flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border border-gray-400 bg-white p-6">
+            <Suspense fallback={<LoadingVotes />}>
+              <Results proposal={proposal} />
+            </Suspense>
+          </div>
         </div>
       </div>
     </div>

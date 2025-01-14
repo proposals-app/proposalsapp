@@ -510,6 +510,7 @@ async function processQuadraticVotes(
 }
 
 export async function getVotes(proposalId: string) {
+  "use server";
   const votes = await db
     .selectFrom("vote")
     .selectAll()
@@ -523,7 +524,10 @@ export async function processResults(
   proposal: Selectable<Proposal>,
   votes: Selectable<Vote>[],
 ): Promise<ProcessedResults> {
+  "use server";
   return otel("process-results", async () => {
+    const startTime = Date.now();
+
     const choices = proposal.choices as string[];
     const metadata = proposal.metadata as ProposalMetadata;
     const voteType = metadata.voteType || "basic";
@@ -546,6 +550,14 @@ export async function processResults(
       default:
         result = await processBasicVotes(votes, choices, proposal);
         break;
+    }
+
+    const endTime = Date.now();
+    const processingTime = endTime - startTime;
+
+    if (processingTime < 5000) {
+      const remainingTime = 5000 - processingTime;
+      await new Promise((resolve) => setTimeout(resolve, remainingTime));
     }
 
     return result;

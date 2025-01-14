@@ -61,9 +61,6 @@ export function CommentsVolumeEvent({
   );
 }
 
-import { ArrowUpRight } from "lucide-react";
-import Link from "next/link";
-
 interface BasicEventProps {
   content: string;
   timestamp: Date;
