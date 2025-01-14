@@ -4,11 +4,7 @@ import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import { format } from "date-fns";
 import { formatNumberWithSuffix } from "@/lib/utils";
-import {
-  getColorForChoice,
-  ProcessedResults,
-  ProposalMetadata,
-} from "./../actions";
+import { ProcessedResults, ProposalMetadata } from "./../actions";
 
 interface VotingPowerChartProps {
   results: ProcessedResults;
@@ -75,7 +71,7 @@ export function VotingPowerChart({ results }: VotingPowerChartProps) {
     const series: echarts.SeriesOption[] = sortedChoiceIndices.map(
       (choiceIndex) => {
         const choice = results.choices[choiceIndex];
-        const color = getColorForChoice(choice);
+        const color = results.choiceColors[choiceIndex];
         const shouldStack =
           results.quorumChoices.includes(choiceIndex) &&
           results.quorum !== null;

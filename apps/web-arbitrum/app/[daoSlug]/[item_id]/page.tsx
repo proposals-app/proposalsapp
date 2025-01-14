@@ -5,6 +5,7 @@ import { searchParamsCache } from "@/app/searchParams";
 import { MenuBar } from "./components/menubar/MenuBar";
 import Feed from "./components/feed/Feed";
 import { Timeline } from "./components/timeline/Timeline";
+import { Suspense } from "react";
 
 export default async function ProposalPage({
   params,
@@ -32,12 +33,14 @@ export default async function ProposalPage({
 
           <MenuBar totalVersions={totalVersions ?? 1} />
 
-          <Feed
-            group={group}
-            commentsFilter={comments}
-            votesFilter={votes}
-            page={page ? Number(page) : 1}
-          />
+          <Suspense>
+            <Feed
+              group={group}
+              commentsFilter={comments}
+              votesFilter={votes}
+              page={page ? Number(page) : 1}
+            />
+          </Suspense>
         </div>
 
         <div className="hidden lg:flex">

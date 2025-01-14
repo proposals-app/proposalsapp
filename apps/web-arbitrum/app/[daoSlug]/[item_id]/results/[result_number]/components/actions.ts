@@ -1,6 +1,7 @@
 import { otel } from "@/lib/otel";
 import { Proposal, Selectable, Vote } from "@proposalsapp/db";
 import { startOfHour, format } from "date-fns";
+import { db } from "@proposalsapp/db";
 
 export interface VoteResult {
   choice: number;
@@ -21,6 +22,7 @@ export interface ProcessedResults {
   proposal: Selectable<Proposal>;
   timeSeriesData: TimeSeriesPoint[];
   choices: string[];
+  choiceColors: string[];
   totalVotingPower: number;
   quorum: number | null;
   quorumChoices: number[];
@@ -74,6 +76,8 @@ function processBasicVotes(
   choices: string[],
   proposal: Selectable<Proposal>,
 ): ProcessedResults {
+  const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
+
   const processedVotes: VoteResult[] = votes.map((vote) => {
     const choice = vote.choice as number;
     return {
@@ -82,7 +86,7 @@ function processBasicVotes(
       votingPower: Number(vote.votingPower),
       voterAddress: vote.voterAddress,
       timestamp: new Date(vote.timeCreated!),
-      color: getColorForChoice(choices[choice]),
+      color: choiceColors[choice], // Use the precomputed color
     };
   });
 
@@ -127,13 +131,14 @@ function processBasicVotes(
       values,
     })),
     choices,
+    choiceColors, // Include choice colors
     totalVotingPower: processedVotes.reduce(
       (sum, vote) => sum + vote.votingPower,
       0,
     ),
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-    winner: Number(winner), // Add the winner
+    winner: Number(winner),
   };
 }
 
@@ -143,6 +148,8 @@ function processWeightedVotes(
   choices: string[],
   proposal: Selectable<Proposal>,
 ): ProcessedResults {
+  const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
+
   const processedVotes: VoteResult[] = [];
   const hourlyData = initializeHourlyData(
     new Date(proposal.timeStart),
@@ -186,7 +193,7 @@ function processWeightedVotes(
           votingPower: normalizedPower,
           voterAddress: vote.voterAddress,
           timestamp,
-          color: getColorForChoice(choices[choice]),
+          color: choiceColors[choice], // Use the precomputed color
         });
 
         // Accumulate in hourly data
@@ -208,7 +215,7 @@ function processWeightedVotes(
         votingPower: Number(vote.votingPower),
         voterAddress: vote.voterAddress,
         timestamp,
-        color: getColorForChoice(choices[choice]),
+        color: choiceColors[choice], // Use the precomputed color
       });
 
       hourlyData[hourKey][choice] =
@@ -231,13 +238,14 @@ function processWeightedVotes(
       values,
     })),
     choices,
+    choiceColors, // Include choice colors
     totalVotingPower: processedVotes.reduce(
       (sum, vote) => sum + vote.votingPower,
       0,
     ),
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-    winner: Number(winner), // Add the winner
+    winner: Number(winner),
   };
 }
 
@@ -247,6 +255,8 @@ function processApprovalVotes(
   choices: string[],
   proposal: Selectable<Proposal>,
 ): ProcessedResults {
+  const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
+
   const processedVotes: VoteResult[] = [];
   const hourlyData = initializeHourlyData(
     new Date(proposal.timeStart),
@@ -281,7 +291,7 @@ function processApprovalVotes(
         votingPower: Number(vote.votingPower), // Full voting power for each choice
         voterAddress: vote.voterAddress,
         timestamp,
-        color: getColorForChoice(choices[choiceIndex]),
+        color: choiceColors[choiceIndex], // Use the precomputed color
       });
 
       // Accumulate in hourly data
@@ -306,22 +316,23 @@ function processApprovalVotes(
       values,
     })),
     choices,
+    choiceColors, // Include choice colors
     totalVotingPower: processedVotes.reduce(
       (sum, vote) => sum + vote.votingPower,
       0,
     ),
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-    winner: Number(winner), // Add the winner
+    winner: Number(winner),
   };
 }
-
-// Process ranked-choice votes
 function processRankedChoiceVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
 ): ProcessedResults {
+  const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
+
   const DEBUG = false;
   const log = (...args: any[]) => {
     if (DEBUG) console.log(...args);
@@ -347,6 +358,7 @@ function processRankedChoiceVotes(
       proposal,
       timeSeriesData: [],
       choices: uniqueChoices,
+      choiceColors: uniqueChoices.map((choice) => getColorForChoice(choice)), // Include choice colors
       totalVotingPower: 0,
       quorum: proposal.quorum ? Number(proposal.quorum) : null,
       quorumChoices:
@@ -519,7 +531,7 @@ function processRankedChoiceVotes(
     votingPower: vote.votingPower,
     voterAddress: vote.voterAddress,
     timestamp: new Date(vote.timestamp),
-    color: getColorForChoice(uniqueChoices[vote.choice[0]]),
+    color: choiceColors[vote.choice[0]], // Use the precomputed color
   }));
 
   const totalVotingPower = processedVotes.reduce(
@@ -554,6 +566,7 @@ function processRankedChoiceVotes(
     proposal,
     timeSeriesData,
     choices: uniqueChoices,
+    choiceColors, // Include choice colors
     totalVotingPower,
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
@@ -567,32 +580,63 @@ function processQuadraticVotes(
   choices: string[],
   proposal: Selectable<Proposal>,
 ): ProcessedResults {
-  // Will add the implementation in the next response due to length
-  return processBasicVotes(votes, choices, proposal); // Temporary fallback
+  const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
+
+  // Temporary fallback to basic processing
+  const result = processBasicVotes(votes, choices, proposal);
+
+  // Include choice colors in the result
+  return {
+    ...result,
+    choiceColors, // Include choice colors
+  };
 }
 
 // Main processResults function
 export async function processResults(
   proposal: Selectable<Proposal>,
-  votes: Selectable<Vote>[],
 ): Promise<ProcessedResults> {
   return otel("process-results", async () => {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const startTime = Date.now();
+
+    const votes = await db
+      .selectFrom("vote")
+      .selectAll()
+      .where("proposalId", "=", proposal.id)
+      .execute();
+
     const choices = proposal.choices as string[];
     const metadata = proposal.metadata as ProposalMetadata;
     const voteType = metadata.voteType || "basic";
 
+    let result: ProcessedResults;
+
     switch (voteType) {
       case "weighted":
-        return processWeightedVotes(votes, choices, proposal);
+        result = processWeightedVotes(votes, choices, proposal);
+        break;
       case "approval":
-        return processApprovalVotes(votes, choices, proposal);
+        result = processApprovalVotes(votes, choices, proposal);
+        break;
       case "ranked-choice":
-        return processRankedChoiceVotes(votes, choices, proposal);
+        result = processRankedChoiceVotes(votes, choices, proposal);
+        break;
       case "quadratic":
-        return processQuadraticVotes(votes, choices, proposal);
+        result = processQuadraticVotes(votes, choices, proposal);
+        break;
       default:
-        return processBasicVotes(votes, choices, proposal);
+        result = processBasicVotes(votes, choices, proposal);
+        break;
     }
+
+    const endTime = Date.now();
+    const processingTime = endTime - startTime;
+
+    if (processingTime < 5000) {
+      const remainingTime = 5000 - processingTime;
+      await new Promise((resolve) => setTimeout(resolve, remainingTime));
+    }
+
+    return result;
   });
 }

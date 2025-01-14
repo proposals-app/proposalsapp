@@ -27,13 +27,6 @@ export default async function ResultPage({
     notFound();
   }
 
-  // Fetch the votes for the proposal
-  const votes = await db
-    .selectFrom("vote")
-    .selectAll()
-    .where("proposalId", "=", proposal.id)
-    .execute();
-
   // Get the author information (assuming the first body is the author)
   const bodies = await getBodiesForGroup(group.group.id);
   const author = bodies?.[0];
@@ -58,7 +51,7 @@ export default async function ResultPage({
       {/* Results on the right */}
       <div className={`flex w-full flex-grow pb-16 pl-[159px] pt-[104px]`}>
         <div className="h-full w-full pr-4">
-          <ProposalResult proposal={proposal} votes={votes} />
+          <ProposalResult proposal={proposal} />
         </div>
       </div>
     </div>
