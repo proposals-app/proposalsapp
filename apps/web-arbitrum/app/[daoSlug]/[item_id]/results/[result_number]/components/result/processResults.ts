@@ -326,6 +326,9 @@ function processRankedChoiceVotes(
     if (DEBUG) console.log(...args);
   };
 
+  // Convert choices to a Set to ensure uniqueness
+  const uniqueChoices = [...new Set(choices)];
+
   // Convert and sort votes
   const sortedVotes = votes
     .filter((vote) => vote.timeCreated && Array.isArray(vote.choice))
@@ -342,7 +345,7 @@ function processRankedChoiceVotes(
       votes: [],
       proposal,
       timeSeriesData: [],
-      choices,
+      choices: uniqueChoices,
       totalVotingPower: 0,
       quorum: proposal.quorum ? Number(proposal.quorum) : null,
       quorumChoices:
@@ -353,36 +356,38 @@ function processRankedChoiceVotes(
 
   // Helper function to run IRV rounds
   const runIRV = (currentVotes: typeof sortedVotes) => {
-    let eliminatedChoices: number[] = [];
+    let eliminatedChoices = new Set<number>(); // Use a Set for eliminated choices
     let winner: number | undefined;
-    let finalVoteCounts: { [key: number]: number } = {};
+    let finalVoteCounts = new Map<number, number>(); // Use a Map for vote counts
 
     do {
-      const voteCounts: { [key: number]: number } = {};
+      const voteCounts = new Map<number, number>(); // Use a Map for vote counts
 
       // Initialize vote counts to 0 for all choices
-      choices.forEach((_, index) => {
-        voteCounts[index] = 0;
+      uniqueChoices.forEach((_, index) => {
+        voteCounts.set(index, 0);
       });
 
       // Count votes for the highest-ranked non-eliminated choice for each voter
       currentVotes.forEach((vote) => {
         // Find the first non-eliminated choice in the voter's ranking
         const validChoice = vote.choice.find(
-          (choice) => !eliminatedChoices.includes(choice),
+          (choice) => !eliminatedChoices.has(choice),
         );
         if (validChoice !== undefined) {
-          voteCounts[validChoice] =
-            (voteCounts[validChoice] || 0) + vote.votingPower;
+          voteCounts.set(
+            validChoice,
+            (voteCounts.get(validChoice) || 0) + vote.votingPower,
+          );
         }
       });
 
       // Set eliminated choices to 0 votes
       eliminatedChoices.forEach((choice) => {
-        voteCounts[choice] = 0;
+        voteCounts.set(choice, 0);
       });
 
-      const totalVotes = Object.values(voteCounts).reduce(
+      const totalVotes = Array.from(voteCounts.values()).reduce(
         (sum, count) => sum + count,
         0,
       );
@@ -393,32 +398,34 @@ function processRankedChoiceVotes(
       log("Majority Threshold:", majorityThreshold);
       log(
         "Current Vote Counts:",
-        Object.entries(voteCounts).map(
+        Array.from(voteCounts.entries()).map(
           ([choice, count]) =>
-            `${choices[Number(choice)]}: ${count} (${((count / totalVotes) * 100).toFixed(2)}%)`,
+            `${uniqueChoices[choice]}: ${count} (${((count / totalVotes) * 100).toFixed(2)}%)`,
         ),
       );
       log(
         "Eliminated Choices:",
-        eliminatedChoices.map((c) => choices[c]).join(", "),
+        Array.from(eliminatedChoices)
+          .map((c) => uniqueChoices[c])
+          .join(", "),
       );
 
       // Check for a winner
-      const winningEntry = Object.entries(voteCounts)
-        .filter(([choice]) => !eliminatedChoices.includes(Number(choice)))
+      const winningEntry = Array.from(voteCounts.entries())
+        .filter(([choice]) => !eliminatedChoices.has(choice))
         .find(([_, votes]) => votes > majorityThreshold);
 
       if (winningEntry) {
-        winner = Number(winningEntry[0]);
+        winner = winningEntry[0];
         finalVoteCounts = voteCounts;
         break;
       }
 
       // Find the choice with the fewest votes to eliminate
-      const activeChoices = Object.entries(voteCounts)
-        .filter(([choice]) => !eliminatedChoices.includes(Number(choice)))
+      const activeChoices = Array.from(voteCounts.entries())
+        .filter(([choice]) => !eliminatedChoices.has(choice))
         .map(([choice, votes]) => ({
-          choice: Number(choice),
+          choice,
           votes,
         }));
 
@@ -427,90 +434,66 @@ function processRankedChoiceVotes(
         const toEliminate = activeChoices.find((c) => c.votes === minVotes);
 
         if (toEliminate) {
-          eliminatedChoices.push(toEliminate.choice);
+          eliminatedChoices.add(toEliminate.choice);
           log(
             "Eliminating:",
-            choices[toEliminate.choice],
+            uniqueChoices[toEliminate.choice],
             `(${toEliminate.votes} votes)`,
           );
         }
       }
 
       finalVoteCounts = voteCounts;
-    } while (!winner && eliminatedChoices.length < choices.length - 1);
+    } while (!winner && eliminatedChoices.size < uniqueChoices.length - 1);
 
-    return { winner, finalVoteCounts };
+    return { winner, finalVoteCounts, eliminatedChoices };
   };
 
-  // Initialize hourly data
-  const startTime = new Date(proposal.timeStart);
-  const endTime = new Date(
-    Math.max(
-      ...sortedVotes.map((v) => v.timestamp),
-      new Date(proposal.timeEnd).getTime(),
-    ),
-  );
-  const hourlyData = initializeHourlyData(startTime, endTime, choices);
+  // Initialize time series data
+  const timeSeriesData: TimeSeriesPoint[] = [];
+  let currentVotes: typeof sortedVotes = [];
+  let eliminatedChoices = new Set<number>();
 
-  // Process votes hourly
-  Object.keys(hourlyData).forEach((hourKey) => {
-    const hourTimestamp = new Date(hourKey).getTime();
-    log("\n=== Processing hour:", hourKey, "===");
+  // Process each vote individually
+  sortedVotes.forEach((vote, index) => {
+    currentVotes.push(vote);
 
-    // Filter votes up to this hour
-    const currentVotes = sortedVotes.filter(
-      (v) => v.timestamp <= hourTimestamp,
-    );
+    // Run IRV for the current set of votes
+    const {
+      winner,
+      finalVoteCounts,
+      eliminatedChoices: currentEliminated,
+    } = runIRV(currentVotes);
 
-    if (currentVotes.length === 0) {
-      log("No votes in this hour.");
-      return;
-    }
+    // Update the list of eliminated choices
+    eliminatedChoices = currentEliminated;
 
-    // Run IRV for this hour
-    const { winner, finalVoteCounts } = runIRV(currentVotes);
-
-    // Verify we have a winner
-    const totalVotes = Object.values(finalVoteCounts).reduce(
-      (sum, count) => sum + count,
-      0,
-    );
-    const winningVotes = winner !== undefined ? finalVoteCounts[winner] : 0;
-    const winningPercentage = (winningVotes / totalVotes) * 100;
-
-    log("Final Result:");
-    log(`Winner: ${winner !== undefined ? choices[winner] : "No winner"}`);
-    log(`Winning Percentage: ${winningPercentage.toFixed(2)}%`);
-
-    if (winner === undefined || winningPercentage <= 50) {
-      log("WARNING: No majority winner found at this hour!");
-    }
-
-    // Update hourly data with final vote counts
-    choices.forEach((_, index) => {
-      hourlyData[hourKey][index] = finalVoteCounts[index] || 0;
+    // Ensure eliminated choices are set to 0 in the final vote counts
+    eliminatedChoices.forEach((choice) => {
+      finalVoteCounts.set(choice, 0);
     });
-  });
 
-  // Convert hourly data to timeSeriesData format
-  const timeSeriesData: TimeSeriesPoint[] = Object.entries(hourlyData)
-    .map(([timestamp, values]) => ({
-      timestamp,
-      values,
-    }))
-    .sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    // Add the current state to the time series data
+    timeSeriesData.push({
+      timestamp: new Date(vote.timestamp).toISOString(),
+      values: Object.fromEntries(finalVoteCounts), // Convert Map to plain object
+    });
+
+    log(`Processed vote ${index + 1}/${sortedVotes.length}`);
+    log(
+      "Current Winner:",
+      winner !== undefined ? uniqueChoices[winner] : "No winner",
     );
+  });
 
   // Create processed votes array for the table
   const processedVotes: VoteResult[] = sortedVotes.map((vote) => ({
     choice: vote.choice[0], // Use first choice for display
-    choiceText: choices[vote.choice[0]] || "Unknown Choice",
+    choiceText: uniqueChoices[vote.choice[0]] || "Unknown Choice",
     votingPower: vote.votingPower,
     voterAddress: vote.voterAddress,
     timestamp: new Date(vote.timestamp),
-    color: getColorForChoice(choices[vote.choice[0]]),
+    color: getColorForChoice(uniqueChoices[vote.choice[0]]),
   }));
 
   const totalVotingPower = processedVotes.reduce(
@@ -519,22 +502,24 @@ function processRankedChoiceVotes(
   );
 
   // Determine the final winner
-  const finalVoteCounts: { [key: number]: number } = {};
-  choices.forEach((_, index) => {
-    finalVoteCounts[index] = 0;
+  const finalVoteCounts = new Map<number, number>();
+  uniqueChoices.forEach((_, index) => {
+    finalVoteCounts.set(index, 0);
   });
 
   sortedVotes.forEach((vote) => {
     const validChoice = vote.choice.find(
-      (choice) => !finalVoteCounts[choice] === undefined,
+      (choice) => !finalVoteCounts.has(choice),
     );
     if (validChoice !== undefined) {
-      finalVoteCounts[validChoice] =
-        (finalVoteCounts[validChoice] || 0) + vote.votingPower;
+      finalVoteCounts.set(
+        validChoice,
+        (finalVoteCounts.get(validChoice) || 0) + vote.votingPower,
+      );
     }
   });
 
-  const winner = Object.entries(finalVoteCounts).reduce((a, b) =>
+  const winner = Array.from(finalVoteCounts.entries()).reduce((a, b) =>
     a[1] > b[1] ? a : b,
   )[0];
 
@@ -542,7 +527,7 @@ function processRankedChoiceVotes(
     votes: processedVotes,
     proposal,
     timeSeriesData,
-    choices,
+    choices: uniqueChoices,
     totalVotingPower,
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
