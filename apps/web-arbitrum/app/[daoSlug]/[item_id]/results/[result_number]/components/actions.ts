@@ -521,8 +521,6 @@ export async function processResultsAction(
 ): Promise<ProcessedResults> {
   "use server";
   return otel("process-results", async () => {
-    const startTime = Date.now();
-
     const choices = proposal.choices as string[];
     const metadata = proposal.metadata as ProposalMetadata;
     const voteType = metadata.voteType || "basic";
@@ -545,14 +543,6 @@ export async function processResultsAction(
       default:
         result = await processBasicVotes(votes, choices, proposal);
         break;
-    }
-
-    const endTime = Date.now();
-    const processingTime = endTime - startTime;
-
-    if (processingTime < 5000) {
-      const remainingTime = 5000 - processingTime;
-      await new Promise((resolve) => setTimeout(resolve, remainingTime));
     }
 
     return result;
