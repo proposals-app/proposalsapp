@@ -81,6 +81,7 @@ export function ResultEvent({
           <Link
             href={`/${daoSlug}/${groupId}/results/${resultNumber}`} // Link to the results page
             className="text-blue-500 hover:underline"
+            prefetch={true}
           >
             <ArrowRight size={14} />
           </Link>

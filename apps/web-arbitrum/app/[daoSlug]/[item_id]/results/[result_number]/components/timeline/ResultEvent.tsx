@@ -72,7 +72,10 @@ export function ResultEvent({
   // If resultNumber is not equal to selectedResult, wrap the content in a Link
   if (resultNumber !== selectedResult) {
     return (
-      <Link href={`/${daoSlug}/${groupId}/results/${resultNumber}`}>
+      <Link
+        href={`/${daoSlug}/${groupId}/results/${resultNumber}`}
+        prefetch={true}
+      >
         {eventContent}
       </Link>
     );

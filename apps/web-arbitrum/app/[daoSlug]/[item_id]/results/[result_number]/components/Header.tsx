@@ -23,6 +23,7 @@ export function Header({
       <Link
         href={`/${daoSlug}/${itemId}`}
         className="flex items-center gap-2 rounded-full bg-gray-300 px-3 py-2"
+        prefetch={true}
       >
         <ArrowLeft size={20} />
         <span className="text-sm font-medium">Back</span>
