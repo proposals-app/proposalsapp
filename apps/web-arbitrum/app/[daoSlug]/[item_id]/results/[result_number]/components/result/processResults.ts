@@ -451,6 +451,7 @@ function processRankedChoiceVotes(
 
   // Initialize time series data
   const timeSeriesData: TimeSeriesPoint[] = [];
+  const timestampMap = new Map<string, TimeSeriesPoint>(); // Map to track unique timestamps
   let currentVotes: typeof sortedVotes = [];
   let eliminatedChoices = new Set<number>();
 
@@ -473,11 +474,35 @@ function processRankedChoiceVotes(
       finalVoteCounts.set(choice, 0);
     });
 
-    // Add the current state to the time series data
-    timeSeriesData.push({
-      timestamp: new Date(vote.timestamp).toISOString(),
-      values: Object.fromEntries(finalVoteCounts), // Convert Map to plain object
-    });
+    // Check if a time series point for this timestamp already exists
+    const timestampKey = new Date(vote.timestamp).toISOString();
+    const existingTimeSeriesPoint = timestampMap.get(timestampKey);
+
+    if (existingTimeSeriesPoint) {
+      // Update the existing time series point
+      Array.from(finalVoteCounts.entries()).forEach(([choice, count]) => {
+        if (!eliminatedChoices.has(choice)) {
+          existingTimeSeriesPoint.values[choice] = count;
+        }
+      });
+    } else {
+      // Create a new time series point
+      const timeSeriesPoint: TimeSeriesPoint = {
+        timestamp: timestampKey,
+        values: {},
+      };
+
+      // Only include non-eliminated choices in the time series data
+      Array.from(finalVoteCounts.entries()).forEach(([choice, count]) => {
+        if (!eliminatedChoices.has(choice)) {
+          timeSeriesPoint.values[choice] = count;
+        }
+      });
+
+      // Add to the time series data and the map
+      timeSeriesData.push(timeSeriesPoint);
+      timestampMap.set(timestampKey, timeSeriesPoint);
+    }
 
     log(`Processed vote ${index + 1}/${sortedVotes.length}`);
     log(
