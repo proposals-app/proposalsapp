@@ -76,15 +76,6 @@ export function ResultsLoading() {
   );
 }
 
-// Cached version of getVotesAction
-const cachedGetVotesAction = unstable_cache(
-  async (proposalId: string) => {
-    return await getVotesAction(proposalId);
-  },
-  ["getVotesAction"],
-  { revalidate: 60 * 5, tags: ["votes"] },
-);
-
 // Cached version of getDelegateForVoter
 const cachedGetDelegateForVoter = unstable_cache(
   async (voterAddress: string, daoSlug: string, proposalId: string) => {
@@ -92,15 +83,6 @@ const cachedGetDelegateForVoter = unstable_cache(
   },
   ["getDelegateForVoter"],
   { revalidate: 60 * 5, tags: ["delegate"] },
-);
-
-// Cached version of processResultsAction
-const cachedProcessResultsAction = unstable_cache(
-  async (proposal: Selectable<Proposal>, votes: any[]) => {
-    return await processResultsAction(proposal, votes);
-  },
-  ["processResultsAction"],
-  { revalidate: 60 * 5, tags: ["results"] },
 );
 
 // New component to handle the async content
@@ -124,7 +106,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     }),
   );
 
-  const processedResults = await cachedProcessResultsAction(proposal, votes);
+  const processedResults = await processResultsAction(proposal, votes);
 
   if (!processedResults) {
     notFound();
