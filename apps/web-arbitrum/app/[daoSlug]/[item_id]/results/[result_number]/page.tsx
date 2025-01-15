@@ -13,7 +13,6 @@ export default async function ResultPage({
 }) {
   const { daoSlug, item_id, result_number } = await params;
 
-  // Static data fetching for SSR
   const group = await getGroupWithData(daoSlug, item_id);
   if (!group) {
     notFound();
@@ -46,9 +45,7 @@ export default async function ResultPage({
       <div className={`flex w-full flex-grow pb-16 pl-[159px] pt-[104px]`}>
         <div className="h-full w-full pr-4">
           <div className="flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border border-gray-400 bg-white p-6">
-            <Suspense fallback={<LoadingVotes />}>
-              <Results proposal={proposal} daoSlug={daoSlug} />
-            </Suspense>
+            <Results proposal={proposal} daoSlug={daoSlug} />
           </div>
         </div>
       </div>

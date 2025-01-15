@@ -9,13 +9,25 @@ import { ResultsChart } from "./result/ResultsChart";
 import { ResultsTable } from "./result/ResultsTable";
 import { Proposal, Selectable } from "@proposalsapp/db";
 import { ResultsList } from "./result/ResultsList";
+import { Suspense } from "react";
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
   daoSlug: string;
 }
 
-export async function Results({ proposal, daoSlug }: ResultsProps) {
+export function Results({ proposal, daoSlug }: ResultsProps) {
+  return (
+    <div className="flex w-full">
+      <Suspense fallback={<div>loading</div>}>
+        <ResultsContent proposal={proposal} daoSlug={daoSlug} />
+      </Suspense>
+    </div>
+  );
+}
+
+// New component to handle the async content
+async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   const votes = await getVotesAction(proposal.id);
 
   // Create a map of voter addresses to their delegate information
@@ -24,12 +36,14 @@ export async function Results({ proposal, daoSlug }: ResultsProps) {
   // Fetch delegate information for all voters
   await Promise.all(
     votes.map(async (vote) => {
-      const delegate = await getDelegateForVoter(
-        vote.voterAddress,
-        daoSlug,
-        proposal.id,
-      );
-      delegateMap.set(vote.voterAddress, delegate);
+      if (vote.votingPower > 50000) {
+        const delegate = await getDelegateForVoter(
+          vote.voterAddress,
+          daoSlug,
+          proposal.id,
+        );
+        delegateMap.set(vote.voterAddress, delegate);
+      }
     }),
   );
 
@@ -40,12 +54,12 @@ export async function Results({ proposal, daoSlug }: ResultsProps) {
   }
 
   return (
-    <div>
+    <div className="w-full">
       <div className="flex">
         <ResultsChart results={processedResults} />
         <ResultsList results={processedResults} />
       </div>
-      {/* Pass delegateMap to ResultsTable */}
+
       <ResultsTable results={processedResults} delegateMap={delegateMap} />
     </div>
   );

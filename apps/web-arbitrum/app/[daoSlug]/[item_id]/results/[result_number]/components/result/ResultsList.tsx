@@ -15,14 +15,22 @@ export function ResultsList({ results }: ResultsListProps) {
   // Calculate voting power for each choice
   const choicesWithPower = results.choices.map((choice, index) => ({
     choice,
-    votingPower: results.votes.reduce(
-      (sum, vote) =>
-        vote.choice === index ||
-        (vote.choice === -1 && vote.choiceText.includes(choice))
-          ? sum + vote.votingPower
-          : sum,
-      0,
-    ),
+    votingPower: results.votes.reduce((sum, vote) => {
+      if (vote.choice === index) {
+        return sum + vote.votingPower;
+      } else if (vote.choice === -1 && vote.choiceText.includes(choice)) {
+        // Handle weighted votes
+        const choiceIndex = results.choices.indexOf(choice);
+        const weight = vote.choiceText
+          .split(", ")
+          .find((c) => c.includes(choice))
+          ?.match(/\((\d+\.?\d*)%\)/)?.[1];
+        if (weight) {
+          return sum + (vote.votingPower * parseFloat(weight)) / 100;
+        }
+      }
+      return sum;
+    }, 0),
     color: results.choiceColors[index],
   }));
 
