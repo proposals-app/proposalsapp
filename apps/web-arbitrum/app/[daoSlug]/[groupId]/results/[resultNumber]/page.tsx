@@ -47,9 +47,13 @@ export default async function ResultPage({
       <div className={`flex w-full flex-grow pb-16 pl-[159px] pt-[104px]`}>
         <div className="h-full w-full pr-4">
           <div className="flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border border-gray-400 bg-white p-6">
-            <Suspense fallback={<ResultsLoading />}>
-              <Results proposal={proposal} daoSlug={daoSlug} />
-            </Suspense>
+            {group ? (
+              <Suspense fallback={<ResultsLoading />}>
+                <Results proposal={proposal} daoSlug={daoSlug} />
+              </Suspense>
+            ) : (
+              <ResultsLoading />
+            )}
           </div>
         </div>
       </div>
