@@ -22,6 +22,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     return [...results.votes].sort((a, b) => {
       let comparison = 0;
 
+      // Default sorting for other vote types
       switch (sortColumn) {
         case "choice":
           comparison = a.choiceText.localeCompare(b.choiceText);
@@ -36,7 +37,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
       return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [results.votes, sortColumn, sortDirection]);
+  }, [results.votes, sortColumn, sortDirection, results.voteType]);
 
   const handleSortChange = (column: typeof sortColumn) => {
     if (sortColumn === column) {

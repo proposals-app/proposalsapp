@@ -18,7 +18,6 @@ interface ResultsProps {
 }
 
 export function Results({ proposal, daoSlug }: ResultsProps) {
-  console.log("Results");
   return (
     <div className="flex w-full">
       <Suspense fallback={<ResultsLoading />}>
@@ -29,7 +28,6 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 }
 
 export function ResultsLoading() {
-  console.log("ResultsLoading");
   return (
     <div className="flex w-full flex-col gap-6">
       <div className="flex w-full gap-4">

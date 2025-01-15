@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import { format } from "date-fns";
 import { formatNumberWithSuffix } from "@/lib/utils";
-import { ProcessedResults, ProposalMetadata } from "./../actions";
+import { ProcessedResults } from "../actions";
 
 interface ResultsChartProps {
   results: ProcessedResults;
@@ -18,22 +18,25 @@ export function ResultsChart({ results }: ResultsChartProps) {
 
     const chart = echarts.init(chartRef.current);
 
-    const metadata = results.proposal.metadata as ProposalMetadata;
-    const isRankedChoice = metadata.voteType === "ranked-choice";
+    const isRankedChoice = results.voteType === "ranked-choice";
+    const isWeighted = results.voteType === "weighted";
 
     // Calculate cumulative data for each choice
     const cumulativeData: { [choice: number]: [string, number][] } = {};
-    if (!isRankedChoice) {
-      results.choices.forEach((_, choiceIndex) => {
-        cumulativeData[choiceIndex] = [];
-        let cumulative = 0;
+    results.choices.forEach((_, choiceIndex) => {
+      cumulativeData[choiceIndex] = [];
+      let cumulative = 0;
 
-        results.timeSeriesData.forEach((point) => {
+      results.timeSeriesData.forEach((point) => {
+        if (isWeighted) {
+          // For weighted votes, use the normalized values directly
           cumulative += point.values[choiceIndex] || 0;
-          cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
-        });
+        } else {
+          cumulative += point.values[choiceIndex] || 0;
+        }
+        cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
       });
-    }
+    });
 
     // Get last known values for sorting
     const lastKnownValues: { [choice: number]: number } = {};
@@ -224,7 +227,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
       xAxis: {
         type: "time",
         min: new Date(results.proposal.timeStart).getTime(),
-        max: new Date(results.proposal.timeEnd).getTime(),
+        max: new Date(results.proposal.timeEnd).getTime() + 5 * 60 * 1000,
         axisLabel: {
           formatter: (value: number) => format(new Date(value), "MMM d, HH:mm"),
         },
