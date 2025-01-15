@@ -191,30 +191,25 @@ async function processWeightedVotes(
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   const processedVotes: VoteResult[] = [];
-  const hourlyData = initializeHourlyData(
-    new Date(proposal.timeStart),
-    votes.length > 0
-      ? new Date(
-          Math.max(...votes.map((v) => new Date(v.timeCreated!).getTime())),
-        )
-      : new Date(proposal.timeStart),
-    choices,
+  const timeSeriesData: TimeSeriesPoint[] = [];
+  let accumulatedVotingPower = 0;
+  let lastAccumulatedTimestamp: Date | null = null;
+
+  // Sort votes by timestamp
+  const sortedVotes = [...votes].sort(
+    (a, b) =>
+      new Date(a.timeCreated!).getTime() - new Date(b.timeCreated!).getTime(),
   );
 
-  const finalResults: { [choice: number]: number } = {};
-  choices.forEach((_, index) => {
-    finalResults[index] = 0;
-  });
+  sortedVotes.forEach((vote) => {
+    const timestamp = new Date(vote.timeCreated!);
 
-  votes.forEach((vote) => {
     if (
       typeof vote.choice === "object" &&
       vote.choice !== null &&
       !Array.isArray(vote.choice)
     ) {
       const weightedChoices = vote.choice as Record<string, number>;
-      const timestamp = new Date(vote.timeCreated!);
-      const hourKey = format(startOfHour(timestamp), "yyyy-MM-dd HH:mm");
       const totalWeight = Object.values(weightedChoices).reduce(
         (sum, weight) => sum + weight,
         0,
@@ -224,7 +219,7 @@ async function processWeightedVotes(
       const combinedChoiceName = Object.entries(weightedChoices)
         .map(([choiceIndex, weight]) => {
           const choice = parseInt(choiceIndex) - 1; // Convert to 0-based index
-          const percentage = ((weight / totalWeight) * 100).toFixed(2); // Calculate percentage
+          const percentage = ((weight / totalWeight) * 100).toFixed(2);
           return `${choices[choice] || "Unknown Choice"} (${percentage}%)`;
         })
         .join(", ");
@@ -239,24 +234,39 @@ async function processWeightedVotes(
         timestamp,
       });
 
-      // Process each choice in the weighted vote for hourly data and final results
+      // Process each choice in the weighted vote
       Object.entries(weightedChoices).forEach(([choiceIndex, weight]) => {
         const choice = parseInt(choiceIndex) - 1; // Convert to 0-based index
         const normalizedPower =
           (Number(vote.votingPower) * weight) / totalWeight;
 
-        // Accumulate in hourly data
-        hourlyData[hourKey][choice] =
-          (hourlyData[hourKey][choice] || 0) + normalizedPower;
+        if (normalizedPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+          // Create a new time series point for this vote
+          timeSeriesData.push({
+            timestamp: format(timestamp, "yyyy-MM-dd HH:mm:ss"),
+            values: { [choice]: normalizedPower },
+          });
+        } else {
+          // Accumulate voting power
+          accumulatedVotingPower += normalizedPower;
+          lastAccumulatedTimestamp = timestamp;
 
-        // Accumulate in final results
-        finalResults[choice] = (finalResults[choice] || 0) + normalizedPower;
+          if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+            // Create a new time series point for the accumulated votes
+            timeSeriesData.push({
+              timestamp: format(
+                lastAccumulatedTimestamp,
+                "yyyy-MM-dd HH:mm:ss",
+              ),
+              values: { [choice]: accumulatedVotingPower },
+            });
+            accumulatedVotingPower = 0; // Reset accumulation
+          }
+        }
       });
     } else {
       // Handle non-weighted votes (fallback to basic processing)
       const choice = (vote.choice as number) - 1; // Convert to 0-based index
-      const timestamp = new Date(vote.timeCreated!);
-      const hourKey = format(startOfHour(timestamp), "yyyy-MM-dd HH:mm");
 
       processedVotes.push({
         choice,
@@ -267,12 +277,69 @@ async function processWeightedVotes(
         timestamp,
       });
 
-      hourlyData[hourKey][choice] =
-        (hourlyData[hourKey][choice] || 0) + Number(vote.votingPower);
+      if (Number(vote.votingPower) >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+        // Create a new time series point for this vote
+        timeSeriesData.push({
+          timestamp: format(timestamp, "yyyy-MM-dd HH:mm:ss"),
+          values: { [choice]: Number(vote.votingPower) },
+        });
+      } else {
+        // Accumulate voting power
+        accumulatedVotingPower += Number(vote.votingPower);
+        lastAccumulatedTimestamp = timestamp;
 
-      // Accumulate in final results
-      finalResults[choice] =
-        (finalResults[choice] || 0) + Number(vote.votingPower);
+        if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+          // Create a new time series point for the accumulated votes
+          timeSeriesData.push({
+            timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+            values: { [choice]: accumulatedVotingPower },
+          });
+          accumulatedVotingPower = 0; // Reset accumulation
+        }
+      }
+    }
+  });
+
+  // If there's any remaining accumulated voting power, add it to the last timestamp
+  if (accumulatedVotingPower > 0 && lastAccumulatedTimestamp) {
+    const lastVote = sortedVotes[sortedVotes.length - 1];
+    const lastChoice = Array.isArray(lastVote.choice)
+      ? lastVote.choice[0] - 1
+      : (lastVote.choice as number) - 1;
+
+    timeSeriesData.push({
+      timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+      values: { [lastChoice]: accumulatedVotingPower },
+    });
+  }
+
+  // Calculate final results
+  const finalResults: { [choice: number]: number } = {};
+  choices.forEach((_, index) => {
+    finalResults[index] = 0;
+  });
+
+  processedVotes.forEach((vote) => {
+    if (vote.choice === -1) {
+      // Handle weighted votes
+      const weightedChoices = votes.find(
+        (v) => v.voterAddress === vote.voterAddress,
+      )?.choice as Record<string, number>;
+      const totalWeight = Object.values(weightedChoices).reduce(
+        (sum, weight) => sum + weight,
+        0,
+      );
+
+      Object.entries(weightedChoices).forEach(([choiceIndex, weight]) => {
+        const choice = parseInt(choiceIndex) - 1;
+        const normalizedPower =
+          (Number(vote.votingPower) * weight) / totalWeight;
+        finalResults[choice] = (finalResults[choice] || 0) + normalizedPower;
+      });
+    } else {
+      // Handle non-weighted votes
+      finalResults[vote.choice] =
+        (finalResults[vote.choice] || 0) + vote.votingPower;
     }
   });
 
@@ -288,10 +355,7 @@ async function processWeightedVotes(
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
     voteType: "weighted",
     votes: processedVotes,
-    timeSeriesData: Object.entries(hourlyData).map(([timestamp, values]) => ({
-      timestamp,
-      values,
-    })),
+    timeSeriesData,
     finalResults,
   };
 }
