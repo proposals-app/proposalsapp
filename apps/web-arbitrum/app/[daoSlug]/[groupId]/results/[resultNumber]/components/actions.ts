@@ -90,14 +90,14 @@ function initializeHourlyData(
   return hourlyData;
 }
 
+const ACCUMULATED_VOTING_POWER_THRESHOLD = 5000;
+
 // Process basic (single-choice) votes
 async function processBasicVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
 ): Promise<ProcessedResults> {
-  const ACCUMULATED_VOTING_POWER_THRESHOLD = 5000;
-
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   const processedVotes: VoteResult[] = votes.map((vote) => {
@@ -384,8 +384,9 @@ async function processRankedChoiceVotes(
   votes: Selectable<Vote>[],
   choices: string[],
   proposal: Selectable<Proposal>,
-  intervalSeconds: number = 60 * 5,
 ): Promise<ProcessedResults> {
+  const ACCUMULATED_VOTING_POWER_THRESHOLD = 5000; // Define the threshold
+
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   // Early return for empty votes
@@ -498,22 +499,19 @@ async function processRankedChoiceVotes(
   // Generate time series data with non-blocking calculations
   const timeSeriesMap = new Map<string, TimeSeriesPoint>();
   let runningVotes: typeof processedVotes = [];
-
-  // Calculate the interval in milliseconds
-  const intervalMs = intervalSeconds * 1000;
-
-  // Initialize the first interval
-  let nextIntervalTime = processedVotes[0].timestamp + intervalMs;
+  let accumulatedVotingPower = 0;
+  let lastAccumulatedTimestamp: number | null = null;
 
   for (const vote of processedVotes) {
     runningVotes.push(vote);
+    accumulatedVotingPower += vote.votingPower;
+    lastAccumulatedTimestamp = vote.timestamp;
 
-    // Check if the vote timestamp exceeds the next interval time
-    if (vote.timestamp >= nextIntervalTime) {
+    if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
       const { finalVoteCounts, eliminatedChoices } =
         await calculateIRV(runningVotes);
 
-      const timestampKey = new Date(nextIntervalTime).toISOString();
+      const timestampKey = new Date(lastAccumulatedTimestamp).toISOString();
       const values: Record<number | string, number> = {};
 
       // Calculate total votes for this interval
@@ -531,9 +529,33 @@ async function processRankedChoiceVotes(
 
       timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
 
-      // Update the next interval time
-      nextIntervalTime += intervalMs;
+      // Reset accumulation
+      accumulatedVotingPower = 0;
     }
+  }
+
+  // If there's any remaining accumulated voting power, add it to the last timestamp
+  if (accumulatedVotingPower > 0 && lastAccumulatedTimestamp) {
+    const { finalVoteCounts, eliminatedChoices } =
+      await calculateIRV(runningVotes);
+
+    const timestampKey = new Date(lastAccumulatedTimestamp).toISOString();
+    const values: Record<number | string, number> = {};
+
+    // Calculate total votes for this interval
+    let totalVotes = 0;
+
+    finalVoteCounts.forEach((count, choice) => {
+      if (!eliminatedChoices.has(choice)) {
+        values[choice] = count;
+        totalVotes += count; // Accumulate total votes
+      }
+    });
+
+    // Add the total votes as a special key "Total"
+    values["Winning threshold"] = totalVotes / 2;
+
+    timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
   }
 
   // Calculate final result
