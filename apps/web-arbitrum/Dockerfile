@@ -37,34 +37,32 @@ FROM debian:bookworm
 # Set the working directory
 WORKDIR /app
 
-# Install Node.js, yarn, and PM2
+# Install Node.js and yarn
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs && \
-    npm install -g corepack pm2 && \
+    npm install -g corepack && \
     corepack enable && \
     corepack prepare yarn@4 --activate && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the built project and required files from the builder stage
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/yarn.lock ./
-COPY --from=builder /app/.yarnrc.yml ./
-COPY --from=builder /app/node_modules/ ./node_modules/
-COPY --from=builder /app/apps/web-arbitrum/ ./apps/web-arbitrum/
-COPY --from=builder /app/libs/ts/db/ ./libs/ts/db/
-COPY --from=builder /app/libs/ts/emails/ ./libs/ts/emails/
-COPY --from=builder /app/libs/ts/visual-dom-diff/ ./libs/ts/visual-dom-diff/
+COPY --from=builder /app/apps/web-arbitrum/ /app/apps/web-arbitrum/
+COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
+COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
+COPY --from=builder /app/libs/ts/visual-dom-diff/ /app/libs/ts/visual-dom-diff/
+COPY --from=builder /app/node_modules/ /app/node_modules/
+COPY --from=builder /app/package.json /app/
+COPY --from=builder /app/yarn.lock /app/
+COPY --from=builder /app/.yarnrc.yml /app/
 
-# Copy PM2 configuration file from root
-COPY apps/web-arbitrum/ecosystem.config.cjs ./apps/web-arbitrum/
+
+
 
 # Set the environment variables
 ENV PROPOSALS_BIN=web-arbitrum
 ENV NEXT_OTEL_VERBOSE=1
-ENV NODE_ENV=production
-ENV PORT=3000
 
-# Set the default command to start the application with PM2 in cluster mode
-CMD ["pm2-runtime", "apps/web-arbitrum/ecosystem.config.cjs"]
+# Set the default command
+CMD ["yarn", "start-web-arbitrum"]
