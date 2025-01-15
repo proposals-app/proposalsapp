@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { DiscoursePost, Selectable, Vote } from "@proposalsapp/db";
 import { GroupWithDataType } from "../../actions";
 import { VoteItem } from "./items/VoteItem";
@@ -6,6 +7,20 @@ import { notFound } from "next/navigation";
 import { getFeedForGroup } from "./actions";
 import { VotesFilterEnum } from "@/app/searchParams";
 import { LazyLoadTrigger } from "./LazyLoadTrigger";
+
+// Cached version of getFeedForGroup
+const getCachedFeedForGroup = unstable_cache(
+  async (
+    groupId: string,
+    commentsFilter: boolean,
+    votesFilter: VotesFilterEnum,
+    page: number,
+  ) => {
+    return await getFeedForGroup(groupId, commentsFilter, votesFilter, page);
+  },
+  ["feed-for-group"],
+  { revalidate: 60 * 5, tags: ["feed"] },
+);
 
 export default async function Feed({
   group,
@@ -22,7 +37,7 @@ export default async function Feed({
     notFound();
   }
 
-  const feed = await getFeedForGroup(
+  const feed = await getCachedFeedForGroup(
     group.group.id,
     commentsFilter,
     votesFilter,

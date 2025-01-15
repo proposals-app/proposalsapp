@@ -208,9 +208,7 @@ function addSummaryEvent(
 }
 
 // Main function to extract events
-export async function extractEvents(
-  group: GroupWithDataType,
-): Promise<Event[]> {
+export async function extractEvents(group: GroupWithDataType) {
   return otel("extract-events", async () => {
     if (!group) return [];
 

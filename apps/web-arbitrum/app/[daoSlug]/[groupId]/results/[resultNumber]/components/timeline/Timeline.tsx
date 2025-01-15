@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { extractEvents, TimelineEventType } from "./actions";
 import { ResultEvent } from "./ResultEvent";
 import {
@@ -8,6 +9,15 @@ import {
   VotesVolumeEvent,
 } from "./OtherEvents";
 import { GroupWithDataType } from "@/app/[daoSlug]/[groupId]/actions";
+
+// Cache the extractEvents function
+const getCachedEvents = unstable_cache(
+  async (group: GroupWithDataType) => {
+    return await extractEvents(group);
+  },
+  ["extractEvents"],
+  { revalidate: 60 * 5, tags: ["extractEvents"] },
+);
 
 export async function Timeline({
   group,
@@ -20,7 +30,8 @@ export async function Timeline({
     notFound();
   }
 
-  const events = await extractEvents(group);
+  // Use the cached version of extractEvents
+  const events = await getCachedEvents(group);
 
   // Map proposals to their chronological order
   const proposalOrderMap = new Map<string, number>();
@@ -126,7 +137,6 @@ export async function Timeline({
                     content={event.content}
                     timestamp={event.timestamp}
                     proposal={event.proposal}
-                    votes={event.votes}
                     resultNumber={resultNumber!}
                     selectedResult={selectedResult}
                     daoSlug={group.daoSlug}
@@ -138,7 +148,6 @@ export async function Timeline({
                     content={event.content}
                     timestamp={event.timestamp}
                     proposal={event.proposal}
-                    votes={event.votes}
                     resultNumber={resultNumber!}
                     selectedResult={selectedResult}
                     daoSlug={group.daoSlug}

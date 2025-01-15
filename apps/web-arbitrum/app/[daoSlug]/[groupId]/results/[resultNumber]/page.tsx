@@ -1,10 +1,29 @@
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { getBodiesForGroup, getGroupData } from "../../actions";
 import { Results, ResultsLoading } from "./components/Results";
 import { LoadingTimeline, Timeline } from "./components/timeline/Timeline";
 import { Header } from "./components/Header";
 import { Suspense } from "react";
 import { getAuthor } from "./actions";
+
+// Cached version of getGroupData
+const cachedGetGroupData = unstable_cache(
+  async (daoSlug: string, groupId: string) => {
+    return await getGroupData(daoSlug, groupId);
+  },
+  ["group-data"],
+  { revalidate: 60 * 5, tags: ["group-data"] },
+);
+
+// Cached version of getAuthor
+const cachedGetAuthor = unstable_cache(
+  async (groupId: string) => {
+    return await getAuthor(groupId);
+  },
+  ["author-data"],
+  { revalidate: 60 * 5, tags: ["author-data"] },
+);
 
 export default async function ResultPage({
   params,
@@ -13,7 +32,7 @@ export default async function ResultPage({
 }) {
   const { daoSlug, groupId, resultNumber } = await params;
 
-  const group = await getGroupData(daoSlug, groupId);
+  const group = await cachedGetGroupData(daoSlug, groupId);
   if (!group) {
     notFound();
   }
@@ -25,7 +44,7 @@ export default async function ResultPage({
     notFound();
   }
 
-  const bodies = await getAuthor(group.group.id);
+  const bodies = await cachedGetAuthor(group.group.id);
   const author = bodies?.[0];
 
   return (

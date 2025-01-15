@@ -13,6 +13,20 @@ import { getDelegate } from "../actions";
 import { GroupWithDataType } from "../../../actions";
 import { notFound } from "next/navigation";
 import { formatNumberWithSuffix } from "@/lib/utils";
+import { unstable_cache } from "next/cache";
+
+const getDelegateCached = unstable_cache(
+  async (
+    voterAddress: string,
+    daoSlug: string,
+    topicIds: string[],
+    proposalIds: string[],
+  ) => {
+    return await getDelegate(voterAddress, daoSlug, topicIds, proposalIds);
+  },
+  ["delegate"],
+  { revalidate: 60 * 5, tags: ["delegate"] },
+);
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === "vote";
@@ -37,7 +51,7 @@ export async function VoteItem({
 
   const proposal = group.proposals.find((p) => p.id == item.proposalId);
 
-  const delegate = await getDelegate(
+  const delegate = await getDelegateCached(
     item.voterAddress,
     group.daoSlug,
     topicIds,

@@ -6,7 +6,6 @@ interface ResultEventProps {
   content: string;
   timestamp: Date;
   proposal: Selectable<Proposal>;
-  votes: Selectable<Vote>[];
   resultNumber: number;
   selectedResult: number;
   daoSlug: string;

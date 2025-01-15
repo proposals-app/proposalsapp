@@ -53,7 +53,6 @@ interface ResultEvent extends BaseEvent {
   type: TimelineEventType.ResultOngoing | TimelineEventType.ResultEnded;
   content: string;
   proposal: Selectable<Proposal>;
-  votes: Selectable<Vote>[];
 }
 
 type Event =
@@ -266,7 +265,6 @@ export async function extractEvents(
           type: TimelineEventType.ResultEnded,
           timestamp: endedAt,
           proposal: proposal,
-          votes: votes,
         });
       } else {
         events.push({
@@ -277,7 +275,6 @@ export async function extractEvents(
           type: TimelineEventType.ResultOngoing,
           timestamp: endedAt,
           proposal: proposal,
-          votes: votes,
         });
       }
 

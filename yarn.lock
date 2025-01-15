@@ -2890,7 +2890,7 @@ __metadata:
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.9"
-    react: "npm:19.0.0-rc.1"
+    react: "npm:19.0.0"
     react-day-picker: "npm:9.5.0"
     react-dom: "npm:19.0.0-rc.1"
     react-echarts: "npm:^0.1.1"
@@ -2912,6 +2912,7 @@ __metadata:
     vaul: "npm:^1.1.2"
     viem: "npm:2.22.8"
     web-push: "npm:^3.6.7"
+    zlib: "npm:^1.0.5"
     zod: "npm:^3.24.1"
   languageName: unknown
   linkType: soft
@@ -15650,6 +15651,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react@npm:19.0.0":
+  version: 19.0.0
+  resolution: "react@npm:19.0.0"
+  checksum: 10c0/9cad8f103e8e3a16d15cb18a0d8115d8bd9f9e1ce3420310aea381eb42aa0a4f812cf047bb5441349257a05fba8a291515691e3cb51267279b2d2c3253f38471
+  languageName: node
+  linkType: hard
+
 "react@npm:19.0.0-rc.1":
   version: 19.0.0-rc.1
   resolution: "react@npm:19.0.0-rc.1"
@@ -19045,6 +19053,13 @@ __metadata:
   version: 2.1.1
   resolution: "yoctocolors@npm:2.1.1"
   checksum: 10c0/85903f7fa96f1c70badee94789fade709f9d83dab2ec92753d612d84fcea6d34c772337a9f8914c6bed2f5fc03a428ac5d893e76fab636da5f1236ab725486d0
+  languageName: node
+  linkType: hard
+
+"zlib@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "zlib@npm:1.0.5"
+  checksum: 10c0/34bd33f4fdcda34f57a1ab628ceb423bdf8ef07290f46cd944eedd9a66458cc24ccf3c770da73dc0f8d28016607d861290ac5c53d49113177f7c321838df2913
   languageName: node
   linkType: hard
 

@@ -8,6 +8,15 @@ import {
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
 import { formatNumberWithSuffix } from "@/lib/utils";
+import { unstable_cache } from "next/cache";
+
+const getVotingPowerCached = unstable_cache(
+  async (itemId: string, proposalIds: string[], topicIds: string[]) => {
+    return await getVotingPower(itemId, proposalIds, topicIds);
+  },
+  ["voting-power"],
+  { revalidate: 60 * 5, tags: ["voting-power"] },
+);
 
 export async function VotingPowerTag({
   item,
@@ -19,7 +28,7 @@ export async function VotingPowerTag({
   topicIds: string[];
 }) {
   const votingPower = proposalIds?.length
-    ? await getVotingPower(item.id, proposalIds, topicIds)
+    ? await getVotingPowerCached(item.id, proposalIds, topicIds)
     : null;
 
   if (!votingPower) return <></>;

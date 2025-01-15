@@ -13,6 +13,15 @@ import {
   TooltipTrigger,
 } from "@/shadcn/ui/tooltip";
 import { Suspense } from "react";
+import { unstable_cache } from "next/cache";
+
+const getDiscourseUserCached = unstable_cache(
+  async (userId: number, daoDiscourseId: string) => {
+    return await getDiscourseUser(userId, daoDiscourseId);
+  },
+  ["discourse-user"],
+  { revalidate: 60 * 5, tags: ["discourse-user"] },
+);
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === "post";
@@ -23,7 +32,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
     return null;
   }
 
-  const author = await getDiscourseUser(item.userId, item.daoDiscourseId);
+  const author = await getDiscourseUserCached(item.userId, item.daoDiscourseId);
 
   const processedContent = markdownToHtml(item.cooked);
   const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
@@ -33,6 +42,9 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
       addSuffix: true,
     },
   );
+
+  const updatedAt =
+    item.updatedAt instanceof Date ? item.updatedAt : new Date(item.updatedAt);
   const relativeUpdateTime = formatDistanceToNowStrict(
     new Date(item.updatedAt),
     {
@@ -75,7 +87,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
               </Tooltip>
             </TooltipProvider>
           </div>
-          {item.timestamp.getTime() != item.updatedAt.getTime() && (
+          {item.timestamp.getTime() != updatedAt.getTime() && (
             <div>
               <span>edited {relativeUpdateTime}</span>
             </div>

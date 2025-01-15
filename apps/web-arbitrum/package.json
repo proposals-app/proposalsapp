@@ -68,7 +68,7 @@
     "pg": "8.13.1",
     "posthog-js": "1.206.1",
     "postmark": "^4.0.5",
-    "react": "19.0.0-rc.1",
+    "react": "19.0.0",
     "react-day-picker": "9.5.0",
     "react-dom": "19.0.0-rc.1",
     "react-echarts": "^0.1.1",
@@ -87,6 +87,7 @@
     "vaul": "^1.1.2",
     "viem": "2.22.8",
     "web-push": "^3.6.7",
+    "zlib": "^1.0.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {

@@ -13,6 +13,15 @@ import { toDom } from "hast-util-to-dom";
 import { toHast } from "mdast-util-to-hast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { JSDOM } from "jsdom";
+import { unstable_cache } from "next/cache";
+
+const cachedGetBodiesForGroup = unstable_cache(
+  async (groupId: string) => {
+    return await getBodiesForGroup(groupId);
+  },
+  ["getBodiesForGroup"],
+  { revalidate: 60 * 5, tags: ["bodies"] },
+);
 
 export default async function Body({
   group,
@@ -26,7 +35,7 @@ export default async function Body({
   if (!group) {
     notFound();
   }
-  const bodies = await getBodiesForGroup(group.group.id);
+  const bodies = await cachedGetBodiesForGroup(group.group.id);
 
   if (!bodies || bodies.length === 0) {
     return <div className="w-full bg-gray-100 p-4">No bodies found.</div>;

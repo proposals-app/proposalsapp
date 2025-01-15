@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { getGroupData, getTotalVersions } from "./actions";
 import Body, { BodyLoading } from "./components/body/Body";
 import { searchParamsCache } from "@/app/searchParams";
@@ -6,6 +7,24 @@ import { MenuBar } from "./components/menubar/MenuBar";
 import Feed, { FeedLoading } from "./components/feed/Feed";
 import { LoadingTimeline, Timeline } from "./components/timeline/Timeline";
 import { Suspense } from "react";
+
+// Cache the getGroupData function
+const cachedGetGroupData = unstable_cache(
+  async (daoSlug: string, groupId: string) => {
+    return await getGroupData(daoSlug, groupId);
+  },
+  ["group-data"],
+  { revalidate: 60 * 5, tags: ["group-data"] },
+);
+
+// Cache the getTotalVersions function
+const cachedGetTotalVersions = unstable_cache(
+  async (groupId: string) => {
+    return await getTotalVersions(groupId);
+  },
+  ["total-versions"],
+  { revalidate: 60 * 5, tags: ["total-versions"] },
+);
 
 export default async function ProposalPage({
   params,
@@ -15,12 +34,15 @@ export default async function ProposalPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { daoSlug, groupId } = await params;
-  const group = await getGroupData(daoSlug, groupId);
+
+  // Use the cached version of getGroupData
+  const group = await cachedGetGroupData(daoSlug, groupId);
   if (!group) {
     notFound();
   }
 
-  const totalVersions = await getTotalVersions(groupId);
+  // Use the cached version of getTotalVersions
+  const totalVersions = await cachedGetTotalVersions(groupId);
 
   const { version, comments, votes, diff, page } =
     await searchParamsCache.parse(searchParams);
