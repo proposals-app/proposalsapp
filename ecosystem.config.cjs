@@ -2,9 +2,9 @@ module.exports = {
   apps: [
     {
       name: "web-arbitrum",
-      script: "./node_modules/next/dist/bin/next",
+      script: "node_modules/next/dist/bin/next",
       args: "start",
-      cwd: "./apps/web-arbitrum",
+      cwd: "/app/apps/web-arbitrum",
       instances: 6,
       exec_mode: "cluster",
       autorestart: true,
