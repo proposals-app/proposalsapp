@@ -160,3 +160,60 @@ export async function Timeline({
     </div>
   );
 }
+
+export function LoadingTimeline() {
+  return (
+    <div className="fixed left-20 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
+      <div className="relative h-[calc(100vh-96px)] w-full">
+        {/* Top SVG Placeholder */}
+        <div className="absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-300">
+          <svg
+            width="21"
+            height="21"
+            viewBox="0 0 21 21"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="absolute -left-[10px] -top-[10px]"
+          >
+            <rect
+              x="0.5"
+              y="0.5"
+              width="20"
+              height="20"
+              rx="10"
+              fill="white"
+              stroke="#D3D3D3"
+            />
+            <circle cx="10.5" cy="10.5" r="3" fill="#737373" />
+          </svg>
+        </div>
+
+        {/* Vertical Line Placeholder */}
+        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
+
+        {/* Bottom SVG Placeholder */}
+        <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-gray-300">
+          <svg
+            width="21"
+            height="21"
+            viewBox="0 0 21 21"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="absolute -bottom-[10px] -left-[10px]"
+          >
+            <rect
+              x="0.5"
+              y="0.5"
+              width="20"
+              height="20"
+              rx="10"
+              fill="white"
+              stroke="#D3D3D3"
+            />
+            <circle cx="10.5" cy="10.5" r="3" fill="#737373" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}

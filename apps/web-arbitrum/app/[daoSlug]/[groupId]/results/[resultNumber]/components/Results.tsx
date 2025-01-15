@@ -19,7 +19,7 @@ interface ResultsProps {
 export function Results({ proposal, daoSlug }: ResultsProps) {
   return (
     <div className="flex w-full">
-      <Suspense fallback={<div>loading</div>}>
+      <Suspense fallback={<ResultsLoading />}>
         <ResultsContent proposal={proposal} daoSlug={daoSlug} />
       </Suspense>
     </div>

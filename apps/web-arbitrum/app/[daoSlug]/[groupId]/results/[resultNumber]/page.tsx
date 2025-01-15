@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { getBodiesForGroup, getGroupData } from "../../actions";
 import { Results, ResultsLoading } from "./components/Results";
-import { Timeline } from "./components/timeline/Timeline";
+import { LoadingTimeline, Timeline } from "./components/timeline/Timeline";
 import { Header } from "./components/Header";
 import { Suspense } from "react";
+import { getAuthor } from "./actions";
 
 export default async function ResultPage({
   params,
@@ -24,7 +25,7 @@ export default async function ResultPage({
     notFound();
   }
 
-  const bodies = await getBodiesForGroup(group.group.id);
+  const bodies = await getAuthor(group.group.id);
   const author = bodies?.[0];
 
   return (
@@ -38,7 +39,9 @@ export default async function ResultPage({
       />
 
       <div className="z-10 hidden lg:flex">
-        <Timeline group={group} selectedResult={proposalIndex + 1} />
+        <Suspense fallback={<LoadingTimeline />}>
+          <Timeline group={group} selectedResult={proposalIndex + 1} />
+        </Suspense>
       </div>
 
       <div className={`flex w-full flex-grow pb-16 pl-[159px] pt-[104px]`}>
