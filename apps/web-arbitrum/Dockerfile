@@ -48,19 +48,16 @@ RUN apt-get update && apt-get install -y curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the built project and required files from the builder stage
-COPY --from=builder /app/apps/web-arbitrum/ /app/apps/web-arbitrum/
-COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
-COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
-COPY --from=builder /app/libs/ts/visual-dom-diff/ /app/libs/ts/visual-dom-diff/
-COPY --from=builder /app/node_modules/ /app/node_modules/
-COPY --from=builder /app/package.json /app/
-COPY --from=builder /app/yarn.lock /app/
-COPY --from=builder /app/.yarnrc.yml /app/
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/yarn.lock ./
+COPY --from=builder /app/.yarnrc.yml ./
+COPY --from=builder /app/node_modules/ ./node_modules/
+COPY --from=builder /app/apps/web-arbitrum/ ./apps/web-arbitrum/
+COPY --from=builder /app/libs/ts/db/ ./libs/ts/db/
+COPY --from=builder /app/libs/ts/emails/ ./libs/ts/emails/
+COPY --from=builder /app/libs/ts/visual-dom-diff/ ./libs/ts/visual-dom-diff/
 
-# In the final stage, after copying files:
-WORKDIR /app/apps/web-arbitrum
-
-# Copy PM2 configuration file to the correct location
+# Copy PM2 configuration file
 COPY ecosystem.config.cjs ./
 
 # Set the environment variables
