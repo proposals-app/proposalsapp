@@ -10,6 +10,7 @@ import { ResultsTable } from "./result/ResultsTable";
 import { Proposal, Selectable } from "@proposalsapp/db";
 import { ResultsList } from "./result/ResultsList";
 import { Suspense } from "react";
+import { Skeleton } from "@/shadcn/ui/skeleton";
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
@@ -27,7 +28,51 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 }
 
 export function ResultsLoading() {
-  return <div>Results component loading</div>;
+  return (
+    <div className="flex w-full flex-col gap-6">
+      <div className="flex w-full gap-4">
+        {/* Chart Loading */}
+        <div className="w-full">
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+
+        {/* List Loading */}
+        <div className="w-64">
+          <Skeleton className="mb-4 h-8 w-48" />
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Table Loading */}
+      <div className="w-full">
+        <Skeleton className="mb-4 h-8 w-48" />
+        <div className="rounded-md border">
+          {/* Header */}
+          <div className="grid grid-cols-4 gap-4 border-b bg-gray-50 p-3">
+            {["Delegate", "Choice", "Date", "Voting Power"].map((header, i) => (
+              <Skeleton key={i} className="h-6 w-full" />
+            ))}
+          </div>
+
+          {/* Rows */}
+          <div className="space-y-2 p-2">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="grid grid-cols-4 gap-4 p-2">
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // New component to handle the async content
