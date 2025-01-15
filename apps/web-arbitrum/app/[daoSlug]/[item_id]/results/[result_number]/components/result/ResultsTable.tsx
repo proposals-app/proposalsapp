@@ -4,13 +4,14 @@ import React, { useState, useMemo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { formatNumberWithSuffix } from "@/lib/utils";
 import { format } from "date-fns";
-import { ProcessedResults } from "../actions";
+import { DelegateInfo, ProcessedResults } from "../actions";
 
-interface VotingTableProps {
+interface ResultsTableProps {
   results: ProcessedResults;
+  delegateMap: Map<string, DelegateInfo>;
 }
 
-export function VotingTable({ results }: VotingTableProps) {
+export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
   const [sortColumn, setSortColumn] = useState<
     "choice" | "timestamp" | "votingPower"
   >("votingPower");
@@ -53,6 +54,7 @@ export function VotingTable({ results }: VotingTableProps) {
     style: React.CSSProperties;
   }) => {
     const vote = sortedVotes[index];
+    const delegate = delegateMap.get(vote.voterAddress);
 
     return (
       <div
@@ -65,7 +67,14 @@ export function VotingTable({ results }: VotingTableProps) {
           borderBottom: "1px solid #e5e7eb",
         }}
       >
-        <div className="truncate">{vote.voterAddress}</div>
+        <div className="flex items-center gap-2">
+          {delegate && (
+            <>
+              <span className="truncate">{delegate.name}</span>
+            </>
+          )}
+          {!delegate && <span className="truncate">{vote.voterAddress}</span>}
+        </div>
         <div className="font-medium">{vote.choiceText}</div>
         <div>{format(vote.timestamp, "MMM d, yyyy HH:mm")}</div>
         <div>{formatNumberWithSuffix(vote.votingPower)} ARB</div>
@@ -87,7 +96,7 @@ export function VotingTable({ results }: VotingTableProps) {
             borderBottom: "1px solid #e5e7eb",
           }}
         >
-          <div>Voter</div>
+          <div>Delegate</div>
           <div>
             <button
               onClick={() => handleSortChange("choice")}

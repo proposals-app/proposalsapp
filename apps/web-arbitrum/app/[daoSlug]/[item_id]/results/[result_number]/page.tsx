@@ -47,7 +47,7 @@ export default async function ResultPage({
         <div className="h-full w-full pr-4">
           <div className="flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border border-gray-400 bg-white p-6">
             <Suspense fallback={<LoadingVotes />}>
-              <Results proposal={proposal} />
+              <Results proposal={proposal} daoSlug={daoSlug} />
             </Suspense>
           </div>
         </div>

@@ -589,3 +589,93 @@ export async function processResultsAction(
     return result;
   });
 }
+
+export type DelegateInfo = {
+  name: string | null;
+} | null;
+
+export async function getDelegateForVoter(
+  voterAddress: string,
+  daoSlug: string,
+  proposalId: string,
+): Promise<DelegateInfo> {
+  return otel("get-delegate-for-voter", async () => {
+    const dao = await db
+      .selectFrom("dao")
+      .where("slug", "=", daoSlug)
+      .selectAll()
+      .executeTakeFirst();
+
+    if (!dao) return null;
+
+    // Get the proposal to determine the time range
+    const proposal = await db
+      .selectFrom("proposal")
+      .selectAll()
+      .where("id", "=", proposalId)
+      .executeTakeFirst();
+
+    if (!proposal) return null;
+
+    // Get the voter
+    const voter = await db
+      .selectFrom("voter")
+      .where("address", "=", voterAddress)
+      .selectAll()
+      .executeTakeFirst();
+
+    if (!voter) return null;
+
+    // Try to get delegate information
+    const delegateData = await db
+      .selectFrom("delegate")
+      .innerJoin("delegateToVoter", "delegate.id", "delegateToVoter.delegateId")
+      .where("delegateToVoter.voterId", "=", voter.id)
+      .where("delegate.daoId", "=", dao.id)
+      .select("delegate.id")
+      .executeTakeFirst();
+
+    if (!delegateData) return null;
+
+    // Try to get discourse user first
+    const discourseUser = await db
+      .selectFrom("delegateToDiscourseUser")
+      .where("delegateId", "=", delegateData.id)
+      .leftJoin(
+        "discourseUser",
+        "discourseUser.id",
+        "delegateToDiscourseUser.discourseUserId",
+      )
+      .where("periodStart", "<=", proposal.timeStart)
+      .where("periodEnd", ">=", proposal.timeEnd)
+      .selectAll()
+      .executeTakeFirst();
+
+    if (discourseUser) {
+      return {
+        name: discourseUser.name || discourseUser.username,
+      };
+    }
+
+    // Fallback to ENS
+    const ens = await db
+      .selectFrom("delegateToVoter")
+      .where("delegateId", "=", delegateData.id)
+      .leftJoin("voter", "voter.id", "delegateToVoter.voterId")
+      .where("periodStart", "<=", proposal.timeStart)
+      .where("periodEnd", ">=", proposal.timeEnd)
+      .select("voter.ens")
+      .executeTakeFirst();
+
+    if (ens?.ens) {
+      return {
+        name: ens.ens,
+      };
+    }
+
+    // Fallback to address
+    return {
+      name: `${voterAddress.slice(0, 6)}...${voterAddress.slice(-4)}`,
+    };
+  });
+}

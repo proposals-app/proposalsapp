@@ -6,11 +6,11 @@ import { format } from "date-fns";
 import { formatNumberWithSuffix } from "@/lib/utils";
 import { ProcessedResults, ProposalMetadata } from "./../actions";
 
-interface VotingPowerChartProps {
+interface ResultsChartProps {
   results: ProcessedResults;
 }
 
-export function VotingPowerChart({ results }: VotingPowerChartProps) {
+export function ResultsChart({ results }: ResultsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -161,7 +161,7 @@ export function VotingPowerChart({ results }: VotingPowerChartProps) {
           silent: true,
           symbol: "none",
           lineStyle: {
-            color: "#F43F5E",
+            color: "#4b5563",
             type: "solid",
             width: 2,
           },
@@ -169,10 +169,26 @@ export function VotingPowerChart({ results }: VotingPowerChartProps) {
             {
               yAxis: results.quorum,
               label: {
-                formatter: `${formatNumberWithSuffix(results.quorum)} Quorum threshold`,
-                position: "insideEndTop",
+                formatter: () => {
+                  // Use ECharts' text styling capabilities
+                  if (results.quorum !== null)
+                    return `{bold|${formatNumberWithSuffix(results.quorum)}} Quorum threshold`;
+                  return "";
+                },
+                rich: {
+                  bold: {
+                    fontWeight: "bold",
+                    color: "#4b5563",
+                  },
+                },
+                position: "insideStartTop", // Position the label on the left
                 fontSize: 12,
-                fontWeight: "bold",
+                backgroundColor: "#e5e7eb", // Background color
+                borderColor: "#4b5563", // Border color
+                borderWidth: 1, // Border width
+                borderRadius: 12, // Rounded corners
+                padding: [4, 8], // Padding
+                offset: [-5, 15], // Move the label slightly above the line
               },
             },
           ],
