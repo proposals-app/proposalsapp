@@ -9,8 +9,8 @@
     "postmark": "^4.0.5",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "0.6.9",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
+    "react": "19.0.0-rc.1",
+    "react-dom": "19.0.0-rc.1",
     "react-email": "3.0.6",
     "tailwindcss": "3.4.17"
   },
