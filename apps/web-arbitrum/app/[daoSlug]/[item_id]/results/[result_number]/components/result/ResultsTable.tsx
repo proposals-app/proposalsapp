@@ -3,8 +3,9 @@
 import React, { useState, useMemo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { formatNumberWithSuffix } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { DelegateInfo, ProcessedResults } from "../actions";
+import Link from "next/link";
 
 interface ResultsTableProps {
   results: ProcessedResults;
@@ -46,6 +47,12 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     }
   };
 
+  const isUrl = (text: string): boolean => {
+    const urlPattern =
+      /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+    return urlPattern.test(text);
+  };
+
   const Row = ({
     index,
     style,
@@ -55,6 +62,9 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
   }) => {
     const vote = sortedVotes[index];
     const delegate = delegateMap.get(vote.voterAddress);
+
+    const votingPowerPercentage =
+      (vote.votingPower / results.totalVotingPower) * 100;
 
     return (
       <div
@@ -67,7 +77,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           borderBottom: "1px solid #e5e7eb",
         }}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 font-bold">
           {delegate && (
             <>
               <span className="truncate">{delegate.name}</span>
@@ -75,16 +85,49 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           )}
           {!delegate && <span className="truncate">{vote.voterAddress}</span>}
         </div>
-        <div className="cursor-default truncate" title={vote.choiceText}>
-          {vote.choiceText.length > 20
-            ? `${vote.choiceText.substring(0, 20)}...`
-            : vote.choiceText}
+        <div
+          className="flex cursor-default flex-col truncate"
+          title={vote.choiceText}
+        >
+          <div className="font-bold">
+            {vote.choiceText.length > 20
+              ? `${vote.choiceText.substring(0, 20)}...`
+              : vote.choiceText}
+          </div>
+          {vote.reason && (
+            <div className="text-sm">
+              {isUrl(vote.reason) ? (
+                <Link
+                  className="underline"
+                  href={vote.reason}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {vote.reason.length > 30
+                    ? `${vote.reason.substring(0, 30)}...`
+                    : vote.reason}
+                </Link>
+              ) : (
+                <div>
+                  {vote.reason.length > 30
+                    ? `${vote.reason.substring(0, 30)}...`
+                    : vote.reason}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="cursor-default">
-          {format(vote.timestamp, "MMM d, yyyy HH:mm")}
+          <div>{formatDistanceToNow(vote.timestamp, { addSuffix: true })}</div>
+          <div className="text-sm text-gray-500">
+            {format(vote.timestamp, "MMM d, yyyy")}
+          </div>
         </div>
         <div className="cursor-default">
-          {formatNumberWithSuffix(vote.votingPower)} ARB
+          <div>{formatNumberWithSuffix(vote.votingPower)} ARB</div>
+          <div className="text-sm text-gray-500">
+            {votingPowerPercentage.toFixed(1)}%
+          </div>
         </div>
       </div>
     );
@@ -137,7 +180,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
         <List
           height={600}
           itemCount={sortedVotes.length}
-          itemSize={50}
+          itemSize={60}
           width="100%"
         >
           {Row}

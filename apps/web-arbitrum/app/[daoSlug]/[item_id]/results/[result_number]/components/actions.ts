@@ -8,6 +8,7 @@ export interface VoteResult {
   choiceText: string;
   votingPower: number;
   voterAddress: string;
+  reason: string | null;
   timestamp: Date;
   color: string;
 }
@@ -106,6 +107,7 @@ async function processBasicVotes(
       choiceText: choices[choice] || "Unknown Choice",
       votingPower: Number(vote.votingPower),
       voterAddress: vote.voterAddress,
+      reason: vote.reason,
       timestamp: new Date(vote.timeCreated!),
       color: choiceColors[choice],
     };
@@ -235,6 +237,7 @@ async function processWeightedVotes(
         choiceText: combinedChoiceName,
         votingPower: Number(vote.votingPower),
         voterAddress: vote.voterAddress,
+        reason: vote.reason,
         timestamp,
         color: "#CBD5E1", // Use a default grey color for combined choices
       });
@@ -263,6 +266,7 @@ async function processWeightedVotes(
         choiceText: choices[choice] || "Unknown Choice",
         votingPower: Number(vote.votingPower),
         voterAddress: vote.voterAddress,
+        reason: vote.reason,
         timestamp,
         color: choiceColors[choice], // Use the precomputed color
       });
@@ -338,6 +342,7 @@ async function processApprovalVotes(
         choiceText: choices[choiceIndex] || "Unknown Choice",
         votingPower: Number(vote.votingPower), // Full voting power for each choice
         voterAddress: vote.voterAddress,
+        reason: vote.reason,
         timestamp,
         color: choiceColors[choiceIndex], // Use the precomputed color
       });
@@ -407,6 +412,7 @@ async function processRankedChoiceVotes(
       votingPower: Number(vote.votingPower),
       choice: (vote.choice as number[]).map((c) => c - 1),
       voterAddress: vote.voterAddress,
+      reason: vote.reason,
     }))
     .sort((a, b) => a.timestamp - b.timestamp);
 
@@ -543,6 +549,7 @@ async function processRankedChoiceVotes(
       choiceText: choices[vote.choice[0]] || "Unknown Choice",
       votingPower: vote.votingPower,
       voterAddress: vote.voterAddress,
+      reason: vote.reason,
       timestamp: new Date(vote.timestamp),
       color: choiceColors[vote.choice[0]],
     })),
@@ -667,7 +674,7 @@ export async function getDelegateForVoter(
 
     if (!delegateData)
       return {
-        name: `${voterAddress.slice(0, 6)}...${voterAddress.slice(-4)}`,
+        name: `${voterAddress}`,
       };
 
     // Try to get discourse user first
@@ -708,7 +715,7 @@ export async function getDelegateForVoter(
 
     // Fallback to address
     return {
-      name: `${voterAddress.slice(0, 6)}...${voterAddress.slice(-4)}`,
+      name: `${voterAddress}`,
     };
   });
 }
