@@ -23,6 +23,9 @@ COPY libs/ts/db/ libs/ts/db/
 COPY libs/ts/emails/ libs/ts/emails/
 COPY libs/ts/visual-dom-diff/ libs/ts/visual-dom-diff/
 
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+
 # Build the project
 RUN yarn build-web-arbitrum
 
