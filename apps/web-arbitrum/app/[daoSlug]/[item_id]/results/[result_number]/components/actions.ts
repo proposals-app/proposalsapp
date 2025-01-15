@@ -635,7 +635,10 @@ export async function getDelegateForVoter(
       .select("delegate.id")
       .executeTakeFirst();
 
-    if (!delegateData) return null;
+    if (!delegateData)
+      return {
+        name: `${voterAddress.slice(0, 6)}...${voterAddress.slice(-4)}`,
+      };
 
     // Try to get discourse user first
     const discourseUser = await db
