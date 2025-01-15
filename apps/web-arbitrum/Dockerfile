@@ -58,7 +58,7 @@ COPY --from=builder /app/libs/ts/emails/ ./libs/ts/emails/
 COPY --from=builder /app/libs/ts/visual-dom-diff/ ./libs/ts/visual-dom-diff/
 
 # Copy PM2 configuration file from root
-COPY ecosystem.config.cjs ./
+COPY apps/web-arbitrum/ecosystem.config.cjs ./apps/web-arbitrum/
 
 # Set the environment variables
 ENV PROPOSALS_BIN=web-arbitrum
@@ -67,4 +67,4 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 # Set the default command to start the application with PM2 in cluster mode
-CMD ["pm2-runtime", "ecosystem.config.cjs"]
+CMD ["pm2-runtime", "apps/web-arbitrum/ecosystem.config.cjs"]
