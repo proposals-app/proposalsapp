@@ -307,30 +307,30 @@ async function processApprovalVotes(
   choices: string[],
   proposal: Selectable<Proposal>,
 ): Promise<ProcessedResults> {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
+  const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   const processedVotes: VoteResult[] = [];
-  const hourlyData = initializeHourlyData(
-    new Date(proposal.timeStart),
-    votes.length > 0
-      ? new Date(
-          Math.max(...votes.map((v) => new Date(v.timeCreated!).getTime())),
-        )
-      : new Date(proposal.timeStart),
-    choices,
-  );
+  const timeSeriesData: TimeSeriesPoint[] = [];
 
-  const voteCounts: { [choice: number]: number } = {};
+  // Initialize accumulated voting power for each choice
+  const accumulatedVotingPower: { [choice: number]: number } = {};
   choices.forEach((_, index) => {
-    voteCounts[index] = 0;
+    accumulatedVotingPower[index] = 0;
   });
 
-  votes.forEach((vote) => {
+  let lastAccumulatedTimestamp: Date | null = null;
+
+  // Sort votes by timestamp
+  const sortedVotes = [...votes].sort(
+    (a, b) =>
+      new Date(a.timeCreated!).getTime() - new Date(b.timeCreated!).getTime(),
+  );
+
+  sortedVotes.forEach((vote) => {
     const approvedChoices = Array.isArray(vote.choice)
       ? (vote.choice as number[])
       : [vote.choice as number];
     const timestamp = new Date(vote.timeCreated!);
-    const hourKey = format(startOfHour(timestamp), "yyyy-MM-dd HH:mm");
 
     // Each approved choice gets the full voting power of the voter
     approvedChoices.forEach((choice) => {
@@ -347,14 +347,55 @@ async function processApprovalVotes(
         color: choiceColors[choiceIndex], // Use the precomputed color
       });
 
-      // Accumulate in hourly data
-      hourlyData[hourKey][choiceIndex] =
-        (hourlyData[hourKey][choiceIndex] || 0) + Number(vote.votingPower);
+      // Accumulate voting power for this choice
+      accumulatedVotingPower[choiceIndex] += Number(vote.votingPower);
+      lastAccumulatedTimestamp = timestamp;
 
-      // Accumulate in vote counts
-      voteCounts[choiceIndex] =
-        (voteCounts[choiceIndex] || 0) + Number(vote.votingPower);
+      // Check if any accumulated voting power exceeds the threshold
+      if (
+        accumulatedVotingPower[choiceIndex] >=
+        ACCUMULATED_VOTING_POWER_THRESHOLD
+      ) {
+        // Create a new time series point for the accumulated votes
+        const values: { [choice: number]: number } = {};
+        choices.forEach((_, index) => {
+          values[index] = accumulatedVotingPower[index];
+        });
+
+        timeSeriesData.push({
+          timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+          values,
+        });
+
+        // Reset accumulation for all choices
+        choices.forEach((_, index) => {
+          accumulatedVotingPower[index] = 0;
+        });
+      }
     });
+  });
+
+  // If there's any remaining accumulated voting power, add it to the last timestamp
+  if (lastAccumulatedTimestamp) {
+    const values: { [choice: number]: number } = {};
+    choices.forEach((_, index) => {
+      values[index] = accumulatedVotingPower[index];
+    });
+
+    timeSeriesData.push({
+      timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+      values,
+    });
+  }
+
+  // Determine the winner
+  const voteCounts: { [choice: number]: number } = {};
+  choices.forEach((_, index) => {
+    voteCounts[index] = 0;
+  });
+
+  processedVotes.forEach((vote) => {
+    voteCounts[vote.choice] = (voteCounts[vote.choice] || 0) + vote.votingPower;
   });
 
   const winner = Object.entries(voteCounts).reduce((a, b) =>
@@ -364,12 +405,9 @@ async function processApprovalVotes(
   return {
     votes: processedVotes,
     proposal,
-    timeSeriesData: Object.entries(hourlyData).map(([timestamp, values]) => ({
-      timestamp,
-      values,
-    })),
+    timeSeriesData,
     choices,
-    choiceColors, // Include choice colors
+    choiceColors,
     totalVotingPower: processedVotes.reduce(
       (sum, vote) => sum + vote.votingPower,
       0,
@@ -385,8 +423,6 @@ async function processRankedChoiceVotes(
   choices: string[],
   proposal: Selectable<Proposal>,
 ): Promise<ProcessedResults> {
-  const ACCUMULATED_VOTING_POWER_THRESHOLD = 5000; // Define the threshold
-
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   // Early return for empty votes
