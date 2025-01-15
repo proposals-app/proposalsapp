@@ -57,12 +57,17 @@ COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 COPY --from=builder /app/.yarnrc.yml /app/
 
-# Copy PM2 configuration file
-COPY ecosystem.config.cjs /app/
+# In the final stage, after copying files:
+WORKDIR /app/apps/web-arbitrum
+
+# Copy PM2 configuration file to the correct location
+COPY ecosystem.config.cjs ./
 
 # Set the environment variables
 ENV PROPOSALS_BIN=web-arbitrum
 ENV NEXT_OTEL_VERBOSE=1
+ENV NODE_ENV=production
+ENV PORT=3000
 
 # Set the default command to start the application with PM2 in cluster mode
 CMD ["pm2-runtime", "start", "ecosystem.config.cjs"]
