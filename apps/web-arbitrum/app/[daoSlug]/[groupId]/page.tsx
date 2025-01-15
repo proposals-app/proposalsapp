@@ -35,14 +35,14 @@ export default async function ProposalPage({
 }) {
   const { daoSlug, groupId } = await params;
 
-  // Use the cached version of getGroupData
-  const group = await cachedGetGroupData(daoSlug, groupId);
+  const [group, totalVersions] = await Promise.all([
+    cachedGetGroupData(daoSlug, groupId),
+    cachedGetTotalVersions(groupId),
+  ]);
+
   if (!group) {
     notFound();
   }
-
-  // Use the cached version of getTotalVersions
-  const totalVersions = await cachedGetTotalVersions(groupId);
 
   const { version, comments, votes, diff, page } =
     await searchParamsCache.parse(searchParams);
