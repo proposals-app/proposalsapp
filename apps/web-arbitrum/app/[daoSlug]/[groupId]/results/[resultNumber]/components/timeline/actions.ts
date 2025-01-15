@@ -250,12 +250,6 @@ export async function extractEvents(
         url: proposal.url,
       });
 
-      const votes = await db
-        .selectFrom("vote")
-        .selectAll()
-        .where("proposalId", "=", proposal.id)
-        .execute();
-
       if (new Date() > endedAt) {
         events.push({
           content: `${offchain ? "Offchain" : "Onchain"} vote ended ${formatDistanceToNow(
