@@ -191,6 +191,23 @@ export function LoadingTimeline() {
         {/* Vertical Line Placeholder */}
         <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
 
+        {/* Placeholder Items */}
+        <div className="flex h-full flex-col gap-8">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="h relative flex w-full items-center justify-start"
+            >
+              {/* Placeholder Event Content */}
+              <div className="flex h-[122px] flex-col gap-1 rounded-xl border border-gray-400 bg-white px-4 py-2">
+                <div className="h-4 w-20 rounded bg-gray-300" />
+                <div className="h-4 w-16 rounded bg-gray-300" />
+                <div className="h-4 w-20 rounded bg-gray-300" />
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Bottom SVG Placeholder */}
         <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-gray-300">
           <svg
