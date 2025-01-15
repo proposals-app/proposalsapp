@@ -303,9 +303,30 @@ async function processWeightedVotes(
   // If there's any remaining accumulated voting power, add it to the last timestamp
   if (accumulatedVotingPower > 0 && lastAccumulatedTimestamp) {
     const lastVote = sortedVotes[sortedVotes.length - 1];
-    const lastChoice = Array.isArray(lastVote.choice)
-      ? lastVote.choice[0] - 1
-      : (lastVote.choice as number) - 1;
+    let lastChoice = 0; // Default to first choice if we can't determine
+
+    if (lastVote && lastVote.choice !== null && lastVote.choice !== undefined) {
+      if (Array.isArray(lastVote.choice)) {
+        // Handle array case (ranked-choice or approval voting)
+        const firstChoice = lastVote.choice[0];
+        if (typeof firstChoice === "number") {
+          lastChoice = firstChoice - 1;
+        }
+      } else if (typeof lastVote.choice === "number") {
+        // Handle basic voting
+        lastChoice = lastVote.choice - 1;
+      } else if (typeof lastVote.choice === "object") {
+        // Handle weighted voting - use the first choice
+        const choices = Object.keys(lastVote.choice);
+        if (choices.length > 0) {
+          const firstChoiceKey = choices[0];
+          const parsedChoice = parseInt(firstChoiceKey, 10);
+          if (!isNaN(parsedChoice)) {
+            lastChoice = parsedChoice - 1;
+          }
+        }
+      }
+    }
 
     timeSeriesData.push({
       timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
