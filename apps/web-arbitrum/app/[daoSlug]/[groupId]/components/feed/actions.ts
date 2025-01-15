@@ -13,19 +13,13 @@ import {
   Vote,
 } from "@proposalsapp/db";
 
-type FeedItemType = {
-  id: string;
-  timestamp: Date;
-  type: "vote" | "post";
-  originalId: string;
-};
-
 export async function getFeedForGroup(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum,
   page: number = 1,
 ) {
+  "use server";
   return otel("get-feed-for-group", async () => {
     const itemsPerPage = 25;
     const totalItems = itemsPerPage * page;
@@ -201,6 +195,7 @@ export async function getFeedForGroup(
 }
 
 export async function getProposalsByIds(proposalIds: string[]) {
+  "use server";
   return otel("get-proposals-by-ids", async () => {
     if (!proposalIds || proposalIds.length === 0) {
       return [];
@@ -217,6 +212,7 @@ export async function getProposalsByIds(proposalIds: string[]) {
 }
 
 export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
+  "use server";
   return otel("get-discourse-user", async () => {
     const discourseUser = await db
       .selectFrom("discourseUser")
@@ -240,6 +236,7 @@ export async function getVotingPower(
   finalVotingPower: number;
   change: number | null;
 }> {
+  "use server";
   return otel("get-voting-power", async () => {
     try {
       // Fetch the vote to get voter address and timestamps
@@ -375,6 +372,7 @@ export async function getDelegate(
   topicIds: string[],
   proposalIds?: string[],
 ) {
+  "use server";
   return otel("get-delegate", async () => {
     const dao = await db
       .selectFrom("dao")

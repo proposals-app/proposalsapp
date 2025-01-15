@@ -208,7 +208,9 @@ function addSummaryEvent(
 }
 
 // Main function to extract events
-export async function extractEvents(group: GroupWithDataType) {
+export async function extractEvents(
+  group: GroupWithDataType,
+): Promise<Event[]> {
   return otel("extract-events", async () => {
     if (!group) return [];
 
@@ -314,6 +316,9 @@ export async function extractEvents(group: GroupWithDataType) {
             timestamp,
             volume: normalizedVolume,
             volumeType: "votes",
+            metadata: {
+              votingPower: Number(dailyVote.totalVotingPower),
+            },
           });
         });
       }

@@ -3,6 +3,7 @@ import { AsyncReturnType } from "@/lib/utils";
 import { db } from "@proposalsapp/db";
 
 export async function getGroups(daoSlug: string) {
+  "use server";
   return otel("get-groups", async () => {
     // Fetch the DAO based on the slug
     const dao = await db

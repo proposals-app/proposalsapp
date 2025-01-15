@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import { GroupWithDataType } from "../../actions";
 import { extractEvents, TimelineEventType } from "./actions";

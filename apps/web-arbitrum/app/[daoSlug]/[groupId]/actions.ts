@@ -11,6 +11,7 @@ import {
 import { validate } from "uuid";
 
 export async function getGroupData(daoSlug: string, groupId: string) {
+  "use server";
   return otel("get-group-data", async () => {
     if (daoSlug == "favicon.ico") return null;
 
@@ -101,6 +102,7 @@ export type Body = {
 };
 
 export async function getBodiesForGroup(groupID: string) {
+  "use server";
   return otel("get-bodies-for-group", async () => {
     let bodies: Body[] = [];
 
@@ -247,6 +249,7 @@ export async function getBodiesForGroup(groupID: string) {
 }
 
 export async function getTotalVersions(groupID: string) {
+  "use server";
   return otel("get-total-versions", async () => {
     let totalVersions = 0;
 

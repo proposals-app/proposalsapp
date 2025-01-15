@@ -48,9 +48,12 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
   };
 
   const isUrl = (text: string): boolean => {
-    const urlPattern =
-      /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-    return urlPattern.test(text);
+    try {
+      new URL(text);
+      return true;
+    } catch (e) {
+      return false;
+    }
   };
 
   const Row = ({

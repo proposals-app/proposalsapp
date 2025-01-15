@@ -7,6 +7,7 @@ export type Body = {
 };
 
 export async function getAuthor(groupID: string) {
+  "use server";
   return otel("get-author", async () => {
     let bodies: Body[] = [];
 

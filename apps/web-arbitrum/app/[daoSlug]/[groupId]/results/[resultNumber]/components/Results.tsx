@@ -11,7 +11,6 @@ import { Proposal, Selectable } from "@proposalsapp/db";
 import { ResultsList } from "./result/ResultsList";
 import { Suspense } from "react";
 import { Skeleton } from "@/shadcn/ui/skeleton";
-import { unstable_cache } from "next/cache";
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
@@ -19,6 +18,7 @@ interface ResultsProps {
 }
 
 export function Results({ proposal, daoSlug }: ResultsProps) {
+  console.log("Results");
   return (
     <div className="flex w-full">
       <Suspense fallback={<ResultsLoading />}>
@@ -29,6 +29,7 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 }
 
 export function ResultsLoading() {
+  console.log("ResultsLoading");
   return (
     <div className="flex w-full flex-col gap-6">
       <div className="flex w-full gap-4">
@@ -76,15 +77,6 @@ export function ResultsLoading() {
   );
 }
 
-// Cached version of getDelegateForVoter
-const cachedGetDelegateForVoter = unstable_cache(
-  async (voterAddress: string, daoSlug: string, proposalId: string) => {
-    return await getDelegateForVoter(voterAddress, daoSlug, proposalId);
-  },
-  ["getDelegateForVoter"],
-  { revalidate: 60 * 5, tags: ["delegate"] },
-);
-
 // New component to handle the async content
 async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   const votes = await getVotesAction(proposal.id);
@@ -96,7 +88,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   await Promise.all(
     votes.map(async (vote) => {
       if (vote.votingPower > 50000) {
-        const delegate = await cachedGetDelegateForVoter(
+        const delegate = await getDelegateForVoter(
           vote.voterAddress,
           daoSlug,
           proposal.id,
