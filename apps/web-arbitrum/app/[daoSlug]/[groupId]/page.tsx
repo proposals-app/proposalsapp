@@ -4,7 +4,7 @@ import Body, { BodyLoading } from "./components/body/Body";
 import { searchParamsCache } from "@/app/searchParams";
 import { MenuBar } from "./components/menubar/MenuBar";
 import Feed, { FeedLoading } from "./components/feed/Feed";
-import { Timeline } from "./components/timeline/Timeline";
+import { LoadingTimeline, Timeline } from "./components/timeline/Timeline";
 import { Suspense } from "react";
 
 export default async function ProposalPage({
@@ -46,11 +46,13 @@ export default async function ProposalPage({
         </div>
 
         <div className="hidden lg:flex">
-          <Timeline
-            group={group}
-            commentsFilter={comments}
-            votesFilter={votes}
-          />
+          <Suspense fallback={<LoadingTimeline />}>
+            <Timeline
+              group={group}
+              commentsFilter={comments}
+              votesFilter={votes}
+            />
+          </Suspense>
         </div>
       </div>
     </div>
