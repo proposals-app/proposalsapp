@@ -51,6 +51,10 @@ export default async function Feed({
   );
 }
 
+export function FeedLoading() {
+  return <div>Feed component loading</div>;
+}
+
 export type VoteFeedItem = {
   type: "vote";
   timestamp: Date;

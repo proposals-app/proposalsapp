@@ -1,6 +1,6 @@
 import { otel } from "@/lib/otel";
 import { AsyncReturnType } from "@/lib/utils";
-import { db, ProposalGroup, JsonArray, JsonObject } from "@proposalsapp/db";
+import { db } from "@proposalsapp/db";
 
 export async function getGroups(daoSlug: string) {
   return otel("get-groups", async () => {

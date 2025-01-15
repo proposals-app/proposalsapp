@@ -10,11 +10,8 @@ import {
 } from "@proposalsapp/db";
 import { validate } from "uuid";
 
-export async function getGroupWithData(
-  daoSlug: string,
-  proposalOrGroupId: string,
-) {
-  return otel("get-group-with-data", async () => {
+export async function getGroupData(daoSlug: string, groupId: string) {
+  return otel("get-group-data", async () => {
     if (daoSlug == "favicon.ico") return null;
 
     // Fetch the DAO based on the slug
@@ -31,13 +28,13 @@ export async function getGroupWithData(
     let group: Selectable<ProposalGroup> | null = null;
 
     // Check if proposalOrGroupId is a UUIDv4
-    if (validate(proposalOrGroupId)) {
+    if (validate(groupId)) {
       try {
         // Fetch the group based on ID
         group =
           (await db
             .selectFrom("proposalGroup")
-            .where("id", "=", proposalOrGroupId)
+            .where("id", "=", groupId)
             .selectAll()
             .executeTakeFirst()) ?? null;
       } catch (error) {
@@ -56,10 +53,10 @@ export async function getGroupWithData(
         .filter((item) => item.type === "topic")
         .map((item) => item.id);
 
-      let fetchedProposals: Selectable<Proposal>[] = [];
+      let proposals: Selectable<Proposal>[] = [];
       if (proposalIds.length > 0) {
         try {
-          fetchedProposals = await db
+          proposals = await db
             .selectFrom("proposal")
             .selectAll()
             .where("proposal.id", "in", proposalIds)
@@ -69,10 +66,10 @@ export async function getGroupWithData(
         }
       }
 
-      let fetchedTopics: Selectable<DiscourseTopic>[] = [];
+      let topics: Selectable<DiscourseTopic>[] = [];
       if (topicIds.length > 0) {
         try {
-          fetchedTopics = await db
+          topics = await db
             .selectFrom("discourseTopic")
             .where("discourseTopic.id", "in", topicIds)
             .selectAll()
@@ -84,134 +81,13 @@ export async function getGroupWithData(
 
       return {
         dao,
-        group: group,
-        proposals: fetchedProposals,
-        topics: fetchedTopics,
-        daoSlug: daoSlug,
-        proposalOrTopicId: proposalOrGroupId,
+        group,
+        proposals,
+        topics,
+        daoSlug,
+        groupId,
       };
     }
-
-    let proposal: Selectable<Proposal> | null = null;
-    try {
-      // Fetch the proposal based on externalId
-      proposal =
-        (await db
-          .selectFrom("proposal")
-          .selectAll()
-          .where("externalId", "=", proposalOrGroupId)
-          .where("proposal.daoId", "=", dao.id)
-          .executeTakeFirst()) ?? null;
-    } catch (error) {
-      console.error("Error fetching proposal:", error);
-    }
-
-    let topic: Selectable<DiscourseTopic> | null = null;
-    if (!proposal) {
-      try {
-        // Check if proposalOrGroupId is a valid integer
-        const parsedId = parseInt(proposalOrGroupId, 10);
-        if (!isNaN(parsedId)) {
-          // Fetch the topic based on externalId
-          topic =
-            (await db
-              .selectFrom("discourseTopic")
-              .selectAll()
-              .where("externalId", "=", parsedId)
-              .leftJoin(
-                "daoDiscourse",
-                "daoDiscourse.id",
-                "discourseTopic.daoDiscourseId",
-              )
-              .where("daoDiscourse.daoId", "=", dao.id)
-              .executeTakeFirst()) ?? null;
-        }
-      } catch (error) {
-        console.error("Error fetching topic:", error);
-      }
-    }
-
-    if (!proposal && !topic) {
-      return null;
-    }
-
-    // Find a proposal group containing this item
-    const fetchMatchingGroup = async (
-      id: string,
-      type: "proposal" | "topic",
-    ): Promise<Selectable<ProposalGroup> | null> => {
-      return otel("fetch-matching-group", async () => {
-        const result = await db
-          .selectFrom("proposalGroup")
-          .where(
-            sql<boolean>`exists (select 1 from jsonb_array_elements(proposal_group.items) as item where item->>'id' = ${id} and item->>'type' = ${type})`,
-          )
-          .selectAll()
-          .executeTakeFirst();
-
-        // Ensure the function returns null if no matching group is found
-        return result ?? null;
-      });
-    };
-
-    let matchingGroup: Selectable<ProposalGroup> | null = null;
-
-    if (proposal) {
-      matchingGroup = await fetchMatchingGroup(proposal.id, "proposal");
-    }
-
-    if (!matchingGroup && topic) {
-      matchingGroup = await fetchMatchingGroup(topic.id, "topic");
-    }
-
-    if (!matchingGroup) {
-      return null;
-    }
-
-    const items = matchingGroup.items as any[];
-
-    const proposalIds = items
-      .filter((item) => item.type === "proposal")
-      .map((item) => item.id);
-
-    const topicIds = items
-      .filter((item) => item.type === "topic")
-      .map((item) => item.id);
-
-    let fetchedProposals: Selectable<Proposal>[] = [];
-    if (proposalIds.length > 0) {
-      try {
-        fetchedProposals = await db
-          .selectFrom("proposal")
-          .selectAll()
-          .where("proposal.id", "in", proposalIds)
-          .execute();
-      } catch (error) {
-        console.error("Error fetching proposals:", error);
-      }
-    }
-
-    let fetchedTopics: Selectable<DiscourseTopic>[] = [];
-    if (topicIds.length > 0) {
-      try {
-        fetchedTopics = await db
-          .selectFrom("discourseTopic")
-          .where("discourseTopic.id", "in", topicIds)
-          .selectAll()
-          .execute();
-      } catch (error) {
-        console.error("Error fetching topics:", error);
-      }
-    }
-
-    return {
-      dao,
-      group: matchingGroup,
-      proposals: fetchedProposals,
-      topics: fetchedTopics,
-      daoSlug: daoSlug,
-      proposalOrTopicId: proposalOrGroupId,
-    };
   });
 }
 
@@ -453,5 +329,5 @@ export async function getTotalVersions(groupID: string) {
   });
 }
 
-export type GroupWithDataType = AsyncReturnType<typeof getGroupWithData>;
+export type GroupWithDataType = AsyncReturnType<typeof getGroupData>;
 export type BodiesDataType = AsyncReturnType<typeof getBodiesForGroup>;

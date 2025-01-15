@@ -26,6 +26,10 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
   );
 }
 
+export function ResultsLoading() {
+  return <div>Results component loading</div>;
+}
+
 // New component to handle the async content
 async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   const votes = await getVotesAction(proposal.id);

@@ -89,6 +89,10 @@ export default async function Body({
   );
 }
 
+export function BodyLoading() {
+  return <div>Body component loading</div>;
+}
+
 const AuthorInfo = ({
   authorName,
   authorPicture,
