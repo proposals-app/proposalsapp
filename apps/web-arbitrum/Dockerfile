@@ -37,11 +37,11 @@ FROM debian:bookworm
 # Set the working directory
 WORKDIR /app
 
-# Install Node.js and yarn
+# Install Node.js, yarn, and PM2
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs && \
-    npm install -g corepack && \
+    npm install -g corepack pm2 && \
     corepack enable && \
     corepack prepare yarn@4 --activate && \
     apt-get clean && \
@@ -57,9 +57,12 @@ COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 COPY --from=builder /app/.yarnrc.yml /app/
 
+# Copy PM2 configuration file
+COPY ecosystem.config.js /app/
+
 # Set the environment variables
 ENV PROPOSALS_BIN=web-arbitrum
 ENV NEXT_OTEL_VERBOSE=1
 
-# Set the default command
-CMD ["yarn", "start-web-arbitrum"]
+# Set the default command to start the application with PM2 in cluster mode
+CMD ["pm2-runtime", "start", "ecosystem.config.js"]
