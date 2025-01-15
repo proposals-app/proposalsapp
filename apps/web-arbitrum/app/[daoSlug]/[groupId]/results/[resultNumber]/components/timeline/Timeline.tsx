@@ -7,7 +7,7 @@ import {
   GapEvent,
   VotesVolumeEvent,
 } from "./OtherEvents";
-import { GroupWithDataType } from "@/app/[daoSlug]/[item_id]/actions";
+import { GroupWithDataType } from "@/app/[daoSlug]/[groupId]/actions";
 
 export async function Timeline({
   group,

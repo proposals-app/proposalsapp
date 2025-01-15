@@ -1,4 +1,4 @@
-import { GroupWithDataType } from "@/app/[daoSlug]/[item_id]/actions";
+import { GroupWithDataType } from "@/app/[daoSlug]/[groupId]/actions";
 import {
   db,
   IndexerVariant,
