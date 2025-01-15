@@ -16,7 +16,11 @@ export function ResultsList({ results }: ResultsListProps) {
   const choicesWithPower = results.choices.map((choice, index) => ({
     choice,
     votingPower: results.votes.reduce(
-      (sum, vote) => (vote.choice === index ? sum + vote.votingPower : sum),
+      (sum, vote) =>
+        vote.choice === index ||
+        (vote.choice === -1 && vote.choiceText.includes(choice))
+          ? sum + vote.votingPower
+          : sum,
       0,
     ),
     color: results.choiceColors[index],

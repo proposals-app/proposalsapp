@@ -75,9 +75,17 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           )}
           {!delegate && <span className="truncate">{vote.voterAddress}</span>}
         </div>
-        <div className="font-medium">{vote.choiceText}</div>
-        <div>{format(vote.timestamp, "MMM d, yyyy HH:mm")}</div>
-        <div>{formatNumberWithSuffix(vote.votingPower)} ARB</div>
+        <div className="cursor-default truncate" title={vote.choiceText}>
+          {vote.choiceText.length > 20
+            ? `${vote.choiceText.substring(0, 20)}...`
+            : vote.choiceText}
+        </div>
+        <div className="cursor-default">
+          {format(vote.timestamp, "MMM d, yyyy HH:mm")}
+        </div>
+        <div className="cursor-default">
+          {formatNumberWithSuffix(vote.votingPower)} ARB
+        </div>
       </div>
     );
   };
@@ -97,38 +105,32 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           }}
         >
           <div>Delegate</div>
-          <div>
-            <button
-              onClick={() => handleSortChange("choice")}
-              className="flex items-center gap-1"
-            >
-              Choice
-              {sortColumn === "choice" && (
-                <span>{sortDirection === "asc" ? "▲" : "▼"}</span>
-              )}
-            </button>
+          <div
+            onClick={() => handleSortChange("choice")}
+            className="flex cursor-default items-center gap-1"
+          >
+            Choice
+            {sortColumn === "choice" && (
+              <span>{sortDirection === "asc" ? "▲" : "▼"}</span>
+            )}
           </div>
-          <div>
-            <button
-              onClick={() => handleSortChange("timestamp")}
-              className="flex items-center gap-1"
-            >
-              Date
-              {sortColumn === "timestamp" && (
-                <span>{sortDirection === "asc" ? "▲" : "▼"}</span>
-              )}
-            </button>
+          <div
+            onClick={() => handleSortChange("timestamp")}
+            className="flex cursor-default items-center gap-1"
+          >
+            Date
+            {sortColumn === "timestamp" && (
+              <span>{sortDirection === "asc" ? "▲" : "▼"}</span>
+            )}
           </div>
-          <div>
-            <button
-              onClick={() => handleSortChange("votingPower")}
-              className="flex items-center gap-1"
-            >
-              Voting Power
-              {sortColumn === "votingPower" && (
-                <span>{sortDirection === "asc" ? "▲" : "▼"}</span>
-              )}
-            </button>
+          <div
+            onClick={() => handleSortChange("votingPower")}
+            className="flex cursor-default items-center gap-1"
+          >
+            Voting Power
+            {sortColumn === "votingPower" && (
+              <span>{sortDirection === "asc" ? "▲" : "▼"}</span>
+            )}
           </div>
         </div>
 

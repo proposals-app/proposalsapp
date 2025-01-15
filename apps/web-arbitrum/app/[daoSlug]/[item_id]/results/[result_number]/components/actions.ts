@@ -167,7 +167,7 @@ async function processWeightedVotes(
   choices: string[],
   proposal: Selectable<Proposal>,
 ): Promise<ProcessedResults> {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice)); // Add this line
+  const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   const processedVotes: VoteResult[] = [];
   const hourlyData = initializeHourlyData(
@@ -199,21 +199,30 @@ async function processWeightedVotes(
         0,
       );
 
-      // Process each choice in the weighted vote
+      // Create a combined choice name
+      const combinedChoiceName = Object.entries(weightedChoices)
+        .map(([choiceIndex, weight]) => {
+          const choice = parseInt(choiceIndex) - 1; // Convert to 0-based index
+          const percentage = ((weight / totalWeight) * 100).toFixed(2); // Calculate percentage
+          return `${choices[choice] || "Unknown Choice"} (${percentage}%)`;
+        })
+        .join(", ");
+
+      // Add to processed votes
+      processedVotes.push({
+        choice: -1, // Use -1 to indicate a combined choice
+        choiceText: combinedChoiceName,
+        votingPower: Number(vote.votingPower),
+        voterAddress: vote.voterAddress,
+        timestamp,
+        color: "#CBD5E1", // Use a default grey color for combined choices
+      });
+
+      // Process each choice in the weighted vote for hourly data and vote counts
       Object.entries(weightedChoices).forEach(([choiceIndex, weight]) => {
         const choice = parseInt(choiceIndex) - 1; // Convert to 0-based index
         const normalizedPower =
           (Number(vote.votingPower) * weight) / totalWeight;
-
-        // Add to processed votes
-        processedVotes.push({
-          choice,
-          choiceText: choices[choice] || "Unknown Choice",
-          votingPower: normalizedPower,
-          voterAddress: vote.voterAddress,
-          timestamp,
-          color: choiceColors[choice], // Use the precomputed color
-        });
 
         // Accumulate in hourly data
         hourlyData[hourKey][choice] =
