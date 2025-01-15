@@ -40,7 +40,28 @@ export function getColorForChoice(choice: string | undefined | null): string {
   if (/^(for|yes|yae)/.test(lowerCaseChoice)) return "#10B981"; // Green
   if (/^(against|no|nay)/.test(lowerCaseChoice)) return "#EF4444"; // Red
   if (lowerCaseChoice === "abstain") return "#F59E0B"; // Yellow
-  const colors = ["#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#6EE7B7"];
+  const colors = [
+    "#3B82F6", // Blue
+    "#8B5CF6", // Purple
+    "#EC4899", // Pink
+    "#F97316", // Orange
+    "#6EE7B7", // Teal
+    "#A855F7", // Deep Purple
+    "#F43F5E", // Rose
+    "#14B8A6", // Cyan
+    "#FBBF24", // Amber
+    "#6366F1", // Indigo
+    "#22C55E", // Emerald
+    "#0EA5E9", // Sky Blue
+    "#D946EF", // Fuchsia
+    "#F59E0B", // Yellow
+    "#84CC16", // Lime
+    "#10B981", // Green
+    "#EF4444", // Red
+    "#3B82F6", // Blue
+    "#8B5CF6", // Purple
+    "#EC4899", // Pink
+  ];
   const hash = Array.from(lowerCaseChoice).reduce(
     (acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0,
     0,
