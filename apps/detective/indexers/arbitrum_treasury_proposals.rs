@@ -1,5 +1,6 @@
 use crate::{
     chain_data::{self, Chain},
+    database::DatabaseStore,
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
 };
 use alloy::{
@@ -11,11 +12,11 @@ use alloy::{
 };
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use chrono::DateTime;
+use chrono::{DateTime, NaiveDateTime};
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{
     ActiveValue::{self, NotSet},
-    Set,
+    ConnectionTrait, Set,
 };
 use seaorm::{
     dao, dao_indexer, proposal,
@@ -259,6 +260,10 @@ async fn data_for_proposal(
 
     let body = event.description.to_string();
 
+    let total_delegated_vp = calculate_total_delegated_vp(created_block_datetime)
+        .await
+        .context("Failed to calculate total delegated voting power")?;
+
     Ok(proposal::ActiveModel {
         id: NotSet,
         external_id: Set(proposal_external_id),
@@ -281,7 +286,7 @@ async fn data_for_proposal(
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),
-        metadata: Set(json!({"vote_type": "basic","quorum_choices":[0,2]}).into()),
+        metadata: Set(json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": total_delegated_vp}).into()),
         txid: Set(Some(format!(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
@@ -313,14 +318,72 @@ fn extract_title(description: &str) -> String {
     }
 }
 
+async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
+    use sea_orm::{DbBackend, Statement};
+
+    let db = DatabaseStore::connect().await?;
+
+    // Construct the raw SQL query
+    let sql = r#"
+        WITH latest_voting_power AS (
+            SELECT
+                voter,
+                voting_power,
+                ROW_NUMBER() OVER (
+                    PARTITION BY voter
+                    ORDER BY timestamp DESC, block DESC
+                ) AS rn
+            FROM voting_power
+            WHERE
+                voter != '0x00000000000000000000000000000000000A4B86'
+                AND timestamp <= $1
+        )
+        SELECT COALESCE(SUM(voting_power), 0.0) as total_voting_power
+        FROM latest_voting_power
+        WHERE rn = 1
+    "#;
+
+    // Execute the raw SQL query
+    let result = db
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            sql,
+            vec![timestamp.into()],
+        ))
+        .await
+        .context("Failed to execute SQL query")?;
+
+    // Extract the total voting power from the result
+    let total_vp: f64 = result
+        .map(|qr| qr.try_get::<f64>("", "total_voting_power"))
+        .transpose()
+        .context("Failed to get total_voting_power from query result")?
+        .unwrap_or(0.0);
+
+    Ok(total_vp)
+}
+
 #[cfg(test)]
 mod arbitrum_treasury_proposals_tests {
     use super::*;
+    use chrono::DateTime;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::sea_orm_active_enums::IndexerVariant;
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+
+    #[ignore = "needs db mocking"]
+    #[tokio::test]
+    async fn test_calculate_total_delegated_vp() {
+        let _ = dotenv().ok();
+
+        let timestamp = DateTime::from_timestamp(1736985358, 0).unwrap().naive_utc(); // Example timestamp
+        let result = calculate_total_delegated_vp(timestamp).await;
+        assert!(result.is_ok());
+        let total_vp = result.unwrap();
+        assert!(total_vp == 313574334.10536474);
+    }
 
     #[tokio::test]
     async fn arbitrum_treasury_1() {
@@ -373,7 +436,7 @@ mod arbitrum_treasury_proposals_tests {
                     time_end: parse_datetime("2023-06-23 21:04:59"),
                     block_created: Some(98423914),
                     txid: Some("0x21c3f3db7304d3278f6e0c8d2d6e2fb65ceb876c5bced84eb276c817e8d934fe"),
-                    metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": 281034641.09768593}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -435,7 +498,7 @@ mod arbitrum_treasury_proposals_tests {
                         time_end: parse_datetime("2024-03-27 00:54:23"),
                         block_created: Some(188757729),
                         txid: Some("0x44dd69debf775a83e7a4317ce9aa6344c9085c821f1a3b19a4f56cd13cc853c2"),
-                        metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
+                        metadata: json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": 362848843.22893333}).into(),
                     },
                     ExpectedProposal {
                         index_created: 192337153,
@@ -456,7 +519,7 @@ mod arbitrum_treasury_proposals_tests {
                         time_end: parse_datetime("2024-04-06 22:13:59"),
                         block_created: Some(192337153),
                         txid: Some("0x8086f869ce5cc30ccffc03c044e18f17f6a8acffd697dfa18aba62d32cbfae15"),
-                        metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
+                        metadata: json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": 328016228.025146}).into(),
                     }
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -518,7 +581,7 @@ mod arbitrum_treasury_proposals_tests {
                     time_end: parse_datetime("2024-06-25 00:50:23"),
                     block_created: Some(219487184),
                     txid: Some("0x7ecadf902e520383a48b3a305a4dcd947652569f0650e71f5d9e4b15735c6d9b"),
-                    metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": 325283710.1235324}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

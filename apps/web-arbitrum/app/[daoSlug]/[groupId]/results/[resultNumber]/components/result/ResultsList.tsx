@@ -11,6 +11,7 @@ interface ResultsListProps {
 export function ResultsList({ results }: ResultsListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const totalVotingPower = results.totalVotingPower;
+  const totalDelegatedVp = results.totalDelegatedVp;
 
   // Calculate voting power for each choice using finalResults
   const choicesWithPower = results.choices.map((choice, index) => ({
@@ -34,6 +35,9 @@ export function ResultsList({ results }: ResultsListProps) {
     0,
   );
 
+  const participationPercentage = totalDelegatedVp
+    ? (totalVotingPower / totalDelegatedVp) * 100
+    : 0;
   return (
     <div className="ml-6 w-64">
       <h3 className="mb-4 text-xl font-semibold">Vote Distribution</h3>
@@ -72,6 +76,30 @@ export function ResultsList({ results }: ResultsListProps) {
           >
             Show less
           </button>
+        )}
+
+        {/* Add the delegated voting power bar if totalDelegatedVp is available */}
+        {totalDelegatedVp && (
+          <div className="mt-4">
+            {/* Thin black bar showing the percentage of voting power used */}
+            <div className="relative h-1 w-full rounded-full bg-gray-200">
+              {/* Black bar representing the percentage of voting power used */}
+              <div
+                className="absolute left-0 top-0 h-full rounded-full bg-black"
+                style={{
+                  width: `${participationPercentage}%`,
+                }}
+              />
+            </div>
+
+            {/* Text description */}
+            <div className="mt-2 text-xs text-gray-600">
+              <span className="font-semibold">
+                {participationPercentage.toFixed(0)}%
+              </span>{" "}
+              of all delegated ARB has voted
+            </div>
+          </div>
         )}
       </div>
     </div>

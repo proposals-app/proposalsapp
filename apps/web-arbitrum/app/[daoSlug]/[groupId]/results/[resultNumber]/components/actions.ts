@@ -28,11 +28,13 @@ export interface ProcessedResults {
   votes: VoteResult[];
   timeSeriesData: TimeSeriesPoint[];
   finalResults: { [choice: number]: number };
+  totalDelegatedVp?: number;
 }
 
 export type ProposalMetadata = {
   quorumChoices?: number[];
   voteType?: string;
+  total_delegated_vp?: string;
 };
 
 export function getColorForChoice(choice: string | undefined | null): string {
@@ -70,24 +72,13 @@ export function getColorForChoice(choice: string | undefined | null): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-function initializeHourlyData(
-  startTime: Date,
-  endTime: Date,
-  choices: string[],
-): { [hour: string]: { [choice: number]: number } } {
-  const hourlyData: { [hour: string]: { [choice: number]: number } } = {};
-  let currentHour = startOfHour(startTime);
-
-  while (currentHour <= endTime) {
-    const hourKey = format(currentHour, "yyyy-MM-dd HH:mm");
-    hourlyData[hourKey] = {};
-    choices.forEach((_, index) => {
-      hourlyData[hourKey][index] = 0;
-    });
-    currentHour = new Date(currentHour.getTime() + 60 * 60 * 1000);
-  }
-
-  return hourlyData;
+function getTotalDelegatedVp(
+  proposal: Selectable<Proposal>,
+): number | undefined {
+  const metadata = proposal.metadata as ProposalMetadata;
+  return metadata.total_delegated_vp
+    ? Number(metadata.total_delegated_vp)
+    : undefined;
 }
 
 const ACCUMULATED_VOTING_POWER_THRESHOLD = 5000;
@@ -179,6 +170,7 @@ async function processBasicVotes(
     votes: processedVotes,
     timeSeriesData,
     finalResults,
+    totalDelegatedVp: getTotalDelegatedVp(proposal),
   };
 }
 
@@ -378,6 +370,7 @@ async function processWeightedVotes(
     votes: processedVotes,
     timeSeriesData,
     finalResults,
+    totalDelegatedVp: getTotalDelegatedVp(proposal),
   };
 }
 
@@ -499,6 +492,7 @@ async function processApprovalVotes(
     votes: processedVotes,
     timeSeriesData,
     finalResults,
+    totalDelegatedVp: getTotalDelegatedVp(proposal),
   };
 }
 
@@ -524,6 +518,7 @@ async function processRankedChoiceVotes(
       votes: [],
       timeSeriesData: [],
       finalResults: {},
+      totalDelegatedVp: getTotalDelegatedVp(proposal),
     };
   }
 
@@ -713,6 +708,7 @@ async function processRankedChoiceVotes(
     })),
     timeSeriesData: Array.from(timeSeriesMap.values()),
     finalResults,
+    totalDelegatedVp: getTotalDelegatedVp(proposal),
   };
 }
 
