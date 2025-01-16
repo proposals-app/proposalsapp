@@ -247,6 +247,16 @@ async fn parse_proposals(
             (0..p.choices.len() as u32).collect()
         };
 
+        let mut metadata = json!({
+            "vote_type": p.proposal_type,
+            "quorum_choices": quorum_choices
+        });
+
+        if p.privacy.as_str() == "shutter" {
+            metadata["hidden_vote"] = json!(true);
+            metadata["scores_state"] = json!(p.scores_state.as_str());
+        }
+
         let proposal_model = proposal::ActiveModel {
             id: NotSet,
             external_id: Set(p.id.clone()),
@@ -269,9 +279,7 @@ async fn parse_proposals(
             dao_indexer_id: Set(indexer.id),
             dao_id: Set(indexer.dao_id),
             index_created: Set(p.created),
-            metadata: Set(
-                json!({"vote_type": p.proposal_type,"quorum_choices": quorum_choices}).into(),
-            ),
+            metadata: Set(metadata.into()),
             txid: Set(Some(p.ipfs)),
         };
 
