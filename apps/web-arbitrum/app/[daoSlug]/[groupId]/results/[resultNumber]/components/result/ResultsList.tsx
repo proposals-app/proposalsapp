@@ -11,9 +11,8 @@ interface ResultsListProps {
 export function ResultsList({ results }: ResultsListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const totalVotingPower = results.totalVotingPower;
-  // const totalDelegatedVp = results.totalDelegatedVp;
-
   const totalDelegatedVp = results.totalDelegatedVp;
+
   // Calculate voting power for each choice using finalResults
   const choicesWithPower = results.choices.map((choice, index) => ({
     choice,
@@ -45,6 +44,15 @@ export function ResultsList({ results }: ResultsListProps) {
     ? (totalVotingPower / totalDelegatedVp) * 100
     : 0;
 
+  // Find the choice with the highest voting power
+  const majorityChoice = sortedChoices[0];
+
+  // Check if the majority choice is "For"
+  const hasMajoritySupport =
+    majorityChoice &&
+    majorityChoice.choice === "For" &&
+    majorityChoice.votingPower > totalVotingPower / 2;
+
   return (
     <div className="ml-6 w-64">
       <h3 className="mb-4 text-xl font-semibold">Vote Distribution</h3>
@@ -71,7 +79,7 @@ export function ResultsList({ results }: ResultsListProps) {
               <ChoiceBar
                 choice="Other"
                 votingPower={otherVotingPower}
-                color="#CBD5E1" // Default grey color
+                color="#CBD5E1"
                 percentage={(otherVotingPower / totalVotingPower) * 100}
               />
             </div>
@@ -87,11 +95,29 @@ export function ResultsList({ results }: ResultsListProps) {
           </button>
         )}
 
+        {/* Majority Support Checkmark */}
+        <div>
+          {hasMajoritySupport && (
+            <div>
+              {results.quorum !== null && totalDelegatedVp && (
+                <div
+                  className="w-full text-sm font-semibold text-gray-600"
+                  style={{
+                    left: `${(results.quorum / totalDelegatedVp) * 100}%`,
+                  }}
+                >
+                  ✓ Majority support
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Quorum Bar */}
         <div>
           {results.quorum !== null && totalDelegatedVp && (
             <div className="mb-4">
-              <div className="relative flex h-4 w-full rounded-lg bg-gray-200">
+              <div className="relative h-4 w-full rounded-lg bg-gray-200">
                 {/* Quorum Line */}
                 <div
                   className="absolute -top-1 z-10 h-6 w-0.5 bg-red-500"
@@ -99,23 +125,27 @@ export function ResultsList({ results }: ResultsListProps) {
                     left: `${(results.quorum / totalDelegatedVp) * 100}%`,
                   }}
                 />
+
                 {/* Choices that count towards quorum */}
-                {sortedChoices
-                  .filter((choice) => choice.countsTowardsQuorum)
-                  .map((choice, index) => (
-                    <div
-                      key={index}
-                      className={`h-full ${index == 0 ? "rounded-l-lg" : "rounded-none"} `}
-                      style={{
-                        width: `${(choice.votingPower / totalDelegatedVp) * 100}%`,
-                        backgroundColor: choice.color,
-                      }}
-                    />
-                  ))}
+                <div className="absolute inset-0 flex overflow-hidden rounded-lg">
+                  {sortedChoices
+                    .filter((choice) => choice.countsTowardsQuorum)
+                    .map((choice, index) => (
+                      <div
+                        key={index}
+                        className={`h-full ${index === 0 ? "rounded-l-lg" : ""}`}
+                        style={{
+                          width: `${(choice.votingPower / totalDelegatedVp) * 100}%`,
+                          backgroundColor: choice.color,
+                        }}
+                      />
+                    ))}
+                </div>
               </div>
               {/* Quorum Text */}
               <div className="mt-2 text-sm text-gray-600">
                 <span className="font-semibold">
+                  {quorumVotingPower > results.quorum && "✓"}{" "}
                   {formatNumberWithSuffix(quorumVotingPower)}
                 </span>{" "}
                 of{" "}
@@ -128,13 +158,11 @@ export function ResultsList({ results }: ResultsListProps) {
           )}
         </div>
 
-        {/* Add the delegated voting power bar if totalDelegatedVp is available */}
+        {/* Delegated Voting Power */}
         <div>
           {totalDelegatedVp && (
             <div className="mt-4">
-              {/* Thin black bar showing the percentage of voting power used */}
               <div className="relative h-1 w-full rounded-full bg-gray-200">
-                {/* Black bar representing the percentage of voting power used */}
                 <div
                   className="absolute left-0 top-0 h-full rounded-full bg-black"
                   style={{
@@ -143,7 +171,6 @@ export function ResultsList({ results }: ResultsListProps) {
                 />
               </div>
 
-              {/* Text description */}
               <div className="mt-2 text-xs text-gray-600">
                 <span className="font-semibold">
                   {participationPercentage.toFixed(0)}%

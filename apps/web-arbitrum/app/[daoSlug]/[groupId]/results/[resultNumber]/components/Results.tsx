@@ -37,13 +37,14 @@ export function ResultsLoading() {
         </div>
 
         {/* List Loading */}
-        <div className="w-64">
-          <Skeleton className="mb-4 h-8 w-48" />
+        <div className="w-64 space-y-4">
           <div className="space-y-2">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(3)].map((_, i) => (
               <Skeleton key={i} className="h-10 w-full" />
             ))}
           </div>
+          <Skeleton className="mb-4 h-10 w-full" />
+          <Skeleton className="mb-4 h-8 w-full" />
         </div>
       </div>
 
