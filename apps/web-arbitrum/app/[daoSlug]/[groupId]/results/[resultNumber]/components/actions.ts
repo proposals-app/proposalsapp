@@ -780,8 +780,17 @@ export async function processResultsAction(
 
     // Check if hiddenVote is true and scoresState is not "final"
     if (metadata.hiddenVote && metadata.scoresState !== "final") {
-      // Remove timeSeriesData from the result
-      result.timeSeriesData = [];
+      // Aggregate all voting power under choice -1
+      result.timeSeriesData = result.timeSeriesData.map((point) => {
+        const totalVotingPower = Object.values(point.values).reduce(
+          (sum, power) => sum + power,
+          0,
+        );
+        return {
+          timestamp: point.timestamp,
+          values: { [-1]: totalVotingPower },
+        };
+      });
     }
 
     return result;
