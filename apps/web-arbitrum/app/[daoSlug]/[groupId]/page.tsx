@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect, RedirectType } from "next/navigation";
 import { unstable_cache } from "next/cache";
 import { getGroupData, getTotalVersions } from "./actions";
 import Body, { BodyLoading } from "./components/body/Body";
@@ -40,12 +40,20 @@ export default async function ProposalPage({
     cachedGetTotalVersions(groupId),
   ]);
 
-  if (!group) {
+  if (!group || !totalVersions) {
     notFound();
   }
 
   const { version, comments, votes, diff, page } =
     await searchParamsCache.parse(searchParams);
+
+  if (version === null) {
+    const latestVersion = totalVersions - 1;
+    redirect(
+      `/${daoSlug}/${groupId}?version=${latestVersion}`,
+      RedirectType.push,
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100">

@@ -184,7 +184,7 @@ function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
 
         {/* Right side - Percentage and voting power */}
         <span className="text-xs font-light">
-          {percentage === null ? "???" : `${percentage.toFixed(1)}%`}{" "}
+          {percentage === null ? "???%" : `${percentage.toFixed(1)}%`}{" "}
           <span className="font-bold">
             {formatNumberWithSuffix(votingPower)}
           </span>
