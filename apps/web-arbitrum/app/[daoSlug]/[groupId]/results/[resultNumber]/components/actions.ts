@@ -34,7 +34,7 @@ export interface ProcessedResults {
 export type ProposalMetadata = {
   quorumChoices?: number[];
   voteType?: string;
-  total_delegated_vp?: string;
+  totalDelegatedVp?: string;
 };
 
 export function getColorForChoice(choice: string | undefined | null): string {
@@ -76,8 +76,8 @@ function getTotalDelegatedVp(
   proposal: Selectable<Proposal>,
 ): number | undefined {
   const metadata = proposal.metadata as ProposalMetadata;
-  return metadata.total_delegated_vp
-    ? Number(metadata.total_delegated_vp)
+  return metadata.totalDelegatedVp
+    ? Number(metadata.totalDelegatedVp)
     : undefined;
 }
 
