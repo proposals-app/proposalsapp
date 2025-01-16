@@ -37,7 +37,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
       return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [results.votes, sortColumn, sortDirection, results.voteType]);
+  }, [results.votes, sortColumn, sortDirection]);
 
   const handleSortChange = (column: typeof sortColumn) => {
     if (sortColumn === column) {

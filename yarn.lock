@@ -1737,7 +1737,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/curves@npm:^1.4.0, @noble/curves@npm:^1.6.0, @noble/curves@npm:~1.8.0":
+"@noble/curves@npm:^1.6.0, @noble/curves@npm:~1.8.0":
   version: 1.8.0
   resolution: "@noble/curves@npm:1.8.0"
   dependencies:
@@ -1760,7 +1760,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/hashes@npm:1.7.0, @noble/hashes@npm:^1.4.0, @noble/hashes@npm:^1.5.0, @noble/hashes@npm:~1.7.0":
+"@noble/hashes@npm:1.7.0, @noble/hashes@npm:^1.5.0, @noble/hashes@npm:~1.7.0":
   version: 1.7.0
   resolution: "@noble/hashes@npm:1.7.0"
   checksum: 10c0/1ef0c985ebdb5a1bd921ea6d959c90ba826af3ae05b40b459a703e2a5e9b259f190c6e92d6220fb3800e2385521e4159e238415ad3f6b79c52f91dd615e491dc
@@ -2428,7 +2428,7 @@ __metadata:
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/jsdom": "npm:^21.1.7"
     "@types/mdast": "npm:^4"
-    "@types/node": "npm:22.10.6"
+    "@types/node": "npm:22.10.7"
     "@types/react": "npm:^19.0.2"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:^19.0.2"
@@ -2488,7 +2488,7 @@ __metadata:
     unified: "npm:^11.0.5"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.22.8"
+    viem: "npm:2.22.9"
     web-push: "npm:^3.6.7"
     zlib: "npm:^1.0.5"
     zod: "npm:^3.24.1"
@@ -2539,7 +2539,7 @@ __metadata:
     "@radix-ui/react-toggle-group": "npm:^1.1.1"
     "@radix-ui/react-tooltip": "npm:^1.1.6"
     "@serwist/next": "npm:9.0.11"
-    "@types/node": "npm:22.10.6"
+    "@types/node": "npm:22.10.7"
     "@types/react": "npm:^19.0.2"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:^19.0.2"
@@ -2583,7 +2583,7 @@ __metadata:
     typescript: "npm:^5.7.2"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.22.8"
+    viem: "npm:2.22.9"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -4610,12 +4610,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:22.10.6":
-  version: 22.10.6
-  resolution: "@types/node@npm:22.10.6"
+"@types/node@npm:22.10.7":
+  version: 22.10.7
+  resolution: "@types/node@npm:22.10.7"
   dependencies:
     undici-types: "npm:~6.20.0"
-  checksum: 10c0/8b67affc211e5f9c74f7949cda04ca669721e50b83d71b8772a7bed7a4a3c41d663b3a794413f618e763ca6c5da8c234c25ffebcb0737983fc3e7415818ab9a7
+  checksum: 10c0/c941b4689dfc4044b64a5f601306cbcb0c7210be853ba378a5dd44137898c45accedd796ee002ad9407024cac7ecaf5049304951cb1d80ce3d7cebbbae56f20e
   languageName: node
   linkType: hard
 
@@ -12417,9 +12417,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ox@npm:0.6.0":
-  version: 0.6.0
-  resolution: "ox@npm:0.6.0"
+"ox@npm:0.6.5":
+  version: 0.6.5
+  resolution: "ox@npm:0.6.5"
   dependencies:
     "@adraffy/ens-normalize": "npm:^1.10.1"
     "@noble/curves": "npm:^1.6.0"
@@ -12433,7 +12433,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/1fe8cfe71df8b69d2240fa8d106ef7b2639534e117ba986243c82d747e98cc9f08b706eeb5e0665d48ddc2dd7935d6a8dd4d214b971169504d6af00a12802f90
+  checksum: 10c0/72a59bfb983395c19c56c93997dd80e3addad92830772534c8fd0667369352a94fde5880949351b5a651d5efd67ec37d6e2bc96fbd72cc5fd7791b463155cac8
   languageName: node
   linkType: hard
 
@@ -15972,9 +15972,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.22.8":
-  version: 2.22.8
-  resolution: "viem@npm:2.22.8"
+"viem@npm:2.22.9":
+  version: 2.22.9
+  resolution: "viem@npm:2.22.9"
   dependencies:
     "@noble/curves": "npm:1.7.0"
     "@noble/hashes": "npm:1.6.1"
@@ -15982,15 +15982,14 @@ __metadata:
     "@scure/bip39": "npm:1.5.0"
     abitype: "npm:1.0.7"
     isows: "npm:1.0.6"
-    ox: "npm:0.6.0"
-    webauthn-p256: "npm:0.0.10"
+    ox: "npm:0.6.5"
     ws: "npm:8.18.0"
   peerDependencies:
     typescript: ">=5.0.4"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/9877565d9b1da302fa2c320cb4f41ca0d18c5f44b6cb76bb19815d0f14d9d2bdbcdc798dda0424c7c707bc1d9c243669e8bbbeb9cf092900605cd9be67fb16b1
+  checksum: 10c0/5fe8e34b839bc68eeac82dc85c431f03cbc91e286f7d9dc34afe7a81a0472b6f42f68d3f960eb3ad9ff66c195cd200cc5dcf98fb8ec27b57e9e36a0fea9c46ea
   languageName: node
   linkType: hard
 
@@ -16066,16 +16065,6 @@ __metadata:
   version: 4.2.4
   resolution: "web-vitals@npm:4.2.4"
   checksum: 10c0/383c9281d5b556bcd190fde3c823aeb005bb8cf82e62c75b47beb411014a4ed13fa5c5e0489ed0f1b8d501cd66b0bebcb8624c1a75750bd5df13e2a3b1b2d194
-  languageName: node
-  linkType: hard
-
-"webauthn-p256@npm:0.0.10":
-  version: 0.0.10
-  resolution: "webauthn-p256@npm:0.0.10"
-  dependencies:
-    "@noble/curves": "npm:^1.4.0"
-    "@noble/hashes": "npm:^1.4.0"
-  checksum: 10c0/27d836d81a1fec24a31d2d9b652f8ff6876b51940d1003bbd14dc5cfa57c58d84223b5a4eece229516522fd997bc0bc7be618ac42b129fb5fa42fa530060b16d
   languageName: node
   linkType: hard
 
