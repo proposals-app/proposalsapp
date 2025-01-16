@@ -29,6 +29,8 @@ export interface ProcessedResults {
   timeSeriesData: TimeSeriesPoint[];
   finalResults: { [choice: number]: number };
   totalDelegatedVp?: number;
+  hiddenVote: boolean;
+  scoresState: string;
 }
 
 export type ProposalMetadata = {
@@ -173,6 +175,8 @@ async function processBasicVotes(
     timeSeriesData,
     finalResults,
     totalDelegatedVp: getTotalDelegatedVp(proposal),
+    hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
+    scoresState: (proposal.metadata as ProposalMetadata).scoresState,
   };
 }
 
@@ -375,6 +379,8 @@ async function processWeightedVotes(
     timeSeriesData,
     finalResults,
     totalDelegatedVp: getTotalDelegatedVp(proposal),
+    hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
+    scoresState: (proposal.metadata as ProposalMetadata).scoresState,
   };
 }
 
@@ -497,6 +503,8 @@ async function processApprovalVotes(
     timeSeriesData,
     finalResults,
     totalDelegatedVp: getTotalDelegatedVp(proposal),
+    hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
+    scoresState: (proposal.metadata as ProposalMetadata).scoresState,
   };
 }
 
@@ -523,6 +531,8 @@ async function processRankedChoiceVotes(
       timeSeriesData: [],
       finalResults: {},
       totalDelegatedVp: getTotalDelegatedVp(proposal),
+      hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
+      scoresState: (proposal.metadata as ProposalMetadata).scoresState,
     };
   }
 
@@ -713,6 +723,8 @@ async function processRankedChoiceVotes(
     timeSeriesData: Array.from(timeSeriesMap.values()),
     finalResults,
     totalDelegatedVp: getTotalDelegatedVp(proposal),
+    hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
+    scoresState: (proposal.metadata as ProposalMetadata).scoresState,
   };
 }
 

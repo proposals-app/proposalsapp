@@ -70,6 +70,10 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     const votingPowerPercentage =
       (vote.votingPower / results.totalVotingPower) * 100;
 
+    const shouldHideVote =
+      results.hiddenVote && results.scoresState !== "final";
+    const choiceText = shouldHideVote ? "Hidden vote" : vote.choiceText;
+
     return (
       <div
         style={{
@@ -91,12 +95,12 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
         </div>
         <div
           className="flex cursor-default flex-col truncate"
-          title={vote.choiceText}
+          title={choiceText}
         >
           <div className="font-bold">
-            {vote.choiceText.length > 20
-              ? `${vote.choiceText.substring(0, 20)}...`
-              : vote.choiceText}
+            {choiceText.length > 20
+              ? `${choiceText.substring(0, 20)}...`
+              : choiceText}
           </div>
           {vote.reason && (
             <div className="text-sm">
