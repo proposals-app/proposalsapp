@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
-import { getGroups as fetchGroups } from "./actions";
+import { getGroups } from "./actions";
 
 // Cache the getGroups function
-const getGroups = unstable_cache(
+const getCachedGroups = unstable_cache(
   async (daoSlug: string) => {
-    return await fetchGroups(daoSlug);
+    return await getGroups(daoSlug);
   },
   ["getGroups"], // Cache key
   { revalidate: 60 * 5, tags: ["groups"] },
@@ -18,7 +18,7 @@ export default async function ListPage({
   params: Promise<{ daoSlug: string }>;
 }) {
   const { daoSlug } = await params;
-  const groups = await getGroups(daoSlug);
+  const groups = await getCachedGroups(daoSlug);
 
   if (!groups) {
     notFound();
