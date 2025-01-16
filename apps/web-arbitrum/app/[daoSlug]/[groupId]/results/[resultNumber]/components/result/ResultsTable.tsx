@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { formatNumberWithSuffix } from "@/lib/utils";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { format, toZonedTime } from "date-fns-tz";
 import { DelegateInfo, ProcessedResults } from "../actions";
 import Link from "next/link";
 
@@ -128,7 +129,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
         <div className="cursor-default">
           <div>{formatDistanceToNow(vote.timestamp, { addSuffix: true })}</div>
           <div className="text-sm text-gray-500">
-            {format(vote.timestamp, "MMM d, yyyy")}
+            {format(toZonedTime(vote.timestamp, "UTC"), "MMM d, yyyy")} UTC
           </div>
         </div>
         <div className="cursor-default">

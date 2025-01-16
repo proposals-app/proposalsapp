@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
-import { format } from "date-fns";
+import { format, toZonedTime } from "date-fns-tz";
 import { formatNumberWithSuffix } from "@/lib/utils";
 import { ProcessedResults } from "../actions";
 
@@ -211,7 +211,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
       tooltip: {
         trigger: "axis",
         formatter: (params: any) => {
-          let tooltipText = `<strong>${format(new Date(params[0].axisValue), "MMM d, HH:mm")}</strong><br/>`;
+          let tooltipText = `<strong>${format(toZonedTime(new Date(params[0].axisValue), "UTC"), "MMM d, HH:mm")} UTC</strong><br/>`;
           params.forEach((param: any) => {
             if (param.seriesName !== "Quorum") {
               tooltipText += `
@@ -229,7 +229,9 @@ export function ResultsChart({ results }: ResultsChartProps) {
         min: new Date(results.proposal.timeStart).getTime(),
         max: new Date(results.proposal.timeEnd).getTime() + 5 * 60 * 1000,
         axisLabel: {
-          formatter: (value: number) => format(new Date(value), "MMM d, HH:mm"),
+          formatter: (value: number) =>
+            format(toZonedTime(new Date(value), "UTC"), "MMM d, HH:mm") +
+            " UTC",
         },
       },
       yAxis: {

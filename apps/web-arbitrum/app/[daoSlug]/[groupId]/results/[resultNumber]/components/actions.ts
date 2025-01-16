@@ -1,6 +1,6 @@
 import { otel } from "@/lib/otel";
 import { Proposal, ProposalState, Selectable, Vote } from "@proposalsapp/db";
-import { startOfHour, format } from "date-fns";
+import { format, toZonedTime } from "date-fns-tz";
 import { db } from "@proposalsapp/db";
 
 export interface VoteResult {
@@ -120,7 +120,10 @@ async function processBasicVotes(
     if (vote.votingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
       // Create a new time series point for this vote
       timeSeriesData.push({
-        timestamp: format(vote.timestamp, "yyyy-MM-dd HH:mm:ss"),
+        timestamp: format(
+          toZonedTime(vote.timestamp, "UTC"),
+          "yyyy-MM-dd HH:mm:ss",
+        ),
         values: { [vote.choice]: vote.votingPower },
       });
     } else {
@@ -131,7 +134,10 @@ async function processBasicVotes(
       if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
         // Create a new time series point for the accumulated votes
         timeSeriesData.push({
-          timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+          timestamp: format(
+            toZonedTime(lastAccumulatedTimestamp, "UTC"),
+            "yyyy-MM-dd HH:mm:ss",
+          ),
           values: { [vote.choice]: accumulatedVotingPower },
         });
         accumulatedVotingPower = 0; // Reset accumulation
@@ -142,7 +148,10 @@ async function processBasicVotes(
   // If there's any remaining accumulated voting power, add it to the last timestamp
   if (accumulatedVotingPower > 0 && lastAccumulatedTimestamp) {
     timeSeriesData.push({
-      timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+      timestamp: format(
+        toZonedTime(lastAccumulatedTimestamp, "UTC"),
+        "yyyy-MM-dd HH:mm:ss",
+      ),
       values: {
         [sortedVotes[sortedVotes.length - 1].choice]: accumulatedVotingPower,
       },
@@ -241,7 +250,10 @@ async function processWeightedVotes(
         if (normalizedPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
           // Create a new time series point for this vote
           timeSeriesData.push({
-            timestamp: format(timestamp, "yyyy-MM-dd HH:mm:ss"),
+            timestamp: format(
+              toZonedTime(timestamp, "UTC"),
+              "yyyy-MM-dd HH:mm:ss",
+            ),
             values: { [choice]: normalizedPower },
           });
         } else {
@@ -253,7 +265,7 @@ async function processWeightedVotes(
             // Create a new time series point for the accumulated votes
             timeSeriesData.push({
               timestamp: format(
-                lastAccumulatedTimestamp,
+                toZonedTime(lastAccumulatedTimestamp, "UTC"),
                 "yyyy-MM-dd HH:mm:ss",
               ),
               values: { [choice]: accumulatedVotingPower },
@@ -279,7 +291,10 @@ async function processWeightedVotes(
       if (Number(vote.votingPower) >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
         // Create a new time series point for this vote
         timeSeriesData.push({
-          timestamp: format(timestamp, "yyyy-MM-dd HH:mm:ss"),
+          timestamp: format(
+            toZonedTime(timestamp, "UTC"),
+            "yyyy-MM-dd HH:mm:ss",
+          ),
           values: { [choice]: Number(vote.votingPower) },
         });
       } else {
@@ -290,7 +305,10 @@ async function processWeightedVotes(
         if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
           // Create a new time series point for the accumulated votes
           timeSeriesData.push({
-            timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+            timestamp: format(
+              toZonedTime(lastAccumulatedTimestamp, "UTC"),
+              "yyyy-MM-dd HH:mm:ss",
+            ),
             values: { [choice]: accumulatedVotingPower },
           });
 
@@ -329,7 +347,10 @@ async function processWeightedVotes(
     }
 
     timeSeriesData.push({
-      timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+      timestamp: format(
+        toZonedTime(lastAccumulatedTimestamp, "UTC"),
+        "yyyy-MM-dd HH:mm:ss",
+      ),
       values: { [lastChoice]: accumulatedVotingPower },
     });
   }
@@ -447,7 +468,10 @@ async function processApprovalVotes(
         });
 
         timeSeriesData.push({
-          timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+          timestamp: format(
+            toZonedTime(lastAccumulatedTimestamp, "UTC"),
+            "yyyy-MM-dd HH:mm:ss",
+          ),
           values,
         });
 
@@ -467,7 +491,10 @@ async function processApprovalVotes(
     });
 
     timeSeriesData.push({
-      timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
+      timestamp: format(
+        toZonedTime(lastAccumulatedTimestamp, "UTC"),
+        "yyyy-MM-dd HH:mm:ss",
+      ),
       values,
     });
   }
@@ -645,7 +672,10 @@ async function processRankedChoiceVotes(
       const { finalVoteCounts, eliminatedChoices } =
         await calculateIRV(runningVotes);
 
-      const timestampKey = new Date(lastAccumulatedTimestamp).toISOString();
+      const timestampKey = format(
+        toZonedTime(new Date(lastAccumulatedTimestamp), "UTC"),
+        "yyyy-MM-dd HH:mm:ss",
+      );
       const values: Record<number | string, number> = {};
 
       // Calculate total votes for this interval
@@ -668,14 +698,17 @@ async function processRankedChoiceVotes(
     }
   }
 
-  // One final round with all
-
+  // One final round with all votes
   const { finalVoteCounts, eliminatedChoices } =
     await calculateIRV(processedVotes);
 
-  const timestampKey = new Date(
-    processedVotes[processedVotes.length - 1]?.timestamp,
-  ).toISOString();
+  const timestampKey = format(
+    toZonedTime(
+      new Date(processedVotes[processedVotes.length - 1]?.timestamp),
+      "UTC",
+    ),
+    "yyyy-MM-dd HH:mm:ss",
+  );
   const values: Record<number | string, number> = {};
 
   // Calculate total votes for this interval
