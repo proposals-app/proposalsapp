@@ -1,5 +1,5 @@
 import { otel } from "@/lib/otel";
-import { Proposal, Selectable, Vote } from "@proposalsapp/db";
+import { Proposal, ProposalState, Selectable, Vote } from "@proposalsapp/db";
 import { startOfHour, format } from "date-fns";
 import { db } from "@proposalsapp/db";
 
@@ -827,7 +827,7 @@ export async function getDelegateForVoter(
       };
 
     // Try to get discourse user first
-    const discourseUser = await db
+    let discourseUserQuery = db
       .selectFrom("delegateToDiscourseUser")
       .where("delegateId", "=", delegateData.id)
       .leftJoin(
@@ -835,8 +835,18 @@ export async function getDelegateForVoter(
         "discourseUser.id",
         "delegateToDiscourseUser.discourseUserId",
       )
-      .where("periodStart", "<=", proposal.timeStart)
-      .where("periodEnd", ">=", proposal.timeEnd)
+      .where("periodStart", "<=", proposal.timeStart);
+
+    // Only apply the periodEnd condition if the proposal is not active
+    if (proposal.proposalState !== ProposalState.ACTIVE) {
+      discourseUserQuery = discourseUserQuery.where(
+        "periodEnd",
+        ">=",
+        proposal.timeEnd,
+      );
+    }
+
+    const discourseUser = await discourseUserQuery
       .selectAll()
       .executeTakeFirst();
 
@@ -847,14 +857,18 @@ export async function getDelegateForVoter(
     }
 
     // Fallback to ENS
-    const ens = await db
+    let ensQuery = db
       .selectFrom("delegateToVoter")
       .where("delegateId", "=", delegateData.id)
       .leftJoin("voter", "voter.id", "delegateToVoter.voterId")
-      .where("periodStart", "<=", proposal.timeStart)
-      .where("periodEnd", ">=", proposal.timeEnd)
-      .select("voter.ens")
-      .executeTakeFirst();
+      .where("periodStart", "<=", proposal.timeStart);
+
+    // Only apply the periodEnd condition if the proposal is not active
+    if (proposal.proposalState !== ProposalState.ACTIVE) {
+      ensQuery = ensQuery.where("periodEnd", ">=", proposal.timeEnd);
+    }
+
+    const ens = await ensQuery.select("voter.ens").executeTakeFirst();
 
     if (ens?.ens) {
       return {
