@@ -232,7 +232,10 @@ async function processWeightedVotes(
         const normalizedPower =
           (Number(vote.votingPower) * weight) / totalWeight;
 
-        if (normalizedPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+        if (
+          normalizedPower >= ACCUMULATED_VOTING_POWER_THRESHOLD &&
+          choice != Infinity
+        ) {
           // Create a new time series point for this vote
           timeSeriesData.push({
             timestamp: format(timestamp, "yyyy-MM-dd HH:mm:ss"),
@@ -243,7 +246,10 @@ async function processWeightedVotes(
           accumulatedVotingPower += normalizedPower;
           lastAccumulatedTimestamp = timestamp;
 
-          if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+          if (
+            accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD &&
+            choice != Infinity
+          ) {
             // Create a new time series point for the accumulated votes
             timeSeriesData.push({
               timestamp: format(
@@ -252,6 +258,7 @@ async function processWeightedVotes(
               ),
               values: { [choice]: accumulatedVotingPower },
             });
+
             accumulatedVotingPower = 0; // Reset accumulation
           }
         }
@@ -269,7 +276,10 @@ async function processWeightedVotes(
         timestamp,
       });
 
-      if (Number(vote.votingPower) >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+      if (
+        Number(vote.votingPower) >= ACCUMULATED_VOTING_POWER_THRESHOLD &&
+        choice != Infinity
+      ) {
         // Create a new time series point for this vote
         timeSeriesData.push({
           timestamp: format(timestamp, "yyyy-MM-dd HH:mm:ss"),
@@ -280,12 +290,16 @@ async function processWeightedVotes(
         accumulatedVotingPower += Number(vote.votingPower);
         lastAccumulatedTimestamp = timestamp;
 
-        if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+        if (
+          accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD &&
+          choice != Infinity
+        ) {
           // Create a new time series point for the accumulated votes
           timeSeriesData.push({
             timestamp: format(lastAccumulatedTimestamp, "yyyy-MM-dd HH:mm:ss"),
             values: { [choice]: accumulatedVotingPower },
           });
+
           accumulatedVotingPower = 0; // Reset accumulation
         }
       }
