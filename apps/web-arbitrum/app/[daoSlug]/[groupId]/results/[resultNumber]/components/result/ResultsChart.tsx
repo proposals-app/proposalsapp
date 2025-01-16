@@ -226,8 +226,10 @@ export function ResultsChart({ results }: ResultsChartProps) {
       },
       xAxis: {
         type: "time",
-        min: new Date(results.proposal.timeStart).getTime(),
-        max: new Date(results.proposal.timeEnd).getTime() + 5 * 60 * 1000,
+        min: toZonedTime(new Date(results.proposal.timeStart), "UTC").getTime(),
+        max:
+          toZonedTime(new Date(results.proposal.timeEnd), "UTC").getTime() +
+          5 * 60 * 1000,
         axisLabel: {
           formatter: (value: number) =>
             format(toZonedTime(new Date(value), "UTC"), "MMM d, HH:mm") +
