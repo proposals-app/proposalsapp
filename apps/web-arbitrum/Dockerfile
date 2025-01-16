@@ -26,6 +26,9 @@ COPY libs/ts/visual-dom-diff/ libs/ts/visual-dom-diff/
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
 
+ARG POSTMARK_API_KEY
+ENV POSTMARK_API_KEY=${POSTMARK_API_KEY}
+
 # Build the project
 RUN yarn build-web-arbitrum
 
