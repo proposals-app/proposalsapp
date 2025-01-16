@@ -45,9 +45,6 @@ export function ResultsList({ results }: ResultsListProps) {
     ? (totalVotingPower / totalDelegatedVp) * 100
     : 0;
 
-  console.log(results.quorum);
-  console.log(totalDelegatedVp);
-
   return (
     <div className="ml-6 w-64">
       <h3 className="mb-4 text-xl font-semibold">Vote Distribution</h3>
