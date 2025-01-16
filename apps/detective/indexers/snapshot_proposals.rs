@@ -601,7 +601,7 @@ mod snapshot_proposals_tests {
                     external_id: "0xf87cf0761b27becf6c8d18bbb457c9e6bf6b7aa436cdb0d197ad2d93a495ed04",
                     name: "[TEMP CHECK] Onboard cbBTC to Aave v3 on Base",
                     body_contains: Some(vec!["The proposal aims to onboard Coinbase’s cbBTC, to the Aave v3 protocol on Base."]),
-                    url: "https://snapshot.org/#/aave.eth/proposal/0xf87cf0761b27becf6c8d18bbb457c9e6bf6b7aa436cdb0d197ad2d93a495ed04",
+                    url: "https://snapshot.box/#/s:aave.eth/proposal/0xf87cf0761b27becf6c8d18bbb457c9e6bf6b7aa436cdb0d197ad2d93a495ed04",
                     discussion_url: Some("https://governance.aave.com/t/temp-check-onboard-cbbtc-to-aave-v3-on-base/18805/1".into()),
                     choices: json!(["YAE", "NAY", "Abstain"]),
                     scores: json!([802818.335753119, 1430.6269857913692, 0.10106163035550476]),
@@ -615,7 +615,7 @@ mod snapshot_proposals_tests {
                     time_start: parse_datetime("2024-09-03 07:57:46"),
                     time_end: parse_datetime("2024-09-06 07:57:46"),
                     txid: Some("bafkreifbwvrbt4gg4sbzckidwzowhreg2t7hxcytwmgkp42fdgtt6h57bm"),
-                    metadata: json!({"vote_type": "single-choice","quorum_choices":[0,1]}).into(),
+                    metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

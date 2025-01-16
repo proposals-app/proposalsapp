@@ -36,7 +36,7 @@ export type ProposalMetadata = {
   voteType?: string;
   totalDelegatedVp?: string;
   hiddenVote: boolean;
-  scoresState: boolean;
+  scoresState: string;
 };
 
 export function getColorForChoice(choice: string | undefined | null): string {
@@ -764,6 +764,12 @@ export async function processResultsAction(
       default:
         result = await processBasicVotes(votes, choices, proposal);
         break;
+    }
+
+    // Check if hiddenVote is true and scoresState is not "final"
+    if (metadata.hiddenVote && metadata.scoresState !== "final") {
+      // Remove timeSeriesData from the result
+      result.timeSeriesData = [];
     }
 
     return result;
