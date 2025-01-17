@@ -13,7 +13,7 @@ import * as Avatar from '@radix-ui/react-avatar';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Suspense } from 'react';
 import { unstable_cache } from 'next/cache';
-import { CheckCheck, HeartIcon } from 'lucide-react';
+import { CheckCheck, ChevronDown, HeartIcon } from 'lucide-react';
 
 const getDiscourseUserCached = unstable_cache(
   async (userId: number, daoDiscourseId: string) => {
@@ -80,88 +80,144 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
     "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
   );
 
-  return (
-    <div id={postAnchorId} className='w-full scroll-mt-36 p-4'>
-      <div className='flex cursor-default select-none flex-row justify-between'>
-        {author && (
-          <Suspense>
-            <AuthorInfo
-              authorName={
-                author.name && author.name.length
-                  ? author.name
-                  : author.username
-              }
-              authorPicture={author.avatarTemplate}
-            />
-          </Suspense>
-        )}
-        <div className='flex cursor-default select-none flex-col items-end text-sm'>
-          <div className='flex flex-col items-end'>
-            <Tooltip.Provider>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <div>
-                    posted{' '}
-                    <span className='font-bold'>{relativeCreateTime}</span>
-                  </div>
-                </Tooltip.Trigger>
-                <Tooltip.Content className='rounded p-2'>
-                  <p>{utcTime}</p>
-                </Tooltip.Content>
-              </Tooltip.Root>
-            </Tooltip.Provider>
-          </div>
-          {item.timestamp.getTime() != updatedAt.getTime() && (
-            <div>
-              <span>edited {relativeUpdateTime}</span>
-            </div>
-          )}
-          {item.deleted && (
-            <div>
-              <span className='font-bold'>deleted</span>
-            </div>
-          )}
-          <div className='flex flex-row items-center gap-4'>
-            <div className='flex items-center gap-1 text-sm'>
-              <CheckCheck className='h-4 w-4' />
-              <span>{item.reads}</span>
-            </div>
-            {likesCount > 0 ? (
-              <Tooltip.Provider>
-                <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <div className='flex items-center gap-1 text-sm'>
-                      <HeartIcon className='h-4 w-4' />
-                      <span>{likesCount}</span>
-                    </div>
-                  </Tooltip.Trigger>
-                  <Tooltip.Content className='max-w-32 rounded border bg-white p-2'>
-                    <p>
-                      Liked by:{' '}
-                      {likedUsers.length > 0
-                        ? likedUsers.join(', ')
-                        : 'No one yet'}
-                    </p>
-                  </Tooltip.Content>
-                </Tooltip.Root>
-              </Tooltip.Provider>
-            ) : (
-              <div className='flex items-center gap-1 text-sm'>
-                <HeartIcon className='h-4 w-4' />
-                <span>{likesCount}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+  const isDeleted = item.deleted;
 
-      <div
-        dangerouslySetInnerHTML={{ __html: processedContent }}
-        className='prose prose-lg mt-4 max-w-none'
-      />
+  return (
+    <div id={postAnchorId} className='w-full scroll-mt-36'>
+      {isDeleted ? (
+        <details className='w-full'>
+          <summary className='flex h-12 cursor-pointer list-none items-center justify-center [&::-webkit-details-marker]:hidden'>
+            <div className='flex-grow border-t'></div>
+            <span className='mx-4 text-gray-500'>deleted post</span>
+            <div className='flex-grow border-t'></div>
+          </summary>
+          <div className='p-4'>
+            <PostContent
+              author={author}
+              relativeCreateTime={relativeCreateTime}
+              utcTime={utcTime}
+              relativeUpdateTime={relativeUpdateTime}
+              updatedAt={updatedAt}
+              likesCount={likesCount}
+              likedUsers={likedUsers}
+              processedContent={processedContent}
+              item={item}
+            />
+          </div>
+        </details>
+      ) : (
+        <div className='p-4'>
+          <PostContent
+            author={author}
+            relativeCreateTime={relativeCreateTime}
+            utcTime={utcTime}
+            relativeUpdateTime={relativeUpdateTime}
+            updatedAt={updatedAt}
+            likesCount={likesCount}
+            likedUsers={likedUsers}
+            processedContent={processedContent}
+            item={item}
+          />
+        </div>
+      )}
     </div>
   );
 }
+
+const PostContent = ({
+  author,
+  relativeCreateTime,
+  utcTime,
+  relativeUpdateTime,
+  updatedAt,
+  likesCount,
+  likedUsers,
+  processedContent,
+  item,
+}: {
+  author: any;
+  relativeCreateTime: string;
+  utcTime: string;
+  relativeUpdateTime: string;
+  updatedAt: Date;
+  likesCount: number;
+  likedUsers: string[];
+  processedContent: string;
+  item: PostFeedItem;
+}) => (
+  <>
+    <div className='flex cursor-default select-none flex-row justify-between'>
+      {author && (
+        <Suspense>
+          <AuthorInfo
+            authorName={
+              author.name && author.name.length ? author.name : author.username
+            }
+            authorPicture={author.avatarTemplate}
+          />
+        </Suspense>
+      )}
+      <div className='flex cursor-default select-none flex-col items-end text-sm'>
+        <div className='flex flex-col items-end'>
+          <Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <div>
+                  posted <span className='font-bold'>{relativeCreateTime}</span>
+                </div>
+              </Tooltip.Trigger>
+              <Tooltip.Content className='rounded p-2'>
+                <p>{utcTime}</p>
+              </Tooltip.Content>
+            </Tooltip.Root>
+          </Tooltip.Provider>
+        </div>
+        {item.timestamp.getTime() != updatedAt.getTime() && (
+          <div>
+            <span>edited {relativeUpdateTime}</span>
+          </div>
+        )}
+
+        <div className='flex flex-row items-center gap-4'>
+          <div className='flex items-center gap-1 text-sm'>
+            <CheckCheck className='h-4 w-4' />
+            <span>{item.reads}</span>
+          </div>
+          {likesCount > 0 ? (
+            <Tooltip.Provider>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <div className='flex items-center gap-1 text-sm'>
+                    <HeartIcon className='h-4 w-4' />
+                    <span>{likesCount}</span>
+                  </div>
+                </Tooltip.Trigger>
+                <Tooltip.Content className='max-w-32 rounded border bg-white p-2'>
+                  <p>
+                    Liked by:{' '}
+                    {likedUsers.length > 0
+                      ? likedUsers.join(', ')
+                      : 'No one yet'}
+                  </p>
+                </Tooltip.Content>
+              </Tooltip.Root>
+            </Tooltip.Provider>
+          ) : (
+            <div className='flex items-center gap-1 text-sm'>
+              <HeartIcon className='h-4 w-4' />
+              <span>{likesCount}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <div
+      dangerouslySetInnerHTML={{ __html: processedContent }}
+      className='prose prose-lg mt-4 max-w-none'
+    />
+  </>
+);
 
 const AuthorInfo = ({
   authorName,
