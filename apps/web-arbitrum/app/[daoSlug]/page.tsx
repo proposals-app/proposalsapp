@@ -64,6 +64,7 @@ export default async function ListPage({
               key={String(group.id)}
               href={`/${daoSlug}/${group.id}`}
               className="rounded-lg bg-white p-6 shadow-md hover:bg-gray-100"
+              prefetch={true}
             >
               <h2 className="mb-2 text-xl font-semibold">{group.name}</h2>
               <p className="text-gray-700">
