@@ -76,10 +76,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     const choiceText = shouldHideVote ? "Hidden vote" : vote.choiceText;
 
     return (
-      <div
-        style={style}
-        className="grid grid-cols-4 items-center border-b border-gray-200 p-2 dark:border-gray-700"
-      >
+      <div style={style} className="grid grid-cols-4 items-center border-b p-2">
         <div className="flex items-center gap-2 font-bold">
           {delegate && (
             <>
@@ -122,15 +119,13 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
         </div>
         <div className="cursor-default">
           <div>{formatDistanceToNow(vote.timestamp, { addSuffix: true })}</div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm">
             {format(toZonedTime(vote.timestamp, "UTC"), "MMM d, yyyy")} UTC
           </div>
         </div>
         <div className="cursor-default">
           <div>{formatNumberWithSuffix(vote.votingPower)} ARB</div>
-          <div className="text-sm text-muted-foreground">
-            {votingPowerPercentage.toFixed(1)}%
-          </div>
+          <div className="text-sm">{votingPowerPercentage.toFixed(1)}%</div>
         </div>
       </div>
     );
@@ -141,7 +136,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
       <h3 className="mb-4 text-xl font-semibold">Voting Breakdown</h3>
       <div className="rounded-md border">
         {/* Header */}
-        <div className="grid grid-cols-4 border-b border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
+        <div className="grid grid-cols-4 border-b p-3">
           <div>Delegate</div>
           <div
             onClick={() => handleSortChange("choice")}

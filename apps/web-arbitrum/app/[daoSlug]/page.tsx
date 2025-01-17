@@ -6,16 +6,6 @@ import { Suspense } from "react";
 import { LazyLoadTrigger } from "./components/LazyLoadTrigger";
 import { getGroupData } from "./[groupId]/actions";
 import { after } from "next/server";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shadcn/ui/card";
-import { Skeleton } from "@/shadcn/ui/skeleton";
-import { Button } from "@/shadcn/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/shadcn/ui/avatar";
 
 const getCachedGroups = unstable_cache(
   async (daoSlug: string, page: number, itemsPerPage: number) => {
@@ -90,11 +80,9 @@ export default async function ListPage({
   });
 
   return (
-    <div className="flex min-h-screen w-full flex-row bg-background pl-20">
+    <div className="flex min-h-screen w-full flex-row pl-20">
       <div className="w-full p-8">
-        <h1 className="mb-8 text-4xl font-bold text-foreground">
-          {daoName || daoSlug}
-        </h1>
+        <h1 className="mb-8 text-4xl font-bold">{daoName || daoSlug}</h1>
         <div className="flex flex-col gap-4">
           {allGroups.map((group) => (
             <Link
@@ -102,17 +90,12 @@ export default async function ListPage({
               href={`/${daoSlug}/${group.id}`}
               prefetch={true}
             >
-              <Card className="transition-shadow duration-200 hover:shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-xl font-semibold text-foreground">
-                    {group.name}
-                  </CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                    View proposals and discussions in the {group.name} group.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent></CardContent>
-              </Card>
+              <div className="rounded-lg border p-6 shadow-sm transition-shadow duration-200 hover:shadow-md">
+                <h2 className="text-xl font-semibold">{group.name}</h2>
+                <p className="mt-2 text-sm">
+                  View proposals and discussions in the {group.name} group.
+                </p>
+              </div>
             </Link>
           ))}
         </div>
@@ -129,15 +112,11 @@ function LoadingSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 3 }).map((_, index) => (
-        <Card key={index} className="animate-pulse">
-          <CardHeader>
-            <Skeleton className="h-6 w-3/4 rounded-md" />
-            <Skeleton className="mt-2 h-4 w-full rounded-md" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-4 w-1/2 rounded-md" />
-          </CardContent>
-        </Card>
+        <div key={index} className="animate-pulse rounded-lg border p-6">
+          <div className="h-6 w-3/4 rounded-md" />
+          <div className="mt-2 h-4 w-full rounded-md" />
+          <div className="mt-4 h-4 w-1/2 rounded-md" />
+        </div>
       ))}
     </div>
   );

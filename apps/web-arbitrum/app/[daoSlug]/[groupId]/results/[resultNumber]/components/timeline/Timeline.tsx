@@ -52,7 +52,7 @@ export async function Timeline({
       <div className="relative h-[calc(100vh-96px)] w-full">
         {/* Conditionally render the top SVG */}
         {isProposalEnded && (
-          <div className="absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-muted-foreground">
+          <div className="absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-500">
             <svg
               width="21"
               height="21"
@@ -75,10 +75,10 @@ export async function Timeline({
           </div>
         )}
 
-        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-muted-foreground" />
+        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-500" />
 
         {/* Bottom SVG */}
-        <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-muted-foreground">
+        <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-gray-500">
           <svg
             width="21"
             height="21"
@@ -177,7 +177,7 @@ export function LoadingTimeline() {
     <div className="fixed left-20 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
       <div className="relative h-[calc(100vh-96px)] w-full">
         {/* Top SVG Placeholder */}
-        <div className="absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-muted-foreground">
+        <div className="absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-500">
           <svg
             width="21"
             height="21"
@@ -200,7 +200,7 @@ export function LoadingTimeline() {
         </div>
 
         {/* Vertical Line Placeholder */}
-        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-muted-foreground" />
+        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-500" />
 
         {/* Placeholder Items */}
         <div className="flex h-full flex-col gap-8">
@@ -210,7 +210,7 @@ export function LoadingTimeline() {
               className="h relative flex w-full items-center justify-start"
             >
               {/* Placeholder Event Content */}
-              <div className="flex h-[122px] flex-col gap-1 rounded-xl border border-gray-400 bg-white px-4 py-2">
+              <div className="flex h-[122px] flex-col gap-1 rounded-xl border px-4 py-2">
                 <div className="h-4 w-20 rounded bg-gray-300" />
                 <div className="h-4 w-16 rounded bg-gray-300" />
                 <div className="h-4 w-20 rounded bg-gray-300" />
@@ -220,7 +220,7 @@ export function LoadingTimeline() {
         </div>
 
         {/* Bottom SVG Placeholder */}
-        <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-muted-foreground">
+        <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-gray-500">
           <svg
             width="21"
             height="21"

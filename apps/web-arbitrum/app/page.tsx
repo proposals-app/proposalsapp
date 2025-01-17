@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/ui/card";
 import { PostHogIdentifier } from "./providers/posthog-identifier";
 
 export default async function Home(props: {
@@ -8,15 +7,10 @@ export default async function Home(props: {
   }>;
 }) {
   return (
-    <div className="flex w-full flex-col gap-12 px-4 pb-40 pt-14">
-      <div className="flex w-full flex-col items-center gap-8">
-        <PostHogIdentifier />
-        <Card>
-          <CardHeader>
-            <CardTitle>workin on it</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+    <div className="flex w-full flex-col items-center p-8">
+      <PostHogIdentifier />
+
+      <h2 className="text-xl font-semibold">workin on it</h2>
     </div>
   );
 }

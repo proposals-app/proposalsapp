@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   saveGroups,
@@ -10,20 +10,8 @@ import {
   deleteGroup,
   FuzzyItem,
 } from "../actions";
-import { Input } from "@/shadcn/ui/input";
-import { Button } from "@/shadcn/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/ui/card";
-import { Badge } from "@/shadcn/ui/badge";
 import Link from "next/link";
-import {
-  ExternalLinkIcon,
-  PlusIcon,
-  TrashIcon,
-  EditIcon,
-  CheckIcon,
-} from "lucide-react";
-import { Separator } from "@/shadcn/ui/separator";
-import { ScrollArea } from "@/shadcn/ui/scroll-area";
+import { ExternalLinkIcon } from "lucide-react";
 
 interface GroupingInterfaceProps {
   initialGroups?: ProposalGroup[];
@@ -121,21 +109,21 @@ export default function GroupingInterface({
     setShouldSaveGroups(true);
   };
 
-  useEffect(() => {
-    if (shouldSaveGroups) {
-      handleSaveGroups();
-      setShouldSaveGroups(false);
-    }
-  }, [groups, shouldSaveGroups]);
-
-  const handleSaveGroups = async () => {
+  const handleSaveGroups = useCallback(async () => {
     try {
       await saveGroups(groups);
     } catch (error) {
       console.error("Failed to save groups:", error);
       alert("Failed to save groups");
     }
-  };
+  }, [groups]);
+
+  useEffect(() => {
+    if (shouldSaveGroups) {
+      handleSaveGroups();
+      setShouldSaveGroups(false);
+    }
+  }, [shouldSaveGroups, handleSaveGroups]);
 
   const handleDeleteGroup = async (groupId: string) => {
     if (window.confirm("Are you sure you want to delete this group?")) {
@@ -152,37 +140,39 @@ export default function GroupingInterface({
   return (
     <div className="space-y-6">
       <div className="flex space-x-4">
-        <Input
+        <input
           type="text"
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
           placeholder="New group name"
-          className="flex-grow"
+          className="flex-grow rounded-md border p-2"
         />
-        <Button onClick={createNewGroup}>
-          <PlusIcon className="mr-2 h-4 w-4" />
+        <button
+          onClick={createNewGroup}
+          className="rounded-md border px-4 py-2"
+        >
           Create Group
-        </Button>
+        </button>
       </div>
 
       {groups.map((group) => (
-        <Card key={group.id} className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>
+        <div key={group.id} className="rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between border-b p-4">
+            <h2 className="text-lg font-semibold">
               {editingGroupId === group.id ? (
                 <div className="flex items-center space-x-2">
-                  <Input
+                  <input
                     type="text"
                     value={editingGroupName}
                     onChange={(e) => setEditingGroupName(e.target.value)}
-                    className="w-64"
+                    className="w-64 rounded-md border p-2"
                   />
                 </div>
               ) : (
                 <Link
-                  href={`proposal_group/${group.id}`}
+                  href={`mapping/proposal_group/${group.id}`}
                   target="_blank"
-                  className="flex gap-2 hover:underline"
+                  className="flex gap-2"
                 >
                   {group.name}
                   {initialGroups.map((g) => g.id).includes(group.id) && (
@@ -190,11 +180,10 @@ export default function GroupingInterface({
                   )}
                 </Link>
               )}
-            </CardTitle>
+            </h2>
             <div className="space-x-2">
               {editingGroupId === group.id ? (
-                <Button
-                  size="sm"
+                <button
                   onClick={() => {
                     editGroup(editingGroupId, editingGroupName);
                     setEditingGroupId(null);
@@ -202,130 +191,147 @@ export default function GroupingInterface({
                     setSearchTerm("");
                     setSearchResults([]);
                   }}
+                  className="rounded-md border px-3 py-1"
                 >
-                  <CheckIcon className="mr-2 h-4 w-4" />
                   Done Editing
-                </Button>
+                </button>
               ) : (
                 <>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <button
                     onClick={() => {
                       setEditingGroupName(group.name);
                       setEditingGroupId(group.id!);
                     }}
+                    className="rounded-md border px-3 py-1"
                   >
-                    <EditIcon className="mr-2 h-4 w-4" />
                     Edit Group
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
+                  </button>
+                  <button
                     onClick={() => handleDeleteGroup(group.id!)}
+                    className="rounded-md border px-3 py-1"
                   >
-                    <TrashIcon className="mr-2 h-4 w-4" />
                     Delete Group
-                  </Button>
+                  </button>
                 </>
               )}
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div className="p-4">
             {editingGroupId === group.id ? (
               <>
                 <ul className="mb-4 space-y-2">
                   {group.items.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-center justify-between rounded-lg border p-2"
+                      className="flex items-center justify-between"
                     >
                       <span className="flex gap-2">
-                        {item.type === "proposal" ? (
-                          <Badge>Proposal</Badge>
-                        ) : (
-                          <Badge variant="secondary">Discussion</Badge>
-                        )}
-                        <Badge
-                          variant="outline"
-                          className={`${item.indexerName.includes("SNAPSHOT") ? "bg-yellow-100 dark:bg-yellow-800" : item.indexerName.includes("http") ? "bg-blue-100 dark:bg-blue-800" : "bg-green-100 dark:bg-green-800"}`}
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${
+                            item.type === "proposal"
+                              ? "bg-blue-100 dark:bg-blue-800"
+                              : "bg-gray-100 dark:bg-gray-800"
+                          }`}
+                        >
+                          {item.type === "proposal" ? "Proposal" : "Discussion"}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${
+                            item.indexerName.includes("SNAPSHOT")
+                              ? "bg-yellow-100 dark:bg-yellow-800"
+                              : item.indexerName.includes("http")
+                                ? "bg-blue-100 dark:bg-blue-800"
+                                : "bg-green-100 dark:bg-green-800"
+                          }`}
                         >
                           {item.indexerName}
-                        </Badge>
-
+                        </span>
                         {item.name}
                       </span>
-
-                      <Button
-                        variant="destructive"
-                        size="sm"
+                      <button
                         onClick={() => removeItemFromGroup(group.id!, item.id)}
+                        className="rounded-md bg-red-500 px-2 py-1 text-white hover:bg-red-600"
                       >
                         Remove
-                      </Button>
+                      </button>
                     </li>
                   ))}
                 </ul>
-                <Input
+                <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Search proposals and discussions..."
-                  className="mb-4"
+                  className="mb-4 w-full rounded-md border p-2"
                 />
-                <ScrollArea className="h-64 rounded-md border p-4">
-                  <ul className="space-y-2">
-                    {searchResults.map((item) => (
-                      <li
-                        key={item.id}
-                        className="flex h-8 cursor-pointer items-center gap-2 rounded-lg p-2 hover:bg-gray-100"
-                        onClick={() => addItemToGroup(group.id!, item)}
+                <ul className="space-y-2">
+                  {searchResults.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex h-8 items-center gap-2"
+                      onClick={() => addItemToGroup(group.id!, item)}
+                    >
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          item.type === "proposal"
+                            ? "bg-blue-100 dark:bg-blue-800"
+                            : "bg-gray-100 dark:bg-gray-800"
+                        }`}
                       >
-                        {item.type === "proposal" ? (
-                          <Badge>Proposal</Badge>
-                        ) : (
-                          <Badge variant="secondary">Discussion</Badge>
-                        )}
-                        <Badge
-                          variant="outline"
-                          className={`${item.indexerName.includes("SNAPSHOT") ? "bg-yellow-100 dark:bg-yellow-800" : item.indexerName.includes("http") ? "bg-blue-100 dark:bg-blue-800" : "bg-green-100 dark:bg-green-800"}`}
-                        >
-                          {item.indexerName}
-                        </Badge>
-                        <label htmlFor={`item-${item.id}`}>{item.name}</label>
-                        <Badge variant="destructive">{item.score}</Badge>
-                      </li>
-                    ))}
-                  </ul>
-                </ScrollArea>
+                        {item.type === "proposal" ? "Proposal" : "Discussion"}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          item.indexerName.includes("SNAPSHOT")
+                            ? "bg-yellow-100 dark:bg-yellow-800"
+                            : item.indexerName.includes("http")
+                              ? "bg-blue-100 dark:bg-blue-800"
+                              : "bg-green-100 dark:bg-green-800"
+                        }`}
+                      >
+                        {item.indexerName}
+                      </span>
+                      <label htmlFor={`item-${item.id}`}>{item.name}</label>
+                      <span className="rounded-full bg-red-100 px-2 py-1 text-xs dark:bg-red-800">
+                        {item.score}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </>
             ) : (
               <>
                 <ul className="mb-4 space-y-2">
                   {group.items.map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex items-center gap-2 rounded-lg border p-2"
-                    >
-                      {item.type === "proposal" ? (
-                        <Badge>Proposal</Badge>
-                      ) : (
-                        <Badge variant="secondary">Discussion</Badge>
-                      )}
-                      <Badge
-                        variant="outline"
-                        className={`${item.indexerName.includes("SNAPSHOT") ? "bg-yellow-100 dark:bg-yellow-800" : item.indexerName.includes("http") ? "bg-blue-100 dark:bg-blue-800" : "bg-green-100 dark:bg-green-800"}`}
+                    <li key={item.id} className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          item.type === "proposal"
+                            ? "bg-blue-100 dark:bg-blue-800"
+                            : "bg-gray-100 dark:bg-gray-800"
+                        }`}
+                      >
+                        {item.type === "proposal" ? "Proposal" : "Discussion"}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          item.indexerName.includes("SNAPSHOT")
+                            ? "bg-yellow-100 dark:bg-yellow-800"
+                            : item.indexerName.includes("http")
+                              ? "bg-blue-100 dark:bg-blue-800"
+                              : "bg-green-100 dark:bg-green-800"
+                        }`}
                       >
                         {item.indexerName}
-                      </Badge>
+                      </span>
                       <span>{item.name}</span>
                     </li>
                   ))}
                 </ul>
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );

@@ -7,8 +7,6 @@ import { notFound } from "next/navigation";
 import { getFeedForGroup } from "./actions";
 import { VotesFilterEnum } from "@/app/searchParams";
 import { LazyLoadTrigger } from "./LazyLoadTrigger";
-import { Card } from "@/shadcn/ui/card";
-import { Skeleton } from "@/shadcn/ui/skeleton";
 
 // Cached version of getFeedForGroup
 const getCachedFeedForGroup = unstable_cache(
@@ -74,10 +72,10 @@ export function FeedLoading() {
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center gap-4">
-            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200" />
             <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
+              <div className="h-4 w-3/4 animate-pulse bg-gray-200" />
+              <div className="h-4 w-1/2 animate-pulse bg-gray-200" />
             </div>
           </div>
         ))}

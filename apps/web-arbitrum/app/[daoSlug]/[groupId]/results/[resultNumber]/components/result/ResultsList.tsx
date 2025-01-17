@@ -87,10 +87,7 @@ export function ResultsList({ results }: ResultsListProps) {
         </div>
 
         {isExpanded && (
-          <button
-            className="mt-2 text-sm text-muted-foreground"
-            onClick={() => setIsExpanded(false)}
-          >
+          <button className="mt-2 text-sm" onClick={() => setIsExpanded(false)}>
             Show less
           </button>
         )}
@@ -101,7 +98,7 @@ export function ResultsList({ results }: ResultsListProps) {
             <div>
               {results.quorum !== null && totalDelegatedVp && (
                 <div
-                  className="w-full text-sm font-semibold text-foreground"
+                  className="w-full text-sm font-semibold"
                   style={{
                     left: `${(results.quorum / totalDelegatedVp) * 100}%`,
                   }}
@@ -117,7 +114,7 @@ export function ResultsList({ results }: ResultsListProps) {
         <div>
           {results.quorum !== null && totalDelegatedVp && (
             <div className="mb-4">
-              <div className="relative h-4 w-full rounded-lg bg-muted">
+              <div className="relative h-4 w-full rounded-lg">
                 {/* Quorum Line */}
                 <div
                   className="absolute -top-1 z-10 h-6 w-0.5 bg-red-500"
@@ -143,7 +140,7 @@ export function ResultsList({ results }: ResultsListProps) {
                 </div>
               </div>
               {/* Quorum Text */}
-              <div className="mt-2 text-sm text-foreground">
+              <div className="mt-2 text-sm">
                 <span className="font-semibold">
                   {quorumVotingPower > results.quorum && "✓"}{" "}
                   {formatNumberWithSuffix(quorumVotingPower)}
@@ -162,16 +159,16 @@ export function ResultsList({ results }: ResultsListProps) {
         <div>
           {totalDelegatedVp && (
             <div className="mt-4">
-              <div className="relative h-1 w-full rounded-full bg-muted">
+              <div className="relative h-1 w-full rounded-full">
                 <div
-                  className="absolute left-0 top-0 h-full rounded-full bg-accent"
+                  className="absolute left-0 top-0 h-full rounded-full"
                   style={{
                     width: `${participationPercentage}%`,
                   }}
                 />
               </div>
 
-              <div className="mt-2 text-xs text-foreground">
+              <div className="mt-2 text-xs">
                 <span className="font-semibold">
                   {participationPercentage.toFixed(0)}%
                 </span>{" "}
@@ -194,7 +191,7 @@ interface ChoiceBarProps {
 
 function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
   return (
-    <div className="relative h-10 w-full rounded-lg border bg-muted">
+    <div className="relative h-10 w-full rounded-lg border">
       {/* Bar with percentage width */}
       <div
         className="absolute left-0 top-0 h-full rounded-lg opacity-85"

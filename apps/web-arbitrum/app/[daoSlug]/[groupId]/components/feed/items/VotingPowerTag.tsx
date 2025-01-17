@@ -1,12 +1,7 @@
 import { CombinedFeedItem } from "../Feed";
 import { getVotingPower } from "../actions";
 import { format, formatISO } from "date-fns";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/shadcn/ui/tooltip";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { formatNumberWithSuffix } from "@/lib/utils";
 import { unstable_cache } from "next/cache";
 
@@ -46,10 +41,10 @@ export async function VotingPowerTag({
   );
 
   return (
-    <div className="flex w-fit gap-4 rounded-lg border p-1 text-xs text-muted-foreground">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
+    <div className="flex w-fit gap-4 rounded-lg border p-1 text-xs">
+      <Tooltip.Provider>
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
             <div className="flex gap-2">
               {formatNumberWithSuffix(votingPower?.finalVotingPower)} ARB
               {votingPower.change && votingPower.change !== 0 && (
@@ -59,16 +54,17 @@ export async function VotingPowerTag({
                 </div>
               )}
             </div>
-          </TooltipTrigger>
-          <TooltipContent>
+          </Tooltip.Trigger>
+          <Tooltip.Content className="rounded p-2 shadow-lg">
             <p>
               {utcStartTime} to
               <br />
               {utcEndTime}
             </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+            <Tooltip.Arrow className="fill-gray-800" />
+          </Tooltip.Content>
+        </Tooltip.Root>
+      </Tooltip.Provider>
     </div>
   );
 }

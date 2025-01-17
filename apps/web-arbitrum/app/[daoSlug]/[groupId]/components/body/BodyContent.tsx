@@ -1,6 +1,5 @@
 "use client";
 
-import { Card } from "@/shadcn/ui/card";
 import { parseAsBoolean, useQueryState } from "nuqs";
 
 const COLLAPSED_HEIGHT = "25rem";

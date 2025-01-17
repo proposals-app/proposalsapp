@@ -68,7 +68,7 @@ export default async function RootLayout({
                   <ModeToggle />
                 </div>
 
-                <div>{children}</div>
+                {children}
               </ThemeProvider>
             </body>
           </PHProvider>

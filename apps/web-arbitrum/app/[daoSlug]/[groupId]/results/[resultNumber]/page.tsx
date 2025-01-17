@@ -48,7 +48,7 @@ export default async function ResultPage({
   const author = bodies?.[0];
 
   return (
-    <div className="flex min-h-screen w-full flex-row bg-background">
+    <div className="flex min-h-screen w-full flex-row">
       <Header
         authorName={author?.author_name || "Unknown"}
         authorPicture={author?.author_picture || ""}

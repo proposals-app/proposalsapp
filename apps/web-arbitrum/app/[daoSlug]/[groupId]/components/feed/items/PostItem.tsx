@@ -5,13 +5,8 @@ import rehypeStringify from "rehype-stringify";
 import { unified } from "unified";
 import { format, formatDistanceToNowStrict, formatISO } from "date-fns";
 import { getDiscourseUser } from "../actions";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/shadcn/ui/tooltip";
+import * as Avatar from "@radix-ui/react-avatar";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { Suspense } from "react";
 import { unstable_cache } from "next/cache";
 
@@ -71,21 +66,21 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
             />
           </Suspense>
         )}
-        <div className="flex cursor-default select-none flex-col items-end text-sm text-muted-foreground">
+        <div className="flex cursor-default select-none flex-col items-end text-sm">
           <div className="flex flex-col items-end">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
+            <Tooltip.Provider>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
                   <div>
                     posted{" "}
                     <span className="font-bold">{relativeCreateTime}</span>
                   </div>
-                </TooltipTrigger>
-                <TooltipContent>
+                </Tooltip.Trigger>
+                <Tooltip.Content className="rounded p-2">
                   <p>{utcTime}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                </Tooltip.Content>
+              </Tooltip.Root>
+            </Tooltip.Provider>
           </div>
           {item.timestamp.getTime() != updatedAt.getTime() && (
             <div>
@@ -111,37 +106,37 @@ const AuthorInfo = ({
   authorPicture: string;
 }) => (
   <div className="flex flex-row items-center gap-2">
-    <Avatar className="bg-gray-500">
-      <AvatarImage src={authorPicture} />
-      <AvatarFallback>{authorName.slice(0, 2)}</AvatarFallback>
-    </Avatar>
+    <Avatar.Root className="flex h-10 w-10 items-center justify-center rounded-full">
+      <Avatar.Image src={authorPicture} className="w-full rounded-full" />
+      <Avatar.Fallback>{authorName.slice(0, 2)}</Avatar.Fallback>
+    </Avatar.Root>
     <div className="font-bold">{authorName}</div>
   </div>
 );
 
 // Quote card styles
 const QUOTE_STYLES = {
-  wrapper: "my-4 border-l-2 border-border p-4",
-  header: "flex text-sm text-muted-foreground mb-2 font-bold",
-  content: "text-foreground",
+  wrapper: "my-4 border-l-2 p-4",
+  header: "flex text-sm mb-2 font-bold",
+  content: "",
   linkWrapper: "w-full flex justify-end mt-2 cursor-default select-none",
-  link: "text-muted-foreground hover:underline text-sm font-bold no-underline",
+  link: "hover:underline text-sm font-bold no-underline",
 } as const;
 
 const MARKDOWN_STYLES = {
-  h1: "mb-4 mt-6 text-2xl font-bold text-foreground",
-  h2: "mb-3 mt-5 text-xl font-bold text-foreground",
-  h3: "mb-2 mt-4 text-lg font-bold text-foreground",
-  p: "mb-4 leading-relaxed text-foreground",
-  ul: "mb-4 list-disc space-y-2 pl-6 text-foreground",
-  ol: "mb-4 list-decimal space-y-2 pl-6 text-foreground",
-  li: "leading-relaxed text-foreground",
-  strong: "font-bold text-foreground",
-  a: "underline text-primary hover:text-primary/80",
-  blockquote: "border-l-4 border-border pl-4 italic text-muted-foreground",
-  table: "min-w-full border-collapse border border-border my-4",
-  th: "border border-border bg-muted p-2 text-left text-foreground",
-  td: "border border-border p-2 text-foreground",
+  h1: "mb-4 mt-6 text-2xl font-bold",
+  h2: "mb-3 mt-5 text-xl font-bold",
+  h3: "mb-2 mt-4 text-lg font-bold",
+  p: "mb-4 leading-relaxed",
+  ul: "mb-4 list-disc space-y-2 pl-6",
+  ol: "mb-4 list-decimal space-y-2 pl-6",
+  li: "leading-relaxed",
+  strong: "font-bold",
+  a: "underline",
+  blockquote: "border-l-4 pl-4 italic",
+  table: "min-w-full border-collapse border my-4",
+  th: "border p-2 text-left ",
+  td: "border p-2",
   img: "my-4 h-auto max-w-full",
 } as const;
 

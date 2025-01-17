@@ -1,7 +1,4 @@
 import { getBodiesForGroup, GroupWithDataType } from "../../actions";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
-import { PostedTime } from "./PostedTime";
-import { StickyHeader } from "./StickyHeader";
 import { notFound } from "next/navigation";
 import { BodyContent } from "./BodyContent";
 import {
@@ -14,8 +11,9 @@ import { toHast } from "mdast-util-to-hast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { JSDOM } from "jsdom";
 import { unstable_cache } from "next/cache";
-import { Card } from "@/shadcn/ui/card";
-import { Skeleton } from "@/shadcn/ui/skeleton";
+import { StickyHeader } from "./StickyHeader";
+import { PostedTime } from "./PostedTime";
+import * as Avatar from "@radix-ui/react-avatar";
 
 const cachedGetBodiesForGroup = unstable_cache(
   async (groupId: string) => {
@@ -102,16 +100,16 @@ export default async function Body({
 
 export function BodyLoading() {
   return (
-    <Card className="w-full p-6">
+    <div className="w-full rounded-lg p-6 shadow">
       <div className="space-y-4">
-        <Skeleton className="h-10 w-3/4" />
+        <div className="h-10 w-3/4 animate-pulse rounded bg-gray-200"></div>
         <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <Skeleton className="h-4 w-32" />
+          <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200"></div>
+          <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
         </div>
-        <Skeleton className="h-[400px] w-full" />
+        <div className="h-[400px] w-full animate-pulse rounded bg-gray-200"></div>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -123,10 +121,16 @@ const AuthorInfo = ({
   authorPicture: string;
 }) => (
   <div className="flex flex-row items-center gap-2">
-    <Avatar className="bg-gray-500">
-      <AvatarImage src={authorPicture} />
-      <AvatarFallback>{authorName.slice(0, 2)}</AvatarFallback>
-    </Avatar>
+    <Avatar.Root className="h-10 w-10 overflow-hidden rounded-full">
+      <Avatar.Image
+        src={authorPicture}
+        alt={authorName}
+        className="h-full w-full object-cover"
+      />
+      <Avatar.Fallback className="flex h-full w-full items-center justify-center text-sm font-medium">
+        {authorName[0]}
+      </Avatar.Fallback>
+    </Avatar.Root>
     <div className="font-bold">{authorName}</div>
   </div>
 );
@@ -153,10 +157,10 @@ export const MARKDOWN_STYLES = {
   li: "leading-relaxed",
   strong: "font-bold",
   a: "underline",
-  blockquote: "border-l-4 border-gray-300 pl-4 italic",
-  table: "min-w-full border-collapse border border-gray-300 my-4",
-  th: "border border-gray-300 bg-gray-100 p-2 text-left",
-  td: "border border-gray-300 p-2",
+  blockquote: "border-l-4 pl-4 italic",
+  table: "min-w-full border-collapse border my-4",
+  th: "border p-2 text-left",
+  td: "border p-2",
   img: "my-4 h-auto max-w-full",
 };
 

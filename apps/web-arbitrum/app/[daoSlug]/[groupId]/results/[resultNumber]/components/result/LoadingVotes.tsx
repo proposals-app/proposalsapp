@@ -32,8 +32,8 @@ export function LoadingVotes() {
   return (
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-primary" />
-        <p className="text-lg font-medium text-gray-600">{currentMessage}</p>
+        <div className="h-12 w-12 animate-spin rounded-full border-4" />
+        <p className="text-lg font-medium">{currentMessage}</p>
       </div>
     </div>
   );

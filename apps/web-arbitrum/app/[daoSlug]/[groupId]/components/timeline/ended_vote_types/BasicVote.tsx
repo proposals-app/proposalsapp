@@ -1,13 +1,7 @@
 import { Selectable, Vote } from "@proposalsapp/db";
 import { Proposal } from "../ResultEvent";
 import { useMemo } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/shadcn/ui/tooltip";
-import { cn } from "@/shadcn/lib/utils";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { formatNumberWithSuffix } from "@/lib/utils";
 import { Check } from "lucide-react";
 import React from "react";
@@ -239,8 +233,8 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
     const cssColor = colorMap[color] || "#6b7280";
 
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
           <div
             className={`h-full border-r hover:opacity-90`}
             style={{
@@ -258,15 +252,15 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
                 : { backgroundColor: cssColor }),
             }}
           />
-        </TooltipTrigger>
-        <TooltipContent
+        </Tooltip.Trigger>
+        <Tooltip.Content
           side="top"
           align="center"
-          className={cn("z-50 max-w-32")}
+          className="z-50 max-w-32 rounded p-2"
         >
           <p className="text-sm">{tooltip}</p>
-        </TooltipContent>
-      </Tooltip>
+        </Tooltip.Content>
+      </Tooltip.Root>
     );
   };
 
@@ -295,7 +289,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   const quorumReached = proposal.scoresQuorum > proposal.quorum;
 
   return (
-    <TooltipProvider>
+    <Tooltip.Provider>
       <div className="space-y-1">
         <div className="flex h-4 w-full overflow-hidden rounded">
           {(["For", "Abstain", "Against", "Unknown"] as const).map((choice) => {
@@ -332,7 +326,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
             );
           })}
         </div>
-        <div className="flex justify-between text-sm text-muted-foreground">
+        <div className="flex justify-between text-sm">
           <div className="flex items-center gap-1">
             {forWinning && <Check size={14} />}
             <span className="font-bold">For</span>
@@ -345,7 +339,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
           </div>
         </div>
 
-        <div className="flex justify-between text-sm text-muted-foreground">
+        <div className="flex justify-between text-sm">
           <div className="flex items-center gap-1">
             {quorumReached && <Check size={12} />}
             <span className="font-bold">
@@ -356,6 +350,6 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
           </div>
         </div>
       </div>
-    </TooltipProvider>
+    </Tooltip.Provider>
   );
 };

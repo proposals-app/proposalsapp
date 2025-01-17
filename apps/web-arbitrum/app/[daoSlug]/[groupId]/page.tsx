@@ -56,7 +56,7 @@ export default async function ProposalPage({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-row bg-background">
+    <div className="flex min-h-screen w-full flex-row">
       <div className="flex w-full justify-between lg:pr-80">
         <div className="mx-auto flex w-2/3 flex-col justify-center">
           <Suspense fallback={<BodyLoading />}>

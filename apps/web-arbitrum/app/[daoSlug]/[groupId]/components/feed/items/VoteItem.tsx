@@ -1,14 +1,9 @@
 import { CombinedFeedItem, VoteFeedItem } from "../Feed";
 import { format, formatDistanceToNowStrict, formatISO } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shadcn/ui/avatar";
+import * as Avatar from "@radix-ui/react-avatar";
 import { VotingPowerTag } from "./VotingPowerTag";
 import { Suspense } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/shadcn/ui/tooltip";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { getDelegate } from "../actions";
 import { GroupWithDataType } from "../../../actions";
 import { notFound } from "next/navigation";
@@ -135,19 +130,19 @@ export async function VoteItem({
           </Suspense>
         </div>
 
-        <div className="flex flex-col items-end text-sm text-muted-foreground">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+        <div className="flex flex-col items-end text-sm">
+          <Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
                 <div>
                   voted <span className="font-bold">{relativeCreateTime}</span>
                 </div>
-              </TooltipTrigger>
-              <TooltipContent>
+              </Tooltip.Trigger>
+              <Tooltip.Content>
                 <p>{utcTime}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+              </Tooltip.Content>
+            </Tooltip.Root>
+          </Tooltip.Provider>
         </div>
       </div>
 
@@ -159,9 +154,9 @@ export async function VoteItem({
       </div>
 
       <div className="flex flex-col">
-        <p className="text-muted-foreground">{item.reason}</p>
+        <p className="">{item.reason}</p>
         {match && (
-          <p className="self-end text-muted-foreground">
+          <p className="self-end">
             <a
               href={anchorHref ?? ""}
               className="text-sm font-bold hover:underline"
@@ -201,13 +196,12 @@ const AuthorInfo = ({
 
   return (
     <div className="flex flex-row items-center gap-2">
-      <Avatar className="bg-gray-500">
-        <AvatarImage src={displayPicture} />
-        <AvatarFallback>{displayName.slice(0, 2)}</AvatarFallback>
-      </Avatar>
+      <Avatar.Root className="flex h-10 w-10 items-center justify-center rounded-full">
+        <Avatar.Image src={displayPicture} className="w-full rounded-full" />
+        <Avatar.Fallback className="">{authorName.slice(0, 2)}</Avatar.Fallback>
+      </Avatar.Root>
       <div className="font-bold">
-        {displayName}{" "}
-        <span className="text-gray-500"> with {voterAddress}</span>
+        {displayName} <span className=""> with {voterAddress}</span>
       </div>
     </div>
   );

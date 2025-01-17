@@ -42,6 +42,7 @@
     "@radix-ui/react-toggle": "^1.1.1",
     "@radix-ui/react-toggle-group": "^1.1.1",
     "@radix-ui/react-tooltip": "^1.1.6",
+    "@radix-ui/themes": "^3.1.6",
     "@serwist/next": "9.0.11",
     "@vercel/otel": "^1.10.0",
     "class-variance-authority": "^0.7.1",
@@ -113,6 +114,7 @@
     "prettier-plugin-tailwindcss": "0.6.10",
     "serwist": "9.0.11",
     "tailwindcss": "3.4.17",
+    "tw-colors": "^3.3.2",
     "typescript": "^5.7.2"
   },
   "private": true,
