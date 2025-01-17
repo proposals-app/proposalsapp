@@ -500,3 +500,32 @@ export async function getPostLikesCount(
     }
   });
 }
+
+export async function getPostLikedUsers(
+  externalPostId: number,
+  daoDiscourseId: string
+) {
+  'use server';
+  return otel('get-post-liked-users', async () => {
+    try {
+      const likedUsers = await db
+        .selectFrom('discoursePostLike')
+        .innerJoin(
+          'discourseUser',
+          'discourseUser.externalId',
+          'discoursePostLike.externalUserId'
+        )
+        .where('discoursePostLike.externalDiscoursePostId', '=', externalPostId)
+        .where('discoursePostLike.daoDiscourseId', '=', daoDiscourseId)
+        .where('discourseUser.daoDiscourseId', '=', daoDiscourseId)
+        .select(['discourseUser.username'])
+        .distinct() // Ensure unique usernames
+        .execute();
+
+      return likedUsers.map((user) => user.username);
+    } catch (error) {
+      console.error('Error fetching post liked users:', error);
+      return [];
+    }
+  });
+}

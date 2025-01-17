@@ -4,7 +4,11 @@ import { fromMarkdown } from 'mdast-util-from-markdown';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
 import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
-import { getDiscourseUser, getPostLikesCount } from '../actions';
+import {
+  getDiscourseUser,
+  getPostLikedUsers,
+  getPostLikesCount,
+} from '../actions';
 import * as Avatar from '@radix-ui/react-avatar';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Suspense } from 'react';
@@ -27,6 +31,14 @@ const getPostLikesCountCached = unstable_cache(
   { revalidate: 60 * 5, tags: ['post-likes'] }
 );
 
+const getPostLikedUsersCached = unstable_cache(
+  async (externalPostId: number, daoDiscourseId: string) => {
+    return await getPostLikedUsers(externalPostId, daoDiscourseId);
+  },
+  ['post-liked-users'],
+  { revalidate: 60 * 5, tags: ['post-liked-users'] }
+);
+
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === 'post';
 };
@@ -38,6 +50,10 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
 
   const author = await getDiscourseUserCached(item.userId, item.daoDiscourseId);
   const likesCount = await getPostLikesCountCached(
+    item.externalId,
+    item.daoDiscourseId
+  );
+  const likedUsers = await getPostLikedUsersCached(
     item.externalId,
     item.daoDiscourseId
   );
@@ -105,10 +121,24 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
               <CheckCheck className='h-4 w-4' />
               <span>{item.reads}</span>
             </div>
-            <div className='flex items-center gap-1 text-sm text-gray-600'>
-              <HeartIcon className='h-4 w-4' />
-              <span>{likesCount}</span>
-            </div>
+            <Tooltip.Provider>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <div className='flex items-center gap-1 text-sm'>
+                    <HeartIcon className='h-4 w-4' />
+                    <span>{likesCount}</span>
+                  </div>
+                </Tooltip.Trigger>
+                <Tooltip.Content className='max-w-32 rounded border bg-white p-2'>
+                  <p>
+                    Liked by:{' '}
+                    {likedUsers.length > 0
+                      ? likedUsers.join(', ')
+                      : 'No one yet'}
+                  </p>
+                </Tooltip.Content>
+              </Tooltip.Root>
+            </Tooltip.Provider>
           </div>
         </div>
       </div>
