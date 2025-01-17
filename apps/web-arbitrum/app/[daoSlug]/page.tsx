@@ -4,6 +4,8 @@ import { unstable_cache } from "next/cache";
 import { getGroups } from "./actions";
 import { Suspense } from "react";
 import { LazyLoadTrigger } from "./components/LazyLoadTrigger";
+import { getGroupData } from "./[groupId]/actions";
+import { after } from "next/server";
 
 // Cache the getGroups function
 const getCachedGroups = unstable_cache(
@@ -12,6 +14,15 @@ const getCachedGroups = unstable_cache(
   },
   ["getGroups"], // Cache key
   { revalidate: 60 * 5, tags: ["groups"] },
+);
+
+// Cache each group's data
+const cachedGetGroupData = unstable_cache(
+  async (daoSlug: string, groupId: string) => {
+    return await getGroupData(daoSlug, groupId);
+  },
+  ["group-data"],
+  { revalidate: 60 * 5, tags: ["group-data"] },
 );
 
 export default async function ListPage({
@@ -28,14 +39,18 @@ export default async function ListPage({
   const itemsPerPage = 25; // Number of items per page
 
   // Fetch all groups up to the current page
-  const allGroups = [];
+  const allGroups: Array<{
+    id: string;
+    name: string;
+    daoId: string;
+  }> = []; // Define the type explicitly
   let daoName: string | null = null; // Variable to store the DAO name
 
   for (let i = 1; i <= currentPage; i++) {
     const result = await getCachedGroups(daoSlug, i, itemsPerPage);
 
-    // Handle the case where result is null
-    if (!result) {
+    // Handle the case where result is null or result.groups is not an array
+    if (!result || !Array.isArray(result.groups)) {
       continue; // Skip this page if no groups are found
     }
 
@@ -51,6 +66,15 @@ export default async function ListPage({
   if (!allGroups.length) {
     notFound();
   }
+
+  after(async () => {
+    // Prefetch group data in parallel
+    await Promise.all(
+      allGroups.map((group) => {
+        cachedGetGroupData(daoSlug, group.id);
+      }),
+    );
+  });
 
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100 pl-20">

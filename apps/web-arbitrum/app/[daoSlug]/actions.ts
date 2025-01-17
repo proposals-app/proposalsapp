@@ -2,7 +2,7 @@ import { otel } from "@/lib/otel";
 import { AsyncReturnType } from "@/lib/utils";
 import { db } from "@proposalsapp/db";
 import { unstable_cache } from "next/cache";
-import { after } from "next/server";
+
 import { getGroupData } from "./[groupId]/actions";
 
 export async function getGroups(
@@ -101,24 +101,6 @@ export async function getGroups(
     groupsWithTimestamps.sort(
       (a, b) => b.newestItemTimestamp - a.newestItemTimestamp,
     );
-
-    // Cache each group's data
-    const cachedGetGroupData = unstable_cache(
-      async (daoSlug: string, groupId: string) => {
-        return await getGroupData(daoSlug, groupId);
-      },
-      ["group-data"],
-      { revalidate: 60 * 5, tags: ["group-data"] },
-    );
-
-    // Cache each group's data after fetching
-    after(async () => {
-      await Promise.all(
-        groupsWithTimestamps.map(async (group) => {
-          await cachedGetGroupData(daoSlug, group.id);
-        }),
-      );
-    });
 
     // Return the sorted groups without the timestamp property
     return {
