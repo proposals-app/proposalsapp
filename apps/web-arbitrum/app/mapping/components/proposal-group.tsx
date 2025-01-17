@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/ui/card";
 import { Badge } from "@/shadcn/ui/badge";
 import Link from "next/link";
 import { ExternalLinkIcon } from "lucide-react";
+import { cn } from "@/shadcn/lib/utils";
 
 interface GroupingInterfaceProps {
   initialGroups?: ProposalGroup[];
@@ -168,64 +169,70 @@ export default function GroupingInterface({
 
       {groups.map((group) => (
         <Card key={group.id}>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>
-              {editingGroupId === group.id ? (
-                <div className="flex items-center space-x-2">
-                  <Input
-                    type="text"
-                    value={editingGroupName}
-                    onChange={(e) => setEditingGroupName(e.target.value)}
-                    className="w-64"
-                  />
-                </div>
-              ) : (
-                <Link
-                  href={`proposal_group/${group.id}`}
-                  target="_blank"
-                  className="flex gap-2"
-                >
-                  {group.name}
-                  {initialGroups.map((g) => g.id).includes(group.id) && (
-                    <ExternalLinkIcon />
+          <CardHeader>
+            <div className="flex w-full items-center justify-between space-x-4">
+              <div className="flex-1">
+                <CardTitle>
+                  {editingGroupId === group.id ? (
+                    <div className="flex w-full items-center space-x-2">
+                      <Input
+                        type="text"
+                        value={editingGroupName}
+                        onChange={(e) => setEditingGroupName(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                  ) : (
+                    <Link
+                      href={`mapping/proposal_group/${group.id}`}
+                      target="_blank"
+                      className="flex items-center gap-2 hover:underline"
+                    >
+                      <span className="truncate">{group.name}</span>
+                      {initialGroups.map((g) => g.id).includes(group.id) && (
+                        <ExternalLinkIcon className="h-4 w-4 flex-shrink-0" />
+                      )}
+                    </Link>
                   )}
-                </Link>
-              )}
-            </CardTitle>
-            <div className="space-x-2">
-              {editingGroupId === group.id ? (
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    editGroup(editingGroupId, editingGroupName);
-                    setEditingGroupId(null);
-                    setEditingGroupName("");
-                    setSearchTerm("");
-                    setSearchResults([]);
-                  }}
-                >
-                  Done Editing
-                </Button>
-              ) : (
-                <>
+                </CardTitle>
+              </div>
+
+              <div className="flex flex-shrink-0 items-center space-x-2">
+                {editingGroupId === group.id ? (
                   <Button
                     size="sm"
                     onClick={() => {
-                      setEditingGroupName(group.name);
-                      setEditingGroupId(group.id!);
+                      editGroup(editingGroupId, editingGroupName);
+                      setEditingGroupId(null);
+                      setEditingGroupName("");
+                      setSearchTerm("");
+                      setSearchResults([]);
                     }}
                   >
-                    Edit Group
+                    Done Editing
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDeleteGroup(group.id!)}
-                  >
-                    Delete Group
-                  </Button>
-                </>
-              )}
+                ) : (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingGroupName(group.name);
+                        setEditingGroupId(group.id!);
+                      }}
+                    >
+                      Edit Group
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteGroup(group.id!)}
+                    >
+                      Delete Group
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -239,13 +246,15 @@ export default function GroupingInterface({
                     >
                       <span className="flex gap-2">
                         {item.type === "proposal" ? (
-                          <Badge>Proposal</Badge>
+                          <Badge variant="default">Proposal</Badge>
                         ) : (
                           <Badge variant="secondary">Discussion</Badge>
                         )}
                         <Badge
                           variant="outline"
-                          className={`${item.indexerName == "SNAPSHOT" ? "bg-yellow-100" : item.indexerName.includes("http") ? "bg-blue-100" : "bg-green-100"}`}
+                          className={cn(
+                            `${item.indexerName == "SNAPSHOT" ? "bg-yellow-100 dark:bg-yellow-800" : item.indexerName.includes("http") ? "bg-blue-100 dark:bg-blue-800" : "bg-green-100 dark:bg-green-800"}`,
+                          )}
                         >
                           {item.indexerName}
                         </Badge>
@@ -278,13 +287,15 @@ export default function GroupingInterface({
                       onClick={() => addItemToGroup(group.id!, item)}
                     >
                       {item.type === "proposal" ? (
-                        <Badge>Proposal</Badge>
+                        <Badge variant="default">Proposal</Badge>
                       ) : (
                         <Badge variant="secondary">Discussion</Badge>
                       )}
                       <Badge
                         variant="outline"
-                        className={`${item.indexerName == "SNAPSHOT" ? "bg-yellow-100" : item.indexerName.includes("http") ? "bg-blue-100" : "bg-green-100"}`}
+                        className={cn(
+                          `${item.indexerName == "SNAPSHOT" ? "bg-yellow-100 dark:bg-yellow-800" : item.indexerName.includes("http") ? "bg-blue-100 dark:bg-blue-800" : "bg-green-100 dark:bg-green-800"}`,
+                        )}
                       >
                         {item.indexerName}
                       </Badge>
@@ -306,7 +317,9 @@ export default function GroupingInterface({
                       )}
                       <Badge
                         variant="outline"
-                        className={`${item.indexerName == "SNAPSHOT" ? "bg-yellow-100" : item.indexerName.includes("http") ? "bg-blue-100" : "bg-green-100"}`}
+                        className={cn(
+                          `${item.indexerName == "SNAPSHOT" ? "bg-yellow-100 dark:bg-yellow-800" : item.indexerName.includes("http") ? "bg-blue-100 dark:bg-blue-800" : "bg-green-100 dark:bg-green-800"}`,
+                        )}
                       >
                         {item.indexerName}
                       </Badge>

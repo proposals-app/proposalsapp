@@ -1,11 +1,12 @@
 import { validateRequest } from "@/lib/auth";
 import type { Metadata, Viewport } from "next";
 import "../styles/globals.css";
-import OnboardingFlow from "./components/onboarding/onboarding";
-import { SessionProvider } from "./components/session-provider";
+import { SessionProvider } from "./providers/session-provider";
 import dynamic from "next/dynamic";
-import { PHProvider } from "./components/posthog-provider";
+import { PHProvider } from "./providers/posthog-provider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { ThemeProvider } from "./providers/theme-provider";
+import { ModeToggle } from "./components/theme-switch";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? "https://proposals.app"),
@@ -38,7 +39,7 @@ export const viewport: Viewport = {
 };
 
 const PostHogPageView = dynamic(
-  () => import("./components/posthog-pageview"),
+  () => import("./providers/posthog-pageview"),
   {},
 );
 
@@ -50,20 +51,29 @@ export default async function RootLayout({
   const session = await validateRequest();
 
   return (
-    <html lang="en">
-      <NuqsAdapter>
-        <PHProvider>
-          <body className="bg-[#F1EBE7]">
-            <PostHogPageView />
-            <SessionProvider value={session}>
-              <OnboardingFlow />
-              <div className="flex h-full min-h-screen w-full flex-col items-center bg-luna">
-                {children}
-              </div>
-            </SessionProvider>
-          </body>
-        </PHProvider>
-      </NuqsAdapter>
+    <html lang="en" suppressHydrationWarning>
+      <SessionProvider value={session}>
+        <NuqsAdapter>
+          <PHProvider>
+            <body>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <PostHogPageView />
+
+                <div className="absolute right-4 top-4 z-50">
+                  <ModeToggle />
+                </div>
+
+                <div>{children}</div>
+              </ThemeProvider>
+            </body>
+          </PHProvider>
+        </NuqsAdapter>
+      </SessionProvider>
     </html>
   );
 }
