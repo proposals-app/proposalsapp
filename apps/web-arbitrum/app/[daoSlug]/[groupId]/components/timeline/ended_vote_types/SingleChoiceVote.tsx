@@ -18,12 +18,17 @@ export const SingleChoiceVote = ({
       ? JSON.parse(proposal.metadata)
       : proposal.metadata;
 
-  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
-    return <HiddenVote votes={votes} />;
-  }
-
   const { winningChoice, totalVotingPower, winningPercentage, maxVotingPower } =
     useMemo(() => {
+      if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+        return {
+          winningChoice: "Hidden",
+          totalVotingPower: 0,
+          winningPercentage: 0,
+          maxVotingPower: 0,
+        };
+      }
+
       const sortedVotes = [...votes]
         .filter((vote) => vote.votingPower)
         .sort((a, b) => Number(b.votingPower) - Number(a.votingPower));
@@ -77,7 +82,11 @@ export const SingleChoiceVote = ({
         winningPercentage,
         maxVotingPower,
       };
-    }, [votes, proposal.choices]);
+    }, [votes, proposal.choices, metadata]);
+
+  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    return <HiddenVote votes={votes} />;
+  }
 
   return (
     <div className="flex-col items-center justify-between">

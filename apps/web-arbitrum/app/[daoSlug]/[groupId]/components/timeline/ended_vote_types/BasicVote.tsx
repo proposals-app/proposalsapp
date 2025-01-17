@@ -84,11 +84,19 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
       ? JSON.parse(proposal.metadata)
       : proposal.metadata;
 
-  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
-    return <HiddenVote votes={votes} />;
-  }
-
   const { votesByChoice, totalVotingPower } = useMemo(() => {
+    if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+      return {
+        votesByChoice: {
+          For: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
+          Against: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
+          Abstain: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
+          Unknown: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
+        },
+        totalVotingPower: 0,
+      };
+    }
+
     const sortedVotes = [...votes]
       .filter((vote) => vote.votingPower)
       .sort((a, b) => Number(b.votingPower) - Number(a.votingPower));
@@ -200,7 +208,11 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
     }, {} as any);
 
     return { votesByChoice, totalVotingPower: total };
-  }, [votes, proposal.choices]);
+  }, [votes, proposal.choices, metadata]);
+
+  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    return <HiddenVote votes={votes} />;
+  }
 
   if (!totalVotingPower) {
     return <div>No votes recorded</div>;

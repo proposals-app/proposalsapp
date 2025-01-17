@@ -15,12 +15,17 @@ export const ApprovalVote = ({ proposal, votes }: ApprovalVoteProps) => {
       ? JSON.parse(proposal.metadata)
       : proposal.metadata;
 
-  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
-    return <HiddenVote votes={votes} />;
-  }
-
   const { winningChoice, totalVotingPower, winningPercentage, maxVotingPower } =
     useMemo(() => {
+      if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+        return {
+          winningChoice: "Hidden",
+          totalVotingPower: 0,
+          winningPercentage: 0,
+          maxVotingPower: 0,
+        };
+      }
+
       // Process votes where each vote can approve multiple choices
       const voteCounts: { [choice: number]: number } = {};
       const choices = proposal.choices as string[];
@@ -67,7 +72,11 @@ export const ApprovalVote = ({ proposal, votes }: ApprovalVoteProps) => {
         winningPercentage,
         maxVotingPower,
       };
-    }, [votes, proposal.choices]);
+    }, [votes, proposal.choices, metadata]);
+
+  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    return <HiddenVote votes={votes} />;
+  }
 
   return (
     <div className="flex-col items-center justify-between">
