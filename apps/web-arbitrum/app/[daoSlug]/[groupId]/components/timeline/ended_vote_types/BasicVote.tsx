@@ -228,9 +228,9 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
                     background: `repeating-linear-gradient(
                                   90deg,
                                   ${cssColor} 0px,
-                                  ${cssColor} 1px,
-                                  transparent 1px,
-                                  transparent 2px
+                                  ${cssColor} 2px,
+                                  transparent 2px,
+                                  transparent 4px
                                 )`,
                   }
                 : { backgroundColor: cssColor }),

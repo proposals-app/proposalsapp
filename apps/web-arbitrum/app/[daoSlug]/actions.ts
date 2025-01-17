@@ -2,7 +2,11 @@ import { otel } from "@/lib/otel";
 import { AsyncReturnType } from "@/lib/utils";
 import { db } from "@proposalsapp/db";
 
-export async function getGroups(daoSlug: string) {
+export async function getGroups(
+  daoSlug: string,
+  page: number,
+  itemsPerPage: number,
+) {
   "use server";
   return otel("get-groups", async () => {
     // Fetch the DAO based on the slug
@@ -14,11 +18,17 @@ export async function getGroups(daoSlug: string) {
 
     if (!dao) return null;
 
-    // Fetch all groups for the DAO
+    // Calculate offset for pagination
+    const offset = (page - 1) * itemsPerPage;
+
+    // Fetch paginated groups for the DAO
     const groups = await db
       .selectFrom("proposalGroup")
       .selectAll()
       .where("daoId", "=", dao.id)
+      .orderBy("createdAt", "desc")
+      .limit(itemsPerPage)
+      .offset(offset)
       .execute();
 
     // Function to find the newest item timestamp in a group
