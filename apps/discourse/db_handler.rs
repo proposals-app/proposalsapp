@@ -249,6 +249,7 @@ impl DbHandler {
             .filter(
                 sea_orm::Condition::all()
                     .add(seaorm::discourse_topic::Column::ExternalId.eq(topic.id))
+                    .add(seaorm::discourse_topic::Column::CategoryId.eq(topic.category_id))
                     .add(seaorm::discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
@@ -363,7 +364,14 @@ impl DbHandler {
                 post_update.name = Set(post.name.clone());
                 post_update.username = Set(post.username.clone());
                 post_update.created_at = Set(post.created_at.naive_utc());
-                post_update.cooked = Set(post.raw.clone());
+
+                // Check if the cooked content indicates a deleted post
+                if post.raw == "<p>(post deleted by author)</p>" {
+                    post_update.deleted = Set(true);
+                } else {
+                    post_update.cooked = Set(post.raw.clone());
+                }
+
                 post_update.post_number = Set(post.post_number);
                 post_update.post_type = Set(post.post_type);
                 post_update.updated_at = Set(post.updated_at.naive_utc());
@@ -419,6 +427,7 @@ impl DbHandler {
                     user_id: Set(post.user_id),
                     dao_discourse_id: Set(dao_discourse_id),
                     can_view_edit_history: Set(post.can_view_edit_history),
+                    deleted: Set(post.raw == "<p>(post deleted by author)</p>"),
                     ..Default::default()
                 };
                 seaorm::discourse_post::Entity::insert(post_model)

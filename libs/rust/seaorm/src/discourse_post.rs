@@ -42,6 +42,7 @@ pub struct Model {
     pub user_id: i32,
     pub dao_discourse_id: Uuid,
     pub can_view_edit_history: bool,
+    pub deleted: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -74,6 +75,7 @@ pub enum Column {
     UserId,
     DaoDiscourseId,
     CanViewEditHistory,
+    Deleted,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -128,6 +130,7 @@ impl ColumnTrait for Column {
             Self::UserId => ColumnType::Integer.def(),
             Self::DaoDiscourseId => ColumnType::Uuid.def(),
             Self::CanViewEditHistory => ColumnType::Boolean.def(),
+            Self::Deleted => ColumnType::Boolean.def(),
         }
     }
 }

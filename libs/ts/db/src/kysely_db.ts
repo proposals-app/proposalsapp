@@ -182,6 +182,7 @@ export interface DiscoursePost {
   cooked: string;
   createdAt: Timestamp;
   daoDiscourseId: string;
+  deleted: Generated<boolean>;
   displayUsername: string | null;
   externalId: number;
   flairBgColor: string | null;

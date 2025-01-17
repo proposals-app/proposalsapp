@@ -6,7 +6,10 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use futures::stream::{self, StreamExt};
-use sea_orm::prelude::Uuid;
+use sea_orm::{
+    prelude::{Expr, Uuid},
+    ColumnTrait, EntityTrait, QueryFilter,
+};
 use std::{collections::HashSet, sync::Arc};
 use tokio::task;
 use tracing::{error, info, instrument, warn};
@@ -28,6 +31,20 @@ impl PostIndexer {
         topic_id: i32,
         priority: bool,
     ) -> Result<()> {
+        // Fetch existing posts for the topic from the database
+        let existing_posts = seaorm::discourse_post::Entity::find()
+            .filter(
+                sea_orm::Condition::all()
+                    .add(seaorm::discourse_post::Column::TopicId.eq(topic_id))
+                    .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id)),
+            )
+            .all(&db_handler.conn)
+            .await
+            .context("new query")?;
+
+        let existing_post_ids: HashSet<i32> =
+            existing_posts.iter().map(|post| post.external_id).collect();
+
         let mut page = 0;
         let mut total_posts_count: i32 = 0;
         let mut total_unique_posts_fetched: i32 = 0;
@@ -117,6 +134,39 @@ impl PostIndexer {
                     }
                 }
             }
+        }
+
+        // Mark posts that are in the database but not in the API response as deleted
+        let posts_to_mark_deleted: Vec<i32> = existing_post_ids
+            .difference(&seen_post_ids)
+            .cloned()
+            .collect();
+
+        if !posts_to_mark_deleted.is_empty() {
+            info!(
+                topic_id,
+                num_posts_to_mark_deleted = posts_to_mark_deleted.len(),
+                "Marking posts as deleted"
+            );
+
+            let update_result = seaorm::discourse_post::Entity::update_many()
+                .col_expr(seaorm::discourse_post::Column::Deleted, Expr::value(true))
+                .filter(
+                    sea_orm::Condition::all()
+                        .add(
+                            seaorm::discourse_post::Column::ExternalId.is_in(posts_to_mark_deleted),
+                        )
+                        .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
+                        .add(seaorm::discourse_post::Column::TopicId.eq(topic_id)),
+                )
+                .exec(&db_handler.conn)
+                .await?;
+
+            info!(
+                topic_id,
+                num_posts_marked_deleted = update_result.rows_affected,
+                "Marked posts as deleted"
+            );
         }
 
         info!(
