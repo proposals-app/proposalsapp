@@ -2,11 +2,9 @@ import { getGroupDetails } from "./actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/ui/card";
 import { ProposalAccordion, TopicAccordion, BackButton } from "./accordions";
 
-export default async function ProposalGroupPage(
-  props: {
-    params: Promise<{ group_id: string }>;
-  }
-) {
+export default async function ProposalGroupPage(props: {
+  params: Promise<{ group_id: string }>;
+}) {
   const params = await props.params;
   const groupDetails = await getGroupDetails(params.group_id);
 
@@ -15,7 +13,7 @@ export default async function ProposalGroupPage(
   }
 
   return (
-    <Card className="mx-auto w-full">
+    <Card className="mx-auto min-h-screen w-full">
       <CardHeader>
         <CardTitle>{groupDetails.name}</CardTitle>
       </CardHeader>
