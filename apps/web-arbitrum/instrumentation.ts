@@ -1,7 +1,7 @@
-import { registerOTel } from "@vercel/otel";
+import { registerOTel } from '@vercel/otel';
 
 export function register() {
   registerOTel({
-    serviceName: "arbitrum-next-app",
+    serviceName: 'arbitrum-next-app',
   });
 }

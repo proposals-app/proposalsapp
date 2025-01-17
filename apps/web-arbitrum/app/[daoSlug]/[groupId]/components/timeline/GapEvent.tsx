@@ -8,16 +8,16 @@ interface GapEventProps {
 export function GapEvent({ content, timestamp, gapSize, last }: GapEventProps) {
   return (
     <div
-      className="relative min-h-[40px] w-full"
+      className='relative min-h-[40px] w-full'
       style={{
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       <div
-        className="ml-30 z-50 h-full w-full"
+        className='ml-30 z-50 h-full w-full'
         style={{
           background: `repeating-linear-gradient(
                to top,

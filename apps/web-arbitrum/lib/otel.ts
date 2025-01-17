@@ -1,6 +1,6 @@
-"use server";
+'use server';
 
-import { type Span, trace } from "@opentelemetry/api";
+import { type Span, trace } from '@opentelemetry/api';
 
 export async function otel<T>(
   fnName: string,

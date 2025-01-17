@@ -1,12 +1,12 @@
-import withSerwistInit from "@serwist/next";
+import withSerwistInit from '@serwist/next';
 
 const revision = crypto.randomUUID();
 
 const withSerwist = withSerwistInit({
   cacheOnNavigation: true,
-  swSrc: "/app/sw.ts",
-  swDest: "./public/sw.js",
-  additionalPrecacheEntries: [{ url: "/~offline", revision }],
+  swSrc: '/app/sw.ts',
+  swDest: './public/sw.js',
+  additionalPrecacheEntries: [{ url: '/~offline', revision }],
   maximumFileSizeToCacheInBytes: 25000000,
 });
 
@@ -15,12 +15,12 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: "/ingest/static/:path*",
-        destination: "https://eu-assets.i.posthog.com/static/:path*",
+        source: '/ingest/static/:path*',
+        destination: 'https://eu-assets.i.posthog.com/static/:path*',
       },
       {
-        source: "/ingest/:path*",
-        destination: "https://eu.i.posthog.com/:path*",
+        source: '/ingest/:path*',
+        destination: 'https://eu.i.posthog.com/:path*',
       },
     ];
   },
@@ -29,12 +29,12 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "**",
+        protocol: 'https',
+        hostname: '**',
       },
     ],
   },
-  serverExternalPackages: ["@proposalsapp/db"],
+  serverExternalPackages: ['@proposalsapp/db'],
 };
 
 export default withSerwist(nextConfig);

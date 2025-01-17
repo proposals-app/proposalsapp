@@ -7,15 +7,15 @@ interface GapEventProps {
 export function GapEvent({ content, timestamp, gapSize }: GapEventProps) {
   return (
     <div
-      className="relative min-h-[40px] w-full"
+      className='relative min-h-[40px] w-full'
       style={{
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
-      <div className="ml-30 z-50 h-full w-full" />
+      <div className='ml-30 z-50 h-full w-full' />
     </div>
   );
 }
@@ -32,9 +32,9 @@ export function VotesVolumeEvent({
   volume,
 }: VotesVolumeEventProps) {
   return (
-    <div className="flex h-full w-full items-center">
+    <div className='flex h-full w-full items-center'>
       <div
-        className="ml-4 h-1 opacity-0"
+        className='ml-4 h-1 opacity-0'
         style={{
           width: `${Math.max(volume * 80, 1)}%`,
         }}
@@ -55,8 +55,8 @@ export function CommentsVolumeEvent({
   volume,
 }: CommentsVolumeEventProps) {
   return (
-    <div className="flex h-full w-full items-center">
-      <div className="ml-4 h-1" />
+    <div className='flex h-full w-full items-center'>
+      <div className='ml-4 h-1' />
     </div>
   );
 }
@@ -69,6 +69,6 @@ interface BasicEventProps {
 
 export function BasicEvent({ content, timestamp, url }: BasicEventProps) {
   return (
-    <div className="relative mr-4 flex h-8 w-full items-center py-2"></div>
+    <div className='relative mr-4 flex h-8 w-full items-center py-2'></div>
   );
 }

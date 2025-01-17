@@ -2418,6 +2418,7 @@ __metadata:
     echarts: "npm:^5.6.0"
     eslint: "npm:^9.18.0"
     eslint-config-next: "npm:^15.1.4"
+    eslint-config-prettier: "npm:^10.0.1"
     fuse.js: "npm:^7.0.0"
     hast-util-to-dom: "npm:^4.0.0"
     jsdom: "npm:26.0.0"
@@ -7809,6 +7810,17 @@ __metadata:
     typescript:
       optional: true
   checksum: 10c0/9c52e8e2c6f71e94eec0a2d2a2ee0a32d6ac3cb6b354e8364ddb8b9942b2b1ea2207c3be1532dfb296a697df27f89f6f3eb86190ecf9ffaf5528d7a3749fb012
+  languageName: node
+  linkType: hard
+
+"eslint-config-prettier@npm:^10.0.1":
+  version: 10.0.1
+  resolution: "eslint-config-prettier@npm:10.0.1"
+  peerDependencies:
+    eslint: ">=7.0.0"
+  bin:
+    eslint-config-prettier: build/bin/cli.js
+  checksum: 10c0/e2434931669d211663c0493f2c1640a670a02ba4503a68f056a7eda133f383acbbb983a4a7bd0ad6cb3b2bc4d5731c3be8b32fe28e35087a76fea45f7061ae70
   languageName: node
   linkType: hard
 

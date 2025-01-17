@@ -1,7 +1,7 @@
-"use server";
+'use server';
 
-import { otel } from "@/lib/otel";
-import { AsyncReturnType } from "@/lib/utils";
+import { otel } from '@/lib/otel';
+import { AsyncReturnType } from '@/lib/utils';
 import {
   db,
   DiscoursePost,
@@ -11,13 +11,13 @@ import {
   Proposal,
   Selectable,
   Vote,
-} from "@proposalsapp/db";
+} from '@proposalsapp/db';
 
 export async function getGroupDetails(groupId: string) {
-  return otel("get-group-details", async () => {
+  return otel('get-group-details', async () => {
     const group = await db
-      .selectFrom("proposalGroup")
-      .where("id", "=", groupId)
+      .selectFrom('proposalGroup')
+      .where('id', '=', groupId)
       .selectAll()
       .executeTakeFirst();
 
@@ -29,14 +29,14 @@ export async function getGroupDetails(groupId: string) {
 
     const proposalIds = items
       .filter(
-        (item: any): item is { type: "proposal"; id: string } =>
-          item.type === "proposal",
+        (item: any): item is { type: 'proposal'; id: string } =>
+          item.type === 'proposal'
       )
       .map((item) => item.id);
     const topicIds = items
       .filter(
-        (item: any): item is { type: "topic"; id: string } =>
-          item.type === "topic",
+        (item: any): item is { type: 'topic'; id: string } =>
+          item.type === 'topic'
       )
       .map((item) => item.id);
 
@@ -46,14 +46,14 @@ export async function getGroupDetails(groupId: string) {
     })[] =
       proposalIds.length > 0
         ? await db
-            .selectFrom("proposal")
-            .where("proposal.id", "in", proposalIds)
-            .leftJoin("vote", "vote.proposalId", "proposal.id")
-            .leftJoin("daoIndexer", "daoIndexer.id", "proposal.daoIndexerId")
-            .selectAll("proposal")
-            .select("daoIndexer.indexerVariant")
-            .select(db.fn.jsonAgg("vote").as("votes"))
-            .groupBy(["proposal.id", "daoIndexer.indexerVariant"])
+            .selectFrom('proposal')
+            .where('proposal.id', 'in', proposalIds)
+            .leftJoin('vote', 'vote.proposalId', 'proposal.id')
+            .leftJoin('daoIndexer', 'daoIndexer.id', 'proposal.daoIndexerId')
+            .selectAll('proposal')
+            .select('daoIndexer.indexerVariant')
+            .select(db.fn.jsonAgg('vote').as('votes'))
+            .groupBy(['proposal.id', 'daoIndexer.indexerVariant'])
             .execute()
         : [];
 
@@ -67,26 +67,26 @@ export async function getGroupDetails(groupId: string) {
     const topics: TopicWithPosts[] =
       topicIds.length > 0
         ? await db
-            .selectFrom("discourseTopic")
-            .where("discourseTopic.id", "in", topicIds)
+            .selectFrom('discourseTopic')
+            .where('discourseTopic.id', 'in', topicIds)
             .leftJoin(
-              "daoDiscourse",
-              "discourseTopic.daoDiscourseId",
-              "daoDiscourse.id",
+              'daoDiscourse',
+              'discourseTopic.daoDiscourseId',
+              'daoDiscourse.id'
             )
             .leftJoin(
-              "discoursePost",
-              "discoursePost.topicId",
-              "discourseTopic.externalId",
+              'discoursePost',
+              'discoursePost.topicId',
+              'discourseTopic.externalId'
             )
-            .selectAll("discourseTopic")
-            .select(["daoDiscourse.discourseBaseUrl", "daoDiscourse.enabled"])
-            .select(db.fn.jsonAgg("discoursePost").as("posts"))
+            .selectAll('discourseTopic')
+            .select(['daoDiscourse.discourseBaseUrl', 'daoDiscourse.enabled'])
+            .select(db.fn.jsonAgg('discoursePost').as('posts'))
             .groupBy([
-              "discourseTopic.id",
-              "daoDiscourse.id",
-              "daoDiscourse.discourseBaseUrl",
-              "daoDiscourse.enabled",
+              'discourseTopic.id',
+              'daoDiscourse.id',
+              'daoDiscourse.discourseBaseUrl',
+              'daoDiscourse.enabled',
             ])
             .execute()
         : [];

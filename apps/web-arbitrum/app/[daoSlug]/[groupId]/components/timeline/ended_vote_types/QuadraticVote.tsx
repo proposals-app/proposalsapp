@@ -1,5 +1,5 @@
-import { Selectable, Vote } from "@proposalsapp/db";
-import { Proposal } from "../ResultEvent";
+import { Selectable, Vote } from '@proposalsapp/db';
+import { Proposal } from '../ResultEvent';
 
 interface QuadraticVoteProps {
   proposal: Proposal;

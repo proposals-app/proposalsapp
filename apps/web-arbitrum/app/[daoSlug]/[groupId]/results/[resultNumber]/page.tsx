@@ -1,19 +1,19 @@
-import { notFound } from "next/navigation";
-import { unstable_cache } from "next/cache";
-import { getBodiesForGroup, getGroupData } from "../../actions";
-import { Results, ResultsLoading } from "./components/Results";
-import { LoadingTimeline, Timeline } from "./components/timeline/Timeline";
-import { Header } from "./components/Header";
-import { Suspense } from "react";
-import { getAuthor } from "./actions";
+import { notFound } from 'next/navigation';
+import { unstable_cache } from 'next/cache';
+import { getBodiesForGroup, getGroupData } from '../../actions';
+import { Results, ResultsLoading } from './components/Results';
+import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
+import { Header } from './components/Header';
+import { Suspense } from 'react';
+import { getAuthor } from './actions';
 
 // Cached version of getGroupData
 const cachedGetGroupData = unstable_cache(
   async (daoSlug: string, groupId: string) => {
     return await getGroupData(daoSlug, groupId);
   },
-  ["group-data"],
-  { revalidate: 60 * 5, tags: ["group-data"] },
+  ['group-data'],
+  { revalidate: 60 * 5, tags: ['group-data'] }
 );
 
 // Cached version of getAuthor
@@ -21,8 +21,8 @@ const cachedGetAuthor = unstable_cache(
   async (groupId: string) => {
     return await getAuthor(groupId);
   },
-  ["author-data"],
-  { revalidate: 60 * 5, tags: ["author-data"] },
+  ['author-data'],
+  { revalidate: 60 * 5, tags: ['author-data'] }
 );
 
 export default async function ResultPage({
@@ -48,24 +48,24 @@ export default async function ResultPage({
   const author = bodies?.[0];
 
   return (
-    <div className="flex min-h-screen w-full flex-row">
+    <div className='flex min-h-screen w-full flex-row'>
       <Header
-        authorName={author?.author_name || "Unknown"}
-        authorPicture={author?.author_picture || ""}
+        authorName={author?.author_name || 'Unknown'}
+        authorPicture={author?.author_picture || ''}
         proposalName={proposal.name}
         daoSlug={daoSlug}
         itemId={groupId}
       />
 
-      <div className="z-10 hidden lg:flex">
+      <div className='z-10 hidden lg:flex'>
         <Suspense fallback={<LoadingTimeline />}>
           <Timeline group={group} selectedResult={proposalIndex + 1} />
         </Suspense>
       </div>
 
       <div className={`flex w-full flex-grow pb-16 pl-[175px] pt-[104px]`}>
-        <div className="h-full w-full pr-4">
-          <div className="flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border bg-background p-6">
+        <div className='h-full w-full pr-4'>
+          <div className='bg-background flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border p-6'>
             {group ? (
               <Suspense fallback={<ResultsLoading />}>
                 <Results proposal={proposal} daoSlug={daoSlug} />

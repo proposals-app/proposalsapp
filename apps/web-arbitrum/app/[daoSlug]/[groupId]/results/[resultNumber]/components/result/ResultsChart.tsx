@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef } from "react";
-import * as echarts from "echarts";
-import { format, toZonedTime } from "date-fns-tz";
-import { formatNumberWithSuffix } from "@/lib/utils";
-import { ProcessedResults } from "../actions";
+import React, { useEffect, useRef } from 'react';
+import * as echarts from 'echarts';
+import { format, toZonedTime } from 'date-fns-tz';
+import { formatNumberWithSuffix } from '@/lib/utils';
+import { ProcessedResults } from '../actions';
 
 interface ResultsChartProps {
   results: ProcessedResults;
@@ -18,8 +18,8 @@ export function ResultsChart({ results }: ResultsChartProps) {
 
     const chart = echarts.init(chartRef.current);
 
-    const isRankedChoice = results.voteType === "ranked-choice";
-    const isWeighted = results.voteType === "weighted";
+    const isRankedChoice = results.voteType === 'ranked-choice';
+    const isWeighted = results.voteType === 'weighted';
 
     // Calculate cumulative data for each choice
     const cumulativeData: { [choice: number]: [string, number][] } = {};
@@ -55,7 +55,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
     });
 
     // Sort choices by voting power
-    const explicitOrder = ["For", "Abstain"];
+    const explicitOrder = ['For', 'Abstain'];
     const sortedChoices = [...results.choices].sort((a, b) => {
       const indexA = explicitOrder.indexOf(a);
       const indexB = explicitOrder.indexOf(b);
@@ -67,7 +67,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
     });
 
     const sortedChoiceIndices = sortedChoices.map((choice) =>
-      results.choices.indexOf(choice),
+      results.choices.indexOf(choice)
     );
 
     // Create series for each choice
@@ -80,11 +80,11 @@ export function ResultsChart({ results }: ResultsChartProps) {
           results.quorum !== null;
 
         let zIndex: number;
-        if (choice === "Against") {
+        if (choice === 'Against') {
           zIndex = 3; // Highest z-index
-        } else if (choice === "For") {
+        } else if (choice === 'For') {
           zIndex = 2; // Middle z-index
-        } else if (choice === "Abstain") {
+        } else if (choice === 'Abstain') {
           zIndex = 1; // Lowest z-index
         } else {
           zIndex = 0; // Default for other choices
@@ -92,8 +92,8 @@ export function ResultsChart({ results }: ResultsChartProps) {
 
         return {
           name: choice,
-          type: "line",
-          stack: shouldStack ? "QuorumTotal" : undefined,
+          type: 'line',
+          stack: shouldStack ? 'QuorumTotal' : undefined,
           lineStyle: {
             width: shouldStack ? 0 : 2,
             color: color,
@@ -119,7 +119,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
             : cumulativeData[choiceIndex],
           z: zIndex,
         };
-      },
+      }
     );
 
     // Add the "Total" series for ranked-choice voting
@@ -128,25 +128,25 @@ export function ResultsChart({ results }: ResultsChartProps) {
       const totalSeriesData = results.timeSeriesData.map((point) => {
         const totalValue =
           (point.values as Record<string | number, number>)[
-            "Winning threshold"
+            'Winning threshold'
           ] || 0;
         totalSeriesMaxValue = Math.max(totalSeriesMaxValue, totalValue); // Track the max value of the Total series
         return [point.timestamp, totalValue];
       });
 
       const totalSeries: echarts.SeriesOption = {
-        name: "Winning threshold",
-        type: "line",
+        name: 'Winning threshold',
+        type: 'line',
         lineStyle: {
           width: 2,
-          color: "#6B7280", // Grey color for the total series
-          type: "dashed", // Make the line dashed
+          color: '#6B7280', // Grey color for the total series
+          type: 'dashed', // Make the line dashed
         },
         showSymbol: false,
         emphasis: {
           itemStyle: {
-            color: "#6B7280",
-            borderColor: "#6B7280",
+            color: '#6B7280',
+            borderColor: '#6B7280',
           },
         },
         data: totalSeriesData,
@@ -158,14 +158,14 @@ export function ResultsChart({ results }: ResultsChartProps) {
     // Add quorum line if needed
     if (results.quorum !== null) {
       series.push({
-        name: "Quorum",
-        type: "line",
+        name: 'Quorum',
+        type: 'line',
         markLine: {
           silent: true,
-          symbol: "none",
+          symbol: 'none',
           lineStyle: {
-            color: "#4b5563",
-            type: "solid",
+            color: '#4b5563',
+            type: 'solid',
             width: 2,
           },
           data: [
@@ -176,18 +176,18 @@ export function ResultsChart({ results }: ResultsChartProps) {
                   // Use ECharts' text styling capabilities
                   if (results.quorum !== null)
                     return `{bold|${formatNumberWithSuffix(results.quorum)}} Quorum threshold`;
-                  return "";
+                  return '';
                 },
                 rich: {
                   bold: {
-                    fontWeight: "bold",
-                    color: "#4b5563",
+                    fontWeight: 'bold',
+                    color: '#4b5563',
                   },
                 },
-                position: "insideStartTop", // Position the label on the left
+                position: 'insideStartTop', // Position the label on the left
                 fontSize: 12,
-                backgroundColor: "#e5e7eb", // Background color
-                borderColor: "#4b5563", // Border color
+                backgroundColor: '#e5e7eb', // Background color
+                borderColor: '#4b5563', // Border color
                 borderWidth: 1, // Border width
                 borderRadius: 12, // Rounded corners
                 padding: [4, 8], // Padding
@@ -203,17 +203,17 @@ export function ResultsChart({ results }: ResultsChartProps) {
     const maxVotingValue = Math.max(
       ...Object.values(lastKnownValues),
       totalSeriesMaxValue, // Include the max value from the Total series
-      results.quorum || 0,
+      results.quorum || 0
     );
     const yAxisMax = roundToGoodValue(maxVotingValue * 1.1);
 
     const options: echarts.EChartsOption = {
       tooltip: {
-        trigger: "axis",
+        trigger: 'axis',
         formatter: (params: any) => {
-          let tooltipText = `<strong>${format(toZonedTime(new Date(params[0].axisValue), "UTC"), "MMM d, HH:mm")} UTC</strong><br/>`;
+          let tooltipText = `<strong>${format(toZonedTime(new Date(params[0].axisValue), 'UTC'), 'MMM d, HH:mm')} UTC</strong><br/>`;
           params.forEach((param: any) => {
-            if (param.seriesName !== "Quorum") {
+            if (param.seriesName !== 'Quorum') {
               tooltipText += `
                 <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
                   <span style="display:inline-block;width:10px;height:10px;border-radius:50%;"></span>
@@ -225,19 +225,19 @@ export function ResultsChart({ results }: ResultsChartProps) {
         },
       },
       xAxis: {
-        type: "time",
-        min: toZonedTime(new Date(results.proposal.timeStart), "UTC").getTime(),
+        type: 'time',
+        min: toZonedTime(new Date(results.proposal.timeStart), 'UTC').getTime(),
         max:
-          toZonedTime(new Date(results.proposal.timeEnd), "UTC").getTime() +
+          toZonedTime(new Date(results.proposal.timeEnd), 'UTC').getTime() +
           5 * 60 * 1000,
         axisLabel: {
           formatter: (value: number) =>
-            format(toZonedTime(new Date(value), "UTC"), "MMM d, HH:mm") +
-            " UTC",
+            format(toZonedTime(new Date(value), 'UTC'), 'MMM d, HH:mm') +
+            ' UTC',
         },
       },
       yAxis: {
-        type: "value",
+        type: 'value',
         max: yAxisMax,
         axisLabel: {
           formatter: (value: number) => formatNumberWithSuffix(value),
@@ -245,9 +245,9 @@ export function ResultsChart({ results }: ResultsChartProps) {
       },
       series,
       grid: {
-        left: "10%",
-        right: "10%",
-        bottom: "15%",
+        left: '10%',
+        right: '10%',
+        bottom: '15%',
         containLabel: true,
       },
     };
@@ -258,15 +258,15 @@ export function ResultsChart({ results }: ResultsChartProps) {
       chart.resize();
     };
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
   }, [results]);
 
-  return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
 
 // Helper function to round up to the nearest "good" value

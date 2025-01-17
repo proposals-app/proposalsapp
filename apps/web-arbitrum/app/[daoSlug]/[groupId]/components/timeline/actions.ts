@@ -1,5 +1,5 @@
-import { VotesFilterEnum } from "@/app/searchParams";
-import { GroupWithDataType } from "../../actions";
+import { VotesFilterEnum } from '@/app/searchParams';
+import { GroupWithDataType } from '../../actions';
 import {
   db,
   IndexerVariant,
@@ -7,17 +7,17 @@ import {
   Selectable,
   sql,
   Vote,
-} from "@proposalsapp/db";
-import { format, formatDistanceToNow, endOfDay } from "date-fns";
-import { otel } from "@/lib/otel";
+} from '@proposalsapp/db';
+import { format, formatDistanceToNow, endOfDay } from 'date-fns';
+import { otel } from '@/lib/otel';
 
 export enum TimelineEventType {
-  ResultOngoing = "ResultOngoing",
-  ResultEnded = "ResultEnded",
-  Basic = "Basic",
-  CommentsVolume = "CommentsVolume",
-  VotesVolume = "VotesVolume",
-  Gap = "Gap",
+  ResultOngoing = 'ResultOngoing',
+  ResultEnded = 'ResultEnded',
+  Basic = 'Basic',
+  CommentsVolume = 'CommentsVolume',
+  VotesVolume = 'VotesVolume',
+  Gap = 'Gap',
 }
 
 interface BaseEvent {
@@ -39,14 +39,14 @@ interface CommentsVolumeEvent extends BaseEvent {
   type: TimelineEventType.CommentsVolume;
   content: string;
   volume: number;
-  volumeType: "comments";
+  volumeType: 'comments';
 }
 
 interface VotesVolumeEvent extends BaseEvent {
   type: TimelineEventType.VotesVolume;
   content: string;
   volume: number;
-  volumeType: "votes";
+  volumeType: 'votes';
 }
 
 interface GapEvent extends BaseEvent {
@@ -85,7 +85,7 @@ const EVENT_HEIGHT_UNITS = {
 function aggregateVolumeEvents(
   events: Event[],
   type: TimelineEventType.CommentsVolume | TimelineEventType.VotesVolume,
-  timeWindow: number,
+  timeWindow: number
 ): Event[] {
   const volumeEvents = events.filter((e) => e.type === type) as
     | CommentsVolumeEvent[]
@@ -99,7 +99,7 @@ function aggregateVolumeEvents(
 
   const createAggregatedEvent = (
     windowEvents: (CommentsVolumeEvent | VotesVolumeEvent)[],
-    avgTime: Date,
+    avgTime: Date
   ): CommentsVolumeEvent | VotesVolumeEvent => {
     const totalVolume = windowEvents.reduce((sum, e) => sum + e.volume, 0);
     const isComments = type === TimelineEventType.CommentsVolume;
@@ -110,7 +110,7 @@ function aggregateVolumeEvents(
         timestamp: avgTime,
         content: `${windowEvents.length} comments in this period`,
         volume: totalVolume / windowEvents.length,
-        volumeType: "comments",
+        volumeType: 'comments',
       };
     } else {
       return {
@@ -118,7 +118,7 @@ function aggregateVolumeEvents(
         timestamp: avgTime,
         content: `${windowEvents.length} votes in this period`,
         volume: totalVolume / windowEvents.length,
-        volumeType: "votes",
+        volumeType: 'votes',
       };
     }
   };
@@ -130,10 +130,10 @@ function aggregateVolumeEvents(
       if (currentWindow.length > 0) {
         const avgTimestamp = new Date(
           currentWindow.reduce((sum, e) => sum + e.timestamp.getTime(), 0) /
-            currentWindow.length,
+            currentWindow.length
         );
         aggregatedEvents.push(
-          createAggregatedEvent(currentWindow, avgTimestamp),
+          createAggregatedEvent(currentWindow, avgTimestamp)
         );
       }
       currentWindow = [event];
@@ -144,7 +144,7 @@ function aggregateVolumeEvents(
   if (currentWindow.length > 0) {
     const avgTimestamp = new Date(
       currentWindow.reduce((sum, e) => sum + e.timestamp.getTime(), 0) /
-        currentWindow.length,
+        currentWindow.length
     );
     aggregatedEvents.push(createAggregatedEvent(currentWindow, avgTimestamp));
   }
@@ -188,7 +188,7 @@ function addGapEvents(events: Event[], totalTimeSpan: number): Event[] {
 function addSummaryEvent(
   events: Event[],
   totalComments: number,
-  totalVotes: number,
+  totalVotes: number
 ): Event[] {
   const lastEvent = events[0];
   if (
@@ -201,7 +201,7 @@ function addSummaryEvent(
       content: `${totalComments} comments and ${totalVotes} votes`,
       type: TimelineEventType.Basic,
       timestamp: currentTimestamp,
-      url: "",
+      url: '',
     });
   }
   return events;
@@ -209,9 +209,9 @@ function addSummaryEvent(
 
 // Main function to extract events
 export async function extractEvents(
-  group: GroupWithDataType,
+  group: GroupWithDataType
 ): Promise<Event[]> {
-  return otel("extract-events", async () => {
+  return otel('extract-events', async () => {
     if (!group) return [];
 
     let events: Event[] = [];
@@ -219,14 +219,14 @@ export async function extractEvents(
     // Add initial proposal post event
     if (group.topics && group.topics.length > 0) {
       const discourse = await db
-        .selectFrom("daoDiscourse")
-        .where("daoDiscourse.id", "=", group.topics[0].daoDiscourseId)
+        .selectFrom('daoDiscourse')
+        .where('daoDiscourse.id', '=', group.topics[0].daoDiscourseId)
         .selectAll()
         .executeTakeFirstOrThrow();
 
       const createdAt = new Date(group.topics[0].createdAt);
       events.push({
-        content: `Proposal initially posted on ${format(createdAt, "MMM d")}`,
+        content: `Proposal initially posted on ${format(createdAt, 'MMM d')}`,
         type: TimelineEventType.Basic,
         timestamp: createdAt,
         url: `${discourse.discourseBaseUrl}/t/${group.topics[0].externalId}`,
@@ -240,18 +240,18 @@ export async function extractEvents(
         const endedAt = new Date(proposal.timeEnd);
 
         const daoIndexer = await db
-          .selectFrom("daoIndexer")
+          .selectFrom('daoIndexer')
           .selectAll()
-          .where("id", "=", proposal.daoIndexerId)
+          .where('id', '=', proposal.daoIndexerId)
           .executeTakeFirstOrThrow();
 
         const offchain =
           daoIndexer.indexerVariant == IndexerVariant.SNAPSHOT_PROPOSALS;
 
         events.push({
-          content: `${offchain ? "Offchain" : "Onchain"} vote started on ${format(
+          content: `${offchain ? 'Offchain' : 'Onchain'} vote started on ${format(
             startedAt,
-            "MMM d",
+            'MMM d'
           )}`,
           type: TimelineEventType.Basic,
           timestamp: startedAt,
@@ -259,16 +259,16 @@ export async function extractEvents(
         });
 
         const votes = await db
-          .selectFrom("vote")
+          .selectFrom('vote')
           .selectAll()
-          .where("proposalId", "=", proposal.id)
+          .where('proposalId', '=', proposal.id)
           .execute();
 
         if (new Date() > endedAt) {
           events.push({
-            content: `${offchain ? "Offchain" : "Onchain"} vote ended ${formatDistanceToNow(
+            content: `${offchain ? 'Offchain' : 'Onchain'} vote ended ${formatDistanceToNow(
               endedAt,
-              { addSuffix: true },
+              { addSuffix: true }
             )}`,
             type: TimelineEventType.ResultEnded,
             timestamp: endedAt,
@@ -277,9 +277,9 @@ export async function extractEvents(
           });
         } else {
           events.push({
-            content: `${offchain ? "Offchain" : "Onchain"} vote ends ${formatDistanceToNow(
+            content: `${offchain ? 'Offchain' : 'Onchain'} vote ends ${formatDistanceToNow(
               endedAt,
-              { addSuffix: true },
+              { addSuffix: true }
             )}`,
             type: TimelineEventType.ResultOngoing,
             timestamp: endedAt,
@@ -289,18 +289,18 @@ export async function extractEvents(
         }
 
         const dailyVotes = await db
-          .selectFrom("vote")
+          .selectFrom('vote')
           .select([
-            sql<Date>`DATE_TRUNC('day', "time_created")`.as("date"),
-            sql<number>`SUM("voting_power")`.as("totalVotingPower"),
-            sql<Date>`MIN("time_created")`.as("firstVoteTime"),
+            sql<Date>`DATE_TRUNC('day', "time_created")`.as('date'),
+            sql<number>`SUM("voting_power")`.as('totalVotingPower'),
+            sql<Date>`MIN("time_created")`.as('firstVoteTime'),
           ])
-          .where("proposalId", "=", proposal.id)
+          .where('proposalId', '=', proposal.id)
           .groupBy(sql`DATE_TRUNC('day', "time_created")`)
           .execute();
 
         const maxVotes = Math.max(
-          ...dailyVotes.map((dv) => Number(dv.totalVotingPower)),
+          ...dailyVotes.map((dv) => Number(dv.totalVotingPower))
         );
 
         dailyVotes.forEach((dailyVote) => {
@@ -310,12 +310,12 @@ export async function extractEvents(
           events.push({
             content: `${Number(dailyVote.totalVotingPower).toFixed(2)} voting power on ${format(
               timestamp,
-              "MMM d",
+              'MMM d'
             )}`,
             type: TimelineEventType.VotesVolume,
             timestamp,
             volume: normalizedVolume,
-            volumeType: "votes",
+            volumeType: 'votes',
             metadata: {
               votingPower: Number(dailyVote.totalVotingPower),
             },
@@ -328,29 +328,29 @@ export async function extractEvents(
     if (group.topics && group.topics.length > 0) {
       for (const topic of group.topics) {
         const dailyPosts = await db
-          .selectFrom("discoursePost")
+          .selectFrom('discoursePost')
           .select([
-            sql<Date>`DATE_TRUNC('day', "created_at")`.as("date"),
-            sql<number>`COUNT(id)`.as("count"),
+            sql<Date>`DATE_TRUNC('day', "created_at")`.as('date'),
+            sql<number>`COUNT(id)`.as('count'),
           ])
-          .where("postNumber", "!=", 1)
-          .where("topicId", "=", topic.externalId)
+          .where('postNumber', '!=', 1)
+          .where('topicId', '=', topic.externalId)
           .groupBy(sql`DATE_TRUNC('day', "created_at")`)
           .execute();
 
         const maxComments = Math.max(
-          ...dailyPosts.map((dp) => Number(dp.count)),
+          ...dailyPosts.map((dp) => Number(dp.count))
         );
 
         dailyPosts.forEach((dailyPost) => {
           const timestamp = endOfDay(new Date(dailyPost.date));
           const normalizedVolume = Number(dailyPost.count) / maxComments;
           events.push({
-            content: `${dailyPost.count} post(s) on ${format(timestamp, "MMM d")}`,
+            content: `${dailyPost.count} post(s) on ${format(timestamp, 'MMM d')}`,
             type: TimelineEventType.CommentsVolume,
             timestamp,
             volume: normalizedVolume,
-            volumeType: "comments",
+            volumeType: 'comments',
           });
         });
       }
@@ -370,36 +370,36 @@ export async function extractEvents(
         events[events.length - 1].timestamp.getTime();
       const aggregationWindow = Math.max(
         timeSpan / MAX_EVENTS,
-        MIN_TIME_BETWEEN_EVENTS,
+        MIN_TIME_BETWEEN_EVENTS
       );
 
       const commentEvents = aggregateVolumeEvents(
         events,
         TimelineEventType.CommentsVolume,
-        aggregationWindow,
+        aggregationWindow
       );
       const voteEvents = aggregateVolumeEvents(
         events,
         TimelineEventType.VotesVolume,
-        aggregationWindow,
+        aggregationWindow
       );
 
       const importantEvents = events.filter(
         (e) =>
           e.type === TimelineEventType.Basic ||
           e.type === TimelineEventType.ResultOngoing ||
-          e.type === TimelineEventType.ResultEnded,
+          e.type === TimelineEventType.ResultEnded
       );
 
       events = [...importantEvents, ...commentEvents, ...voteEvents].sort(
-        (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+        (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
       );
 
       while (calculateTotalHeightUnits(events) > maxHeightUnits) {
         const volumeEventIndex = events.findIndex(
           (e) =>
             e.type === TimelineEventType.CommentsVolume ||
-            e.type === TimelineEventType.VotesVolume,
+            e.type === TimelineEventType.VotesVolume
         );
         if (volumeEventIndex === -1) break;
         events.splice(volumeEventIndex, 1);
@@ -413,10 +413,10 @@ export async function extractEvents(
     if (group.topics && group.topics.length > 0) {
       for (const topic of group.topics) {
         const commentsCount = await db
-          .selectFrom("discoursePost")
-          .select([sql<number>`COUNT(id)`.as("count")])
-          .where("postNumber", "!=", 1)
-          .where("topicId", "=", topic.externalId)
+          .selectFrom('discoursePost')
+          .select([sql<number>`COUNT(id)`.as('count')])
+          .where('postNumber', '!=', 1)
+          .where('topicId', '=', topic.externalId)
           .executeTakeFirstOrThrow();
 
         totalComments += Number(commentsCount.count);
@@ -426,9 +426,9 @@ export async function extractEvents(
     if (group.proposals && group.proposals.length > 0) {
       for (const proposal of group.proposals) {
         const votesCount = await db
-          .selectFrom("vote")
-          .select([sql<number>`COUNT(id)`.as("count")])
-          .where("proposalId", "=", proposal.id)
+          .selectFrom('vote')
+          .select([sql<number>`COUNT(id)`.as('count')])
+          .where('proposalId', '=', proposal.id)
           .executeTakeFirstOrThrow();
 
         totalVotes += Number(votesCount.count);

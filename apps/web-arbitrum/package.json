@@ -61,6 +61,7 @@
     "@types/uuid": "^10",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.1.4",
+    "eslint-config-prettier": "^10.0.1",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "0.6.10",
     "serwist": "9.0.11",
@@ -74,6 +75,8 @@
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "vapid": "web-push generate-vapid-keys"
+    "vapid": "web-push generate-vapid-keys",
+    "format": "prettier --check --ignore-path .gitignore .",
+    "format:fix": "prettier --write --ignore-path .gitignore ."
   }
 }

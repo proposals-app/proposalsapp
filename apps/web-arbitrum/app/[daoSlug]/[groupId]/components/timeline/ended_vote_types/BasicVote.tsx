@@ -1,11 +1,11 @@
-import { Selectable, Vote } from "@proposalsapp/db";
-import { Proposal } from "../ResultEvent";
-import { useMemo } from "react";
-import * as Tooltip from "@radix-ui/react-tooltip";
-import { formatNumberWithSuffix } from "@/lib/utils";
-import { Check } from "lucide-react";
-import React from "react";
-import { HiddenVote } from "./HiddenVote";
+import { Selectable, Vote } from '@proposalsapp/db';
+import { Proposal } from '../ResultEvent';
+import { useMemo } from 'react';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import { formatNumberWithSuffix } from '@/lib/utils';
+import { Check } from 'lucide-react';
+import React from 'react';
+import { HiddenVote } from './HiddenVote';
 
 interface BasicVoteProps {
   proposal: Proposal;
@@ -18,13 +18,13 @@ interface ProcessedVote {
   voter: string;
 }
 
-type VoteChoice = "For" | "Against" | "Abstain" | "Unknown";
+type VoteChoice = 'For' | 'Against' | 'Abstain' | 'Unknown';
 
 const VOTE_COLORS = {
-  For: "bg-green-500",
-  Against: "bg-red-500",
-  Abstain: "bg-yellow-500",
-  Unknown: "bg-gray-500",
+  For: 'bg-green-500',
+  Against: 'bg-red-500',
+  Abstain: 'bg-yellow-500',
+  Unknown: 'bg-gray-500',
 } as const;
 
 const MIN_VISIBLE_WIDTH_PERCENT = 1; // Minimum width for a vote to be visible (0.5% of total width)
@@ -32,14 +32,14 @@ const MIN_VISIBLE_WIDTH_PERCENT = 1; // Minimum width for a vote to be visible (
 const calculateTopVotesCount = (
   totalVotes: number,
   votingPowerThreshold: number,
-  votes: ProcessedVote[],
+  votes: ProcessedVote[]
 ) => {
   // If very few votes, show all of them
   if (totalVotes <= 5) return totalVotes;
 
   // Calculate the number of votes that exceed the voting power threshold
   const significantVotesCount = votes.filter(
-    (vote) => vote.votingPower >= votingPowerThreshold,
+    (vote) => vote.votingPower >= votingPowerThreshold
   ).length;
 
   // For larger numbers, use a combination of count and voting power threshold
@@ -51,7 +51,7 @@ const calculateTopVotesCount = (
 
 const calculateVotingPowerThreshold = (
   votes: ProcessedVote[],
-  totalVotingPower: number,
+  totalVotingPower: number
 ) => {
   // Sort votes by voting power in descending order
   const sortedVotes = [...votes].sort((a, b) => b.votingPower - a.votingPower);
@@ -74,12 +74,12 @@ const calculateVotingPowerThreshold = (
 
 export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   const metadata =
-    typeof proposal.metadata === "string"
+    typeof proposal.metadata === 'string'
       ? JSON.parse(proposal.metadata)
       : proposal.metadata;
 
   const { votesByChoice, totalVotingPower } = useMemo(() => {
-    if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
       return {
         votesByChoice: {
           For: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
@@ -100,22 +100,22 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
       const choiceText = (proposal.choices as string[])[
         choiceIndex
       ]?.toLowerCase();
-      let choice: VoteChoice = "Unknown";
+      let choice: VoteChoice = 'Unknown';
 
       if (
-        choiceText?.includes("for") ||
-        choiceText?.includes("yes") ||
-        choiceText?.includes("yae")
+        choiceText?.includes('for') ||
+        choiceText?.includes('yes') ||
+        choiceText?.includes('yae')
       ) {
-        choice = "For";
+        choice = 'For';
       } else if (
-        choiceText?.includes("against") ||
-        choiceText?.includes("no") ||
-        choiceText?.includes("nay")
+        choiceText?.includes('against') ||
+        choiceText?.includes('no') ||
+        choiceText?.includes('nay')
       ) {
-        choice = "Against";
-      } else if (choiceText?.includes("abstain")) {
-        choice = "Abstain";
+        choice = 'Against';
+      } else if (choiceText?.includes('abstain')) {
+        choice = 'Abstain';
       }
 
       return {
@@ -128,7 +128,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
     const processedVotes = sortedVotes.map(processVote);
     const total = processedVotes.reduce(
       (sum, vote) => sum + vote.votingPower,
-      0,
+      0
     );
 
     // Group votes by choice
@@ -144,7 +144,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
         Against: [],
         Abstain: [],
         Unknown: [],
-      },
+      }
     );
 
     // Process each choice's votes
@@ -158,25 +158,25 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
       >
     >((acc, [choice, votes]) => {
       const sortedVotes = [...votes].sort(
-        (a, b) => b.votingPower - a.votingPower,
+        (a, b) => b.votingPower - a.votingPower
       );
 
       // Calculate the voting power threshold for this choice
       const votingPowerThreshold = calculateVotingPowerThreshold(
         sortedVotes,
-        sortedVotes.reduce((sum, vote) => sum + vote.votingPower, 0),
+        sortedVotes.reduce((sum, vote) => sum + vote.votingPower, 0)
       );
 
       // Get number of top votes to show
       const topVotesCount = calculateTopVotesCount(
         sortedVotes.length,
         votingPowerThreshold,
-        sortedVotes,
+        sortedVotes
       );
 
       // Split votes into significant and remaining
       const significantVotes = sortedVotes.filter(
-        (vote) => vote.votingPower >= votingPowerThreshold,
+        (vote) => vote.votingPower >= votingPowerThreshold
       );
 
       // Take either the calculated top votes or significant votes, whichever is smaller
@@ -184,7 +184,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
         .slice(0, Math.min(topVotesCount, significantVotes.length))
         .filter(
           (vote) =>
-            (vote.votingPower / total) * 100 >= MIN_VISIBLE_WIDTH_PERCENT,
+            (vote.votingPower / total) * 100 >= MIN_VISIBLE_WIDTH_PERCENT
         ); // Ensure top votes are visible
 
       const remaining = sortedVotes.slice(topVotes.length);
@@ -194,7 +194,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
           votingPower: sum.votingPower + vote.votingPower,
           count: sum.count + 1,
         }),
-        { votingPower: 0, count: 0 },
+        { votingPower: 0, count: 0 }
       );
 
       acc[choice as VoteChoice] = { topVotes, aggregated };
@@ -204,7 +204,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
     return { votesByChoice, totalVotingPower: total };
   }, [votes, proposal.choices, metadata]);
 
-  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+  if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
     return <HiddenVote votes={votes} />;
   }
 
@@ -224,13 +224,13 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
     isAggregated?: boolean;
   }) => {
     const colorMap = {
-      "bg-green-500": "#22c55e",
-      "bg-red-500": "#ef4444",
-      "bg-yellow-500": "#eab308",
-      "bg-gray-500": "#6b7280",
+      'bg-green-500': '#22c55e',
+      'bg-red-500': '#ef4444',
+      'bg-yellow-500': '#eab308',
+      'bg-gray-500': '#6b7280',
     } as const;
 
-    const cssColor = colorMap[color] || "#6b7280";
+    const cssColor = colorMap[color] || '#6b7280';
 
     return (
       <Tooltip.Root>
@@ -254,11 +254,11 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
           />
         </Tooltip.Trigger>
         <Tooltip.Content
-          side="top"
-          align="center"
-          className="z-50 max-w-32 rounded p-2"
+          side='top'
+          align='center'
+          className='z-50 max-w-32 rounded p-2'
         >
-          <p className="text-sm">{tooltip}</p>
+          <p className='text-sm'>{tooltip}</p>
         </Tooltip.Content>
       </Tooltip.Root>
     );
@@ -268,14 +268,14 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   const totalForVotingPower = votesByChoice.For
     ? votesByChoice.For.topVotes.reduce(
         (sum, vote) => sum + vote.votingPower,
-        0,
+        0
       ) + votesByChoice.For.aggregated.votingPower
     : 0;
 
   const totalAgainstVotingPower = votesByChoice.Against
     ? votesByChoice.Against.topVotes.reduce(
         (sum, vote) => sum + vote.votingPower,
-        0,
+        0
       ) + votesByChoice.Against.aggregated.votingPower
     : 0;
 
@@ -290,9 +290,9 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
 
   return (
     <Tooltip.Provider>
-      <div className="space-y-1">
-        <div className="flex h-4 w-full overflow-hidden rounded">
-          {(["For", "Abstain", "Against", "Unknown"] as const).map((choice) => {
+      <div className='space-y-1'>
+        <div className='flex h-4 w-full overflow-hidden rounded'>
+          {(['For', 'Abstain', 'Against', 'Unknown'] as const).map((choice) => {
             const voteData = votesByChoice[choice];
             if (!voteData) return null;
 
@@ -326,23 +326,23 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
             );
           })}
         </div>
-        <div className="flex justify-between text-sm">
-          <div className="flex items-center gap-1">
+        <div className='flex justify-between text-sm'>
+          <div className='flex items-center gap-1'>
             {forWinning && <Check size={14} />}
-            <span className="font-bold">For</span>
+            <span className='font-bold'>For</span>
             <span>{formattedForVotes}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className='flex items-center gap-1'>
             {!forWinning && <Check size={14} />}
             <span>{formattedAgainstVotes} </span>
-            <span className="font-bold">Against</span>
+            <span className='font-bold'>Against</span>
           </div>
         </div>
 
-        <div className="flex justify-between text-sm">
-          <div className="flex items-center gap-1">
+        <div className='flex justify-between text-sm'>
+          <div className='flex items-center gap-1'>
             {quorumReached && <Check size={12} />}
-            <span className="font-bold">
+            <span className='font-bold'>
               {formatNumberWithSuffix(proposal.scoresQuorum)}
             </span>
             <span>of </span>

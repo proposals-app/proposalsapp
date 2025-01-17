@@ -1,25 +1,25 @@
-import { CombinedFeedItem, PostFeedItem } from "../Feed";
-import { toHast } from "mdast-util-to-hast";
-import { fromMarkdown } from "mdast-util-from-markdown";
-import rehypeStringify from "rehype-stringify";
-import { unified } from "unified";
-import { format, formatDistanceToNowStrict, formatISO } from "date-fns";
-import { getDiscourseUser } from "../actions";
-import * as Avatar from "@radix-ui/react-avatar";
-import * as Tooltip from "@radix-ui/react-tooltip";
-import { Suspense } from "react";
-import { unstable_cache } from "next/cache";
+import { CombinedFeedItem, PostFeedItem } from '../Feed';
+import { toHast } from 'mdast-util-to-hast';
+import { fromMarkdown } from 'mdast-util-from-markdown';
+import rehypeStringify from 'rehype-stringify';
+import { unified } from 'unified';
+import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
+import { getDiscourseUser } from '../actions';
+import * as Avatar from '@radix-ui/react-avatar';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import { Suspense } from 'react';
+import { unstable_cache } from 'next/cache';
 
 const getDiscourseUserCached = unstable_cache(
   async (userId: number, daoDiscourseId: string) => {
     return await getDiscourseUser(userId, daoDiscourseId);
   },
-  ["discourse-user"],
-  { revalidate: 60 * 5, tags: ["discourse-user"] },
+  ['discourse-user'],
+  { revalidate: 60 * 5, tags: ['discourse-user'] }
 );
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
-  return item.type === "post";
+  return item.type === 'post';
 };
 
 export async function PostItem({ item }: { item: CombinedFeedItem }) {
@@ -35,7 +35,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
     new Date(item.timestamp),
     {
       addSuffix: true,
-    },
+    }
   );
 
   const updatedAt =
@@ -44,16 +44,16 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
     new Date(item.updatedAt),
     {
       addSuffix: true,
-    },
+    }
   );
   const utcTime = format(
     formatISO(item.timestamp),
-    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
+    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
   );
 
   return (
-    <div id={postAnchorId} className="w-full scroll-mt-36 p-4">
-      <div className="flex cursor-default select-none flex-row justify-between">
+    <div id={postAnchorId} className='w-full scroll-mt-36 p-4'>
+      <div className='flex cursor-default select-none flex-row justify-between'>
         {author && (
           <Suspense>
             <AuthorInfo
@@ -66,17 +66,17 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
             />
           </Suspense>
         )}
-        <div className="flex cursor-default select-none flex-col items-end text-sm">
-          <div className="flex flex-col items-end">
+        <div className='flex cursor-default select-none flex-col items-end text-sm'>
+          <div className='flex flex-col items-end'>
             <Tooltip.Provider>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <div>
-                    posted{" "}
-                    <span className="font-bold">{relativeCreateTime}</span>
+                    posted{' '}
+                    <span className='font-bold'>{relativeCreateTime}</span>
                   </div>
                 </Tooltip.Trigger>
-                <Tooltip.Content className="rounded p-2">
+                <Tooltip.Content className='rounded p-2'>
                   <p>{utcTime}</p>
                 </Tooltip.Content>
               </Tooltip.Root>
@@ -92,7 +92,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
 
       <div
         dangerouslySetInnerHTML={{ __html: processedContent }}
-        className="prose prose-lg mt-4 max-w-none"
+        className='prose prose-lg mt-4 max-w-none'
       />
     </div>
   );
@@ -105,39 +105,39 @@ const AuthorInfo = ({
   authorName: string;
   authorPicture: string;
 }) => (
-  <div className="flex flex-row items-center gap-2">
-    <Avatar.Root className="flex h-10 w-10 items-center justify-center rounded-full">
-      <Avatar.Image src={authorPicture} className="w-full rounded-full" />
+  <div className='flex flex-row items-center gap-2'>
+    <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
+      <Avatar.Image src={authorPicture} className='w-full rounded-full' />
       <Avatar.Fallback>{authorName.slice(0, 2)}</Avatar.Fallback>
     </Avatar.Root>
-    <div className="font-bold">{authorName}</div>
+    <div className='font-bold'>{authorName}</div>
   </div>
 );
 
 // Quote card styles
 const QUOTE_STYLES = {
-  wrapper: "my-4 border-l-2 p-4",
-  header: "flex text-sm mb-2 font-bold",
-  content: "",
-  linkWrapper: "w-full flex justify-end mt-2 cursor-default select-none",
-  link: "hover:underline text-sm font-bold no-underline",
+  wrapper: 'my-4 border-l-2 p-4',
+  header: 'flex text-sm mb-2 font-bold',
+  content: '',
+  linkWrapper: 'w-full flex justify-end mt-2 cursor-default select-none',
+  link: 'hover:underline text-sm font-bold no-underline',
 } as const;
 
 const MARKDOWN_STYLES = {
-  h1: "mb-4 mt-6 text-2xl font-bold",
-  h2: "mb-3 mt-5 text-xl font-bold",
-  h3: "mb-2 mt-4 text-lg font-bold",
-  p: "mb-4 leading-relaxed",
-  ul: "mb-4 list-disc space-y-2 pl-6",
-  ol: "mb-4 list-decimal space-y-2 pl-6",
-  li: "leading-relaxed",
-  strong: "font-bold",
-  a: "underline",
-  blockquote: "border-l-4 pl-4 italic",
-  table: "min-w-full border-collapse border my-4",
-  th: "border p-2 text-left ",
-  td: "border p-2",
-  img: "my-4 h-auto max-w-full",
+  h1: 'mb-4 mt-6 text-2xl font-bold',
+  h2: 'mb-3 mt-5 text-xl font-bold',
+  h3: 'mb-2 mt-4 text-lg font-bold',
+  p: 'mb-4 leading-relaxed',
+  ul: 'mb-4 list-disc space-y-2 pl-6',
+  ol: 'mb-4 list-decimal space-y-2 pl-6',
+  li: 'leading-relaxed',
+  strong: 'font-bold',
+  a: 'underline',
+  blockquote: 'border-l-4 pl-4 italic',
+  table: 'min-w-full border-collapse border my-4',
+  th: 'border p-2 text-left ',
+  td: 'border p-2',
+  img: 'my-4 h-auto max-w-full',
 } as const;
 
 type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
@@ -150,10 +150,10 @@ function processQuotes(html: string): string {
     username: string,
     postNumber: string,
     topicId: string,
-    content: string,
+    content: string
   ) {
     const anchorHref =
-      postNumber === "1" ? "#" : `#post-${postNumber}-${topicId}`;
+      postNumber === '1' ? '#' : `#post-${postNumber}-${topicId}`;
     return `
       <div class="${QUOTE_STYLES.wrapper}">
         <div class="${QUOTE_STYLES.header}">
@@ -165,7 +165,7 @@ function processQuotes(html: string): string {
         </div>
         <div class="${QUOTE_STYLES.linkWrapper}">
           <a href="${anchorHref}" class="${QUOTE_STYLES.link}">
-                    ${postNumber === "1" ? "back to top ↑" : "jump to post →"}
+                    ${postNumber === '1' ? 'back to top ↑' : 'jump to post →'}
           </a>
         </div>
       </div>
@@ -185,7 +185,7 @@ function processQuotes(html: string): string {
       (_, username, postNumber, topicId, content) => {
         wasProcessed = true;
         return createQuoteHtml(username, postNumber, topicId, content);
-      },
+      }
     );
   }
 
@@ -205,7 +205,7 @@ interface HastNode {
 }
 
 function applyStyleToNode(node: HastNode): void {
-  if (!node || typeof node !== "object") return;
+  if (!node || typeof node !== 'object') return;
 
   if (
     node.tagName &&
@@ -244,7 +244,7 @@ function markdownToHtml(markdown: string): string {
     // Process quotes after HTML conversion
     return processQuotes(html);
   } catch (error) {
-    console.error("Error converting markdown to HTML:", error);
-    return "<div>Error processing content</div>";
+    console.error('Error converting markdown to HTML:', error);
+    return '<div>Error processing content</div>';
   }
 }

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { parseAsInteger, useQueryState } from "nuqs";
+import { useEffect, useRef, useState } from 'react';
+import { parseAsInteger, useQueryState } from 'nuqs';
 
 export function LazyLoadTrigger() {
   const [page, setPage] = useQueryState(
-    "page",
-    parseAsInteger.withDefault(1).withOptions({ shallow: false }),
+    'page',
+    parseAsInteger.withDefault(1).withOptions({ shallow: false })
   );
   const [wasOutOfView, setWasOutOfView] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -33,7 +33,7 @@ export function LazyLoadTrigger() {
           setWasOutOfView(true);
         }
       },
-      { threshold: 0.5 }, // Adjust the threshold as needed
+      { threshold: 0.5 } // Adjust the threshold as needed
     );
 
     if (triggerRef.current) {
@@ -49,8 +49,8 @@ export function LazyLoadTrigger() {
   }, [page, setPage, wasOutOfView]);
 
   return (
-    <div ref={triggerRef} className="flex items-center justify-center p-6">
-      <div className="h-12 w-12" />
+    <div ref={triggerRef} className='flex items-center justify-center p-6'>
+      <div className='h-12 w-12' />
     </div>
   );
 }

@@ -1,15 +1,15 @@
-import { notFound } from "next/navigation";
+import { notFound } from 'next/navigation';
 import {
   DelegateInfo,
   getDelegateForVoter,
   getVotesAction,
   processResultsAction,
-} from "./actions";
-import { ResultsChart } from "./result/ResultsChart";
-import { ResultsTable } from "./result/ResultsTable";
-import { Proposal, Selectable } from "@proposalsapp/db";
-import { ResultsList } from "./result/ResultsList";
-import { Suspense } from "react";
+} from './actions';
+import { ResultsChart } from './result/ResultsChart';
+import { ResultsTable } from './result/ResultsTable';
+import { Proposal, Selectable } from '@proposalsapp/db';
+import { ResultsList } from './result/ResultsList';
+import { Suspense } from 'react';
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
@@ -18,7 +18,7 @@ interface ResultsProps {
 
 export function Results({ proposal, daoSlug }: ResultsProps) {
   return (
-    <div className="flex w-full">
+    <div className='flex w-full'>
       <Suspense fallback={<ResultsLoading />}>
         <ResultsContent proposal={proposal} daoSlug={daoSlug} />
       </Suspense>
@@ -28,50 +28,50 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 
 export function ResultsLoading() {
   return (
-    <div className="flex w-full flex-col gap-6">
-      <div className="flex w-full gap-4">
+    <div className='flex w-full flex-col gap-6'>
+      <div className='flex w-full gap-4'>
         {/* Chart Loading */}
-        <div className="w-full">
-          <div className="h-[400px] w-full animate-pulse rounded-md bg-gray-200" />
+        <div className='w-full'>
+          <div className='h-[400px] w-full animate-pulse rounded-md bg-gray-200' />
         </div>
 
         {/* List Loading */}
-        <div className="w-64 space-y-4">
-          <div className="space-y-2">
+        <div className='w-64 space-y-4'>
+          <div className='space-y-2'>
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="h-10 w-full animate-pulse rounded-md bg-gray-200"
+                className='h-10 w-full animate-pulse rounded-md bg-gray-200'
               />
             ))}
           </div>
-          <div className="mb-4 h-10 w-full animate-pulse rounded-md bg-gray-200" />
-          <div className="mb-4 h-8 w-full animate-pulse rounded-md bg-gray-200" />
+          <div className='mb-4 h-10 w-full animate-pulse rounded-md bg-gray-200' />
+          <div className='mb-4 h-8 w-full animate-pulse rounded-md bg-gray-200' />
         </div>
       </div>
 
       {/* Table Loading */}
-      <div className="w-full">
-        <div className="mb-4 h-8 w-48 animate-pulse rounded-md bg-gray-200" />
-        <div className="rounded-md border">
+      <div className='w-full'>
+        <div className='mb-4 h-8 w-48 animate-pulse rounded-md bg-gray-200' />
+        <div className='rounded-md border'>
           {/* Header */}
-          <div className="grid grid-cols-4 gap-4 border-b bg-gray-50 p-3">
-            {["Delegate", "Choice", "Date", "Voting Power"].map((header, i) => (
+          <div className='grid grid-cols-4 gap-4 border-b bg-gray-50 p-3'>
+            {['Delegate', 'Choice', 'Date', 'Voting Power'].map((header, i) => (
               <div
                 key={i}
-                className="h-6 w-full animate-pulse rounded-md bg-gray-200"
+                className='h-6 w-full animate-pulse rounded-md bg-gray-200'
               />
             ))}
           </div>
 
           {/* Rows */}
-          <div className="space-y-2 p-2">
+          <div className='space-y-2 p-2'>
             {[...Array(10)].map((_, i) => (
-              <div key={i} className="grid grid-cols-4 gap-4 p-2">
-                <div className="h-6 w-full animate-pulse rounded-md bg-gray-200" />
-                <div className="h-6 w-full animate-pulse rounded-md bg-gray-200" />
-                <div className="h-6 w-full animate-pulse rounded-md bg-gray-200" />
-                <div className="h-6 w-full animate-pulse rounded-md bg-gray-200" />
+              <div key={i} className='grid grid-cols-4 gap-4 p-2'>
+                <div className='h-6 w-full animate-pulse rounded-md bg-gray-200' />
+                <div className='h-6 w-full animate-pulse rounded-md bg-gray-200' />
+                <div className='h-6 w-full animate-pulse rounded-md bg-gray-200' />
+                <div className='h-6 w-full animate-pulse rounded-md bg-gray-200' />
               </div>
             ))}
           </div>
@@ -95,11 +95,11 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
         const delegate = await getDelegateForVoter(
           vote.voterAddress,
           daoSlug,
-          proposal.id,
+          proposal.id
         );
         delegateMap.set(vote.voterAddress, delegate);
       }
-    }),
+    })
   );
 
   const processedResults = await processResultsAction(proposal, votes);
@@ -109,8 +109,8 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   }
 
   return (
-    <div className="w-full">
-      <div className="flex">
+    <div className='w-full'>
+      <div className='flex'>
         <ResultsChart results={processedResults} />
         <ResultsList results={processedResults} />
       </div>

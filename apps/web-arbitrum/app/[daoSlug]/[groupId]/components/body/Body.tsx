@@ -38,7 +38,7 @@ export default async function Body({
   const bodies = await cachedGetBodiesForGroup(group.group.id);
 
   if (!bodies || bodies.length === 0) {
-    return <div className="w-full bg-gray-100 p-4">No bodies found.</div>;
+    return <div className="w-full p-4">No bodies found.</div>;
   }
 
   // Find the initial and latest bodies based on createdAt

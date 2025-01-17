@@ -12,9 +12,9 @@ export function CommentsVolumeEvent({
   last,
 }: CommentsVolumeEventProps) {
   return (
-    <div className="flex h-full w-full items-center">
+    <div className='flex h-full w-full items-center'>
       <div
-        className="ml-4 h-1 bg-gray-500 opacity-50"
+        className='ml-4 h-1 bg-gray-500 opacity-50'
         style={{
           width: `${Math.max(volume * 80, 1)}%`,
         }}
