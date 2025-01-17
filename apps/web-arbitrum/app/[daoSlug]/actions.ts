@@ -9,8 +9,6 @@ export async function getGroups(
 ) {
   "use server";
   return otel("get-groups", async () => {
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
     // Fetch the DAO based on the slug
     const dao = await db
       .selectFrom("dao")

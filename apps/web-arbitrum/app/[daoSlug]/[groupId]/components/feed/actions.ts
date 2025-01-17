@@ -21,7 +21,6 @@ export async function getFeedForGroup(
 ) {
   "use server";
   return otel("get-feed-for-group", async () => {
-    await new Promise((resolve) => setTimeout(resolve, 5000));
     const itemsPerPage = 25;
     const totalItems = itemsPerPage * page;
 

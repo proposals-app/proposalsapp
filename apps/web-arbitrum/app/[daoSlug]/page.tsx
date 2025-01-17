@@ -14,6 +14,8 @@ import {
   CardTitle,
 } from "@/shadcn/ui/card";
 import { Skeleton } from "@/shadcn/ui/skeleton";
+import { Button } from "@/shadcn/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/shadcn/ui/avatar";
 
 const getCachedGroups = unstable_cache(
   async (daoSlug: string, page: number, itemsPerPage: number) => {
@@ -42,7 +44,7 @@ export default async function ListPage({
   const { page } = await searchParams;
 
   const currentPage = page ? Number(page) : 1;
-  const itemsPerPage = 1000;
+  const itemsPerPage = 25;
 
   // Use a Map to store unique groups
   const groupsMap = new Map<
