@@ -2,6 +2,7 @@ import { Selectable, Vote } from "@proposalsapp/db";
 import { Proposal } from "../ResultEvent";
 import { useMemo } from "react";
 import { formatNumberWithSuffix } from "@/lib/utils";
+import { HiddenVote } from "./HiddenVote";
 
 interface WeightedVoteProps {
   proposal: Proposal;
@@ -9,6 +10,15 @@ interface WeightedVoteProps {
 }
 
 export const WeightedVote = ({ proposal, votes }: WeightedVoteProps) => {
+  const metadata =
+    typeof proposal.metadata === "string"
+      ? JSON.parse(proposal.metadata)
+      : proposal.metadata;
+
+  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    return <HiddenVote votes={votes} />;
+  }
+
   const { winningChoice, totalVotingPower, winningPercentage, maxVotingPower } =
     useMemo(() => {
       // Process weighted votes where each vote can distribute voting power across multiple choices

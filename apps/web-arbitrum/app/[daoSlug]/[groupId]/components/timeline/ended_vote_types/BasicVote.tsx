@@ -11,6 +11,7 @@ import { cn } from "@/shadcn/lib/utils";
 import { formatNumberWithSuffix } from "@/lib/utils";
 import { Check } from "lucide-react";
 import React from "react";
+import { HiddenVote } from "./HiddenVote";
 
 interface BasicVoteProps {
   proposal: Proposal;
@@ -78,6 +79,15 @@ const calculateVotingPowerThreshold = (
 };
 
 export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
+  const metadata =
+    typeof proposal.metadata === "string"
+      ? JSON.parse(proposal.metadata)
+      : proposal.metadata;
+
+  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    return <HiddenVote votes={votes} />;
+  }
+
   const { votesByChoice, totalVotingPower } = useMemo(() => {
     const sortedVotes = [...votes]
       .filter((vote) => vote.votingPower)

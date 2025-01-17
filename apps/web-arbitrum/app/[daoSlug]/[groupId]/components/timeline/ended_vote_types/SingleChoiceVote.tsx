@@ -2,6 +2,7 @@ import { Selectable, Vote } from "@proposalsapp/db";
 import { Proposal } from "../ResultEvent";
 import { useMemo } from "react";
 import { formatNumberWithSuffix } from "@/lib/utils";
+import { HiddenVote } from "./HiddenVote";
 
 interface SingleChoiceVoteProps {
   proposal: Proposal;
@@ -12,6 +13,15 @@ export const SingleChoiceVote = ({
   proposal,
   votes,
 }: SingleChoiceVoteProps) => {
+  const metadata =
+    typeof proposal.metadata === "string"
+      ? JSON.parse(proposal.metadata)
+      : proposal.metadata;
+
+  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    return <HiddenVote votes={votes} />;
+  }
+
   const { winningChoice, totalVotingPower, winningPercentage, maxVotingPower } =
     useMemo(() => {
       const sortedVotes = [...votes]

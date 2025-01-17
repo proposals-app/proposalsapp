@@ -2,6 +2,7 @@ import { Selectable, Vote } from "@proposalsapp/db";
 import { Proposal } from "../ResultEvent";
 import { useMemo } from "react";
 import { formatNumberWithSuffix } from "@/lib/utils";
+import { HiddenVote } from "./HiddenVote";
 
 interface ApprovalVoteProps {
   proposal: Proposal;
@@ -9,6 +10,15 @@ interface ApprovalVoteProps {
 }
 
 export const ApprovalVote = ({ proposal, votes }: ApprovalVoteProps) => {
+  const metadata =
+    typeof proposal.metadata === "string"
+      ? JSON.parse(proposal.metadata)
+      : proposal.metadata;
+
+  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    return <HiddenVote votes={votes} />;
+  }
+
   const { winningChoice, totalVotingPower, winningPercentage, maxVotingPower } =
     useMemo(() => {
       // Process votes where each vote can approve multiple choices
