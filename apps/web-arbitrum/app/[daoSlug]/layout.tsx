@@ -34,7 +34,7 @@ export default async function DaoLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-row bg-gray-100">
+    <div className="flex min-h-screen w-full flex-row bg-background">
       <NavBar dao={dao} daoSlug={daoSlug} />
       <div className="flex w-full justify-between">{children}</div>
     </div>

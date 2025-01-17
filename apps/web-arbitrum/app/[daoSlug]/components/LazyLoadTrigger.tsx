@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Skeleton } from "@/shadcn/ui/skeleton";
 
 export function LazyLoadTrigger({ currentPage }: { currentPage: number }) {
   const router = useRouter();
@@ -39,7 +40,7 @@ export function LazyLoadTrigger({ currentPage }: { currentPage: number }) {
       id="lazy-load-trigger"
       className="flex items-center justify-center p-6"
     >
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-gray-500" />
+      <Skeleton className="h-12 w-12 rounded-full" />
     </div>
   );
 }
