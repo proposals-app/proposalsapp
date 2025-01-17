@@ -100,9 +100,12 @@ export async function getGroups(
     );
 
     // Return the sorted groups without the timestamp property
-    return groupsWithTimestamps.map(
-      ({ newestItemTimestamp, ...group }) => group,
-    );
+    return {
+      daoName: dao.name,
+      groups: groupsWithTimestamps.map(
+        ({ newestItemTimestamp, ...group }) => group,
+      ),
+    };
   });
 }
 

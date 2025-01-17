@@ -29,15 +29,23 @@ export default async function ListPage({
 
   // Fetch all groups up to the current page
   const allGroups = [];
-  for (let i = 1; i <= currentPage; i++) {
-    const groups = await getCachedGroups(daoSlug, i, itemsPerPage);
+  let daoName: string | null = null; // Variable to store the DAO name
 
-    // Handle the case where groups is null
-    if (!groups) {
+  for (let i = 1; i <= currentPage; i++) {
+    const result = await getCachedGroups(daoSlug, i, itemsPerPage);
+
+    // Handle the case where result is null
+    if (!result) {
       continue; // Skip this page if no groups are found
     }
 
-    allGroups.push(...groups);
+    // Store the DAO name from the first page's result
+    if (i === 1) {
+      daoName = result.daoName;
+    }
+
+    // Push the groups into the allGroups array
+    allGroups.push(...result.groups);
   }
 
   if (!allGroups.length) {
@@ -47,7 +55,8 @@ export default async function ListPage({
   return (
     <div className="flex min-h-screen w-full flex-row bg-gray-100 pl-20">
       <div className="w-full p-4">
-        <h1 className="mb-6 text-3xl font-bold">DAO: {daoSlug}</h1>
+        {/* Use the DAO name in the heading */}
+        <h1 className="mb-6 text-3xl font-bold">DAO: {daoName || daoSlug}</h1>
         <div className="flex flex-col gap-2">
           {/* Server-rendered list of groups */}
           {allGroups.map((group) => (
