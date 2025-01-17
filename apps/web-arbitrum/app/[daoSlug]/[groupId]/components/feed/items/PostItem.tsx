@@ -88,7 +88,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
         <details className='w-full'>
           <summary className='flex h-12 cursor-pointer list-none items-center justify-center [&::-webkit-details-marker]:hidden'>
             <div className='flex-grow border-t'></div>
-            <span className='mx-4 text-gray-500'>deleted post</span>
+            <span className='mx-4'>deleted post</span>
             <div className='flex-grow border-t'></div>
           </summary>
           <div className='p-4'>
