@@ -12,7 +12,7 @@ export function HiddenVote({ votes }: HiddenVoteProps) {
   );
 
   return (
-    <div className="flex-col items-center justify-between">
+    <div className="flex-col items-center justify-between space-y-1">
       <div className="flex h-4 w-full overflow-hidden rounded-md bg-muted" />
       <div className="flex w-full justify-between">
         <div className="text-sm font-bold text-muted-foreground">
