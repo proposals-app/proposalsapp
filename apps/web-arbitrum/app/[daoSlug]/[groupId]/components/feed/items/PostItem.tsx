@@ -116,8 +116,13 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
               <span>edited {relativeUpdateTime}</span>
             </div>
           )}
+          {item.deleted && (
+            <div>
+              <span>deleted</span>
+            </div>
+          )}
           <div className='flex flex-row items-center gap-4'>
-            <div className='flex items-center gap-1 text-sm text-gray-600'>
+            <div className='flex items-center gap-1 text-sm'>
               <CheckCheck className='h-4 w-4' />
               <span>{item.reads}</span>
             </div>
