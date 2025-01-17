@@ -13,6 +13,8 @@ import { validate } from "uuid";
 export async function getGroupData(daoSlug: string, groupId: string) {
   "use server";
   return otel("get-group-data", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
     if (daoSlug == "favicon.ico") return null;
 
     // Fetch the DAO based on the slug
@@ -104,6 +106,7 @@ export type Body = {
 export async function getBodiesForGroup(groupID: string) {
   "use server";
   return otel("get-bodies-for-group", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     let bodies: Body[] = [];
 
     const group = await db

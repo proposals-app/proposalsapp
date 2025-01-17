@@ -7,7 +7,6 @@ import { notFound } from "next/navigation";
 import { getFeedForGroup } from "./actions";
 import { VotesFilterEnum } from "@/app/searchParams";
 import { LazyLoadTrigger } from "./LazyLoadTrigger";
-import { Card } from "@/shadcn/ui/card";
 import { Skeleton } from "@/shadcn/ui/skeleton";
 
 // Cached version of getFeedForGroup
