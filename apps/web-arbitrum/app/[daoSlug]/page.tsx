@@ -56,7 +56,7 @@ export default async function ListPage({
     <div className="flex min-h-screen w-full flex-row bg-gray-100 pl-20">
       <div className="w-full p-4">
         {/* Use the DAO name in the heading */}
-        <h1 className="mb-6 text-3xl font-bold">DAO: {daoName || daoSlug}</h1>
+        <h1 className="mb-6 text-3xl font-bold">{daoName || daoSlug}</h1>
         <div className="flex flex-col gap-2">
           {/* Server-rendered list of groups */}
           {allGroups.map((group) => (
