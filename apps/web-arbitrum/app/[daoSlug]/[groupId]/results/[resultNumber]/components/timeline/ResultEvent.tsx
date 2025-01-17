@@ -11,6 +11,7 @@ interface ResultEventProps {
   daoSlug: string;
   groupId: string;
   eventIndex: number;
+  last: boolean;
 }
 
 export function ResultEvent({
@@ -22,6 +23,7 @@ export function ResultEvent({
   daoSlug,
   groupId,
   eventIndex,
+  last,
 }: ResultEventProps) {
   // Determine if the vote is onchain or offchain
   const isOnchain = content.includes("Onchain vote"); // Adjust this logic based on your data model
@@ -45,10 +47,12 @@ export function ResultEvent({
         } bg-background px-4 py-2 pr-8`}
       >
         {eventIndex == 0 && resultNumber == selectedResult && (
-          <div className="absolute -right-2 top-2 h-2 w-10 border-t bg-background"></div>
+          <div className="bg-muted-background absolute -right-2 top-2 h-2 w-10 border-t"></div>
         )}
         <div className="absolute left-3 top-5 h-[7px] w-[7px] rounded-full border bg-muted-foreground" />
-
+        {!last && (
+          <div className="absolute left-[11.5px] top-[7px] z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px] bg-muted-foreground" />
+        )}
         <div className="ml-2 text-sm font-semibold">{voteType}</div>
         {isLive && <div className="text-sm text-foreground">Live Voting</div>}
         <div className="ml-2 text-sm text-foreground">
