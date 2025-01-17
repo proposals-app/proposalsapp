@@ -2412,6 +2412,7 @@ __metadata:
     "@types/react-window": "npm:^1"
     "@types/uuid": "npm:^10"
     "@vercel/otel": "npm:^1.10.0"
+    autoprefixer: "npm:^10.4.20"
     date-fns: "npm:^4.1.0"
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
@@ -2431,6 +2432,7 @@ __metadata:
     nuqs: "npm:^2.3.0"
     oslo: "npm:1.2.1"
     pg: "npm:8.13.1"
+    postcss: "npm:^8.5.1"
     posthog-js: "npm:1.207.0"
     prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.10"
@@ -2440,7 +2442,7 @@ __metadata:
     recharts: "npm:^2.15.0"
     rehype-stringify: "npm:^10.0.1"
     serwist: "npm:9.0.11"
-    tailwindcss: "npm:3.4.17"
+    tailwindcss: "npm:^3.4.17"
     tailwindcss-animate: "npm:1.0.7"
     tw-colors: "npm:^3.3.2"
     typescript: "npm:^5.7.2"
@@ -5524,7 +5526,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"autoprefixer@npm:10.4.20":
+"autoprefixer@npm:10.4.20, autoprefixer@npm:^10.4.20":
   version: 10.4.20
   resolution: "autoprefixer@npm:10.4.20"
   dependencies:
@@ -13036,7 +13038,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:8.5.1":
+"postcss@npm:8.5.1, postcss@npm:^8.5.1":
   version: 8.5.1
   resolution: "postcss@npm:8.5.1"
   dependencies:
@@ -15109,7 +15111,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss@npm:3.4.17":
+"tailwindcss@npm:3.4.17, tailwindcss@npm:^3.4.17":
   version: 3.4.17
   resolution: "tailwindcss@npm:3.4.17"
   dependencies:
