@@ -33,19 +33,22 @@ impl LikesIndexer {
             .await
             .with_context(|| format!("Failed to fetch likes for post {}", post_id))?;
 
-        for user in response.post_action_users {
-            if let Err(e) = db_handler
-                .upsert_post_like(post_id, user.id, dao_discourse_id)
-                .await
-            {
-                error!(
-                    error = ?e,
-                    post_id,
-                    user_id = user.id,
-                    "Failed to upsert post like"
-                );
-                return Err(e).context("Failed to upsert post like");
-            }
+        let user_ids = response
+            .post_action_users
+            .into_iter()
+            .map(|user| user.id)
+            .collect::<Vec<_>>();
+
+        if let Err(e) = db_handler
+            .upsert_post_likes_batch(post_id, user_ids, dao_discourse_id)
+            .await
+        {
+            error!(
+                error = ?e,
+                post_id,
+                "Failed to batch upsert post likes"
+            );
+            return Err(e).context("Failed to batch upsert post likes");
         }
 
         info!(post_id, "Successfully processed likes");

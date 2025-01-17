@@ -537,33 +537,72 @@ impl DbHandler {
         Ok(())
     }
 
-    #[instrument(skip(self), fields(user_id, dao_discourse_id, post_id))]
-    pub async fn upsert_post_like(
+    #[instrument(skip(self), fields(user_ids = ?user_ids, dao_discourse_id, post_id))]
+    pub async fn upsert_post_likes_batch(
         &self,
         post_id: i32,
-        user_id: i32,
+        user_ids: Vec<i32>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
-        let like = discourse_post_like::ActiveModel {
-            id: NotSet,
-            external_discourse_post_id: Set(post_id),
-            external_user_id: Set(user_id),
-            created_at: Set(Utc::now().naive_utc()),
-            dao_discourse_id: Set(dao_discourse_id),
-        };
+        if user_ids.is_empty() {
+            return Ok(());
+        }
 
-        discourse_post_like::Entity::insert(like)
-            .exec(&self.conn)
+        // Find existing likes for the given post and users
+        let existing_likes = discourse_post_like::Entity::find()
+            .filter(
+                sea_orm::Condition::all()
+                    .add(discourse_post_like::Column::ExternalDiscoursePostId.eq(post_id))
+                    .add(discourse_post_like::Column::ExternalUserId.is_in(user_ids.clone()))
+                    .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id)),
+            )
+            .all(&self.conn)
             .await?;
 
-        info!("Post like upserted successfully");
-        self.upsert_like_counter.add(
-            1,
-            &[KeyValue::new(
-                "dao_discourse_id",
-                dao_discourse_id.to_string(),
-            )],
-        );
+        // Extract the user IDs of existing likes
+        let existing_user_ids: Vec<i32> = existing_likes
+            .into_iter()
+            .map(|like| like.external_user_id)
+            .collect();
+
+        // Determine which user IDs are not already in the database
+        let new_user_ids: Vec<i32> = user_ids
+            .into_iter()
+            .filter(|user_id| !existing_user_ids.contains(user_id))
+            .collect();
+
+        // Calculate the number of new likes to insert
+        let new_likes_count = new_user_ids.len();
+
+        // Insert only the new likes
+        if new_likes_count > 0 {
+            let new_likes = new_user_ids
+                .into_iter()
+                .map(|user_id| discourse_post_like::ActiveModel {
+                    id: NotSet,
+                    external_discourse_post_id: Set(post_id),
+                    external_user_id: Set(user_id),
+                    created_at: Set(Utc::now().naive_utc()),
+                    dao_discourse_id: Set(dao_discourse_id),
+                })
+                .collect::<Vec<_>>();
+
+            discourse_post_like::Entity::insert_many(new_likes)
+                .exec(&self.conn)
+                .await?;
+
+            info!("Batch upserted post likes successfully");
+            self.upsert_like_counter.add(
+                new_likes_count as u64,
+                &[KeyValue::new(
+                    "dao_discourse_id",
+                    dao_discourse_id.to_string(),
+                )],
+            );
+        } else {
+            info!("All likes already exist, skipping insertion");
+        }
+
         Ok(())
     }
 }
