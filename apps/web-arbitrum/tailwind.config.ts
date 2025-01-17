@@ -7,7 +7,11 @@ const config = {
   theme: {
     extend: {},
   },
-  plugins: [createThemes({}), require("tailwindcss-animate")],
+  plugins: [
+    createThemes({}),
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
+  ],
 } satisfies Config;
 
 export default config;
