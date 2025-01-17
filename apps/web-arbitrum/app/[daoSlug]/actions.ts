@@ -1,9 +1,6 @@
 import { otel } from "@/lib/otel";
 import { AsyncReturnType } from "@/lib/utils";
 import { db } from "@proposalsapp/db";
-import { unstable_cache } from "next/cache";
-
-import { getGroupData } from "./[groupId]/actions";
 
 export async function getGroups(
   daoSlug: string,
@@ -21,22 +18,16 @@ export async function getGroups(
 
     if (!dao) return null;
 
-    // Calculate offset for pagination
-    const offset = (page - 1) * itemsPerPage;
-
-    // Fetch paginated groups for the DAO
-    const groups = await db
+    // First, fetch all groups for the DAO
+    const allGroups = await db
       .selectFrom("proposalGroup")
       .selectAll()
       .where("daoId", "=", dao.id)
-      .orderBy("createdAt", "desc")
-      .limit(itemsPerPage)
-      .offset(offset)
       .execute();
 
     // Function to find the newest item timestamp in a group
     const getNewestItemTimestamp = async (
-      group: (typeof groups)[0],
+      group: (typeof allGroups)[0],
     ): Promise<number> => {
       return otel("get-newest-item-timestamp", async () => {
         const items = group.items as Array<{
@@ -44,7 +35,6 @@ export async function getGroups(
           type: "proposal" | "topic";
         }>;
 
-        // Get proposal ids and topic ids
         const proposalIds = items
           .filter((item) => item.type === "proposal")
           .map((item) => item.id);
@@ -53,7 +43,6 @@ export async function getGroups(
           .filter((item) => item.type === "topic")
           .map((item) => item.id);
 
-        // Fetch the latest proposal and topic timestamps in parallel
         const [latestProposal, latestTopic] = await Promise.all([
           proposalIds.length > 0
             ? db
@@ -75,8 +64,7 @@ export async function getGroups(
             : Promise.resolve(null),
         ]);
 
-        // Determine the latest timestamp
-        const latestTimestamp = Math.max(
+        return Math.max(
           latestProposal?.timeCreated
             ? new Date(latestProposal.timeCreated).getTime()
             : 0,
@@ -84,30 +72,34 @@ export async function getGroups(
             ? new Date(latestTopic.createdAt).getTime()
             : 0,
         );
-
-        return latestTimestamp;
       });
     };
 
-    // Add timestamps to groups in parallel
+    // Add timestamps to all groups
     const groupsWithTimestamps = await Promise.all(
-      groups.map(async (group) => ({
+      allGroups.map(async (group) => ({
         ...group,
         newestItemTimestamp: await getNewestItemTimestamp(group),
       })),
     );
 
-    // Sort groups by timestamp
+    // Sort all groups by their items' timestamps
     groupsWithTimestamps.sort(
       (a, b) => b.newestItemTimestamp - a.newestItemTimestamp,
     );
 
-    // Return the sorted groups without the timestamp property
+    // Calculate the start and end indices for pagination
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+
+    // Slice the sorted groups array to get the requested page
+    const paginatedGroups = groupsWithTimestamps
+      .slice(startIndex, endIndex)
+      .map(({ newestItemTimestamp, ...group }) => group);
+
     return {
       daoName: dao.name,
-      groups: groupsWithTimestamps.map(
-        ({ newestItemTimestamp, ...group }) => group,
-      ),
+      groups: paginatedGroups,
     };
   });
 }

@@ -17,16 +17,14 @@ import { Skeleton } from "@/shadcn/ui/skeleton";
 import { Button } from "@/shadcn/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/shadcn/ui/avatar";
 
-// Cache the getGroups function
 const getCachedGroups = unstable_cache(
   async (daoSlug: string, page: number, itemsPerPage: number) => {
     return await getGroups(daoSlug, page, itemsPerPage);
   },
-  ["getGroups"], // Cache key
+  ["getGroups"],
   { revalidate: 60 * 5, tags: ["groups"] },
 );
 
-// Cache each group's data
 const cachedGetGroupData = unstable_cache(
   async (daoSlug: string, groupId: string) => {
     return await getGroupData(daoSlug, groupId);
@@ -46,39 +44,44 @@ export default async function ListPage({
   const { page } = await searchParams;
 
   const currentPage = page ? Number(page) : 1;
-  const itemsPerPage = 25; // Number of items per page
+  const itemsPerPage = 25;
 
-  // Fetch all groups up to the current page
-  const allGroups: Array<{
-    id: string;
-    name: string;
-    daoId: string;
-  }> = []; // Define the type explicitly
-  let daoName: string | null = null; // Variable to store the DAO name
+  // Use a Map to store unique groups
+  const groupsMap = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      daoId: string;
+    }
+  >();
+  let daoName: string | null = null;
 
   for (let i = 1; i <= currentPage; i++) {
     const result = await getCachedGroups(daoSlug, i, itemsPerPage);
 
-    // Handle the case where result is null or result.groups is not an array
     if (!result || !Array.isArray(result.groups)) {
-      continue; // Skip this page if no groups are found
+      continue;
     }
 
-    // Store the DAO name from the first page's result
     if (i === 1) {
       daoName = result.daoName;
     }
 
-    // Push the groups into the allGroups array
-    allGroups.push(...result.groups);
+    // Add groups to the Map using their ID as the key
+    result.groups.forEach((group) => {
+      groupsMap.set(group.id, group);
+    });
   }
+
+  // Convert Map values to array
+  const allGroups = Array.from(groupsMap.values());
 
   if (!allGroups.length) {
     notFound();
   }
 
   after(async () => {
-    // Prefetch group data in parallel
     await Promise.all(
       allGroups.map((group) => {
         cachedGetGroupData(daoSlug, group.id);
@@ -89,15 +92,13 @@ export default async function ListPage({
   return (
     <div className="flex min-h-screen w-full flex-row bg-background pl-20">
       <div className="w-full p-8">
-        {/* Use the DAO name in the heading */}
         <h1 className="mb-8 text-4xl font-bold text-foreground">
           {daoName || daoSlug}
         </h1>
         <div className="flex flex-col gap-4">
-          {/* Server-rendered list of groups */}
           {allGroups.map((group) => (
             <Link
-              key={String(group.id)}
+              key={group.id}
               href={`/${daoSlug}/${group.id}`}
               prefetch={true}
             >
@@ -116,7 +117,6 @@ export default async function ListPage({
           ))}
         </div>
 
-        {/* Client-side lazy load trigger */}
         <Suspense fallback={<LoadingSkeleton />}>
           <LazyLoadTrigger currentPage={currentPage} />
         </Suspense>
@@ -125,7 +125,6 @@ export default async function ListPage({
   );
 }
 
-// Loading Skeleton Component
 function LoadingSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
