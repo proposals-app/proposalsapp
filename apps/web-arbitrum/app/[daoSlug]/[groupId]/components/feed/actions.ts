@@ -478,3 +478,25 @@ export async function getDelegate(
 
 export type VotingPowerChangeType = AsyncReturnType<typeof getVotingPower>;
 export type FeedDataType = AsyncReturnType<typeof getFeedForGroup>;
+
+export async function getPostLikesCount(
+  externalPostId: number,
+  daoDiscourseId: string
+) {
+  'use server';
+  return otel('get-post-likes-count', async () => {
+    try {
+      const result = await db
+        .selectFrom('discoursePostLike')
+        .select(sql<number>`count(*)`.as('count'))
+        .where('externalDiscoursePostId', '=', externalPostId)
+        .where('daoDiscourseId', '=', daoDiscourseId)
+        .executeTakeFirst();
+
+      return result?.count ?? 0;
+    } catch (error) {
+      console.error('Error fetching post likes count:', error);
+      return 0;
+    }
+  });
+}

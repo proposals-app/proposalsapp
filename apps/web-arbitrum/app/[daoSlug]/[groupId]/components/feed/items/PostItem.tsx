@@ -4,12 +4,12 @@ import { fromMarkdown } from 'mdast-util-from-markdown';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
 import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
-import { getDiscourseUser } from '../actions';
+import { getDiscourseUser, getPostLikesCount } from '../actions';
 import * as Avatar from '@radix-ui/react-avatar';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Suspense } from 'react';
 import { unstable_cache } from 'next/cache';
-import { EyeIcon } from 'lucide-react';
+import { CheckCheck, HeartIcon } from 'lucide-react';
 
 const getDiscourseUserCached = unstable_cache(
   async (userId: number, daoDiscourseId: string) => {
@@ -17,6 +17,14 @@ const getDiscourseUserCached = unstable_cache(
   },
   ['discourse-user'],
   { revalidate: 60 * 5, tags: ['discourse-user'] }
+);
+
+const getPostLikesCountCached = unstable_cache(
+  async (externalPostId: number, daoDiscourseId: string) => {
+    return await getPostLikesCount(externalPostId, daoDiscourseId);
+  },
+  ['post-likes-count'],
+  { revalidate: 60 * 5, tags: ['post-likes'] }
 );
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
@@ -29,6 +37,10 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
   }
 
   const author = await getDiscourseUserCached(item.userId, item.daoDiscourseId);
+  const likesCount = await getPostLikesCountCached(
+    item.externalId,
+    item.daoDiscourseId
+  );
 
   const processedContent = markdownToHtml(item.cooked);
   const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
@@ -88,8 +100,15 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
               <span>edited {relativeUpdateTime}</span>
             </div>
           )}
-          <div>
-            <span>read {item.reads} times</span>
+          <div className='flex flex-row items-center gap-4'>
+            <div className='flex items-center gap-1 text-sm text-gray-600'>
+              <CheckCheck className='h-4 w-4' />
+              <span>{item.reads}</span>
+            </div>
+            <div className='flex items-center gap-1 text-sm text-gray-600'>
+              <HeartIcon className='h-4 w-4' />
+              <span>{likesCount}</span>
+            </div>
           </div>
         </div>
       </div>
