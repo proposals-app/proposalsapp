@@ -118,7 +118,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
           )}
           {item.deleted && (
             <div>
-              <span>deleted</span>
+              <span className='font-bold'>deleted</span>
             </div>
           )}
           <div className='flex flex-row items-center gap-4'>
