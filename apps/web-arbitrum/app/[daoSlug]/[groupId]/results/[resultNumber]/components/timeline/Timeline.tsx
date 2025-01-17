@@ -48,7 +48,7 @@ export async function Timeline({
   );
 
   return (
-    <div className="fixed left-20 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
+    <div className="fixed left-28 top-0 flex h-screen w-80 flex-col items-end justify-start pt-24">
       <div className="relative h-[calc(100vh-96px)] w-full">
         {/* Conditionally render the top SVG */}
         {isProposalEnded && (
