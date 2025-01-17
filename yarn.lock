@@ -2323,7 +2323,7 @@ __metadata:
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0-rc.1"
     react-email: "npm:3.0.6"
-    tailwindcss: "npm:3.4.17"
+    tailwindcss: "npm:^3.4.17"
     typescript: "npm:^5.7.2"
   languageName: unknown
   linkType: soft
@@ -2424,7 +2424,7 @@ __metadata:
     hast-util-to-dom: "npm:^4.0.0"
     jsdom: "npm:26.0.0"
     lucia: "npm:3.2.2"
-    lucide-react: "npm:0.471.1"
+    lucide-react: "npm:0.473.0"
     mdast-util-from-markdown: "npm:^2.0.2"
     mdast-util-to-hast: "npm:^13.2.0"
     next: "npm:^15.1.4"
@@ -2503,7 +2503,7 @@ __metadata:
     "@types/uuid": "npm:^10"
     "@types/web-push": "npm:3.6.4"
     "@vercel/otel": "npm:^1.10.0"
-    autoprefixer: "npm:10.4.20"
+    autoprefixer: "npm:^10.4.20"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:2.1.1"
     cmdk: "npm:1.0.4"
@@ -2512,14 +2512,14 @@ __metadata:
     fuse.js: "npm:^7.0.0"
     input-otp: "npm:^1.4.1"
     lucia: "npm:3.2.2"
-    lucide-react: "npm:0.471.1"
+    lucide-react: "npm:0.473.0"
     moment: "npm:2.30.1"
     next: "npm:^15.1.4"
     next-themes: "npm:^0.4.4"
     oslo: "npm:1.2.1"
     pg: "npm:8.13.1"
     pino-pretty: "npm:13.0.0"
-    postcss: "npm:8.5.1"
+    postcss: "npm:^8.5.1"
     posthog-js: "npm:1.207.0"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.4.2"
@@ -2535,7 +2535,7 @@ __metadata:
     serwist: "npm:9.0.11"
     sonner: "npm:^1.7.1"
     tailwind-merge: "npm:2.6.0"
-    tailwindcss: "npm:3.4.17"
+    tailwindcss: "npm:^3.4.17"
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:^5.7.2"
     uuid: "npm:^11.0.3"
@@ -5526,7 +5526,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"autoprefixer@npm:10.4.20, autoprefixer@npm:^10.4.20":
+"autoprefixer@npm:^10.4.20":
   version: 10.4.20
   resolution: "autoprefixer@npm:10.4.20"
   dependencies:
@@ -11007,12 +11007,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:0.471.1":
-  version: 0.471.1
-  resolution: "lucide-react@npm:0.471.1"
+"lucide-react@npm:0.473.0":
+  version: 0.473.0
+  resolution: "lucide-react@npm:0.473.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/d80499f1670b6c371a8c2d3f545dab6161bcb58101a1112811bbe88aa782ff1a467df298074101cf30d7bcad5d29fa8008ac48ce1bb646f1767b48dd603d300a
+  checksum: 10c0/0e6911eb2b5332165bdbca6f951a49e9f1162502a9641edea8bae29c0307d720b86bbbcc17fa909c3d0748fbcb8088eb33bb6f627a1cab1118a259b63ee7a38c
   languageName: node
   linkType: hard
 
@@ -13038,17 +13038,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:8.5.1, postcss@npm:^8.5.1":
-  version: 8.5.1
-  resolution: "postcss@npm:8.5.1"
-  dependencies:
-    nanoid: "npm:^3.3.8"
-    picocolors: "npm:^1.1.1"
-    source-map-js: "npm:^1.2.1"
-  checksum: 10c0/c4d90c59c98e8a0c102b77d3f4cac190f883b42d63dc60e2f3ed840f16197c0c8e25a4327d2e9a847b45a985612317dc0534178feeebd0a1cf3eb0eecf75cae4
-  languageName: node
-  linkType: hard
-
 "postcss@npm:^8.4.33, postcss@npm:^8.4.47":
   version: 8.4.49
   resolution: "postcss@npm:8.4.49"
@@ -13057,6 +13046,17 @@ __metadata:
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
   checksum: 10c0/f1b3f17aaf36d136f59ec373459f18129908235e65dbdc3aee5eef8eba0756106f52de5ec4682e29a2eab53eb25170e7e871b3e4b52a8f1de3d344a514306be3
+  languageName: node
+  linkType: hard
+
+"postcss@npm:^8.5.1":
+  version: 8.5.1
+  resolution: "postcss@npm:8.5.1"
+  dependencies:
+    nanoid: "npm:^3.3.8"
+    picocolors: "npm:^1.1.1"
+    source-map-js: "npm:^1.2.1"
+  checksum: 10c0/c4d90c59c98e8a0c102b77d3f4cac190f883b42d63dc60e2f3ed840f16197c0c8e25a4327d2e9a847b45a985612317dc0534178feeebd0a1cf3eb0eecf75cae4
   languageName: node
   linkType: hard
 
@@ -15111,7 +15111,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss@npm:3.4.17, tailwindcss@npm:^3.4.17":
+"tailwindcss@npm:^3.4.17":
   version: 3.4.17
   resolution: "tailwindcss@npm:3.4.17"
   dependencies:
