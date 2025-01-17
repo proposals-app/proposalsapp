@@ -71,8 +71,8 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
             />
           </Suspense>
         )}
-        <div className="flex cursor-default select-none flex-col items-end text-sm text-gray-500">
-          <div className="flex flex-col items-end text-sm text-gray-500">
+        <div className="flex cursor-default select-none flex-col items-end text-sm text-muted-foreground">
+          <div className="flex flex-col items-end">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -97,7 +97,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
 
       <div
         dangerouslySetInnerHTML={{ __html: processedContent }}
-        className={`prose prose-lg mt-4 max-w-none`}
+        className="prose prose-lg mt-4 max-w-none"
       />
     </div>
   );

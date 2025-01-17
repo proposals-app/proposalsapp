@@ -7,6 +7,8 @@ import { notFound } from "next/navigation";
 import { getFeedForGroup } from "./actions";
 import { VotesFilterEnum } from "@/app/searchParams";
 import { LazyLoadTrigger } from "./LazyLoadTrigger";
+import { Card } from "@/shadcn/ui/card";
+import { Skeleton } from "@/shadcn/ui/skeleton";
 
 // Cached version of getFeedForGroup
 const getCachedFeedForGroup = unstable_cache(
@@ -54,7 +56,7 @@ export default async function Feed({
   );
 
   return (
-    <div className="flex w-full flex-col items-center divide-y">
+    <div className="mt-6 w-full p-6">
       {itemsToDisplay.map((item, index) => (
         <div key={index} className="flex w-full flex-col p-4">
           {item.type === "vote" && <VoteItem item={item} group={group} />}
@@ -67,7 +69,21 @@ export default async function Feed({
 }
 
 export function FeedLoading() {
-  return <div>Feed component loading</div>;
+  return (
+    <div className="mt-6 w-full p-6">
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export type VoteFeedItem = {

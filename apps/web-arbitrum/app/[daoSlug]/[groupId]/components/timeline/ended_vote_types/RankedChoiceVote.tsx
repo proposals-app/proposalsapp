@@ -107,17 +107,17 @@ export const RankedChoiceVote = ({
 
   return (
     <div className="flex-col items-center justify-between">
-      <div className="flex h-4 w-full overflow-hidden rounded-md bg-gray-200">
+      <div className="flex h-4 w-full overflow-hidden rounded-md bg-muted">
         <div
           className="h-full bg-green-500"
           style={{ width: `${winningPercentage}%` }}
         />
       </div>
       <div className="flex w-full justify-between">
-        <div className="truncate text-sm font-bold text-gray-800">
+        <div className="truncate text-sm font-bold text-muted-foreground">
           {winningChoice}
         </div>
-        <div className="text-sm text-gray-800">
+        <div className="text-sm text-muted-foreground">
           {formatNumberWithSuffix(maxVotingPower)}
         </div>
       </div>

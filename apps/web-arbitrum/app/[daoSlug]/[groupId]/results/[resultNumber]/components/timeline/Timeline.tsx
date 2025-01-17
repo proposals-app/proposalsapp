@@ -52,7 +52,7 @@ export async function Timeline({
       <div className="relative h-[calc(100vh-96px)] w-full">
         {/* Conditionally render the top SVG */}
         {isProposalEnded && (
-          <div className="absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-300">
+          <div className="absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-muted-foreground">
             <svg
               width="21"
               height="21"
@@ -75,10 +75,10 @@ export async function Timeline({
           </div>
         )}
 
-        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
+        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-muted-foreground" />
 
         {/* Bottom SVG */}
-        <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-gray-300">
+        <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-muted-foreground">
           <svg
             width="21"
             height="21"
@@ -175,7 +175,7 @@ export function LoadingTimeline() {
     <div className="fixed left-20 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4 pt-24">
       <div className="relative h-[calc(100vh-96px)] w-full">
         {/* Top SVG Placeholder */}
-        <div className="absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-300">
+        <div className="absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-muted-foreground">
           <svg
             width="21"
             height="21"
@@ -198,7 +198,7 @@ export function LoadingTimeline() {
         </div>
 
         {/* Vertical Line Placeholder */}
-        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-300" />
+        <div className="absolute bottom-5 left-[14px] top-5 w-0.5 bg-muted-foreground" />
 
         {/* Placeholder Items */}
         <div className="flex h-full flex-col gap-8">
@@ -218,7 +218,7 @@ export function LoadingTimeline() {
         </div>
 
         {/* Bottom SVG Placeholder */}
-        <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-gray-300">
+        <div className="absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-muted-foreground">
           <svg
             width="21"
             height="21"

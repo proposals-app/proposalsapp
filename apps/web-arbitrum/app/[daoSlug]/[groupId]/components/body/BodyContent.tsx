@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "@/shadcn/ui/card";
 import { parseAsBoolean, useQueryState } from "nuqs";
 
 const COLLAPSED_HEIGHT = "25rem";
@@ -14,24 +15,23 @@ const BodyContent = memo(
     );
 
     return (
-      <div
-        className={`relative transition-all duration-500 ease-in-out ${
-          expanded ? "overflow-visible" : "overflow-hidden"
-        }`}
-        style={{
-          maxHeight: expanded ? "none" : COLLAPSED_HEIGHT,
-        }}
-      >
+      <div className="relative overflow-hidden">
         <div
-          dangerouslySetInnerHTML={{ __html: processedContent }}
-          className="diff-content prose prose-lg max-w-none"
-        />
-        {!expanded && (
+          className={`prose prose-lg max-w-none p-6 ${
+            expanded ? "overflow-visible" : "overflow-hidden"
+          }`}
+          style={{
+            maxHeight: expanded ? "none" : COLLAPSED_HEIGHT,
+          }}
+        >
           <div
-            className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-100 to-transparent"
-            aria-hidden="true"
+            dangerouslySetInnerHTML={{ __html: processedContent }}
+            className="diff-content"
           />
-        )}
+          {!expanded && (
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />
+          )}
+        </div>
       </div>
     );
   },

@@ -220,7 +220,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className={`h-full border-r border-white hover:opacity-90`}
+            className={`h-full border-r hover:opacity-90`}
             style={{
               width: `${width}%`,
               ...(isAggregated
@@ -310,7 +310,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
             );
           })}
         </div>
-        <div className="flex justify-between text-sm text-gray-600">
+        <div className="flex justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             {forWinning && <Check size={14} />}
             <span className="font-bold">For</span>
@@ -323,7 +323,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
           </div>
         </div>
 
-        <div className="flex justify-between text-sm text-gray-600">
+        <div className="flex justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             {quorumReached && <Check size={12} />}
             <span className="font-bold">

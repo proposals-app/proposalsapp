@@ -30,9 +30,9 @@ export async function PostedTime({
       <Tooltip>
         <TooltipTrigger>
           <div
-            className={`flex flex-col items-center p-2 ${border ? "rounded-lg border bg-white" : ""}`}
+            className={`flex flex-col items-center p-2 ${border ? "rounded-lg border" : ""}`}
           >
-            <span className="text-gray-600">{label}</span>
+            <span className="text-muted-foreground">{label}</span>
             <span className="font-bold">{relativeTime}</span>
           </div>
         </TooltipTrigger>

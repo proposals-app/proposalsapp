@@ -14,6 +14,8 @@ import { toHast } from "mdast-util-to-hast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { JSDOM } from "jsdom";
 import { unstable_cache } from "next/cache";
+import { Card } from "@/shadcn/ui/card";
+import { Skeleton } from "@/shadcn/ui/skeleton";
 
 const cachedGetBodiesForGroup = unstable_cache(
   async (groupId: string) => {
@@ -57,14 +59,14 @@ export default async function Body({
       : markdownToHtml(visibleBody.content);
 
   return (
-    <div className="flex w-full justify-center bg-gray-100 p-4">
+    <div className="w-full p-6">
       <StickyHeader
         bodies={bodies}
         group={group}
         version={version ?? defaultVersion}
       />
       <div className="flex w-full flex-col gap-4">
-        <div className="text-4xl font-bold">{visibleBody.title}</div>
+        <h1 className="text-4xl font-bold">{visibleBody.title}</h1>
 
         <div className="flex flex-col">
           <div className="flex flex-row justify-between">
@@ -90,7 +92,7 @@ export default async function Body({
           </div>
         </div>
 
-        <div className="relative pb-16">
+        <div className="relative">
           <BodyContent processedContent={processedContent} />
         </div>
       </div>
@@ -99,7 +101,18 @@ export default async function Body({
 }
 
 export function BodyLoading() {
-  return <div>Body component loading</div>;
+  return (
+    <Card className="w-full p-6">
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-3/4" />
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    </Card>
+  );
 }
 
 const AuthorInfo = ({

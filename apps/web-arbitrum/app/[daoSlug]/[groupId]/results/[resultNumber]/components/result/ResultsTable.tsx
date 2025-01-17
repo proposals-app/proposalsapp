@@ -77,14 +77,8 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
     return (
       <div
-        style={{
-          ...style,
-          display: "grid",
-          gridTemplateColumns: "25% 25% 25% 25%",
-          alignItems: "center",
-          padding: "0.5rem",
-          borderBottom: "1px solid #e5e7eb",
-        }}
+        style={style}
+        className="grid grid-cols-4 items-center border-b border-gray-200 p-2 dark:border-gray-700"
       >
         <div className="flex items-center gap-2 font-bold">
           {delegate && (
@@ -128,13 +122,13 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
         </div>
         <div className="cursor-default">
           <div>{formatDistanceToNow(vote.timestamp, { addSuffix: true })}</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             {format(toZonedTime(vote.timestamp, "UTC"), "MMM d, yyyy")} UTC
           </div>
         </div>
         <div className="cursor-default">
           <div>{formatNumberWithSuffix(vote.votingPower)} ARB</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             {votingPowerPercentage.toFixed(1)}%
           </div>
         </div>
@@ -147,15 +141,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
       <h3 className="mb-4 text-xl font-semibold">Voting Breakdown</h3>
       <div className="rounded-md border">
         {/* Header */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "25% 25% 25% 25%",
-            padding: "0.75rem",
-            backgroundColor: "#f9fafb",
-            borderBottom: "1px solid #e5e7eb",
-          }}
-        >
+        <div className="grid grid-cols-4 border-b border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
           <div>Delegate</div>
           <div
             onClick={() => handleSortChange("choice")}

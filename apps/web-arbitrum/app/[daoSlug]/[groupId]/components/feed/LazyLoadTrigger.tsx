@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { parseAsInteger, useQueryState } from "nuqs";
+import { Button } from "@/shadcn/ui/button";
 
 export function LazyLoadTrigger() {
   const [page, setPage] = useQueryState(
@@ -50,10 +51,7 @@ export function LazyLoadTrigger() {
 
   return (
     <div ref={triggerRef} className="flex items-center justify-center p-6">
-      <div className="relative">
-        {/* Outer spinning ring */}
-        <div className="h-12 w-12 animate-[spin_1s_linear_infinite] rounded-full border-4 border-gray-200 border-t-gray-500" />
-      </div>
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-muted border-t-primary" />
     </div>
   );
 }

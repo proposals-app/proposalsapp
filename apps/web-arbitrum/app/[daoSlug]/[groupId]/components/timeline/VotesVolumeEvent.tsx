@@ -14,7 +14,7 @@ export function VotesVolumeEvent({
   return (
     <div className="flex h-full w-full items-center">
       <div
-        className="ml-4 h-1 bg-black opacity-30"
+        className="ml-4 h-1 bg-muted-foreground opacity-25"
         style={{
           width: `${Math.max(volume * 80, 1)}%`,
         }}

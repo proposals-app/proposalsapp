@@ -16,7 +16,18 @@ export function GapEvent({ content, timestamp, gapSize, last }: GapEventProps) {
         justifyContent: "center",
       }}
     >
-      <div className="ml-30 z-50 h-full w-full bg-[repeating-linear-gradient(to_top,transparent,transparent_5px,#f3f4f6_5px,#f3f4f6_10px)]" />
+      <div
+        className="ml-30 z-50 h-full w-full"
+        style={{
+          background: `repeating-linear-gradient(
+               to top,
+               transparent,
+               transparent 5px,
+               hsl(var(--background)) 5px,
+               hsl(var(--background)) 10px
+             )`,
+        }}
+      />
     </div>
   );
 }

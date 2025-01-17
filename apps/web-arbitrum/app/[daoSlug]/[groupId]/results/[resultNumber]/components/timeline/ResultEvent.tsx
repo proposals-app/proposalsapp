@@ -42,16 +42,16 @@ export function ResultEvent({
           resultNumber == selectedResult
             ? "w-36 rounded-l-xl border-b border-l border-t"
             : "w-28 rounded-xl border"
-        } border-gray-400 bg-white px-4 py-2 pr-8`}
+        } bg-background px-4 py-2 pr-8`}
       >
         {eventIndex == 0 && resultNumber == selectedResult && (
-          <div className="absolute -right-2 top-2 h-2 w-10 border-t border-gray-400 bg-white"></div>
+          <div className="absolute -right-2 top-2 h-2 w-10 border-t bg-background"></div>
         )}
-        <div className="absolute left-3 top-5 h-[7px] w-[7px] rounded-full border border-white bg-gray-500" />
+        <div className="absolute left-3 top-5 h-[7px] w-[7px] rounded-full border bg-muted-foreground" />
 
         <div className="ml-2 text-sm font-semibold">{voteType}</div>
-        {isLive && <div className="text-sm text-gray-600">Live Voting</div>}
-        <div className="ml-2 text-sm text-gray-600">
+        {isLive && <div className="text-sm text-foreground">Live Voting</div>}
+        <div className="ml-2 text-sm text-foreground">
           {isLive ? (
             <>
               <span>{startDate}</span> - <span>{endDate}</span>

@@ -135,7 +135,7 @@ export async function VoteItem({
           </Suspense>
         </div>
 
-        <div className="flex flex-col items-end text-sm text-gray-500">
+        <div className="flex flex-col items-end text-sm text-muted-foreground">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -159,21 +159,17 @@ export async function VoteItem({
       </div>
 
       <div className="flex flex-col">
-        <p className="text-gray-500">{item.reason}</p>
-        <p className="self-end text-gray-500">
-          {match ? (
-            <>
-              <a
-                href={anchorHref ?? ""}
-                className="smooth-scroll-link text-sm font-bold text-gray-500 no-underline hover:underline"
-              >
-                jump to post →
-              </a>{" "}
-            </>
-          ) : (
-            <></>
-          )}
-        </p>
+        <p className="text-muted-foreground">{item.reason}</p>
+        {match && (
+          <p className="self-end text-muted-foreground">
+            <a
+              href={anchorHref ?? ""}
+              className="text-sm font-bold hover:underline"
+            >
+              jump to post →
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );

@@ -91,7 +91,7 @@ export const FullViewBar = () => {
         view === ViewEnum.FULL ? "opacity-100" : "opacity-0"
       }`}
     >
-      <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-white p-2 text-sm font-bold shadow-lg transition-colors hover:bg-gray-50">
+      <div className="flex w-full items-center justify-between gap-2 rounded-full border bg-background p-2 text-sm font-bold shadow-lg transition-colors">
         <div className="flex w-full justify-between">
           {expanded ? (
             <div
