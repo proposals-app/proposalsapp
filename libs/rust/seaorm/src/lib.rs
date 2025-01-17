@@ -11,6 +11,7 @@ pub mod delegate_to_voter;
 pub mod delegation;
 pub mod discourse_category;
 pub mod discourse_post;
+pub mod discourse_post_like;
 pub mod discourse_post_revision;
 pub mod discourse_topic;
 pub mod discourse_user;

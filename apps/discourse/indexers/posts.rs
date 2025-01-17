@@ -1,7 +1,7 @@
 use crate::{
     db_handler::DbHandler,
     discourse_api::DiscourseApi,
-    indexers::users::UserIndexer,
+    indexers::{likes::LikesIndexer, users::UserIndexer},
     models::posts::{Post, PostResponse},
 };
 use anyhow::{Context, Result};
@@ -136,6 +136,23 @@ impl PostIndexer {
     ) {
         match db_handler.upsert_post(&post, dao_discourse_id).await {
             Ok(_) => {
+                let likes_indexer = LikesIndexer::new(Arc::clone(&discourse_api));
+                if let Err(e) = likes_indexer
+                    .fetch_and_store_likes(
+                        Arc::clone(&db_handler),
+                        dao_discourse_id,
+                        post.id,
+                        priority,
+                    )
+                    .await
+                {
+                    error!(
+                        error = ?e,
+                        post_id = post.id,
+                        "Failed to fetch and store likes"
+                    );
+                }
+
                 info!(post_id = post.id, "Successfully upserted post");
             }
             Err(e) => {

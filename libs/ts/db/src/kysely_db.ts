@@ -208,6 +208,14 @@ export interface DiscoursePost {
   version: number;
 }
 
+export interface DiscoursePostLike {
+  createdAt: Timestamp;
+  daoDiscourseId: string;
+  externalDiscoursePostId: number;
+  externalUserId: number;
+  id: Generated<string>;
+}
+
 export interface DiscoursePostRevision {
   bodyChanges: string;
   cookedBodyAfter: string | null;
@@ -403,6 +411,7 @@ export interface DB {
   delegation: Delegation;
   discourseCategory: DiscourseCategory;
   discoursePost: DiscoursePost;
+  discoursePostLike: DiscoursePostLike;
   discoursePostRevision: DiscoursePostRevision;
   discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;

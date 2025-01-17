@@ -9,6 +9,7 @@ import * as Avatar from '@radix-ui/react-avatar';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Suspense } from 'react';
 import { unstable_cache } from 'next/cache';
+import { EyeIcon } from 'lucide-react';
 
 const getDiscourseUserCached = unstable_cache(
   async (userId: number, daoDiscourseId: string) => {
@@ -87,6 +88,9 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
               <span>edited {relativeUpdateTime}</span>
             </div>
           )}
+          <div>
+            <span>read {item.reads} times</span>
+          </div>
         </div>
       </div>
 

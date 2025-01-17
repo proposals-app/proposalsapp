@@ -5,6 +5,7 @@ pub use super::{
     delegate::Entity as Delegate, delegate_to_discourse_user::Entity as DelegateToDiscourseUser,
     delegate_to_voter::Entity as DelegateToVoter, delegation::Entity as Delegation,
     discourse_category::Entity as DiscourseCategory, discourse_post::Entity as DiscoursePost,
+    discourse_post_like::Entity as DiscoursePostLike,
     discourse_post_revision::Entity as DiscoursePostRevision,
     discourse_topic::Entity as DiscourseTopic, discourse_user::Entity as DiscourseUser,
     email_verification::Entity as EmailVerification, job_queue::Entity as JobQueue,

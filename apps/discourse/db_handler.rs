@@ -3,6 +3,7 @@ use crate::{
     DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS,
 };
 use anyhow::Result;
+use chrono::Utc;
 use opentelemetry::{
     metrics::{Counter, UpDownCounter},
     KeyValue,
@@ -11,7 +12,7 @@ use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
     EntityTrait, QueryFilter, Set,
 };
-use seaorm::{discourse_post_revision, discourse_user};
+use seaorm::{discourse_post_like, discourse_post_revision, discourse_user};
 use tracing::{debug, info, instrument};
 use utils::{
     tracing::get_meter,
@@ -25,6 +26,7 @@ pub struct DbHandler {
     upsert_topic_counter: Counter<u64>,
     upsert_post_counter: Counter<u64>,
     upsert_revision_counter: Counter<u64>,
+    upsert_like_counter: Counter<u64>,
     total_users_counter: UpDownCounter<i64>,
     total_categories_counter: UpDownCounter<i64>,
     total_topics_counter: UpDownCounter<i64>,
@@ -53,6 +55,7 @@ impl DbHandler {
             upsert_revision_counter: meter
                 .u64_counter("discourse_db_upsert_revision_total")
                 .build(),
+            upsert_like_counter: meter.u64_counter("discourse_db_upsert_like_total").build(),
             total_users_counter: meter
                 .i64_up_down_counter("discourse_db_total_users")
                 .build(),
@@ -525,6 +528,36 @@ impl DbHandler {
         }
         info!("Revision upserted successfully");
         self.upsert_revision_counter.add(
+            1,
+            &[KeyValue::new(
+                "dao_discourse_id",
+                dao_discourse_id.to_string(),
+            )],
+        );
+        Ok(())
+    }
+
+    #[instrument(skip(self), fields(user_id, dao_discourse_id, post_id))]
+    pub async fn upsert_post_like(
+        &self,
+        post_id: i32,
+        user_id: i32,
+        dao_discourse_id: Uuid,
+    ) -> Result<()> {
+        let like = discourse_post_like::ActiveModel {
+            id: NotSet,
+            external_discourse_post_id: Set(post_id),
+            external_user_id: Set(user_id),
+            created_at: Set(Utc::now().naive_utc()),
+            dao_discourse_id: Set(dao_discourse_id),
+        };
+
+        discourse_post_like::Entity::insert(like)
+            .exec(&self.conn)
+            .await?;
+
+        info!("Post like upserted successfully");
+        self.upsert_like_counter.add(
             1,
             &[KeyValue::new(
                 "dao_discourse_id",
