@@ -61,13 +61,13 @@ export function getColorForChoice(choice: string | undefined | null): string {
     '#22C55E', // Emerald
     '#0EA5E9', // Sky Blue
     '#D946EF', // Fuchsia
-    '#F59E0B', // Yellow
     '#84CC16', // Lime
-    '#10B981', // Green
-    '#EF4444', // Red
-    '#3B82F6', // Blue
-    '#8B5CF6', // Purple
-    '#EC4899', // Pink
+    '#2563EB', // Dark Blue
+    '#7C3AED', // Dark Purple
+    '#DB2777', // Dark Pink
+    '#EA580C', // Dark Orange
+    '#059669', // Dark Teal
+    '#4F46E5', // Dark Indigo
   ];
   const hash = Array.from(lowerCaseChoice).reduce(
     (acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0,
