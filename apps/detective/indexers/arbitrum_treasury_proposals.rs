@@ -385,6 +385,7 @@ mod arbitrum_treasury_proposals_tests {
         assert!(total_vp == 313574334.10536474);
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn arbitrum_treasury_1() {
         let _ = dotenv().ok();
@@ -446,6 +447,7 @@ mod arbitrum_treasury_proposals_tests {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn arbitrum_treasury_2() {
         let _ = dotenv().ok();
@@ -530,6 +532,7 @@ mod arbitrum_treasury_proposals_tests {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn arbitrum_treasury_3() {
         let _ = dotenv().ok();
