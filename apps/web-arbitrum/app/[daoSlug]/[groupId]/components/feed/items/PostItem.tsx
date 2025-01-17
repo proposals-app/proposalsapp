@@ -121,27 +121,27 @@ const AuthorInfo = ({
 
 // Quote card styles
 const QUOTE_STYLES = {
-  wrapper: "my-4 border-l-2 border-gray-200 p-4",
-  header: "flex text-sm text-gray-600 mb-2 font-bold",
-  content: "text-gray-800",
+  wrapper: "my-4 border-l-2 border-border p-4",
+  header: "flex text-sm text-muted-foreground mb-2 font-bold",
+  content: "text-foreground",
   linkWrapper: "w-full flex justify-end mt-2 cursor-default select-none",
-  link: "text-gray-500 hover:underline text-sm font-bold no-underline",
+  link: "text-muted-foreground hover:underline text-sm font-bold no-underline",
 } as const;
 
 const MARKDOWN_STYLES = {
-  h1: "mb-4 mt-6 text-2xl font-bold",
-  h2: "mb-3 mt-5 text-xl font-bold",
-  h3: "mb-2 mt-4 text-lg font-bold",
-  p: "mb-4 leading-relaxed",
-  ul: "mb-4 list-disc space-y-2 pl-6",
-  ol: "mb-4 list-decimal space-y-2 pl-6",
-  li: "leading-relaxed",
-  strong: "font-bold",
-  a: "underline text-blue-600 hover:text-blue-800",
-  blockquote: "border-l-4 border-gray-300 pl-4 italic",
-  table: "min-w-full border-collapse border border-gray-300 my-4",
-  th: "border border-gray-300 bg-gray-100 p-2 text-left",
-  td: "border border-gray-300 p-2",
+  h1: "mb-4 mt-6 text-2xl font-bold text-foreground",
+  h2: "mb-3 mt-5 text-xl font-bold text-foreground",
+  h3: "mb-2 mt-4 text-lg font-bold text-foreground",
+  p: "mb-4 leading-relaxed text-foreground",
+  ul: "mb-4 list-disc space-y-2 pl-6 text-foreground",
+  ol: "mb-4 list-decimal space-y-2 pl-6 text-foreground",
+  li: "leading-relaxed text-foreground",
+  strong: "font-bold text-foreground",
+  a: "underline text-primary hover:text-primary/80",
+  blockquote: "border-l-4 border-border pl-4 italic text-muted-foreground",
+  table: "min-w-full border-collapse border border-border my-4",
+  th: "border border-border bg-muted p-2 text-left text-foreground",
+  td: "border border-border p-2 text-foreground",
   img: "my-4 h-auto max-w-full",
 } as const;
 
