@@ -121,24 +121,31 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
               <CheckCheck className='h-4 w-4' />
               <span>{item.reads}</span>
             </div>
-            <Tooltip.Provider>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <div className='flex items-center gap-1 text-sm'>
-                    <HeartIcon className='h-4 w-4' />
-                    <span>{likesCount}</span>
-                  </div>
-                </Tooltip.Trigger>
-                <Tooltip.Content className='max-w-32 rounded border bg-white p-2'>
-                  <p>
-                    Liked by:{' '}
-                    {likedUsers.length > 0
-                      ? likedUsers.join(', ')
-                      : 'No one yet'}
-                  </p>
-                </Tooltip.Content>
-              </Tooltip.Root>
-            </Tooltip.Provider>
+            {likesCount > 0 ? (
+              <Tooltip.Provider>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <div className='flex items-center gap-1 text-sm'>
+                      <HeartIcon className='h-4 w-4' />
+                      <span>{likesCount}</span>
+                    </div>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content className='max-w-32 rounded border bg-white p-2'>
+                    <p>
+                      Liked by:{' '}
+                      {likedUsers.length > 0
+                        ? likedUsers.join(', ')
+                        : 'No one yet'}
+                    </p>
+                  </Tooltip.Content>
+                </Tooltip.Root>
+              </Tooltip.Provider>
+            ) : (
+              <div className='flex items-center gap-1 text-sm'>
+                <HeartIcon className='h-4 w-4' />
+                <span>{likesCount}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
