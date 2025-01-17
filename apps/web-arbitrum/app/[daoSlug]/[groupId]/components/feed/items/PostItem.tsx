@@ -146,6 +146,12 @@ const QUOTE_STYLES = {
   link: 'hover:underline text-sm font-bold no-underline',
 } as const;
 
+const COLLAPSIBLE_STYLES = {
+  details: 'my-4 border rounded-lg overflow-hidden',
+  summary: 'p-4 bg-gray-100 cursor-pointer font-bold',
+  content: 'p-4 bg-white',
+} as const;
+
 const MARKDOWN_STYLES = {
   h1: 'mb-4 mt-6 text-2xl font-bold',
   h2: 'mb-3 mt-5 text-xl font-bold',
@@ -215,6 +221,40 @@ function processQuotes(html: string): string {
   return processedHtml;
 }
 
+function processDetails(html: string): string {
+  if (!html.includes('[details="')) return html;
+
+  // Helper function to create a collapsible details HTML structure
+  function createDetailsHtml(summary: string, content: string) {
+    return `
+      <details class="${COLLAPSIBLE_STYLES.details}">
+        <summary class="${COLLAPSIBLE_STYLES.summary}">${summary}</summary>
+        <div class="${COLLAPSIBLE_STYLES.content}">
+          ${content.trim()}
+        </div>
+      </details>
+    `;
+  }
+
+  let processedHtml = html;
+  let wasProcessed = true;
+
+  while (wasProcessed) {
+    wasProcessed = false;
+
+    // Process one level of details at a time
+    processedHtml = processedHtml.replace(
+      /\[details="([^"]+)"\]((?!\[details=)[\s\S]*?)\[\/details\]/g,
+      (_, summary, content) => {
+        wasProcessed = true;
+        return createDetailsHtml(summary, content);
+      }
+    );
+  }
+
+  return processedHtml;
+}
+
 // Define interfaces
 interface HastNode {
   type?: string;
@@ -265,7 +305,7 @@ function markdownToHtml(markdown: string): string {
       .stringify(hast as any);
 
     // Process quotes after HTML conversion
-    return processQuotes(html);
+    return processDetails(processQuotes(html));
   } catch (error) {
     console.error('Error converting markdown to HTML:', error);
     return '<div>Error processing content</div>';
