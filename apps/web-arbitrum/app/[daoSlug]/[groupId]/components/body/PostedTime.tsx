@@ -1,5 +1,5 @@
-import * as Tooltip from '@radix-ui/react-tooltip';
-import { format, formatDistanceToNow, formatISO } from 'date-fns';
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { format, formatDistanceToNow, formatISO } from "date-fns";
 
 // Helper component to display the time with a tooltip
 export async function PostedTime({
@@ -17,7 +17,7 @@ export async function PostedTime({
 
   const formattedDateTime = format(
     formatISO(new Date(createdAt)),
-    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
+    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
   );
 
   return (
@@ -25,19 +25,19 @@ export async function PostedTime({
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <div
-            className={`flex flex-col items-center p-2 ${border ? 'rounded-lg border' : ''}`}
+            className={`flex flex-col items-center p-2 ${border ? "rounded-lg border" : ""}`}
           >
-            <span className=''>{label}</span>
-            <span className='font-bold'>{relativeTime}</span>
+            <span className="">{label}</span>
+            <span className="font-bold">{relativeTime}</span>
           </div>
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
-            className='w-40 rounded p-2 text-center text-xs shadow-lg'
+            className="w-40 rounded p-2 text-center text-xs shadow-lg"
             sideOffset={5}
           >
             <p>{formattedDateTime}</p>
-            <Tooltip.Arrow className='' />
+            <Tooltip.Arrow className="" />
           </Tooltip.Content>
         </Tooltip.Portal>
       </Tooltip.Root>

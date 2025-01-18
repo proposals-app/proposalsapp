@@ -1,8 +1,10 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AsyncReturnType<T extends (...args: any) => Promise<any>> =
-  T extends (...args: any) => Promise<infer R> ? R : any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends (...args: any) => Promise<infer R> ? R : never;
 
 export function formatAddress(address: string): string {
-  if (!address) return '';
+  if (!address) return "";
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 

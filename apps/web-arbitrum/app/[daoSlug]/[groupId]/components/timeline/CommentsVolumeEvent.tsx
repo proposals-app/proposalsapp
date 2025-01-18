@@ -5,16 +5,11 @@ interface CommentsVolumeEventProps {
   last: boolean;
 }
 
-export function CommentsVolumeEvent({
-  content,
-  timestamp,
-  volume,
-  last,
-}: CommentsVolumeEventProps) {
+export function CommentsVolumeEvent({ volume }: CommentsVolumeEventProps) {
   return (
-    <div className='flex h-full w-full items-center'>
+    <div className="flex h-full w-full items-center">
       <div
-        className='ml-4 h-1 bg-gray-500 opacity-50'
+        className="ml-4 h-1 bg-gray-500 opacity-50"
         style={{
           width: `${Math.max(volume * 80, 1)}%`,
         }}

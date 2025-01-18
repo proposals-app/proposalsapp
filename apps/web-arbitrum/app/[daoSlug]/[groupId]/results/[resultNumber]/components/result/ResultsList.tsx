@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ProcessedResults } from '../actions';
-import { formatNumberWithSuffix } from '@/lib/utils';
+import { useState } from "react";
+import { ProcessedResults } from "../actions";
+import { formatNumberWithSuffix } from "@/lib/utils";
 
 interface ResultsListProps {
   results: ProcessedResults;
@@ -23,7 +23,7 @@ export function ResultsList({ results }: ResultsListProps) {
 
   // Sort by voting power descending
   const sortedChoices = choicesWithPower.sort(
-    (a, b) => b.votingPower - a.votingPower
+    (a, b) => b.votingPower - a.votingPower,
   );
 
   // Determine which choices to show
@@ -33,7 +33,7 @@ export function ResultsList({ results }: ResultsListProps) {
   // Calculate total voting power for "Other" choices
   const otherVotingPower = otherChoices.reduce(
     (sum, choice) => sum + choice.votingPower,
-    0
+    0,
   );
 
   const quorumVotingPower = sortedChoices
@@ -50,14 +50,14 @@ export function ResultsList({ results }: ResultsListProps) {
   // Check if the majority choice is "For"
   const hasMajoritySupport =
     majorityChoice &&
-    majorityChoice.choice === 'For' &&
+    majorityChoice.choice === "For" &&
     majorityChoice.votingPower > totalVotingPower / 2;
 
   return (
-    <div className='ml-6 w-64'>
-      <h3 className='mb-4 text-xl font-semibold'>Vote Distribution</h3>
-      <div className='space-y-4'>
-        <div className='space-y-2'>
+    <div className="ml-6 w-64">
+      <h3 className="mb-4 text-xl font-semibold">Vote Distribution</h3>
+      <div className="space-y-4">
+        <div className="space-y-2">
           {topChoices.map(({ choice, votingPower, color }, index) => {
             const percentage = (votingPower / totalVotingPower) * 100;
             return (
@@ -73,13 +73,13 @@ export function ResultsList({ results }: ResultsListProps) {
 
           {otherChoices.length > 0 && (
             <div
-              className='cursor-pointer hover:opacity-80'
+              className="cursor-pointer hover:opacity-80"
               onClick={() => setIsExpanded(true)}
             >
               <ChoiceBar
-                choice='Other'
+                choice="Other"
                 votingPower={otherVotingPower}
-                color='#CBD5E1'
+                color="#CBD5E1"
                 percentage={(otherVotingPower / totalVotingPower) * 100}
               />
             </div>
@@ -87,7 +87,7 @@ export function ResultsList({ results }: ResultsListProps) {
         </div>
 
         {isExpanded && (
-          <button className='mt-2 text-sm' onClick={() => setIsExpanded(false)}>
+          <button className="mt-2 text-sm" onClick={() => setIsExpanded(false)}>
             Show less
           </button>
         )}
@@ -98,7 +98,7 @@ export function ResultsList({ results }: ResultsListProps) {
             <div>
               {results.quorum !== null && totalDelegatedVp && (
                 <div
-                  className='w-full text-sm font-semibold'
+                  className="w-full text-sm font-semibold"
                   style={{
                     left: `${(results.quorum / totalDelegatedVp) * 100}%`,
                   }}
@@ -113,24 +113,24 @@ export function ResultsList({ results }: ResultsListProps) {
         {/* Quorum Bar */}
         <div>
           {results.quorum !== null && totalDelegatedVp && (
-            <div className='mb-4'>
-              <div className='relative h-4 w-full rounded-lg'>
+            <div className="mb-4">
+              <div className="relative h-4 w-full rounded-lg">
                 {/* Quorum Line */}
                 <div
-                  className='absolute -top-1 z-10 h-6 w-0.5 bg-red-500'
+                  className="absolute -top-1 z-10 h-6 w-0.5 bg-red-500"
                   style={{
                     left: `${(results.quorum / totalDelegatedVp) * 100}%`,
                   }}
                 />
 
                 {/* Choices that count towards quorum */}
-                <div className='absolute inset-0 flex overflow-hidden rounded-lg'>
+                <div className="absolute inset-0 flex overflow-hidden rounded-lg">
                   {sortedChoices
                     .filter((choice) => choice.countsTowardsQuorum)
                     .map((choice, index) => (
                       <div
                         key={index}
-                        className={`h-full ${index === 0 ? 'rounded-l-lg' : ''}`}
+                        className={`h-full ${index === 0 ? "rounded-l-lg" : ""}`}
                         style={{
                           width: `${(choice.votingPower / totalDelegatedVp) * 100}%`,
                           backgroundColor: choice.color,
@@ -140,15 +140,15 @@ export function ResultsList({ results }: ResultsListProps) {
                 </div>
               </div>
               {/* Quorum Text */}
-              <div className='mt-2 text-sm'>
-                <span className='font-semibold'>
-                  {quorumVotingPower > results.quorum && '✓'}{' '}
+              <div className="mt-2 text-sm">
+                <span className="font-semibold">
+                  {quorumVotingPower > results.quorum && "✓"}{" "}
                   {formatNumberWithSuffix(quorumVotingPower)}
-                </span>{' '}
-                of{' '}
-                <span className='font-semibold'>
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold">
                   {formatNumberWithSuffix(results.quorum)}
-                </span>{' '}
+                </span>{" "}
                 Quorum
               </div>
             </div>
@@ -158,20 +158,20 @@ export function ResultsList({ results }: ResultsListProps) {
         {/* Delegated Voting Power */}
         <div>
           {totalDelegatedVp && (
-            <div className='mt-4'>
-              <div className='relative h-1 w-full rounded-full'>
+            <div className="mt-4">
+              <div className="relative h-1 w-full rounded-full">
                 <div
-                  className='absolute left-0 top-0 h-full rounded-full'
+                  className="absolute left-0 top-0 h-full rounded-full"
                   style={{
                     width: `${participationPercentage}%`,
                   }}
                 />
               </div>
 
-              <div className='mt-2 text-xs'>
-                <span className='font-semibold'>
+              <div className="mt-2 text-xs">
+                <span className="font-semibold">
                   {participationPercentage.toFixed(0)}%
-                </span>{' '}
+                </span>{" "}
                 of all delegated ARB has voted
               </div>
             </div>
@@ -191,10 +191,10 @@ interface ChoiceBarProps {
 
 function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
   return (
-    <div className='relative h-10 w-full rounded-lg border'>
+    <div className="relative h-10 w-full rounded-lg border">
       {/* Bar with percentage width */}
       <div
-        className='absolute left-0 top-0 h-full rounded-lg opacity-85'
+        className="absolute left-0 top-0 h-full rounded-lg opacity-85"
         style={{
           width: `${percentage}%`,
           backgroundColor: color,
@@ -202,14 +202,14 @@ function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
       />
 
       {/* Text content */}
-      <div className='absolute inset-0 flex items-center justify-between px-3'>
+      <div className="absolute inset-0 flex items-center justify-between px-3">
         {/* Left side - Choice name */}
-        <span className='max-w-[50%] truncate text-sm font-bold'>{choice}</span>
+        <span className="max-w-[50%] truncate text-sm font-bold">{choice}</span>
 
         {/* Right side - Percentage and voting power */}
-        <span className='text-xs font-light'>
-          {percentage === null ? '???%' : `${percentage.toFixed(1)}%`}{' '}
-          <span className='font-bold'>
+        <span className="text-xs font-light">
+          {percentage === null ? "???%" : `${percentage.toFixed(1)}%`}{" "}
+          <span className="font-bold">
             {formatNumberWithSuffix(votingPower)}
           </span>
         </span>

@@ -1,12 +1,12 @@
-import { Selectable, Vote } from '@proposalsapp/db';
-import { Proposal } from '../ResultEvent';
+import { Selectable, Vote } from "@proposalsapp/db";
+import { Proposal } from "../ResultEvent";
 
 interface QuadraticVoteProps {
   proposal: Proposal;
   votes: Selectable<Vote>[];
 }
 
-export const QuadraticVote = ({ proposal, votes }: QuadraticVoteProps) => {
+export const QuadraticVote = ({ votes }: QuadraticVoteProps) => {
   // Implement the UI for quadratic voting
   return (
     <div>

@@ -1,11 +1,11 @@
-'use server';
+"use server";
 
-import { type Span, trace } from '@opentelemetry/api';
+import { type Span, trace } from "@opentelemetry/api";
 
-export async function otel<T>(
+export async function otel<T, Args extends unknown[]>(
   fnName: string,
-  fn: (...args: any[]) => Promise<T>,
-  ...props: any[]
+  fn: (...args: Args) => Promise<T>,
+  ...props: Args
 ): Promise<T> {
   const tracer = trace.getTracer(fnName);
   return tracer.startActiveSpan(fnName, async (span: Span) => {

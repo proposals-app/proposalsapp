@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { usePostHog } from 'posthog-js/react';
-import { useEffect } from 'react';
-import { useSession } from './session-provider';
+import { usePostHog } from "posthog-js/react";
+import { useEffect } from "react";
+import { useSession } from "./session-provider";
 
 export const PostHogIdentifier = () => {
   const posthog = usePostHog();

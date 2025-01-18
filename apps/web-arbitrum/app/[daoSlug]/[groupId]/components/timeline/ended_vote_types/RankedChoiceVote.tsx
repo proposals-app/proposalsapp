@@ -1,8 +1,8 @@
-import { Selectable, Vote } from '@proposalsapp/db';
-import { Proposal } from '../ResultEvent';
-import { useMemo } from 'react';
-import { formatNumberWithSuffix } from '@/lib/utils';
-import { HiddenVote } from './HiddenVote';
+import { Selectable, Vote } from "@proposalsapp/db";
+import { Proposal } from "../ResultEvent";
+import { useMemo } from "react";
+import { formatNumberWithSuffix } from "@/lib/utils";
+import { HiddenVote } from "./HiddenVote";
 
 interface RankedChoiceVoteProps {
   proposal: Proposal;
@@ -14,127 +14,126 @@ export const RankedChoiceVote = ({
   votes,
 }: RankedChoiceVoteProps) => {
   const metadata =
-    typeof proposal.metadata === 'string'
+    typeof proposal.metadata === "string"
       ? JSON.parse(proposal.metadata)
       : proposal.metadata;
 
-  const { winningChoice, totalVotingPower, winningPercentage, maxVotingPower } =
-    useMemo(() => {
-      if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
-        return {
-          winningChoice: 'Hidden',
-          totalVotingPower: 0,
-          winningPercentage: 0,
-          maxVotingPower: 0,
-        };
-      }
-
-      const choices = proposal.choices as string[];
-      let remainingChoices = new Set(choices.map((_, index) => index));
-      let voteCounts: { [choice: number]: number } = {};
-      let eliminatedChoices: number[] = [];
-      let winner: number | null = null;
-
-      // Initialize vote counts
-      const initializeVoteCounts = () => {
-        choices.forEach((_, index) => {
-          voteCounts[index] = 0;
-        });
+  const { winningChoice, winningPercentage, maxVotingPower } = useMemo(() => {
+    if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+      return {
+        winningChoice: "Hidden",
+        totalVotingPower: 0,
+        winningPercentage: 0,
+        maxVotingPower: 0,
       };
+    }
 
-      // Run instant-runoff rounds
-      while (remainingChoices.size > 1) {
-        initializeVoteCounts();
+    const choices = proposal.choices as string[];
+    const remainingChoices = new Set(choices.map((_, index) => index));
+    const voteCounts: { [choice: number]: number } = {};
+    const eliminatedChoices: number[] = [];
+    let winner: number | null = null;
 
-        // Count votes for each choice
-        votes.forEach((vote) => {
-          const rankedChoices = Array.isArray(vote.choice)
-            ? (vote.choice as number[])
-            : [vote.choice as number];
+    // Initialize vote counts
+    const initializeVoteCounts = () => {
+      choices.forEach((_, index) => {
+        voteCounts[index] = 0;
+      });
+    };
 
-          // Find the highest-ranked remaining choice
-          const validChoice = rankedChoices.find((choice) =>
-            remainingChoices.has(choice - 1)
-          );
+    // Run instant-runoff rounds
+    while (remainingChoices.size > 1) {
+      initializeVoteCounts();
 
-          if (validChoice !== undefined) {
-            voteCounts[validChoice - 1] += Number(vote.votingPower);
-          }
-        });
+      // Count votes for each choice
+      votes.forEach((vote) => {
+        const rankedChoices = Array.isArray(vote.choice)
+          ? (vote.choice as number[])
+          : [vote.choice as number];
 
-        // Calculate total votes in this round
-        const totalVotes = Object.values(voteCounts).reduce(
-          (sum, power) => sum + power,
-          0
+        // Find the highest-ranked remaining choice
+        const validChoice = rankedChoices.find((choice) =>
+          remainingChoices.has(choice - 1),
         );
 
-        // Check if any choice has a majority
-        for (const [choice, votes] of Object.entries(voteCounts)) {
-          if (votes / totalVotes > 0.5) {
-            winner = Number(choice);
-            break;
-          }
+        if (validChoice !== undefined) {
+          voteCounts[validChoice - 1] += Number(vote.votingPower);
         }
+      });
 
-        if (winner !== null) {
-          break;
-        }
-
-        // Find the choice with the fewest votes
-        let minVotes = Infinity;
-        let choiceToEliminate = -1;
-
-        remainingChoices.forEach((choice) => {
-          if (voteCounts[choice] < minVotes) {
-            minVotes = voteCounts[choice];
-            choiceToEliminate = choice;
-          }
-        });
-
-        // Eliminate the choice with the fewest votes
-        remainingChoices.delete(choiceToEliminate);
-        eliminatedChoices.push(choiceToEliminate);
-      }
-
-      // If no winner yet, the remaining choice is the winner
-      if (winner === null) {
-        winner = Array.from(remainingChoices)[0];
-      }
-
-      // Calculate final results
-      const winningChoice = choices[winner] || 'Unknown';
-      const maxVotingPower = voteCounts[winner] || 0;
-
-      const totalVotingPower = votes.reduce(
-        (sum, vote) => sum + Number(vote.votingPower),
-        0
+      // Calculate total votes in this round
+      const totalVotes = Object.values(voteCounts).reduce(
+        (sum, power) => sum + power,
+        0,
       );
 
-      const winningPercentage = (maxVotingPower / totalVotingPower) * 100;
+      // Check if any choice has a majority
+      for (const [choice, votes] of Object.entries(voteCounts)) {
+        if (votes / totalVotes > 0.5) {
+          winner = Number(choice);
+          break;
+        }
+      }
 
-      return {
-        winningChoice,
-        totalVotingPower,
-        winningPercentage,
-        maxVotingPower,
-      };
-    }, [votes, proposal.choices, metadata]);
+      if (winner !== null) {
+        break;
+      }
 
-  if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
+      // Find the choice with the fewest votes
+      let minVotes = Infinity;
+      let choiceToEliminate = -1;
+
+      remainingChoices.forEach((choice) => {
+        if (voteCounts[choice] < minVotes) {
+          minVotes = voteCounts[choice];
+          choiceToEliminate = choice;
+        }
+      });
+
+      // Eliminate the choice with the fewest votes
+      remainingChoices.delete(choiceToEliminate);
+      eliminatedChoices.push(choiceToEliminate);
+    }
+
+    // If no winner yet, the remaining choice is the winner
+    if (winner === null) {
+      winner = Array.from(remainingChoices)[0];
+    }
+
+    // Calculate final results
+    const winningChoice = choices[winner] || "Unknown";
+    const maxVotingPower = voteCounts[winner] || 0;
+
+    const totalVotingPower = votes.reduce(
+      (sum, vote) => sum + Number(vote.votingPower),
+      0,
+    );
+
+    const winningPercentage = (maxVotingPower / totalVotingPower) * 100;
+
+    return {
+      winningChoice,
+      totalVotingPower,
+      winningPercentage,
+      maxVotingPower,
+    };
+  }, [votes, proposal.choices, metadata]);
+
+  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
     return <HiddenVote votes={votes} />;
   }
 
   return (
-    <div className='flex-col items-center justify-between space-y-1'>
-      <div className='flex h-4 w-full overflow-hidden rounded-md'>
+    <div className="flex-col items-center justify-between space-y-1">
+      <div className="flex h-4 w-full overflow-hidden rounded-md">
         <div
-          className='h-full bg-green-500'
+          className="h-full bg-green-500"
           style={{ width: `${winningPercentage}%` }}
         />
       </div>
-      <div className='flex w-full justify-between'>
-        <div className='truncate text-sm font-bold'>{winningChoice}</div>
-        <div className='text-sm'>{formatNumberWithSuffix(maxVotingPower)}</div>
+      <div className="flex w-full justify-between">
+        <div className="truncate text-sm font-bold">{winningChoice}</div>
+        <div className="text-sm">{formatNumberWithSuffix(maxVotingPower)}</div>
       </div>
     </div>
   );

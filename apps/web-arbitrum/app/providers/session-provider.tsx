@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { createContext, useContext } from 'react';
-import { validateRequest } from '@/lib/auth';
+import { createContext, useContext } from "react";
+import { validateRequest } from "@/lib/auth";
 
 type ContextType = Awaited<ReturnType<typeof validateRequest>>;
 

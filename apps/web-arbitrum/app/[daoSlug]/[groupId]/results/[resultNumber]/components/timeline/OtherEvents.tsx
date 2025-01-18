@@ -1,21 +1,15 @@
-interface GapEventProps {
-  content: string;
-  timestamp: Date;
-  gapSize: number;
-}
-
-export function GapEvent({ content, timestamp, gapSize }: GapEventProps) {
+export function GapEvent() {
   return (
     <div
-      className='relative min-h-[40px] w-full'
+      className="relative min-h-[40px] w-full"
       style={{
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
-      <div className='ml-30 z-50 h-full w-full' />
+      <div className="ml-30 z-50 h-full w-full" />
     </div>
   );
 }
@@ -26,15 +20,11 @@ interface VotesVolumeEventProps {
   volume: number;
 }
 
-export function VotesVolumeEvent({
-  content,
-  timestamp,
-  volume,
-}: VotesVolumeEventProps) {
+export function VotesVolumeEvent({ volume }: VotesVolumeEventProps) {
   return (
-    <div className='flex h-full w-full items-center'>
+    <div className="flex h-full w-full items-center">
       <div
-        className='ml-4 h-1 opacity-0'
+        className="ml-4 h-1 opacity-0"
         style={{
           width: `${Math.max(volume * 80, 1)}%`,
         }}
@@ -43,32 +33,16 @@ export function VotesVolumeEvent({
   );
 }
 
-interface CommentsVolumeEventProps {
-  content: string;
-  timestamp: Date;
-  volume: number;
-}
-
-export function CommentsVolumeEvent({
-  content,
-  timestamp,
-  volume,
-}: CommentsVolumeEventProps) {
+export function CommentsVolumeEvent() {
   return (
-    <div className='flex h-full w-full items-center'>
-      <div className='ml-4 h-1' />
+    <div className="flex h-full w-full items-center">
+      <div className="ml-4 h-1" />
     </div>
   );
 }
 
-interface BasicEventProps {
-  content: string;
-  timestamp: Date;
-  url: string;
-}
-
-export function BasicEvent({ content, timestamp, url }: BasicEventProps) {
+export function BasicEvent() {
   return (
-    <div className='relative mr-4 flex h-8 w-full items-center py-2'></div>
+    <div className="relative mr-4 flex h-8 w-full items-center py-2"></div>
   );
 }

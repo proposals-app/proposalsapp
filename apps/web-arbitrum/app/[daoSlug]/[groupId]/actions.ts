@@ -1,24 +1,23 @@
-import { otel } from '@/lib/otel';
-import { AsyncReturnType } from '@/lib/utils';
+import { otel } from "@/lib/otel";
+import { AsyncReturnType } from "@/lib/utils";
 import {
   db,
   DiscourseTopic,
   Proposal,
   ProposalGroup,
   Selectable,
-  sql,
-} from '@proposalsapp/db';
-import { validate } from 'uuid';
+} from "@proposalsapp/db";
+import { validate } from "uuid";
 
 export async function getGroupData(daoSlug: string, groupId: string) {
-  'use server';
-  return otel('get-group-data', async () => {
-    if (daoSlug == 'favicon.ico') return null;
+  "use server";
+  return otel("get-group-data", async () => {
+    if (daoSlug == "favicon.ico") return null;
 
     // Fetch the DAO based on the slug
     const dao = await db
-      .selectFrom('dao')
-      .where('slug', '=', daoSlug)
+      .selectFrom("dao")
+      .where("slug", "=", daoSlug)
       .selectAll()
       .executeTakeFirst();
 
@@ -34,36 +33,39 @@ export async function getGroupData(daoSlug: string, groupId: string) {
         // Fetch the group based on ID
         group =
           (await db
-            .selectFrom('proposalGroup')
-            .where('id', '=', groupId)
+            .selectFrom("proposalGroup")
+            .where("id", "=", groupId)
             .selectAll()
             .executeTakeFirst()) ?? null;
       } catch (error) {
-        console.error('Error fetching group:', error);
+        console.error("Error fetching group:", error);
       }
     }
 
     if (group) {
-      const items = group.items as any[];
+      const items = group.items as Array<{
+        id: string;
+        type: "proposal" | "topic";
+      }>;
 
       const proposalIds = items
-        .filter((item) => item.type === 'proposal')
+        .filter((item) => item.type === "proposal")
         .map((item) => item.id);
 
       const topicIds = items
-        .filter((item) => item.type === 'topic')
+        .filter((item) => item.type === "topic")
         .map((item) => item.id);
 
       let proposals: Selectable<Proposal>[] = [];
       if (proposalIds.length > 0) {
         try {
           proposals = await db
-            .selectFrom('proposal')
+            .selectFrom("proposal")
             .selectAll()
-            .where('proposal.id', 'in', proposalIds)
+            .where("proposal.id", "in", proposalIds)
             .execute();
         } catch (error) {
-          console.error('Error fetching proposals:', error);
+          console.error("Error fetching proposals:", error);
         }
       }
 
@@ -71,12 +73,12 @@ export async function getGroupData(daoSlug: string, groupId: string) {
       if (topicIds.length > 0) {
         try {
           topics = await db
-            .selectFrom('discourseTopic')
-            .where('discourseTopic.id', 'in', topicIds)
+            .selectFrom("discourseTopic")
+            .where("discourseTopic.id", "in", topicIds)
             .selectAll()
             .execute();
         } catch (error) {
-          console.error('Error fetching topics:', error);
+          console.error("Error fetching topics:", error);
         }
       }
 
@@ -98,18 +100,18 @@ export type Body = {
   author_name: string;
   author_picture: string;
   createdAt: Date;
-  type: 'proposal' | 'topic';
+  type: "proposal" | "topic";
 };
 
 export async function getBodiesForGroup(groupID: string) {
-  'use server';
-  return otel('get-bodies-for-group', async () => {
-    let bodies: Body[] = [];
+  "use server";
+  return otel("get-bodies-for-group", async () => {
+    const bodies: Body[] = [];
 
     const group = await db
-      .selectFrom('proposalGroup')
+      .selectFrom("proposalGroup")
       .selectAll()
-      .where('id', '=', groupID)
+      .where("id", "=", groupID)
       .executeTakeFirstOrThrow();
 
     if (!group) {
@@ -118,27 +120,27 @@ export async function getBodiesForGroup(groupID: string) {
 
     const items = group.items as Array<{
       id: string;
-      type: 'proposal' | 'topic';
+      type: "proposal" | "topic";
     }>;
 
     const proposalIds = items
-      .filter((item) => item.type === 'proposal')
+      .filter((item) => item.type === "proposal")
       .map((item) => item.id);
 
     const topicIds = items
-      .filter((item) => item.type === 'topic')
+      .filter((item) => item.type === "topic")
       .map((item) => item.id);
 
     let proposals: Selectable<Proposal>[] = [];
     if (proposalIds.length > 0) {
       try {
         proposals = await db
-          .selectFrom('proposal')
+          .selectFrom("proposal")
           .selectAll()
-          .where('proposal.id', 'in', proposalIds)
+          .where("proposal.id", "in", proposalIds)
           .execute();
       } catch (error) {
-        console.error('Error fetching proposals:', error);
+        console.error("Error fetching proposals:", error);
       }
     }
 
@@ -146,48 +148,48 @@ export async function getBodiesForGroup(groupID: string) {
       bodies.push({
         title: proposal.name,
         content: proposal.body,
-        author_name: proposal.author ?? 'Unknown',
+        author_name: proposal.author ?? "Unknown",
         author_picture: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${proposal.author}`,
         createdAt: proposal.timeCreated,
-        type: 'proposal',
-      })
+        type: "proposal",
+      }),
     );
 
     let discourseTopics: Selectable<DiscourseTopic>[] = [];
     if (topicIds.length > 0) {
       try {
         discourseTopics = await db
-          .selectFrom('discourseTopic')
+          .selectFrom("discourseTopic")
           .selectAll()
-          .where('discourseTopic.id', 'in', topicIds)
+          .where("discourseTopic.id", "in", topicIds)
           .execute();
       } catch (error) {
-        console.error('Error fetching topics:', error);
+        console.error("Error fetching topics:", error);
       }
     }
 
     for (const discourseTopic of discourseTopics) {
       const discourseFirstPost = await db
-        .selectFrom('discoursePost')
-        .where('discoursePost.topicId', '=', discourseTopic.externalId)
-        .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
-        .where('discoursePost.postNumber', '=', 1)
+        .selectFrom("discoursePost")
+        .where("discoursePost.topicId", "=", discourseTopic.externalId)
+        .where("daoDiscourseId", "=", discourseTopic.daoDiscourseId)
+        .where("discoursePost.postNumber", "=", 1)
         .selectAll()
         .executeTakeFirstOrThrow();
 
       const discourseFirstPostAuthor = await db
-        .selectFrom('discourseUser')
-        .where('discourseUser.externalId', '=', discourseFirstPost.userId)
-        .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
+        .selectFrom("discourseUser")
+        .where("discourseUser.externalId", "=", discourseFirstPost.userId)
+        .where("daoDiscourseId", "=", discourseTopic.daoDiscourseId)
         .selectAll()
         .executeTakeFirstOrThrow();
 
       const discourseFirstPostRevisions = await db
-        .selectFrom('discoursePostRevision')
+        .selectFrom("discoursePostRevision")
         .where(
-          'discoursePostRevision.discoursePostId',
-          '=',
-          discourseFirstPost.id
+          "discoursePostRevision.discoursePostId",
+          "=",
+          discourseFirstPost.id,
         )
         .selectAll()
         .execute();
@@ -196,14 +198,14 @@ export async function getBodiesForGroup(groupID: string) {
       if (!discourseFirstPostRevisions.length)
         bodies.push({
           title: discourseTopic.title,
-          content: discourseFirstPost.cooked ?? 'Unknown',
+          content: discourseFirstPost.cooked ?? "Unknown",
           author_name:
             discourseFirstPostAuthor.name ??
             discourseFirstPostAuthor.username ??
-            'Unknown',
+            "Unknown",
           author_picture: discourseFirstPostAuthor.avatarTemplate,
           createdAt: discourseFirstPost.createdAt,
-          type: 'topic',
+          type: "topic",
         });
 
       for (const discourseFirstPostRevision of discourseFirstPostRevisions) {
@@ -219,10 +221,10 @@ export async function getBodiesForGroup(groupID: string) {
             author_name:
               discourseFirstPostAuthor.name ??
               discourseFirstPostAuthor.username ??
-              'Unknown',
+              "Unknown",
             author_picture: discourseFirstPostAuthor.avatarTemplate,
             createdAt: discourseFirstPost.createdAt,
-            type: 'topic',
+            type: "topic",
           });
 
         bodies.push({
@@ -234,10 +236,10 @@ export async function getBodiesForGroup(groupID: string) {
           author_name:
             discourseFirstPostAuthor.name ??
             discourseFirstPostAuthor.username ??
-            'Unknown',
+            "Unknown",
           author_picture: discourseFirstPostAuthor.avatarTemplate,
           createdAt: discourseFirstPostRevision.createdAt,
-          type: 'topic',
+          type: "topic",
         });
       }
     }
@@ -249,14 +251,14 @@ export async function getBodiesForGroup(groupID: string) {
 }
 
 export async function getTotalVersions(groupID: string) {
-  'use server';
-  return otel('get-total-versions', async () => {
+  "use server";
+  return otel("get-total-versions", async () => {
     let totalVersions = 0;
 
     const group = await db
-      .selectFrom('proposalGroup')
+      .selectFrom("proposalGroup")
       .selectAll()
-      .where('id', '=', groupID)
+      .where("id", "=", groupID)
       .executeTakeFirstOrThrow();
 
     if (!group) {
@@ -265,27 +267,27 @@ export async function getTotalVersions(groupID: string) {
 
     const items = group.items as Array<{
       id: string;
-      type: 'proposal' | 'topic';
+      type: "proposal" | "topic";
     }>;
 
     const proposalIds = items
-      .filter((item) => item.type === 'proposal')
+      .filter((item) => item.type === "proposal")
       .map((item) => item.id);
 
     const topicIds = items
-      .filter((item) => item.type === 'topic')
+      .filter((item) => item.type === "topic")
       .map((item) => item.id);
 
     let proposals: Selectable<Proposal>[] = [];
     if (proposalIds.length > 0) {
       try {
         proposals = await db
-          .selectFrom('proposal')
+          .selectFrom("proposal")
           .selectAll()
-          .where('proposal.id', 'in', proposalIds)
+          .where("proposal.id", "in", proposalIds)
           .execute();
       } catch (error) {
-        console.error('Error fetching proposals:', error);
+        console.error("Error fetching proposals:", error);
       }
     }
 
@@ -295,32 +297,32 @@ export async function getTotalVersions(groupID: string) {
     if (topicIds.length > 0) {
       try {
         discourseTopics = await db
-          .selectFrom('discourseTopic')
+          .selectFrom("discourseTopic")
           .selectAll()
-          .where('discourseTopic.id', 'in', topicIds)
+          .where("discourseTopic.id", "in", topicIds)
           .execute();
       } catch (error) {
-        console.error('Error fetching topics:', error);
+        console.error("Error fetching topics:", error);
       }
     }
 
     for (const discourseTopic of discourseTopics) {
       const discourseFirstPost = await db
-        .selectFrom('discoursePost')
-        .where('discoursePost.topicId', '=', discourseTopic.externalId)
-        .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
-        .where('discoursePost.postNumber', '=', 1)
+        .selectFrom("discoursePost")
+        .where("discoursePost.topicId", "=", discourseTopic.externalId)
+        .where("daoDiscourseId", "=", discourseTopic.daoDiscourseId)
+        .where("discoursePost.postNumber", "=", 1)
         .selectAll()
         .executeTakeFirstOrThrow();
 
       totalVersions++;
 
       const discourseFirstPostRevisions = await db
-        .selectFrom('discoursePostRevision')
+        .selectFrom("discoursePostRevision")
         .where(
-          'discoursePostRevision.discoursePostId',
-          '=',
-          discourseFirstPost.id
+          "discoursePostRevision.discoursePostId",
+          "=",
+          discourseFirstPost.id,
         )
         .selectAll()
         .execute();
