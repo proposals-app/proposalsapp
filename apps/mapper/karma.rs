@@ -64,22 +64,20 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
                 );
 
                 // Fetch the CSV data
-                let response = client
-                    .get(&url)
-                    .send()
-                    .await
-                    .context("Failed to fetch CSV data")?;
-                let body = response
-                    .text()
-                    .await
-                    .context("Failed to read CSV response body")?;
+                let response =
+                    client.get(&url).send().await.with_context(|| {
+                        format!("Failed to fetch CSV data for DAO: {}", dao.slug)
+                    })?;
+                let body = response.text().await.with_context(|| {
+                    format!("Failed to read CSV response body for DAO: {}", dao.slug)
+                })?;
 
                 // Parse the CSV data
                 let mut rdr = ReaderBuilder::new().from_reader(body.as_bytes());
                 let delegates: Vec<KarmaDelegate> = rdr
                     .deserialize::<KarmaDelegate>()
                     .collect::<Result<Vec<_>, _>>()
-                    .context("Failed to parse CSV")?
+                    .with_context(|| format!("Failed to parse CSV for DAO: {}", dao.slug))?
                     .into_iter()
                     .map(|delegate| {
                         // Convert public_address to checksummed version using alloy
@@ -98,7 +96,11 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
 
                 // Update voters based on delegates with ENS set
                 if let Err(e) = update_delegates_ens(db, &delegates).await {
-                    error!(error = %e, "Error updating voters from delegates");
+                    error!(
+                        error = %e,
+                        "Error updating voters from delegates for DAO: {}",
+                        dao.slug
+                    );
                 }
 
                 let delegates_with_forum_handle: Vec<&KarmaDelegate> = delegates
@@ -108,11 +110,19 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
 
                 for delegate in &delegates_with_forum_handle {
                     if let Err(e) = update_delegate(db, &dao, delegate, discourse.id).await {
-                        error!(error = %e, "Error updating delegate: {:?}", delegate);
+                        error!(
+                            error = %e,
+                            "Error updating delegate: {:?} for DAO: {}",
+                            delegate,
+                            dao.slug
+                        );
                     }
                 }
             } else {
-                warn!(slug = %dao.slug, "No dao_discourse mapping found for this slug");
+                warn!(
+                    slug = %dao.slug,
+                    "No dao_discourse mapping found for this slug"
+                );
             }
         }
     }
@@ -138,7 +148,12 @@ async fn update_delegate(
         .filter(voter::Column::Address.eq(delegate_data.public_address.clone()))
         .one(conn)
         .await
-        .context("Failed to find voter")?;
+        .with_context(|| {
+            format!(
+                "Failed to find voter for address: {}",
+                delegate_data.public_address
+            )
+        })?;
 
     // If voter does not exist, create a new one
     if voter.is_none() {
@@ -150,7 +165,12 @@ async fn update_delegate(
         let last_insert_id = voter::Entity::insert(new_voter)
             .exec(conn)
             .await
-            .context("Failed to insert new voter")?
+            .with_context(|| {
+                format!(
+                    "Failed to insert new voter for address: {}",
+                    delegate_data.public_address
+                )
+            })?
             .last_insert_id;
         voter = Some(voter::Model {
             id: last_insert_id,
@@ -165,7 +185,12 @@ async fn update_delegate(
         .filter(discourse_user::Column::DaoDiscourseId.eq(dao_discourse_id))
         .one(conn)
         .await
-        .context("Failed to find discourse user")?;
+        .with_context(|| {
+            format!(
+                "Failed to find discourse user for handle: {} and dao_discourse_id: {}",
+                forum_handle, dao_discourse_id
+            )
+        })?;
 
     if discourse_user.is_none() {
         warn!(
@@ -188,7 +213,12 @@ async fn update_delegate(
             .filter(delegate::Column::DaoId.eq(dao.id))
             .one(conn)
             .await
-            .context("Failed to find delegate via voter")?
+            .with_context(|| {
+                format!(
+                    "Failed to find delegate via voter for voter_id: {}",
+                    voter.id
+                )
+            })?
             .map(|dtv| delegate::Model {
                 id: dtv.delegate_id,
                 dao_id: dao.id,
@@ -204,7 +234,12 @@ async fn update_delegate(
                 .filter(delegate::Column::DaoId.eq(dao.id))
                 .one(conn)
                 .await
-                .context("Failed to find delegate via discourse user")?
+                .with_context(|| {
+                    format!(
+                        "Failed to find delegate via discourse user for discourse_user_id: {}",
+                        discourse_user.id
+                    )
+                })?
                 .map(|dtdu| delegate::Model {
                     id: dtdu.delegate_id,
                     dao_id: dao.id,
@@ -223,7 +258,7 @@ async fn update_delegate(
         let last_insert_id = delegate::Entity::insert(new_delegate)
             .exec(conn)
             .await
-            .context("Failed to insert new delegate")?
+            .with_context(|| format!("Failed to insert new delegate for dao_id: {}", dao.id))?
             .last_insert_id;
         delegate::Model {
             id: last_insert_id,
@@ -240,7 +275,7 @@ async fn update_delegate(
         .filter(delegate_to_voter::Column::VoterId.eq(voter_id))
         .one(conn)
         .await
-        .context("Failed to find existing delegate_to_voter mapping")?;
+        .with_context(|| format!("Failed to find existing delegate_to_voter mapping for delegate_id: {} and voter_id: {}", delegate.id, voter_id))?;
 
     if let Some(dtv) = existing_dtv {
         // Update existing delegate_to_voter mapping
@@ -249,7 +284,7 @@ async fn update_delegate(
         delegate_to_voter::Entity::update(active_dtv)
             .exec(conn)
             .await
-            .context("Failed to update delegate_to_voter mapping")?;
+            .with_context(|| format!("Failed to update delegate_to_voter mapping for delegate_id: {} and voter_id: {}", delegate.id, voter_id))?;
         info!(
             delegate_id = delegate.id.to_string(),
             voter_id = voter_id.to_string(),
@@ -270,7 +305,7 @@ async fn update_delegate(
         delegate_to_voter::Entity::insert(new_dtv)
             .exec(conn)
             .await
-            .context("Failed to insert new delegate_to_voter mapping")?;
+            .with_context(|| format!("Failed to insert new delegate_to_voter mapping for delegate_id: {} and voter_id: {}", delegate.id, voter_id))?;
         info!(
             delegate_id = delegate.id.to_string(),
             voter_id = voter_id.to_string(),
@@ -284,7 +319,7 @@ async fn update_delegate(
         .filter(delegate_to_discourse_user::Column::DiscourseUserId.eq(discourse_user_id))
         .one(conn)
         .await
-        .context("Failed to find existing delegate_to_discourse_user mapping")?;
+        .with_context(|| format!("Failed to find existing delegate_to_discourse_user mapping for delegate_id: {} and discourse_user_id: {}", delegate.id, discourse_user_id))?;
 
     if let Some(dtdu) = existing_dtdu {
         // Update existing delegate_to_discourse_user mapping
@@ -293,7 +328,7 @@ async fn update_delegate(
         delegate_to_discourse_user::Entity::update(active_dtdu)
             .exec(conn)
             .await
-            .context("Failed to update delegate_to_discourse_user mapping")?;
+            .with_context(|| format!("Failed to update delegate_to_discourse_user mapping for delegate_id: {} and discourse_user_id: {}", delegate.id, discourse_user_id))?;
         info!(
             delegate_id = delegate.id.to_string(),
             discourse_user_id = discourse_user_id.to_string(),
@@ -314,7 +349,7 @@ async fn update_delegate(
         delegate_to_discourse_user::Entity::insert(new_dtdu)
             .exec(conn)
             .await
-            .context("Failed to insert new delegate_to_discourse_user mapping")?;
+            .with_context(|| format!("Failed to insert new delegate_to_discourse_user mapping for delegate_id: {} and discourse_user_id: {}", delegate.id, discourse_user_id))?;
         info!(
             delegate_id = delegate.id.to_string(),
             discourse_user_id = discourse_user_id.to_string(),
@@ -356,7 +391,12 @@ async fn update_delegates_ens(
             .filter(voter::Column::Address.is_in(batch_addresses.to_vec()))
             .all(conn)
             .await
-            .context("Failed to fetch voters in batch")?;
+            .with_context(|| {
+                format!(
+                    "Failed to fetch voters in batch for addresses: {:?}",
+                    batch_addresses
+                )
+            })?;
 
         for voter in chunk_voters {
             voters_to_update.insert(voter.address.clone(), voter);
