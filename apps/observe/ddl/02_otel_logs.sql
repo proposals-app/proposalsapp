@@ -30,6 +30,9 @@ CREATE TABLE otel.otel_logs
 )
 ENGINE = MergeTree
 PARTITION BY toDate(Timestamp)
-ORDER BY (ServiceName, SeverityText, toUnixTimestamp(Timestamp), TraceId)
-TTL toDateTime(Timestamp) + toIntervalMonth(3)  -- Retain logs for 3 months
+ORDER BY (ServiceName,
+ SeverityText,
+ toUnixTimestamp(Timestamp),
+ TraceId)
+TTL toDateTime(Timestamp) + toIntervalHour(12)
 SETTINGS index_granularity = 8192, ttl_only_drop_parts = 1;

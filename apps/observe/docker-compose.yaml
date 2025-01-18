@@ -11,6 +11,7 @@ services:
       - clickhouse:/var/lib/clickhouse
       - ./clickhouse-config.xml:/etc/clickhouse-server/config.xml
       - ./ddl/01_otel_db.sql:/docker-entrypoint-initdb.d/01_otel_db.sql
+      - ./clickhouse-logs:/var/lib/clickhouse/clickhouse-logs
     restart: unless-stopped
     healthcheck:
       test: wget --spider http://clickhouse:8123/ping > /dev/null 2>&1 || exit 1
