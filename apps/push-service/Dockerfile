@@ -1,60 +1,49 @@
-FROM node:22-alpine AS builder
+ARG APP_NAME=push-service
 
-# Set the working directory
+# Stage 1: Builder
+FROM node:22-alpine AS builder
 WORKDIR /app
+ARG APP_NAME
 
 # Install and enable Corepack
 RUN corepack enable && corepack prepare yarn@4 --activate
 
 # Copy package-related files
 COPY package.json yarn.lock .yarnrc.yml ./
-
-# Copy project-specific package files
-COPY apps/push-service/package.json apps/push-service/
-COPY libs/ts/db/package.json libs/ts/db/
+COPY apps/${APP_NAME}/package.json ./apps/${APP_NAME}/
+COPY libs/ts/db/package.json ./libs/ts/db/
+COPY libs/ts/emails/package.json ./libs/ts/emails/
 
 # Install dependencies
-RUN yarn install --mode=update-lockfile
-RUN yarn install
+RUN yarn workspaces focus @proposalsapp/${APP_NAME}
 
 # Copy the remaining project files
-COPY apps/push-service/ apps/push-service/
-COPY libs/ts/db/ libs/ts/db/
+COPY apps/${APP_NAME}/ ./apps/${APP_NAME}/
+COPY libs/ts/db/ ./libs/ts/db/
+COPY libs/ts/emails/ ./libs/ts/emails/
 
 # Build the project
-ARG DATABASE_URL=postgresql://user:password@host:5432/database
-ENV DATABASE_URL=${DATABASE_URL}
-RUN yarn build-push-service
+RUN yarn build-${APP_NAME}
 
-# Use Debian Bookworm for the final stage
-FROM debian:bookworm
-
-# Set the working directory
+# Stage 2: Final
+FROM node:22-alpine
 WORKDIR /app
+ARG APP_NAME
 
-# Install Node.js and yarn
-RUN apt-get update && apt-get install -y curl && \
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g corepack && \
-    corepack enable && \
-    corepack prepare yarn@4 --activate && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare yarn@4 --activate
 
-# Set the working directory
-WORKDIR /app
-
-# Copy the built project and required files from the builder stage
-COPY --from=builder /app/apps/push-service/ /app/apps/push-service/
+# Copy only necessary files
+COPY --from=builder /app/apps/${APP_NAME}/ /app/apps/${APP_NAME}/
 COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
+COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
 COPY --from=builder /app/node_modules/ /app/node_modules/
 COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 COPY --from=builder /app/.yarnrc.yml /app/
 
-# Set the environment variable
-ENV PROPOSALS_BIN=push-service
+# Set the environment variables
+ENV PROPOSALS_BIN=${APP_NAME}
+ENV NODE_ENV=production
 
 # Set the default command
 CMD ["yarn", "start-push-service"]
