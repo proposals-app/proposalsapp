@@ -9,9 +9,10 @@ use reqwest::{
 };
 use serde::de::DeserializeOwned;
 use std::{
+    collections::HashSet,
     sync::{
         atomic::{AtomicI64, Ordering},
-        Arc,
+        Arc, Mutex,
     },
     time::Duration,
 };
@@ -40,6 +41,7 @@ pub struct DiscourseApi {
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     pub base_url: String,
+    forbidden_urls: Arc<Mutex<HashSet<String>>>,
 }
 
 struct Job {
@@ -92,6 +94,7 @@ impl DiscourseApi {
             normal_queue: Arc::new(AtomicI64::new(0)),
             normal_queue_gauge,
             requests_counter,
+            forbidden_urls: Arc::new(Mutex::new(HashSet::new())),
         };
 
         // Spawn the queue runner
@@ -232,56 +235,77 @@ impl DiscourseApi {
 
     #[instrument(skip(self), fields(url = %url))]
     async fn execute_request(&self, url: &str) -> Result<String> {
+        // Check if the URL is in the forbidden cache
+        {
+            let forbidden_urls = self.forbidden_urls.lock().unwrap();
+            if forbidden_urls.contains(url) {
+                return Err(anyhow!("URL is cached forbidden: {}", url));
+            }
+        }
+
         let mut attempt = 0;
         let mut delay = DEFAULT_INITIAL_BACKOFF;
 
         loop {
             match self.client.get(url).send().await {
-                Ok(response) => match response.status() {
-                    StatusCode::OK => {
-                        info!(url, "Request successful");
-                        return response
-                            .text()
-                            .await
-                            .map_err(|e| anyhow!("Failed to get response text: {}", e));
-                    }
-                    StatusCode::TOO_MANY_REQUESTS => {
-                        attempt += 1;
-                        if attempt > self.max_retries {
-                            error!(
-                                url,
-                                attempt,
-                                max_retries = self.max_retries,
-                                "Max retries reached. Last error: HTTP 429"
-                            );
-                            return Err(anyhow!("Max retries reached. Last error: HTTP 429"));
+                Ok(response) => {
+                    let status = response.status();
+                    match response.status() {
+                        StatusCode::OK => {
+                            info!(url, "Request successful");
+                            return response
+                                .text()
+                                .await
+                                .map_err(|e| anyhow!("Failed to get response text: {}", e));
                         }
+                        StatusCode::TOO_MANY_REQUESTS => {
+                            attempt += 1;
+                            if attempt > self.max_retries {
+                                error!(
+                                    url,
+                                    attempt,
+                                    max_retries = self.max_retries,
+                                    "Max retries reached. Last error: HTTP 429"
+                                );
+                                return Err(anyhow!("Max retries reached. Last error: HTTP 429"));
+                            }
 
-                        let retry_after = Self::get_retry_after(&response, delay);
-                        warn!(url, attempt, retry_after = ?retry_after, "Rate limited, retrying");
-                        sleep(retry_after).await;
-                        delay = delay.max(retry_after) * 2;
-                    }
-                    status if status.is_server_error() => {
-                        attempt += 1;
-                        if attempt > self.max_retries {
-                            error!(url, status = %status, attempt, max_retries = self.max_retries, "Max retries reached. Server error");
-                            return Err(anyhow!(
-                                "Max retries reached. Last error: HTTP {}",
-                                status
-                            ));
+                            let retry_after = Self::get_retry_after(&response, delay);
+                            warn!(url, attempt, retry_after = ?retry_after, "Rate limited, retrying");
+                            sleep(retry_after).await;
+                            delay = delay.max(retry_after) * 2;
                         }
+                        status if status.is_server_error() => {
+                            attempt += 1;
+                            if attempt > self.max_retries {
+                                error!(url, status = %status, attempt, max_retries = self.max_retries, "Max retries reached. Server error");
+                                return Err(anyhow!(
+                                    "Max retries reached. Last error: HTTP {}",
+                                    status
+                                ));
+                            }
 
-                        warn!(url, status = %status, attempt, delay = ?delay, "Server error, retrying");
-                        sleep(delay).await;
-                        delay *= 2;
+                            warn!(url, status = %status, attempt, delay = ?delay, "Server error, retrying");
+                            sleep(delay).await;
+                            delay *= 2;
+                        }
+                        StatusCode::FORBIDDEN => {
+                            let body = response.text().await.unwrap_or_default();
+                            if body.contains(r#""errors":["You are not permitted to view the requested resource."]"#) {
+                            // Add the URL to the forbidden cache
+                            let mut forbidden_urls = self.forbidden_urls.lock().unwrap();
+                            forbidden_urls.insert(url.to_string());
+                        }
+                            error!(url, status = %status, body, "Request failed");
+                            return Err(anyhow!("Request failed with status {}: {}", status, body));
+                        }
+                        status => {
+                            let body = response.text().await.unwrap_or_default();
+                            error!(url, status = %status, body, "Request failed");
+                            return Err(anyhow!("Request failed with status {}: {}", status, body));
+                        }
                     }
-                    status => {
-                        let body = response.text().await.unwrap_or_default();
-                        error!(url, status = %status, body, "Request failed");
-                        return Err(anyhow!("Request failed with status {}: {}", status, body));
-                    }
-                },
+                }
                 Err(e) => {
                     attempt += 1;
                     if attempt > self.max_retries {
