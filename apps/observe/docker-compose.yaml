@@ -31,15 +31,11 @@ services:
       start_period: 20s
 
   go-parser:
-    image: ghcr.io/hyperdxio/hyperdx:1.10.1-go-parser
+    image: ghcr.io/hyperdxio/hyperdx:${IMAGE_VERSION}-go-parser
     container_name: hdx-oss-go-parser
     environment:
       AGGREGATOR_API_URL: "http://aggregator:8001"
       HYPERDX_API_KEY: ${HYPERDX_API_KEY}
-      HYPERDX_LOG_LEVEL: ${HYPERDX_LOG_LEVEL}
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-      OTEL_LOG_LEVEL: ${HYPERDX_LOG_LEVEL}
-      OTEL_SERVICE_NAME: hdx-oss-go-parser
       PORT: 7777
     ports:
       - 7777:7777
@@ -48,15 +44,11 @@ services:
       - observe-network
 
   miner:
-    image: ghcr.io/hyperdxio/hyperdx:1.10.1-miner
+    image: ghcr.io/hyperdxio/hyperdx:${IMAGE_VERSION}-miner
     container_name: hdx-oss-miner
     environment:
       HYPERDX_API_KEY: ${HYPERDX_API_KEY}
       HYPERDX_ENABLE_ADVANCED_NETWORK_CAPTURE: 1
-      HYPERDX_LOG_LEVEL: ${HYPERDX_LOG_LEVEL}
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-      OTEL_LOG_LEVEL: ${HYPERDX_LOG_LEVEL}
-      OTEL_SERVICE_NAME: hdx-oss-miner
     ports:
       - 5123:5123
     restart: on-failure
@@ -64,7 +56,7 @@ services:
       - observe-network
 
   ingestor:
-    image: ghcr.io/hyperdxio/hyperdx:1.10.1-ingestor
+    image: ghcr.io/hyperdxio/hyperdx:${IMAGE_VERSION}-ingestor
     container_name: hdx-oss-ingestor
     volumes:
       - ingestor_data:/var/lib/vector
@@ -77,8 +69,8 @@ services:
       ENABLE_GO_PARSER: "true"
       GO_PARSER_API_URL: "http://go-parser:7777"
       RUST_BACKTRACE: full
-      VECTOR_LOG: ${HYPERDX_LOG_LEVEL}
       VECTOR_OPENSSL_LEGACY_PROVIDER: "false"
+      HYPERDX_API_KEY: ${HYPERDX_API_KEY}
     networks:
       - observe-network
 
@@ -105,10 +97,9 @@ services:
       - observe-network
 
   otel-collector:
-    image: ghcr.io/hyperdxio/hyperdx:1.10.1-otel-collector
+    image: ghcr.io/hyperdxio/hyperdx:${IMAGE_VERSION}-otel-collector
     container_name: hdx-oss-otel-collector
     environment:
-      HYPERDX_LOG_LEVEL: ${HYPERDX_LOG_LEVEL}
       INGESTOR_API_URL: "http://ingestor:8002"
     restart: on-failure
     ports:
@@ -124,7 +115,7 @@ services:
       - observe-network
 
   aggregator:
-    image: ghcr.io/hyperdxio/hyperdx:1.10.1-api
+    image: ghcr.io/hyperdxio/hyperdx:${IMAGE_VERSION}-api
     container_name: hdx-oss-aggregator
     ports:
       - "8001:8001"
@@ -136,7 +127,6 @@ services:
       CLICKHOUSE_PASSWORD: aggregator
       CLICKHOUSE_USER: aggregator
       FRONTEND_URL: "${HYPERDX_APP_URL}:${HYPERDX_APP_PORT}"
-      HYPERDX_LOG_LEVEL: ${HYPERDX_LOG_LEVEL}
       MONGO_URI: "mongodb://db:27017/hyperdx"
       NODE_ENV: development
       PORT: 8001
@@ -150,7 +140,7 @@ services:
       - ch-server
 
   api:
-    image: ghcr.io/hyperdxio/hyperdx:1.10.1-api
+    image: ghcr.io/hyperdxio/hyperdx:${IMAGE_VERSION}-api
     container_name: hdx-oss-api
     ports:
       - "${HYPERDX_API_PORT}:8000"
@@ -159,7 +149,6 @@ services:
       AGGREGATOR_API_URL: "http://aggregator:8001"
       APP_TYPE: "api"
       CLICKHOUSE_HOST: http://ch-server:8123
-      CLICKHOUSE_LOG_LEVEL: ${HYPERDX_LOG_LEVEL}
       CLICKHOUSE_PASSWORD: api
       CLICKHOUSE_USER: api
       EXPRESS_SESSION_SECRET: "hyperdx is cool 👋"
@@ -168,17 +157,13 @@ services:
       HDX_NODE_BETA_MODE: 1
       HDX_NODE_CONSOLE_CAPTURE: 1
       HYPERDX_API_KEY: ${HYPERDX_API_KEY}
-      HYPERDX_LOG_LEVEL: ${HYPERDX_LOG_LEVEL}
       INGESTOR_API_URL: "http://ingestor:8002"
       MINER_API_URL: "http://miner:5123"
       MONGO_URI: "mongodb://db:27017/hyperdx"
       NODE_ENV: development
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
-      OTEL_SERVICE_NAME: "hdx-oss-api"
       PORT: 8000
       REDIS_URL: redis://redis:6379
       SERVER_URL: "${HYPERDX_API_URL}:${HYPERDX_API_PORT}"
-      USAGE_STATS_ENABLED: ${USAGE_STATS_ENABLED:-true}
     networks:
       - observe-network
     depends_on:
@@ -187,7 +172,7 @@ services:
       - redis
 
   app:
-    image: ghcr.io/hyperdxio/hyperdx:1.10.1-app
+    image: ghcr.io/hyperdxio/hyperdx:${IMAGE_VERSION}-app
     container_name: hdx-oss-app
     ports:
       - "${HYPERDX_APP_PORT}:3001"
