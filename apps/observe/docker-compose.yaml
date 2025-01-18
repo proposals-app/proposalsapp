@@ -64,6 +64,7 @@ services:
     environment:
       MONGO_URI: mongodb://mongodb_user:mongodb_password@mongodb:27017
       EXPRESS_SESSION_SECRET: your_random_secret_here
+      NEXT_PUBLIC_SERVER_URL: http://proposalsapp-hyperdx:8080
       FRONTEND_URL: http://proposalsapp-hyperdx:8080
     restart: unless-stopped
     depends_on:
