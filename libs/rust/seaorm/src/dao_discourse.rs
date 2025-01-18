@@ -18,6 +18,7 @@ pub struct Model {
     pub dao_id: Uuid,
     pub discourse_base_url: String,
     pub enabled: bool,
+    pub with_user_agent: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -26,6 +27,7 @@ pub enum Column {
     DaoId,
     DiscourseBaseUrl,
     Enabled,
+    WithUserAgent,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -59,6 +61,7 @@ impl ColumnTrait for Column {
             Self::DaoId => ColumnType::Uuid.def(),
             Self::DiscourseBaseUrl => ColumnType::Text.def(),
             Self::Enabled => ColumnType::Boolean.def(),
+            Self::WithUserAgent => ColumnType::Boolean.def(),
         }
     }
 }

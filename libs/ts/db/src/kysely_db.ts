@@ -107,6 +107,7 @@ export interface DaoDiscourse {
   discourseBaseUrl: string;
   enabled: Generated<boolean>;
   id: Generated<string>;
+  withUserAgent: Generated<boolean>;
 }
 
 export interface DaoIndexer {

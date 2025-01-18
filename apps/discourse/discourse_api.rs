@@ -3,6 +3,7 @@ use opentelemetry::{
     metrics::{Counter, Gauge},
     KeyValue,
 };
+use rand::{seq::SliceRandom, thread_rng};
 use reqwest::{
     header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT},
     Client, StatusCode,
@@ -28,6 +29,14 @@ const DEFAULT_MAX_RETRIES: usize = 5;
 const DEFAULT_INITIAL_BACKOFF: Duration = Duration::from_secs(2);
 const NORMAL_JOBS_BATCH_SIZE: usize = 10;
 
+const USER_AGENTS: [&str; 5] = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+    "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
+];
+
 #[derive(Clone)]
 pub struct DiscourseApi {
     client: Client,
@@ -51,13 +60,45 @@ struct Job {
 }
 
 impl DiscourseApi {
-    pub fn new(base_url: String) -> Self {
-        Self::new_with_config(base_url, DEFAULT_QUEUE_SIZE, DEFAULT_MAX_RETRIES)
+    pub fn new(base_url: String, with_user_agent: bool) -> Self {
+        Self::new_with_config(
+            base_url,
+            with_user_agent,
+            DEFAULT_QUEUE_SIZE,
+            DEFAULT_MAX_RETRIES,
+        )
     }
 
-    pub fn new_with_config(base_url: String, queue_size: usize, max_retries: usize) -> Self {
+    fn get_random_user_agent() -> &'static str {
+        let mut rng = thread_rng();
+        USER_AGENTS.choose(&mut rng).unwrap_or(&USER_AGENTS[0])
+    }
+
+    fn default_headers(with_user_agent: bool) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+
+        // Set a random user agent only if the URL belongs to the list of base URLs
+        if with_user_agent {
+            headers.insert(
+                USER_AGENT,
+                HeaderValue::from_static(Self::get_random_user_agent()),
+            );
+        } else {
+            headers.insert(USER_AGENT, HeaderValue::from_static("proposals.app Discourse Indexer/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12"));
+        }
+
+        headers.insert("Referer", HeaderValue::from_static("https://proposals.app"));
+        headers
+    }
+
+    pub fn new_with_config(
+        base_url: String,
+        with_user_agent: bool,
+        queue_size: usize,
+        max_retries: usize,
+    ) -> Self {
         let client = Client::builder()
-            .default_headers(Self::default_headers())
+            .default_headers(Self::default_headers(with_user_agent))
             .build()
             .expect("Failed to build HTTP client");
 
@@ -101,13 +142,6 @@ impl DiscourseApi {
         tokio::spawn(api_handler.clone().run_queue(receiver));
 
         api_handler
-    }
-
-    fn default_headers() -> HeaderMap {
-        let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static("proposals.app Discourse Indexer/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12"));
-        headers.insert("Referer", HeaderValue::from_static("https://proposals.app"));
-        headers
     }
 
     #[instrument(skip(self), fields(endpoint = %endpoint, priority = priority))]
@@ -291,11 +325,11 @@ impl DiscourseApi {
                         }
                         StatusCode::FORBIDDEN => {
                             let body = response.text().await.unwrap_or_default();
-                            if body.contains(r#""errors":["You are not permitted to view the requested resource."]"#) {
+
                             // Add the URL to the forbidden cache
                             let mut forbidden_urls = self.forbidden_urls.lock().unwrap();
                             forbidden_urls.insert(url.to_string());
-                        }
+
                             error!(url, status = %status, body, "Request failed");
                             return Err(anyhow!("Request failed with status {}: {}", status, body));
                         }
