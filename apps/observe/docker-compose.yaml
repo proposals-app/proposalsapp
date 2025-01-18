@@ -1,4 +1,3 @@
----
 services:
   clickhouse:
     image: clickhouse/clickhouse-server:latest-alpine
@@ -51,6 +50,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: mongodb_user
       MONGO_INITDB_ROOT_PASSWORD: mongodb_password
+    restart: unless-stopped
     networks:
       - observe-network
 
@@ -64,6 +64,7 @@ services:
       MONGO_URI: mongodb://mongodb_user:mongodb_password@mongodb:27017
       EXPRESS_SESSION_SECRET: your_random_secret_here
       FRONTEND_URL: http://localhost:8080
+    restart: unless-stopped
     depends_on:
       - mongodb
       - clickhouse
