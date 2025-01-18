@@ -64,12 +64,19 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
                 );
 
                 // Fetch the CSV data
-                let response =
-                    client.get(&url).send().await.with_context(|| {
-                        format!("Failed to fetch CSV data for DAO: {}", dao.slug)
-                    })?;
+                let response = client.get(&url).send().await.with_context(|| {
+                    format!(
+                        "Failed to fetch CSV data for DAO: {} from URL: {}",
+                        dao.slug, url
+                    )
+                })?;
+
+                let status = response.status();
                 let body = response.text().await.with_context(|| {
-                    format!("Failed to read CSV response body for DAO: {}", dao.slug)
+                    format!(
+                        "Failed to read CSV response body for DAO: {}. Status: {}, URL: {}",
+                        dao.slug, status, url
+                    )
                 })?;
 
                 // Parse the CSV data
