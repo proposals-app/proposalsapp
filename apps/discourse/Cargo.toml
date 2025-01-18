@@ -16,7 +16,7 @@ oneshot = { workspace = true }
 opentelemetry = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
-reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "cookies"] }
 scraper = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",

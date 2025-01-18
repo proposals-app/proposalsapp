@@ -5,6 +5,7 @@ use opentelemetry::{
 };
 use rand::{seq::SliceRandom, thread_rng};
 use reqwest::{
+    cookie::Jar,
     header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT},
     Client, StatusCode,
 };
@@ -15,7 +16,7 @@ use std::{
         atomic::{AtomicI64, Ordering},
         Arc, Mutex,
     },
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::{
     sync::{mpsc, oneshot},
@@ -50,7 +51,7 @@ pub struct DiscourseApi {
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     pub base_url: String,
-    forbidden_urls: Arc<Mutex<HashSet<String>>>,
+    forbidden_urls: Arc<Mutex<HashSet<(String, u64)>>>,
 }
 
 struct Job {
@@ -74,10 +75,10 @@ impl DiscourseApi {
         USER_AGENTS.choose(&mut rng).unwrap_or(&USER_AGENTS[0])
     }
 
-    fn default_headers(with_user_agent: bool) -> HeaderMap {
+    fn default_headers_with_cookies(with_user_agent: bool) -> (HeaderMap, Arc<Jar>) {
         let mut headers = HeaderMap::new();
+        let cookie_jar = Arc::new(Jar::default());
 
-        // Set a random user agent only if the URL belongs to the list of base URLs
         if with_user_agent {
             headers.insert(
                 USER_AGENT,
@@ -88,7 +89,20 @@ impl DiscourseApi {
         }
 
         headers.insert("Referer", HeaderValue::from_static("https://proposals.app"));
-        headers
+        headers.insert(
+            "Accept",
+            HeaderValue::from_static(
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            ),
+        );
+        headers.insert(
+            "Accept-Language",
+            HeaderValue::from_static("en-US,en;q=0.5"),
+        );
+        headers.insert("Connection", HeaderValue::from_static("keep-alive"));
+        headers.insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1"));
+
+        (headers, cookie_jar)
     }
 
     pub fn new_with_config(
@@ -97,8 +111,11 @@ impl DiscourseApi {
         queue_size: usize,
         max_retries: usize,
     ) -> Self {
+        let (headers, cookie_jar) = Self::default_headers_with_cookies(with_user_agent);
+
         let client = Client::builder()
-            .default_headers(Self::default_headers(with_user_agent))
+            .default_headers(headers)
+            .cookie_provider(cookie_jar)
             .build()
             .expect("Failed to build HTTP client");
 
@@ -271,8 +288,16 @@ impl DiscourseApi {
     async fn execute_request(&self, url: &str) -> Result<String> {
         // Check if the URL is in the forbidden cache
         {
-            let forbidden_urls = self.forbidden_urls.lock().unwrap();
-            if forbidden_urls.contains(url) {
+            let mut forbidden_urls = self.forbidden_urls.lock().unwrap();
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+
+            // Clean up expired entries
+            forbidden_urls.retain(|(_, timestamp)| now - *timestamp < 3600);
+
+            if forbidden_urls.iter().any(|(u, _)| u == url) {
                 return Err(anyhow!("URL is cached forbidden: {}", url));
             }
         }
@@ -327,8 +352,12 @@ impl DiscourseApi {
                             let body = response.text().await.unwrap_or_default();
 
                             // Add the URL to the forbidden cache
+                            let now = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs();
                             let mut forbidden_urls = self.forbidden_urls.lock().unwrap();
-                            forbidden_urls.insert(url.to_string());
+                            forbidden_urls.insert((url.to_string(), now));
 
                             error!(url, status = %status, body, "Request failed");
                             return Err(anyhow!("Request failed with status {}: {}", status, body));
