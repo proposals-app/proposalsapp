@@ -1,0 +1,80 @@
+---
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest-alpine
+    container_name: clickhouse
+    hostname: clickhouse
+    ports:
+      - "8123:8123" # http clickhouse
+      - "9000:9000" # tcp clickhouse
+      - "9363:9363" # prometheus /metrics
+    volumes:
+      - clickhouse:/var/lib/clickhouse
+      - ./clickhouse-config.xml:/etc/clickhouse-server/config.xml
+      - ./ddl/01_otel_db.sql:/docker-entrypoint-initdb.d/01_otel_db.sql
+    restart: unless-stopped
+    healthcheck:
+      test: wget --spider http://clickhouse:8123/ping > /dev/null 2>&1 || exit 1
+      timeout: 5s
+      interval: 5s
+      retries: 5
+    networks:
+      - observe-network
+
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otelcol
+    hostname: otelcol
+    command:
+      - "--config=/etc/otelcol-contrib/config.yaml"
+      - "--set=service.telemetry.logs.level=info" # debug
+    volumes:
+      - ./otelcol-config.yaml:/etc/otelcol-contrib/config.yaml
+    restart: unless-stopped
+    ports:
+      - "4317:4317" # otlp
+      - "4318:4318" # otlp
+      - "24224:24224" # fluentd forwarder
+      - "13133:13133" # health check
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - observe-network
+
+  mongodb:
+    container_name: mongodb
+    hostname: mongodb
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongodb_user
+      MONGO_INITDB_ROOT_PASSWORD: mongodb_password
+    networks:
+      - observe-network
+
+  hyperdx:
+    container_name: hyperdx
+    hostname: hyperdx
+    image: docker.hyperdx.io/hyperdx/hyperdx:2-beta
+    ports:
+      - "8080:8080"
+    environment:
+      MONGO_URI: mongodb://mongodb_user:mongodb_password@mongodb:27017
+      EXPRESS_SESSION_SECRET: your_random_secret_here
+      FRONTEND_URL: http://localhost:8080
+    depends_on:
+      - mongodb
+      - clickhouse
+    networks:
+      - observe-network
+
+networks:
+  observe-network:
+
+volumes:
+  clickhouse:
+  mongodb-data:
