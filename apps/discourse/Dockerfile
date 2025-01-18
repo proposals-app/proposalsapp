@@ -59,4 +59,4 @@ COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 ENV PROPOSALS_BIN=${APP_NAME}
 
 # Set the default command
-CMD ${APP_NAME}
+CMD ["discourse"]
