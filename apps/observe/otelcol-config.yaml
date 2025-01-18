@@ -1,10 +1,11 @@
 receivers:
-  fluentforward:
-    endpoint: 0.0.0.0:24224 # listen on all interfaces; required
   otlp:
     protocols:
-      grpc: {}
-      http: {}
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
   prometheus:
     config:
       scrape_configs:
@@ -52,7 +53,7 @@ service:
   pipelines:
     logs:
       receivers:
-        - fluentforward
+        - otlp
       processors:
         - batch
       exporters:

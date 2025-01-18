@@ -35,9 +35,6 @@ CREATE TABLE otel.otel_traces
 )
 ENGINE = MergeTree
 PARTITION BY toDate(Timestamp)
-ORDER BY (ServiceName,
- SpanName,
- toUnixTimestamp(Timestamp),
- TraceId)
-TTL toDateTime(Timestamp) + toIntervalHour(12)
-SETTINGS index_granularity = 8192,ttl_only_drop_parts = 1;
+ORDER BY (ServiceName, SpanName, toUnixTimestamp(Timestamp), TraceId)
+TTL toDateTime(Timestamp) + toIntervalDay(7)  -- Retain traces for 7 days
+SETTINGS index_granularity = 8192, ttl_only_drop_parts = 1;

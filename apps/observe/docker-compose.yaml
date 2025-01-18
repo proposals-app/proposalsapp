@@ -27,14 +27,12 @@ services:
     hostname: otelcol
     command:
       - "--config=/etc/otelcol-contrib/config.yaml"
-      - "--set=service.telemetry.logs.level=info" # debug
     volumes:
       - ./otelcol-config.yaml:/etc/otelcol-contrib/config.yaml
     restart: unless-stopped
     ports:
       - "4317:4317" # otlp
       - "4318:4318" # otlp
-      - "24224:24224" # fluentd forwarder
       - "13133:13133" # health check
     depends_on:
       clickhouse:
