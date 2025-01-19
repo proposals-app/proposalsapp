@@ -10,7 +10,7 @@ receivers:
 
 exporters:
   clickhouse:
-    endpoint: tcp://clickhouse:9000
+    endpoint: tcp://ch-server:9000
     database: otel
     logs_table_name: otel_logs
     traces_table_name: otel_traces
