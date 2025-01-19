@@ -37,8 +37,6 @@ services:
     volumes:
       - ./otel/otelcol-config.yml:/etc/otelcol-config.yml
     ports:
-      - "4317:4317" # OTLP over gRPC receiver
-      - "4318:4318" # OTLP over HTTP receiver
       - "8888:8888" # Metrics endpoint
     environment:
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
@@ -47,6 +45,23 @@ services:
     depends_on:
       ch-server:
         condition: service_healthy
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template
+    environment:
+      - NGINX_BEARER_TOKEN=${NGINX_BEARER_TOKEN}
+      - TOKEN=${NGINX_BEARER_TOKEN}
+    command: /bin/bash -c "envsubst '$$TOKEN' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    networks:
+      - observe-network
+    depends_on:
+      - otelcol
 
   mongodb:
     container_name: mongodb
