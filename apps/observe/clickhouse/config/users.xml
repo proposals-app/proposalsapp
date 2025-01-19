@@ -11,7 +11,7 @@
 
     <users>
         <default>
-            <password>UD6vKK73pqK8TUE!PTQE</password>
+            <password>${CLICKHOUSE_PASSWORD}</password>
             <profile>default</profile>
             <networks>
                 <ip>::/0</ip>

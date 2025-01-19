@@ -1,7 +1,6 @@
 receivers:
   otlp:
     protocols:
-      grpc:
       http:
         cors:
           allowed_origins:
@@ -12,6 +11,8 @@ exporters:
   clickhouse:
     endpoint: tcp://ch-server:9000
     database: otel
+    username: default
+    password: ${CLICKHOUSE_PASSWORD}
     logs_table_name: otel_logs
     traces_table_name: otel_traces
     timeout: 10s
