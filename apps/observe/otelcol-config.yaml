@@ -48,8 +48,6 @@ extensions:
   health_check:
 
 service:
-  extensions:
-    - health_check
   pipelines:
     logs:
       receivers:
@@ -59,18 +57,20 @@ service:
       exporters:
         - debug
         - clickhouse
-    metrics:
-      receivers:
-        - prometheus
-      processors: []
-      exporters:
-        - debug
-        - clickhouse
+
     traces:
       receivers:
         - otlp
       processors:
         - batch
+      exporters:
+        - debug
+        - clickhouse
+
+    metrics:
+      receivers:
+        - prometheus
+      processors: []
       exporters:
         - debug
         - clickhouse

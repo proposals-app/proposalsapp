@@ -33,7 +33,6 @@ services:
     ports:
       - "4317:4317" # otlp
       - "4318:4318" # otlp
-      - "13133:13133" # health check
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -61,11 +60,10 @@ services:
     image: docker.hyperdx.io/hyperdx/hyperdx:2-beta
     ports:
       - "8080:8080"
+      - "8000:8000"
     environment:
       MONGO_URI: mongodb://mongodb_user:mongodb_password@mongodb:27017
       EXPRESS_SESSION_SECRET: your_random_secret_here
-      NEXT_PUBLIC_SERVER_URL: http://proposalsapp-hyperdx:8080
-      FRONTEND_URL: http://proposalsapp-hyperdx:8080
     restart: unless-stopped
     depends_on:
       - mongodb
