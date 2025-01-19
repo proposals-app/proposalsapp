@@ -63,35 +63,24 @@ services:
     depends_on:
       - otelcol
 
-  mongodb:
-    container_name: mongodb
-    hostname: mongodb
-    image: mongo:6
-    volumes:
-      - mongodb-data:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: mongodb_user
-      MONGO_INITDB_ROOT_PASSWORD: mongodb_password
-    restart: unless-stopped
-    networks:
-      - observe-network
-
-  hyperdx:
-    container_name: hyperdx
-    hostname: hyperdx
-    image: docker.hyperdx.io/hyperdx/hyperdx:2-beta
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
     ports:
-      - "8080:8080"
+      - "3000:3000"
     environment:
-      MONGO_URI: mongodb://mongodb_user:mongodb_password@mongodb:27017
-      EXPRESS_SESSION_SECRET: ${EXPRESS_SESSION_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL}
-    restart: unless-stopped
-    depends_on:
-      - mongodb
-      - ch-server
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - observe-network
+    depends_on:
+      - ch-server
 
 networks:
   observe-network:
@@ -99,3 +88,4 @@ networks:
 volumes:
   mongodb-data:
   clickhouse-data:
+  grafana-storage:

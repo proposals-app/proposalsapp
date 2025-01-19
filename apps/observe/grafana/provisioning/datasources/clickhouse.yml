@@ -1,0 +1,30 @@
+apiVersion: 1
+
+datasources:
+  - name: ClickHouse
+    type: grafana-clickhouse-datasource
+    uid: clickhouse
+    access: proxy
+    url: http://ch-server:8123
+    user: default
+    jsonData:
+      defaultDatabase: otel
+      tlsSkipVerify: true
+      queryTimeout: 30
+      protocol: http
+      mode: traces
+      tracesTable: "otel_traces" # Remove the database prefix
+      logsTable: "otel_logs"
+      traceIdColumn: "TraceId"
+      spanIdColumn: "SpanId"
+      parentSpanIdColumn: "ParentSpanId"
+      operationNameColumn: "SpanName"
+      durationColumn: "Duration"
+      startTimeColumn: "Timestamp"
+      serviceNameColumn: "ServiceName"
+      statusColumn: "StatusCode"
+      tagsColumn: "SpanAttributes"
+    secureJsonData:
+      password: ${CLICKHOUSE_PASSWORD}
+    editable: true
+    isDefault: true
