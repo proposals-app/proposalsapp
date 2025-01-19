@@ -26,6 +26,12 @@ CREATE TABLE IF NOT EXISTS otel.otel_traces (
         TraceState String,
         Attributes Map(LowCardinality(String), String)
     ) CODEC(ZSTD(1)),
+    -- New fields for OpenTelemetry Schema 1.2.9
+    DroppedAttributesCount UInt32 CODEC(ZSTD(1)),
+    DroppedEventsCount UInt32 CODEC(ZSTD(1)),
+    DroppedLinksCount UInt32 CODEC(ZSTD(1)),
+    ResourceSchemaUrl String CODEC(ZSTD(1)),
+    ScopeSchemaUrl String CODEC(ZSTD(1)),
     -- Common HTTP attributes
     HttpMethod LowCardinality(String) MATERIALIZED SpanAttributes['http.method'] CODEC(ZSTD(1)),
     HttpTarget String MATERIALIZED SpanAttributes['http.target'] CODEC(ZSTD(1)),

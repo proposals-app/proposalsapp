@@ -1,10 +1,9 @@
 services:
   ch-server:
-    image: clickhouse/clickhouse-server:head
+    image: clickhouse/clickhouse-server:latest
     container_name: ch-server
     ports:
       - "9000:9000"
-      - "8123:8123"
     ulimits:
       nofile:
         soft: 262144
@@ -29,15 +28,13 @@ services:
       retries: 5
 
   otelcol:
-    image: otel/opentelemetry-collector-contrib:0.74.0
+    image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-col
     hostname: otel-col
     restart: unless-stopped
     command: ["--config=/etc/otelcol-config.yml"]
     volumes:
       - ./otel/otelcol-config.yml:/etc/otelcol-config.yml
-    ports:
-      - "8888:8888" # Metrics endpoint
     environment:
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
     networks:
@@ -67,7 +64,7 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "8080:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin

@@ -1,11 +1,10 @@
 receivers:
   otlp:
     protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
       http:
-        cors:
-          allowed_origins:
-            - "http://*"
-            - "https://*"
+        endpoint: "0.0.0.0:4318"
 
 exporters:
   clickhouse:
@@ -24,8 +23,10 @@ exporters:
       max_interval: 30s
       max_elapsed_time: 300s
 
-  logging:
-    loglevel: debug
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
 
 processors:
   batch:
@@ -37,12 +38,8 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [clickhouse, logging]
+      exporters: [clickhouse, debug]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [clickhouse, logging]
-    metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [clickhouse, logging]
+      exporters: [clickhouse, debug]
