@@ -13,8 +13,8 @@ services:
       - ./clickhouse/ddl:/docker-entrypoint-initdb.d
       - ./clickhouse/config/config.xml:/etc/clickhouse-server/config.xml
       - ./clickhouse/config/users.xml:/etc/clickhouse-server/users.xml
-      #     - ./clickhouse-data:/var/lib/clickhouse
       - ./clickhouse-logs:/var/log/clickhouse-server
+      - clickhouse-data:/var/lib/clickhouse
     environment:
       - CLICKHOUSE_DB=otel
       - CLICKHOUSE_USER=default
@@ -98,3 +98,4 @@ networks:
 
 volumes:
   mongodb-data:
+  clickhouse-data:
