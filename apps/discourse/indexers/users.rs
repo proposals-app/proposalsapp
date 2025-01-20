@@ -174,7 +174,7 @@ impl UserIndexer {
         db_handler.upsert_user(&user, dao_discourse_id).await
     }
 
-    #[instrument]
+    #[instrument(skip(self))]
     fn process_avatar_url(&self, avatar_template: &str) -> String {
         if avatar_template.starts_with("http") {
             // It's already a full URL, just replace {size}
