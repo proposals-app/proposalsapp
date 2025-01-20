@@ -44,12 +44,9 @@ metrics_generator:
     external_labels:
       source: tempo
   storage:
-    path: /var/tempo/metrics
-  processor:
-    service_graphs:
-      histogram_buckets:
-        [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
-    span_metrics:
-      dimensions: ["service", "operation", "status_code"]
-      histogram_buckets:
-        [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+  traces_storage:
+    path: /var/tempo/generator/traces
