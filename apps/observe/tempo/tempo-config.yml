@@ -34,3 +34,7 @@ storage:
 compactor:
   compaction:
     block_retention: 48h
+
+limits:
+  max_bytes_per_trace: 10485760 # 10 MB
+  max_spans_per_trace: 1000000 # 1 million spans

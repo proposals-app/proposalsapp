@@ -23,6 +23,8 @@ impl UserIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
+        info!("Starting to update all users");
+
         self.update_users(db_handler, dao_discourse_id, "all", None, false)
             .await
     }
@@ -33,6 +35,8 @@ impl UserIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
+        info!("Starting to update new users");
+
         const MAX_PAGES: usize = 3;
         self.update_users(db_handler, dao_discourse_id, "daily", Some(MAX_PAGES), true)
             .await
@@ -47,6 +51,8 @@ impl UserIndexer {
         max_pages: Option<usize>,
         priority: bool,
     ) -> Result<()> {
+        info!("Starting to update users");
+
         let mut page = 0;
         let mut total_users = 0;
         let mut previous_response: Option<UserResponse> = None;
@@ -139,6 +145,8 @@ impl UserIndexer {
         dao_discourse_id: Uuid,
         priority: bool,
     ) -> Result<()> {
+        info!("Fetching user by username");
+
         let url = format!("/u/{}.json", username);
         info!(url, "Fetching user by username");
 
@@ -166,6 +174,7 @@ impl UserIndexer {
         db_handler.upsert_user(&user, dao_discourse_id).await
     }
 
+    #[instrument]
     fn process_avatar_url(&self, avatar_template: &str) -> String {
         if avatar_template.starts_with("http") {
             // It's already a full URL, just replace {size}

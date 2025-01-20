@@ -21,6 +21,8 @@ impl LikesIndexer {
         post_id: i32,
         priority: bool,
     ) -> Result<()> {
+        info!("Fetching and storing likes for post");
+
         let url = format!(
             "/post_action_users.json?id={}&post_action_type_id=2",
             post_id

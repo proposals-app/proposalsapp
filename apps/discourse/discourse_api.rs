@@ -61,6 +61,7 @@ struct Job {
 }
 
 impl DiscourseApi {
+    #[instrument]
     pub fn new(base_url: String, with_user_agent: bool) -> Self {
         Self::new_with_config(
             base_url,
@@ -70,11 +71,13 @@ impl DiscourseApi {
         )
     }
 
+    #[instrument]
     fn get_random_user_agent() -> &'static str {
         let mut rng = thread_rng();
         USER_AGENTS.choose(&mut rng).unwrap_or(&USER_AGENTS[0])
     }
 
+    #[instrument]
     fn default_headers_with_cookies(with_user_agent: bool) -> (HeaderMap, Arc<Jar>) {
         let mut headers = HeaderMap::new();
         let cookie_jar = Arc::new(Jar::default());
@@ -105,6 +108,7 @@ impl DiscourseApi {
         (headers, cookie_jar)
     }
 
+    #[instrument]
     pub fn new_with_config(
         base_url: String,
         with_user_agent: bool,
@@ -166,6 +170,8 @@ impl DiscourseApi {
     where
         T: DeserializeOwned,
     {
+        info!("Fetching data from endpoint");
+
         let labels = &[KeyValue::new("base_url", self.base_url.clone())];
         self.total_queue.fetch_add(1, Ordering::SeqCst);
         if priority {
@@ -200,6 +206,7 @@ impl DiscourseApi {
         serde_json::from_str(&response).map_err(|e| anyhow!("Failed to parse response: {}", e))
     }
 
+    #[instrument(skip(self, receiver))]
     async fn run_queue(self, mut receiver: mpsc::Receiver<Job>) {
         let mut priority_queue = Vec::new();
         let mut normal_queue = Vec::new();
@@ -253,6 +260,7 @@ impl DiscourseApi {
         }
     }
 
+    #[instrument(skip(self, job), fields(url = %job.url, priority = is_priority))]
     async fn process_job(&self, job: Job, is_priority: bool) {
         let result = self.execute_request(&job.url).await;
         if let Err(e) = &result {
@@ -383,6 +391,7 @@ impl DiscourseApi {
         }
     }
 
+    #[instrument]
     fn get_retry_after(response: &reqwest::Response, default: Duration) -> Duration {
         response
             .headers()

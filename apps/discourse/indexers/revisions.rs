@@ -22,6 +22,8 @@ impl RevisionIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
+        info!("Starting to update all revisions");
+
         let posts = self
             .fetch_posts_with_revisions(db_handler.clone(), dao_discourse_id)
             .await
@@ -67,6 +69,8 @@ impl RevisionIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
+        info!("Starting to update recent revisions");
+
         let posts = self
             .fetch_recent_posts_with_revisions(db_handler.clone(), dao_discourse_id)
             .await
@@ -112,6 +116,8 @@ impl RevisionIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<Vec<discourse_post::Model>> {
+        info!("Fetching posts with revisions");
+
         let posts = discourse_post::Entity::find()
             .filter(discourse_post::Column::Version.gt(1))
             .filter(discourse_post::Column::CanViewEditHistory.eq(true))
@@ -144,6 +150,8 @@ impl RevisionIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<Vec<seaorm::discourse_post::Model>> {
+        info!("Fetching recent posts with revisions");
+
         let six_hours_ago = Utc::now() - Duration::hours(6);
         let posts = seaorm::discourse_post::Entity::find()
             .filter(discourse_post::Column::Version.gt(1))
@@ -182,6 +190,8 @@ async fn update_revisions_for_post(
     version: i32,
     priority: bool,
 ) -> Result<()> {
+    info!("Updating revisions for post");
+
     let discourse_post = seaorm::discourse_post::Entity::find()
         .filter(seaorm::discourse_post::Column::ExternalId.eq(post_id))
         .filter(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
@@ -215,5 +225,6 @@ async fn update_revisions_for_post(
             .with_context(|| format!("Failed to upsert revision for post {}", post_id))?;
     }
 
+    info!("Finished updating revisions for post");
     Ok(())
 }

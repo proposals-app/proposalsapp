@@ -23,6 +23,8 @@ impl CategoryIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
+        info!("Starting to update all categories");
+
         let mut page = 0;
         let mut total_categories = 0;
         let mut previous_response: Option<CategoryResponse> = None;
@@ -30,6 +32,7 @@ impl CategoryIndexer {
         loop {
             let url = format!("/categories.json?include_subcategories=true&page={}", page);
             info!(url, "Fetching categories");
+
             let response: CategoryResponse = self
                 .discourse_api
                 .fetch(&url, false)
@@ -84,6 +87,7 @@ impl CategoryIndexer {
     }
 }
 
+#[instrument]
 fn flatten_categories(categories: &[Category], result: &mut Vec<Category>) {
     for category in categories {
         let mut category_clone = category.clone();

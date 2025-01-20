@@ -31,6 +31,8 @@ impl PostIndexer {
         topic_id: i32,
         priority: bool,
     ) -> Result<()> {
+        info!("Starting to update posts for topic");
+
         // Fetch existing posts for the topic from the database
         let existing_posts = seaorm::discourse_post::Entity::find()
             .filter(
@@ -40,7 +42,7 @@ impl PostIndexer {
             )
             .all(&db_handler.conn)
             .await
-            .context("new query")?;
+            .context("Failed to fetch existing posts")?;
 
         let existing_post_ids: HashSet<i32> =
             existing_posts.iter().map(|post| post.external_id).collect();

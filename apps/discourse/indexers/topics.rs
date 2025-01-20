@@ -23,6 +23,8 @@ impl TopicIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
+        info!("Starting to update all topics");
+
         self.update_topics(db_handler, dao_discourse_id, true, None, false)
             .await
     }
@@ -33,6 +35,8 @@ impl TopicIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
+        info!("Starting to update new topics");
+
         const MAX_PAGES: usize = 3;
         self.update_topics(db_handler, dao_discourse_id, false, Some(MAX_PAGES), true)
             .await
@@ -47,6 +51,8 @@ impl TopicIndexer {
         max_pages: Option<usize>,
         priority: bool,
     ) -> Result<()> {
+        info!("Starting to update topics");
+
         let mut total_topics = 0;
         let mut page = 0;
         let mut join_set = JoinSet::new();
