@@ -94,6 +94,8 @@ async fn main() -> Result<()> {
     dotenv().ok();
     let _tracing = setup_tracing().await?;
 
+    info!("Application starting up");
+
     let db: DatabaseConnection = DatabaseStore::connect().await?;
 
     // Heartbeat task
