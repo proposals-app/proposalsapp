@@ -1,12 +1,25 @@
 services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template
+    environment:
+      - TOKEN=${NGINX_BEARER_TOKEN}
+    command: /bin/bash -c "envsubst '$$TOKEN' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    networks:
+      - observe-network
+    depends_on:
+      - otel-collector
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
     hostname: otel-collector
     restart: unless-stopped
-    ports:
-      - "4318:4318" # OTLP HTTP
-      - "4317:4317" # OTLP gRPC
     volumes:
       - ./otel-collector/otel-collector-config.yml:/etc/otel-collector-config.yml
     command: ["--config=/etc/otel-collector-config.yml"]
