@@ -49,6 +49,7 @@ services:
       - GF_DATABASE_NAME=grafana
       - GF_DATABASE_USER=grafana
       - GF_DATABASE_PASSWORD=your_secure_db_password
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor traceQLStreaming metricsSummary
     networks:
       - observe-network
     depends_on:

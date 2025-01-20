@@ -1,5 +1,7 @@
+stream_over_http_enabled: true
 server:
   http_listen_port: 3200
+  log_level: info
 
 distributor:
   receivers:
@@ -9,11 +11,21 @@ distributor:
           endpoint: "0.0.0.0:4317"
         http:
           endpoint: "0.0.0.0:4318"
-    jaeger:
-      protocols:
-        thrift_http:
-          endpoint: "0.0.0.0:14268"
-    zipkin:
+
+compactor:
+  compaction:
+    block_retention: 48h
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
 
 ingester:
   max_block_duration: 5m
@@ -25,32 +37,7 @@ ingester:
       replication_factor: 1
     final_sleep: 0s
 
-storage:
-  trace:
-    backend: local
-    local:
-      path: /var/tempo/traces
-
-compactor:
-  compaction:
-    block_retention: 48h
-
-metrics_generator:
-  registry:
-    external_labels:
-      source: tempo
-  storage:
-    path: /var/tempo/generator/wal
-    remote_write:
-      - url: http://prometheus:9090/api/v1/write
-        send_exemplars: true
-  traces_storage:
-    path: /var/tempo/generator/traces
-
 overrides:
+  metrics_generator_processors: [service-graphs, span-metrics, local-blocks]
   max_global_traces_per_user: 10000000
   max_traces_per_user: 10000000
-  defaults:
-    metrics_generator:
-      processors: [service-graphs, span-metrics, local-blocks] # enables metrics generator
-      generate_native_histograms: both
