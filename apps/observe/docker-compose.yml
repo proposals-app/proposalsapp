@@ -75,14 +75,32 @@ services:
     depends_on:
       - postgres
 
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    hostname: tempo
+    restart: unless-stopped
+    volumes:
+      - ./tempo/tempo-config.yml:/etc/tempo/config.yml
+      - tempo-data:/var/tempo
+    command: "-config.file=/etc/tempo/config.yml"
+    networks:
+      - observe-network
+    depends_on:
+      - loki
+
   loki:
     image: grafana/loki:latest
     container_name: loki
     hostname: loki
     restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      - DOCKER_DEFAULT_PLATFORM=linux/amd64
+    tmpfs:
+      - /tmp/loki
     volumes:
       - ./loki/loki-config.yml:/etc/loki/local-config.yaml
-      - loki-data:/tmp/loki
     command: -config.file=/etc/loki/local-config.yaml
     networks:
       - observe-network
@@ -103,25 +121,10 @@ services:
     depends_on:
       - loki
 
-  tempo:
-    image: grafana/tempo:latest
-    container_name: tempo
-    hostname: tempo
-    restart: unless-stopped
-    volumes:
-      - ./tempo/tempo-config.yml:/etc/tempo.yaml
-      - tempo-data:/tmp/tempo
-    command: -config.file=/etc/tempo.yaml
-    networks:
-      - observe-network
-    depends_on:
-      - loki
-
 volumes:
   grafana-storage:
   postgres-data:
   prometheus-data:
-  loki-data:
   tempo-data:
 
 networks:

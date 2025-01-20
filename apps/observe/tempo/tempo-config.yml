@@ -16,6 +16,7 @@ distributor:
     zipkin:
 
 ingester:
+  max_block_duration: 5m
   lifecycler:
     address: 0.0.0.0
     ring:
@@ -28,4 +29,8 @@ storage:
   trace:
     backend: local
     local:
-      path: /tmp/tempo/traces
+      path: /var/tempo/traces
+
+compactor:
+  compaction:
+    block_retention: 48h
