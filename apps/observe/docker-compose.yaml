@@ -70,10 +70,19 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      # Add these environment variables
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=5s
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_PATHS_DASHBOARDS=/var/lib/grafana/dashboards
+      # Enable saving dashboards to the file system
+      - GF_DASHBOARDS_JSON_ENABLED=true
+      - GF_DASHBOARDS_JSON_PATH=/var/lib/grafana/dashboards
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      # Ensure the dashboards directory has read-write permissions
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:rw
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
     networks:
       - observe-network
     depends_on:
