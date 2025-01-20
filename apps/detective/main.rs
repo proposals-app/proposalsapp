@@ -211,13 +211,13 @@ async fn main() -> Result<()> {
         CONCURRENT_JOBS_ONCHAIN,
     );
 
-    // Set up the health check server
-    let app = Router::new().route("/", get("OK"));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    let server = tokio::spawn(async move {
-        axum::serve(listener, app).await.unwrap();
-    });
-    info!(port = 3000, "Health check server running");
+    // // Set up the health check server
+    // let app = Router::new().route("/", get("OK"));
+    // let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    // let server = tokio::spawn(async move {
+    //     axum::serve(listener, app).await.unwrap();
+    // });
+    // info!(port = 3000, "Health check server running");
 
     // Wait for Ctrl+C
     tokio::signal::ctrl_c().await?;
@@ -227,7 +227,7 @@ async fn main() -> Result<()> {
     job_producer.abort();
     snapshot_job_consumer.abort();
     other_job_consumer.abort();
-    server.abort();
+    // server.abort();
     uptime_handle.abort();
 
     Ok(())
