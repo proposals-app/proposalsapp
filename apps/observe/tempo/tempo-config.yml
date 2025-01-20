@@ -1,7 +1,3 @@
-overrides:
-  max_global_traces_per_user: 10000000
-  max_traces_per_user: 10000000
-
 server:
   http_listen_port: 3200
 
@@ -50,3 +46,11 @@ metrics_generator:
         send_exemplars: true
   traces_storage:
     path: /var/tempo/generator/traces
+
+overrides:
+  max_global_traces_per_user: 10000000
+  max_traces_per_user: 10000000
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics, local-blocks] # enables metrics generator
+      generate_native_histograms: both
