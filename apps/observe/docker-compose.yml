@@ -2,6 +2,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
+    hostname: otel-collector
     restart: unless-stopped
     ports:
       - "4318:4318" # OTLP HTTP
@@ -9,6 +10,8 @@ services:
     volumes:
       - ./otel-collector/otel-collector-config.yml:/etc/otel-collector-config.yml
     command: ["--config=/etc/otel-collector-config.yml"]
+    networks:
+      - observe-network
     depends_on:
       - loki
       - tempo
@@ -17,6 +20,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
+    hostname: grafana
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -32,6 +36,8 @@ services:
       - GF_DATABASE_NAME=grafana
       - GF_DATABASE_USER=grafana
       - GF_DATABASE_PASSWORD=your_secure_db_password
+    networks:
+      - observe-network
     depends_on:
       - postgres
       - prometheus
@@ -41,6 +47,7 @@ services:
   postgres:
     image: postgres:13
     container_name: postgres
+    hostname: postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: grafana
@@ -48,10 +55,13 @@ services:
       POSTGRES_PASSWORD: your_secure_db_password
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - observe-network
 
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
+    hostname: prometheus
     restart: unless-stopped
     ports:
       - "9090:9090"
@@ -60,39 +70,50 @@ services:
       - prometheus-data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
+    networks:
+      - observe-network
     depends_on:
       - postgres
 
   loki:
     image: grafana/loki:latest
     container_name: loki
+    hostname: loki
     restart: unless-stopped
     volumes:
       - ./loki/loki-config.yml:/etc/loki/local-config.yaml
       - loki-data:/tmp/loki
     command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - observe-network
     depends_on:
       - prometheus
 
   promtail:
     image: grafana/promtail:latest
     container_name: promtail
+    hostname: promtail
     restart: unless-stopped
     volumes:
       - ./loki/promtail-config.yml:/etc/promtail/config.yml
       - /var/log:/var/log
     command: -config.file=/etc/promtail/config.yml
+    networks:
+      - observe-network
     depends_on:
       - loki
 
   tempo:
     image: grafana/tempo:latest
     container_name: tempo
+    hostname: tempo
     restart: unless-stopped
     volumes:
       - ./tempo/tempo-config.yml:/etc/tempo.yaml
       - tempo-data:/tmp/tempo
     command: -config.file=/etc/tempo.yaml
+    networks:
+      - observe-network
     depends_on:
       - loki
 
@@ -102,3 +123,7 @@ volumes:
   prometheus-data:
   loki-data:
   tempo-data:
+
+networks:
+  observe-network:
+    name: observe-network
