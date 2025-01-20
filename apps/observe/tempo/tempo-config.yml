@@ -1,5 +1,6 @@
 overrides:
-  per_tenant_override_config: /etc/tempo/overrides.yml
+  max_global_traces_per_user: 10000000
+  max_traces_per_user: 10000000
 
 server:
   http_listen_port: 3200

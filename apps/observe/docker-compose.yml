@@ -95,7 +95,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./tempo/tempo-config.yml:/etc/tempo/config.yml
-      - ./tempo/overrides.yml:/etc/tempo/overrides.yml
       - tempo-data:/var/tempo
     command: "-config.file=/etc/tempo/config.yml"
     networks:
