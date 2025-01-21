@@ -72,7 +72,7 @@ export const FullViewBar = () => {
     } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
       setView(ViewEnum.BODY);
     }
-  }, 10); // 100ms debounce
+  }, 10);
 
   return (
     <div
@@ -95,7 +95,10 @@ export const FullViewBar = () => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             >
-              <ArrowUp className='h-8 w-8 rounded-full border p-1' />
+              <ArrowUp
+                className='h-8 w-8 rounded-full border p-1 hover:bg-neutral-100 dark:border-neutral-800
+                  dark:hover:bg-neutral-800'
+              />
               <div>Collapse Proposal</div>
             </div>
           ) : (
@@ -106,7 +109,10 @@ export const FullViewBar = () => {
                 setExpanded(true);
               }}
             >
-              <ArrowDown className='h-8 w-8 rounded-full border p-1' />
+              <ArrowDown
+                className='h-8 w-8 rounded-full border p-1 hover:bg-neutral-100 dark:border-neutral-800
+                  dark:hover:bg-neutral-800'
+              />
               <div>Read Full Proposal</div>
             </div>
           )}
@@ -135,7 +141,8 @@ export const FullViewBar = () => {
                 <Popover.Trigger asChild>
                   <button
                     className='flex h-8 w-[200px] items-center justify-between rounded-full border bg-white
-                      px-4 text-sm dark:bg-neutral-950'
+                      px-4 text-sm transition-colors hover:bg-neutral-100 dark:border-neutral-800
+                      dark:bg-neutral-950 dark:hover:bg-neutral-800'
                     aria-expanded={false}
                   >
                     {voteFilters.find((filter) => filter.value === votesFilter)
@@ -146,12 +153,14 @@ export const FullViewBar = () => {
                 <Popover.Content
                   className='border-neutral-350 w-[200px] rounded-md border bg-white p-1 shadow-lg
                     dark:border-neutral-800 dark:bg-neutral-950'
+                  sideOffset={5}
                 >
                   <div className='space-y-1'>
                     {voteFilters.map((filter) => (
                       <button
                         key={filter.value}
-                        className='flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm'
+                        className='flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm
+                          transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800'
                         onClick={() => {
                           setVotesFilter(
                             filter.value === votesFilter
