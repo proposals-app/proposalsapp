@@ -12,8 +12,9 @@ interface NavBarProps {
 export function NavBar({ daoSlug, dao }: NavBarProps) {
   return (
     <div
-      className='fixed left-0 top-0 z-20 flex min-h-screen w-20 flex-col items-center border-r
-        p-4'
+      className='border-neutral-350 fixed left-0 top-0 z-20 flex min-h-screen w-20 flex-col
+        items-center border-r bg-neutral-200 p-4 dark:border-neutral-700
+        dark:bg-neutral-800'
     >
       <Link href={`/${daoSlug}`}>
         <Image

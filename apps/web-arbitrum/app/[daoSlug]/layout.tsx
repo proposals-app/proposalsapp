@@ -40,7 +40,7 @@ export default async function DaoLayout({
       <div className='absolute right-4 top-4 z-50'>
         <ModeToggle />
       </div>
-      <div className='flex min-h-screen w-full flex-row bg-neutral-200 dark:bg-neutral-700'>
+      <div className='bg-red flex min-h-screen w-full flex-row bg-neutral-50 dark:bg-neutral-950'>
         <NavBar dao={dao} daoSlug={daoSlug} />
         <div className='flex w-full justify-between'>{children}</div>
       </div>

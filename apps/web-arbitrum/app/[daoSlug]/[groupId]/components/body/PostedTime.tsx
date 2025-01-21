@@ -24,11 +24,27 @@ export async function PostedTime({
     <Tooltip.Provider>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <div
-            className={`flex flex-col items-center p-2 ${border ? 'rounded-lg border' : ''}`}
-          >
-            <span className=''>{label}</span>
-            <span className='font-bold'>{relativeTime}</span>
+          <div>
+            <div
+              className={`flex flex-row items-center gap-4 p-2 ${
+                border
+                  ? `rounded-lg border border-neutral-200 bg-white dark:border-neutral-500
+                    dark:bg-neutral-500`
+                  : ''
+                }`}
+            >
+              <div className='flex flex-col'>
+                <span className='text-neutral-700 dark:text-neutral-100'>
+                  {label}
+                </span>
+                <span className='font-bold text-neutral-700 dark:text-neutral-100'>
+                  {relativeTime}
+                </span>
+              </div>
+              {border && (
+                <div className='bg-neutral-350 h-8 w-8 rounded dark:bg-neutral-800'></div>
+              )}
+            </div>
           </div>
         </Tooltip.Trigger>
         <Tooltip.Portal>

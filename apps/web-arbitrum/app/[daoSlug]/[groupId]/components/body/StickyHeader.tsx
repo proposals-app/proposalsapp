@@ -40,7 +40,8 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
 
   return (
     <div
-      className={`fixed left-0 right-0 top-0 z-10 h-20 shadow-md transition-transform duration-300
+      className={`fixed left-0 right-0 top-0 z-10 h-20 bg-neutral-50 shadow-md
+        transition-transform duration-300 dark:bg-neutral-950
         ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
     >
       <div className='mx-auto flex h-full w-full items-center px-6 lg:px-24'>
@@ -53,11 +54,16 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
               width={40}
               height={40}
             />
-            <Avatar.Fallback className='flex h-full w-full items-center justify-center'>
+            <Avatar.Fallback
+              className='flex h-full w-full items-center justify-center text-neutral-700
+                dark:text-neutral-100'
+            >
               {authorName.slice(0, 2)}
             </Avatar.Fallback>
           </Avatar.Root>
-          <h1 className='text-lg font-bold'>{title}</h1>
+          <h1 className='text-lg font-bold text-neutral-700 dark:text-neutral-100'>
+            {title}
+          </h1>
         </div>
       </div>
     </div>
