@@ -95,31 +95,43 @@ services:
     hostname: tempo
     restart: unless-stopped
     volumes:
-      - ./tempo/tempo-config.yml:/etc/tempo/config.yml
       - tempo-data:/var/tempo
+      - ./tempo/tempo-config.yml:/etc/tempo/config.yml
     command: "-config.file=/etc/tempo/config.yml"
     networks:
       - observe-network
     depends_on:
       - loki
 
+  loki-init:
+    image: busybox
+    command: sh -c "mkdir -p /var/loki/chunks && chown -R 65534:65534 /var/loki"
+    volumes:
+      - loki-data:/var/loki
+    user: root
+
   loki:
     image: grafana/loki:latest
     container_name: loki
     hostname: loki
     restart: unless-stopped
-    user: "1000:1000"
+    user: "65534:65534"
     environment:
       - DOCKER_DEFAULT_PLATFORM=linux/amd64
-    tmpfs:
-      - /tmp/loki
     volumes:
+      - loki-data:/var/loki
       - ./loki/loki-config.yml:/etc/loki/local-config.yaml
     command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - observe-network
+    # Add this section to create directory with correct permissions
+    entrypoint: >
+      /bin/sh -c "
+      mkdir -p /var/loki/chunks &&
+      chown -R nobody:nobody /var/loki &&
+      exec /usr/bin/loki -config.file=/etc/loki/local-config.yaml
+      "
     depends_on:
       - prometheus
+      - loki-init
 
   promtail:
     image: grafana/promtail:latest
@@ -140,6 +152,7 @@ volumes:
   postgres-data:
   prometheus-data:
   tempo-data:
+  loki-data:
 
 networks:
   observe-network:
