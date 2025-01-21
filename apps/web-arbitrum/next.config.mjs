@@ -25,7 +25,11 @@ const nextConfig = {
     ];
   },
   skipTrailingSlashRedirect: true,
-
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   images: {
     remotePatterns: [
       {
