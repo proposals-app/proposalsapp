@@ -45,7 +45,13 @@ const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === 'post';
 };
 
-export async function PostItem({ item }: { item: CombinedFeedItem }) {
+export async function PostItem({
+  item,
+  previousPostNumber,
+}: {
+  item: CombinedFeedItem;
+  previousPostNumber?: number;
+}) {
   if (!isPostItem(item)) {
     return null;
   }
@@ -82,19 +88,21 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
     "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
   );
 
-  const isDeleted = item.deleted;
+  const isPostDeleted = item.deleted;
 
   return (
     <div id={postAnchorId} className='w-full scroll-mt-36'>
-      {isDeleted ? (
+      {isPostDeleted ? (
+        // Show the full details/summary UI for deleted posts
         <details className='w-full'>
           <summary
             className='flex h-12 cursor-pointer list-none items-center justify-center
+              border-neutral-400 text-neutral-500 dark:border-neutral-600
               [&::-webkit-details-marker]:hidden'
           >
-            <div className='flex-grow border-t'></div>
+            <div className='flex-grow border-t border-neutral-400 dark:border-neutral-600'></div>
             <span className='mx-4'>deleted post</span>
-            <div className='flex-grow border-t'></div>
+            <div className='flex-grow border-t border-neutral-400 dark:border-neutral-600'></div>
           </summary>
           <div className='p-4'>
             <PostContent
