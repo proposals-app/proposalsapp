@@ -41,8 +41,6 @@ COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 COPY --from=builder /app/.yarnrc.yml /app/
 
-# Set the environment variables
-ENV PROPOSALS_BIN=${APP_NAME}
 ENV NODE_ENV=production
 
 # Set the default command

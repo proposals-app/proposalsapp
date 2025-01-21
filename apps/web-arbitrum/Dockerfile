@@ -57,9 +57,7 @@ COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/yarn.lock /app/
 COPY --from=builder /app/.yarnrc.yml /app/
 
-# Set the environment variables
-ENV PROPOSALS_BIN=web-arbitrum
-ENV NEXT_OTEL_VERBOSE=1
+ENV NODE_ENV=production
 
 # Set the default command
 CMD ["yarn", "start-web-arbitrum"]

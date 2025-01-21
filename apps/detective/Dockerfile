@@ -55,8 +55,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
-# Set the environment variable
-ENV PROPOSALS_BIN=${APP_NAME}
-
 # Set the default command
 CMD ["detective"]
