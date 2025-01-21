@@ -53,8 +53,6 @@ export async function VoteItem({
     proposalIds
   );
 
-  console.log(delegate);
-
   const getDelegateDisplayInfo = () => {
     if (!delegate) {
       return {
@@ -229,7 +227,6 @@ const AuthorInfo = ({
         </div>
         {authorName !== voterAddress && (
           <div className='text-sm text-neutral-500 dark:text-neutral-400'>
-            {isDelegate ? 'Delegated by ' : 'Using '}
             {voterAddress}
           </div>
         )}
