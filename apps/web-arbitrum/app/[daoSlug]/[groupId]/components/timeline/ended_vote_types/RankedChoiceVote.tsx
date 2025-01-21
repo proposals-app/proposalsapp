@@ -19,7 +19,7 @@ export const RankedChoiceVote = ({
       : proposal.metadata;
 
   const { winningChoice, winningPercentage, maxVotingPower } = useMemo(() => {
-    if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
+    if (metadata?.hiddenVote && metadata?.scoresState !== 'final') {
       return {
         winningChoice: 'Hidden',
         totalVotingPower: 0,
@@ -119,7 +119,7 @@ export const RankedChoiceVote = ({
     };
   }, [votes, proposal.choices, metadata]);
 
-  if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
+  if (metadata?.hiddenVote && metadata?.scoresState !== 'final') {
     return <HiddenVote votes={votes} />;
   }
 

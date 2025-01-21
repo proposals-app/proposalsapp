@@ -86,7 +86,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
       : proposal.metadata;
 
   const { votesByChoice, totalVotingPower } = useMemo(() => {
-    if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
+    if (metadata?.hiddenVote && metadata?.scoresState !== 'final') {
       return {
         votesByChoice: {
           For: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
@@ -211,7 +211,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
     return { votesByChoice, totalVotingPower: total };
   }, [votes, proposal.choices, metadata]);
 
-  if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
+  if (metadata?.hiddenVote && metadata?.scoresState !== 'final') {
     return <HiddenVote votes={votes} />;
   }
 
