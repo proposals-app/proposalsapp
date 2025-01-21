@@ -66,8 +66,8 @@ export default async function ResultPage({
       <div className={'flex w-full flex-grow pb-16 pl-[175px] pt-[104px]'}>
         <div className='h-full w-full pr-4'>
           <div
-            className='bg-background flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg
-              border p-6'
+            className='flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border
+              border-neutral-300 bg-white p-6 dark:border-neutral-700 dark:bg-neutral-950'
           >
             {group ? (
               <Suspense fallback={<ResultsLoading />}>

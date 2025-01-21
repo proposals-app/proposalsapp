@@ -76,8 +76,12 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     const choiceText = shouldHideVote ? 'Hidden vote' : vote.choiceText;
 
     return (
-      <div style={style} className='grid grid-cols-4 items-center border-b p-2'>
-        <div className='flex items-center gap-2 font-bold'>
+      <div
+        style={style}
+        className='grid grid-cols-4 items-center border-b border-neutral-200 p-2
+          dark:border-neutral-800'
+      >
+        <div className='flex items-center gap-2 px-2 font-bold'>
           {delegate && (
             <>
               <span className='truncate'>{delegate.name}</span>
@@ -86,7 +90,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           {!delegate && <span className='truncate'>{vote.voterAddress}</span>}
         </div>
         <div
-          className='flex cursor-default flex-col truncate'
+          className='flex cursor-default flex-col truncate px-2'
           title={choiceText}
         >
           <div className='font-bold'>
@@ -117,13 +121,13 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
             </div>
           )}
         </div>
-        <div className='cursor-default'>
+        <div className='cursor-default px-2'>
           <div>{formatDistanceToNow(vote.timestamp, { addSuffix: true })}</div>
           <div className='text-sm'>
             {format(toZonedTime(vote.timestamp, 'UTC'), 'MMM d, yyyy')} UTC
           </div>
         </div>
-        <div className='cursor-default'>
+        <div className='cursor-default px-2'>
           <div>{formatNumberWithSuffix(vote.votingPower)} ARB</div>
           <div className='text-sm'>{votingPowerPercentage.toFixed(1)}%</div>
         </div>
@@ -133,10 +137,9 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
   return (
     <div className='mt-6'>
-      <h3 className='mb-4 text-xl font-semibold'>Voting Breakdown</h3>
-      <div className='rounded-md border'>
+      <div className='rounded-md border border-neutral-300 dark:border-neutral-700'>
         {/* Header */}
-        <div className='grid grid-cols-4 border-b p-3'>
+        <div className='grid grid-cols-4 border-b border-neutral-300 p-3 dark:border-neutral-700'>
           <div>Delegate</div>
           <div
             onClick={() => handleSortChange('choice')}
@@ -175,6 +178,39 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
         >
           {Row}
         </List>
+      </div>
+    </div>
+  );
+}
+
+export function LoadingTable() {
+  return (
+    <div
+      className='mt-6 w-full rounded-lg border border-neutral-300 bg-white p-4
+        dark:border-neutral-700 dark:bg-neutral-950'
+    >
+      {/* Header */}
+      <div className='grid grid-cols-4 border-b border-neutral-300 p-3 dark:border-neutral-700'>
+        <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+      </div>
+
+      {/* Rows */}
+      <div className='mt-4 space-y-2'>
+        {[...Array(10)].map((_, index) => (
+          <div
+            key={index}
+            className='grid h-12 grid-cols-4 items-center gap-4 rounded-lg bg-neutral-200 p-2
+              dark:bg-neutral-800'
+          >
+            <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          </div>
+        ))}
       </div>
     </div>
   );

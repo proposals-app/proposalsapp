@@ -52,7 +52,7 @@ export async function Timeline({
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Conditionally render the top SVG */}
         {isProposalEnded && (
-          <div className='absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-500'>
+          <div className='absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-neutral-500'>
             <svg
               width='21'
               height='21'
@@ -67,10 +67,10 @@ export async function Timeline({
                 width='20'
                 height='20'
                 rx='10'
-                fill='white'
+                className='dark:fill-bg-neutral-700 fill-neutral-300'
                 stroke='#D3D3D3'
               />
-              <circle cx='10.5' cy='10.5' r='3' fill='#737373' />
+              <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
             </svg>
           </div>
         )}
@@ -93,10 +93,10 @@ export async function Timeline({
               width='20'
               height='20'
               rx='10'
-              fill='white'
+              className='dark:fill-bg-neutral-700 fill-neutral-300'
               stroke='#D3D3D3'
             />
-            <circle cx='10.5' cy='10.5' r='3' fill='#737373' />
+            <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
           </svg>
         </div>
 
@@ -168,7 +168,7 @@ export function LoadingTimeline() {
     >
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
-        <div className='absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-500'>
+        <div className='absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-neutral-500'>
           <svg
             width='21'
             height='21'
@@ -183,15 +183,15 @@ export function LoadingTimeline() {
               width='20'
               height='20'
               rx='10'
-              fill='white'
+              className='dark:fill-bg-neutral-700 fill-neutral-300'
               stroke='#D3D3D3'
             />
-            <circle cx='10.5' cy='10.5' r='3' fill='#737373' />
+            <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
           </svg>
         </div>
 
         {/* Vertical Line Placeholder */}
-        <div className='absolute bottom-5 left-[14px] top-5 w-0.5 bg-gray-500' />
+        <div className='absolute bottom-5 left-[14px] top-5 w-0.5 bg-neutral-500' />
 
         {/* Placeholder Items */}
         <div className='flex h-full flex-col gap-8'>
@@ -211,7 +211,7 @@ export function LoadingTimeline() {
         </div>
 
         {/* Bottom SVG Placeholder */}
-        <div className='absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-gray-500'>
+        <div className='absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>
           <svg
             width='21'
             height='21'
@@ -226,10 +226,10 @@ export function LoadingTimeline() {
               width='20'
               height='20'
               rx='10'
-              fill='white'
+              className='dark:fill-bg-neutral-700 fill-neutral-300'
               stroke='#D3D3D3'
             />
-            <circle cx='10.5' cy='10.5' r='3' fill='#737373' />
+            <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
           </svg>
         </div>
       </div>

@@ -39,16 +39,16 @@ export function ResultEvent({
   const eventContent = (
     <div className='relative flex items-center py-2'>
       <div
-        className={`flex flex-col gap-1 ${
+        className={`flex flex-col gap-1 px-4 py-2 pr-8 ${
           resultNumber == selectedResult
             ? 'w-36 rounded-l-xl border-b border-l border-t'
             : 'w-28 rounded-xl border'
-          } px-4 py-2 pr-8`}
+          } border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-950`}
       >
         {eventIndex == 0 && resultNumber == selectedResult && (
           <div className='absolute -right-2 top-2 h-2 w-10 border-t'></div>
         )}
-        <div className='absolute left-3 top-5 h-[7px] w-[7px] rounded-full border bg-gray-500' />
+        <div className='absolute left-3 top-5 h-[7px] w-[7px] rounded-full border bg-neutral-500' />
         {!last && (
           <div
             className='absolute left-[11.5px] top-[7px] z-10 h-[15px] max-h-[15px] w-0.5

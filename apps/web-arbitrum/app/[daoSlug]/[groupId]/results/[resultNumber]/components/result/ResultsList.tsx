@@ -117,14 +117,17 @@ export function ResultsList({ results }: ResultsListProps) {
               <div className='relative h-4 w-full rounded-lg'>
                 {/* Quorum Line */}
                 <div
-                  className='absolute -top-1 z-10 h-6 w-0.5 bg-red-500'
+                  className='absolute -top-1 z-10 h-6 w-0.5 bg-neutral-700 dark:bg-neutral-200'
                   style={{
                     left: `${(results.quorum / totalDelegatedVp) * 100}%`,
                   }}
                 />
 
                 {/* Choices that count towards quorum */}
-                <div className='absolute inset-0 flex overflow-hidden rounded-lg'>
+                <div
+                  className='absolute inset-0 flex overflow-hidden rounded-lg border border-neutral-300
+                    bg-white dark:border-neutral-700 dark:bg-neutral-950'
+                >
                   {sortedChoices
                     .filter((choice) => choice.countsTowardsQuorum)
                     .map((choice, index) => (
@@ -191,7 +194,10 @@ interface ChoiceBarProps {
 
 function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
   return (
-    <div className='relative h-10 w-full rounded-lg border'>
+    <div
+      className='relative h-10 w-full rounded-lg border border-neutral-300 bg-white
+        dark:border-neutral-700 dark:bg-neutral-950'
+    >
       {/* Bar with percentage width */}
       <div
         className='absolute left-0 top-0 h-full rounded-lg opacity-85'
@@ -213,6 +219,25 @@ function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
             {formatNumberWithSuffix(votingPower)}
           </span>
         </span>
+      </div>
+    </div>
+  );
+}
+
+export function LoadingList() {
+  return (
+    <div
+      className='ml-6 w-64 rounded-lg border border-neutral-300 bg-white p-4
+        dark:border-neutral-700 dark:bg-neutral-950'
+    >
+      <h3 className='mb-4 text-xl font-semibold'>Vote Distribution</h3>
+      <div className='space-y-4'>
+        {[...Array(3)].map((_, index) => (
+          <div
+            key={index}
+            className='h-10 w-full animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'
+          />
+        ))}
       </div>
     </div>
   );
