@@ -89,9 +89,12 @@ export const SingleChoiceVote = ({
 
   return (
     <div className='flex-col items-center justify-between space-y-1'>
-      <div className='flex h-4 w-full overflow-hidden rounded-md'>
+      <div
+        className='flex h-4 w-full overflow-hidden rounded-md border border-neutral-350
+          dark:border-neutral-300'
+      >
         <div
-          className='h-full bg-green-500'
+          className='h-full bg-for-600'
           style={{ width: `${winningPercentage}%` }}
         />
       </div>

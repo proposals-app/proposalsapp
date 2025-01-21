@@ -28,10 +28,10 @@ type VotesByChoice = Record<
 >;
 
 const VOTE_COLORS = {
-  For: 'bg-green-500',
-  Against: 'bg-red-500',
-  Abstain: 'bg-yellow-500',
-  Unknown: 'bg-gray-500',
+  For: 'bg-for-600',
+  Against: 'bg-against-600',
+  Abstain: 'bg-abstain-600',
+  Unknown: 'bg-neutral-600',
 } as const;
 
 const MIN_VISIBLE_WIDTH_PERCENT = 1; // Minimum width for a vote to be visible (0.5% of total width)
@@ -225,16 +225,20 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
     tooltip,
     isAggregated = false,
   }: {
-    color: 'bg-green-500' | 'bg-red-500' | 'bg-yellow-500' | 'bg-gray-500'; // Explicitly define the allowed CSS class names
+    color:
+      | 'bg-for-600'
+      | 'bg-against-600'
+      | 'bg-abstain-600'
+      | 'bg-neutral-600'; // Explicitly define the allowed CSS class names
     width: number;
     tooltip: string;
     isAggregated?: boolean;
   }) => {
     const colorMap = {
-      'bg-green-500': '#22c55e',
-      'bg-red-500': '#ef4444',
-      'bg-yellow-500': '#eab308',
-      'bg-gray-500': '#6b7280',
+      'bg-for-600': '#56B200',
+      'bg-against-600': '#FF4242',
+      'bg-abstain-600': '#FFBC1F',
+      'bg-neutral-600': '#6b7280',
     } as const;
 
     const cssColor = colorMap[color] || '#6b7280';
@@ -243,7 +247,9 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <div
-            className={'h-full border-r hover:opacity-90'}
+            className={
+              'h-full border-r border-white hover:opacity-90 dark:border-neutral-950'
+            }
             style={{
               width: `${width}%`,
               ...(isAggregated
@@ -298,7 +304,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   return (
     <Tooltip.Provider>
       <div className='space-y-1'>
-        <div className='flex h-4 w-full overflow-hidden rounded'>
+        <div className='rounde flex h-4 w-full overflow-hidden rounded'>
           {(['For', 'Abstain', 'Against', 'Unknown'] as const).map((choice) => {
             const voteData = votesByChoice[choice];
             if (!voteData) return null;

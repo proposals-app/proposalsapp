@@ -36,7 +36,7 @@ export async function Timeline({
         pt-24'
     >
       <div className='relative h-[calc(100vh-96px)] w-full'>
-        <div className='absolute bottom-5 left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-gray-500' />
+        <div className='absolute bottom-5 left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-neutral-500' />
         <div className='flex h-full flex-col justify-between'>
           {events.map((event, index) => {
             // Determine visibility based on filters and metadata
@@ -135,7 +135,7 @@ export function LoadingTimeline() {
     >
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
-        <div className='bg-muted-foreground absolute left-[14px] top-5 w-0.5 translate-x-[0.5px]'>
+        <div className='absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-neutral-500'>
           <svg
             width='21'
             height='21'
@@ -145,23 +145,23 @@ export function LoadingTimeline() {
             className='absolute -left-[10px] -top-[10px]'
           >
             <rect
+              className='dark:fill-bg-neutral-700 fill-neutral-300'
               x='0.5'
               y='0.5'
               width='20'
               height='20'
               rx='10'
-              fill='white'
               stroke='#D3D3D3'
             />
-            <circle cx='10.5' cy='10.5' r='3' fill='#737373' />
+            <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
           </svg>
         </div>
 
         {/* Vertical Line Placeholder */}
-        <div className='bg-muted-foreground absolute bottom-5 left-[14px] top-5 w-0.5' />
+        <div className='absolute bottom-5 left-[14px] top-5 w-0.5 bg-neutral-500' />
 
         {/* Bottom SVG Placeholder */}
-        <div className='bg-muted-foreground absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px]'>
+        <div className='absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>
           <svg
             width='21'
             height='21'
@@ -171,15 +171,15 @@ export function LoadingTimeline() {
             className='absolute -bottom-[10px] -left-[10px]'
           >
             <rect
+              className='dark:fill-bg-neutral-700 fill-neutral-300'
               x='0.5'
               y='0.5'
               width='20'
               height='20'
               rx='10'
-              fill='white'
               stroke='#D3D3D3'
             />
-            <circle cx='10.5' cy='10.5' r='3' fill='#737373' />
+            <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
           </svg>
         </div>
       </div>

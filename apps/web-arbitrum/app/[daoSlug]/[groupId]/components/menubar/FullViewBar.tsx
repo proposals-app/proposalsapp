@@ -2,8 +2,7 @@
 
 import { ViewEnum, VotesFilterEnum } from '@/app/searchParams';
 import * as Popover from '@radix-ui/react-popover';
-import * as Switch from '@radix-ui/react-switch';
-import { ArrowDown, ArrowUp, Check, ChevronsUpDown } from 'lucide-react';
+import { ArrowDown, Check, ChevronsUpDown } from 'lucide-react';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useEffect, useRef } from 'react';
 import { voteFilters } from './MenuBar';

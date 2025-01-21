@@ -423,12 +423,12 @@ export async function getDelegate(
         topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
       }
 
-      // // Determine the start and end times based on proposals and topics
-      // const startTime = new Date(
-      //   Math.min(...proposalStartTimes, ...topicStartTimes)
-      // );
+      // Determine the start and end times based on proposals and topics
+      const startTime = new Date(
+        Math.min(...proposalStartTimes, ...topicStartTimes)
+      );
 
-      // const endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
+      const endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
 
       // Fetch the delegate with all related data in one query
       const delegateData = await db
@@ -451,8 +451,8 @@ export async function getDelegate(
         .leftJoin('voter', 'voter.id', 'delegateToVoter.voterId')
         .where('delegateToVoter.voterId', '=', voter.id)
         .where('delegate.daoId', '=', dao.id)
-        // .where('delegateToVoter.periodStart', '<=', startTime)
-        // .where('delegateToVoter.periodEnd', '>=', endTime)
+        .where('delegateToVoter.periodStart', '<=', startTime)
+        .where('delegateToVoter.periodEnd', '>=', endTime)
         .select([
           'delegate.id as delegateId',
           'discourseUser.name as discourseName',

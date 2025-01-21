@@ -202,7 +202,6 @@ const AuthorInfo = ({
   authorName,
   authorPicture,
   voterAddress,
-  isDelegate,
 }: {
   authorName: string;
   authorPicture: string | null;

@@ -74,12 +74,15 @@ export function ResultEvent({
       prefetch={true}
     >
       <div className='relative flex w-full items-center py-2'>
-        <div className='flex w-full flex-col gap-1 rounded-l-xl border px-4 py-2 pr-8'>
-          <div className='absolute left-3 top-5 z-20 h-[7px] w-[7px] rounded-full bg-gray-500' />
+        <div
+          className='flex w-full flex-col gap-1 rounded-l-xl border border-neutral-300 bg-white px-4
+            py-2 pr-8 dark:border-neutral-700 dark:bg-neutral-950'
+        >
+          <div className='absolute left-3 top-5 z-20 h-[7px] w-[7px] rounded-full bg-neutral-500' />
           {!last && (
             <div
               className='absolute left-3 top-[7px] z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px]
-                bg-gray-500'
+                bg-neutral-500'
             />
           )}
           <div className='ml-2 flex w-full items-center justify-between'>

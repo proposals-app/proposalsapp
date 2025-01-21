@@ -11,12 +11,15 @@ interface BasicEventProps {
 export function BasicEvent({ content, url, last }: BasicEventProps) {
   return (
     <div className='relative mr-4 flex h-8 w-full items-center py-2'>
-      <div className='flex w-full items-center justify-between rounded-full border px-4 py-1'>
-        <div className='absolute left-3 top-3 z-20 h-[7px] w-[7px] rounded-full bg-gray-500' />
+      <div
+        className='flex w-full items-center justify-between rounded-full border border-neutral-300
+          bg-white px-4 py-1 dark:border-neutral-700 dark:bg-neutral-950'
+      >
+        <div className='absolute left-3 top-3 z-20 h-[7px] w-[7px] rounded-full bg-neutral-500' />
         {!last && (
           <div
             className='absolute left-3 top-[1px] z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px]
-              bg-gray-500'
+              bg-neutral-500'
           />
         )}
         <div className='ml-2 text-xs'>{content}</div>
