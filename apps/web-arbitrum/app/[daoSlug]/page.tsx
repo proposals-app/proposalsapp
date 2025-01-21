@@ -77,7 +77,9 @@ export default async function ListPage({
   return (
     <div className='flex min-h-screen w-full flex-row pl-20'>
       <div className='w-full p-8'>
-        <h1 className='mb-8 text-4xl font-bold'>{daoName || daoSlug}</h1>
+        <h1 className='mb-8 text-4xl font-bold text-neutral-700 dark:text-neutral-100'>
+          {daoName || daoSlug}
+        </h1>
         <div className='flex flex-col gap-4'>
           {allGroups.map((group) => (
             <Link
@@ -85,9 +87,15 @@ export default async function ListPage({
               href={`/${daoSlug}/${group.id}`}
               prefetch={true}
             >
-              <div className='rounded-lg border p-6 shadow-sm transition-shadow duration-200 hover:shadow-md'>
-                <h2 className='text-xl font-semibold'>{group.name}</h2>
-                <p className='mt-2 text-sm'>
+              <div
+                className='rounded-lg border border-neutral-200 bg-white p-6 shadow-sm transition-all
+                  duration-200 hover:border-neutral-300 hover:shadow-md dark:border-neutral-700
+                  dark:bg-neutral-800 dark:hover:border-neutral-600'
+              >
+                <h2 className='text-xl font-semibold text-neutral-700 dark:text-neutral-100'>
+                  {group.name}
+                </h2>
+                <p className='mt-2 text-sm text-neutral-500 dark:text-neutral-400'>
                   View proposals and discussions in the {group.name} group.
                 </p>
               </div>
@@ -110,10 +118,14 @@ function LoadingSkeleton() {
   return (
     <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
       {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className='animate-pulse rounded-lg border p-6'>
-          <div className='h-6 w-3/4 rounded-md' />
-          <div className='mt-2 h-4 w-full rounded-md' />
-          <div className='mt-4 h-4 w-1/2 rounded-md' />
+        <div
+          key={index}
+          className='animate-pulse rounded-lg border border-neutral-200 bg-white p-6
+            dark:border-neutral-700 dark:bg-neutral-800'
+        >
+          <div className='h-6 w-3/4 rounded-md bg-neutral-200 dark:bg-neutral-700' />
+          <div className='mt-2 h-4 w-full rounded-md bg-neutral-200 dark:bg-neutral-700' />
+          <div className='mt-4 h-4 w-1/2 rounded-md bg-neutral-200 dark:bg-neutral-700' />
         </div>
       ))}
     </div>
