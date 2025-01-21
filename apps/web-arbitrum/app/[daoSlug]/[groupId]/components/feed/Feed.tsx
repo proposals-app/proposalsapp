@@ -56,9 +56,14 @@ export default async function Feed({
   return (
     <div className='mt-6 w-full p-6'>
       {itemsToDisplay.map((item, index) => (
-        <div key={index} className='flex w-full flex-col p-4'>
-          {item.type === 'vote' && <VoteItem item={item} group={group} />}
-          {item.type === 'post' && <PostItem item={item} />}
+        <div key={index}>
+          <div className='flex w-full flex-col p-4'>
+            {item.type === 'vote' && <VoteItem item={item} group={group} />}
+            {item.type === 'post' && <PostItem item={item} />}
+          </div>
+          {index < itemsToDisplay.length - 1 && (
+            <div className='border-b border-neutral-200 dark:border-neutral-800' />
+          )}
         </div>
       ))}
       {feed.hasMore && <LazyLoadTrigger />}

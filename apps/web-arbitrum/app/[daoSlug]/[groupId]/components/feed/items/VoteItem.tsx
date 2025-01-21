@@ -53,6 +53,37 @@ export async function VoteItem({
     proposalIds
   );
 
+  console.log(delegate);
+
+  const getDelegateDisplayInfo = () => {
+    if (!delegate) {
+      return {
+        displayName: formatNameOrAddress(item.voterAddress),
+        voterAddress: formatNameOrAddress(item.voterAddress),
+        avatarUrl: null,
+      };
+    }
+
+    const discourseUser = delegate.delegatetodiscourseuser;
+    const voter = delegate.delegatetovoter;
+
+    // Priority order: Discourse name > ENS > Shortened address
+    const displayName =
+      discourseUser?.name ||
+      voter?.ens ||
+      formatNameOrAddress(item.voterAddress);
+    const voterAddress = voter?.ens || formatNameOrAddress(item.voterAddress);
+    const avatarUrl = discourseUser?.avatarTemplate || null;
+
+    return {
+      displayName,
+      voterAddress,
+      avatarUrl,
+    };
+  };
+
+  const { displayName, voterAddress, avatarUrl } = getDelegateDisplayInfo();
+
   const relativeCreateTime = formatDistanceToNowStrict(
     new Date(item.timestamp),
     {
@@ -104,22 +135,17 @@ export async function VoteItem({
 
   return (
     <div
-      className={`${resultClass} flex w-2/3 flex-col gap-2 rounded-lg border p-4 shadow-sm`}
+      className={`${resultClass} flex w-2/3 flex-col gap-2 rounded-lg border border-neutral-200
+        bg-neutral-100 p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800`}
     >
       <div className='flex cursor-default select-none flex-row justify-between'>
         <div className='flex flex-col gap-2'>
           <Suspense>
             <AuthorInfo
-              authorName={
-                delegate?.delegatetodiscourseuser?.name ??
-                delegate?.delegatetovoter?.ens ??
-                item.voterAddress
-              }
-              authorPicture={delegate?.delegatetodiscourseuser?.avatarTemplate}
-              voterAddress={
-                delegate?.delegatetovoter?.ens ??
-                `${item.voterAddress.slice(0, 6)}...${item.voterAddress.slice(-4)}`
-              }
+              authorName={displayName}
+              authorPicture={avatarUrl}
+              voterAddress={voterAddress}
+              isDelegate={!!delegate}
             />
 
             <VotingPowerTag
@@ -130,7 +156,7 @@ export async function VoteItem({
           </Suspense>
         </div>
 
-        <div className='flex flex-col items-end text-sm'>
+        <div className='flex flex-col items-end text-sm text-neutral-450 dark:text-neutral-300'>
           <Tooltip.Provider>
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
@@ -146,7 +172,7 @@ export async function VoteItem({
         </div>
       </div>
 
-      <div className='cursor-default select-none'>
+      <div className='cursor-default select-none text-neutral-700 dark:text-neutral-200'>
         <p className='font-bold'>{formattedVotingPower} ARB</p>
         <p className='font-bold'>
           {((proposal?.choices ?? []) as string[])[item.choice as number]}
@@ -159,7 +185,7 @@ export async function VoteItem({
           <p className='self-end'>
             <a
               href={anchorHref ?? ''}
-              className='text-sm font-bold hover:underline'
+              className='text-sm font-bold text-neutral-700 hover:underline dark:text-neutral-200'
             >
               jump to post →
             </a>
@@ -178,18 +204,13 @@ const AuthorInfo = ({
   authorName,
   authorPicture,
   voterAddress,
+  isDelegate,
 }: {
   authorName: string;
-  authorPicture: string | null | undefined;
+  authorPicture: string | null;
   voterAddress: string;
+  isDelegate: boolean;
 }) => {
-  const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
-
-  let displayName = authorName;
-  if (ethAddressRegex.test(authorName)) {
-    displayName = `${authorName.slice(0, 6)}...${authorName.slice(-4)}`;
-  }
-
   const displayPicture =
     authorPicture ??
     `https://api.dicebear.com/9.x/pixel-art/svg?seed=${authorName}`;
@@ -198,10 +219,20 @@ const AuthorInfo = ({
     <div className='flex flex-row items-center gap-2'>
       <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
         <Avatar.Image src={displayPicture} className='w-full rounded-full' />
-        <Avatar.Fallback className=''>{authorName.slice(0, 2)}</Avatar.Fallback>
+        <Avatar.Fallback>
+          {authorName.slice(0, 2).toUpperCase()}
+        </Avatar.Fallback>
       </Avatar.Root>
-      <div className='font-bold'>
-        {displayName} <span className=''> with {voterAddress}</span>
+      <div className='flex flex-col'>
+        <div className='font-bold text-neutral-700 dark:text-neutral-200'>
+          {authorName}
+        </div>
+        {authorName !== voterAddress && (
+          <div className='text-sm text-neutral-500 dark:text-neutral-400'>
+            {isDelegate ? 'Delegated by ' : 'Using '}
+            {voterAddress}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -213,6 +244,7 @@ enum Result {
   AGAINST,
   UNKNOWN,
 }
+
 export const choiceToClass = (
   proposalChoices: string[],
   choiceIndex: number
@@ -227,7 +259,6 @@ export const choiceToClass = (
       case 'no':
       case 'nay':
         return Result.AGAINST;
-      // Add additional cases for other choice patterns as needed
       default:
         return Result.ABSTAIN;
     }
@@ -235,3 +266,11 @@ export const choiceToClass = (
     return Result.UNKNOWN;
   }
 };
+
+export function formatNameOrAddress(address: string): string {
+  const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+  if (ethAddressRegex.test(address)) {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  }
+  return address;
+}

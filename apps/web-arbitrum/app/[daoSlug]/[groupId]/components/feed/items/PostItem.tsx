@@ -162,7 +162,10 @@ const PostContent = ({
           />
         </Suspense>
       )}
-      <div className='flex cursor-default select-none flex-col items-end text-sm'>
+      <div
+        className='flex cursor-default select-none flex-col items-end text-sm text-neutral-500
+          dark:text-neutral-300'
+      >
         <div className='flex flex-col items-end'>
           <Tooltip.Provider>
             <Tooltip.Root>
@@ -236,7 +239,9 @@ const AuthorInfo = ({
       <Avatar.Image src={authorPicture} className='w-full rounded-full' />
       <Avatar.Fallback>{authorName.slice(0, 2)}</Avatar.Fallback>
     </Avatar.Root>
-    <div className='font-bold'>{authorName}</div>
+    <div className='font-bold text-neutral-700 dark:text-neutral-200'>
+      {authorName}
+    </div>
   </div>
 );
 
@@ -250,26 +255,29 @@ const QUOTE_STYLES = {
 } as const;
 
 const COLLAPSIBLE_STYLES = {
-  details: 'my-4 border rounded-lg overflow-hidden',
-  summary: 'p-4 bg-gray-100 cursor-pointer font-bold',
-  content: 'p-4 bg-white',
+  details:
+    'my-4 border rounded-lg overflow-hidden text-neutral-700 dark:text-neutral-200',
+  summary:
+    'p-4 cursor-pointer font-bold text-neutral-700 dark:text-neutral-200',
+  content: 'p-4 text-neutral-700 dark:text-neutral-200',
 } as const;
 
 const MARKDOWN_STYLES = {
-  h1: 'mb-4 mt-6 text-2xl font-bold',
-  h2: 'mb-3 mt-5 text-xl font-bold',
-  h3: 'mb-2 mt-4 text-lg font-bold',
-  p: 'mb-4 leading-relaxed',
-  ul: 'mb-4 list-disc space-y-2 pl-6',
-  ol: 'mb-4 list-decimal space-y-2 pl-6',
-  li: 'leading-relaxed',
-  strong: 'font-bold',
-  a: 'underline',
-  blockquote: 'border-l-4 pl-4 italic',
-  table: 'min-w-full border-collapse border my-4',
-  th: 'border p-2 text-left ',
-  td: 'border p-2',
-  img: 'my-4 h-auto max-w-full',
+  h1: 'mb-4 mt-6 text-2xl font-bold text-neutral-700 dark:text-neutral-200',
+  h2: 'mb-3 mt-5 text-xl font-bold text-neutral-700 dark:text-neutral-200',
+  h3: 'mb-2 mt-4 text-lg font-bold text-neutral-700 dark:text-neutral-200',
+  p: 'mb-4 leading-relaxed text-neutral-700 dark:text-neutral-200',
+  ul: 'mb-4 list-disc space-y-2 pl-6 text-neutral-700 dark:text-neutral-200',
+  ol: 'mb-4 list-decimal space-y-2 pl-6 text-neutral-700 dark:text-neutral-200',
+  li: 'leading-relaxed text-neutral-700 dark:text-neutral-200',
+  strong: 'font-bold text-neutral-700 dark:text-neutral-200',
+  a: 'underline text-neutral-700 dark:text-neutral-200',
+  blockquote: 'border-l-4 pl-4 italic text-neutral-700 dark:text-neutral-200',
+  table:
+    'min-w-full border-collapse border my-4 text-neutral-700 dark:text-neutral-200',
+  th: 'border p-2 text-left text-neutral-700 dark:text-neutral-200',
+  td: 'border p-2 text-neutral-700 dark:text-neutral-200',
+  img: 'my-4 h-auto max-w-full text-neutral-700 dark:text-neutral-200',
 } as const;
 
 type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;

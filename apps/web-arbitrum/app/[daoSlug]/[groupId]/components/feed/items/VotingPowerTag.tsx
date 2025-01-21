@@ -41,7 +41,11 @@ export async function VotingPowerTag({
   );
 
   return (
-    <div className='flex w-fit gap-4 rounded-lg border p-1 text-xs'>
+    <div
+      className='flex w-fit gap-4 rounded-lg border border-neutral-300 bg-neutral-100 p-1 text-xs
+        text-neutral-650 dark:border-neutral-700 dark:bg-neutral-800
+        dark:text-neutral-300'
+    >
       <Tooltip.Provider>
         <Tooltip.Root>
           <Tooltip.Trigger asChild>

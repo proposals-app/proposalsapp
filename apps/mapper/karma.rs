@@ -14,7 +14,7 @@ use seaorm::{
     voter,
 };
 use serde::Deserialize;
-use std::{collections::HashMap, str::FromStr, time::Duration as StdDuration};
+use std::{collections::HashMap, str::FromStr};
 use tokio::time::{sleep, Instant};
 use tracing::{error, info, instrument, warn, Span};
 
@@ -41,16 +41,7 @@ lazy_static::lazy_static! {
 #[instrument(skip(db))]
 async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
     let client = Client::new();
-
-    // Fetch all DAOs along with their associated dao_discourse information
-    let daos = dao::Entity::find()
-        .find_with_related(dao_discourse::Entity)
-        .all(db)
-        .await
-        .context("Failed to fetch DAOs with discourse information")?
-        .into_iter()
-        .map(|(dao, discourse)| (dao, discourse.into_iter().next()))
-        .collect::<Vec<_>>();
+    let daos = fetch_daos_with_discourse(db).await?;
 
     for (dao, maybe_dao_discourse) in daos {
         let span = Span::current();
@@ -63,67 +54,22 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
                     karma_dao_name
                 );
 
-                // Fetch the CSV data
-                let response = client.get(&url).send().await.with_context(|| {
-                    format!(
-                        "Failed to fetch CSV data for DAO: {} from URL: {}",
-                        dao.slug, url
-                    )
-                })?;
+                let body = fetch_csv_data(&client, &url, &dao.slug).await?;
+                let delegates = parse_csv_data(&body, &dao.slug)?;
 
-                let status = response.status();
-                let body = response.text().await.with_context(|| {
-                    format!(
-                        "Failed to read CSV response body for DAO: {}. Status: {}, URL: {}",
-                        dao.slug, status, url
-                    )
-                })?;
+                update_delegates_ens(db, &delegates).await?;
 
-                // Parse the CSV data
-                let mut rdr = ReaderBuilder::new().from_reader(body.as_bytes());
-                let delegates: Vec<KarmaDelegate> = rdr
-                    .deserialize::<KarmaDelegate>()
-                    .collect::<Result<Vec<_>, _>>()
-                    .with_context(|| format!("Failed to parse CSV for DAO: {}", dao.slug))?
-                    .into_iter()
-                    .map(|delegate| {
-                        // Convert public_address to checksummed version using alloy
-                        if let Ok(address) = Address::from_str(delegate.public_address.as_str()) {
-                            KarmaDelegate {
-                                ens_name: delegate.ens_name,
-                                public_address: address.to_checksum(None),
-                                forum_handle: delegate.forum_handle,
-                            }
-                        } else {
-                            warn!("Invalid Ethereum address: {}", delegate.public_address);
-                            delegate
-                        }
-                    })
-                    .collect();
-
-                // Update voters based on delegates with ENS set
-                if let Err(e) = update_delegates_ens(db, &delegates).await {
-                    error!(
-                        error = %e,
-                        "Error updating voters from delegates for DAO: {}",
-                        dao.slug
-                    );
-                }
+                println!("{:?}", delegates);
 
                 let delegates_with_forum_handle: Vec<&KarmaDelegate> = delegates
                     .iter()
                     .filter(|d| d.forum_handle.is_some())
                     .collect();
 
+                println!("{:?}", delegates_with_forum_handle);
+
                 for delegate in &delegates_with_forum_handle {
-                    if let Err(e) = update_delegate(db, &dao, delegate, discourse.id).await {
-                        error!(
-                            error = %e,
-                            "Error updating delegate: {:?} for DAO: {}",
-                            delegate,
-                            dao.slug
-                        );
-                    }
+                    update_delegate(db, &dao, delegate, discourse.id).await?;
                 }
             } else {
                 warn!(
@@ -135,6 +81,129 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
     }
 
     Ok(())
+}
+
+async fn fetch_daos_with_discourse(
+    db: &DatabaseConnection,
+) -> Result<Vec<(dao::Model, Option<dao_discourse::Model>)>> {
+    dao::Entity::find()
+        .find_with_related(dao_discourse::Entity)
+        .all(db)
+        .await
+        .context("Failed to fetch DAOs with discourse information")
+        .map(|daos| {
+            daos.into_iter()
+                .map(|(dao, discourse)| (dao, discourse.into_iter().next()))
+                .collect()
+        })
+}
+
+async fn fetch_csv_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
+    const MAX_RETRIES: u32 = 3;
+    const INITIAL_RETRY_DELAY: Duration = Duration::seconds(1);
+
+    let mut retry_count = 0;
+    let mut retry_delay = INITIAL_RETRY_DELAY;
+
+    loop {
+        let response = match client
+            .get(url)
+            .timeout(std::time::Duration::from_secs(10))
+            .send()
+            .await
+        {
+            Ok(res) => res,
+            Err(e) if e.is_timeout() || e.is_connect() => {
+                if retry_count < MAX_RETRIES {
+                    warn!(
+                        "Network error for DAO: {}. Error: {}. Retrying in {:?}... (Attempt {}/{})",
+                        dao_slug,
+                        e,
+                        retry_delay,
+                        retry_count + 1,
+                        MAX_RETRIES
+                    );
+                    sleep(std::time::Duration::from_secs(
+                        retry_delay.num_seconds() as u64
+                    ))
+                    .await;
+                    retry_count += 1;
+                    retry_delay = retry_delay * 2; // Exponential backoff
+                    continue;
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "Failed to fetch CSV data for DAO: {} due to network error: {}",
+                        dao_slug,
+                        e
+                    ));
+                }
+            }
+            Err(e) => {
+                return Err(e)
+                    .with_context(|| format!("Failed to fetch CSV data for DAO: {}", dao_slug))
+            }
+        };
+
+        let status = response.status();
+        let headers = response.headers().clone();
+
+        if status.is_success() {
+            return response.text().await.with_context(|| {
+                format!(
+                    "Failed to read CSV response body for DAO: {}. Status: {}, URL: {}",
+                    dao_slug, status, url
+                )
+            });
+        } else if status.is_server_error() && retry_count < MAX_RETRIES {
+            warn!(
+                "Server error for DAO: {}. Status: {}. Retrying in {:?}... (Attempt {}/{})",
+                dao_slug,
+                status,
+                retry_delay,
+                retry_count + 1,
+                MAX_RETRIES
+            );
+            sleep(std::time::Duration::from_secs(
+                retry_delay.num_seconds() as u64
+            ))
+            .await;
+            retry_count += 1;
+            retry_delay = retry_delay * 2; // Exponential backoff
+        } else {
+            let headers_str = format!("{:?}", headers);
+            return Err(anyhow::anyhow!(
+                "Failed to fetch CSV data for DAO: {}. Status: {}, URL: {}, Headers: {}",
+                dao_slug,
+                status,
+                url,
+                headers_str
+            ));
+        }
+    }
+}
+
+fn parse_csv_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
+    let mut rdr = ReaderBuilder::new().from_reader(body.as_bytes());
+    rdr.deserialize::<KarmaDelegate>()
+        .collect::<Result<Vec<_>, _>>()
+        .with_context(|| format!("Failed to parse CSV for DAO: {}", dao_slug))
+        .map(|delegates| {
+            delegates
+                .into_iter()
+                .map(|delegate| {
+                    if let Ok(address) = Address::from_str(delegate.public_address.as_str()) {
+                        KarmaDelegate {
+                            ens_name: delegate.ens_name,
+                            public_address: address.to_checksum(None),
+                            forum_handle: delegate.forum_handle,
+                        }
+                    } else {
+                        warn!("Invalid Ethereum address: {}", delegate.public_address);
+                        delegate
+                    }
+                })
+                .collect()
+        })
 }
 
 #[instrument(skip(conn, dao, delegate_data), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
@@ -393,7 +462,6 @@ async fn update_delegates_ens(
 
     const BATCH_SIZE: usize = 100;
     for batch_addresses in addresses.chunks(BATCH_SIZE) {
-        // Convert &str to Vec<&str>
         let chunk_voters: Vec<voter::Model> = voter::Entity::find()
             .filter(voter::Column::Address.is_in(batch_addresses.to_vec()))
             .all(conn)
@@ -460,8 +528,9 @@ async fn update_delegates_ens(
 
 #[instrument(skip(db))]
 pub async fn run_karma_task(db: &DatabaseConnection) -> Result<()> {
-    let interval = Duration::minutes(10);
-    let mut next_tick = Instant::now() + StdDuration::from_secs(interval.num_seconds() as u64);
+    let interval = Duration::hours(1);
+    let mut next_tick =
+        Instant::now() + std::time::Duration::from_secs(interval.num_seconds() as u64);
 
     loop {
         if let Err(e) = fetch_karma_data(db).await {
@@ -469,6 +538,6 @@ pub async fn run_karma_task(db: &DatabaseConnection) -> Result<()> {
         }
 
         sleep(next_tick.saturating_duration_since(Instant::now())).await;
-        next_tick += StdDuration::from_secs(interval.num_seconds() as u64);
+        next_tick += std::time::Duration::from_secs(interval.num_seconds() as u64);
     }
 }

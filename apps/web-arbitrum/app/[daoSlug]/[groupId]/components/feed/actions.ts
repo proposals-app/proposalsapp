@@ -373,105 +373,119 @@ export async function getDelegate(
 ) {
   'use server';
   return otel('get-delegate', async () => {
-    const dao = await db
-      .selectFrom('dao')
-      .where('slug', '=', daoSlug)
-      .selectAll()
-      .executeTakeFirst();
-
-    if (!dao) return null;
-
-    const voter = await db
-      .selectFrom('voter')
-      .where('address', '=', voterAddress)
-      .selectAll()
-      .executeTakeFirst();
-
-    if (!voter) return null;
-
-    // Fetch the timestamps from proposals and topics
-    let proposalStartTimes: number[] = [];
-    let proposalEndTimes: number[] = [];
-
-    if (proposalIds && proposalIds.length > 0) {
-      const proposals = await db
-        .selectFrom('proposal')
+    try {
+      const dao = await db
+        .selectFrom('dao')
+        .where('slug', '=', daoSlug)
         .selectAll()
-        .where('id', 'in', proposalIds)
-        .execute();
+        .executeTakeFirst();
 
-      proposalStartTimes = proposals.map((proposal) =>
-        proposal.timeStart.getTime()
-      );
-      proposalEndTimes = proposals.map((proposal) =>
-        proposal.timeEnd.getTime()
-      );
-    }
+      if (!dao) return null;
 
-    let topicStartTimes: number[] = [];
-    let topicEndTimes: number[] = [];
-
-    if (topicIds.length > 0) {
-      const topics = await db
-        .selectFrom('discourseTopic')
+      const voter = await db
+        .selectFrom('voter')
+        .where('address', '=', voterAddress)
         .selectAll()
-        .where('id', 'in', topicIds)
-        .execute();
+        .executeTakeFirst();
 
-      topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
-      topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
+      if (!voter) return null;
+
+      // Fetch the timestamps from proposals and topics
+      let proposalStartTimes: number[] = [];
+      let proposalEndTimes: number[] = [];
+
+      if (proposalIds && proposalIds.length > 0) {
+        const proposals = await db
+          .selectFrom('proposal')
+          .selectAll()
+          .where('id', 'in', proposalIds)
+          .execute();
+
+        proposalStartTimes = proposals.map((proposal) =>
+          proposal.timeStart.getTime()
+        );
+        proposalEndTimes = proposals.map((proposal) =>
+          proposal.timeEnd.getTime()
+        );
+      }
+
+      let topicStartTimes: number[] = [];
+      let topicEndTimes: number[] = [];
+
+      if (topicIds.length > 0) {
+        const topics = await db
+          .selectFrom('discourseTopic')
+          .selectAll()
+          .where('id', 'in', topicIds)
+          .execute();
+
+        topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
+        topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
+      }
+
+      // // Determine the start and end times based on proposals and topics
+      // const startTime = new Date(
+      //   Math.min(...proposalStartTimes, ...topicStartTimes)
+      // );
+
+      // const endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
+
+      // Fetch the delegate with all related data in one query
+      const delegateData = await db
+        .selectFrom('delegate')
+        .innerJoin(
+          'delegateToVoter',
+          'delegate.id',
+          'delegateToVoter.delegateId'
+        )
+        .leftJoin(
+          'delegateToDiscourseUser',
+          'delegate.id',
+          'delegateToDiscourseUser.delegateId'
+        )
+        .leftJoin(
+          'discourseUser',
+          'discourseUser.id',
+          'delegateToDiscourseUser.discourseUserId'
+        )
+        .leftJoin('voter', 'voter.id', 'delegateToVoter.voterId')
+        .where('delegateToVoter.voterId', '=', voter.id)
+        .where('delegate.daoId', '=', dao.id)
+        // .where('delegateToVoter.periodStart', '<=', startTime)
+        // .where('delegateToVoter.periodEnd', '>=', endTime)
+        .select([
+          'delegate.id as delegateId',
+          'discourseUser.name as discourseName',
+          'discourseUser.username as discourseUsername',
+          'discourseUser.avatarTemplate as discourseAvatarTemplate',
+          'voter.ens as voterEns',
+          'voter.address as voterAddress',
+        ])
+        .executeTakeFirst();
+
+      if (!delegateData) return null;
+
+      // Transform the data into the expected format
+      return {
+        delegate: { id: delegateData.delegateId },
+        delegatetodiscourseuser: delegateData.discourseName
+          ? {
+              name: delegateData.discourseName,
+              username: delegateData.discourseUsername,
+              avatarTemplate: delegateData.discourseAvatarTemplate,
+            }
+          : null,
+        delegatetovoter: delegateData.voterEns
+          ? {
+              ens: delegateData.voterEns,
+              address: delegateData.voterAddress,
+            }
+          : null,
+      };
+    } catch (error) {
+      console.error('Error fetching delegate:', error);
+      return null;
     }
-
-    // Determine the start and end times based on proposals and topics
-    const startTime = new Date(
-      Math.min(...proposalStartTimes, ...topicStartTimes)
-    );
-
-    const endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
-
-    // Fetch the delegate data
-    const delegateData = await db
-      .selectFrom('delegate')
-      .innerJoin('delegateToVoter', 'delegate.id', 'delegateToVoter.delegateId')
-      .where('delegateToVoter.voterId', '=', voter.id)
-      .where('delegate.daoId', '=', dao.id)
-      .select('delegate.id')
-      .executeTakeFirst();
-
-    if (!delegateData) return null;
-
-    // Fetch the DelegateToDiscourseUser data
-    const delegateToDiscourseUserData = await db
-      .selectFrom('delegateToDiscourseUser')
-      .where('delegateId', '=', delegateData.id)
-      .leftJoin(
-        'discourseUser',
-        'discourseUser.id',
-        'delegateToDiscourseUser.discourseUserId'
-      )
-      .where('periodStart', '<=', startTime)
-      .where('periodEnd', '>=', endTime)
-      .selectAll()
-      .executeTakeFirst();
-
-    // Fetch the DelegateToVoter data
-    const delegateToVoterData = await db
-      .selectFrom('delegateToVoter')
-      .where('delegateId', '=', delegateData.id)
-      .leftJoin('voter', 'voter.id', 'delegateToVoter.voterId')
-      .where('periodStart', '<=', startTime)
-      .where('periodEnd', '>=', endTime)
-      .selectAll()
-      .executeTakeFirst();
-
-    // Combine the results into a single object
-    const result = {
-      delegate: delegateData,
-      delegatetodiscourseuser: delegateToDiscourseUserData,
-      delegatetovoter: delegateToVoterData,
-    };
-
-    return result;
   });
 }
 

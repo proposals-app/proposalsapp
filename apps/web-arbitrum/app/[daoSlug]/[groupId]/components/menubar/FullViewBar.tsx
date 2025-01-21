@@ -81,8 +81,8 @@ export const FullViewBar = () => {
         view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0' }`}
     >
       <div
-        className='border-neutral-350 flex w-full items-center justify-between gap-2 rounded-full
-          border bg-white p-2 text-sm font-bold shadow-lg transition-colors
+        className='flex w-full items-center justify-between gap-2 rounded-full border
+          border-neutral-350 bg-white p-2 text-sm font-bold shadow-lg transition-colors
           dark:border-neutral-800 dark:bg-neutral-950'
       >
         <div className='flex w-full justify-between text-neutral-600 dark:text-neutral-200'>
@@ -96,7 +96,7 @@ export const FullViewBar = () => {
               }}
             >
               <ArrowDown
-                className='border-neutral-350 h-8 w-8 rounded-full border bg-neutral-50 p-1
+                className='h-8 w-8 rounded-full border border-neutral-350 bg-neutral-50 p-1
                   hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
                   dark:hover:bg-neutral-700'
               />
@@ -111,7 +111,7 @@ export const FullViewBar = () => {
               }}
             >
               <ArrowDown
-                className='border-neutral-350 h-8 w-8 rounded-full border bg-neutral-50 p-1
+                className='h-8 w-8 rounded-full border border-neutral-350 bg-neutral-50 p-1
                   hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
                   dark:hover:bg-neutral-700'
               />
@@ -121,8 +121,8 @@ export const FullViewBar = () => {
 
           <div className='flex gap-2'>
             <div
-              className='border-neutral-350 flex h-8 cursor-pointer items-center justify-start
-                rounded-full border bg-neutral-50 px-4 pl-1 pr-4 text-sm transition-colors
+              className='flex h-8 cursor-pointer items-center justify-start rounded-full border
+                border-neutral-350 bg-neutral-50 px-4 pl-1 pr-4 text-sm transition-colors
                 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
                 dark:hover:bg-neutral-700'
             >
@@ -136,7 +136,7 @@ export const FullViewBar = () => {
                     id='comments'
                     checked={comments}
                     onChange={(e) => setComments(e.target.checked)}
-                    className='border-neutral-350 h-6 w-6 cursor-pointer appearance-none rounded-full border
+                    className='h-6 w-6 cursor-pointer appearance-none rounded-full border border-neutral-350
                       bg-neutral-50 checked:border-neutral-400 dark:border-neutral-700
                       dark:bg-neutral-800'
                   />
@@ -161,9 +161,10 @@ export const FullViewBar = () => {
             <Popover.Root>
               <Popover.Trigger asChild>
                 <button
-                  className='border-neutral-350 flex h-8 w-[200px] items-center justify-between rounded-full
-                    border bg-neutral-50 px-4 text-sm transition-colors hover:bg-neutral-100
-                    dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700'
+                  className='flex h-8 w-[200px] items-center justify-between rounded-full border
+                    border-neutral-350 bg-neutral-50 px-4 text-sm transition-colors
+                    hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
+                    dark:hover:bg-neutral-700'
                   aria-expanded={false}
                 >
                   {voteFilters.find((filter) => filter.value === votesFilter)
@@ -172,7 +173,7 @@ export const FullViewBar = () => {
                 </button>
               </Popover.Trigger>
               <Popover.Content
-                className='border-neutral-350 w-[200px] rounded-md border bg-neutral-50 p-1 shadow-lg
+                className='w-[200px] rounded-md border border-neutral-350 bg-neutral-50 p-1 shadow-lg
                   dark:border-neutral-700 dark:bg-neutral-800'
                 sideOffset={5}
               >
