@@ -7,6 +7,7 @@ services:
       - "4318:4318"
     volumes:
       - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template
+      - ./storage/nginx/logs:/var/log/nginx
     environment:
       - TOKEN=${NGINX_BEARER_TOKEN}
     command: /bin/bash -c "envsubst '$$TOKEN' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
@@ -22,6 +23,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./otel-collector/otel-collector-config.yml:/etc/otel-collector-config.yml
+      - ./storage/otel-collector/logs:/var/log/otel-collector
     command: ["--config=/etc/otel-collector-config.yml"]
     networks:
       - observe-network
@@ -38,7 +40,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - grafana-storage:/var/lib/grafana
+      - ./storage/grafana:/var/lib/grafana
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini
       - ./grafana/provisioning:/etc/grafana/provisioning
     environment:
@@ -68,7 +70,7 @@ services:
       POSTGRES_USER: grafana
       POSTGRES_PASSWORD: your_secure_db_password
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ./storage/postgres:/var/lib/postgresql/data
     networks:
       - observe-network
 
@@ -81,7 +83,7 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
+      - ./storage/prometheus:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
     networks:
@@ -95,20 +97,13 @@ services:
     hostname: tempo
     restart: unless-stopped
     volumes:
-      - tempo-data:/var/tempo
+      - ./storage/tempo:/var/tempo
       - ./tempo/tempo-config.yml:/etc/tempo/config.yml
     command: "-config.file=/etc/tempo/config.yml"
     networks:
       - observe-network
     depends_on:
       - loki
-
-  loki-init:
-    image: busybox
-    command: sh -c "mkdir -p /var/loki/chunks && chown -R 65534:65534 /var/loki"
-    volumes:
-      - loki-data:/var/loki
-    user: root
 
   loki:
     image: grafana/loki:latest
@@ -119,19 +114,11 @@ services:
     environment:
       - DOCKER_DEFAULT_PLATFORM=linux/amd64
     volumes:
-      - loki-data:/var/loki
+      - ./storage/loki:/var/loki
       - ./loki/loki-config.yml:/etc/loki/local-config.yaml
     command: -config.file=/etc/loki/local-config.yaml
-    # Add this section to create directory with correct permissions
-    entrypoint: >
-      /bin/sh -c "
-      mkdir -p /var/loki/chunks &&
-      chown -R nobody:nobody /var/loki &&
-      exec /usr/bin/loki -config.file=/etc/loki/local-config.yaml
-      "
     depends_on:
       - prometheus
-      - loki-init
 
   promtail:
     image: grafana/promtail:latest
@@ -146,13 +133,6 @@ services:
       - observe-network
     depends_on:
       - loki
-
-volumes:
-  grafana-storage:
-  postgres-data:
-  prometheus-data:
-  tempo-data:
-  loki-data:
 
 networks:
   observe-network:

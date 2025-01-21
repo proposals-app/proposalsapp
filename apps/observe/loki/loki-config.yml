@@ -34,6 +34,9 @@ storage_config:
   filesystem:
     directory: /var/loki/chunks
 
+pattern_ingester:
+  enabled: true
+
 limits_config:
   volume_enabled: true
   reject_old_samples: true
