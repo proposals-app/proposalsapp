@@ -111,7 +111,6 @@ services:
     container_name: loki
     hostname: loki
     restart: unless-stopped
-    user: "65534:65534"
     environment:
       - DOCKER_DEFAULT_PLATFORM=linux/amd64
     volumes:
