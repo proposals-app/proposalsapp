@@ -28,7 +28,7 @@ export async function PostedTime({
             <div
               className={`flex flex-row items-center gap-4 p-2 ${
                 border
-                  ? `rounded-lg border border-neutral-200 bg-white dark:border-neutral-500
+                  ? `dark:border-neutral-650 rounded-lg border border-neutral-200 bg-white
                     dark:bg-neutral-500`
                   : ''
                 }`}
