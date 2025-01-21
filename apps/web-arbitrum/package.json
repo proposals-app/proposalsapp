@@ -48,6 +48,7 @@
     "react-window": "^1.8.11",
     "recharts": "^2.15.0",
     "rehype-stringify": "^10.0.1",
+    "tw-colors": "^3.3.2",
     "unified": "^11.0.5",
     "uuid": "^11.0.3",
     "web-push": "^3.6.7"

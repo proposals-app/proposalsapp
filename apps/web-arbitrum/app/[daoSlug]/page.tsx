@@ -67,10 +67,6 @@ export default async function ListPage({
   // Convert Map values to array
   const allGroups = Array.from(groupsMap.values());
 
-  if (!allGroups.length) {
-    notFound();
-  }
-
   after(async () => {
     await Promise.all(
       allGroups.map((group) => {
@@ -80,11 +76,9 @@ export default async function ListPage({
   });
 
   return (
-    <div className='flex min-h-screen w-full flex-row bg-brand-50 pl-20 dark:bg-brand-900'>
+    <div className='flex min-h-screen w-full flex-row pl-20'>
       <div className='w-full p-8'>
-        <h1 className='mb-8 text-4xl font-bold text-brand-700 dark:text-brand-100'>
-          {daoName || daoSlug}
-        </h1>
+        <h1 className='mb-8 text-4xl font-bold'>{daoName || daoSlug}</h1>
         <div className='flex flex-col gap-4'>
           {allGroups.map((group) => (
             <Link
@@ -92,13 +86,8 @@ export default async function ListPage({
               href={`/${daoSlug}/${group.id}`}
               prefetch={true}
             >
-              <div
-                className='rounded-lg border border-brand-350 p-6 shadow-sm transition-shadow duration-200
-                  hover:shadow-md dark:border-brand-800'
-              >
-                <h2 className='text-xl font-semibold text-brand-700 dark:text-brand-100'>
-                  {group.name}
-                </h2>
+              <div className='rounded-lg border p-6 shadow-sm transition-shadow duration-200 hover:shadow-md'>
+                <h2 className='text-xl font-semibold'>{group.name}</h2>
                 <p className='mt-2 text-sm'>
                   View proposals and discussions in the {group.name} group.
                 </p>
@@ -108,7 +97,10 @@ export default async function ListPage({
         </div>
 
         <Suspense fallback={<LoadingSkeleton />}>
-          <LazyLoadTrigger currentPage={currentPage} />
+          <LazyLoadTrigger
+            currentPage={currentPage}
+            hasMore={allGroups.length === currentPage * itemsPerPage}
+          />
         </Suspense>
       </div>
     </div>

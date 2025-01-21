@@ -2,9 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Arbitrum Theme */
+[data-theme='arbitrum_dao'] {
+  --for-400: #87ff42;
+  --for-600: #56b200;
+  --abstain-400: #ffdc42;
+  --abstain-600: #ffbc1f;
+  --against-400: #ff5842;
+  --against-600: #ff4242;
+  --neutral-50: #fbf9f9;
+  --neutral-100: #f4f5f6;
+  --neutral-200: #e1e6e9;
+  --neutral-300: #ced6da;
+  --neutral-350: #b3bfc6;
+  --neutral-400: #96a6b0;
+  --neutral-450: #80949f;
+  --neutral-500: #637783;
+  --neutral-550: #566771;
+  --neutral-600: #47555d;
+  --neutral-650: #414e56;
+  --neutral-700: #374249;
+  --neutral-800: #21272b;
+  --neutral-900: #14181a;
+  --neutral-950: #0a0a0a;
+  --brand-accent: #12aaff;
+}
+
+/* Safe Theme */
+[data-theme='optimism'] {
+  --for-400: #87ff42;
+  --for-600: #56b200;
+  --abstain-400: #ffdc42;
+  --abstain-600: #ffbc1f;
+  --against-400: #ff5842;
+  --against-600: #ff4242;
+  --neutral-50: #fbf9f9;
+  --neutral-100: #f6f4f4;
+  --neutral-200: #e9e1e2;
+  --neutral-300: #dacecf;
+  --neutral-350: #c6b3b6;
+  --neutral-400: #b09699;
+  --neutral-450: #9f8084;
+  --neutral-500: #836366;
+  --neutral-550: #715659;
+  --neutral-600: #5d4749;
+  --neutral-650: #564143;
+  --neutral-700: #493739;
+  --neutral-800: #2b2122;
+  --neutral-900: #1a1415;
+  --neutral-950: #0b0909;
+  --brand-accent: #6600ff;
+}
+
 @layer base {
   body {
-    @apply bg-brand-50 dark:bg-brand-900;
+    @apply bg-neutral-50 dark:bg-neutral-900;
   }
 }
 

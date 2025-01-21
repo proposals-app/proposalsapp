@@ -10,7 +10,7 @@ import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 export function ModeToggle() {
-  const { setTheme } = useTheme();
+  const { setTheme, theme } = useTheme();
 
   return (
     <DropdownMenu>
@@ -31,8 +31,7 @@ export function ModeToggle() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align='end'
-        className='min-w-[120px] rounded-md border border-brand-350 bg-brand-50 shadow-lg
-          dark:border-brand-700 dark:bg-brand-900'
+        className='min-w-[120px] rounded-md border shadow-lg'
       >
         <DropdownMenuItem
           className='cursor-pointer px-4 py-2 text-sm'

@@ -149,15 +149,15 @@ export const getDocument = () => {
 };
 
 const QUOTE_STYLES = {
-  wrapper: 'my-4 border-l-2 p-4 bg-gray-50',
+  wrapper: 'my-4 border-l-2 p-4',
   header: 'flex text-sm mb-2 font-bold',
   content: '',
 } as const;
 
 const COLLAPSIBLE_STYLES = {
   details: 'my-4 border rounded-lg overflow-hidden',
-  summary: 'p-4 bg-gray-100 cursor-pointer font-bold',
-  content: 'p-4 bg-white',
+  summary: 'p-4 cursor-pointer font-bold',
+  content: 'p-4',
 } as const;
 
 export const MARKDOWN_STYLES = {

@@ -3,6 +3,8 @@ import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { ReactNode } from 'react';
 import { NavBar } from './components/NavBar';
+import { ThemeProvider } from '../components/theme-provider';
+import { ModeToggle } from '../components/theme-switch';
 
 // Define a cached function to fetch the DAO data
 const getDaoBySlug = unstable_cache(
@@ -34,9 +36,14 @@ export default async function DaoLayout({
   }
 
   return (
-    <div className='flex min-h-screen w-full flex-row'>
-      <NavBar dao={dao} daoSlug={daoSlug} />
-      <div className='flex w-full justify-between'>{children}</div>
-    </div>
+    <ThemeProvider daoSlug={daoSlug}>
+      <div className='absolute right-4 top-4 z-50'>
+        <ModeToggle />
+      </div>
+      <div className='flex min-h-screen w-full flex-row bg-neutral-200 dark:bg-neutral-700'>
+        <NavBar dao={dao} daoSlug={daoSlug} />
+        <div className='flex w-full justify-between'>{children}</div>
+      </div>
+    </ThemeProvider>
   );
 }

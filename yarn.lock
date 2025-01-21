@@ -2472,6 +2472,7 @@ __metadata:
     serwist: "npm:9.0.11"
     tailwindcss: "npm:^3.4.17"
     tailwindcss-animate: "npm:1.0.7"
+    tw-colors: "npm:^3.3.2"
     typescript: "npm:^5.7.2"
     unified: "npm:^11.0.5"
     uuid: "npm:^11.0.3"
@@ -11086,6 +11087,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lodash.foreach@npm:^4.5.0":
+  version: 4.5.0
+  resolution: "lodash.foreach@npm:4.5.0"
+  checksum: 10c0/bd9cc83e87e805b21058ce6cf718dd22db137c7ca08eddbd608549db59989911c571b7195707f615cb37f27bb4f9a9fa9980778940d768c24095f5a04b244c84
+  languageName: node
+  linkType: hard
+
 "lodash.isplainobject@npm:^4.0.6":
   version: 4.0.6
   resolution: "lodash.isplainobject@npm:4.0.6"
@@ -15776,6 +15784,19 @@ __metadata:
   bin:
     tsx: dist/cli.mjs
   checksum: 10c0/63164b889b1d170403e4d8753a6755dec371f220f5ce29a8e88f1f4d6085a784a12d8dc2ee669116611f2c72757ac9beaa3eea5c452796f541bdd2dc11753721
+  languageName: node
+  linkType: hard
+
+"tw-colors@npm:^3.3.2":
+  version: 3.3.2
+  resolution: "tw-colors@npm:3.3.2"
+  dependencies:
+    color: "npm:^4.2.3"
+    flat: "npm:^5.0.2"
+    lodash.foreach: "npm:^4.5.0"
+  peerDependencies:
+    tailwindcss: ">=3.0.0"
+  checksum: 10c0/956e2b7611a51b29e2c5f234dc32410d5ed7b4f4a7f54e2a2dede95eb18d1951c6b12b230db04f13600bab1cd686138f1d6b79926838cba9fcb823743fcfe72a
   languageName: node
   linkType: hard
 

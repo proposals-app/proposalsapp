@@ -6,7 +6,6 @@ import '../styles/globals.css';
 import { ModeToggle } from './components/theme-switch';
 import { PHProvider } from './providers/posthog-provider';
 import { SessionProvider } from './providers/session-provider';
-import { ThemeProvider } from './providers/theme-provider';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -56,20 +55,8 @@ export default async function RootLayout({
         <NuqsAdapter>
           <PHProvider>
             <body>
-              <ThemeProvider
-                attribute='class'
-                defaultTheme='system'
-                enableSystem
-                disableTransitionOnChange
-              >
-                <PostHogPageView />
-
-                <div className='absolute right-4 top-4 z-50'>
-                  <ModeToggle />
-                </div>
-
-                {children}
-              </ThemeProvider>
+              <PostHogPageView />
+              {children}
             </body>
           </PHProvider>
         </NuqsAdapter>
