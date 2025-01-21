@@ -46,13 +46,16 @@ export function ResultEvent({
           } border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-950`}
       >
         {eventIndex == 0 && resultNumber == selectedResult && (
-          <div className='absolute -right-2 top-2 h-2 w-10 border-t'></div>
+          <div
+            className='absolute -right-2 top-2 h-2 w-10 border-t border-neutral-300 bg-white
+              dark:border-neutral-700 dark:bg-neutral-950'
+          ></div>
         )}
         <div className='absolute left-3 top-5 h-[7px] w-[7px] rounded-full border bg-neutral-500' />
         {!last && (
           <div
             className='absolute left-[11.5px] top-[7px] z-10 h-[15px] max-h-[15px] w-0.5
-              translate-x-[2.5px] bg-gray-500'
+              translate-x-[2.5px] bg-neutral-500'
           />
         )}
         <div className='ml-2 text-sm font-semibold'>{voteType}</div>
