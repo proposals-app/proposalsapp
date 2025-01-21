@@ -41,8 +41,8 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
         view === ViewEnum.BODY ? 'translate-y-0' : 'translate-y-full' }`}
     >
       <div
-        className='border-neutral-350 flex w-full items-center justify-between gap-2 rounded-full
-          border bg-white p-2 text-sm font-bold shadow-lg transition-colors
+        className='flex w-full items-center justify-between gap-2 rounded-full border
+          border-neutral-350 bg-white p-2 text-sm font-bold shadow-lg transition-colors
           dark:border-neutral-800 dark:bg-neutral-950'
       >
         <div className='flex w-full justify-between text-neutral-600 dark:text-neutral-200'>
@@ -58,8 +58,9 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
                 id='changes'
                 checked={diff}
                 onCheckedChange={(checked) => setDiff(checked)}
-                className='data-[state=checked]:bg-brand-accent dark:data-[state=checked]:bg-brand-accent
-                  relative h-6 w-11 rounded-full bg-neutral-200 px-0.5 dark:bg-neutral-700'
+                className='relative h-6 w-11 rounded-full bg-neutral-200 px-0.5
+                  data-[state=checked]:bg-brand-accent dark:bg-neutral-700
+                  dark:data-[state=checked]:bg-brand-accent'
               >
                 <Switch.Thumb
                   className='block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-100

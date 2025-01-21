@@ -10,13 +10,13 @@ import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 export function ModeToggle() {
-  const { setTheme, theme } = useTheme();
+  const { setTheme } = useTheme();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className='border-neutral-350 inline-flex items-center justify-center rounded-md border
+          className='inline-flex items-center justify-center rounded-md border border-neutral-350
             bg-white p-2 transition-colors hover:bg-neutral-100 focus:outline-none
             dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-800'
           aria-label='Toggle theme'
@@ -33,7 +33,7 @@ export function ModeToggle() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align='end'
-        className='border-neutral-350 min-w-[120px] rounded-md border bg-white shadow-lg
+        className='min-w-[120px] rounded-md border border-neutral-350 bg-white shadow-lg
           dark:border-neutral-800 dark:bg-neutral-950'
       >
         <DropdownMenuItem

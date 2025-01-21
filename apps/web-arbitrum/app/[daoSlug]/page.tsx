@@ -1,6 +1,5 @@
 import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { after } from 'next/server';
 import { Suspense } from 'react';
 import { getGroupData } from './[groupId]/actions';

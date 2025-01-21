@@ -28,7 +28,7 @@ export async function PostedTime({
             <div
               className={`flex flex-row items-center gap-4 p-2 ${
                 border
-                  ? `dark:border-neutral-650 rounded-lg border border-neutral-200 bg-white
+                  ? `rounded-lg border border-neutral-200 bg-white dark:border-neutral-650
                     dark:bg-neutral-500`
                   : ''
                 }`}
@@ -42,7 +42,7 @@ export async function PostedTime({
                 </span>
               </div>
               {border && (
-                <div className='bg-neutral-350 h-8 w-8 rounded dark:bg-neutral-800'></div>
+                <div className='h-8 w-8 rounded bg-neutral-350 dark:bg-neutral-800'></div>
               )}
             </div>
           </div>

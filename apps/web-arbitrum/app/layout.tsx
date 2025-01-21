@@ -3,7 +3,6 @@ import type { Metadata, Viewport } from 'next';
 import dynamic from 'next/dynamic';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '../styles/globals.css';
-import { ModeToggle } from './components/theme-switch';
 import { PHProvider } from './providers/posthog-provider';
 import { SessionProvider } from './providers/session-provider';
 
