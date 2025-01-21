@@ -28,8 +28,8 @@ const BodyContent = memo(
           />
           {!expanded && (
             <div
-              className='from-bg-neutral-50 dark:from-bg-neutral-950 absolute bottom-0 left-0 right-0
-                h-24 bg-gradient-to-t to-transparent'
+              className='absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[var(--neutral-50)]
+                to-transparent dark:from-[var(--neutral-950)]'
             />
           )}
         </div>
