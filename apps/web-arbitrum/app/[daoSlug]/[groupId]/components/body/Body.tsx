@@ -1,27 +1,27 @@
-import { getBodiesForGroup, GroupWithDataType } from "../../actions";
-import { notFound } from "next/navigation";
-import { BodyContent } from "./BodyContent";
 import {
   cleanUpNodeMarkers,
   visualDomDiff,
-} from "@proposalsapp/visual-dom-diff";
-import { diff_match_patch, DIFF_EQUAL, Diff } from "diff-match-patch";
-import { toDom } from "hast-util-to-dom";
-import { toHast } from "mdast-util-to-hast";
-import { fromMarkdown } from "mdast-util-from-markdown";
-import { JSDOM } from "jsdom";
-import { unstable_cache } from "next/cache";
-import { StickyHeader } from "./StickyHeader";
-import { PostedTime } from "./PostedTime";
-import * as Avatar from "@radix-ui/react-avatar";
-import { Nodes } from "hast";
+} from '@proposalsapp/visual-dom-diff';
+import * as Avatar from '@radix-ui/react-avatar';
+import { Diff, DIFF_EQUAL, diff_match_patch } from 'diff-match-patch';
+import { Nodes } from 'hast';
+import { toDom } from 'hast-util-to-dom';
+import { JSDOM } from 'jsdom';
+import { fromMarkdown } from 'mdast-util-from-markdown';
+import { toHast } from 'mdast-util-to-hast';
+import { unstable_cache } from 'next/cache';
+import { notFound } from 'next/navigation';
+import { getBodiesForGroup, GroupWithDataType } from '../../actions';
+import { BodyContent } from './BodyContent';
+import { PostedTime } from './PostedTime';
+import { StickyHeader } from './StickyHeader';
 
 const cachedGetBodiesForGroup = unstable_cache(
   async (groupId: string) => {
     return await getBodiesForGroup(groupId);
   },
-  ["getBodiesForGroup"],
-  { revalidate: 60 * 5, tags: ["bodies"] },
+  ['getBodiesForGroup'],
+  { revalidate: 60 * 5, tags: ['bodies'] }
 );
 
 export default async function Body({
@@ -39,7 +39,7 @@ export default async function Body({
   const bodies = await cachedGetBodiesForGroup(group.group.id);
 
   if (!bodies || bodies.length === 0) {
-    return <div className="w-full p-4">No bodies found.</div>;
+    return <div className='w-full p-4'>No bodies found.</div>;
   }
 
   // Find the initial and latest bodies based on createdAt
@@ -53,36 +53,36 @@ export default async function Body({
     diff && version > 0
       ? processDiff(
           visibleBody.content,
-          bodies.map((b) => b.content)[version - 1],
+          bodies.map((b) => b.content)[version - 1]
         )
       : markdownToHtml(visibleBody.content);
 
   return (
-    <div className="w-full p-6">
+    <div className='w-full p-6'>
       <StickyHeader
         bodies={bodies}
         group={group}
         version={version ?? defaultVersion}
       />
-      <div className="flex w-full flex-col gap-4">
-        <h1 className="text-4xl font-bold">{visibleBody.title}</h1>
+      <div className='flex w-full flex-col gap-4'>
+        <h1 className='text-4xl font-bold'>{visibleBody.title}</h1>
 
-        <div className="flex flex-col">
-          <div className="flex flex-row justify-between">
+        <div className='flex flex-col'>
+          <div className='flex flex-row justify-between'>
             <AuthorInfo
               authorName={visibleBody.author_name}
               authorPicture={visibleBody.author_picture}
             />
 
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex flex-row">
+            <div className='flex flex-col items-center gap-2'>
+              <div className='flex flex-row'>
                 <PostedTime
-                  label="initially posted"
+                  label='initially posted'
                   createdAt={initialBody.createdAt}
                 />
 
                 <PostedTime
-                  label="latest revision"
+                  label='latest revision'
                   createdAt={latestBody.createdAt}
                   border
                 />
@@ -91,7 +91,7 @@ export default async function Body({
           </div>
         </div>
 
-        <div className="relative">
+        <div className='relative'>
           <BodyContent processedContent={processedContent} />
         </div>
       </div>
@@ -101,14 +101,14 @@ export default async function Body({
 
 export function BodyLoading() {
   return (
-    <div className="w-full rounded-lg p-6 shadow">
-      <div className="space-y-4">
-        <div className="h-10 w-3/4 animate-pulse rounded bg-gray-200"></div>
-        <div className="flex items-center gap-4">
-          <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200"></div>
-          <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+    <div className='w-full rounded-lg p-6 shadow'>
+      <div className='space-y-4'>
+        <div className='h-10 w-3/4 animate-pulse rounded bg-gray-200'></div>
+        <div className='flex items-center gap-4'>
+          <div className='h-10 w-10 animate-pulse rounded-full bg-gray-200'></div>
+          <div className='h-4 w-32 animate-pulse rounded bg-gray-200'></div>
         </div>
-        <div className="h-[400px] w-full animate-pulse rounded bg-gray-200"></div>
+        <div className='h-[400px] w-full animate-pulse rounded bg-gray-200'></div>
       </div>
     </div>
   );
@@ -121,60 +121,60 @@ const AuthorInfo = ({
   authorName: string;
   authorPicture: string;
 }) => (
-  <div className="flex flex-row items-center gap-2">
-    <Avatar.Root className="h-10 w-10 overflow-hidden rounded-full">
+  <div className='flex flex-row items-center gap-2'>
+    <Avatar.Root className='h-10 w-10 overflow-hidden rounded-full'>
       <Avatar.Image
         src={authorPicture}
         alt={authorName}
-        className="h-full w-full object-cover"
+        className='h-full w-full object-cover'
       />
-      <Avatar.Fallback className="flex h-full w-full items-center justify-center text-sm font-medium">
+      <Avatar.Fallback className='flex h-full w-full items-center justify-center text-sm font-medium'>
         {authorName[0]}
       </Avatar.Fallback>
     </Avatar.Root>
-    <div className="font-bold">{authorName}</div>
+    <div className='font-bold'>{authorName}</div>
   </div>
 );
 
 // Create a JSDOM instance for server-side DOM manipulation
-export const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>");
+export const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
 export const serverDocument = dom.window.document;
 
 // Helper function to get the appropriate document object
 export const getDocument = () => {
-  if (typeof window !== "undefined") {
+  if (typeof window !== 'undefined') {
     return document;
   }
   return serverDocument;
 };
 
 const QUOTE_STYLES = {
-  wrapper: "my-4 border-l-2 p-4 bg-gray-50",
-  header: "flex text-sm mb-2 font-bold",
-  content: "",
+  wrapper: 'my-4 border-l-2 p-4 bg-gray-50',
+  header: 'flex text-sm mb-2 font-bold',
+  content: '',
 } as const;
 
 const COLLAPSIBLE_STYLES = {
-  details: "my-4 border rounded-lg overflow-hidden",
-  summary: "p-4 bg-gray-100 cursor-pointer font-bold",
-  content: "p-4 bg-white",
+  details: 'my-4 border rounded-lg overflow-hidden',
+  summary: 'p-4 bg-gray-100 cursor-pointer font-bold',
+  content: 'p-4 bg-white',
 } as const;
 
 export const MARKDOWN_STYLES = {
-  h1: "mb-4 mt-6 text-2xl font-bold",
-  h2: "mb-3 mt-5 text-xl font-bold",
-  h3: "mb-2 mt-4 text-lg font-bold",
-  p: "mb-4 leading-relaxed",
-  ul: "mb-4 list-disc space-y-2 pl-6",
-  ol: "mb-4 list-decimal space-y-2 pl-6",
-  li: "leading-relaxed",
-  strong: "font-bold",
-  a: "underline",
-  blockquote: "border-l-4 pl-4 italic",
-  table: "min-w-full border-collapse border my-4",
-  th: "border p-2 text-left",
-  td: "border p-2",
-  img: "my-4 h-auto max-w-full",
+  h1: 'mb-4 mt-6 text-2xl font-bold',
+  h2: 'mb-3 mt-5 text-xl font-bold',
+  h3: 'mb-2 mt-4 text-lg font-bold',
+  p: 'mb-4 leading-relaxed',
+  ul: 'mb-4 list-disc space-y-2 pl-6',
+  ol: 'mb-4 list-decimal space-y-2 pl-6',
+  li: 'leading-relaxed',
+  strong: 'font-bold',
+  a: 'underline',
+  blockquote: 'border-l-4 pl-4 italic',
+  table: 'min-w-full border-collapse border my-4',
+  th: 'border p-2 text-left',
+  td: 'border p-2',
+  img: 'my-4 h-auto max-w-full',
 };
 
 function processQuotes(html: string): string {
@@ -207,7 +207,7 @@ function processQuotes(html: string): string {
       (_, username, _postNumber, _topicId, content) => {
         wasProcessed = true;
         return createQuoteHtml(username, content);
-      },
+      }
     );
   }
 
@@ -241,7 +241,7 @@ function processDetails(html: string): string {
       (_, summary, content) => {
         wasProcessed = true;
         return createDetailsHtml(summary, content);
-      },
+      }
     );
   }
 
@@ -249,10 +249,10 @@ function processDetails(html: string): string {
 }
 
 export function applyStyle(
-  dom: Document | Element | Comment | DocumentFragment | DocumentType | Text,
+  dom: Document | Element | Comment | DocumentFragment | DocumentType | Text
 ): string {
   const doc = getDocument();
-  const container = doc.createElement("div");
+  const container = doc.createElement('div');
   container.appendChild(dom.cloneNode(true));
 
   Object.entries(MARKDOWN_STYLES).forEach(([tag, className]) => {
@@ -280,7 +280,7 @@ export function markdownToHtml(markdown: string): string {
 
 export function processDiff(
   currentContent: string,
-  previousContent: string,
+  previousContent: string
 ): string {
   const customToDom = (node: Nodes) => {
     const doc = getDocument();
@@ -292,14 +292,14 @@ export function processDiff(
   const previousTree = customToDom(toHast(fromMarkdown(previousContent)));
 
   if (!currentTree || !previousTree) {
-    throw new Error("Failed to parse markdown content");
+    throw new Error('Failed to parse markdown content');
   }
 
   // Generate the diff
   const diffFragment = visualDomDiff(previousTree, currentTree, {
-    addedClass: "diff-added",
-    removedClass: "diff-deleted",
-    modifiedClass: "diff-modified",
+    addedClass: 'diff-added',
+    removedClass: 'diff-deleted',
+    modifiedClass: 'diff-modified',
     diffText: diffText_word,
   });
 
@@ -327,10 +327,10 @@ export function diffText_word(oldText: string, newText: string): Diff[] {
 
       // '\x00' is a valid character, but various debuggers don't like it.
       // So we'll insert a junk entry to avoid generating a null character.
-      lineArray[0] = "";
+      lineArray[0] = '';
 
       function diff_linesToCharsMunge_(text: string) {
-        let chars = "";
+        let chars = '';
         // Walk the text, pulling out a substring for each word.
         // text.split(' ') would would temporarily double our memory footprint.
         // Modifying text would create many large strings to garbage collect.
@@ -339,7 +339,7 @@ export function diffText_word(oldText: string, newText: string): Diff[] {
         // Keeping our own length variable is faster than looking it up.
         let lineArrayLength = lineArray.length;
         while (lineEnd < text.length - 1) {
-          lineEnd = text.indexOf(" ", lineStart);
+          lineEnd = text.indexOf(' ', lineStart);
           if (lineEnd == -1) {
             lineEnd = text.length - 1;
           }

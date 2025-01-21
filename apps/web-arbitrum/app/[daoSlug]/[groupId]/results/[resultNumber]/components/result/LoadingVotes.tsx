@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 const messages = [
-  "Counting votes...",
-  "Consulting the DAO oracle...",
-  "Deciphering blockchain hieroglyphs...",
-  "Summoning consensus spirits...",
-  "Brewing governance tea...",
-  "Polishing the voting crystals...",
-  "Aligning the decentralized stars...",
-  "Calibrating the trust machine...",
-  "Decrypting the will of the people...",
-  "Finalizing the immutable truth...",
+  'Counting votes...',
+  'Consulting the DAO oracle...',
+  'Deciphering blockchain hieroglyphs...',
+  'Summoning consensus spirits...',
+  'Brewing governance tea...',
+  'Polishing the voting crystals...',
+  'Aligning the decentralized stars...',
+  'Calibrating the trust machine...',
+  'Decrypting the will of the people...',
+  'Finalizing the immutable truth...',
 ];
 
 export function LoadingVotes() {
@@ -30,10 +30,10 @@ export function LoadingVotes() {
   }, []);
 
   return (
-    <div className="flex h-full w-full items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 animate-spin rounded-full border-4" />
-        <p className="text-lg font-medium">{currentMessage}</p>
+    <div className='flex h-full w-full items-center justify-center'>
+      <div className='flex flex-col items-center gap-4'>
+        <div className='h-12 w-12 animate-spin rounded-full border-4' />
+        <p className='text-lg font-medium'>{currentMessage}</p>
       </div>
     </div>
   );

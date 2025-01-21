@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, useCallback } from "react";
-import { v4 as uuidv4 } from "uuid";
+import { ExternalLinkIcon } from 'lucide-react';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import {
-  saveGroups,
+  deleteGroup,
+  FuzzyItem,
   fuzzySearchItems,
   ProposalGroup,
   ProposalGroupItem,
-  deleteGroup,
-  FuzzyItem,
-} from "../actions";
-import Link from "next/link";
-import { ExternalLinkIcon } from "lucide-react";
+  saveGroups,
+} from '../actions';
 
 interface GroupingInterfaceProps {
   initialGroups?: ProposalGroup[];
@@ -24,14 +24,14 @@ export default function GroupingInterface({
     [...initialGroups].sort(
       (a, b) =>
         new Date(b.createdAt || 0).getTime() -
-        new Date(a.createdAt || 0).getTime(),
-    ),
+        new Date(a.createdAt || 0).getTime()
+    )
   );
-  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupName, setNewGroupName] = useState('');
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-  const [editingGroupName, setEditingGroupName] = useState<string>("");
+  const [editingGroupName, setEditingGroupName] = useState<string>('');
   const [searchResults, setSearchResults] = useState<FuzzyItem[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [shouldSaveGroups, setShouldSaveGroups] = useState(false);
 
   const handleSearch = async (value: string) => {
@@ -43,7 +43,7 @@ export default function GroupingInterface({
 
       if (currentGroup) {
         const filteredResults = results.filter(
-          (result) => !currentGroup.items.some((item) => item.id === result.id),
+          (result) => !currentGroup.items.some((item) => item.id === result.id)
         );
         setSearchResults(filteredResults);
       } else {
@@ -63,7 +63,7 @@ export default function GroupingInterface({
         createdAt: new Date().toISOString(),
       };
       setGroups([newGroup, ...groups]);
-      setNewGroupName("");
+      setNewGroupName('');
       setEditingGroupName(newGroupName);
       setEditingGroupId(newGroup.id!);
       setShouldSaveGroups(true);
@@ -75,11 +75,11 @@ export default function GroupingInterface({
       prevGroups.map((group) =>
         group.id === groupId
           ? { ...group, items: [item, ...group.items] }
-          : group,
-      ),
+          : group
+      )
     );
     setSearchResults((prevResults) =>
-      prevResults.filter((result) => result.id !== item.id),
+      prevResults.filter((result) => result.id !== item.id)
     );
     setShouldSaveGroups(true);
   };
@@ -92,8 +92,8 @@ export default function GroupingInterface({
               ...group,
               items: group.items.filter((item) => item.id !== itemId),
             }
-          : group,
-      ),
+          : group
+      )
     );
     setShouldSaveGroups(true);
   };
@@ -103,8 +103,8 @@ export default function GroupingInterface({
       prevGroups.map((group) =>
         group.id === groupId
           ? { ...group, name: newName.trim() || group.name }
-          : group,
-      ),
+          : group
+      )
     );
     setShouldSaveGroups(true);
   };
@@ -113,8 +113,8 @@ export default function GroupingInterface({
     try {
       await saveGroups(groups);
     } catch (error) {
-      console.error("Failed to save groups:", error);
-      alert("Failed to save groups");
+      console.error('Failed to save groups:', error);
+      alert('Failed to save groups');
     }
   }, [groups]);
 
@@ -126,72 +126,72 @@ export default function GroupingInterface({
   }, [shouldSaveGroups, handleSaveGroups]);
 
   const handleDeleteGroup = async (groupId: string) => {
-    if (window.confirm("Are you sure you want to delete this group?")) {
+    if (window.confirm('Are you sure you want to delete this group?')) {
       try {
         await deleteGroup(groupId);
         setGroups(groups.filter((group) => group.id !== groupId));
       } catch (error) {
-        console.error("Failed to delete group:", error);
-        alert("Failed to delete group");
+        console.error('Failed to delete group:', error);
+        alert('Failed to delete group');
       }
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex space-x-4">
+    <div className='space-y-6'>
+      <div className='flex space-x-4'>
         <input
-          type="text"
+          type='text'
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
-          placeholder="New group name"
-          className="flex-grow rounded-md border p-2"
+          placeholder='New group name'
+          className='flex-grow rounded-md border p-2'
         />
         <button
           onClick={createNewGroup}
-          className="rounded-md border px-4 py-2"
+          className='rounded-md border px-4 py-2'
         >
           Create Group
         </button>
       </div>
 
       {groups.map((group) => (
-        <div key={group.id} className="rounded-lg border shadow-sm">
-          <div className="flex items-center justify-between border-b p-4">
-            <h2 className="text-lg font-semibold">
+        <div key={group.id} className='rounded-lg border shadow-sm'>
+          <div className='flex items-center justify-between border-b p-4'>
+            <h2 className='text-lg font-semibold'>
               {editingGroupId === group.id ? (
-                <div className="flex items-center space-x-2">
+                <div className='flex items-center space-x-2'>
                   <input
-                    type="text"
+                    type='text'
                     value={editingGroupName}
                     onChange={(e) => setEditingGroupName(e.target.value)}
-                    className="w-64 rounded-md border p-2"
+                    className='w-64 rounded-md border p-2'
                   />
                 </div>
               ) : (
                 <Link
                   href={`mapping/proposal_group/${group.id}`}
-                  target="_blank"
-                  className="flex gap-2"
+                  target='_blank'
+                  className='flex gap-2'
                 >
                   {group.name}
                   {initialGroups.map((g) => g.id).includes(group.id) && (
-                    <ExternalLinkIcon className="h-4 w-4" />
+                    <ExternalLinkIcon className='h-4 w-4' />
                   )}
                 </Link>
               )}
             </h2>
-            <div className="space-x-2">
+            <div className='space-x-2'>
               {editingGroupId === group.id ? (
                 <button
                   onClick={() => {
                     editGroup(editingGroupId, editingGroupName);
                     setEditingGroupId(null);
-                    setEditingGroupName("");
-                    setSearchTerm("");
+                    setEditingGroupName('');
+                    setSearchTerm('');
                     setSearchResults([]);
                   }}
-                  className="rounded-md border px-3 py-1"
+                  className='rounded-md border px-3 py-1'
                 >
                   Done Editing
                 </button>
@@ -202,13 +202,13 @@ export default function GroupingInterface({
                       setEditingGroupName(group.name);
                       setEditingGroupId(group.id!);
                     }}
-                    className="rounded-md border px-3 py-1"
+                    className='rounded-md border px-3 py-1'
                   >
                     Edit Group
                   </button>
                   <button
                     onClick={() => handleDeleteGroup(group.id!)}
-                    className="rounded-md border px-3 py-1"
+                    className='rounded-md border px-3 py-1'
                   >
                     Delete Group
                   </button>
@@ -216,32 +216,32 @@ export default function GroupingInterface({
               )}
             </div>
           </div>
-          <div className="p-4">
+          <div className='p-4'>
             {editingGroupId === group.id ? (
               <>
-                <ul className="mb-4 space-y-2">
+                <ul className='mb-4 space-y-2'>
                   {group.items.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-center justify-between"
+                      className='flex items-center justify-between'
                     >
-                      <span className="flex gap-2">
+                      <span className='flex gap-2'>
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
-                            item.type === "proposal"
-                              ? "bg-blue-100 dark:bg-blue-800"
-                              : "bg-gray-100 dark:bg-gray-800"
-                          }`}
+                            item.type === 'proposal'
+                              ? 'bg-blue-100 dark:bg-blue-800'
+                              : 'bg-gray-100 dark:bg-gray-800'
+                                      }`}
                         >
-                          {item.type === "proposal" ? "Proposal" : "Discussion"}
+                          {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
                         </span>
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
-                            item.indexerName.includes("SNAPSHOT")
-                              ? "bg-yellow-100 dark:bg-yellow-800"
-                              : item.indexerName.includes("http")
-                                ? "bg-blue-100 dark:bg-blue-800"
-                                : "bg-green-100 dark:bg-green-800"
+                            item.indexerName.includes('SNAPSHOT')
+                              ? 'bg-yellow-100 dark:bg-yellow-800'
+                              : item.indexerName.includes('http')
+                                ? 'bg-blue-100 dark:bg-blue-800'
+                                : 'bg-green-100 dark:bg-green-800'
                           }`}
                         >
                           {item.indexerName}
@@ -250,7 +250,7 @@ export default function GroupingInterface({
                       </span>
                       <button
                         onClick={() => removeItemFromGroup(group.id!, item.id)}
-                        className="rounded-md bg-red-500 px-2 py-1 text-white hover:bg-red-600"
+                        className='rounded-md bg-red-500 px-2 py-1 text-white hover:bg-red-600'
                       >
                         Remove
                       </button>
@@ -258,41 +258,41 @@ export default function GroupingInterface({
                   ))}
                 </ul>
                 <input
-                  type="text"
+                  type='text'
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search proposals and discussions..."
-                  className="mb-4 w-full rounded-md border p-2"
+                  placeholder='Search proposals and discussions...'
+                  className='mb-4 w-full rounded-md border p-2'
                 />
-                <ul className="space-y-2">
+                <ul className='space-y-2'>
                   {searchResults.map((item) => (
                     <li
                       key={item.id}
-                      className="flex h-8 items-center gap-2"
+                      className='flex h-8 items-center gap-2'
                       onClick={() => addItemToGroup(group.id!, item)}
                     >
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          item.type === "proposal"
-                            ? "bg-blue-100 dark:bg-blue-800"
-                            : "bg-gray-100 dark:bg-gray-800"
+                          item.type === 'proposal'
+                            ? 'bg-blue-100 dark:bg-blue-800'
+                            : 'bg-gray-100 dark:bg-gray-800'
                         }`}
                       >
-                        {item.type === "proposal" ? "Proposal" : "Discussion"}
+                        {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
                       </span>
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          item.indexerName.includes("SNAPSHOT")
-                            ? "bg-yellow-100 dark:bg-yellow-800"
-                            : item.indexerName.includes("http")
-                              ? "bg-blue-100 dark:bg-blue-800"
-                              : "bg-green-100 dark:bg-green-800"
+                          item.indexerName.includes('SNAPSHOT')
+                            ? 'bg-yellow-100 dark:bg-yellow-800'
+                            : item.indexerName.includes('http')
+                              ? 'bg-blue-100 dark:bg-blue-800'
+                              : 'bg-green-100 dark:bg-green-800'
                         }`}
                       >
                         {item.indexerName}
                       </span>
                       <label htmlFor={`item-${item.id}`}>{item.name}</label>
-                      <span className="rounded-full bg-red-100 px-2 py-1 text-xs dark:bg-red-800">
+                      <span className='rounded-full bg-red-100 px-2 py-1 text-xs dark:bg-red-800'>
                         {item.score}
                       </span>
                     </li>
@@ -301,25 +301,25 @@ export default function GroupingInterface({
               </>
             ) : (
               <>
-                <ul className="mb-4 space-y-2">
+                <ul className='mb-4 space-y-2'>
                   {group.items.map((item) => (
-                    <li key={item.id} className="flex items-center gap-2">
+                    <li key={item.id} className='flex items-center gap-2'>
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          item.type === "proposal"
-                            ? "bg-blue-100 dark:bg-blue-800"
-                            : "bg-gray-100 dark:bg-gray-800"
+                          item.type === 'proposal'
+                            ? 'bg-blue-100 dark:bg-blue-800'
+                            : 'bg-gray-100 dark:bg-gray-800'
                         }`}
                       >
-                        {item.type === "proposal" ? "Proposal" : "Discussion"}
+                        {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
                       </span>
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          item.indexerName.includes("SNAPSHOT")
-                            ? "bg-yellow-100 dark:bg-yellow-800"
-                            : item.indexerName.includes("http")
-                              ? "bg-blue-100 dark:bg-blue-800"
-                              : "bg-green-100 dark:bg-green-800"
+                          item.indexerName.includes('SNAPSHOT')
+                            ? 'bg-yellow-100 dark:bg-yellow-800'
+                            : item.indexerName.includes('http')
+                              ? 'bg-blue-100 dark:bg-blue-800'
+                              : 'bg-green-100 dark:bg-green-800'
                         }`}
                       >
                         {item.indexerName}

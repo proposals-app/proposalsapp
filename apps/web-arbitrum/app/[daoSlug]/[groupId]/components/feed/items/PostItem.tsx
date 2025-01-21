@@ -1,48 +1,48 @@
-import { CombinedFeedItem, PostFeedItem } from "../Feed";
-import { toHast } from "mdast-util-to-hast";
-import { fromMarkdown } from "mdast-util-from-markdown";
-import rehypeStringify from "rehype-stringify";
-import { unified } from "unified";
-import { format, formatDistanceToNowStrict, formatISO } from "date-fns";
+import { DiscourseUser, Selectable } from '@proposalsapp/db';
+import * as Avatar from '@radix-ui/react-avatar';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
+import { Root } from 'hast';
+import { CheckCheck, HeartIcon } from 'lucide-react';
+import { fromMarkdown } from 'mdast-util-from-markdown';
+import { toHast } from 'mdast-util-to-hast';
+import { unstable_cache } from 'next/cache';
+import { Suspense } from 'react';
+import rehypeStringify from 'rehype-stringify';
+import { unified } from 'unified';
 import {
   getDiscourseUser,
   getPostLikedUsers,
   getPostLikesCount,
-} from "../actions";
-import * as Avatar from "@radix-ui/react-avatar";
-import * as Tooltip from "@radix-ui/react-tooltip";
-import { Suspense } from "react";
-import { unstable_cache } from "next/cache";
-import { CheckCheck, HeartIcon } from "lucide-react";
-import { DiscourseUser, Selectable } from "@proposalsapp/db";
-import { Root } from "hast";
+} from '../actions';
+import { CombinedFeedItem, PostFeedItem } from '../Feed';
 
 const getDiscourseUserCached = unstable_cache(
   async (userId: number, daoDiscourseId: string) => {
     return await getDiscourseUser(userId, daoDiscourseId);
   },
-  ["discourse-user"],
-  { revalidate: 60 * 5, tags: ["discourse-user"] },
+  ['discourse-user'],
+  { revalidate: 60 * 5, tags: ['discourse-user'] }
 );
 
 const getPostLikesCountCached = unstable_cache(
   async (externalPostId: number, daoDiscourseId: string) => {
     return await getPostLikesCount(externalPostId, daoDiscourseId);
   },
-  ["post-likes-count"],
-  { revalidate: 60 * 5, tags: ["post-likes"] },
+  ['post-likes-count'],
+  { revalidate: 60 * 5, tags: ['post-likes'] }
 );
 
 const getPostLikedUsersCached = unstable_cache(
   async (externalPostId: number, daoDiscourseId: string) => {
     return await getPostLikedUsers(externalPostId, daoDiscourseId);
   },
-  ["post-liked-users"],
-  { revalidate: 60 * 5, tags: ["post-liked-users"] },
+  ['post-liked-users'],
+  { revalidate: 60 * 5, tags: ['post-liked-users'] }
 );
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
-  return item.type === "post";
+  return item.type === 'post';
 };
 
 export async function PostItem({ item }: { item: CombinedFeedItem }) {
@@ -53,11 +53,11 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
   const author = await getDiscourseUserCached(item.userId, item.daoDiscourseId);
   const likesCount = await getPostLikesCountCached(
     item.externalId,
-    item.daoDiscourseId,
+    item.daoDiscourseId
   );
   const likedUsers = await getPostLikedUsersCached(
     item.externalId,
-    item.daoDiscourseId,
+    item.daoDiscourseId
   );
 
   const processedContent = markdownToHtml(item.cooked);
@@ -66,7 +66,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
     new Date(item.timestamp),
     {
       addSuffix: true,
-    },
+    }
   );
 
   const updatedAt =
@@ -75,25 +75,28 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
     new Date(item.updatedAt),
     {
       addSuffix: true,
-    },
+    }
   );
   const utcTime = format(
     formatISO(item.timestamp),
-    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
+    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
   );
 
   const isDeleted = item.deleted;
 
   return (
-    <div id={postAnchorId} className="w-full scroll-mt-36">
+    <div id={postAnchorId} className='w-full scroll-mt-36'>
       {isDeleted ? (
-        <details className="w-full">
-          <summary className="flex h-12 cursor-pointer list-none items-center justify-center [&::-webkit-details-marker]:hidden">
-            <div className="flex-grow border-t"></div>
-            <span className="mx-4">deleted post</span>
-            <div className="flex-grow border-t"></div>
+        <details className='w-full'>
+          <summary
+            className='flex h-12 cursor-pointer list-none items-center justify-center
+              [&::-webkit-details-marker]:hidden'
+          >
+            <div className='flex-grow border-t'></div>
+            <span className='mx-4'>deleted post</span>
+            <div className='flex-grow border-t'></div>
           </summary>
-          <div className="p-4">
+          <div className='p-4'>
             <PostContent
               author={author}
               relativeCreateTime={relativeCreateTime}
@@ -108,7 +111,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
           </div>
         </details>
       ) : (
-        <div className="p-4">
+        <div className='p-4'>
           <PostContent
             author={author}
             relativeCreateTime={relativeCreateTime}
@@ -148,7 +151,7 @@ const PostContent = ({
   item: PostFeedItem;
 }) => (
   <>
-    <div className="flex cursor-default select-none flex-row justify-between">
+    <div className='flex cursor-default select-none flex-row justify-between'>
       {author && (
         <Suspense>
           <AuthorInfo
@@ -159,16 +162,16 @@ const PostContent = ({
           />
         </Suspense>
       )}
-      <div className="flex cursor-default select-none flex-col items-end text-sm">
-        <div className="flex flex-col items-end">
+      <div className='flex cursor-default select-none flex-col items-end text-sm'>
+        <div className='flex flex-col items-end'>
           <Tooltip.Provider>
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
                 <div>
-                  posted <span className="font-bold">{relativeCreateTime}</span>
+                  posted <span className='font-bold'>{relativeCreateTime}</span>
                 </div>
               </Tooltip.Trigger>
-              <Tooltip.Content className="rounded p-2">
+              <Tooltip.Content className='rounded p-2'>
                 <p>{utcTime}</p>
               </Tooltip.Content>
             </Tooltip.Root>
@@ -180,33 +183,33 @@ const PostContent = ({
           </div>
         )}
 
-        <div className="flex flex-row items-center gap-4">
-          <div className="flex items-center gap-1 text-sm">
-            <CheckCheck className="h-4 w-4" />
+        <div className='flex flex-row items-center gap-4'>
+          <div className='flex items-center gap-1 text-sm'>
+            <CheckCheck className='h-4 w-4' />
             <span>{item.reads}</span>
           </div>
           {likesCount > 0 ? (
             <Tooltip.Provider>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
-                  <div className="flex items-center gap-1 text-sm">
-                    <HeartIcon className="h-4 w-4" />
+                  <div className='flex items-center gap-1 text-sm'>
+                    <HeartIcon className='h-4 w-4' />
                     <span>{likesCount}</span>
                   </div>
                 </Tooltip.Trigger>
-                <Tooltip.Content className="max-w-32 rounded border bg-white p-2">
+                <Tooltip.Content className='max-w-32 rounded border bg-white p-2'>
                   <p>
-                    Liked by:{" "}
+                    Liked by:{' '}
                     {likedUsers.length > 0
-                      ? likedUsers.join(", ")
-                      : "No one yet"}
+                      ? likedUsers.join(', ')
+                      : 'No one yet'}
                   </p>
                 </Tooltip.Content>
               </Tooltip.Root>
             </Tooltip.Provider>
           ) : (
-            <div className="flex items-center gap-1 text-sm">
-              <HeartIcon className="h-4 w-4" />
+            <div className='flex items-center gap-1 text-sm'>
+              <HeartIcon className='h-4 w-4' />
               <span>{likesCount}</span>
             </div>
           )}
@@ -216,7 +219,7 @@ const PostContent = ({
 
     <div
       dangerouslySetInnerHTML={{ __html: processedContent }}
-      className="prose prose-lg mt-4 max-w-none"
+      className='prose prose-lg mt-4 max-w-none'
     />
   </>
 );
@@ -228,45 +231,45 @@ const AuthorInfo = ({
   authorName: string;
   authorPicture: string;
 }) => (
-  <div className="flex flex-row items-center gap-2">
-    <Avatar.Root className="flex h-10 w-10 items-center justify-center rounded-full">
-      <Avatar.Image src={authorPicture} className="w-full rounded-full" />
+  <div className='flex flex-row items-center gap-2'>
+    <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
+      <Avatar.Image src={authorPicture} className='w-full rounded-full' />
       <Avatar.Fallback>{authorName.slice(0, 2)}</Avatar.Fallback>
     </Avatar.Root>
-    <div className="font-bold">{authorName}</div>
+    <div className='font-bold'>{authorName}</div>
   </div>
 );
 
 // Quote card styles
 const QUOTE_STYLES = {
-  wrapper: "my-4 border-l-2 p-4",
-  header: "flex text-sm mb-2 font-bold",
-  content: "",
-  linkWrapper: "w-full flex justify-end mt-2 cursor-default select-none",
-  link: "hover:underline text-sm font-bold no-underline",
+  wrapper: 'my-4 border-l-2 p-4',
+  header: 'flex text-sm mb-2 font-bold',
+  content: '',
+  linkWrapper: 'w-full flex justify-end mt-2 cursor-default select-none',
+  link: 'hover:underline text-sm font-bold no-underline',
 } as const;
 
 const COLLAPSIBLE_STYLES = {
-  details: "my-4 border rounded-lg overflow-hidden",
-  summary: "p-4 bg-gray-100 cursor-pointer font-bold",
-  content: "p-4 bg-white",
+  details: 'my-4 border rounded-lg overflow-hidden',
+  summary: 'p-4 bg-gray-100 cursor-pointer font-bold',
+  content: 'p-4 bg-white',
 } as const;
 
 const MARKDOWN_STYLES = {
-  h1: "mb-4 mt-6 text-2xl font-bold",
-  h2: "mb-3 mt-5 text-xl font-bold",
-  h3: "mb-2 mt-4 text-lg font-bold",
-  p: "mb-4 leading-relaxed",
-  ul: "mb-4 list-disc space-y-2 pl-6",
-  ol: "mb-4 list-decimal space-y-2 pl-6",
-  li: "leading-relaxed",
-  strong: "font-bold",
-  a: "underline",
-  blockquote: "border-l-4 pl-4 italic",
-  table: "min-w-full border-collapse border my-4",
-  th: "border p-2 text-left ",
-  td: "border p-2",
-  img: "my-4 h-auto max-w-full",
+  h1: 'mb-4 mt-6 text-2xl font-bold',
+  h2: 'mb-3 mt-5 text-xl font-bold',
+  h3: 'mb-2 mt-4 text-lg font-bold',
+  p: 'mb-4 leading-relaxed',
+  ul: 'mb-4 list-disc space-y-2 pl-6',
+  ol: 'mb-4 list-decimal space-y-2 pl-6',
+  li: 'leading-relaxed',
+  strong: 'font-bold',
+  a: 'underline',
+  blockquote: 'border-l-4 pl-4 italic',
+  table: 'min-w-full border-collapse border my-4',
+  th: 'border p-2 text-left ',
+  td: 'border p-2',
+  img: 'my-4 h-auto max-w-full',
 } as const;
 
 type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
@@ -279,10 +282,10 @@ function processQuotes(html: string): string {
     username: string,
     postNumber: string,
     topicId: string,
-    content: string,
+    content: string
   ) {
     const anchorHref =
-      postNumber === "1" ? "#" : `#post-${postNumber}-${topicId}`;
+      postNumber === '1' ? '#' : `#post-${postNumber}-${topicId}`;
     return `
       <div class="${QUOTE_STYLES.wrapper}">
         <div class="${QUOTE_STYLES.header}">
@@ -294,7 +297,7 @@ function processQuotes(html: string): string {
         </div>
         <div class="${QUOTE_STYLES.linkWrapper}">
           <a href="${anchorHref}" class="${QUOTE_STYLES.link}">
-                    ${postNumber === "1" ? "back to top ↑" : "jump to post →"}
+                    ${postNumber === '1' ? 'back to top ↑' : 'jump to post →'}
           </a>
         </div>
       </div>
@@ -314,7 +317,7 @@ function processQuotes(html: string): string {
       (_, username, postNumber, topicId, content) => {
         wasProcessed = true;
         return createQuoteHtml(username, postNumber, topicId, content);
-      },
+      }
     );
   }
 
@@ -348,7 +351,7 @@ function processDetails(html: string): string {
       (_, summary, content) => {
         wasProcessed = true;
         return createDetailsHtml(summary, content);
-      },
+      }
     );
   }
 
@@ -368,7 +371,7 @@ interface HastNode {
 }
 
 function applyStyleToNode(node: HastNode): void {
-  if (!node || typeof node !== "object") return;
+  if (!node || typeof node !== 'object') return;
 
   if (
     node.tagName &&
@@ -396,8 +399,8 @@ function markdownToHtml(markdown: string): string {
     if (hast) {
       // Ensure the hast node is compatible with the expected type
       const rootNode: Root = {
-        type: "root",
-        children: hast.type === "root" ? hast.children : [hast],
+        type: 'root',
+        children: hast.type === 'root' ? hast.children : [hast],
       };
 
       // Apply styles to the root node
@@ -413,10 +416,10 @@ function markdownToHtml(markdown: string): string {
       // Process quotes after HTML conversion
       return processDetails(processQuotes(html));
     } else {
-      return "<div>Error processing content</div>";
+      return '<div>Error processing content</div>';
     }
   } catch (error) {
-    console.error("Error converting markdown to HTML:", error);
-    return "<div>Error processing content</div>";
+    console.error('Error converting markdown to HTML:', error);
+    return '<div>Error processing content</div>';
   }
 }

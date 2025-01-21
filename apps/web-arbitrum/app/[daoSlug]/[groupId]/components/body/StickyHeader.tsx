@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { notFound } from "next/navigation";
-import { BodiesDataType, GroupWithDataType } from "../../actions";
-import { useEffect, useState } from "react";
-import * as Avatar from "@radix-ui/react-avatar";
+import * as Avatar from '@radix-ui/react-avatar';
+import { notFound } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { BodiesDataType, GroupWithDataType } from '../../actions';
 
 interface StickyHeaderProps {
   bodies: BodiesDataType;
@@ -27,10 +27,10 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -40,25 +40,24 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
 
   return (
     <div
-      className={`fixed left-0 right-0 top-0 z-10 h-20 shadow-md transition-transform duration-300 ${
-        isVisible ? "translate-y-0" : "-translate-y-full"
-      }`}
+      className={`fixed left-0 right-0 top-0 z-10 h-20 shadow-md transition-transform duration-300
+        ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
     >
-      <div className="mx-auto flex h-full w-full items-center px-6 lg:px-24">
-        <div className="flex flex-row items-center gap-4 md:pl-10 lg:pl-20">
-          <Avatar.Root className="h-10 w-10 overflow-hidden rounded-full">
+      <div className='mx-auto flex h-full w-full items-center px-6 lg:px-24'>
+        <div className='flex flex-row items-center gap-4 md:pl-10 lg:pl-20'>
+          <Avatar.Root className='h-10 w-10 overflow-hidden rounded-full'>
             <Avatar.Image
               src={authorPicture}
               alt={authorName}
-              className="h-full w-full rounded-full object-cover"
+              className='h-full w-full rounded-full object-cover'
               width={40}
               height={40}
             />
-            <Avatar.Fallback className="flex h-full w-full items-center justify-center">
+            <Avatar.Fallback className='flex h-full w-full items-center justify-center'>
               {authorName.slice(0, 2)}
             </Avatar.Fallback>
           </Avatar.Root>
-          <h1 className="text-lg font-bold">{title}</h1>
+          <h1 className='text-lg font-bold'>{title}</h1>
         </div>
       </div>
     </div>

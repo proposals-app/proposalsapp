@@ -1,8 +1,8 @@
-import { Selectable, Vote } from "@proposalsapp/db";
-import { Proposal } from "../ResultEvent";
-import { useMemo } from "react";
-import { formatNumberWithSuffix } from "@/lib/utils";
-import { HiddenVote } from "./HiddenVote";
+import { formatNumberWithSuffix } from '@/lib/utils';
+import { Selectable, Vote } from '@proposalsapp/db';
+import { useMemo } from 'react';
+import { Proposal } from '../ResultEvent';
+import { HiddenVote } from './HiddenVote';
 
 interface RankedChoiceVoteProps {
   proposal: Proposal;
@@ -14,14 +14,14 @@ export const RankedChoiceVote = ({
   votes,
 }: RankedChoiceVoteProps) => {
   const metadata =
-    typeof proposal.metadata === "string"
+    typeof proposal.metadata === 'string'
       ? JSON.parse(proposal.metadata)
       : proposal.metadata;
 
   const { winningChoice, winningPercentage, maxVotingPower } = useMemo(() => {
-    if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
       return {
-        winningChoice: "Hidden",
+        winningChoice: 'Hidden',
         totalVotingPower: 0,
         winningPercentage: 0,
         maxVotingPower: 0,
@@ -53,7 +53,7 @@ export const RankedChoiceVote = ({
 
         // Find the highest-ranked remaining choice
         const validChoice = rankedChoices.find((choice) =>
-          remainingChoices.has(choice - 1),
+          remainingChoices.has(choice - 1)
         );
 
         if (validChoice !== undefined) {
@@ -64,7 +64,7 @@ export const RankedChoiceVote = ({
       // Calculate total votes in this round
       const totalVotes = Object.values(voteCounts).reduce(
         (sum, power) => sum + power,
-        0,
+        0
       );
 
       // Check if any choice has a majority
@@ -101,12 +101,12 @@ export const RankedChoiceVote = ({
     }
 
     // Calculate final results
-    const winningChoice = choices[winner] || "Unknown";
+    const winningChoice = choices[winner] || 'Unknown';
     const maxVotingPower = voteCounts[winner] || 0;
 
     const totalVotingPower = votes.reduce(
       (sum, vote) => sum + Number(vote.votingPower),
-      0,
+      0
     );
 
     const winningPercentage = (maxVotingPower / totalVotingPower) * 100;
@@ -119,21 +119,21 @@ export const RankedChoiceVote = ({
     };
   }, [votes, proposal.choices, metadata]);
 
-  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+  if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
     return <HiddenVote votes={votes} />;
   }
 
   return (
-    <div className="flex-col items-center justify-between space-y-1">
-      <div className="flex h-4 w-full overflow-hidden rounded-md">
+    <div className='flex-col items-center justify-between space-y-1'>
+      <div className='flex h-4 w-full overflow-hidden rounded-md'>
         <div
-          className="h-full bg-green-500"
+          className='h-full bg-green-500'
           style={{ width: `${winningPercentage}%` }}
         />
       </div>
-      <div className="flex w-full justify-between">
-        <div className="truncate text-sm font-bold">{winningChoice}</div>
-        <div className="text-sm">{formatNumberWithSuffix(maxVotingPower)}</div>
+      <div className='flex w-full justify-between'>
+        <div className='truncate text-sm font-bold'>{winningChoice}</div>
+        <div className='text-sm'>{formatNumberWithSuffix(maxVotingPower)}</div>
       </div>
     </div>
   );

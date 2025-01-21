@@ -1,6 +1,6 @@
-import { Selectable, Proposal } from "@proposalsapp/db";
-import { format } from "date-fns";
-import Link from "next/link";
+import { Proposal, Selectable } from '@proposalsapp/db';
+import { format } from 'date-fns';
+import Link from 'next/link';
 
 interface ResultEventProps {
   content: string;
@@ -25,36 +25,39 @@ export function ResultEvent({
   last,
 }: ResultEventProps) {
   // Determine if the vote is onchain or offchain
-  const isOnchain = content.includes("Onchain vote"); // Adjust this logic based on your data model
-  const voteType = isOnchain ? "Onchain" : "Offchain";
+  const isOnchain = content.includes('Onchain vote'); // Adjust this logic based on your data model
+  const voteType = isOnchain ? 'Onchain' : 'Offchain';
 
   // Determine if the vote is live or ended
   const isLive = new Date() < new Date(proposal.timeEnd);
 
   // Format dates
-  const startDate = format(new Date(proposal.timeStart), "MMM d");
-  const endDate = format(new Date(proposal.timeEnd), "MMM d");
+  const startDate = format(new Date(proposal.timeStart), 'MMM d');
+  const endDate = format(new Date(proposal.timeEnd), 'MMM d');
 
   // Content to be rendered inside the div
   const eventContent = (
-    <div className="relative flex items-center py-2">
+    <div className='relative flex items-center py-2'>
       <div
         className={`flex flex-col gap-1 ${
           resultNumber == selectedResult
-            ? "w-36 rounded-l-xl border-b border-l border-t"
-            : "w-28 rounded-xl border"
-        } px-4 py-2 pr-8`}
+            ? 'w-36 rounded-l-xl border-b border-l border-t'
+            : 'w-28 rounded-xl border'
+          } px-4 py-2 pr-8`}
       >
         {eventIndex == 0 && resultNumber == selectedResult && (
-          <div className="absolute -right-2 top-2 h-2 w-10 border-t"></div>
+          <div className='absolute -right-2 top-2 h-2 w-10 border-t'></div>
         )}
-        <div className="absolute left-3 top-5 h-[7px] w-[7px] rounded-full border bg-gray-500" />
+        <div className='absolute left-3 top-5 h-[7px] w-[7px] rounded-full border bg-gray-500' />
         {!last && (
-          <div className="absolute left-[11.5px] top-[7px] z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px] bg-gray-500" />
+          <div
+            className='absolute left-[11.5px] top-[7px] z-10 h-[15px] max-h-[15px] w-0.5
+              translate-x-[2.5px] bg-gray-500'
+          />
         )}
-        <div className="ml-2 text-sm font-semibold">{voteType}</div>
-        {isLive && <div className="text-foreground text-sm">Live Voting</div>}
-        <div className="text-foreground ml-2 text-sm">
+        <div className='ml-2 text-sm font-semibold'>{voteType}</div>
+        {isLive && <div className='text-foreground text-sm'>Live Voting</div>}
+        <div className='text-foreground ml-2 text-sm'>
           {isLive ? (
             <>
               <span>{startDate}</span> - <span>{endDate}</span>

@@ -1,8 +1,8 @@
-import { Selectable, Vote } from "@proposalsapp/db";
-import { Proposal } from "../ResultEvent";
-import { useMemo } from "react";
-import { formatNumberWithSuffix } from "@/lib/utils";
-import { HiddenVote } from "./HiddenVote";
+import { formatNumberWithSuffix } from '@/lib/utils';
+import { Selectable, Vote } from '@proposalsapp/db';
+import { useMemo } from 'react';
+import { Proposal } from '../ResultEvent';
+import { HiddenVote } from './HiddenVote';
 
 interface ApprovalVoteProps {
   proposal: Proposal;
@@ -11,14 +11,14 @@ interface ApprovalVoteProps {
 
 export const ApprovalVote = ({ proposal, votes }: ApprovalVoteProps) => {
   const metadata =
-    typeof proposal.metadata === "string"
+    typeof proposal.metadata === 'string'
       ? JSON.parse(proposal.metadata)
       : proposal.metadata;
 
   const { winningChoice, winningPercentage, maxVotingPower } = useMemo(() => {
-    if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+    if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
       return {
-        winningChoice: "Hidden",
+        winningChoice: 'Hidden',
         totalVotingPower: 0,
         winningPercentage: 0,
         maxVotingPower: 0,
@@ -48,19 +48,19 @@ export const ApprovalVote = ({ proposal, votes }: ApprovalVoteProps) => {
     });
 
     // Find the winning choice
-    let winningChoice = "Unknown";
+    let winningChoice = 'Unknown';
     let maxVotingPower = 0;
 
     for (const [choice, votingPower] of Object.entries(voteCounts)) {
       if (votingPower > maxVotingPower) {
         maxVotingPower = votingPower;
-        winningChoice = choices[Number(choice)] || "Unknown";
+        winningChoice = choices[Number(choice)] || 'Unknown';
       }
     }
 
     const totalVotingPower = Object.values(voteCounts).reduce(
       (sum, power) => sum + power,
-      0,
+      0
     );
 
     const winningPercentage = (maxVotingPower / totalVotingPower) * 100;
@@ -73,21 +73,21 @@ export const ApprovalVote = ({ proposal, votes }: ApprovalVoteProps) => {
     };
   }, [votes, proposal.choices, metadata]);
 
-  if (metadata?.hiddenVote && metadata?.scores_state !== "final") {
+  if (metadata?.hiddenVote && metadata?.scores_state !== 'final') {
     return <HiddenVote votes={votes} />;
   }
 
   return (
-    <div className="flex-col items-center justify-between space-y-1">
-      <div className="flex h-4 w-full overflow-hidden rounded-md">
+    <div className='flex-col items-center justify-between space-y-1'>
+      <div className='flex h-4 w-full overflow-hidden rounded-md'>
         <div
-          className="h-full bg-green-500"
+          className='h-full bg-green-500'
           style={{ width: `${winningPercentage}%` }}
         />
       </div>
-      <div className="flex w-full justify-between">
-        <div className="truncate text-sm font-bold">{winningChoice}</div>
-        <div className="text-sm">{formatNumberWithSuffix(maxVotingPower)}</div>
+      <div className='flex w-full justify-between'>
+        <div className='truncate text-sm font-bold'>{winningChoice}</div>
+        <div className='text-sm'>{formatNumberWithSuffix(maxVotingPower)}</div>
       </div>
     </div>
   );

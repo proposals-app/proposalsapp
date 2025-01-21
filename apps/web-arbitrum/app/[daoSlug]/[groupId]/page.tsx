@@ -1,20 +1,20 @@
-import { notFound, redirect, RedirectType } from "next/navigation";
-import { unstable_cache } from "next/cache";
-import { getGroupData, getTotalVersions } from "./actions";
-import Body, { BodyLoading } from "./components/body/Body";
-import { searchParamsCache } from "@/app/searchParams";
-import { MenuBar } from "./components/menubar/MenuBar";
-import Feed, { FeedLoading } from "./components/feed/Feed";
-import { LoadingTimeline, Timeline } from "./components/timeline/Timeline";
-import { Suspense } from "react";
+import { searchParamsCache } from '@/app/searchParams';
+import { unstable_cache } from 'next/cache';
+import { notFound, redirect, RedirectType } from 'next/navigation';
+import { Suspense } from 'react';
+import { getGroupData, getTotalVersions } from './actions';
+import Body, { BodyLoading } from './components/body/Body';
+import Feed, { FeedLoading } from './components/feed/Feed';
+import { MenuBar } from './components/menubar/MenuBar';
+import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
 
 // Cache the getGroupData function
 const cachedGetGroupData = unstable_cache(
   async (daoSlug: string, groupId: string) => {
     return await getGroupData(daoSlug, groupId);
   },
-  ["group-data"],
-  { revalidate: 60 * 5, tags: ["group-data"] },
+  ['group-data'],
+  { revalidate: 60 * 5, tags: ['group-data'] }
 );
 
 // Cache the getTotalVersions function
@@ -22,8 +22,8 @@ const cachedGetTotalVersions = unstable_cache(
   async (groupId: string) => {
     return await getTotalVersions(groupId);
   },
-  ["total-versions"],
-  { revalidate: 60 * 5, tags: ["total-versions"] },
+  ['total-versions'],
+  { revalidate: 60 * 5, tags: ['total-versions'] }
 );
 
 export default async function ProposalPage({
@@ -51,14 +51,14 @@ export default async function ProposalPage({
     const latestVersion = totalVersions - 1;
     redirect(
       `/${daoSlug}/${groupId}?version=${latestVersion}`,
-      RedirectType.push,
+      RedirectType.push
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-row">
-      <div className="flex w-full justify-between lg:pr-80">
-        <div className="mx-auto flex w-2/3 flex-col justify-center">
+    <div className='flex min-h-screen w-full flex-row'>
+      <div className='flex w-full justify-between lg:pr-80'>
+        <div className='mx-auto flex w-2/3 flex-col justify-center'>
           <Suspense fallback={<BodyLoading />}>
             <Body group={group} version={version ?? 0} diff={diff} />
           </Suspense>
@@ -75,7 +75,7 @@ export default async function ProposalPage({
           </Suspense>
         </div>
 
-        <div className="hidden lg:flex">
+        <div className='hidden lg:flex'>
           <Suspense fallback={<LoadingTimeline />}>
             <Timeline
               group={group}

@@ -40,6 +40,9 @@
     "oslo": "1.2.1",
     "pg": "8.13.1",
     "posthog-js": "1.207.0",
+    "prettier-plugin-classnames": "^0.7.5",
+    "prettier-plugin-merge": "^0.7.2",
+    "prettier-plugin-organize-imports": "^4.1.0",
     "react": "19.0.0",
     "react-dom": "19.0.0-rc.1",
     "react-window": "^1.8.11",
@@ -77,7 +80,6 @@
     "serwist": "9.0.11",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "1.0.7",
-    "tw-colors": "^3.3.2",
     "typescript": "^5.7.2"
   },
   "private": true,

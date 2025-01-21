@@ -1,12 +1,12 @@
-import { unstable_cache } from "next/cache";
-import { DiscoursePost, Selectable, Vote } from "@proposalsapp/db";
-import { GroupWithDataType } from "../../actions";
-import { VoteItem } from "./items/VoteItem";
-import { PostItem } from "./items/PostItem";
-import { notFound } from "next/navigation";
-import { getFeedForGroup } from "./actions";
-import { VotesFilterEnum } from "@/app/searchParams";
-import { LazyLoadTrigger } from "./LazyLoadTrigger";
+import { VotesFilterEnum } from '@/app/searchParams';
+import { DiscoursePost, Selectable, Vote } from '@proposalsapp/db';
+import { unstable_cache } from 'next/cache';
+import { notFound } from 'next/navigation';
+import { GroupWithDataType } from '../../actions';
+import { getFeedForGroup } from './actions';
+import { PostItem } from './items/PostItem';
+import { VoteItem } from './items/VoteItem';
+import { LazyLoadTrigger } from './LazyLoadTrigger';
 
 // Cached version of getFeedForGroup
 const getCachedFeedForGroup = unstable_cache(
@@ -14,12 +14,12 @@ const getCachedFeedForGroup = unstable_cache(
     groupId: string,
     commentsFilter: boolean,
     votesFilter: VotesFilterEnum,
-    page: number,
+    page: number
   ) => {
     return await getFeedForGroup(groupId, commentsFilter, votesFilter, page);
   },
-  ["feed-for-group"],
-  { revalidate: 60 * 5, tags: ["feed"] },
+  ['feed-for-group'],
+  { revalidate: 60 * 5, tags: ['feed'] }
 );
 
 export default async function Feed({
@@ -41,7 +41,7 @@ export default async function Feed({
     group.group.id,
     commentsFilter,
     votesFilter,
-    page,
+    page
   );
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
@@ -49,16 +49,16 @@ export default async function Feed({
   // Filter out posts if comments is false
   const itemsToDisplay = sortedItems.filter(
     (item) =>
-      (item.type == "post" && commentsFilter && item.postNumber != 1) ||
-      item.type == "vote",
+      (item.type == 'post' && commentsFilter && item.postNumber != 1) ||
+      item.type == 'vote'
   );
 
   return (
-    <div className="mt-6 w-full p-6">
+    <div className='mt-6 w-full p-6'>
       {itemsToDisplay.map((item, index) => (
-        <div key={index} className="flex w-full flex-col p-4">
-          {item.type === "vote" && <VoteItem item={item} group={group} />}
-          {item.type === "post" && <PostItem item={item} />}
+        <div key={index} className='flex w-full flex-col p-4'>
+          {item.type === 'vote' && <VoteItem item={item} group={group} />}
+          {item.type === 'post' && <PostItem item={item} />}
         </div>
       ))}
       {feed.hasMore && <LazyLoadTrigger />}
@@ -68,14 +68,14 @@ export default async function Feed({
 
 export function FeedLoading() {
   return (
-    <div className="mt-6 w-full p-6">
-      <div className="space-y-4">
+    <div className='mt-6 w-full p-6'>
+      <div className='space-y-4'>
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="flex items-center gap-4">
-            <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 w-3/4 animate-pulse bg-gray-200" />
-              <div className="h-4 w-1/2 animate-pulse bg-gray-200" />
+          <div key={i} className='flex items-center gap-4'>
+            <div className='h-10 w-10 animate-pulse rounded-full bg-gray-200' />
+            <div className='flex-1 space-y-2'>
+              <div className='h-4 w-3/4 animate-pulse bg-gray-200' />
+              <div className='h-4 w-1/2 animate-pulse bg-gray-200' />
             </div>
           </div>
         ))}
@@ -85,30 +85,30 @@ export function FeedLoading() {
 }
 
 export type VoteFeedItem = {
-  type: "vote";
+  type: 'vote';
   timestamp: Date;
-} & Omit<Selectable<Vote>, "timeCreated">;
+} & Omit<Selectable<Vote>, 'timeCreated'>;
 
 export type PostFeedItem = {
-  type: "post";
+  type: 'post';
   timestamp: Date;
-} & Omit<Selectable<DiscoursePost>, "createdAt">;
+} & Omit<Selectable<DiscoursePost>, 'createdAt'>;
 
 export type CombinedFeedItem = VoteFeedItem | PostFeedItem;
 
 export function mergeAndSortFeedItems(
   votes: Selectable<Vote>[],
-  posts: Selectable<DiscoursePost>[],
+  posts: Selectable<DiscoursePost>[]
 ): CombinedFeedItem[] {
   const combinedItems = [
     ...votes.map((vote) => ({
-      type: "vote" as const,
+      type: 'vote' as const,
       ...vote,
       timeCreated: undefined,
       timestamp: new Date(vote.timeCreated!),
     })),
     ...posts.map((post) => ({
-      type: "post" as const,
+      type: 'post' as const,
       ...post,
       createdAt: undefined,
       timestamp: new Date(post.createdAt),

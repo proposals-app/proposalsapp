@@ -1,20 +1,20 @@
-import { ReactNode } from "react";
-import { db } from "@proposalsapp/db";
-import { notFound } from "next/navigation";
-import { NavBar } from "./components/NavBar";
-import { unstable_cache } from "next/cache";
+import { db } from '@proposalsapp/db';
+import { unstable_cache } from 'next/cache';
+import { notFound } from 'next/navigation';
+import { ReactNode } from 'react';
+import { NavBar } from './components/NavBar';
 
 // Define a cached function to fetch the DAO data
 const getDaoBySlug = unstable_cache(
   async (daoSlug: string) => {
     return await db
-      .selectFrom("dao")
-      .where("slug", "=", daoSlug)
+      .selectFrom('dao')
+      .where('slug', '=', daoSlug)
       .selectAll()
       .executeTakeFirst();
   },
-  ["dao-by-slug"],
-  { revalidate: 3600, tags: ["dao"] }, // Cache for 1 hour
+  ['dao-by-slug'],
+  { revalidate: 3600, tags: ['dao'] } // Cache for 1 hour
 );
 
 export default async function DaoLayout({
@@ -34,9 +34,9 @@ export default async function DaoLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-row">
+    <div className='flex min-h-screen w-full flex-row'>
       <NavBar dao={dao} daoSlug={daoSlug} />
-      <div className="flex w-full justify-between">{children}</div>
+      <div className='flex w-full justify-between'>{children}</div>
     </div>
   );
 }

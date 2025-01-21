@@ -1,23 +1,22 @@
-import { type User, type Session } from "lucia";
-import { cache } from "react";
-import { TimeSpan, createDate, isWithinExpirationDate } from "oslo";
-import { generateRandomString, alphabet } from "oslo/crypto";
-import { Lucia } from "lucia";
-import { db, db_pool } from "@proposalsapp/db";
-import { NodePostgresAdapter } from "@lucia-auth/adapter-postgresql";
-import { cookies } from "next/headers";
-import { otel } from "./otel";
+import { NodePostgresAdapter } from '@lucia-auth/adapter-postgresql';
+import { db, db_pool } from '@proposalsapp/db';
+import { Lucia, type Session, type User } from 'lucia';
+import { cookies } from 'next/headers';
+import { TimeSpan, createDate, isWithinExpirationDate } from 'oslo';
+import { alphabet, generateRandomString } from 'oslo/crypto';
+import { cache } from 'react';
+import { otel } from './otel';
 
 const adapter = new NodePostgresAdapter(db_pool, {
-  user: "user",
-  session: "user_session",
+  user: 'user',
+  session: 'user_session',
 });
 
 export const lucia = new Lucia(adapter, {
-  sessionExpiresIn: new TimeSpan(2, "w"),
+  sessionExpiresIn: new TimeSpan(2, 'w'),
   sessionCookie: {
     attributes: {
-      secure: process.env.NODE_ENV! === "production",
+      secure: process.env.NODE_ENV! === 'production',
     },
   },
   getUserAttributes: (attributes) => {
@@ -32,7 +31,7 @@ export const validateRequest = cache(
   async (): Promise<
     { user: User; session: Session } | { user: null; session: null }
   > => {
-    return otel("auth-validate-request", async () => {
+    return otel('auth-validate-request', async () => {
       const sessionId =
         (await cookies()).get(lucia.sessionCookieName)?.value ?? null;
       if (!sessionId) {
@@ -50,7 +49,7 @@ export const validateRequest = cache(
           (await cookies()).set(
             sessionCookie.name,
             sessionCookie.value,
-            sessionCookie.attributes,
+            sessionCookie.attributes
           );
         }
         if (!result.session) {
@@ -58,39 +57,39 @@ export const validateRequest = cache(
           (await cookies()).set(
             sessionCookie.name,
             sessionCookie.value,
-            sessionCookie.attributes,
+            sessionCookie.attributes
           );
         }
       } catch (error) {
         // Log the error using the otel function
-        await otel("auth-validate-request-error", async () => {
-          console.error("Error setting session cookie:", error);
+        await otel('auth-validate-request-error', async () => {
+          console.error('Error setting session cookie:', error);
         });
       }
       return result;
     });
-  },
+  }
 );
 
 export async function generateEmailVerificationCode(
   userId: string,
-  email: string,
+  email: string
 ): Promise<string> {
-  return otel("auth-generate-email-code", async () => {
+  return otel('auth-generate-email-code', async () => {
     await db
-      .deleteFrom("emailVerification")
-      .where("emailVerification.userId", "=", userId)
+      .deleteFrom('emailVerification')
+      .where('emailVerification.userId', '=', userId)
       .execute();
 
-    const code = generateRandomString(6, alphabet("0-9"));
+    const code = generateRandomString(6, alphabet('0-9'));
 
     await db
-      .insertInto("emailVerification")
+      .insertInto('emailVerification')
       .values({
         userId: userId,
         email: email,
         code: code,
-        expiresAt: createDate(new TimeSpan(15, "m")), // Increase expiration time to 15 minutes
+        expiresAt: createDate(new TimeSpan(15, 'm')), // Increase expiration time to 15 minutes
       })
       .execute();
 
@@ -100,20 +99,20 @@ export async function generateEmailVerificationCode(
 
 export async function verifyVerificationCode(
   user: User,
-  code: string,
+  code: string
 ): Promise<boolean> {
-  return otel("auth-verify-code", async () => {
+  return otel('auth-verify-code', async () => {
     const databaseCode = await db
-      .selectFrom("emailVerification")
+      .selectFrom('emailVerification')
       .selectAll()
-      .where("userId", "=", user.id)
+      .where('userId', '=', user.id)
       .executeTakeFirst();
 
     if (!databaseCode || databaseCode.code !== code) return false;
 
     await db
-      .deleteFrom("emailVerification")
-      .where("id", "=", databaseCode.id)
+      .deleteFrom('emailVerification')
+      .where('id', '=', databaseCode.id)
       .execute();
 
     if (!isWithinExpirationDate(databaseCode.expiresAt)) return false;
@@ -123,7 +122,7 @@ export async function verifyVerificationCode(
   });
 }
 
-declare module "lucia" {
+declare module 'lucia' {
   interface Register {
     Lucia: typeof lucia;
     DatabaseUserAttributes: {

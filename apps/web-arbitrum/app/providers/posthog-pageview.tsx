@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
-import { usePostHog } from "posthog-js/react";
+import { usePathname, useSearchParams } from 'next/navigation';
+import { usePostHog } from 'posthog-js/react';
+import { useEffect } from 'react';
 
 export default function PostHogPageView(): null {
   const pathname = usePathname();
@@ -15,7 +15,7 @@ export default function PostHogPageView(): null {
       if (searchParams.toString()) {
         url = url + `?${searchParams.toString()}`;
       }
-      posthog.capture("$pageview", {
+      posthog.capture('$pageview', {
         $current_url: url,
       });
     }

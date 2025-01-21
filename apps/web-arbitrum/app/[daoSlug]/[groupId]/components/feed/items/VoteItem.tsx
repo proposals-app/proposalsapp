@@ -1,30 +1,30 @@
-import { CombinedFeedItem, VoteFeedItem } from "../Feed";
-import { format, formatDistanceToNowStrict, formatISO } from "date-fns";
-import * as Avatar from "@radix-ui/react-avatar";
-import { VotingPowerTag } from "./VotingPowerTag";
-import { Suspense } from "react";
-import * as Tooltip from "@radix-ui/react-tooltip";
-import { getDelegate } from "../actions";
-import { GroupWithDataType } from "../../../actions";
-import { notFound } from "next/navigation";
-import { formatNumberWithSuffix } from "@/lib/utils";
-import { unstable_cache } from "next/cache";
+import { formatNumberWithSuffix } from '@/lib/utils';
+import * as Avatar from '@radix-ui/react-avatar';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
+import { unstable_cache } from 'next/cache';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import { GroupWithDataType } from '../../../actions';
+import { getDelegate } from '../actions';
+import { CombinedFeedItem, VoteFeedItem } from '../Feed';
+import { VotingPowerTag } from './VotingPowerTag';
 
 const getDelegateCached = unstable_cache(
   async (
     voterAddress: string,
     daoSlug: string,
     topicIds: string[],
-    proposalIds: string[],
+    proposalIds: string[]
   ) => {
     return await getDelegate(voterAddress, daoSlug, topicIds, proposalIds);
   },
-  ["delegate"],
-  { revalidate: 60 * 5, tags: ["delegate"] },
+  ['delegate'],
+  { revalidate: 60 * 5, tags: ['delegate'] }
 );
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
-  return item.type === "vote";
+  return item.type === 'vote';
 };
 
 export async function VoteItem({
@@ -41,7 +41,7 @@ export async function VoteItem({
   const proposalIds = Array.from(new Set(group.proposals.map((p) => p.id)));
   const topicIds = Array.from(new Set(group.topics.map((t) => t.id)));
   const topicExternalIds = Array.from(
-    new Set(group.topics.map((t) => t.externalId)),
+    new Set(group.topics.map((t) => t.externalId))
   );
 
   const proposal = group.proposals.find((p) => p.id == item.proposalId);
@@ -50,46 +50,46 @@ export async function VoteItem({
     item.voterAddress,
     group.daoSlug,
     topicIds,
-    proposalIds,
+    proposalIds
   );
 
   const relativeCreateTime = formatDistanceToNowStrict(
     new Date(item.timestamp),
     {
       addSuffix: true,
-    },
+    }
   );
   const utcTime = format(
     formatISO(item.timestamp),
-    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'",
+    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
   );
 
   const formattedVotingPower = item.votingPower
     ? formatNumberWithSuffix(item.votingPower)
-    : "0";
+    : '0';
 
   const result = choiceToClass(
     (proposal?.choices ?? []) as string[],
-    item.choice as number,
+    item.choice as number
   );
 
-  let resultClass = "";
+  let resultClass = '';
   switch (result) {
     case Result.FOR:
-      resultClass = "place-self-start";
+      resultClass = 'place-self-start';
       break;
     case Result.AGAINST:
-      resultClass = "ml-20 place-self-end";
+      resultClass = 'ml-20 place-self-end';
       break;
     case Result.ABSTAIN:
     case Result.UNKNOWN:
-      resultClass = "place-self-center self-center";
+      resultClass = 'place-self-center self-center';
       break;
     default:
-      resultClass = "place-self-center self-center w-full";
+      resultClass = 'place-self-center self-center w-full';
   }
 
-  const baseUrl = daoBaseUrlMap[group.daoSlug] || "";
+  const baseUrl = daoBaseUrlMap[group.daoSlug] || '';
   const urlPattern = new RegExp(`${baseUrl}/t/[^/]+/(\\d+)/(\\d+)(?:\\?.*)?`);
   let match = item.reason?.match(urlPattern);
 
@@ -106,8 +106,8 @@ export async function VoteItem({
     <div
       className={`${resultClass} flex w-2/3 flex-col gap-2 rounded-lg border p-4 shadow-sm`}
     >
-      <div className="flex cursor-default select-none flex-row justify-between">
-        <div className="flex flex-col gap-2">
+      <div className='flex cursor-default select-none flex-row justify-between'>
+        <div className='flex flex-col gap-2'>
           <Suspense>
             <AuthorInfo
               authorName={
@@ -130,12 +130,12 @@ export async function VoteItem({
           </Suspense>
         </div>
 
-        <div className="flex flex-col items-end text-sm">
+        <div className='flex flex-col items-end text-sm'>
           <Tooltip.Provider>
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
                 <div>
-                  voted <span className="font-bold">{relativeCreateTime}</span>
+                  voted <span className='font-bold'>{relativeCreateTime}</span>
                 </div>
               </Tooltip.Trigger>
               <Tooltip.Content>
@@ -146,20 +146,20 @@ export async function VoteItem({
         </div>
       </div>
 
-      <div className="cursor-default select-none">
-        <p className="font-bold">{formattedVotingPower} ARB</p>
-        <p className="font-bold">
+      <div className='cursor-default select-none'>
+        <p className='font-bold'>{formattedVotingPower} ARB</p>
+        <p className='font-bold'>
           {((proposal?.choices ?? []) as string[])[item.choice as number]}
         </p>
       </div>
 
-      <div className="flex flex-col">
-        <p className="">{item.reason}</p>
+      <div className='flex flex-col'>
+        <p className=''>{item.reason}</p>
         {match && (
-          <p className="self-end">
+          <p className='self-end'>
             <a
-              href={anchorHref ?? ""}
-              className="text-sm font-bold hover:underline"
+              href={anchorHref ?? ''}
+              className='text-sm font-bold hover:underline'
             >
               jump to post →
             </a>
@@ -171,7 +171,7 @@ export async function VoteItem({
 }
 
 const daoBaseUrlMap: { [key: string]: string } = {
-  arbitrum_dao: "https://forum.arbitrum.foundation",
+  arbitrum_dao: 'https://forum.arbitrum.foundation',
 };
 
 const AuthorInfo = ({
@@ -195,13 +195,13 @@ const AuthorInfo = ({
     `https://api.dicebear.com/9.x/pixel-art/svg?seed=${authorName}`;
 
   return (
-    <div className="flex flex-row items-center gap-2">
-      <Avatar.Root className="flex h-10 w-10 items-center justify-center rounded-full">
-        <Avatar.Image src={displayPicture} className="w-full rounded-full" />
-        <Avatar.Fallback className="">{authorName.slice(0, 2)}</Avatar.Fallback>
+    <div className='flex flex-row items-center gap-2'>
+      <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
+        <Avatar.Image src={displayPicture} className='w-full rounded-full' />
+        <Avatar.Fallback className=''>{authorName.slice(0, 2)}</Avatar.Fallback>
       </Avatar.Root>
-      <div className="font-bold">
-        {displayName} <span className=""> with {voterAddress}</span>
+      <div className='font-bold'>
+        {displayName} <span className=''> with {voterAddress}</span>
       </div>
     </div>
   );
@@ -215,17 +215,17 @@ enum Result {
 }
 export const choiceToClass = (
   proposalChoices: string[],
-  choiceIndex: number,
+  choiceIndex: number
 ) => {
   try {
     switch (proposalChoices[choiceIndex].toLowerCase()) {
-      case "for":
-      case "yes":
-      case "yae":
+      case 'for':
+      case 'yes':
+      case 'yae':
         return Result.FOR;
-      case "against":
-      case "no":
-      case "nay":
+      case 'against':
+      case 'no':
+      case 'nay':
         return Result.AGAINST;
       // Add additional cases for other choice patterns as needed
       default:

@@ -1,26 +1,26 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { unstable_cache } from "next/cache";
-import { getGroups } from "./actions";
-import { Suspense } from "react";
-import { LazyLoadTrigger } from "./components/LazyLoadTrigger";
-import { getGroupData } from "./[groupId]/actions";
-import { after } from "next/server";
+import { unstable_cache } from 'next/cache';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { after } from 'next/server';
+import { Suspense } from 'react';
+import { getGroupData } from './[groupId]/actions';
+import { getGroups } from './actions';
+import { LazyLoadTrigger } from './components/LazyLoadTrigger';
 
 const getCachedGroups = unstable_cache(
   async (daoSlug: string, page: number, itemsPerPage: number) => {
     return await getGroups(daoSlug, page, itemsPerPage);
   },
-  ["getGroups"],
-  { revalidate: 60 * 5, tags: ["groups"] },
+  ['getGroups'],
+  { revalidate: 60 * 5, tags: ['groups'] }
 );
 
 const cachedGetGroupData = unstable_cache(
   async (daoSlug: string, groupId: string) => {
     return await getGroupData(daoSlug, groupId);
   },
-  ["group-data"],
-  { revalidate: 60 * 5, tags: ["group-data"] },
+  ['group-data'],
+  { revalidate: 60 * 5, tags: ['group-data'] }
 );
 
 export default async function ListPage({
@@ -75,24 +75,31 @@ export default async function ListPage({
     await Promise.all(
       allGroups.map((group) => {
         cachedGetGroupData(daoSlug, group.id);
-      }),
+      })
     );
   });
 
   return (
-    <div className="flex min-h-screen w-full flex-row pl-20">
-      <div className="w-full p-8">
-        <h1 className="mb-8 text-4xl font-bold">{daoName || daoSlug}</h1>
-        <div className="flex flex-col gap-4">
+    <div className='flex min-h-screen w-full flex-row bg-brand-50 pl-20 dark:bg-brand-900'>
+      <div className='w-full p-8'>
+        <h1 className='mb-8 text-4xl font-bold text-brand-700 dark:text-brand-100'>
+          {daoName || daoSlug}
+        </h1>
+        <div className='flex flex-col gap-4'>
           {allGroups.map((group) => (
             <Link
               key={group.id}
               href={`/${daoSlug}/${group.id}`}
               prefetch={true}
             >
-              <div className="rounded-lg border p-6 shadow-sm transition-shadow duration-200 hover:shadow-md">
-                <h2 className="text-xl font-semibold">{group.name}</h2>
-                <p className="mt-2 text-sm">
+              <div
+                className='rounded-lg border border-brand-350 p-6 shadow-sm transition-shadow duration-200
+                  hover:shadow-md dark:border-brand-800'
+              >
+                <h2 className='text-xl font-semibold text-brand-700 dark:text-brand-100'>
+                  {group.name}
+                </h2>
+                <p className='mt-2 text-sm'>
                   View proposals and discussions in the {group.name} group.
                 </p>
               </div>
@@ -110,12 +117,12 @@ export default async function ListPage({
 
 function LoadingSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
       {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className="animate-pulse rounded-lg border p-6">
-          <div className="h-6 w-3/4 rounded-md" />
-          <div className="mt-2 h-4 w-full rounded-md" />
-          <div className="mt-4 h-4 w-1/2 rounded-md" />
+        <div key={index} className='animate-pulse rounded-lg border p-6'>
+          <div className='h-6 w-3/4 rounded-md' />
+          <div className='mt-2 h-4 w-full rounded-md' />
+          <div className='mt-4 h-4 w-1/2 rounded-md' />
         </div>
       ))}
     </div>
