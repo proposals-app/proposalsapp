@@ -1,77 +1,35 @@
+use std::sync::Arc;
+
 use crate::{
+    metrics::Metrics,
     models::{categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User},
     DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS,
 };
 use anyhow::Result;
 use chrono::Utc;
-use opentelemetry::{
-    metrics::{Counter, UpDownCounter},
-    KeyValue,
-};
+use opentelemetry::KeyValue;
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
     EntityTrait, QueryFilter, Set,
 };
 use seaorm::{discourse_post_like, discourse_post_revision, discourse_user};
 use tracing::{debug, info, instrument};
-use utils::{
-    tracing::get_meter,
-    types::{DiscussionJobData, JobData},
-};
+use utils::types::{DiscussionJobData, JobData};
 
 pub struct DbHandler {
     pub conn: DatabaseConnection,
-    upsert_user_counter: Counter<u64>,
-    upsert_category_counter: Counter<u64>,
-    upsert_topic_counter: Counter<u64>,
-    upsert_post_counter: Counter<u64>,
-    upsert_revision_counter: Counter<u64>,
-    upsert_like_counter: Counter<u64>,
-    total_users_counter: UpDownCounter<i64>,
-    total_categories_counter: UpDownCounter<i64>,
-    total_topics_counter: UpDownCounter<i64>,
-    total_posts_counter: UpDownCounter<i64>,
-    total_revisions_counter: UpDownCounter<i64>,
+    pub metrics: Arc<Metrics>,
 }
 
 impl DbHandler {
-    #[instrument(skip(database_url))]
-    pub async fn new(database_url: &str) -> Result<Self> {
+    #[instrument(skip(database_url, metrics))]
+    pub async fn new(database_url: &str, metrics: Arc<Metrics>) -> Result<Self> {
         let mut opt = ConnectOptions::new(database_url.to_string());
         opt.sqlx_logging(false);
         let conn = Database::connect(opt).await?;
         info!("Database connection established");
 
-        let meter = get_meter();
-
-        Ok(Self {
-            conn,
-            upsert_user_counter: meter.u64_counter("discourse_db_upsert_user_total").build(),
-            upsert_category_counter: meter
-                .u64_counter("discourse_db_upsert_category_total")
-                .build(),
-            upsert_topic_counter: meter.u64_counter("discourse_db_upsert_topic_total").build(),
-            upsert_post_counter: meter.u64_counter("discourse_db_upsert_post_total").build(),
-            upsert_revision_counter: meter
-                .u64_counter("discourse_db_upsert_revision_total")
-                .build(),
-            upsert_like_counter: meter.u64_counter("discourse_db_upsert_like_total").build(),
-            total_users_counter: meter
-                .i64_up_down_counter("discourse_db_total_users")
-                .build(),
-            total_categories_counter: meter
-                .i64_up_down_counter("discourse_db_total_categories")
-                .build(),
-            total_topics_counter: meter
-                .i64_up_down_counter("discourse_db_total_topics")
-                .build(),
-            total_posts_counter: meter
-                .i64_up_down_counter("discourse_db_total_posts")
-                .build(),
-            total_revisions_counter: meter
-                .i64_up_down_counter("discourse_db_total_revisions")
-                .build(),
-        })
+        Ok(Self { conn, metrics })
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
@@ -98,6 +56,8 @@ impl DbHandler {
 
     #[instrument(skip(self, user), fields(user_id = user.id, user_username = %user.username, dao_discourse_id = %dao_discourse_id))]
     pub async fn upsert_user(&self, user: &User, dao_discourse_id: Uuid) -> Result<()> {
+        let start_time = std::time::Instant::now();
+
         let existing_user = discourse_user::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -105,7 +65,12 @@ impl DbHandler {
                     .add(discourse_user::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await?;
+            .await
+            .inspect_err(|_| {
+                self.metrics
+                    .db_query_errors
+                    .add(1, &[KeyValue::new("operation", "find_user")]);
+            })?;
 
         match existing_user {
             Some(existing_user) => {
@@ -124,7 +89,15 @@ impl DbHandler {
                 user_update.days_visited = Set(Some(user.days_visited.unwrap_or(0) as i64));
                 discourse_user::Entity::update(user_update)
                     .exec(&self.conn)
-                    .await?;
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "update_user")]);
+                    })?;
+                self.metrics
+                    .db_updates
+                    .add(1, &[KeyValue::new("table", "discourse_user")]);
             }
             None => {
                 debug!("Inserting new user");
@@ -146,29 +119,31 @@ impl DbHandler {
                 };
                 discourse_user::Entity::insert(user_model)
                     .exec(&self.conn)
-                    .await?;
-                self.total_users_counter.add(
-                    1,
-                    &[KeyValue::new(
-                        "dao_discourse_id",
-                        dao_discourse_id.to_string(),
-                    )],
-                );
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "insert_user")]);
+                    })?;
+                self.metrics
+                    .db_inserts
+                    .add(1, &[KeyValue::new("table", "discourse_user")]);
             }
         }
+
+        let duration = start_time.elapsed().as_secs_f64();
+        self.metrics
+            .db_query_duration
+            .record(duration, &[KeyValue::new("operation", "upsert_user")]);
+
         info!("User upserted successfully");
-        self.upsert_user_counter.add(
-            1,
-            &[KeyValue::new(
-                "dao_discourse_id",
-                dao_discourse_id.to_string(),
-            )],
-        );
         Ok(())
     }
 
     #[instrument(skip(self, category), fields(category_id = category.id, category_name = %category.name, dao_discourse_id = %dao_discourse_id))]
     pub async fn upsert_category(&self, category: &Category, dao_discourse_id: Uuid) -> Result<()> {
+        let start_time = std::time::Instant::now();
+
         let existing_category = seaorm::discourse_category::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -176,7 +151,12 @@ impl DbHandler {
                     .add(seaorm::discourse_category::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await?;
+            .await
+            .inspect_err(|_| {
+                self.metrics
+                    .db_query_errors
+                    .add(1, &[KeyValue::new("operation", "find_category")]);
+            })?;
 
         match existing_category {
             Some(existing_category) => {
@@ -198,7 +178,15 @@ impl DbHandler {
                 category_update.topics_all_time = Set(category.topics_all_time);
                 seaorm::discourse_category::Entity::update(category_update)
                     .exec(&self.conn)
-                    .await?;
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "update_category")]);
+                    })?;
+                self.metrics
+                    .db_updates
+                    .add(1, &[KeyValue::new("table", "discourse_category")]);
             }
             None => {
                 debug!("Inserting new category");
@@ -222,29 +210,31 @@ impl DbHandler {
                 };
                 seaorm::discourse_category::Entity::insert(category_model)
                     .exec(&self.conn)
-                    .await?;
-                self.total_categories_counter.add(
-                    1,
-                    &[KeyValue::new(
-                        "dao_discourse_id",
-                        dao_discourse_id.to_string(),
-                    )],
-                );
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "insert_category")]);
+                    })?;
+                self.metrics
+                    .db_inserts
+                    .add(1, &[KeyValue::new("table", "discourse_category")]);
             }
         }
+
+        let duration = start_time.elapsed().as_secs_f64();
+        self.metrics
+            .db_query_duration
+            .record(duration, &[KeyValue::new("operation", "upsert_category")]);
+
         info!("Category upserted successfully");
-        self.upsert_category_counter.add(
-            1,
-            &[KeyValue::new(
-                "dao_discourse_id",
-                dao_discourse_id.to_string(),
-            )],
-        );
         Ok(())
     }
 
     #[instrument(skip(self, topic), fields(topic_id = topic.id, topic_title = %topic.title, dao_discourse_id = %dao_discourse_id))]
     pub async fn upsert_topic(&self, topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
+        let start_time = std::time::Instant::now();
+
         let existing_topic = seaorm::discourse_topic::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -253,7 +243,12 @@ impl DbHandler {
                     .add(seaorm::discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await?;
+            .await
+            .inspect_err(|_| {
+                self.metrics
+                    .db_query_errors
+                    .add(1, &[KeyValue::new("operation", "find_topic")]);
+            })?;
 
         match existing_topic {
             Some(existing_topic) => {
@@ -277,7 +272,15 @@ impl DbHandler {
                 topic_update.pinned_globally = Set(topic.pinned_globally);
                 seaorm::discourse_topic::Entity::update(topic_update)
                     .exec(&self.conn)
-                    .await?;
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "update_topic")]);
+                    })?;
+                self.metrics
+                    .db_updates
+                    .add(1, &[KeyValue::new("table", "discourse_topic")]);
             }
             None => {
                 debug!("Inserting new topic");
@@ -304,7 +307,15 @@ impl DbHandler {
                 };
                 let result = seaorm::discourse_topic::Entity::insert(topic_model)
                     .exec(&self.conn)
-                    .await?;
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "insert_topic")]);
+                    })?;
+                self.metrics
+                    .db_inserts
+                    .add(1, &[KeyValue::new("table", "discourse_topic")]);
 
                 if let Some(category_ids) =
                     DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id)
@@ -325,29 +336,22 @@ impl DbHandler {
                         .await?;
                     }
                 }
-
-                self.total_topics_counter.add(
-                    1,
-                    &[KeyValue::new(
-                        "dao_discourse_id",
-                        dao_discourse_id.to_string(),
-                    )],
-                );
             }
         }
+
+        let duration = start_time.elapsed().as_secs_f64();
+        self.metrics
+            .db_query_duration
+            .record(duration, &[KeyValue::new("operation", "upsert_topic")]);
+
         info!("Topic upserted successfully");
-        self.upsert_topic_counter.add(
-            1,
-            &[KeyValue::new(
-                "dao_discourse_id",
-                dao_discourse_id.to_string(),
-            )],
-        );
         Ok(())
     }
 
     #[instrument(skip(self, post), fields(post_id = post.id, post_username = %post.username, dao_discourse_id = %dao_discourse_id))]
     pub async fn upsert_post(&self, post: &Post, dao_discourse_id: Uuid) -> Result<()> {
+        let start_time = std::time::Instant::now();
+
         let existing_post = seaorm::discourse_post::Entity::find()
             .filter(
                 sea_orm::Condition::all()
@@ -355,7 +359,12 @@ impl DbHandler {
                     .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await?;
+            .await
+            .inspect_err(|_| {
+                self.metrics
+                    .db_query_errors
+                    .add(1, &[KeyValue::new("operation", "find_post")]);
+            })?;
 
         match existing_post {
             Some(existing_post) => {
@@ -395,7 +404,15 @@ impl DbHandler {
                 post_update.can_view_edit_history = Set(post.can_view_edit_history);
                 seaorm::discourse_post::Entity::update(post_update)
                     .exec(&self.conn)
-                    .await?;
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "update_post")]);
+                    })?;
+                self.metrics
+                    .db_updates
+                    .add(1, &[KeyValue::new("table", "discourse_post")]);
             }
             None => {
                 debug!("Inserting new post");
@@ -432,24 +449,24 @@ impl DbHandler {
                 };
                 seaorm::discourse_post::Entity::insert(post_model)
                     .exec(&self.conn)
-                    .await?;
-                self.total_posts_counter.add(
-                    1,
-                    &[KeyValue::new(
-                        "dao_discourse_id",
-                        dao_discourse_id.to_string(),
-                    )],
-                );
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "insert_post")]);
+                    })?;
+                self.metrics
+                    .db_inserts
+                    .add(1, &[KeyValue::new("table", "discourse_post")]);
             }
         }
+
+        let duration = start_time.elapsed().as_secs_f64();
+        self.metrics
+            .db_query_duration
+            .record(duration, &[KeyValue::new("operation", "upsert_post")]);
+
         info!("Post upserted successfully");
-        self.upsert_post_counter.add(
-            1,
-            &[KeyValue::new(
-                "dao_discourse_id",
-                dao_discourse_id.to_string(),
-            )],
-        );
         Ok(())
     }
 
@@ -460,6 +477,8 @@ impl DbHandler {
         dao_discourse_id: Uuid,
         discourse_post_id: Uuid,
     ) -> Result<()> {
+        let start_time = std::time::Instant::now();
+
         let cooked_body_before = Some(revision.get_cooked_markdown_before());
         let cooked_body_after = Some(revision.get_cooked_markdown_after());
 
@@ -477,7 +496,12 @@ impl DbHandler {
             .filter(discourse_post_revision::Column::Version.eq(revision.current_version))
             .filter(discourse_post_revision::Column::DaoDiscourseId.eq(dao_discourse_id))
             .one(&self.conn)
-            .await?;
+            .await
+            .inspect_err(|_| {
+                self.metrics
+                    .db_query_errors
+                    .add(1, &[KeyValue::new("operation", "find_revision")]);
+            })?;
 
         match existing_revision {
             Some(existing_revision) => {
@@ -500,7 +524,15 @@ impl DbHandler {
                 revision_update.cooked_title_after = Set(cooked_title_after);
                 discourse_post_revision::Entity::update(revision_update)
                     .exec(&self.conn)
-                    .await?;
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "update_revision")]);
+                    })?;
+                self.metrics
+                    .db_updates
+                    .add(1, &[KeyValue::new("table", "discourse_post_revision")]);
             }
             None => {
                 debug!("Inserting new revision");
@@ -525,24 +557,24 @@ impl DbHandler {
                 };
                 discourse_post_revision::Entity::insert(revision_model)
                     .exec(&self.conn)
-                    .await?;
-                self.total_revisions_counter.add(
-                    1,
-                    &[KeyValue::new(
-                        "dao_discourse_id",
-                        dao_discourse_id.to_string(),
-                    )],
-                );
+                    .await
+                    .inspect_err(|_| {
+                        self.metrics
+                            .db_query_errors
+                            .add(1, &[KeyValue::new("operation", "insert_revision")]);
+                    })?;
+                self.metrics
+                    .db_inserts
+                    .add(1, &[KeyValue::new("table", "discourse_post_revision")]);
             }
         }
+
+        let duration = start_time.elapsed().as_secs_f64();
+        self.metrics
+            .db_query_duration
+            .record(duration, &[KeyValue::new("operation", "upsert_revision")]);
+
         info!("Revision upserted successfully");
-        self.upsert_revision_counter.add(
-            1,
-            &[KeyValue::new(
-                "dao_discourse_id",
-                dao_discourse_id.to_string(),
-            )],
-        );
         Ok(())
     }
 
@@ -553,6 +585,8 @@ impl DbHandler {
         user_ids: Vec<i32>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
+        let start_time = std::time::Instant::now();
+
         if user_ids.is_empty() {
             return Ok(());
         }
@@ -566,7 +600,12 @@ impl DbHandler {
                     .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .all(&self.conn)
-            .await?;
+            .await
+            .inspect_err(|_| {
+                self.metrics
+                    .db_query_errors
+                    .add(1, &[KeyValue::new("operation", "find_post_likes")]);
+            })?;
 
         // Extract the user IDs of existing likes
         let existing_user_ids: Vec<i32> = existing_likes
@@ -598,19 +637,27 @@ impl DbHandler {
 
             discourse_post_like::Entity::insert_many(new_likes)
                 .exec(&self.conn)
-                .await?;
+                .await
+                .inspect_err(|_| {
+                    self.metrics
+                        .db_query_errors
+                        .add(1, &[KeyValue::new("operation", "insert_post_likes")]);
+                })?;
 
-            info!("Batch upserted post likes successfully");
-            self.upsert_like_counter.add(
+            self.metrics.db_inserts.add(
                 new_likes_count as u64,
-                &[KeyValue::new(
-                    "dao_discourse_id",
-                    dao_discourse_id.to_string(),
-                )],
+                &[KeyValue::new("table", "discourse_post_like")],
             );
+            info!("Batch upserted post likes successfully");
         } else {
             info!("All likes already exist, skipping insertion");
         }
+
+        let duration = start_time.elapsed().as_secs_f64();
+        self.metrics.db_query_duration.record(
+            duration,
+            &[KeyValue::new("operation", "upsert_post_likes_batch")],
+        );
 
         Ok(())
     }

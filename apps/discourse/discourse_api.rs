@@ -1,8 +1,6 @@
+use crate::metrics::Metrics;
 use anyhow::{anyhow, Result};
-use opentelemetry::{
-    metrics::{Counter, Gauge},
-    KeyValue,
-};
+use opentelemetry::KeyValue;
 use rand::{seq::SliceRandom, thread_rng};
 use reqwest::{
     cookie::Jar,
@@ -12,10 +10,7 @@ use reqwest::{
 use serde::de::DeserializeOwned;
 use std::{
     collections::{HashMap, HashSet},
-    sync::{
-        atomic::{AtomicI64, Ordering},
-        Arc, Mutex,
-    },
+    sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::{
@@ -23,7 +18,6 @@ use tokio::{
     time::sleep,
 };
 use tracing::{error, info, instrument, warn};
-use utils::tracing::get_meter;
 
 const DEFAULT_QUEUE_SIZE: usize = 100_000;
 const DEFAULT_MAX_RETRIES: usize = 5;
@@ -41,13 +35,7 @@ const USER_AGENTS: [&str; 5] = [
 #[derive(Clone)]
 pub struct DiscourseApi {
     client: Client,
-    total_queue: Arc<AtomicI64>,
-    total_queue_gauge: Gauge<i64>,
-    priority_queue: Arc<AtomicI64>,
-    priority_queue_gauge: Gauge<i64>,
-    normal_queue: Arc<AtomicI64>,
-    normal_queue_gauge: Gauge<i64>,
-    requests_counter: Counter<u64>,
+    metrics: Arc<Metrics>,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     pub base_url: String,
@@ -67,13 +55,14 @@ struct Job {
 }
 
 impl DiscourseApi {
-    #[instrument]
-    pub fn new(base_url: String, with_user_agent: bool) -> Self {
+    #[instrument(skip(metrics))]
+    pub fn new(base_url: String, with_user_agent: bool, metrics: Arc<Metrics>) -> Self {
         Self::new_with_config(
             base_url,
             with_user_agent,
             DEFAULT_QUEUE_SIZE,
             DEFAULT_MAX_RETRIES,
+            metrics,
         )
     }
 
@@ -114,12 +103,13 @@ impl DiscourseApi {
         (headers, cookie_jar)
     }
 
-    #[instrument]
+    #[instrument(skip(metrics))]
     pub fn new_with_config(
         base_url: String,
         with_user_agent: bool,
         queue_size: usize,
         max_retries: usize,
+        metrics: Arc<Metrics>,
     ) -> Self {
         let (headers, cookie_jar) = Self::default_headers_with_cookies(with_user_agent);
 
@@ -131,37 +121,12 @@ impl DiscourseApi {
 
         let (sender, receiver) = mpsc::channel(queue_size);
 
-        let meter = get_meter();
-
-        let total_queue_gauge = meter
-            .i64_gauge("discourse_api_total_queue_size")
-            .with_description("Total number of jobs in the queue")
-            .build();
-        let priority_queue_gauge = meter
-            .i64_gauge("discourse_api_priority_queue_size")
-            .with_description("Number of priority jobs in the queue")
-            .build();
-        let normal_queue_gauge = meter
-            .i64_gauge("discourse_api_normal_queue_size")
-            .with_description("Number of normal jobs in the queue")
-            .build();
-        let requests_counter = meter
-            .u64_counter("discourse_api_requests_total")
-            .with_description("Total number of requests made")
-            .build();
-
         let api_handler = Self {
             client,
+            metrics,
             max_retries,
             sender,
             base_url: base_url.clone(),
-            total_queue: Arc::new(AtomicI64::new(0)),
-            total_queue_gauge,
-            priority_queue: Arc::new(AtomicI64::new(0)),
-            priority_queue_gauge,
-            normal_queue: Arc::new(AtomicI64::new(0)),
-            normal_queue_gauge,
-            requests_counter,
             forbidden_urls: Arc::new(Mutex::new(HashSet::new())),
             pending_requests: Arc::new(Mutex::new(HashMap::new())),
         };
@@ -179,7 +144,6 @@ impl DiscourseApi {
     {
         info!("Fetching data from endpoint");
 
-        let labels = &[KeyValue::new("base_url", self.base_url.clone())];
         let (response_sender, response_receiver) = oneshot::channel();
         let url = format!("{}{}", self.base_url, endpoint);
 
@@ -204,21 +168,6 @@ impl DiscourseApi {
                         priority,
                     },
                 );
-
-                // Update metrics
-                self.total_queue.fetch_add(1, Ordering::SeqCst);
-                if priority {
-                    self.priority_queue.fetch_add(1, Ordering::SeqCst);
-                } else {
-                    self.normal_queue.fetch_add(1, Ordering::SeqCst);
-                }
-
-                self.total_queue_gauge
-                    .record(self.total_queue.load(Ordering::SeqCst), labels);
-                self.priority_queue_gauge
-                    .record(self.priority_queue.load(Ordering::SeqCst), labels);
-                self.normal_queue_gauge
-                    .record(self.normal_queue.load(Ordering::SeqCst), labels);
 
                 true
             }
@@ -264,6 +213,16 @@ impl DiscourseApi {
                 }
             }
 
+            // Update queue size metrics
+            self.metrics.queue_size.add(
+                priority_queue.len() as i64,
+                &[KeyValue::new("type", "priority")],
+            );
+            self.metrics.queue_size.add(
+                normal_queue.len() as i64,
+                &[KeyValue::new("type", "normal")],
+            );
+
             // Process all priority jobs
             while let Some(priority_job) = priority_queue.pop() {
                 self.process_job(priority_job, true).await;
@@ -299,7 +258,19 @@ impl DiscourseApi {
 
     #[instrument(skip(self, job), fields(url = %job.url, priority = is_priority))]
     async fn process_job(&self, job: Job, is_priority: bool) {
+        let start_time = std::time::Instant::now();
+
         let result = self.execute_request(&job.url).await;
+
+        // Record the duration of the request
+        let duration = start_time.elapsed().as_secs_f64();
+        self.metrics.api_request_duration.record(
+            duration,
+            &[
+                KeyValue::new("url", job.url.clone()),
+                KeyValue::new("priority", is_priority.to_string()),
+            ],
+        );
 
         // Get all the senders for this endpoint and remove the pending request
         let senders = {
@@ -317,6 +288,12 @@ impl DiscourseApi {
                 for sender in senders {
                     let _ = sender.send(Ok(response_text.clone()));
                 }
+
+                // Record response size
+                self.metrics.api_response_size.record(
+                    response_text.len() as u64,
+                    &[KeyValue::new("url", job.url.clone())],
+                );
             }
             Err(e) => {
                 // For errors, create a new error with the same message for each sender
@@ -324,26 +301,29 @@ impl DiscourseApi {
                 for sender in senders {
                     let _ = sender.send(Err(anyhow!(error_msg.clone())));
                 }
+
+                // Record the error
+                self.metrics.api_request_errors.add(
+                    1,
+                    &[
+                        KeyValue::new("url", job.url.clone()),
+                        KeyValue::new("priority", is_priority.to_string()),
+                        KeyValue::new("error", error_msg),
+                    ],
+                );
+
+                // Record queue errors
+                self.metrics
+                    .queue_errors
+                    .add(1, &[KeyValue::new("url", job.url.clone())]);
             }
         }
 
-        let labels = &[KeyValue::new("base_url", self.base_url.clone())];
-        self.total_queue.fetch_sub(1, Ordering::SeqCst);
-        if is_priority {
-            self.priority_queue.fetch_sub(1, Ordering::SeqCst);
-        } else {
-            self.normal_queue.fetch_sub(1, Ordering::SeqCst);
-        }
-
-        // Update metrics
-        self.total_queue_gauge
-            .record(self.total_queue.load(Ordering::SeqCst), labels);
-        self.priority_queue_gauge
-            .record(self.priority_queue.load(Ordering::SeqCst), labels);
-        self.normal_queue_gauge
-            .record(self.normal_queue.load(Ordering::SeqCst), labels);
-
-        self.requests_counter.add(1, labels);
+        // Record queue processing time
+        self.metrics.queue_processing_time.record(
+            start_time.elapsed().as_secs_f64(),
+            &[KeyValue::new("url", job.url.clone())],
+        );
     }
 
     #[instrument(skip(self), fields(url = %url))]
@@ -374,6 +354,15 @@ impl DiscourseApi {
                     match response.status() {
                         StatusCode::OK => {
                             info!(url, "Request successful");
+
+                            // Record request size
+                            if let Some(content_length) = response.content_length() {
+                                self.metrics.api_request_size.record(
+                                    content_length,
+                                    &[KeyValue::new("url", url.to_string())],
+                                );
+                            }
+
                             return response
                                 .text()
                                 .await
@@ -395,6 +384,16 @@ impl DiscourseApi {
                             warn!(url, attempt, retry_after = ?retry_after, "Rate limited, retrying");
                             sleep(retry_after).await;
                             delay = delay.max(retry_after) * 2;
+
+                            // Record retry metrics
+                            self.metrics.api_request_errors.add(
+                                1,
+                                &[
+                                    KeyValue::new("url", url.to_string()),
+                                    KeyValue::new("status", "429"),
+                                    KeyValue::new("attempt", attempt.to_string()),
+                                ],
+                            );
                         }
                         status if status.is_server_error() => {
                             attempt += 1;
@@ -409,6 +408,16 @@ impl DiscourseApi {
                             warn!(url, status = %status, attempt, delay = ?delay, "Server error, retrying");
                             sleep(delay).await;
                             delay *= 2;
+
+                            // Record retry metrics
+                            self.metrics.api_request_errors.add(
+                                1,
+                                &[
+                                    KeyValue::new("url", url.to_string()),
+                                    KeyValue::new("status", status.to_string()),
+                                    KeyValue::new("attempt", attempt.to_string()),
+                                ],
+                            );
                         }
                         StatusCode::FORBIDDEN => {
                             let body = response.text().await.unwrap_or_default();
@@ -440,6 +449,16 @@ impl DiscourseApi {
                     warn!(url, error = ?e, attempt, delay = ?delay, "Request error, retrying");
                     sleep(delay).await;
                     delay *= 2; // Exponential backoff
+
+                    // Record retry metrics
+                    self.metrics.api_request_errors.add(
+                        1,
+                        &[
+                            KeyValue::new("url", url.to_string()),
+                            KeyValue::new("error", e.to_string()),
+                            KeyValue::new("attempt", attempt.to_string()),
+                        ],
+                    );
                 }
             }
         }

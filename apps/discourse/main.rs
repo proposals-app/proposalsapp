@@ -1,5 +1,6 @@
 #![warn(unused_extern_crates)]
 
+use crate::metrics::Metrics;
 use anyhow::{Context, Result};
 use axum::{routing::get, Router};
 use db_handler::DbHandler;
@@ -19,6 +20,7 @@ use utils::tracing::setup_tracing;
 mod db_handler;
 mod discourse_api;
 mod indexers;
+mod metrics;
 mod models;
 
 const WAIT_FIRST: bool = true;
@@ -45,7 +47,8 @@ async fn main() -> Result<()> {
 
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
 
-    let db_handler = Arc::new(DbHandler::new(&database_url).await?);
+    let metrics = Arc::new(Metrics::new());
+    let db_handler = Arc::new(DbHandler::new(&database_url, Arc::clone(&metrics)).await?);
     info!(database_url = %database_url, "Initial database connection established");
 
     let app = Router::new().route("/", get(|| async { "OK" }));
@@ -71,6 +74,7 @@ async fn main() -> Result<()> {
         let discourse_api = Arc::new(DiscourseApi::new(
             dao_discourse.discourse_base_url.clone(),
             dao_discourse.with_user_agent,
+            Arc::clone(&metrics),
         ));
         discourse_apis.insert(dao_discourse.id, Arc::clone(&discourse_api));
 
