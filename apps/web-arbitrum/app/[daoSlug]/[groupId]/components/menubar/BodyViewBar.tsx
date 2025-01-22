@@ -1,6 +1,5 @@
 import { ViewEnum } from '@/app/searchParams';
 import { ArrowDown, ArrowUp } from 'lucide-react';
-import Link from 'next/link';
 import {
   parseAsBoolean,
   parseAsInteger,

@@ -47,7 +47,6 @@ const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
 
 export async function PostItem({
   item,
-  previousPostNumber,
 }: {
   item: CombinedFeedItem;
   previousPostNumber?: number;
