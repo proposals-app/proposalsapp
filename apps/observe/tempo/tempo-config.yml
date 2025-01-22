@@ -48,3 +48,4 @@ overrides:
   metrics_generator_processors: [service-graphs, span-metrics, local-blocks]
   max_global_traces_per_user: 10000000
   max_traces_per_user: 10000000
+  max_bytes_per_trace: 25000000
