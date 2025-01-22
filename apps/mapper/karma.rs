@@ -528,7 +528,7 @@ async fn update_delegates_ens(
 
 #[instrument(skip(db))]
 pub async fn run_karma_task(db: &DatabaseConnection) -> Result<()> {
-    let interval = Duration::hours(1);
+    let interval = Duration::minutes(30);
     let mut next_tick =
         Instant::now() + std::time::Duration::from_secs(interval.num_seconds() as u64);
 
