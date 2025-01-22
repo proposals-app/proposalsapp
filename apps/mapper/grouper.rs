@@ -14,7 +14,6 @@ use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalJobDat
 
 use crate::metrics::Metrics;
 
-#[instrument(skip(db, metrics))]
 pub async fn run_group_task(db: &DatabaseConnection, metrics: Metrics) -> Result<()> {
     let interval = Duration::minutes(1);
     let mut next_tick = Instant::now() + StdDuration::from_secs(interval.num_seconds() as u64);

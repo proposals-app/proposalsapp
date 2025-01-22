@@ -40,7 +40,6 @@ lazy_static::lazy_static! {
     };
 }
 
-#[instrument(skip(db, metrics))]
 pub async fn run_karma_task(db: &DatabaseConnection, metrics: Metrics) -> Result<()> {
     let interval = Duration::minutes(30);
     let mut next_tick =

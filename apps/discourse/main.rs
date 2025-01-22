@@ -13,7 +13,11 @@ use indexers::{
 use reqwest::Client;
 use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::dao_discourse;
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tracing::{error, info, warn};
 use utils::tracing::setup_tracing;
 
@@ -85,6 +89,8 @@ async fn main() -> Result<()> {
         let category_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
+                let start = Instant::now();
+
                 if WAIT_FIRST {
                     interval.tick().await;
                 }
@@ -112,6 +118,12 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+
+                let elapsed = start.saturating_duration_since(Instant::now());
+                if elapsed < SLOW_INDEX {
+                    tokio::time::sleep(SLOW_INDEX - elapsed).await;
+                }
+
                 if !WAIT_FIRST {
                     interval.tick().await;
                 }
@@ -125,9 +137,12 @@ async fn main() -> Result<()> {
         let user_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
+                let start = Instant::now();
+
                 if WAIT_FIRST {
                     interval.tick().await;
                 }
+
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 match user_fetcher
                     .update_all_users(
@@ -151,6 +166,12 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+
+                let elapsed = start.saturating_duration_since(Instant::now());
+                if elapsed < SLOW_INDEX {
+                    tokio::time::sleep(SLOW_INDEX - elapsed).await;
+                }
+
                 if !WAIT_FIRST {
                     interval.tick().await;
                 }
@@ -164,9 +185,12 @@ async fn main() -> Result<()> {
         let topic_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
+                let start = Instant::now();
+
                 if WAIT_FIRST {
                     interval.tick().await;
                 }
+
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
                 match topic_fetcher
                     .update_all_topics(
@@ -190,6 +214,12 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+
+                let elapsed = start.saturating_duration_since(Instant::now());
+                if elapsed < SLOW_INDEX {
+                    tokio::time::sleep(SLOW_INDEX - elapsed).await;
+                }
+
                 if !WAIT_FIRST {
                     interval.tick().await;
                 }
@@ -203,12 +233,13 @@ async fn main() -> Result<()> {
         let revision_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
             loop {
+                let start = Instant::now();
+
                 if WAIT_FIRST {
                     interval.tick().await;
                 }
-                let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
 
-                // Update all revisions every 6 hours
+                let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
                 match revision_fetcher
                     .update_all_revisions(
                         Arc::clone(&db_handler_revision_clone),
@@ -231,6 +262,12 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+
+                let elapsed = start.saturating_duration_since(Instant::now());
+                if elapsed < SLOW_INDEX {
+                    tokio::time::sleep(SLOW_INDEX - elapsed).await;
+                }
+
                 if !WAIT_FIRST {
                     interval.tick().await;
                 }
@@ -244,6 +281,8 @@ async fn main() -> Result<()> {
         let newcontent_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(FAST_INDEX);
             loop {
+                let start = Instant::now();
+
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
@@ -312,6 +351,11 @@ async fn main() -> Result<()> {
                             "Error updating new revisions"
                         );
                     }
+                }
+
+                let elapsed = start.saturating_duration_since(Instant::now());
+                if elapsed < FAST_INDEX {
+                    tokio::time::sleep(FAST_INDEX - elapsed).await;
                 }
 
                 interval.tick().await;
