@@ -46,13 +46,15 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
       >
         <div className='flex w-full justify-between text-neutral-600 dark:text-neutral-200'>
           <div className='flex items-center gap-4'>
-            <Link href='#'>
-              <ArrowUp
-                className='h-8 w-8 rounded-full border border-neutral-350 bg-neutral-50 p-1
-                  hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
-                  dark:hover:bg-neutral-700'
-              />
-            </Link>
+            <ArrowUp
+              className='h-8 w-8 cursor-pointer rounded-full border border-neutral-350 bg-neutral-50 p-1
+                hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
+                dark:hover:bg-neutral-700'
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+
             <div
               className='flex h-8 cursor-pointer items-center justify-start rounded-full border
                 border-neutral-350 bg-neutral-50 px-4 pl-1 pr-4 text-sm transition-colors
