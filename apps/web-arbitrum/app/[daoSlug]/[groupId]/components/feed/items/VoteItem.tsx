@@ -144,13 +144,9 @@ export async function VoteItem({
               authorPicture={avatarUrl}
               voterAddress={voterAddress}
               isDelegate={!!delegate}
-            />
-
-            <VotingPowerTag
-              item={item}
-              proposalIds={proposalIds}
-              topicIds={topicIds}
-            />
+            >
+              <VotingPowerTag item={item} />
+            </AuthorInfo>
           </Suspense>
         </div>
 
@@ -202,11 +198,13 @@ const AuthorInfo = ({
   authorName,
   authorPicture,
   voterAddress,
+  children,
 }: {
   authorName: string;
   authorPicture: string | null;
   voterAddress: string;
   isDelegate: boolean;
+  children?: React.ReactNode; // Added children prop
 }) => {
   const displayPicture =
     authorPicture ??
@@ -229,6 +227,7 @@ const AuthorInfo = ({
             {voterAddress}
           </div>
         )}
+        {children}
       </div>
     </div>
   );

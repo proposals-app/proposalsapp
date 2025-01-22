@@ -5,8 +5,6 @@ import {
   DB,
   db,
   DiscoursePost,
-  DiscourseTopic,
-  Proposal,
   Selectable,
   SelectQueryBuilder,
   sql,
@@ -226,16 +224,10 @@ export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   });
 }
 
-export async function getVotingPower(
-  voteId: string,
-  proposalIds: string[],
-  topicIds: string[]
-): Promise<{
-  startTime: Date;
-  endTime: Date;
-  initialVotingPower: number;
-  finalVotingPower: number;
-  change: number | null;
+export async function getVotingPower(voteId: string): Promise<{
+  votingPowerAtVote: number; // Voting power at the time of the vote
+  latestVotingPower: number; // Latest voting power
+  change: number | null; // Relative change between latest and voting power at vote
 }> {
   'use server';
   return otel('get-voting-power', async () => {
@@ -247,109 +239,28 @@ export async function getVotingPower(
         .where('id', '=', voteId)
         .executeTakeFirstOrThrow();
 
-      // Fetch the proposals
-      let proposals: Selectable<Proposal>[] = [];
-      if (proposalIds.length > 0) {
-        proposals = await db
-          .selectFrom('proposal')
-          .selectAll()
-          .where('id', 'in', proposalIds)
-          .execute();
-      }
-
-      // Fetch the topics
-      let topics: Selectable<DiscourseTopic>[] = [];
-      if (topicIds.length > 0) {
-        topics = await db
-          .selectFrom('discourseTopic')
-          .selectAll()
-          .where('id', 'in', topicIds)
-          .execute();
-      }
-
-      // Ensure there are either proposals or topics available
-      if (!proposals.length && !topics.length) {
-        throw new Error('No proposals or topics found');
-      }
-
-      // Fetch the DAO and its discourse to get the start time
-      let daoId: string | undefined;
-      if (proposals.length > 0) {
-        const dao = await db
-          .selectFrom('dao')
-          .selectAll()
-          .where('id', '=', proposals[0].daoId)
-          .executeTakeFirst();
-        daoId = dao?.id;
-      } else {
-        const topicDaoDiscourseId = topics[0].daoDiscourseId;
-        const topicDao = await db
-          .selectFrom('daoDiscourse')
-          .innerJoin('dao', 'dao.id', 'daoDiscourse.daoId')
-          .selectAll()
-          .where('daoDiscourse.id', '=', topicDaoDiscourseId)
-          .executeTakeFirst();
-        daoId = topicDao?.daoId;
-      }
-
-      if (!daoId) {
-        throw new Error('DAO not found');
-      }
-
-      // Determine the start time as the earliest creation time among proposals and topics
-      const proposalStartTimes = proposals.map((proposal) =>
-        proposal.timeStart.getTime()
-      );
-      const topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
-
-      const startTime = new Date(
-        Math.min(...proposalStartTimes, ...topicStartTimes)
-      );
-
-      // Determine the end time as the latest creation time among proposals and topics
-      const proposalEndTimes = proposals.map((proposal) =>
-        proposal.timeEnd.getTime()
-      );
-      const topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
-
-      const endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
-
-      // Fetch the closest voting power record to the start time
-      const initialVotingPowerRecord = await db
+      // Fetch the latest voting power
+      const latestVotingPowerRecord = await db
         .selectFrom('votingPower')
         .selectAll()
         .where('voter', '=', vote.voterAddress)
-        .where('daoId', '=', daoId)
-        .where('timestamp', '<=', startTime)
+        .where('daoId', '=', vote.daoId)
         .orderBy('timestamp', 'desc')
         .limit(1)
         .executeTakeFirst();
 
-      // Fetch the closest voting power record to the end time
-      const finalVotingPowerRecord = await db
-        .selectFrom('votingPower')
-        .selectAll()
-        .where('voter', '=', vote.voterAddress)
-        .where('daoId', '=', daoId)
-        .where('timestamp', '<=', endTime)
-        .orderBy('timestamp', 'desc')
-        .limit(1)
-        .executeTakeFirst();
+      const latestVotingPower = latestVotingPowerRecord?.votingPower ?? 0;
 
-      const initialVotingPower = initialVotingPowerRecord?.votingPower ?? 0;
-      const finalVotingPower = finalVotingPowerRecord?.votingPower ?? 0;
-
+      // Compute the relative change
       let change: number | null = null;
-      if (initialVotingPower !== 0) {
+      if (vote.votingPower !== 0) {
         change =
-          ((finalVotingPower - initialVotingPower) / initialVotingPower) * 100;
+          ((latestVotingPower - vote.votingPower) / vote.votingPower) * 100;
       }
 
       return {
-        startTime,
-        endTime,
-        initialVotingPower,
-        finalVotingPower,
+        votingPowerAtVote: vote.votingPower,
+        latestVotingPower,
         change,
       };
     } catch (error) {
