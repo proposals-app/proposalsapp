@@ -2458,7 +2458,7 @@ __metadata:
     oslo: "npm:1.2.1"
     pg: "npm:8.13.1"
     postcss: "npm:^8.5.1"
-    posthog-js: "npm:1.207.0"
+    posthog-js: "npm:1.207.2"
     prettier: "npm:^3.4.2"
     prettier-plugin-classnames: "npm:^0.7.5"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -2548,7 +2548,7 @@ __metadata:
     pg: "npm:8.13.1"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:^8.5.1"
-    posthog-js: "npm:1.207.0"
+    posthog-js: "npm:1.207.2"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:0.6.10"
@@ -2568,7 +2568,7 @@ __metadata:
     typescript: "npm:^5.7.2"
     uuid: "npm:^11.0.3"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.22.10"
+    viem: "npm:2.22.11"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -13349,15 +13349,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.207.0":
-  version: 1.207.0
-  resolution: "posthog-js@npm:1.207.0"
+"posthog-js@npm:1.207.2":
+  version: 1.207.2
+  resolution: "posthog-js@npm:1.207.2"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.2.0"
-  checksum: 10c0/e74db6c3cb51e70869f9d7934fe76a7145d3b5470cf72e3a6b4a27f490a818692272b6c2e593a63457afca06dd31f3fbde70b843b12d5507ebb9f634b882aab7
+  checksum: 10c0/6173a05efced181cc0dd6869c36c2903a44e58bad4805b44cf4c841d313ce43594a423095996e1a01e5feabe328cc368ff4ab85148180f8c05ed784d27f60636
   languageName: node
   linkType: hard
 
@@ -16204,9 +16204,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.22.10":
-  version: 2.22.10
-  resolution: "viem@npm:2.22.10"
+"viem@npm:2.22.11":
+  version: 2.22.11
+  resolution: "viem@npm:2.22.11"
   dependencies:
     "@noble/curves": "npm:1.7.0"
     "@noble/hashes": "npm:1.6.1"
@@ -16221,7 +16221,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/f7029c1632eb05c32b680d13eeef634f3fa3ef25ad830b22781e097ea1cad0c540b6b03f4031996434a66839351e9c2e9b191fac8cd160309662d403dd2d0f48
+  checksum: 10c0/4d3499987b54d1ae0826a941ec7689cb170f0a5aaa6c732be9c50e8922c1fac16e4709bfd6573442c590a71569497c5be6dfb8b82c196375736c5ceeaefd9567
   languageName: node
   linkType: hard
 

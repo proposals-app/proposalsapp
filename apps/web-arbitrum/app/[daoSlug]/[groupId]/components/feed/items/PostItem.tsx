@@ -92,7 +92,17 @@ export async function PostItem({
 
   return (
     <div id={postAnchorId} className='w-full scroll-mt-36'>
-      {isPostDeleted ? (
+      {item.id.includes('placeholder') ? (
+        // Show just the "deleted post" summary
+        <div
+          className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500
+            dark:border-neutral-600'
+        >
+          <div className='flex-grow border-t border-neutral-400 dark:border-neutral-600'></div>
+          <span className='mx-4'>deleted post</span>
+          <div className='flex-grow border-t border-neutral-400 dark:border-neutral-600'></div>
+        </div>
+      ) : isPostDeleted ? (
         // Show the full details/summary UI for deleted posts
         <details className='w-full'>
           <summary
@@ -105,17 +115,19 @@ export async function PostItem({
             <div className='flex-grow border-t border-neutral-400 dark:border-neutral-600'></div>
           </summary>
           <div className='p-4'>
-            <PostContent
-              author={author}
-              relativeCreateTime={relativeCreateTime}
-              utcTime={utcTime}
-              relativeUpdateTime={relativeUpdateTime}
-              updatedAt={updatedAt}
-              likesCount={likesCount}
-              likedUsers={likedUsers}
-              processedContent={processedContent}
-              item={item}
-            />
+            {item.id != 'placeholder' && (
+              <PostContent
+                author={author}
+                relativeCreateTime={relativeCreateTime}
+                utcTime={utcTime}
+                relativeUpdateTime={relativeUpdateTime}
+                updatedAt={updatedAt}
+                likesCount={likesCount}
+                likedUsers={likedUsers}
+                processedContent={processedContent}
+                item={item}
+              />
+            )}
           </div>
         </details>
       ) : (

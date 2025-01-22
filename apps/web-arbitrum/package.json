@@ -39,7 +39,7 @@
     "nuqs": "^2.3.0",
     "oslo": "1.2.1",
     "pg": "8.13.1",
-    "posthog-js": "1.207.0",
+    "posthog-js": "1.207.2",
     "prettier-plugin-classnames": "^0.7.5",
     "prettier-plugin-merge": "^0.7.2",
     "prettier-plugin-organize-imports": "^4.1.0",
