@@ -65,12 +65,7 @@ impl DbHandler {
                     .add(discourse_user::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await
-            .inspect_err(|_| {
-                self.metrics
-                    .db_query_errors
-                    .add(1, &[KeyValue::new("operation", "find_user")]);
-            })?;
+            .await?;
 
         match existing_user {
             Some(existing_user) => {
@@ -89,12 +84,7 @@ impl DbHandler {
                 user_update.days_visited = Set(Some(user.days_visited.unwrap_or(0) as i64));
                 discourse_user::Entity::update(user_update)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "update_user")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_updates
                     .add(1, &[KeyValue::new("table", "discourse_user")]);
@@ -119,12 +109,7 @@ impl DbHandler {
                 };
                 discourse_user::Entity::insert(user_model)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "insert_user")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_inserts
                     .add(1, &[KeyValue::new("table", "discourse_user")]);
@@ -151,12 +136,7 @@ impl DbHandler {
                     .add(seaorm::discourse_category::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await
-            .inspect_err(|_| {
-                self.metrics
-                    .db_query_errors
-                    .add(1, &[KeyValue::new("operation", "find_category")]);
-            })?;
+            .await?;
 
         match existing_category {
             Some(existing_category) => {
@@ -178,12 +158,7 @@ impl DbHandler {
                 category_update.topics_all_time = Set(category.topics_all_time);
                 seaorm::discourse_category::Entity::update(category_update)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "update_category")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_updates
                     .add(1, &[KeyValue::new("table", "discourse_category")]);
@@ -210,12 +185,7 @@ impl DbHandler {
                 };
                 seaorm::discourse_category::Entity::insert(category_model)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "insert_category")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_inserts
                     .add(1, &[KeyValue::new("table", "discourse_category")]);
@@ -243,12 +213,7 @@ impl DbHandler {
                     .add(seaorm::discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await
-            .inspect_err(|_| {
-                self.metrics
-                    .db_query_errors
-                    .add(1, &[KeyValue::new("operation", "find_topic")]);
-            })?;
+            .await?;
 
         match existing_topic {
             Some(existing_topic) => {
@@ -272,12 +237,7 @@ impl DbHandler {
                 topic_update.pinned_globally = Set(topic.pinned_globally);
                 seaorm::discourse_topic::Entity::update(topic_update)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "update_topic")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_updates
                     .add(1, &[KeyValue::new("table", "discourse_topic")]);
@@ -307,12 +267,7 @@ impl DbHandler {
                 };
                 let result = seaorm::discourse_topic::Entity::insert(topic_model)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "insert_topic")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_inserts
                     .add(1, &[KeyValue::new("table", "discourse_topic")]);
@@ -359,12 +314,7 @@ impl DbHandler {
                     .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)
-            .await
-            .inspect_err(|_| {
-                self.metrics
-                    .db_query_errors
-                    .add(1, &[KeyValue::new("operation", "find_post")]);
-            })?;
+            .await?;
 
         match existing_post {
             Some(existing_post) => {
@@ -404,12 +354,7 @@ impl DbHandler {
                 post_update.can_view_edit_history = Set(post.can_view_edit_history);
                 seaorm::discourse_post::Entity::update(post_update)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "update_post")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_updates
                     .add(1, &[KeyValue::new("table", "discourse_post")]);
@@ -449,12 +394,7 @@ impl DbHandler {
                 };
                 seaorm::discourse_post::Entity::insert(post_model)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "insert_post")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_inserts
                     .add(1, &[KeyValue::new("table", "discourse_post")]);
@@ -496,12 +436,7 @@ impl DbHandler {
             .filter(discourse_post_revision::Column::Version.eq(revision.current_version))
             .filter(discourse_post_revision::Column::DaoDiscourseId.eq(dao_discourse_id))
             .one(&self.conn)
-            .await
-            .inspect_err(|_| {
-                self.metrics
-                    .db_query_errors
-                    .add(1, &[KeyValue::new("operation", "find_revision")]);
-            })?;
+            .await?;
 
         match existing_revision {
             Some(existing_revision) => {
@@ -524,12 +459,7 @@ impl DbHandler {
                 revision_update.cooked_title_after = Set(cooked_title_after);
                 discourse_post_revision::Entity::update(revision_update)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "update_revision")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_updates
                     .add(1, &[KeyValue::new("table", "discourse_post_revision")]);
@@ -557,12 +487,7 @@ impl DbHandler {
                 };
                 discourse_post_revision::Entity::insert(revision_model)
                     .exec(&self.conn)
-                    .await
-                    .inspect_err(|_| {
-                        self.metrics
-                            .db_query_errors
-                            .add(1, &[KeyValue::new("operation", "insert_revision")]);
-                    })?;
+                    .await?;
                 self.metrics
                     .db_inserts
                     .add(1, &[KeyValue::new("table", "discourse_post_revision")]);
@@ -600,12 +525,7 @@ impl DbHandler {
                     .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .all(&self.conn)
-            .await
-            .inspect_err(|_| {
-                self.metrics
-                    .db_query_errors
-                    .add(1, &[KeyValue::new("operation", "find_post_likes")]);
-            })?;
+            .await?;
 
         // Extract the user IDs of existing likes
         let existing_user_ids: Vec<i32> = existing_likes
@@ -637,12 +557,7 @@ impl DbHandler {
 
             discourse_post_like::Entity::insert_many(new_likes)
                 .exec(&self.conn)
-                .await
-                .inspect_err(|_| {
-                    self.metrics
-                        .db_query_errors
-                        .add(1, &[KeyValue::new("operation", "insert_post_likes")]);
-                })?;
+                .await?;
 
             self.metrics.db_inserts.add(
                 new_likes_count as u64,

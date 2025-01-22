@@ -12,14 +12,17 @@ use tokio::time::{sleep, Instant};
 use tracing::{error, info, instrument, warn, Span};
 use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalJobData};
 
-#[instrument(skip(db))]
-pub async fn run_group_task(db: &DatabaseConnection) -> Result<()> {
+use crate::metrics::Metrics;
+
+#[instrument(skip(db, metrics))]
+pub async fn run_group_task(db: &DatabaseConnection, metrics: Metrics) -> Result<()> {
     let interval = Duration::minutes(1);
     let mut next_tick = Instant::now() + StdDuration::from_secs(interval.num_seconds() as u64);
 
     loop {
-        if let Err(e) = process_jobs(db).await {
+        if let Err(e) = process_jobs(db, &metrics).await {
             error!(error = %e, "Error processing jobs");
+            metrics.job_processing_errors.add(1, &[]);
         }
 
         sleep(next_tick.saturating_duration_since(Instant::now())).await;
@@ -27,8 +30,9 @@ pub async fn run_group_task(db: &DatabaseConnection) -> Result<()> {
     }
 }
 
-#[instrument(skip(conn), fields(job_count = 0))]
-async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
+#[instrument(skip(conn, metrics), fields(job_count = 0))]
+async fn process_jobs(conn: &DatabaseConnection, metrics: &Metrics) -> Result<()> {
+    let start_time = Instant::now();
     let pending_jobs = job_queue::Entity::find()
         .filter(
             job_queue::Column::Status
@@ -43,6 +47,7 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
         .await
         .context("Failed to fetch pending jobs")?;
 
+    metrics.job_queue_size.add(pending_jobs.len() as i64, &[]);
     Span::current().record("job_count", pending_jobs.len());
 
     for job in pending_jobs {
@@ -59,7 +64,7 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
                 let data: DiscussionJobData = serde_json::from_value(job.data.clone())
                     .context("Failed to deserialize discussion job data")?;
                 if let Err(e) =
-                    process_new_discussion_job(conn, job.id, data.discourse_topic_id).await
+                    process_new_discussion_job(conn, job.id, data.discourse_topic_id, metrics).await
                 {
                     error!(
                         error = %e,
@@ -67,13 +72,15 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
                         discourse_topic_id = %data.discourse_topic_id,
                         "Failed to process new discussion job"
                     );
+                    metrics.job_processing_errors.add(1, &[]);
                     continue;
                 }
             }
             JobType::MapperNewSnapshotProposal => {
                 let data: ProposalJobData = serde_json::from_value(job.data.clone())
                     .context("Failed to deserialize proposal job data")?;
-                if let Err(e) = process_snapshot_proposal_job(conn, job.id, data.proposal_id).await
+                if let Err(e) =
+                    process_snapshot_proposal_job(conn, job.id, data.proposal_id, metrics).await
                 {
                     error!(
                         error = %e,
@@ -81,6 +88,7 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
                         proposal_id = %data.proposal_id,
                         "Failed to process snapshot proposal job"
                     );
+                    metrics.job_processing_errors.add(1, &[]);
                     continue;
                 }
             }
@@ -96,20 +104,29 @@ async fn process_jobs(conn: &DatabaseConnection) -> Result<()> {
                 job_id = job_id,
                 "Failed to update job status"
             );
+            metrics.db_updates.add(1, &[]);
         } else {
             info!(job_id = job_id, "Job completed successfully");
+            metrics.job_processed_total.add(1, &[]);
         }
     }
+
+    metrics
+        .job_processing_duration
+        .record(start_time.elapsed().as_secs_f64(), &[]);
 
     Ok(())
 }
 
-#[instrument(skip(conn), fields(job_id = job_id, discourse_topic_id = %discourse_topic_id))]
+#[instrument(skip(conn, metrics), fields(job_id = job_id, discourse_topic_id = %discourse_topic_id))]
 async fn process_new_discussion_job(
     conn: &DatabaseConnection,
     job_id: i32,
     discourse_topic_id: Uuid,
+    metrics: &Metrics,
 ) -> Result<()> {
+    let start_time = Instant::now();
+
     // Find the discourse topic
     let topic = match discourse_topic::Entity::find_by_id(discourse_topic_id)
         .one(conn)
@@ -166,6 +183,7 @@ async fn process_new_discussion_job(
                 discourse_topic_id = %discourse_topic_id,
                 "Failed to create proposal group"
             );
+            metrics.db_inserts.add(1, &[]);
             return Ok(());
         }
 
@@ -174,17 +192,25 @@ async fn process_new_discussion_job(
             discourse_topic_id = %discourse_topic_id,
             "Created new proposal group"
         );
+        metrics.db_inserts.add(1, &[]);
     }
+
+    metrics
+        .db_query_duration
+        .record(start_time.elapsed().as_secs_f64(), &[]);
 
     Ok(())
 }
 
-#[instrument(skip(conn), fields(job_id = job_id, proposal_id = %proposal_id))]
+#[instrument(skip(conn, metrics), fields(job_id = job_id, proposal_id = %proposal_id))]
 async fn process_snapshot_proposal_job(
     conn: &DatabaseConnection,
     job_id: i32,
     proposal_id: Uuid,
+    metrics: &Metrics,
 ) -> Result<()> {
+    let start_time = Instant::now();
+
     // Find the snapshot proposal
     let proposal = match proposal::Entity::find_by_id(proposal_id).one(conn).await {
         Ok(Some(proposal)) => proposal,
@@ -280,6 +306,7 @@ async fn process_snapshot_proposal_job(
                                 discourse_topic_id = %topic.id,
                                 "Added snapshot proposal to existing group"
                             );
+                            metrics.db_updates.add(1, &[]);
                         }
                     }
                 }
@@ -294,6 +321,10 @@ async fn process_snapshot_proposal_job(
     } else {
         warn!(job_id = job_id, proposal_id = %proposal_id, "No discussion_url provided");
     }
+
+    metrics
+        .db_query_duration
+        .record(start_time.elapsed().as_secs_f64(), &[]);
 
     Ok(())
 }

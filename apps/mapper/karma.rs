@@ -18,6 +18,8 @@ use std::{collections::HashMap, str::FromStr};
 use tokio::time::{sleep, Instant};
 use tracing::{error, info, instrument, warn, Span};
 
+use crate::metrics::Metrics;
+
 #[derive(Debug, Deserialize)]
 struct KarmaDelegate {
     #[serde(rename = "ensName")]
@@ -38,8 +40,29 @@ lazy_static::lazy_static! {
     };
 }
 
-#[instrument(skip(db))]
-async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
+#[instrument(skip(db, metrics))]
+pub async fn run_karma_task(db: &DatabaseConnection, metrics: Metrics) -> Result<()> {
+    let interval = Duration::minutes(30);
+    let mut next_tick =
+        Instant::now() + std::time::Duration::from_secs(interval.num_seconds() as u64);
+
+    loop {
+        let start_time = Instant::now();
+        if let Err(e) = fetch_karma_data(db, &metrics).await {
+            error!(error = %e, "Error fetching karma data");
+            metrics.karma_fetch_errors.add(1, &[]);
+        }
+        metrics
+            .karma_fetch_duration
+            .record(start_time.elapsed().as_secs_f64(), &[]);
+
+        sleep(next_tick.saturating_duration_since(Instant::now())).await;
+        next_tick += std::time::Duration::from_secs(interval.num_seconds() as u64);
+    }
+}
+
+#[instrument(skip(db, metrics))]
+async fn fetch_karma_data(db: &DatabaseConnection, metrics: &Metrics) -> Result<()> {
     let client = Client::new();
     let daos = fetch_daos_with_discourse(db).await?;
 
@@ -57,19 +80,19 @@ async fn fetch_karma_data(db: &DatabaseConnection) -> Result<()> {
                 let body = fetch_csv_data(&client, &url, &dao.slug).await?;
                 let delegates = parse_csv_data(&body, &dao.slug)?;
 
-                update_delegates_ens(db, &delegates).await?;
+                update_delegates_ens(db, &delegates, metrics).await?;
 
-                println!("{:?}", delegates);
+                metrics
+                    .karma_delegates_processed
+                    .add(delegates.len() as u64, &[]);
 
                 let delegates_with_forum_handle: Vec<&KarmaDelegate> = delegates
                     .iter()
                     .filter(|d| d.forum_handle.is_some())
                     .collect();
 
-                println!("{:?}", delegates_with_forum_handle);
-
                 for delegate in &delegates_with_forum_handle {
-                    update_delegate(db, &dao, delegate, discourse.id).await?;
+                    update_delegate(db, &dao, delegate, discourse.id, metrics).await?;
                 }
             } else {
                 warn!(
@@ -206,13 +229,16 @@ fn parse_csv_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
         })
 }
 
-#[instrument(skip(conn, dao, delegate_data), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
+#[instrument(skip(conn, dao, delegate_data, metrics), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
 async fn update_delegate(
     conn: &DatabaseConnection,
     dao: &dao::Model,
     delegate_data: &KarmaDelegate,
     dao_discourse_id: Uuid,
+    metrics: &Metrics,
 ) -> Result<()> {
+    let start_time = Instant::now();
+
     // Early return if forum_handle is None
     let forum_handle = match &delegate_data.forum_handle {
         Some(handle) => handle,
@@ -253,6 +279,7 @@ async fn update_delegate(
             address: delegate_data.public_address.clone(),
             ens: Some(delegate_data.ens_name.clone()),
         });
+        metrics.db_inserts.add(1, &[]);
     }
 
     // Check if the discourse user exists by dao_discourse_id and forum_handle
@@ -366,6 +393,7 @@ async fn update_delegate(
             voter_id = voter_id.to_string(),
             "Updated delegate_to_voter mapping"
         );
+        metrics.db_updates.add(1, &[]);
     } else {
         // Insert new delegate_to_voter mapping
         let new_dtv = delegate_to_voter::ActiveModel {
@@ -387,6 +415,7 @@ async fn update_delegate(
             voter_id = voter_id.to_string(),
             "Created new delegate_to_voter mapping"
         );
+        metrics.db_inserts.add(1, &[]);
     }
 
     // Insert or update the delegate_to_discourse_user mapping
@@ -410,6 +439,7 @@ async fn update_delegate(
             discourse_user_id = discourse_user_id.to_string(),
             "Updated delegate_to_discourse_user mapping"
         );
+        metrics.db_updates.add(1, &[]);
     } else {
         // Insert new delegate_to_discourse_user mapping
         let new_dtdu = delegate_to_discourse_user::ActiveModel {
@@ -431,16 +461,24 @@ async fn update_delegate(
             discourse_user_id = discourse_user_id.to_string(),
             "Created new delegate_to_discourse_user mapping"
         );
+        metrics.db_inserts.add(1, &[]);
     }
+
+    metrics
+        .db_query_duration
+        .record(start_time.elapsed().as_secs_f64(), &[]);
 
     Ok(())
 }
 
-#[instrument(skip(conn, delegates), fields(delegate_count = delegates.len()))]
+#[instrument(skip(conn, delegates, metrics), fields(delegate_count = delegates.len()))]
 async fn update_delegates_ens(
     conn: &DatabaseConnection,
     delegates: &[KarmaDelegate],
+    metrics: &Metrics,
 ) -> Result<()> {
+    let start_time = Instant::now();
+
     // Filter delegates with ENS set
     let filtered_delegates: Vec<&KarmaDelegate> = delegates
         .iter()
@@ -508,9 +546,11 @@ async fn update_delegates_ens(
             if voter.id.is_not_set() {
                 // Insert new voter
                 voter::Entity::insert(voter).exec(&tx).await?;
+                metrics.db_inserts.add(1, &[]);
             } else {
                 // Update existing voter
                 voter::Entity::update(voter).exec(&tx).await?;
+                metrics.db_updates.add(1, &[]);
             }
         }
 
@@ -523,21 +563,9 @@ async fn update_delegates_ens(
         info!("No updates needed for voters.");
     }
 
+    metrics
+        .db_query_duration
+        .record(start_time.elapsed().as_secs_f64(), &[]);
+
     Ok(())
-}
-
-#[instrument(skip(db))]
-pub async fn run_karma_task(db: &DatabaseConnection) -> Result<()> {
-    let interval = Duration::minutes(30);
-    let mut next_tick =
-        Instant::now() + std::time::Duration::from_secs(interval.num_seconds() as u64);
-
-    loop {
-        if let Err(e) = fetch_karma_data(db).await {
-            error!(error = %e, "Error fetching karma data");
-        }
-
-        sleep(next_tick.saturating_duration_since(Instant::now())).await;
-        next_tick += std::time::Duration::from_secs(interval.num_seconds() as u64);
-    }
 }

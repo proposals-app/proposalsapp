@@ -5,8 +5,6 @@ use utils::tracing::get_meter;
 pub struct Metrics {
     // Database Metrics
     pub db_query_duration: Histogram<f64>,
-    pub db_query_errors: Counter<u64>,
-
     pub db_inserts: Counter<u64>,
     pub db_updates: Counter<u64>,
 
@@ -31,12 +29,6 @@ impl Metrics {
                 .f64_histogram("discourse_db_query_duration_seconds")
                 .with_description("Duration of database queries in seconds")
                 .with_unit("seconds")
-                .build(),
-
-            db_query_errors: meter
-                .u64_counter("discourse_db_query_errors_total")
-                .with_description("Total number of database query errors")
-                .with_unit("errors")
                 .build(),
 
             db_inserts: meter
