@@ -1,8 +1,13 @@
 import manifest from '../public/manifest.json';
 
-export const updateManifest = (isDark: boolean) => {
+export const updateManifest = async (isDark: boolean) => {
   const neutral50 = '#fafafa';
   const neutral950 = '#0a0a0a';
+
+  // Fetch the manifest file from the correct URL in production
+  const manifestUrl = '/manifest.json';
+  const response = await fetch(manifestUrl);
+  const manifest = await response.json();
 
   const updatedManifest = {
     ...manifest,
