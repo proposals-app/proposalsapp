@@ -87,6 +87,7 @@ services:
       - ./storage/prometheus:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
     networks:
       - observe-network
     depends_on:
