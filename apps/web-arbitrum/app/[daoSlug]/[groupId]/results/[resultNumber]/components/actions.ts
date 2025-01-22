@@ -49,9 +49,9 @@ export type ProposalMetadata = {
 export function getColorForChoice(choice: string | undefined | null): string {
   if (!choice) return '#CBD5E1'; // Default grey color
   const lowerCaseChoice = choice.toLowerCase();
-  if (/^(for|yes|yae)/.test(lowerCaseChoice)) return '#10B981'; // Green
-  if (/^(against|no|nay)/.test(lowerCaseChoice)) return '#EF4444'; // Red
-  if (lowerCaseChoice === 'abstain') return '#F59E0B'; // Yellow
+  if (/^(for|yes|yae)/.test(lowerCaseChoice)) return '#56B200'; // Green
+  if (/^(against|no|nay)/.test(lowerCaseChoice)) return '#FF4242'; // Red
+  if (lowerCaseChoice === 'abstain') return '#FFBC1F'; // Yellow
   const colors = [
     '#3B82F6', // Blue
     '#8B5CF6', // Purple

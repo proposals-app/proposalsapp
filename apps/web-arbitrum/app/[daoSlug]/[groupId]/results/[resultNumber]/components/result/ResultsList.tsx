@@ -200,7 +200,7 @@ function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
     >
       {/* Bar with percentage width */}
       <div
-        className='absolute left-0 top-0 h-full rounded-lg opacity-85'
+        className='absolute left-0 top-0 h-full rounded-lg'
         style={{
           width: `${percentage}%`,
           backgroundColor: color,
