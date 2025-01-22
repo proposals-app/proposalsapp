@@ -70,7 +70,7 @@ async fn main() -> Result<()> {
     for dao_discourse in dao_discourses {
         let discourse_api = Arc::new(DiscourseApi::new(
             dao_discourse.discourse_base_url.clone(),
-            dao_discourse.with_user_agent.clone(),
+            dao_discourse.with_user_agent,
         ));
         discourse_apis.insert(dao_discourse.id, Arc::clone(&discourse_api));
 
