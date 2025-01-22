@@ -1,4 +1,4 @@
-import { Proposal, Selectable } from '@proposalsapp/db';
+import { Proposal, Selectable, Vote } from '@proposalsapp/db';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import {
@@ -47,6 +47,14 @@ const getDelegateForVoterCached = unstable_cache(
   { revalidate: 60 * 5, tags: ['delegate-for-voter'] }
 );
 
+const processResultsActionCached = unstable_cache(
+  async (proposal: Selectable<Proposal>, votes: Selectable<Vote>[]) => {
+    return await processResultsAction(proposal, votes);
+  },
+  ['process-results-action'],
+  { revalidate: 60 * 5, tags: ['process-results-action'] }
+);
+
 // New component to handle the async content
 async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   const votes = await getVotesAction(proposal.id);
@@ -68,7 +76,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     })
   );
 
-  const processedResults = await processResultsAction(proposal, votes);
+  const processedResults = await processResultsActionCached(proposal, votes);
 
   if (!processedResults) {
     notFound();
