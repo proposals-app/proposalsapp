@@ -2,7 +2,8 @@
   "name": "proposalsapp",
   "version": "0.1.0",
   "devDependencies": {
-    "@tsconfig/recommended": "^1.0.8"
+    "@tsconfig/recommended": "^1.0.8",
+    "npm-check-updates": "^17.1.14"
   },
   "engines": {
     "node": "20"

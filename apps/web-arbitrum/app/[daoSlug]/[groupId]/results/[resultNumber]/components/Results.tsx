@@ -10,6 +10,7 @@ import {
 import { LoadingChart, ResultsChart } from './result/ResultsChart';
 import { LoadingList, ResultsList } from './result/ResultsList';
 import { LoadingTable, ResultsTable } from './result/ResultsTable';
+import { unstable_cache } from 'next/cache';
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
@@ -38,6 +39,14 @@ export function ResultsLoading() {
   );
 }
 
+const getDelegateForVoterCached = unstable_cache(
+  async (voterAddress: string, daoSlug: string, proposalId: string) => {
+    return await getDelegateForVoter(voterAddress, daoSlug, proposalId);
+  },
+  ['delegate-for-voter'],
+  { revalidate: 60 * 5, tags: ['delegate-for-voter'] }
+);
+
 // New component to handle the async content
 async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   const votes = await getVotesAction(proposal.id);
@@ -49,7 +58,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   await Promise.all(
     votes.map(async (vote) => {
       if (vote.votingPower > 50000) {
-        const delegate = await getDelegateForVoter(
+        const delegate = await getDelegateForVoterCached(
           vote.voterAddress,
           daoSlug,
           proposal.id
