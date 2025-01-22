@@ -21,8 +21,8 @@ mod discourse_api;
 mod indexers;
 mod models;
 
-const WAIT_FIRST: bool = false;
-const FAST_INDEX: Duration = Duration::from_secs(5 * 60);
+const WAIT_FIRST: bool = true;
+const FAST_INDEX: Duration = Duration::from_secs(60);
 const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 
 lazy_static::lazy_static! {
