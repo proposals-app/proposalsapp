@@ -46,6 +46,9 @@ interface VotesVolumeEvent extends BaseEvent {
   content: string;
   volume: number;
   volumeType: 'votes';
+  metadata: {
+    votingPower: number;
+  };
 }
 
 interface GapEvent extends BaseEvent {
@@ -71,8 +74,9 @@ type Event =
 const MAX_EVENTS = 20;
 const MIN_TIME_BETWEEN_EVENTS = 1000 * 60 * 60 * 24; // 1 day in milliseconds
 
+const MAX_HEIGHT = 800;
 const EVENT_HEIGHT_UNITS = {
-  [TimelineEventType.Basic]: 30,
+  [TimelineEventType.Basic]: 32,
   [TimelineEventType.ResultEnded]: 110,
   [TimelineEventType.ResultOngoing]: 110,
   [TimelineEventType.CommentsVolume]: 3,
@@ -112,12 +116,20 @@ function aggregateVolumeEvents(
         volumeType: 'comments',
       };
     } else {
+      const totalVotingPower = windowEvents.reduce(
+        (sum, e) => sum + (e.metadata?.votingPower || 0),
+        0
+      );
+
       return {
         type: TimelineEventType.VotesVolume,
         timestamp: avgTime,
         content: `${windowEvents.length} votes in this period`,
         volume: totalVolume / windowEvents.length,
         volumeType: 'votes',
+        metadata: {
+          votingPower: totalVotingPower,
+        },
       };
     }
   };
@@ -360,8 +372,7 @@ export async function extractEvents(
 
     // Aggregate events if necessary
     const totalHeightUnits = calculateTotalHeightUnits(events);
-    const maxHeightUnits =
-      MAX_EVENTS * EVENT_HEIGHT_UNITS[TimelineEventType.Basic];
+    const maxHeightUnits = MAX_HEIGHT;
 
     if (totalHeightUnits > maxHeightUnits) {
       const timeSpan =
