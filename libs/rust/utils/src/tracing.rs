@@ -28,9 +28,7 @@ fn init_meter_provider() -> SdkMeterProvider {
         .build()
         .unwrap();
 
-    let reader = PeriodicReader::builder(exporter, runtime::Tokio)
-        .with_interval(std::time::Duration::from_secs(1))
-        .build();
+    let reader = PeriodicReader::builder(exporter, runtime::Tokio).build();
 
     let meter_provider = MeterProviderBuilder::default().with_reader(reader).build();
 
