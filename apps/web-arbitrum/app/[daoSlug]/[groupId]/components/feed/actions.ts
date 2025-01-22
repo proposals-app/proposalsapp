@@ -302,14 +302,15 @@ export async function getVotingPower(
       );
       const topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
 
+      const startTime = new Date(
+        Math.min(...proposalStartTimes, ...topicStartTimes)
+      );
+
+      // Determine the end time as the latest creation time among proposals and topics
       const proposalEndTimes = proposals.map((proposal) =>
         proposal.timeEnd.getTime()
       );
       const topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
-
-      const startTime = new Date(
-        Math.min(...proposalStartTimes, ...topicStartTimes)
-      );
 
       const endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
 
@@ -338,22 +339,15 @@ export async function getVotingPower(
       const initialVotingPower = initialVotingPowerRecord?.votingPower ?? 0;
       const finalVotingPower = finalVotingPowerRecord?.votingPower ?? 0;
 
-      const initialVotingPowerTime = new Date(
-        initialVotingPowerRecord?.timestamp ?? 0
-      );
-      const finalVotingPowerTime = new Date(
-        finalVotingPowerRecord?.timestamp ?? 0
-      );
-
       let change: number | null = null;
-      if (initialVotingPower !== finalVotingPower) {
+      if (initialVotingPower !== 0) {
         change =
           ((finalVotingPower - initialVotingPower) / initialVotingPower) * 100;
       }
 
       return {
-        startTime: initialVotingPowerTime,
-        endTime: finalVotingPowerTime,
+        startTime,
+        endTime,
         initialVotingPower,
         finalVotingPower,
         change,
