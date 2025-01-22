@@ -160,7 +160,7 @@ export const PushNotificationsModal = () => {
               className={`text-center text-[18px] leading-[26px] text-dark ${poppins300.className} py-4`}
             >
               Would you like to receive push notifications when a proposal is
-              about to close and you haven't cast your vote yet?
+              about to close and you haven&apos;t cast your vote yet?
             </AlertDialogDescription>
           ) : (
             <AlertDialogDescription

@@ -10,7 +10,7 @@ export const PostHogIdentifier = () => {
 
   useEffect(() => {
     if (user && user?.emailVerified) posthog.identify(user.email);
-  }, [user]);
+  }, [user, posthog]);
 
   return <></>;
 };

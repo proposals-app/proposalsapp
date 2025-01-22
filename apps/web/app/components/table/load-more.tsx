@@ -1,7 +1,7 @@
 "use client";
 
 import { getProposals, getProposalsType } from "@/app/actions";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useInView } from "react-intersection-observer";
 import { StateFilterEnum } from "../filters/state-filter";
 import { ProposalItem } from "./item";
@@ -44,7 +44,8 @@ export function LoadMore({ searchParams }: ItemsProps) {
   const delay = (ms: number) =>
     new Promise((resolve) => setTimeout(resolve, ms));
 
-  const loadMoreItems = async () => {
+  // Wrap loadMoreItems in useCallback to stabilize its reference
+  const loadMoreItems = useCallback(async () => {
     const randomIndex = Math.floor(Math.random() * loadingMessages.length);
     setLoadingMessage(loadingMessages[randomIndex]);
 
@@ -63,7 +64,7 @@ export function LoadMore({ searchParams }: ItemsProps) {
     }
     setProposals((prevProposals) => [...prevProposals, ...proposals]);
     setPage(nextPage);
-  };
+  }, [page, searchParams.state, searchParams.dao]);
 
   useEffect(() => {
     setHasMore(true);
@@ -75,7 +76,7 @@ export function LoadMore({ searchParams }: ItemsProps) {
     if (inView) {
       loadMoreItems();
     }
-  }, [inView]);
+  }, [inView, loadMoreItems]);
 
   return (
     <div>

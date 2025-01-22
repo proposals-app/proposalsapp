@@ -3,7 +3,7 @@
 import { hotDaosType } from "@/app/actions";
 import { CheckIcon } from "lucide-react";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export const SubscriptionsSettings = ({
   hotDaos,
@@ -17,9 +17,16 @@ export const SubscriptionsSettings = ({
   const [selectedDaos, setSelectedDaosState] =
     useState<string[]>(currentSubscriptions);
 
+  const handleSetSelectedDaos = useCallback(
+    (selected: string[]) => {
+      setSelectedDaos(selected);
+    },
+    [setSelectedDaos],
+  );
+
   useEffect(() => {
-    setSelectedDaos(selectedDaos);
-  }, [selectedDaos]);
+    handleSetSelectedDaos(selectedDaos);
+  }, [selectedDaos, handleSetSelectedDaos]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,8 +64,9 @@ export const SubscriptionsSettings = ({
               }
               style={{
                 maxWidth: "100%",
-                height: "auto"
-              }} />
+                height: "auto",
+              }}
+            />
           </div>
         ))}
       </div>
