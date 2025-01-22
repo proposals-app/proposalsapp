@@ -31,7 +31,7 @@ impl LikesIndexer {
         info!(url, "Fetching likes for post");
         let response: PostLikeResponse = self
             .discourse_api
-            .fetch(&url, priority)
+            .queue(&url, priority)
             .await
             .with_context(|| format!("Failed to fetch likes for post {}", post_id))?;
 

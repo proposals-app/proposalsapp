@@ -35,7 +35,7 @@ impl CategoryIndexer {
 
             let response: CategoryResponse = self
                 .discourse_api
-                .fetch(&url, false)
+                .queue(&url, false)
                 .await
                 .with_context(|| format!("Failed to fetch categories from {}", url))?;
 

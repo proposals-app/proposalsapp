@@ -1,5 +1,5 @@
 use anyhow::Result;
-use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
+use opentelemetry::{global, trace::TracerProvider as _};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{LogExporter, Protocol, WithExportConfig};
 use opentelemetry_sdk::{
@@ -7,7 +7,6 @@ use opentelemetry_sdk::{
     metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
     runtime,
     trace::{RandomIdGenerator, Sampler, TracerProvider},
-    Resource,
 };
 use tracing::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};

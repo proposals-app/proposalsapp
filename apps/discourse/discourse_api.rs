@@ -11,7 +11,7 @@ use reqwest::{
 };
 use serde::de::DeserializeOwned;
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     sync::{
         atomic::{AtomicI64, Ordering},
         Arc, Mutex,
@@ -52,12 +52,18 @@ pub struct DiscourseApi {
     sender: mpsc::Sender<Job>,
     pub base_url: String,
     forbidden_urls: Arc<Mutex<HashSet<(String, u64)>>>,
+    pending_requests: Arc<Mutex<HashMap<String, PendingRequest>>>,
+}
+
+struct PendingRequest {
+    response_senders: Vec<oneshot::Sender<Result<String>>>,
+    priority: bool,
 }
 
 struct Job {
     url: String,
     priority: bool,
-    response_sender: oneshot::Sender<Result<String>>,
+    response_sender: String,
 }
 
 impl DiscourseApi {
@@ -157,6 +163,7 @@ impl DiscourseApi {
             normal_queue_gauge,
             requests_counter,
             forbidden_urls: Arc::new(Mutex::new(HashSet::new())),
+            pending_requests: Arc::new(Mutex::new(HashMap::new())),
         };
 
         // Spawn the queue runner
@@ -166,39 +173,69 @@ impl DiscourseApi {
     }
 
     #[instrument(skip(self), fields(endpoint = %endpoint, priority = priority))]
-    pub async fn fetch<T>(&self, endpoint: &str, priority: bool) -> Result<T>
+    pub async fn queue<T>(&self, endpoint: &str, priority: bool) -> Result<T>
     where
         T: DeserializeOwned,
     {
         info!("Fetching data from endpoint");
 
         let labels = &[KeyValue::new("base_url", self.base_url.clone())];
-        self.total_queue.fetch_add(1, Ordering::SeqCst);
-        if priority {
-            self.priority_queue.fetch_add(1, Ordering::SeqCst);
-        } else {
-            self.normal_queue.fetch_add(1, Ordering::SeqCst);
-        }
-
-        self.total_queue_gauge
-            .record(self.total_queue.load(Ordering::SeqCst), labels);
-        self.priority_queue_gauge
-            .record(self.priority_queue.load(Ordering::SeqCst), labels);
-        self.normal_queue_gauge
-            .record(self.normal_queue.load(Ordering::SeqCst), labels);
-
         let (response_sender, response_receiver) = oneshot::channel();
         let url = format!("{}{}", self.base_url, endpoint);
-        let job = Job {
-            url,
-            priority,
-            response_sender,
+
+        // Check if there's already a pending request for this endpoint
+        let should_send_new_request = {
+            let mut pending_requests = self.pending_requests.lock().unwrap();
+
+            if let Some(pending_request) = pending_requests.get_mut(endpoint) {
+                // If the new request is priority and the existing one isn't, upgrade it
+                if priority && !pending_request.priority {
+                    pending_request.priority = true;
+                }
+                // Add this sender to the list of receivers
+                pending_request.response_senders.push(response_sender);
+                false
+            } else {
+                // No pending request, create a new one
+                pending_requests.insert(
+                    endpoint.to_string(),
+                    PendingRequest {
+                        response_senders: vec![response_sender],
+                        priority,
+                    },
+                );
+
+                // Update metrics
+                self.total_queue.fetch_add(1, Ordering::SeqCst);
+                if priority {
+                    self.priority_queue.fetch_add(1, Ordering::SeqCst);
+                } else {
+                    self.normal_queue.fetch_add(1, Ordering::SeqCst);
+                }
+
+                self.total_queue_gauge
+                    .record(self.total_queue.load(Ordering::SeqCst), labels);
+                self.priority_queue_gauge
+                    .record(self.priority_queue.load(Ordering::SeqCst), labels);
+                self.normal_queue_gauge
+                    .record(self.normal_queue.load(Ordering::SeqCst), labels);
+
+                true
+            }
         };
 
-        self.sender
-            .send(job)
-            .await
-            .map_err(|e| anyhow!("Failed to send job: {}", e))?;
+        if should_send_new_request {
+            let job = Job {
+                url,
+                priority,
+                response_sender: endpoint.to_string(),
+            };
+
+            self.sender
+                .send(job)
+                .await
+                .map_err(|e| anyhow!("Failed to send job: {}", e))?;
+        }
 
         let response = response_receiver
             .await
@@ -263,16 +300,32 @@ impl DiscourseApi {
     #[instrument(skip(self, job), fields(url = %job.url, priority = is_priority))]
     async fn process_job(&self, job: Job, is_priority: bool) {
         let result = self.execute_request(&job.url).await;
-        if let Err(e) = &result {
-            if is_priority {
-                error!(error = ?e, url = %job.url, "Priority request failed");
-            } else {
-                error!(error = ?e, url = %job.url, "Request failed");
+
+        // Get all the senders for this endpoint and remove the pending request
+        let senders = {
+            let mut pending_requests = self.pending_requests.lock().unwrap();
+            pending_requests
+                .remove(&job.response_sender)
+                .expect("Pending request should exist")
+                .response_senders
+        };
+
+        // Send the result to all waiting receivers
+        match result {
+            Ok(response_text) => {
+                // For successful responses, clone the String for each sender
+                for sender in senders {
+                    let _ = sender.send(Ok(response_text.clone()));
+                }
             }
-        } else {
-            info!(url = %job.url, priority = is_priority, "Request processed successfully");
+            Err(e) => {
+                // For errors, create a new error with the same message for each sender
+                let error_msg = e.to_string();
+                for sender in senders {
+                    let _ = sender.send(Err(anyhow!(error_msg.clone())));
+                }
+            }
         }
-        let _ = job.response_sender.send(result);
 
         let labels = &[KeyValue::new("base_url", self.base_url.clone())];
         self.total_queue.fetch_sub(1, Ordering::SeqCst);
@@ -282,6 +335,7 @@ impl DiscourseApi {
             self.normal_queue.fetch_sub(1, Ordering::SeqCst);
         }
 
+        // Update metrics
         self.total_queue_gauge
             .record(self.total_queue.load(Ordering::SeqCst), labels);
         self.priority_queue_gauge

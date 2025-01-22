@@ -31,7 +31,7 @@ seaorm = { path = "../../libs/rust/seaorm" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["full", "sync"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = [
     "registry",

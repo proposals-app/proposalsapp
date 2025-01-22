@@ -66,7 +66,7 @@ impl UserIndexer {
             info!(url, "Fetching users");
             let response: UserResponse = self
                 .discourse_api
-                .fetch(&url, priority)
+                .queue(&url, priority)
                 .await
                 .with_context(|| format!("Failed to fetch users from {}", url))?;
 
@@ -152,7 +152,7 @@ impl UserIndexer {
 
         let response = self
             .discourse_api
-            .fetch::<UserDetailResponse>(&url, priority)
+            .queue::<UserDetailResponse>(&url, priority)
             .await
             .with_context(|| format!("Failed to fetch user by username: {}", username))?;
 

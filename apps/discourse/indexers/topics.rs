@@ -66,7 +66,7 @@ impl TopicIndexer {
 
             match self
                 .discourse_api
-                .fetch::<TopicResponse>(&url, priority)
+                .queue::<TopicResponse>(&url, priority)
                 .await
             {
                 Ok(response) => {

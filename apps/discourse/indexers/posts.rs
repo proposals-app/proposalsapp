@@ -57,7 +57,7 @@ impl PostIndexer {
             info!(url, "Fetching posts");
             match self
                 .discourse_api
-                .fetch::<PostResponse>(&url, priority)
+                .queue::<PostResponse>(&url, priority)
                 .await
             {
                 Ok(response) => {

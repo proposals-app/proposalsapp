@@ -215,7 +215,7 @@ async fn update_revisions_for_post(
         let url = format!("/posts/{}/revisions/{}.json", post_id, rev_num);
         info!(url, "Fetching revision");
         let revision: Revision = discourse_api
-            .fetch(&url, priority)
+            .queue(&url, priority)
             .await
             .with_context(|| format!("Failed to fetch revision for post {}", post_id))?;
 
