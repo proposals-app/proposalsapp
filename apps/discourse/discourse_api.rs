@@ -288,12 +288,6 @@ impl DiscourseApi {
                 for sender in senders {
                     let _ = sender.send(Ok(response_text.clone()));
                 }
-
-                // Record response size
-                self.metrics.api_response_size.record(
-                    response_text.len() as u64,
-                    &[KeyValue::new("url", job.url.clone())],
-                );
             }
             Err(e) => {
                 // For errors, create a new error with the same message for each sender
@@ -354,14 +348,6 @@ impl DiscourseApi {
                     match response.status() {
                         StatusCode::OK => {
                             info!(url, "Request successful");
-
-                            // Record request size
-                            if let Some(content_length) = response.content_length() {
-                                self.metrics.api_request_size.record(
-                                    content_length,
-                                    &[KeyValue::new("url", url.to_string())],
-                                );
-                            }
 
                             return response
                                 .text()

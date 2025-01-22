@@ -17,7 +17,13 @@ const getDelegateCached = unstable_cache(
     topicIds: string[],
     proposalIds: string[]
   ) => {
-    return await getDelegate(voterAddress, daoSlug, topicIds, proposalIds);
+    return await getDelegate(
+      voterAddress,
+      daoSlug,
+      false,
+      topicIds,
+      proposalIds
+    );
   },
   ['delegate'],
   { revalidate: 60 * 5, tags: ['delegate'] }

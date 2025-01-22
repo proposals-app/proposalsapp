@@ -13,8 +13,6 @@ pub struct Metrics {
     // API Metrics
     pub api_request_duration: Histogram<f64>,
     pub api_request_errors: Counter<u64>,
-    pub api_request_size: Histogram<u64>,
-    pub api_response_size: Histogram<u64>,
 
     // Queue Metrics
     pub queue_size: UpDownCounter<i64>,
@@ -52,14 +50,6 @@ impl Metrics {
             api_request_errors: meter
                 .u64_counter("discourse_api_request_errors_total")
                 .with_description("Total number of API request errors")
-                .build(),
-            api_request_size: meter
-                .u64_histogram("discourse_api_request_size_bytes")
-                .with_description("Size of API requests in bytes")
-                .build(),
-            api_response_size: meter
-                .u64_histogram("discourse_api_response_size_bytes")
-                .with_description("Size of API responses in bytes")
                 .build(),
 
             queue_size: meter

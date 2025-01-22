@@ -273,6 +273,7 @@ export async function getVotingPower(voteId: string): Promise<{
 export async function getDelegate(
   voterAddress: string,
   daoSlug: string,
+  withPeriodCheck: boolean,
   topicIds: string[],
   proposalIds?: string[]
 ) {
@@ -295,48 +296,53 @@ export async function getDelegate(
 
       if (!voter) return null;
 
-      // Fetch the timestamps from proposals and topics
-      let proposalStartTimes: number[] = [];
-      let proposalEndTimes: number[] = [];
+      let startTime: Date | undefined;
+      let endTime: Date | undefined;
 
-      if (proposalIds && proposalIds.length > 0) {
-        const proposals = await db
-          .selectFrom('proposal')
-          .selectAll()
-          .where('id', 'in', proposalIds)
-          .execute();
+      if (withPeriodCheck) {
+        // Fetch the timestamps from proposals and topics
+        let proposalStartTimes: number[] = [];
+        let proposalEndTimes: number[] = [];
 
-        proposalStartTimes = proposals.map((proposal) =>
-          proposal.timeStart.getTime()
+        if (proposalIds && proposalIds.length > 0) {
+          const proposals = await db
+            .selectFrom('proposal')
+            .selectAll()
+            .where('id', 'in', proposalIds)
+            .execute();
+
+          proposalStartTimes = proposals.map((proposal) =>
+            proposal.timeStart.getTime()
+          );
+          proposalEndTimes = proposals.map((proposal) =>
+            proposal.timeEnd.getTime()
+          );
+        }
+
+        let topicStartTimes: number[] = [];
+        let topicEndTimes: number[] = [];
+
+        if (topicIds.length > 0) {
+          const topics = await db
+            .selectFrom('discourseTopic')
+            .selectAll()
+            .where('id', 'in', topicIds)
+            .execute();
+
+          topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
+          topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
+        }
+
+        // Determine the start and end times based on proposals and topics
+        startTime = new Date(
+          Math.min(...proposalStartTimes, ...topicStartTimes)
         );
-        proposalEndTimes = proposals.map((proposal) =>
-          proposal.timeEnd.getTime()
-        );
+
+        endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
       }
-
-      let topicStartTimes: number[] = [];
-      let topicEndTimes: number[] = [];
-
-      if (topicIds.length > 0) {
-        const topics = await db
-          .selectFrom('discourseTopic')
-          .selectAll()
-          .where('id', 'in', topicIds)
-          .execute();
-
-        topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
-        topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
-      }
-
-      // Determine the start and end times based on proposals and topics
-      const startTime = new Date(
-        Math.min(...proposalStartTimes, ...topicStartTimes)
-      );
-
-      const endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
 
       // Fetch the delegate with all related data in one query
-      const delegateData = await db
+      let query = db
         .selectFrom('delegate')
         .innerJoin(
           'delegateToVoter',
@@ -355,9 +361,15 @@ export async function getDelegate(
         )
         .leftJoin('voter', 'voter.id', 'delegateToVoter.voterId')
         .where('delegateToVoter.voterId', '=', voter.id)
-        .where('delegate.daoId', '=', dao.id)
-        .where('delegateToVoter.periodStart', '<=', startTime)
-        .where('delegateToVoter.periodEnd', '>=', endTime)
+        .where('delegate.daoId', '=', dao.id);
+
+      if (withPeriodCheck && startTime && endTime) {
+        query = query
+          .where('delegateToVoter.periodStart', '<=', startTime)
+          .where('delegateToVoter.periodEnd', '>=', endTime);
+      }
+
+      const delegateData = await query
         .select([
           'delegate.id as delegateId',
           'discourseUser.name as discourseName',
