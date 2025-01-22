@@ -5,6 +5,7 @@ import { ReactNode } from 'react';
 import { NavBar } from './components/NavBar';
 import { ThemeProvider } from '../components/theme-provider';
 import { ModeToggle } from '../components/theme-switch';
+import { UpdateManifest } from '../components/update-manifest';
 
 // Define a cached function to fetch the DAO data
 const getDaoBySlug = unstable_cache(
@@ -37,6 +38,7 @@ export default async function DaoLayout({
 
   return (
     <ThemeProvider daoSlug={daoSlug}>
+      <UpdateManifest daoSlug={daoSlug} />
       <div className='absolute right-4 top-4 z-50'>
         <ModeToggle />
       </div>
