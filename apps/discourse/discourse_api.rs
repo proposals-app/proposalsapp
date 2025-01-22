@@ -44,7 +44,7 @@ pub struct DiscourseApi {
 }
 
 struct PendingRequest {
-    response_senders: Vec<oneshot::Sender<Result<String>>>,
+    response_senders: Vec<oneshot::Sender<Result<Arc<String>>>>,
     priority: bool,
 }
 
@@ -133,6 +133,11 @@ impl DiscourseApi {
 
         // Spawn the queue runner
         tokio::spawn(api_handler.clone().run_queue(receiver));
+
+        // Spawn the cache-clearing task
+        tokio::spawn(clear_forbidden_urls_cache(
+            api_handler.forbidden_urls.clone(),
+        ));
 
         api_handler
     }
@@ -260,6 +265,15 @@ impl DiscourseApi {
     async fn process_job(&self, job: Job, is_priority: bool) {
         let start_time = std::time::Instant::now();
 
+        // Record total requests metric
+        self.metrics.api_total_requests.add(
+            1,
+            &[
+                KeyValue::new("url", job.url.clone()),
+                KeyValue::new("priority", is_priority.to_string()),
+            ],
+        );
+
         let result = self.execute_request(&job.url).await;
 
         // Record the duration of the request
@@ -284,13 +298,12 @@ impl DiscourseApi {
         // Send the result to all waiting receivers
         match result {
             Ok(response_text) => {
-                // For successful responses, clone the String for each sender
+                let shared_response = Arc::new(response_text);
                 for sender in senders {
-                    let _ = sender.send(Ok(response_text.clone()));
+                    let _ = sender.send(Ok(shared_response.clone()));
                 }
             }
             Err(e) => {
-                // For errors, create a new error with the same message for each sender
                 let error_msg = e.to_string();
                 for sender in senders {
                     let _ = sender.send(Err(anyhow!(error_msg.clone())));
@@ -345,10 +358,9 @@ impl DiscourseApi {
             match self.client.get(url).send().await {
                 Ok(response) => {
                     let status = response.status();
-                    match response.status() {
+                    match status {
                         StatusCode::OK => {
                             info!(url, "Request successful");
-
                             return response
                                 .text()
                                 .await
@@ -419,6 +431,11 @@ impl DiscourseApi {
                             error!(url, status = %status, body, "Request failed");
                             return Err(anyhow!("Request failed with status {}: {}", status, body));
                         }
+                        status if status.is_client_error() => {
+                            let body = response.text().await.unwrap_or_default();
+                            error!(url, status = %status, body, "Client error, skipping retries");
+                            return Err(anyhow!("Client error: HTTP {}: {}", status, body));
+                        }
                         status => {
                             let body = response.text().await.unwrap_or_default();
                             error!(url, status = %status, body, "Request failed");
@@ -459,5 +476,14 @@ impl DiscourseApi {
             .and_then(|s| s.parse::<u64>().ok())
             .map(Duration::from_secs)
             .unwrap_or(default)
+    }
+}
+
+/// Background task to periodically clear the forbidden URLs cache.
+async fn clear_forbidden_urls_cache(forbidden_urls: Arc<Mutex<HashSet<(String, u64)>>>) {
+    loop {
+        tokio::time::sleep(Duration::from_secs(3600)).await; // Clear cache every hour
+        let mut forbidden_urls = forbidden_urls.lock().unwrap();
+        forbidden_urls.clear();
     }
 }

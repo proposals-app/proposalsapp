@@ -13,6 +13,7 @@ pub struct Metrics {
     // API Metrics
     pub api_request_duration: Histogram<f64>,
     pub api_request_errors: Counter<u64>,
+    pub api_total_requests: Counter<u64>,
 
     // Queue Metrics
     pub queue_size: UpDownCounter<i64>,
@@ -50,6 +51,10 @@ impl Metrics {
             api_request_errors: meter
                 .u64_counter("discourse_api_request_errors_total")
                 .with_description("Total number of API request errors")
+                .build(),
+            api_total_requests: meter
+                .u64_counter("discourse_api_requests_total")
+                .with_description("Total number of API requests")
                 .build(),
 
             queue_size: meter
