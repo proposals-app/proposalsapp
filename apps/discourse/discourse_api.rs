@@ -203,21 +203,6 @@ impl DiscourseApi {
         let mut normal_queue = Vec::new();
 
         loop {
-            // Process all available jobs
-            loop {
-                match receiver.try_recv() {
-                    Ok(job) => {
-                        if job.priority {
-                            priority_queue.push(job);
-                        } else {
-                            normal_queue.push(job);
-                        }
-                    }
-                    Err(mpsc::error::TryRecvError::Empty) => break,
-                    Err(mpsc::error::TryRecvError::Disconnected) => return,
-                }
-            }
-
             // Update queue size metrics
             self.metrics.queue_size.add(
                 priority_queue.len() as i64,
@@ -242,20 +227,18 @@ impl DiscourseApi {
                 }
             }
 
-            // If both queues are empty, wait for new jobs
-            if priority_queue.is_empty() && normal_queue.is_empty() {
-                match receiver.recv().await {
-                    Some(job) => {
-                        if job.priority {
-                            priority_queue.push(job);
-                        } else {
-                            normal_queue.push(job);
-                        }
+            // Wait for next job
+            match receiver.recv().await {
+                Some(job) => {
+                    if job.priority {
+                        priority_queue.push(job);
+                    } else {
+                        normal_queue.push(job);
                     }
-                    None => {
-                        // Channel closed, exit the loop
-                        break;
-                    }
+                }
+                None => {
+                    // Channel closed, exit the loop
+                    break;
                 }
             }
         }
