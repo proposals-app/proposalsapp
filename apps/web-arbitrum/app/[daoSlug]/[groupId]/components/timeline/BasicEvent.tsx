@@ -15,10 +15,10 @@ export function BasicEvent({ content, url, last }: BasicEventProps) {
         className='flex w-full items-center justify-between rounded-full border border-neutral-300
           bg-white px-4 py-1 dark:border-neutral-700 dark:bg-neutral-950'
       >
-        <div className='absolute left-3 top-3 z-20 h-[7px] w-[7px] rounded-full bg-neutral-500' />
+        <div className='absolute top-3 left-3 z-20 h-[7px] w-[7px] rounded-full bg-neutral-500' />
         {!last && (
           <div
-            className='absolute left-3 top-[1px] z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px]
+            className='absolute top-[1px] left-3 z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px]
               bg-neutral-500'
           />
         )}

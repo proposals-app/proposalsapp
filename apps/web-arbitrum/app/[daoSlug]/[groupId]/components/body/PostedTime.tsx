@@ -42,7 +42,7 @@ export async function PostedTime({
                 </span>
               </div>
               {border && (
-                <div className='h-8 w-8 rounded-sm bg-neutral-350 dark:bg-neutral-800'></div>
+                <div className='bg-neutral-350 h-8 w-8 rounded-sm dark:bg-neutral-800'></div>
               )}
             </div>
           </div>

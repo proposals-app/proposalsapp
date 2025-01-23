@@ -38,8 +38,8 @@ export const CommentsViewBar = () => {
         view === ViewEnum.COMMENTS ? 'translate-y-0' : '-translate-y-full' }`}
     >
       <div
-        className='flex w-full items-center justify-between gap-2 rounded-full border
-          border-neutral-350 bg-white p-2 text-sm font-bold shadow-lg transition-colors
+        className='border-neutral-350 flex w-full items-center justify-between gap-2 rounded-full
+          border bg-white p-2 text-sm font-bold shadow-lg transition-colors
           dark:border-neutral-800 dark:bg-neutral-950'
       >
         <div className='flex w-full justify-between text-neutral-600 dark:text-neutral-200'>
@@ -52,7 +52,7 @@ export const CommentsViewBar = () => {
             }}
           >
             <ArrowUp
-              className='h-8 w-8 rounded-full border border-neutral-350 bg-neutral-50 p-1
+              className='border-neutral-350 h-8 w-8 rounded-full border bg-neutral-50 p-1
                 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
                 dark:hover:bg-neutral-700'
             />
@@ -60,8 +60,8 @@ export const CommentsViewBar = () => {
           </div>
           <div className='flex gap-2'>
             <div
-              className='flex h-8 cursor-pointer items-center justify-start rounded-full border
-                border-neutral-350 bg-neutral-50 px-4 pl-1 pr-4 text-sm transition-colors
+              className='border-neutral-350 flex h-8 cursor-pointer items-center justify-start
+                rounded-full border bg-neutral-50 px-4 pr-4 pl-1 text-sm transition-colors
                 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
                 dark:hover:bg-neutral-700'
             >
@@ -75,7 +75,7 @@ export const CommentsViewBar = () => {
                     id='comments-view'
                     checked={comments}
                     onChange={(e) => setComments(e.target.checked)}
-                    className='h-6 w-6 cursor-pointer appearance-none rounded-full border border-neutral-350
+                    className='border-neutral-350 h-6 w-6 cursor-pointer appearance-none rounded-full border
                       bg-neutral-50 checked:border-neutral-400 dark:border-neutral-700
                       dark:bg-neutral-800'
                   />
@@ -86,7 +86,7 @@ export const CommentsViewBar = () => {
                       viewBox='0 0 12 9'
                       fill='none'
                       xmlns='http://www.w3.org/2000/svg'
-                      className='pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+                      className='pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
                         fill-neutral-700 dark:fill-neutral-200'
                     >
                       <path d='M0.680398 4.75L1.54403 3.86364L4.54403 6.81818L10.7486 0.636363L11.6349 1.52273L4.54403 8.59091L0.680398 4.75Z' />
@@ -100,10 +100,9 @@ export const CommentsViewBar = () => {
             <Popover.Root>
               <Popover.Trigger asChild>
                 <button
-                  className='flex h-8 w-[200px] items-center justify-between rounded-full border
-                    border-neutral-350 bg-neutral-50 px-4 text-sm transition-colors
-                    hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
-                    dark:hover:bg-neutral-700'
+                  className='border-neutral-350 flex h-8 w-[200px] items-center justify-between rounded-full
+                    border bg-neutral-50 px-4 text-sm transition-colors hover:bg-neutral-100
+                    dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700'
                   aria-expanded={false}
                 >
                   {voteFilters.find((filter) => filter.value === votesFilter)
@@ -112,7 +111,7 @@ export const CommentsViewBar = () => {
                 </button>
               </Popover.Trigger>
               <Popover.Content
-                className='w-[200px] rounded-md border border-neutral-350 bg-neutral-50 p-1 shadow-lg
+                className='border-neutral-350 w-[200px] rounded-md border bg-neutral-50 p-1 shadow-lg
                   dark:border-neutral-700 dark:bg-neutral-800'
                 sideOffset={5}
               >

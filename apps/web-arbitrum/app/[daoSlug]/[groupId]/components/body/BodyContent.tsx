@@ -28,7 +28,7 @@ const BodyContent = memo(
           />
           {!expanded && (
             <div
-              className='absolute bottom-0 left-0 right-0 h-24 bg-linear-to-t from-[var(--neutral-50)]
+              className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-[var(--neutral-50)]
                 to-transparent dark:from-[var(--neutral-950)]'
             />
           )}

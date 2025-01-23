@@ -142,7 +142,7 @@ export async function VoteItem({
       className={`${resultClass} flex w-2/3 flex-col gap-2 rounded-lg border border-neutral-200
         bg-neutral-100 p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800`}
     >
-      <div className='flex cursor-default select-none flex-row justify-between'>
+      <div className='flex cursor-default flex-row justify-between select-none'>
         <div className='flex flex-col gap-2'>
           <Suspense>
             <AuthorInfo
@@ -156,7 +156,7 @@ export async function VoteItem({
           </Suspense>
         </div>
 
-        <div className='flex flex-col items-end text-sm text-neutral-450 dark:text-neutral-300'>
+        <div className='text-neutral-450 flex flex-col items-end text-sm dark:text-neutral-300'>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <div>
@@ -176,7 +176,7 @@ export async function VoteItem({
         </div>
       </div>
 
-      <div className='cursor-default select-none text-neutral-700 dark:text-neutral-200'>
+      <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
         <p className='font-bold'>{formattedVotingPower} ARB</p>
         <p className='font-bold'>
           {((proposal?.choices ?? []) as string[])[item.choice as number]}

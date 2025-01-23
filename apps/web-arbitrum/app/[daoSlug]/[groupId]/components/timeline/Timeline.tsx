@@ -32,11 +32,11 @@ export async function Timeline({
 
   return (
     <div
-      className='fixed right-0 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4
-        pt-24'
+      className='fixed top-0 right-0 flex h-screen w-80 flex-col items-end justify-start pt-24
+        pl-4'
     >
       <div className='relative h-[calc(100vh-96px)] w-full'>
-        <div className='absolute bottom-5 left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-neutral-500' />
+        <div className='absolute top-5 bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500' />
         <div className='flex h-full flex-col justify-between'>
           {events.map((event, index) => {
             // Determine visibility based on filters and metadata
@@ -136,19 +136,19 @@ export async function Timeline({
 export function LoadingTimeline() {
   return (
     <div
-      className='fixed right-0 top-0 flex h-screen w-80 flex-col items-end justify-start pl-4
-        pt-24'
+      className='fixed top-0 right-0 flex h-screen w-80 flex-col items-end justify-start pt-24
+        pl-4'
     >
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
-        <div className='absolute left-[14px] top-5 w-0.5 translate-x-[0.5px] bg-neutral-500'>
+        <div className='absolute top-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>
           <svg
             width='21'
             height='21'
             viewBox='0 0 21 21'
             fill='none'
             xmlns='http://www.w3.org/2000/svg'
-            className='absolute -left-[10px] -top-[10px]'
+            className='absolute -top-[10px] -left-[10px]'
           >
             <rect
               className='dark:fill-bg-neutral-700 fill-neutral-300'
@@ -164,7 +164,7 @@ export function LoadingTimeline() {
         </div>
 
         {/* Vertical Line Placeholder */}
-        <div className='absolute bottom-5 left-[14px] top-5 w-0.5 bg-neutral-500' />
+        <div className='absolute top-5 bottom-5 left-[14px] w-0.5 bg-neutral-500' />
 
         {/* Bottom SVG Placeholder */}
         <div className='absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>

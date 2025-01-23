@@ -39,14 +39,14 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
         view === ViewEnum.BODY ? 'translate-y-0' : 'translate-y-full' }`}
     >
       <div
-        className='flex w-full items-center justify-between gap-2 rounded-full border
-          border-neutral-350 bg-white p-2 text-sm font-bold shadow-lg transition-colors
+        className='border-neutral-350 flex w-full items-center justify-between gap-2 rounded-full
+          border bg-white p-2 text-sm font-bold shadow-lg transition-colors
           dark:border-neutral-800 dark:bg-neutral-950'
       >
         <div className='flex w-full justify-between text-neutral-600 dark:text-neutral-200'>
           <div className='flex items-center gap-4'>
             <ArrowUp
-              className='h-8 w-8 cursor-pointer rounded-full border border-neutral-350 bg-neutral-50 p-1
+              className='border-neutral-350 h-8 w-8 cursor-pointer rounded-full border bg-neutral-50 p-1
                 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
                 dark:hover:bg-neutral-700'
               onClick={() => {
@@ -55,8 +55,8 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
             />
 
             <div
-              className='flex h-8 cursor-pointer items-center justify-start rounded-full border
-                border-neutral-350 bg-neutral-50 px-4 pl-1 pr-4 text-sm transition-colors
+              className='border-neutral-350 flex h-8 cursor-pointer items-center justify-start
+                rounded-full border bg-neutral-50 px-4 pr-4 pl-1 text-sm transition-colors
                 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
                 dark:hover:bg-neutral-700'
             >
@@ -70,7 +70,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
                     id='changes'
                     checked={diff}
                     onChange={(e) => setDiff(e.target.checked)}
-                    className='h-6 w-6 cursor-pointer appearance-none rounded-full border border-neutral-350
+                    className='border-neutral-350 h-6 w-6 cursor-pointer appearance-none rounded-full border
                       bg-neutral-50 checked:border-neutral-400 dark:border-neutral-700
                       dark:bg-neutral-800'
                   />
@@ -81,7 +81,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
                       viewBox='0 0 12 9'
                       fill='none'
                       xmlns='http://www.w3.org/2000/svg'
-                      className='pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+                      className='pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
                         fill-neutral-700 dark:fill-neutral-200'
                     >
                       <path d='M0.680398 4.75L1.54403 3.86364L4.54403 6.81818L10.7486 0.636363L11.6349 1.52273L4.54403 8.59091L0.680398 4.75Z' />
@@ -109,8 +109,8 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
               Previous
             </button>
             <div
-              className='pointer-events-none flex h-8 items-center justify-center rounded-full border
-                border-neutral-350 bg-neutral-50 px-3 dark:border-neutral-700
+              className='border-neutral-350 pointer-events-none flex h-8 items-center justify-center
+                rounded-full border bg-neutral-50 px-3 dark:border-neutral-700
                 dark:bg-neutral-800'
             >
               Version {currentVersion + 1} of {totalVersions}
@@ -145,7 +145,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
           >
             <div>Comments and Votes</div>
             <ArrowDown
-              className='h-8 w-8 rounded-full border border-neutral-350 bg-neutral-50 p-1
+              className='border-neutral-350 h-8 w-8 rounded-full border bg-neutral-50 p-1
                 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
                 dark:hover:bg-neutral-700'
             />

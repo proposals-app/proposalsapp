@@ -170,7 +170,7 @@ const PostContent = ({
   item: PostFeedItem;
 }) => (
   <>
-    <div className='flex cursor-default select-none flex-row justify-between'>
+    <div className='flex cursor-default flex-row justify-between select-none'>
       {author && (
         <Suspense>
           <AuthorInfo
@@ -182,7 +182,7 @@ const PostContent = ({
         </Suspense>
       )}
       <div
-        className='flex cursor-default select-none flex-col items-end text-sm text-neutral-500
+        className='flex cursor-default flex-col items-end text-sm text-neutral-500 select-none
           dark:text-neutral-300'
       >
         <div className='flex flex-col items-end'>

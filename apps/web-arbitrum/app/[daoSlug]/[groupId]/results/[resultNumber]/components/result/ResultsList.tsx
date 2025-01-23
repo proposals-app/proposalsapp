@@ -164,7 +164,7 @@ export function ResultsList({ results }: ResultsListProps) {
             <div className='mt-4'>
               <div className='relative h-1 w-full rounded-full'>
                 <div
-                  className='absolute left-0 top-0 h-full rounded-full'
+                  className='absolute top-0 left-0 h-full rounded-full'
                   style={{
                     width: `${participationPercentage}%`,
                   }}
@@ -200,7 +200,7 @@ function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
     >
       {/* Bar with percentage width */}
       <div
-        className='absolute left-0 top-0 h-full rounded-lg'
+        className='absolute top-0 left-0 h-full rounded-lg'
         style={{
           width: `${percentage}%`,
           backgroundColor: color,

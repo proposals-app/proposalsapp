@@ -63,7 +63,7 @@ export default async function ResultPage({
         </Suspense>
       </div>
 
-      <div className={'flex w-full grow pb-16 pl-[175px] pt-[104px]'}>
+      <div className={'flex w-full grow pt-[104px] pb-16 pl-[175px]'}>
         <div className='h-full w-full pr-4'>
           <div
             className='flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border

@@ -9,7 +9,7 @@ export function GapEvent() {
         justifyContent: 'center',
       }}
     >
-      <div className='ml-30 z-50 h-full w-full' />
+      <div className='z-50 ml-30 h-full w-full' />
     </div>
   );
 }

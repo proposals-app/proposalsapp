@@ -4,6 +4,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '../styles/globals.css';
 import { PHProvider } from './providers/posthog-provider';
 import { SessionProvider } from './providers/session-provider';
+import { validateRequest } from '@/lib/auth';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -45,16 +46,20 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const session = await validateRequest();
+
   return (
     <html lang='en' suppressHydrationWarning>
-      <NuqsAdapter>
-        <PHProvider>
-          <body>
-            <PostHogPageView />
-            {children}
-          </body>
-        </PHProvider>
-      </NuqsAdapter>
+      <SessionProvider value={session}>
+        <NuqsAdapter>
+          <PHProvider>
+            <body>
+              <PostHogPageView />
+              {children}
+            </body>
+          </PHProvider>
+        </NuqsAdapter>
+      </SessionProvider>
     </html>
   );
 }
