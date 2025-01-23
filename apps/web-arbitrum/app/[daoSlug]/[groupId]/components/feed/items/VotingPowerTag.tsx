@@ -30,7 +30,7 @@ export async function VotingPowerTag({ item }: { item: CombinedFeedItem }) {
               {formatNumberWithSuffix(votingPower.latestVotingPower)} ARB
               {votingPower.change !== null &&
                 votingPower.change !== 0 &&
-                votingPower.change > 0.01 && (
+                (votingPower.change > 0.01 || votingPower.change < 0.01) && (
                   <div className='flex items-center gap-1'>
                     <div>{votingPower.change.toFixed(2)} %</div>
                     {votingPower.change > 0 ? <div>↑</div> : <div>↓</div>}
