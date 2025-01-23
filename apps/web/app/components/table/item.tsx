@@ -47,7 +47,7 @@ const MAX_NAME_LENGTH = 100;
 export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
   return (
     <Link
-      className="flex w-full flex-row items-center gap-2 rounded-2xl bg-white p-2 shadow-sm transition-all duration-200 hover:shadow-md"
+      className="flex w-full flex-row items-center gap-2 rounded-2xl bg-white p-2 shadow-xs transition-all duration-200 hover:shadow-md"
       href={proposal.url}
       target="_blank"
     >

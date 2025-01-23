@@ -1,8 +1,6 @@
-import type { Config } from 'tailwindcss';
-
 const config = {
   darkMode: ['class'],
-  content: ['./shadcn/**/*.{ts,tsx}', './app/**/*.{ts,tsx}'],
+  content: ['./app/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -42,6 +40,6 @@ const config = {
     },
   },
   plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
-} satisfies Config;
+};
 
 export default config;

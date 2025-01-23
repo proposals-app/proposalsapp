@@ -8,7 +8,7 @@ import {
   sql,
   Vote,
 } from '@proposalsapp/db';
-import { endOfDay, format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { GroupWithDataType } from '../../actions';
 
 export interface ProposalMetadata {
