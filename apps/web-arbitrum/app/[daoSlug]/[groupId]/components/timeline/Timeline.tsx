@@ -53,13 +53,17 @@ export async function Timeline({
                   (votesFilter === VotesFilterEnum.FIVE_MILLION &&
                     event.metadata.votingPower > 5000000))) ||
               event.type === TimelineEventType.Basic ||
-              event.type === TimelineEventType.ResultOngoing ||
-              event.type === TimelineEventType.ResultEnded ||
+              event.type === TimelineEventType.ResultOngoingBasicVote ||
+              event.type === TimelineEventType.ResultOngoingOtherVotes ||
+              event.type === TimelineEventType.ResultEndedBasicVote ||
+              event.type === TimelineEventType.ResultEndedOtherVotes ||
               event.type === TimelineEventType.Gap;
 
             const resultNumber =
-              event.type === TimelineEventType.ResultEnded ||
-              event.type === TimelineEventType.ResultOngoing
+              event.type === TimelineEventType.ResultOngoingBasicVote ||
+              event.type === TimelineEventType.ResultOngoingOtherVotes ||
+              event.type === TimelineEventType.ResultEndedBasicVote ||
+              event.type === TimelineEventType.ResultEndedOtherVotes
                 ? proposalOrderMap.get(event.proposal.id)
                 : undefined;
 
@@ -88,7 +92,8 @@ export async function Timeline({
                     volume={event.volume}
                     last={index == 0}
                   />
-                ) : event.type === TimelineEventType.ResultOngoing ? (
+                ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
+                  event.type === TimelineEventType.ResultOngoingOtherVotes ? (
                   <ResultEvent
                     content={event.content}
                     timestamp={event.timestamp}
@@ -99,7 +104,8 @@ export async function Timeline({
                     daoSlug={group.daoSlug}
                     groupId={group.group.id}
                   />
-                ) : event.type === TimelineEventType.ResultEnded ? (
+                ) : event.type === TimelineEventType.ResultEndedBasicVote ||
+                  event.type === TimelineEventType.ResultEndedOtherVotes ? (
                   <ResultEvent
                     content={event.content}
                     timestamp={event.timestamp}

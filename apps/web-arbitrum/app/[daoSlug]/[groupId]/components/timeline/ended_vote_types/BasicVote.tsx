@@ -3,11 +3,11 @@ import { Selectable, Vote } from '@proposalsapp/db';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Check } from 'lucide-react';
 import React, { useMemo } from 'react';
-import { Proposal } from '../ResultEvent';
 import { HiddenVote } from './HiddenVote';
+import { ProposalWithMetadata } from '../actions';
 
 interface BasicVoteProps {
-  proposal: Proposal;
+  proposal: ProposalWithMetadata;
   votes: Selectable<Vote>[];
 }
 

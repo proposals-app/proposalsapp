@@ -1,8 +1,8 @@
 import { Selectable, Vote } from '@proposalsapp/db';
-import { Proposal } from '../ResultEvent';
+import { ProposalWithMetadata } from '../actions';
 
 interface QuadraticVoteProps {
-  proposal: Proposal;
+  proposal: ProposalWithMetadata;
   votes: Selectable<Vote>[];
 }
 

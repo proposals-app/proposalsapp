@@ -1,11 +1,11 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { Selectable, Vote } from '@proposalsapp/db';
 import { useMemo } from 'react';
-import { Proposal } from '../ResultEvent';
 import { HiddenVote } from './HiddenVote';
+import { ProposalWithMetadata } from '../actions';
 
 interface RankedChoiceVoteProps {
-  proposal: Proposal;
+  proposal: ProposalWithMetadata;
   votes: Selectable<Vote>[];
 }
 

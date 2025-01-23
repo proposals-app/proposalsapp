@@ -1,9 +1,4 @@
-import {
-  Proposal as DbProposal,
-  JsonValue,
-  Selectable,
-  Vote,
-} from '@proposalsapp/db';
+import { Selectable, Vote } from '@proposalsapp/db';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { ApprovalVote } from './ended_vote_types/ApprovalVote';
@@ -12,28 +7,12 @@ import { QuadraticVote } from './ended_vote_types/QuadraticVote';
 import { RankedChoiceVote } from './ended_vote_types/RankedChoiceVote';
 import { SingleChoiceVote } from './ended_vote_types/SingleChoiceVote';
 import { WeightedVote } from './ended_vote_types/WeightedVote';
-
-interface ProposalMetadata {
-  voteType?: VoteType;
-  [key: string]: unknown;
-}
-
-export type VoteType =
-  | 'single-choice'
-  | 'weighted'
-  | 'approval'
-  | 'basic'
-  | 'quadratic'
-  | 'ranked-choice';
-
-export interface Proposal extends Omit<Selectable<DbProposal>, 'metadata'> {
-  metadata: ProposalMetadata | JsonValue;
-}
+import { ProposalMetadata, ProposalWithMetadata } from './actions';
 
 interface ResultEventProps {
   content: string;
   timestamp: Date;
-  proposal: Proposal;
+  proposal: ProposalWithMetadata;
   votes: Selectable<Vote>[];
   resultNumber: number;
   last: boolean;

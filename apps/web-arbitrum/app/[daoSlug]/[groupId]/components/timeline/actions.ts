@@ -2,6 +2,7 @@ import { otel } from '@/lib/otel';
 import {
   db,
   IndexerVariant,
+  JsonValue,
   Proposal,
   Selectable,
   sql,
@@ -10,9 +11,29 @@ import {
 import { endOfDay, format, formatDistanceToNow } from 'date-fns';
 import { GroupWithDataType } from '../../actions';
 
+export interface ProposalMetadata {
+  voteType?: VoteType;
+  [key: string]: unknown;
+}
+
+export type VoteType =
+  | 'single-choice'
+  | 'weighted'
+  | 'approval'
+  | 'basic'
+  | 'quadratic'
+  | 'ranked-choice';
+
+export interface ProposalWithMetadata
+  extends Omit<Selectable<Proposal>, 'metadata'> {
+  metadata: ProposalMetadata | JsonValue;
+}
+
 export enum TimelineEventType {
-  ResultOngoing = 'ResultOngoing',
-  ResultEnded = 'ResultEnded',
+  ResultOngoingBasicVote = 'ResultOngoingBasicVote',
+  ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',
+  ResultEndedBasicVote = 'ResultEndedBasicVote',
+  ResultEndedOtherVotes = 'ResultEndedOtherVotes',
   Basic = 'Basic',
   CommentsVolume = 'CommentsVolume',
   VotesVolume = 'VotesVolume',
@@ -58,7 +79,11 @@ interface GapEvent extends BaseEvent {
 }
 
 interface ResultEvent extends BaseEvent {
-  type: TimelineEventType.ResultOngoing | TimelineEventType.ResultEnded;
+  type:
+    | TimelineEventType.ResultOngoingBasicVote
+    | TimelineEventType.ResultOngoingOtherVotes
+    | TimelineEventType.ResultEndedBasicVote
+    | TimelineEventType.ResultEndedOtherVotes;
   content: string;
   proposal: Selectable<Proposal>;
   votes: Selectable<Vote>[];
@@ -77,11 +102,13 @@ const MIN_TIME_BETWEEN_EVENTS = 1000 * 60 * 60 * 24; // 1 day in milliseconds
 const MAX_HEIGHT = 800;
 const EVENT_HEIGHT_UNITS = {
   [TimelineEventType.Basic]: 32,
-  [TimelineEventType.ResultEnded]: 110,
-  [TimelineEventType.ResultOngoing]: 110,
+  [TimelineEventType.ResultEndedBasicVote]: 118,
+  [TimelineEventType.ResultEndedOtherVotes]: 94,
+  [TimelineEventType.ResultOngoingBasicVote]: 120,
+  [TimelineEventType.ResultOngoingOtherVotes]: 95,
   [TimelineEventType.CommentsVolume]: 3,
   [TimelineEventType.VotesVolume]: 3,
-  [TimelineEventType.Gap]: 10,
+  [TimelineEventType.Gap]: 20,
 } as const;
 
 // Helper function to aggregate volume events
@@ -275,13 +302,23 @@ export async function extractEvents(
           .where('proposalId', '=', proposal.id)
           .execute();
 
+        const metadata =
+          typeof proposal.metadata === 'string'
+            ? (JSON.parse(proposal.metadata) as ProposalMetadata)
+            : (proposal.metadata as ProposalMetadata);
+
+        const voteType = metadata?.voteType;
+
         if (new Date() > endedAt) {
           events.push({
             content: `${offchain ? 'Offchain' : 'Onchain'} vote ended ${formatDistanceToNow(
               endedAt,
               { addSuffix: true }
             )}`,
-            type: TimelineEventType.ResultEnded,
+            type:
+              voteType === 'basic'
+                ? TimelineEventType.ResultEndedBasicVote
+                : TimelineEventType.ResultEndedOtherVotes,
             timestamp: endedAt,
             proposal: proposal,
             votes: votes,
@@ -292,7 +329,10 @@ export async function extractEvents(
               endedAt,
               { addSuffix: true }
             )}`,
-            type: TimelineEventType.ResultOngoing,
+            type:
+              voteType === 'basic'
+                ? TimelineEventType.ResultOngoingBasicVote
+                : TimelineEventType.ResultOngoingOtherVotes,
             timestamp: endedAt,
             proposal: proposal,
             votes: votes,
@@ -397,8 +437,10 @@ export async function extractEvents(
       const importantEvents = events.filter(
         (e) =>
           e.type === TimelineEventType.Basic ||
-          e.type === TimelineEventType.ResultOngoing ||
-          e.type === TimelineEventType.ResultEnded
+          e.type === TimelineEventType.ResultOngoingBasicVote ||
+          e.type === TimelineEventType.ResultOngoingOtherVotes ||
+          e.type === TimelineEventType.ResultEndedBasicVote ||
+          e.type === TimelineEventType.ResultEndedOtherVotes
       );
 
       events = [...importantEvents, ...commentEvents, ...voteEvents].sort(
