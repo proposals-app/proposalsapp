@@ -129,7 +129,7 @@ function aggregateVolumeEvents(
 
   const createAggregatedEvent = (
     windowEvents: (CommentsVolumeEvent | VotesVolumeEvent)[],
-    avgTime: Date
+    lastTimestamp: Date
   ): CommentsVolumeEvent | VotesVolumeEvent => {
     const totalVolume = windowEvents.reduce((sum, e) => sum + e.volume, 0);
     const isComments = type === TimelineEventType.CommentsVolume;
@@ -137,7 +137,7 @@ function aggregateVolumeEvents(
     if (isComments) {
       return {
         type: TimelineEventType.CommentsVolume,
-        timestamp: avgTime,
+        timestamp: lastTimestamp,
         content: `${windowEvents.length} comments in this period`,
         volume: totalVolume / windowEvents.length,
         volumeType: 'comments',
@@ -150,7 +150,7 @@ function aggregateVolumeEvents(
 
       return {
         type: TimelineEventType.VotesVolume,
-        timestamp: avgTime,
+        timestamp: lastTimestamp,
         content: `${windowEvents.length} votes in this period`,
         volume: totalVolume / windowEvents.length,
         volumeType: 'votes',
@@ -166,12 +166,9 @@ function aggregateVolumeEvents(
       currentWindow.push(event);
     } else {
       if (currentWindow.length > 0) {
-        const avgTimestamp = new Date(
-          currentWindow.reduce((sum, e) => sum + e.timestamp.getTime(), 0) /
-            currentWindow.length
-        );
+        const lastTimestamp = currentWindow[currentWindow.length - 1].timestamp;
         aggregatedEvents.push(
-          createAggregatedEvent(currentWindow, avgTimestamp)
+          createAggregatedEvent(currentWindow, lastTimestamp)
         );
       }
       currentWindow = [event];
@@ -180,11 +177,8 @@ function aggregateVolumeEvents(
   });
 
   if (currentWindow.length > 0) {
-    const avgTimestamp = new Date(
-      currentWindow.reduce((sum, e) => sum + e.timestamp.getTime(), 0) /
-        currentWindow.length
-    );
-    aggregatedEvents.push(createAggregatedEvent(currentWindow, avgTimestamp));
+    const lastTimestamp = currentWindow[currentWindow.length - 1].timestamp;
+    aggregatedEvents.push(createAggregatedEvent(currentWindow, lastTimestamp));
   }
 
   return aggregatedEvents;
