@@ -41,7 +41,7 @@ export function ResultsLoading() {
 
 const getDelegateForVoterCached = unstable_cache(
   async (voterAddress: string, daoSlug: string, proposalId: string) => {
-    return await getDelegateForVoter(voterAddress, daoSlug, proposalId);
+    return await getDelegateForVoter(voterAddress, daoSlug, proposalId, false);
   },
   ['delegate-for-voter'],
   { revalidate: 60 * 5, tags: ['delegate-for-voter'] }

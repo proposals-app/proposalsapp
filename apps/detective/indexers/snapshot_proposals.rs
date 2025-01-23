@@ -55,6 +55,7 @@ struct GraphQLProposal {
 }
 
 #[derive(Debug, Deserialize)]
+#[derive(Default)]
 struct ProposalMetadata {
     #[serde(default)]
     hidden_vote: bool,
@@ -63,14 +64,6 @@ struct ProposalMetadata {
 }
 
 // Implement Default for ProposalMetadata
-impl Default for ProposalMetadata {
-    fn default() -> Self {
-        ProposalMetadata {
-            hidden_vote: false,
-            scores_state: String::new(),
-        }
-    }
-}
 
 pub struct SnapshotProposalsIndexer {
     api_handler: Arc<SnapshotApiHandler>,
