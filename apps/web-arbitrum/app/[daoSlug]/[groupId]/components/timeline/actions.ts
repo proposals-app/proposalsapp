@@ -338,7 +338,7 @@ export async function extractEvents(
           .select([
             sql<Date>`DATE_TRUNC('day', "time_created")`.as('date'),
             sql<number>`SUM("voting_power")`.as('totalVotingPower'),
-            sql<Date>`MIN("time_created")`.as('firstVoteTime'),
+            sql<Date>`MAX("time_created")`.as('lastVoteTime'),
           ])
           .where('proposalId', '=', proposal.id)
           .groupBy(sql`DATE_TRUNC('day', "time_created")`)
@@ -349,7 +349,7 @@ export async function extractEvents(
         );
 
         dailyVotes.forEach((dailyVote) => {
-          const timestamp = new Date(dailyVote.firstVoteTime);
+          const timestamp = new Date(dailyVote.lastVoteTime);
           const normalizedVolume =
             Number(dailyVote.totalVotingPower) / maxVotes;
           events.push({
@@ -377,6 +377,7 @@ export async function extractEvents(
           .select([
             sql<Date>`DATE_TRUNC('day', "created_at")`.as('date'),
             sql<number>`COUNT(id)`.as('count'),
+            sql<Date>`MAX("created_at")`.as('lastPostTime'),
           ])
           .where('postNumber', '!=', 1)
           .where('topicId', '=', topic.externalId)
@@ -388,7 +389,7 @@ export async function extractEvents(
         );
 
         dailyPosts.forEach((dailyPost) => {
-          const timestamp = endOfDay(new Date(dailyPost.date));
+          const timestamp = new Date(dailyPost.lastPostTime);
           const normalizedVolume = Number(dailyPost.count) / maxComments;
           events.push({
             content: `${dailyPost.count} post(s) on ${format(timestamp, 'MMM d')}`,
