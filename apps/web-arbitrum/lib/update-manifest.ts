@@ -1,5 +1,3 @@
-import manifest from '../public/manifest.json';
-
 export const updateManifest = async (isDark: boolean) => {
   const neutral50 = '#fafafa';
   const neutral950 = '#0a0a0a';
