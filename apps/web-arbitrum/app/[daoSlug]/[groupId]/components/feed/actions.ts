@@ -254,8 +254,12 @@ export async function getVotingPower(voteId: string): Promise<{
       // Compute the relative change
       let change: number | null = null;
       if (vote.votingPower !== 0) {
-        change =
+        const rawChange =
           ((latestVotingPower - vote.votingPower) / vote.votingPower) * 100;
+        // Only set change if it's outside the range of -0.01 to 0.01
+        if (rawChange > 0.01 || rawChange < -0.01) {
+          change = rawChange;
+        }
       }
 
       return {

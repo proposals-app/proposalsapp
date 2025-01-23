@@ -21,7 +21,7 @@ export async function PostedTime({
   );
 
   return (
-    <Tooltip.Provider>
+    <div>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <div>
@@ -47,16 +47,16 @@ export async function PostedTime({
             </div>
           </div>
         </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            className='w-40 rounded p-2 text-center text-xs shadow-lg'
-            sideOffset={5}
-          >
-            <p>{formattedDateTime}</p>
-            <Tooltip.Arrow className='' />
-          </Tooltip.Content>
-        </Tooltip.Portal>
+
+        <Tooltip.Content
+          className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
+            text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
+            dark:text-neutral-100'
+          sideOffset={5}
+        >
+          {formattedDateTime}
+        </Tooltip.Content>
       </Tooltip.Root>
-    </Tooltip.Provider>
+    </div>
   );
 }

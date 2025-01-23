@@ -267,9 +267,10 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
           />
         </Tooltip.Trigger>
         <Tooltip.Content
-          side='top'
-          align='center'
-          className='z-50 max-w-32 rounded p-2'
+          className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
+            text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
+            dark:text-neutral-100'
+          sideOffset={5}
         >
           <p className='text-sm'>{tooltip}</p>
         </Tooltip.Content>

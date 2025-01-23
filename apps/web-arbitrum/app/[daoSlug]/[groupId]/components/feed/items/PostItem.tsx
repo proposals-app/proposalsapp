@@ -186,18 +186,22 @@ const PostContent = ({
           dark:text-neutral-300'
       >
         <div className='flex flex-col items-end'>
-          <Tooltip.Provider>
-            <Tooltip.Root>
-              <Tooltip.Trigger asChild>
-                <div>
-                  posted <span className='font-bold'>{relativeCreateTime}</span>
-                </div>
-              </Tooltip.Trigger>
-              <Tooltip.Content className='rounded p-2'>
-                <p>{utcTime}</p>
-              </Tooltip.Content>
-            </Tooltip.Root>
-          </Tooltip.Provider>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <div>
+                posted <span className='font-bold'>{relativeCreateTime}</span>
+              </div>
+            </Tooltip.Trigger>
+            <Tooltip.Content
+              className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
+                text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
+                dark:text-neutral-100'
+              sideOffset={5}
+            >
+              {' '}
+              <p>{utcTime}</p>
+            </Tooltip.Content>
+          </Tooltip.Root>
         </div>
         {item.timestamp.getTime() != updatedAt.getTime() && (
           <div>
@@ -211,24 +215,26 @@ const PostContent = ({
             <span>{item.reads}</span>
           </div>
           {likesCount > 0 ? (
-            <Tooltip.Provider>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <div className='flex items-center gap-1 text-sm'>
-                    <HeartIcon className='h-4 w-4' />
-                    <span>{likesCount}</span>
-                  </div>
-                </Tooltip.Trigger>
-                <Tooltip.Content className='max-w-32 rounded border bg-white p-2'>
-                  <p>
-                    Liked by:{' '}
-                    {likedUsers.length > 0
-                      ? likedUsers.join(', ')
-                      : 'No one yet'}
-                  </p>
-                </Tooltip.Content>
-              </Tooltip.Root>
-            </Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <div className='flex items-center gap-1 text-sm'>
+                  <HeartIcon className='h-4 w-4' />
+                  <span>{likesCount}</span>
+                </div>
+              </Tooltip.Trigger>
+              <Tooltip.Content
+                className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
+                  text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
+                  dark:text-neutral-100'
+                sideOffset={5}
+              >
+                {' '}
+                <p>
+                  Liked by:{' '}
+                  {likedUsers.length > 0 ? likedUsers.join(', ') : 'No one yet'}
+                </p>
+              </Tooltip.Content>
+            </Tooltip.Root>
           ) : (
             <div className='flex items-center gap-1 text-sm'>
               <HeartIcon className='h-4 w-4' />

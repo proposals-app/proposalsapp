@@ -157,18 +157,22 @@ export async function VoteItem({
         </div>
 
         <div className='flex flex-col items-end text-sm text-neutral-450 dark:text-neutral-300'>
-          <Tooltip.Provider>
-            <Tooltip.Root>
-              <Tooltip.Trigger asChild>
-                <div>
-                  voted <span className='font-bold'>{relativeCreateTime}</span>
-                </div>
-              </Tooltip.Trigger>
-              <Tooltip.Content>
-                <p>{utcTime}</p>
-              </Tooltip.Content>
-            </Tooltip.Root>
-          </Tooltip.Provider>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <div>
+                voted <span className='font-bold'>{relativeCreateTime}</span>
+              </div>
+            </Tooltip.Trigger>
+            <Tooltip.Content
+              className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
+                text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
+                dark:text-neutral-100'
+              sideOffset={5}
+            >
+              {' '}
+              <p>{utcTime}</p>
+            </Tooltip.Content>
+          </Tooltip.Root>
         </div>
       </div>
 
