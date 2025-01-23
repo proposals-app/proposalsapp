@@ -336,17 +336,30 @@ async function processWeightedVotes(
   // If there's any remaining accumulated voting power, add it to the last timestamp
   if (lastAccumulatedTimestamp) {
     const values: { [choice: number]: number } = {};
+    let hasRemainingPower = false;
+
+    // Check if there is any remaining voting power
     choices.forEach((_, index) => {
+      if (accumulatedVotingPower[index] > 0) {
+        hasRemainingPower = true;
+      }
       values[index] = accumulatedVotingPower[index];
     });
 
-    timeSeriesData.push({
-      timestamp: format(
-        toZonedTime(lastAccumulatedTimestamp, 'UTC'),
-        'yyyy-MM-dd HH:mm:ss'
-      ),
-      values,
-    });
+    if (hasRemainingPower) {
+      timeSeriesData.push({
+        timestamp: format(
+          toZonedTime(lastAccumulatedTimestamp, 'UTC'),
+          'yyyy-MM-dd HH:mm:ss'
+        ),
+        values,
+      });
+
+      // Reset the accumulated voting power after pushing the remaining values
+      choices.forEach((_, index) => {
+        accumulatedVotingPower[index] = 0;
+      });
+    }
   }
 
   // Calculate final results

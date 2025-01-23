@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
@@ -202,8 +202,8 @@ async fn parse_votes(
                 voting_power: Set(v.vp),
                 block_created: NotSet,
                 time_created: Set(Some(
-                    DateTime::<Utc>::from_timestamp(v.created as i64, 0)
-                        .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?
+                    DateTime::from_timestamp_millis(v.created as i64)
+                        .unwrap()
                         .naive_utc(),
                 )),
                 proposal_id: NotSet,

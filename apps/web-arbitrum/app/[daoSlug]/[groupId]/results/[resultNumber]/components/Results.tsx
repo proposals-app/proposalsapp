@@ -76,7 +76,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     })
   );
 
-  const processedResults = await processResultsActionCached(proposal, votes);
+  const processedResults = await processResultsAction(proposal, votes);
 
   if (!processedResults) {
     notFound();
