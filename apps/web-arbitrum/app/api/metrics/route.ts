@@ -4,19 +4,34 @@ import client from 'prom-client';
 const collectDefaultMetrics = client.collectDefaultMetrics;
 const Registry = client.Registry;
 const register = new Registry();
+
+// Ensure the prefix is a valid metric name
+const serviceName = process.env.OTEL_SERVICE_NAME ?? 'app';
+const validPrefix = serviceName.replace(/[^a-zA-Z0-9_]/g, '_');
+
 collectDefaultMetrics({
-  prefix: `${process.env.OTEL_SERVICE_NAME ?? 'app'}_`,
+  prefix: `${validPrefix}_`,
   register,
 });
 
 export async function GET() {
-  // Get all metrics from the registry
-  const metrics = await register.metrics();
+  try {
+    // Get all metrics from the registry
+    const metrics = await register.metrics();
 
-  // Return the metrics as a response
-  return new Response(metrics, {
-    headers: {
-      'Content-Type': register.contentType,
-    },
-  });
+    // Return the metrics as a response
+    return new Response(metrics, {
+      headers: {
+        'Content-Type': register.contentType,
+      },
+    });
+  } catch (error) {
+    console.error('Error collecting metrics:', error);
+    return new Response('Internal Server Error', {
+      status: 500,
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+    });
+  }
 }
