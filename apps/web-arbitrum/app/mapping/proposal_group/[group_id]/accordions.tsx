@@ -126,7 +126,7 @@ export function TopicAccordion({ topics }: { topics: TopicWithPosts[] }) {
               <h3 className='mb-2 font-semibold'>Posts:</h3>
               <ul className='space-y-4'>
                 {sortedPosts.map((post: Selectable<DiscoursePost>) => (
-                  <li key={post.id} className='rounded-lg border p-4 shadow-sm'>
+                  <li key={post.id} className='rounded-lg border p-4 shadow-xs'>
                     <div className='mb-2 flex items-center'>
                       <span className='mr-2 font-medium'>User:</span>
                       <span>{post.username}</span>

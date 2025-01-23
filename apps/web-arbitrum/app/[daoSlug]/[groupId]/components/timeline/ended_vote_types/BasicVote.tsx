@@ -305,7 +305,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   return (
     <Tooltip.Provider>
       <div className='space-y-1'>
-        <div className='rounde flex h-4 w-full overflow-hidden rounded'>
+        <div className='rounde flex h-4 w-full overflow-hidden rounded-sm'>
           {(['For', 'Abstain', 'Against', 'Unknown'] as const).map((choice) => {
             const voteData = votesByChoice[choice];
             if (!voteData) return null;

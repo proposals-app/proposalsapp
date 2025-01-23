@@ -17,7 +17,7 @@ export function ModeToggle() {
       <DropdownMenuTrigger asChild>
         <button
           className='inline-flex items-center justify-center rounded-md border border-neutral-350
-            bg-white p-2 transition-colors hover:bg-neutral-100 focus:outline-none
+            bg-white p-2 transition-colors hover:bg-neutral-100 focus:outline-hidden
             dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-800'
           aria-label='Toggle theme'
         >
@@ -38,7 +38,7 @@ export function ModeToggle() {
       >
         <DropdownMenuItem
           className='cursor-pointer px-4 py-2 text-sm text-neutral-600 transition-colors
-            hover:bg-neutral-100 focus:outline-none dark:text-neutral-200
+            hover:bg-neutral-100 focus:outline-hidden dark:text-neutral-200
             dark:hover:bg-neutral-800'
           onClick={() => setTheme('light')}
         >
@@ -46,7 +46,7 @@ export function ModeToggle() {
         </DropdownMenuItem>
         <DropdownMenuItem
           className='cursor-pointer px-4 py-2 text-sm text-neutral-600 transition-colors
-            hover:bg-neutral-100 focus:outline-none dark:text-neutral-200
+            hover:bg-neutral-100 focus:outline-hidden dark:text-neutral-200
             dark:hover:bg-neutral-800'
           onClick={() => setTheme('dark')}
         >
@@ -54,7 +54,7 @@ export function ModeToggle() {
         </DropdownMenuItem>
         <DropdownMenuItem
           className='cursor-pointer px-4 py-2 text-sm text-neutral-600 transition-colors
-            hover:bg-neutral-100 focus:outline-none dark:text-neutral-200
+            hover:bg-neutral-100 focus:outline-hidden dark:text-neutral-200
             dark:hover:bg-neutral-800'
           onClick={() => setTheme('system')}
         >

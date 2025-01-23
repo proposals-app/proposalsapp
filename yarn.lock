@@ -2411,6 +2411,7 @@ __metadata:
     "@radix-ui/react-popover": "npm:^1.1.5"
     "@radix-ui/react-tooltip": "npm:^1.1.7"
     "@serwist/next": "npm:9.0.11"
+    "@tailwindcss/postcss": "npm:^4.0.0"
     "@tailwindcss/typography": "npm:^0.5.16"
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
@@ -2425,7 +2426,6 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.21.0"
     "@typescript-eslint/parser": "npm:^8.21.0"
     "@vercel/otel": "npm:^1.10.0"
-    autoprefixer: "npm:^10.4.20"
     date-fns: "npm:^4.1.0"
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
@@ -2452,14 +2452,14 @@ __metadata:
     prettier-plugin-classnames: "npm:^0.7.5"
     prettier-plugin-merge: "npm:^0.7.2"
     prettier-plugin-organize-imports: "npm:^4.1.0"
-    prettier-plugin-tailwindcss: "npm:0.6.10"
+    prettier-plugin-tailwindcss: "npm:^0.6.10"
     prom-client: "npm:^15.1.3"
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
     react-window: "npm:^1.8.11"
     rehype-stringify: "npm:^10.0.1"
     serwist: "npm:9.0.11"
-    tailwindcss: "npm:^3.4.17"
+    tailwindcss: "npm:^4.0.0"
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:^5.7.3"
     unified: "npm:^11.0.5"
@@ -5871,24 +5871,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"autoprefixer@npm:^10.4.20":
-  version: 10.4.20
-  resolution: "autoprefixer@npm:10.4.20"
-  dependencies:
-    browserslist: "npm:^4.23.3"
-    caniuse-lite: "npm:^1.0.30001646"
-    fraction.js: "npm:^4.3.7"
-    normalize-range: "npm:^0.1.2"
-    picocolors: "npm:^1.0.1"
-    postcss-value-parser: "npm:^4.2.0"
-  peerDependencies:
-    postcss: ^8.1.0
-  bin:
-    autoprefixer: bin/autoprefixer
-  checksum: 10c0/e1f00978a26e7c5b54ab12036d8c13833fad7222828fc90914771b1263f51b28c7ddb5803049de4e77696cbd02bb25cfc3634e80533025bb26c26aacdf938940
-  languageName: node
-  linkType: hard
-
 "available-typed-arrays@npm:^1.0.7":
   version: 1.0.7
   resolution: "available-typed-arrays@npm:1.0.7"
@@ -6151,7 +6133,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"browserslist@npm:^4.23.3, browserslist@npm:^4.24.0":
+"browserslist@npm:^4.24.0":
   version: 4.24.3
   resolution: "browserslist@npm:4.24.3"
   dependencies:
@@ -6354,7 +6336,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"caniuse-lite@npm:^1.0.30001579, caniuse-lite@npm:^1.0.30001646, caniuse-lite@npm:^1.0.30001688":
+"caniuse-lite@npm:^1.0.30001579, caniuse-lite@npm:^1.0.30001688":
   version: 1.0.30001690
   resolution: "caniuse-lite@npm:1.0.30001690"
   checksum: 10c0/646bd469032afa90400a84dec30a2b00a6eda62c03ead358117e3f884cda8aacec02ec058a6dbee5eaf9714f83e483b9b0eb4fb42febb8076569f5ca40f1d347
@@ -8905,13 +8887,6 @@ __metadata:
   version: 0.2.0
   resolution: "forwarded@npm:0.2.0"
   checksum: 10c0/9b67c3fac86acdbc9ae47ba1ddd5f2f81526fa4c8226863ede5600a3f7c7416ef451f6f1e240a3cc32d0fd79fcfe6beb08fd0da454f360032bde70bf80afbb33
-  languageName: node
-  linkType: hard
-
-"fraction.js@npm:^4.3.7":
-  version: 4.3.7
-  resolution: "fraction.js@npm:4.3.7"
-  checksum: 10c0/df291391beea9ab4c263487ffd9d17fed162dbb736982dee1379b2a8cc94e4e24e46ed508c6d278aded9080ba51872f1bc5f3a5fd8d7c74e5f105b508ac28711
   languageName: node
   linkType: hard
 
@@ -12525,13 +12500,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"normalize-range@npm:^0.1.2":
-  version: 0.1.2
-  resolution: "normalize-range@npm:0.1.2"
-  checksum: 10c0/bf39b73a63e0a42ad1a48c2bd1bda5a07ede64a7e2567307a407674e595bcff0fa0d57e8e5f1e7fa5e91000797c7615e13613227aaaa4d6d6e87f5bd5cc95de6
-  languageName: node
-  linkType: hard
-
 "npm-check-updates@npm:^17.1.14":
   version: 17.1.14
   resolution: "npm-check-updates@npm:17.1.14"
@@ -13261,7 +13229,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"picocolors@npm:^1.0.0, picocolors@npm:^1.0.1, picocolors@npm:^1.1.0, picocolors@npm:^1.1.1":
+"picocolors@npm:^1.0.0, picocolors@npm:^1.1.0, picocolors@npm:^1.1.1":
   version: 1.1.1
   resolution: "picocolors@npm:1.1.1"
   checksum: 10c0/e2e3e8170ab9d7c7421969adaa7e1b31434f789afb9b3f115f6b96d91945041ac3ceb02e9ec6fe6510ff036bcc0bf91e69a1772edc0b707e12b19c0f2d6bcf58

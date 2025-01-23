@@ -97,9 +97,9 @@ export async function PostItem({
           className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500
             dark:border-neutral-600'
         >
-          <div className='flex-grow border-t border-neutral-400 dark:border-neutral-600'></div>
+          <div className='grow border-t border-neutral-400 dark:border-neutral-600'></div>
           <span className='mx-4'>deleted post</span>
-          <div className='flex-grow border-t border-neutral-400 dark:border-neutral-600'></div>
+          <div className='grow border-t border-neutral-400 dark:border-neutral-600'></div>
         </div>
       ) : isPostDeleted ? (
         // Show the full details/summary UI for deleted posts
@@ -109,9 +109,9 @@ export async function PostItem({
               border-neutral-400 text-neutral-500 dark:border-neutral-600
               [&::-webkit-details-marker]:hidden'
           >
-            <div className='flex-grow border-t border-neutral-400 dark:border-neutral-600'></div>
+            <div className='grow border-t border-neutral-400 dark:border-neutral-600'></div>
             <span className='mx-4'>deleted post</span>
-            <div className='flex-grow border-t border-neutral-400 dark:border-neutral-600'></div>
+            <div className='grow border-t border-neutral-400 dark:border-neutral-600'></div>
           </summary>
           <div className='p-4'>
             {item.id != 'placeholder' && (

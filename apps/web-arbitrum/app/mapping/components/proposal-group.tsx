@@ -145,7 +145,7 @@ export default function GroupingInterface({
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
           placeholder='New group name'
-          className='flex-grow rounded-md border p-2'
+          className='grow rounded-md border p-2'
         />
         <button
           onClick={createNewGroup}
@@ -156,7 +156,7 @@ export default function GroupingInterface({
       </div>
 
       {groups.map((group) => (
-        <div key={group.id} className='rounded-lg border shadow-sm'>
+        <div key={group.id} className='rounded-lg border shadow-xs'>
           <div className='flex items-center justify-between border-b p-4'>
             <h2 className='text-lg font-semibold'>
               {editingGroupId === group.id ? (

@@ -191,10 +191,10 @@ export function LoadingTable() {
     >
       {/* Header */}
       <div className='grid grid-cols-4 border-b border-neutral-300 p-3 dark:border-neutral-700'>
-        <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-24 animate-pulse rounded-sm bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-24 animate-pulse rounded-sm bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-24 animate-pulse rounded-sm bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-24 animate-pulse rounded-sm bg-neutral-200 dark:bg-neutral-800' />
       </div>
 
       {/* Rows */}
@@ -205,10 +205,10 @@ export function LoadingTable() {
             className='grid h-12 grid-cols-4 items-center gap-4 rounded-lg bg-neutral-200 p-2
               dark:bg-neutral-800'
           >
-            <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-            <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-            <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-            <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            <div className='h-4 w-full animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
+            <div className='h-4 w-full animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
+            <div className='h-4 w-full animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
+            <div className='h-4 w-full animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
           </div>
         ))}
       </div>

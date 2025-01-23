@@ -22,7 +22,7 @@ export function NavBar({ daoSlug, dao }: NavBarProps) {
           alt={dao.name}
           width={64}
           height={64}
-          className='rounded'
+          className='rounded-sm'
         />
       </Link>
     </div>

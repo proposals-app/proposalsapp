@@ -103,14 +103,14 @@ export default async function Body({
 
 export function BodyLoading() {
   return (
-    <div className='w-full rounded-lg p-6 shadow'>
+    <div className='w-full rounded-lg p-6 shadow-sm'>
       <div className='space-y-4'>
-        <div className='h-10 w-3/4 animate-pulse rounded bg-gray-200'></div>
+        <div className='h-10 w-3/4 animate-pulse rounded-sm bg-gray-200'></div>
         <div className='flex items-center gap-4'>
           <div className='h-10 w-10 animate-pulse rounded-full bg-gray-200'></div>
-          <div className='h-4 w-32 animate-pulse rounded bg-gray-200'></div>
+          <div className='h-4 w-32 animate-pulse rounded-sm bg-gray-200'></div>
         </div>
-        <div className='h-[400px] w-full animate-pulse rounded bg-gray-200'></div>
+        <div className='h-[400px] w-full animate-pulse rounded-sm bg-gray-200'></div>
       </div>
     </div>
   );

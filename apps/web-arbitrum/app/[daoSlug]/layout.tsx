@@ -39,7 +39,7 @@ export default async function DaoLayout({
   return (
     <ThemeProvider daoSlug={daoSlug}>
       <UpdateManifest daoSlug={daoSlug} />
-      <div className='absolute right-4 top-4 z-50'>
+      <div className='absolute top-4 right-4 z-50'>
         <ModeToggle />
       </div>
       <div className='bg-red flex min-h-screen w-full flex-row bg-neutral-50 dark:bg-neutral-950'>

@@ -1,4 +1,3 @@
-import { validateRequest } from '@/lib/auth';
 import type { Metadata, Viewport } from 'next';
 import dynamic from 'next/dynamic';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
@@ -46,20 +45,16 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await validateRequest();
-
   return (
     <html lang='en' suppressHydrationWarning>
-      <SessionProvider value={session}>
-        <NuqsAdapter>
-          <PHProvider>
-            <body>
-              <PostHogPageView />
-              {children}
-            </body>
-          </PHProvider>
-        </NuqsAdapter>
-      </SessionProvider>
+      <NuqsAdapter>
+        <PHProvider>
+          <body>
+            <PostHogPageView />
+            {children}
+          </body>
+        </PHProvider>
+      </NuqsAdapter>
     </html>
   );
 }
