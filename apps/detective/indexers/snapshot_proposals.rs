@@ -54,6 +54,24 @@ struct GraphQLProposal {
     ipfs: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct ProposalMetadata {
+    #[serde(default)]
+    hidden_vote: bool,
+    #[serde(default)]
+    scores_state: String,
+}
+
+// Implement Default for ProposalMetadata
+impl Default for ProposalMetadata {
+    fn default() -> Self {
+        ProposalMetadata {
+            hidden_vote: false,
+            scores_state: String::new(),
+        }
+    }
+}
+
 pub struct SnapshotProposalsIndexer {
     api_handler: Arc<SnapshotApiHandler>,
 }
@@ -183,10 +201,32 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
             let active_or_pending = proposals
                 .iter()
                 .filter(|p| {
-                    matches!(
+                    // Check if the proposal state is Active, Pending, or Hidden
+                    let state_matches = matches!(
                         p.proposal_state.clone().take().unwrap(),
                         ProposalState::Active | ProposalState::Pending | ProposalState::Hidden
-                    )
+                    );
+
+                    // Parse the metadata JSON into ProposalMetadata
+                    let metadata: ProposalMetadata =
+                        if let ActiveValue::Set(metadata_value) = &p.metadata {
+                            if let Some(metadata_value) = metadata_value {
+                                serde_json::from_value(metadata_value.clone()).unwrap_or_default()
+                            } else {
+                                ProposalMetadata::default()
+                            }
+                        } else {
+                            ProposalMetadata::default()
+                        };
+
+                    // Check if hidden_vote is true and scores_state is "final"
+                    let scores_state_matches = if metadata.hidden_vote {
+                        metadata.scores_state == "final"
+                    } else {
+                        true // If hidden_vote is false, we don't care about scores_state
+                    };
+
+                    state_matches && scores_state_matches
                 })
                 .filter_map(|p| match &p.index_created {
                     ActiveValue::Set(value) => Some(*value),
