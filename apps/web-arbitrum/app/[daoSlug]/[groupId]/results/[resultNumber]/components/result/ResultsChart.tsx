@@ -211,20 +211,20 @@ export function ResultsChart({ results }: ResultsChartProps) {
       tooltip: {
         trigger: 'axis',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        formatter: (params: any) => {
-          let tooltipText = `<strong>${format(toZonedTime(new Date(params[0].axisValue), 'UTC'), 'MMM d, HH:mm')} UTC</strong><br/>`;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          params.forEach((param: any) => {
-            if (param.seriesName !== 'Quorum') {
-              tooltipText += `
-                <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
-                  <span style="display:inline-block;width:10px;height:10px;border-radius:50%;"></span>
-                  <span>${param.seriesName}: ${formatNumberWithSuffix(param.value[1])}</span>
-                </div>`;
-            }
-          });
-          return tooltipText;
-        },
+        // formatter: (params: any) => {
+        //   let tooltipText = `<strong>${format(toZonedTime(new Date(params[0].axisValue), 'UTC'), 'MMM d, HH:mm')} UTC</strong><br/>`;
+        //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        //   params.forEach((param: any) => {
+        //     if (param.seriesName !== 'Quorum') {
+        //       tooltipText += `
+        //         <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
+        //           <span style="display:inline-block;width:10px;height:10px;border-radius:50%;"></span>
+        //           <span>${param.seriesName}: ${formatNumberWithSuffix(param.value[1])}</span>
+        //         </div>`;
+        //     }
+        //   });
+        //   return tooltipText;
+        // },
       },
       xAxis: {
         type: 'time',
