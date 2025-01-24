@@ -42,7 +42,7 @@ struct GraphQLProposal {
     scores_total: f64,
     scores_state: String,
     privacy: String,
-    created: i32,
+    created: i64,
     start: i64,
     end: i64,
     quorum: f64,
@@ -54,8 +54,7 @@ struct GraphQLProposal {
     ipfs: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Deserialize, Default)]
 struct ProposalMetadata {
     #[serde(default)]
     hidden_vote: bool,
@@ -264,13 +263,13 @@ async fn parse_proposals(
             _ => ProposalState::Unknown,
         };
 
-        let time_created = DateTime::<Utc>::from_timestamp(p.created as i64, 0)
+        let time_created = DateTime::from_timestamp_millis(p.created * 1000)
             .expect("Invalid timestamp")
             .naive_utc();
-        let time_start = DateTime::<Utc>::from_timestamp(p.start, 0)
+        let time_start = DateTime::from_timestamp_millis(p.start * 1000)
             .expect("Invalid timestamp")
             .naive_utc();
-        let time_end = DateTime::<Utc>::from_timestamp(p.end, 0)
+        let time_end = DateTime::from_timestamp_millis(p.end * 1000)
             .expect("Invalid timestamp")
             .naive_utc();
 
@@ -311,7 +310,7 @@ async fn parse_proposals(
             time_end: Set(time_end),
             dao_indexer_id: Set(indexer.id),
             dao_id: Set(indexer.dao_id),
-            index_created: Set(p.created),
+            index_created: Set(p.created.try_into().expect("Invalid timestamp")),
             metadata: Set(metadata.into()),
             txid: Set(Some(p.ipfs)),
         };
@@ -351,7 +350,7 @@ struct GraphQLVote {
     reason: String,
     choice: Value,
     vp: f64,
-    created: i32,
+    created: i64,
     proposal: GraphQLProposalId,
     ipfs: String,
 }
@@ -440,7 +439,7 @@ async fn refresh_shutter_votes(
             .map(|v| {
                 Ok(vote::ActiveModel {
                     id: NotSet,
-                    index_created: Set(v.created),
+                    index_created: Set(v.created.try_into().expect("Invalid timestamp")),
                     voter_address: Set(v.voter),
                     reason: Set(Some(v.reason)),
                     choice: Set(if v.choice.is_number() {
@@ -455,8 +454,8 @@ async fn refresh_shutter_votes(
                     voting_power: Set(v.vp),
                     block_created: NotSet,
                     time_created: Set(Some(
-                        DateTime::<Utc>::from_timestamp(v.created as i64, 0)
-                            .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?
+                        DateTime::from_timestamp_millis(v.created * 1000)
+                            .expect("Invalid timestamp")
                             .naive_utc(),
                     )),
                     proposal_id: NotSet,

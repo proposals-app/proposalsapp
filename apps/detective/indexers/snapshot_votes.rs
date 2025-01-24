@@ -36,7 +36,7 @@ struct GraphQLVote {
     reason: String,
     choice: Value,
     vp: f64,
-    created: i32,
+    created: i64,
     proposal: GraphQLProposal,
     ipfs: String,
 }
@@ -86,9 +86,12 @@ impl VotesIndexer for SnapshotVotesIndexer {
         let proposals = proposal::Entity::find()
             .filter(proposal::Column::DaoId.eq(indexer.dao_id))
             .filter(
-                proposal::Column::TimeEnd.gt(DateTime::from_timestamp(indexer.index as i64, 0)
-                    .unwrap()
-                    .naive_utc()),
+                proposal::Column::TimeEnd.gt(DateTime::from_timestamp(
+                    indexer.index.try_into().expect("Invalid timestamp"),
+                    0,
+                )
+                .unwrap()
+                .naive_utc()),
             )
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
@@ -187,7 +190,7 @@ async fn parse_votes(
         .map(|v| {
             Ok(vote::ActiveModel {
                 id: NotSet,
-                index_created: Set(v.created),
+                index_created: Set(v.created.try_into().expect("Invalid timestamp")),
                 voter_address: Set(v.voter),
                 reason: Set(Some(v.reason)),
                 choice: Set(if v.choice.is_number() {
@@ -202,8 +205,8 @@ async fn parse_votes(
                 voting_power: Set(v.vp),
                 block_created: NotSet,
                 time_created: Set(Some(
-                    DateTime::from_timestamp_millis(v.created as i64)
-                        .unwrap()
+                    DateTime::from_timestamp_millis(v.created * 1000)
+                        .expect("Invalid timestamp")
                         .naive_utc(),
                 )),
                 proposal_id: NotSet,
