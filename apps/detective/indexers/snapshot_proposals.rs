@@ -201,12 +201,8 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
 
                     // Parse the metadata JSON into ProposalMetadata
                     let metadata: ProposalMetadata =
-                        if let ActiveValue::Set(metadata_value) = &p.metadata {
-                            if let Some(metadata_value) = metadata_value {
-                                serde_json::from_value(metadata_value.clone()).unwrap_or_default()
-                            } else {
-                                ProposalMetadata::default()
-                            }
+                        if let ActiveValue::Set(Some(metadata_value)) = &p.metadata {
+                            serde_json::from_value(metadata_value.clone()).unwrap_or_default()
                         } else {
                             ProposalMetadata::default()
                         };

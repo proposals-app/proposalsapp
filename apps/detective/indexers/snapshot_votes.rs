@@ -87,7 +87,7 @@ impl VotesIndexer for SnapshotVotesIndexer {
             .filter(proposal::Column::DaoId.eq(indexer.dao_id))
             .filter(
                 proposal::Column::TimeEnd.gt(DateTime::from_timestamp(
-                    indexer.index.try_into().expect("Invalid timestamp"),
+                    indexer.index.into(),
                     0,
                 )
                 .unwrap()
