@@ -298,6 +298,8 @@ const MARKDOWN_STYLES = {
   strong: 'font-bold text-neutral-700 dark:text-neutral-200',
   a: 'underline text-neutral-700 dark:text-neutral-200',
   blockquote: 'border-l-4 pl-4 italic text-neutral-700 dark:text-neutral-200',
+  code: 'border-l-4 pl-4 italic text-neutral-700 dark:text-neutral-200 text-wrap break-all',
+  pre: 'bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800',
   table:
     'min-w-full border-collapse border my-4 text-neutral-700 dark:text-neutral-200',
   th: 'border p-2 text-left text-neutral-700 dark:text-neutral-200',
