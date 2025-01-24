@@ -231,8 +231,6 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             (point) => point.timestamp.getTime() === adjustedTimestamp.getTime()
           );
 
-          console.log(results.votes.map((v) => v.timestamp));
-
           // Add large vote information if available
           if (timeSeriesPoint) {
             const delegate = delegateMap.get(timeSeriesPoint.voterAddress);
