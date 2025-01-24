@@ -76,7 +76,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     })
   );
 
-  const processedResults = await processResultsAction(proposal, votes);
+  const processedResults = await processResultsActionCached(proposal, votes);
 
   if (!processedResults) {
     notFound();
@@ -85,7 +85,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   return (
     <div className='w-full'>
       <div className='flex'>
-        <ResultsChart results={processedResults} />
+        <ResultsChart results={processedResults} delegateMap={delegateMap} />
         <ResultsList results={processedResults} />
       </div>
 

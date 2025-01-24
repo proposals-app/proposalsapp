@@ -4,13 +4,14 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { format, toZonedTime } from 'date-fns-tz';
 import * as echarts from 'echarts';
 import { useEffect, useRef } from 'react';
-import { ProcessedResults } from '../actions';
+import { DelegateInfo, ProcessedResults } from '../actions';
 
 interface ResultsChartProps {
   results: ProcessedResults;
+  delegateMap: Map<string, DelegateInfo>;
 }
 
-export function ResultsChart({ results }: ResultsChartProps) {
+export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -207,30 +208,44 @@ export function ResultsChart({ results }: ResultsChartProps) {
     );
     const yAxisMax = roundToGoodValue(maxVotingValue * 1.1);
 
+    const timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
+
     const options: echarts.EChartsOption = {
       tooltip: {
         trigger: 'axis',
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: (params: any) => {
-          const timestamp = params[0].axisValue; // This is in milliseconds, but timezone context is unclear
-
-          // Convert the timestamp to a UTC date object
+          const timestamp = params[0].axisValue; // This is in milliseconds
           const utcDate = new Date(timestamp);
 
-          // Format the timestamp for display
-          const formattedTimestamp = format(utcDate, 'MMM d, HH:mm') + ' UTC';
+          // Adjust the timestamp by the timezone offset
+          const adjustedTimestamp = new Date(
+            utcDate.getTime() - timezoneOffset
+          );
 
-          let tooltipText = `<strong>${formattedTimestamp}</strong><br/>`;
+          let tooltipText = `<strong>${format(utcDate, 'MMM d, HH:mm')} UTC</strong><br/>`;
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          params.forEach((param: any) => {
-            if (param.seriesName !== 'Quorum') {
-              tooltipText += `
-                            <div style="display: flex; align-items: center; gap: 5px; margin: 3px 0;">
-                              <span>${param.seriesName}: ${formatNumberWithSuffix(param.value[1])}</span>
-                            </div>`;
-            }
-          });
+          // Get the data point that contains metadata
+          const timeSeriesPoint = results.votes.find(
+            (point) => point.timestamp.getTime() === adjustedTimestamp.getTime()
+          );
+
+          console.log(results.votes.map((v) => v.timestamp));
+
+          // Add large vote information if available
+          if (timeSeriesPoint) {
+            const delegate = delegateMap.get(timeSeriesPoint.voterAddress);
+            const voterName = delegate?.name || timeSeriesPoint.voterAddress;
+
+            tooltipText += `
+                       <div class="flex flex-col p-1 max-w-96 overflow-auto" style="width: fit-content;">
+                         <span>Voter: ${voterName}</span>
+                         <span>Power: ${formatNumberWithSuffix(timeSeriesPoint.votingPower)}</span>
+                         <span style="word-wrap: break-word; white-space: normal;">Choice: ${timeSeriesPoint.choiceText}</span>
+                       </div>`;
+          }
+
           return tooltipText;
         },
       },
@@ -274,7 +289,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, [results]);
+  }, [results, delegateMap]);
 
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
