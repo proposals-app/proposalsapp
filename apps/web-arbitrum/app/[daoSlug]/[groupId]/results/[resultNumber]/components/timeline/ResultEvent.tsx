@@ -51,7 +51,10 @@ export function ResultEvent({
               dark:border-neutral-700 dark:bg-neutral-950'
           />
         )}
-        <div className='absolute top-5 left-3 h-[7px] w-[7px] rounded-full border bg-neutral-500' />
+        <div
+          className='absolute top-5 left-3 z-20 h-[7px] w-[7px] -translate-x-[0.5px] rounded-full
+            bg-neutral-500'
+        />
         {!last && (
           <div
             className='absolute top-[7px] left-[11.5px] z-10 h-[15px] max-h-[15px] w-0.5
