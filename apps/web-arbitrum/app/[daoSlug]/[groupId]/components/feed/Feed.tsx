@@ -13,10 +13,10 @@ const getCachedFeedForGroup = unstable_cache(
   async (
     groupId: string,
     commentsFilter: boolean,
-    votesFilter: VotesFilterEnum,
-    page: number
+    votesFilter: VotesFilterEnum
+    // page: number
   ) => {
-    return await getFeedForGroup(groupId, commentsFilter, votesFilter, page);
+    return await getFeedForGroup(groupId, commentsFilter, votesFilter); //, page);
   },
   ['feed-for-group'],
   { revalidate: 60 * 5, tags: ['feed'] }
@@ -26,7 +26,7 @@ export default async function Feed({
   group,
   commentsFilter,
   votesFilter,
-  page = 1,
+  //  page = 1,
 }: {
   group: GroupWithDataType;
   commentsFilter: boolean;
@@ -40,8 +40,8 @@ export default async function Feed({
   const feed = await getCachedFeedForGroup(
     group.group.id,
     commentsFilter,
-    votesFilter,
-    page
+    votesFilter
+    //   page
   );
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);

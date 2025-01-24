@@ -14,13 +14,13 @@ import {
 export async function getFeedForGroup(
   groupID: string,
   commentsFilter: boolean,
-  votesFilter: VotesFilterEnum,
-  page: number = 1
+  votesFilter: VotesFilterEnum
+  // page: number = 1
 ) {
   'use server';
   return otel('get-feed-for-group', async () => {
-    const itemsPerPage = 25;
-    const totalItems = itemsPerPage * page;
+    // const itemsPerPage = 25;
+    // const totalItems = itemsPerPage * page;
 
     let votes: Selectable<Vote>[] = [];
     let posts: Selectable<DiscoursePost>[] = [];
@@ -74,7 +74,7 @@ export async function getFeedForGroup(
         const votesQuery = db
           .selectFrom('vote')
           .where('proposalId', 'in', proposalIds)
-          .$if(votesFilter !== VotesFilterEnum.ALL, (qb) => {
+          .$if(votesFilter !== undefined, (qb) => {
             switch (votesFilter) {
               case VotesFilterEnum.FIFTY_THOUSAND:
                 return qb.where('votingPower', '>', 50000);
@@ -133,12 +133,12 @@ export async function getFeedForGroup(
         .select(sql<number>`count(*)`.as('count'))
         .executeTakeFirst();
 
-      const totalCount = Number(countResult?.count ?? 0);
+      //  const totalCount = Number(countResult?.count ?? 0);
 
       // Get paginated items
       const paginatedItems = await finalQuery
         .orderBy('timestamp', 'desc')
-        .limit(totalItems)
+        // .limit(totalItems)
         .execute();
 
       // Fetch full data for each paginated item
@@ -179,8 +179,8 @@ export async function getFeedForGroup(
         (p): p is Selectable<DiscoursePost> => p !== null
       );
 
-      const hasMore = totalCount > totalItems;
-
+      //   const hasMore = totalCount > totalItems;
+      const hasMore = false;
       return {
         votes,
         posts,

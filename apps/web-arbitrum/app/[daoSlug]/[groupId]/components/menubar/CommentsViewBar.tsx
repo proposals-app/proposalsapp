@@ -122,11 +122,7 @@ export const CommentsViewBar = () => {
                       className='flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm
                         transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700'
                       onClick={() => {
-                        setVotesFilter(
-                          filter.value === votesFilter
-                            ? VotesFilterEnum.ALL
-                            : (filter.value as VotesFilterEnum)
-                        );
+                        setVotesFilter(filter.value as VotesFilterEnum);
                       }}
                     >
                       {filter.label}

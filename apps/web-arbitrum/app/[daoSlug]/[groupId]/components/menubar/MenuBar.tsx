@@ -6,10 +6,10 @@ import { CommentsViewBar } from './CommentsViewBar';
 import { FullViewBar } from './FullViewBar';
 
 export const voteFilters = [
-  {
-    value: VotesFilterEnum.ALL,
-    label: 'No Filter',
-  },
+  // {
+  //   value: VotesFilterEnum.ALL,
+  //   label: 'No Filter',
+  // },
   {
     value: VotesFilterEnum.FIFTY_THOUSAND,
     label: 'Votes > 50k ARB',
