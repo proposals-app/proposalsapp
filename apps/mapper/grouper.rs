@@ -288,7 +288,7 @@ async fn process_snapshot_proposal_job(
         }
     };
 
-    // Extract discussion_id from discussion_url if it exists
+    // Extract discussion_id or slug from discussion_url if it exists
     if let Some(ref discussion_url) = proposal.discussion_url {
         info!(
             job_id = job_id,
@@ -297,38 +297,33 @@ async fn process_snapshot_proposal_job(
             "Found discussion URL in proposal"
         );
 
-        if let Some(topic_id) = extract_discourse_id(discussion_url) {
-            info!(
+        let (topic_id, topic_slug) = extract_discourse_id_or_slug(discussion_url);
+
+        let Some(dao_discourse) = dao_discourse::Entity::find()
+            .filter(dao_discourse::Column::DaoId.eq(proposal.dao_id))
+            .one(conn)
+            .await
+            .context("Failed to find DAO discourse configuration")?
+        else {
+            error!(
                 job_id = job_id,
                 proposal_id = %proposal_id,
-                topic_id = %topic_id,
-                "Extracted discourse topic ID from discussion URL"
+                dao_id = %proposal.dao_id,
+                "No DAO discourse configuration found for proposal's DAO"
             );
+            return Ok(());
+        };
 
-            let Some(dao_discourse) = dao_discourse::Entity::find()
-                .filter(dao_discourse::Column::DaoId.eq(proposal.dao_id))
-                .one(conn)
-                .await
-                .context("Failed to find DAO discourse configuration")?
-            else {
-                error!(
-                    job_id = job_id,
-                    proposal_id = %proposal_id,
-                    dao_id = %proposal.dao_id,
-                    "No DAO discourse configuration found for proposal's DAO"
-                );
-                return Ok(());
-            };
+        info!(
+            job_id = job_id,
+            proposal_id = %proposal_id,
+            dao_discourse_id = %dao_discourse.id,
+            "Found DAO discourse configuration"
+        );
 
-            info!(
-                job_id = job_id,
-                proposal_id = %proposal_id,
-                dao_discourse_id = %dao_discourse.id,
-                "Found DAO discourse configuration"
-            );
-
-            // Find the discourse topic with this external_id
-            let discourse_topic = discourse_topic::Entity::find()
+        // Find the discourse topic by ID or slug
+        let discourse_topic = if let Some(topic_id) = topic_id {
+            discourse_topic::Entity::find()
                 .filter(
                     discourse_topic::Column::ExternalId
                         .eq(topic_id)
@@ -336,113 +331,119 @@ async fn process_snapshot_proposal_job(
                 )
                 .one(conn)
                 .await
-                .context("Failed to find discourse topic")?;
+                .context("Failed to find discourse topic by ID")?
+        } else if let Some(topic_slug) = topic_slug {
+            discourse_topic::Entity::find()
+                .filter(
+                    discourse_topic::Column::Slug
+                        .eq(topic_slug)
+                        .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
+                )
+                .one(conn)
+                .await
+                .context("Failed to find discourse topic by slug")?
+        } else {
+            None
+        };
 
-            if let Some(topic) = discourse_topic {
+        if let Some(topic) = discourse_topic {
+            info!(
+                job_id = job_id,
+                proposal_id = %proposal_id,
+                discourse_topic_id = %topic.id,
+                "Found discourse topic"
+            );
+
+            // Find the proposal group containing this topic directly
+            let group = proposal_group::Entity::find()
+                .filter(
+                    Expr::expr(
+                        Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text")),
+                    )
+                    .like(format!("%{}%", topic.id)),
+                )
+                .one(conn)
+                .await
+                .context("Failed to find proposal group")?;
+
+            if let Some(group) = group {
                 info!(
                     job_id = job_id,
                     proposal_id = %proposal_id,
-                    discourse_topic_id = %topic.id,
-                    "Found discourse topic"
+                    group_id = %group.id,
+                    "Found proposal group containing the discourse topic"
                 );
 
-                // Find the proposal group containing this topic directly
-                let group = proposal_group::Entity::find()
-                    .filter(
-                        Expr::expr(
-                            Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text")),
-                        )
-                        .like(format!("%{}%", topic.id)),
-                    )
-                    .one(conn)
-                    .await
-                    .context("Failed to find proposal group")?;
-
-                if let Some(group) = group {
-                    info!(
-                        job_id = job_id,
-                        proposal_id = %proposal_id,
-                        group_id = %group.id,
-                        "Found proposal group containing the discourse topic"
-                    );
-
-                    if let Ok(mut items) =
-                        serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
-                    {
-                        // Check if proposal is not already in the group
-                        if !items.iter().any(|item| {
-                            item.id == proposal.id.to_string() && item.type_field == "proposal"
-                        }) {
-                            info!(
-                                job_id = job_id,
-                                proposal_id = %proposal_id,
-                                "Proposal is not in the group, adding it"
-                            );
-
-                            // Add the proposal to the group
-                            let indexer = dao_indexer::Entity::find_by_id(proposal.dao_indexer_id)
-                                .one(conn)
-                                .await
-                                .context("Failed to find DAO indexer")?
-                                .unwrap();
-
-                            items.push(ProposalGroupItem {
-                                id: proposal.id.to_string(),
-                                type_field: "proposal".to_string(),
-                                name: proposal.name.clone(),
-                                indexer_name: format!("{:?}", indexer.indexer_variant),
-                            });
-
-                            // Update the group
-                            let mut group: proposal_group::ActiveModel = group.into();
-                            group.items = Set(serde_json::to_value(items)
-                                .context("Failed to serialize proposal group items")?);
-                            proposal_group::Entity::update(group)
-                                .exec(conn)
-                                .await
-                                .context("Failed to update proposal group")?;
-
-                            info!(
-                                job_id = job_id,
-                                proposal_id = %proposal_id,
-                                discourse_topic_id = %topic.id,
-                                "Added snapshot proposal to existing group"
-                            );
-                            metrics.db_updates.add(1, &[]);
-                        } else {
-                            info!(
-                                job_id = job_id,
-                                proposal_id = %proposal_id,
-                                "Proposal is already in the group"
-                            );
-                        }
-                    } else {
-                        error!(
+                if let Ok(mut items) =
+                    serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+                {
+                    // Check if proposal is not already in the group
+                    if !items.iter().any(|item| {
+                        item.id == proposal.id.to_string() && item.type_field == "proposal"
+                    }) {
+                        info!(
                             job_id = job_id,
                             proposal_id = %proposal_id,
-                            group_id = %group.id,
-                            "Failed to deserialize proposal group items"
+                            "Proposal is not in the group, adding it"
+                        );
+
+                        // Add the proposal to the group
+                        let indexer = dao_indexer::Entity::find_by_id(proposal.dao_indexer_id)
+                            .one(conn)
+                            .await
+                            .context("Failed to find DAO indexer")?
+                            .unwrap();
+
+                        items.push(ProposalGroupItem {
+                            id: proposal.id.to_string(),
+                            type_field: "proposal".to_string(),
+                            name: proposal.name.clone(),
+                            indexer_name: format!("{:?}", indexer.indexer_variant),
+                        });
+
+                        // Update the group
+                        let mut group: proposal_group::ActiveModel = group.into();
+                        group.items = Set(serde_json::to_value(items)
+                            .context("Failed to serialize proposal group items")?);
+                        proposal_group::Entity::update(group)
+                            .exec(conn)
+                            .await
+                            .context("Failed to update proposal group")?;
+
+                        info!(
+                            job_id = job_id,
+                            proposal_id = %proposal_id,
+                            discourse_topic_id = %topic.id,
+                            "Added snapshot proposal to existing group"
+                        );
+                        metrics.db_updates.add(1, &[]);
+                    } else {
+                        info!(
+                            job_id = job_id,
+                            proposal_id = %proposal_id,
+                            "Proposal is already in the group"
                         );
                     }
                 } else {
-                    warn!(
+                    error!(
                         job_id = job_id,
                         proposal_id = %proposal_id,
-                        "No proposal group found for the discourse topic"
+                        group_id = %group.id,
+                        "Failed to deserialize proposal group items"
                     );
                 }
             } else {
                 warn!(
                     job_id = job_id,
                     proposal_id = %proposal_id,
-                    "No discourse topic found for the extracted topic ID"
+                    "No proposal group found for the discourse topic"
                 );
             }
         } else {
             warn!(
                 job_id = job_id,
                 proposal_id = %proposal_id,
-                "Failed to extract discourse_id from discussion_url"
+                "No discourse topic found for the extracted topic ID or slug"
             );
         }
     } else {
@@ -466,16 +467,38 @@ async fn process_snapshot_proposal_job(
     Ok(())
 }
 
-fn extract_discourse_id(url: &str) -> Option<i32> {
-    url.split('?') // First split by ? to remove query parameters
-        .next() // Take the part before any query parameters
-        .and_then(|url| {
-            let parts: Vec<&str> = url.split('/').collect();
-            parts
-                .iter()
-                .filter_map(|part| part.parse::<i32>().ok())
-                .next()
-        })
+fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
+    let url_without_query = url.split('?').next().unwrap_or("");
+    let parts: Vec<&str> = url_without_query
+        .split('/')
+        .filter(|&part| !part.is_empty())
+        .collect();
+
+    // Check if the URL contains the "t" segment, which is typical for Discourse topic URLs
+    if let Some(index) = parts.iter().position(|&part| part == "t") {
+        // Try to extract the ID from the next segment
+        let id = parts
+            .get(index + 1)
+            .and_then(|part| part.parse::<i32>().ok());
+
+        // If no ID is found, try to extract the slug from the next segment
+        let slug = if id.is_none() {
+            parts.get(index + 1).and_then(|part| {
+                if part.is_empty() {
+                    None
+                } else {
+                    Some(part.to_string())
+                }
+            })
+        } else {
+            None
+        };
+
+        (id, slug)
+    } else {
+        // If the URL doesn't contain the "t" segment, return None for both ID and slug
+        (None, None)
+    }
 }
 
 #[cfg(test)]
@@ -483,56 +506,65 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_extract_discourse_id_valid_url() {
+    fn test_extract_discourse_1() {
         let url = "https://example.com/t/12345";
-        assert_eq!(extract_discourse_id(url), Some(12345));
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
     }
 
     #[test]
-    fn test_extract_discourse_id_valid_url_with_query() {
+    fn test_extract_discourse_2() {
         let url = "https://example.com/t/12345?param=value";
-        assert_eq!(extract_discourse_id(url), Some(12345));
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
     }
 
     #[test]
-    fn test_extract_discourse_id_valid_url_with_multiple_numbers() {
+    fn test_extract_discourse_3() {
         let url = "https://example.com/t/12345/67890";
-        assert_eq!(extract_discourse_id(url), Some(12345));
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
     }
 
     #[test]
-    fn test_extract_discourse_id_invalid_url_no_number() {
+    fn test_extract_discourse_4() {
         let url = "https://example.com/t/";
-        assert_eq!(extract_discourse_id(url), None);
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
     }
 
     #[test]
-    fn test_extract_discourse_id_invalid_url_non_numeric() {
+    fn test_extract_discourse_5() {
         let url = "https://example.com/t/abcde";
-        assert_eq!(extract_discourse_id(url), None);
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (None, Some("abcde".to_string()))
+        );
     }
 
     #[test]
-    fn test_extract_discourse_id_invalid_url_empty() {
+    fn test_extract_discourse_6() {
         let url = "";
-        assert_eq!(extract_discourse_id(url), None);
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
     }
 
     #[test]
-    fn test_extract_discourse_id_invalid_url_no_path() {
+    fn test_extract_discourse_7() {
         let url = "https://example.com";
-        assert_eq!(extract_discourse_id(url), None);
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
     }
 
     #[test]
-    fn test_extract_discourse_id_valid_url_with_multiple_slashes() {
+    fn test_extract_discourse_8() {
         let url = "https://example.com/t///12345";
-        assert_eq!(extract_discourse_id(url), Some(12345));
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
     }
 
     #[test]
-    fn test_extract_discourse_id_valid_url_with_trailing_slash() {
+    fn test_extract_discourse_9() {
         let url = "https://example.com/t/12345/";
-        assert_eq!(extract_discourse_id(url), Some(12345));
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
+    }
+
+    #[test]
+    fn test_extract_discourse_10() {
+        let url = "https://forum.arbitrum.foundation/t/non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead/";
+        assert_eq!(extract_discourse_id_or_slug(url), (None, Some("non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead".to_string())));
     }
 }
