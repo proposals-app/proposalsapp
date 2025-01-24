@@ -58,55 +58,45 @@ async fn process_jobs(conn: &DatabaseConnection, metrics: &Metrics) -> Result<()
 
         let job_type: JobType = job.r#type.parse().context("Failed to parse job type")?;
 
-        match job_type {
+        let job_result = match job_type {
             JobType::MapperNewProposalDiscussion => {
                 let data: DiscussionJobData = serde_json::from_value(job.data.clone())
                     .context("Failed to deserialize discussion job data")?;
-                if let Err(e) =
-                    process_new_discussion_job(conn, job.id, data.discourse_topic_id, metrics).await
-                {
-                    error!(
-                        error = %e,
-                        job_id = job.id,
-                        discourse_topic_id = %data.discourse_topic_id,
-                        "Failed to process new discussion job"
-                    );
-                    metrics.job_processing_errors.add(1, &[]);
-                    continue;
-                }
+                process_new_discussion_job(conn, job.id, data.discourse_topic_id, metrics).await
             }
             JobType::MapperNewSnapshotProposal => {
                 let data: ProposalJobData = serde_json::from_value(job.data.clone())
                     .context("Failed to deserialize proposal job data")?;
-                if let Err(e) =
-                    process_snapshot_proposal_job(conn, job.id, data.proposal_id, metrics).await
-                {
+                process_snapshot_proposal_job(conn, job.id, data.proposal_id, metrics).await
+            }
+        };
+
+        match job_result {
+            Ok(_) => {
+                // Update job status to COMPLETED only if processing was successful
+                let job_id = job.id;
+                let mut job: job_queue::ActiveModel = job.into();
+                job.status = Set("COMPLETED".to_string());
+                if let Err(e) = job_queue::Entity::update(job).exec(conn).await {
                     error!(
                         error = %e,
-                        job_id = job.id,
-                        proposal_id = %data.proposal_id,
-                        "Failed to process snapshot proposal job"
+                        job_id = job_id,
+                        "Failed to update job status"
                     );
-                    metrics.job_processing_errors.add(1, &[]);
-                    continue;
+                    metrics.db_updates.add(1, &[]);
+                } else {
+                    info!(job_id = job_id, "Job completed successfully");
+                    metrics.job_processed_total.add(1, &[]);
                 }
             }
-        }
-
-        // Update job status to COMPLETED
-        let job_id = job.id;
-        let mut job: job_queue::ActiveModel = job.into();
-        job.status = Set("COMPLETED".to_string());
-        if let Err(e) = job_queue::Entity::update(job).exec(conn).await {
-            error!(
-                error = %e,
-                job_id = job_id,
-                "Failed to update job status"
-            );
-            metrics.db_updates.add(1, &[]);
-        } else {
-            info!(job_id = job_id, "Job completed successfully");
-            metrics.job_processed_total.add(1, &[]);
+            Err(e) => {
+                error!(
+                    error = %e,
+                    job_id = job.id,
+                    "Job processing failed"
+                );
+                metrics.job_processing_errors.add(1, &[]);
+            }
         }
     }
 
@@ -126,13 +116,26 @@ async fn process_new_discussion_job(
 ) -> Result<()> {
     let start_time = Instant::now();
 
+    info!(
+        job_id = job_id,
+        discourse_topic_id = %discourse_topic_id,
+        "Starting to process new discussion job"
+    );
+
     // Find the discourse topic
     let topic = match discourse_topic::Entity::find_by_id(discourse_topic_id)
         .one(conn)
         .await
         .context("Failed to find discourse topic")?
     {
-        Some(topic) => topic,
+        Some(topic) => {
+            info!(
+                job_id = job_id,
+                discourse_topic_id = %discourse_topic_id,
+                "Discourse topic found"
+            );
+            topic
+        }
         None => {
             error!(
                 job_id = job_id,
@@ -144,6 +147,12 @@ async fn process_new_discussion_job(
     };
 
     // Check if topic is already part of a proposal group
+    info!(
+        job_id = job_id,
+        discourse_topic_id = %discourse_topic_id,
+        "Checking if topic is already part of a proposal group"
+    );
+
     let topic_already_mapped = !proposal_group::Entity::find()
         .filter(
             Expr::expr(Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text")))
@@ -154,49 +163,83 @@ async fn process_new_discussion_job(
         .context("Failed to check if topic is already mapped")?
         .is_empty();
 
-    if !topic_already_mapped {
+    if topic_already_mapped {
+        info!(
+            job_id = job_id,
+            discourse_topic_id = %discourse_topic_id,
+            "Topic is already part of a proposal group"
+        );
+    } else {
+        info!(
+            job_id = job_id,
+            discourse_topic_id = %discourse_topic_id,
+            "Topic is not part of any proposal group, creating a new group"
+        );
+
         let discourse_indexer = dao_discourse::Entity::find_by_id(topic.dao_discourse_id)
             .one(conn)
             .await
             .context("Failed to find discourse indexer")?;
 
-        // Create new proposal group
-        let new_group = proposal_group::ActiveModel {
-            id: NotSet,
-            dao_id: Set(discourse_indexer.clone().unwrap().dao_id),
-            name: Set(topic.title.clone()),
-            items: Set(serde_json::to_value(vec![ProposalGroupItem {
-                id: topic.id.to_string(),
-                type_field: "topic".to_string(),
-                name: topic.title.clone(),
-                indexer_name: discourse_indexer.unwrap().discourse_base_url,
-            }])
-            .context("Failed to serialize proposal group items")?),
-            created_at: NotSet,
-        };
-
-        if let Err(e) = proposal_group::Entity::insert(new_group).exec(conn).await {
-            error!(
-                error = %e,
+        if let Some(discourse_indexer) = discourse_indexer {
+            info!(
                 job_id = job_id,
                 discourse_topic_id = %discourse_topic_id,
-                "Failed to create proposal group"
+                dao_discourse_id = %discourse_indexer.id,
+                "Found discourse indexer for the topic"
+            );
+
+            // Create new proposal group
+            let new_group = proposal_group::ActiveModel {
+                id: NotSet,
+                dao_id: Set(discourse_indexer.dao_id),
+                name: Set(topic.title.clone()),
+                items: Set(serde_json::to_value(vec![ProposalGroupItem {
+                    id: topic.id.to_string(),
+                    type_field: "topic".to_string(),
+                    name: topic.title.clone(),
+                    indexer_name: discourse_indexer.discourse_base_url,
+                }])
+                .context("Failed to serialize proposal group items")?),
+                created_at: NotSet,
+            };
+
+            if let Err(e) = proposal_group::Entity::insert(new_group).exec(conn).await {
+                error!(
+                    error = %e,
+                    job_id = job_id,
+                    discourse_topic_id = %discourse_topic_id,
+                    "Failed to create proposal group"
+                );
+                metrics.db_inserts.add(1, &[]);
+                return Ok(());
+            }
+
+            info!(
+                job_id = job_id,
+                discourse_topic_id = %discourse_topic_id,
+                "Created new proposal group"
             );
             metrics.db_inserts.add(1, &[]);
-            return Ok(());
+        } else {
+            error!(
+                job_id = job_id,
+                discourse_topic_id = %discourse_topic_id,
+                dao_discourse_id = %topic.dao_discourse_id,
+                "No discourse indexer found for the topic"
+            );
         }
-
-        info!(
-            job_id = job_id,
-            discourse_topic_id = %discourse_topic_id,
-            "Created new proposal group"
-        );
-        metrics.db_inserts.add(1, &[]);
     }
 
     metrics
         .db_query_duration
         .record(start_time.elapsed().as_secs_f64(), &[]);
+
+    info!(
+        job_id = job_id,
+        discourse_topic_id = %discourse_topic_id,
+        "Finished processing new discussion job"
+    );
 
     Ok(())
 }
@@ -210,9 +253,22 @@ async fn process_snapshot_proposal_job(
 ) -> Result<()> {
     let start_time = Instant::now();
 
+    info!(
+        job_id = job_id,
+        proposal_id = %proposal_id,
+        "Starting to process snapshot proposal job"
+    );
+
     // Find the snapshot proposal
     let proposal = match proposal::Entity::find_by_id(proposal_id).one(conn).await {
-        Ok(Some(proposal)) => proposal,
+        Ok(Some(proposal)) => {
+            info!(
+                job_id = job_id,
+                proposal_id = %proposal_id,
+                "Snapshot proposal found"
+            );
+            proposal
+        }
         Ok(None) => {
             error!(
                 job_id = job_id,
@@ -222,13 +278,33 @@ async fn process_snapshot_proposal_job(
             return Ok(());
         }
         Err(e) => {
+            error!(
+                job_id = job_id,
+                proposal_id = %proposal_id,
+                error = %e,
+                "Failed to find snapshot proposal"
+            );
             return Err(e).context("Failed to find snapshot proposal")?;
         }
     };
 
     // Extract discussion_id from discussion_url if it exists
     if let Some(ref discussion_url) = proposal.discussion_url {
+        info!(
+            job_id = job_id,
+            proposal_id = %proposal_id,
+            discussion_url = %discussion_url,
+            "Found discussion URL in proposal"
+        );
+
         if let Some(topic_id) = extract_discourse_id(discussion_url) {
+            info!(
+                job_id = job_id,
+                proposal_id = %proposal_id,
+                topic_id = %topic_id,
+                "Extracted discourse topic ID from discussion URL"
+            );
+
             let Some(dao_discourse) = dao_discourse::Entity::find()
                 .filter(dao_discourse::Column::DaoId.eq(proposal.dao_id))
                 .one(conn)
@@ -244,6 +320,13 @@ async fn process_snapshot_proposal_job(
                 return Ok(());
             };
 
+            info!(
+                job_id = job_id,
+                proposal_id = %proposal_id,
+                dao_discourse_id = %dao_discourse.id,
+                "Found DAO discourse configuration"
+            );
+
             // Find the discourse topic with this external_id
             let discourse_topic = discourse_topic::Entity::find()
                 .filter(
@@ -256,6 +339,13 @@ async fn process_snapshot_proposal_job(
                 .context("Failed to find discourse topic")?;
 
             if let Some(topic) = discourse_topic {
+                info!(
+                    job_id = job_id,
+                    proposal_id = %proposal_id,
+                    discourse_topic_id = %topic.id,
+                    "Found discourse topic"
+                );
+
                 // Find the proposal group containing this topic directly
                 let group = proposal_group::Entity::find()
                     .filter(
@@ -269,6 +359,13 @@ async fn process_snapshot_proposal_job(
                     .context("Failed to find proposal group")?;
 
                 if let Some(group) = group {
+                    info!(
+                        job_id = job_id,
+                        proposal_id = %proposal_id,
+                        group_id = %group.id,
+                        "Found proposal group containing the discourse topic"
+                    );
+
                     if let Ok(mut items) =
                         serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
                     {
@@ -276,6 +373,12 @@ async fn process_snapshot_proposal_job(
                         if !items.iter().any(|item| {
                             item.id == proposal.id.to_string() && item.type_field == "proposal"
                         }) {
+                            info!(
+                                job_id = job_id,
+                                proposal_id = %proposal_id,
+                                "Proposal is not in the group, adding it"
+                            );
+
                             // Add the proposal to the group
                             let indexer = dao_indexer::Entity::find_by_id(proposal.dao_indexer_id)
                                 .one(conn)
@@ -306,9 +409,34 @@ async fn process_snapshot_proposal_job(
                                 "Added snapshot proposal to existing group"
                             );
                             metrics.db_updates.add(1, &[]);
+                        } else {
+                            info!(
+                                job_id = job_id,
+                                proposal_id = %proposal_id,
+                                "Proposal is already in the group"
+                            );
                         }
+                    } else {
+                        error!(
+                            job_id = job_id,
+                            proposal_id = %proposal_id,
+                            group_id = %group.id,
+                            "Failed to deserialize proposal group items"
+                        );
                     }
+                } else {
+                    warn!(
+                        job_id = job_id,
+                        proposal_id = %proposal_id,
+                        "No proposal group found for the discourse topic"
+                    );
                 }
+            } else {
+                warn!(
+                    job_id = job_id,
+                    proposal_id = %proposal_id,
+                    "No discourse topic found for the extracted topic ID"
+                );
             }
         } else {
             warn!(
@@ -318,12 +446,22 @@ async fn process_snapshot_proposal_job(
             );
         }
     } else {
-        warn!(job_id = job_id, proposal_id = %proposal_id, "No discussion_url provided");
+        warn!(
+            job_id = job_id,
+            proposal_id = %proposal_id,
+            "No discussion_url provided in the proposal"
+        );
     }
 
     metrics
         .db_query_duration
         .record(start_time.elapsed().as_secs_f64(), &[]);
+
+    info!(
+        job_id = job_id,
+        proposal_id = %proposal_id,
+        "Finished processing snapshot proposal job"
+    );
 
     Ok(())
 }

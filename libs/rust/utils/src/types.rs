@@ -7,6 +7,7 @@ pub struct ProposalGroupItem {
     #[serde(rename = "type")]
     pub type_field: String,
     pub name: String,
+    #[serde(rename = "indexerName")]
     pub indexer_name: String,
 }
 
