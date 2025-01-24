@@ -213,7 +213,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
     const options: echarts.EChartsOption = {
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'var(--neutral-200)', // Light mode background
+        backgroundColor: 'var(--neutral-100)', // Light mode background
         borderColor: 'var(--neutral-300)', // Light mode border
         textStyle: {
           color: 'var(--neutral-800)', // Light mode text color
@@ -242,11 +242,14 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             const voterName = delegate?.name || timeSeriesPoint.voterAddress;
 
             tooltipText += `
-                       <div class="flex flex-col p-1 max-w-96 overflow-auto w-fit">
-                         <span>Voter: ${voterName}</span>
-                         <span>Power: ${formatNumberWithSuffix(timeSeriesPoint.votingPower)}</span>
-                         <span style="word-wrap: break-word; white-space: normal;">Choice: ${timeSeriesPoint.choiceText}</span>
-                       </div>`;
+                  <div class='w-fit whitespace-nowrap flex flex-col' >
+                    <span>Voter: ${voterName}</span>
+                    <span>Power: ${formatNumberWithSuffix(timeSeriesPoint.votingPower)}</span>
+                    <div class='max-w-sm break-words whitespace-normal'>
+                      <span>Choice: ${timeSeriesPoint.choiceText}</span>
+                    </div>
+                  </div>
+                 `;
           }
 
           return tooltipText;
