@@ -128,10 +128,10 @@ export async function getFeedForGroup(
       }
 
       // Get total count
-      const countResult = await db
-        .selectFrom(finalQuery.as('combined'))
-        .select(sql<number>`count(*)`.as('count'))
-        .executeTakeFirst();
+      // const countResult = await db
+      //   .selectFrom(finalQuery.as('combined'))
+      //   .select(sql<number>`count(*)`.as('count'))
+      //   .executeTakeFirst();
 
       //  const totalCount = Number(countResult?.count ?? 0);
 

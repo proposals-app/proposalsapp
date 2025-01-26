@@ -16,6 +16,11 @@ import {
   getPostLikesCount,
 } from '../actions';
 import { CombinedFeedItem, PostFeedItem } from '../Feed';
+import {
+  COLLAPSIBLE_STYLES,
+  MARKDOWN_STYLES,
+  QUOTE_STYLES_POST,
+} from '@/lib/markdown_styles';
 
 const getDiscourseUserCached = unstable_cache(
   async (userId: number, daoDiscourseId: string) => {
@@ -270,43 +275,6 @@ const AuthorInfo = ({
   </div>
 );
 
-// Quote card styles
-const QUOTE_STYLES = {
-  wrapper: 'my-4 border-l-2 p-4',
-  header: 'flex text-sm mb-2 font-bold',
-  content: '',
-  linkWrapper: 'w-full flex justify-end mt-2 cursor-default select-none',
-  link: 'hover:underline text-sm font-bold no-underline',
-} as const;
-
-const COLLAPSIBLE_STYLES = {
-  details:
-    'my-4 border rounded-lg overflow-hidden text-neutral-700 dark:text-neutral-200',
-  summary:
-    'p-4 cursor-pointer font-bold text-neutral-700 dark:text-neutral-200',
-  content: 'p-4 text-neutral-700 dark:text-neutral-200',
-} as const;
-
-const MARKDOWN_STYLES = {
-  h1: 'mb-4 mt-6 text-2xl font-bold text-neutral-700 dark:text-neutral-200',
-  h2: 'mb-3 mt-5 text-xl font-bold text-neutral-700 dark:text-neutral-200',
-  h3: 'mb-2 mt-4 text-lg font-bold text-neutral-700 dark:text-neutral-200',
-  p: 'mb-4 leading-relaxed text-neutral-700 dark:text-neutral-200',
-  ul: 'mb-4 list-disc space-y-2 pl-6 text-neutral-700 dark:text-neutral-200',
-  ol: 'mb-4 list-decimal space-y-2 pl-6 text-neutral-700 dark:text-neutral-200',
-  li: 'leading-relaxed text-neutral-700 dark:text-neutral-200',
-  strong: 'font-bold text-neutral-700 dark:text-neutral-200',
-  a: 'underline text-neutral-700 dark:text-neutral-200',
-  blockquote: 'border-l-4 pl-4 italic text-neutral-700 dark:text-neutral-200',
-  code: 'border-l-4 pl-4 italic text-neutral-700 dark:text-neutral-200 text-wrap break-all',
-  pre: 'bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800',
-  table:
-    'min-w-full border-collapse border my-4 text-neutral-700 dark:text-neutral-200',
-  th: 'border p-2 text-left text-neutral-700 dark:text-neutral-200',
-  td: 'border p-2 text-neutral-700 dark:text-neutral-200',
-  img: 'my-4 h-auto max-w-full text-neutral-700 dark:text-neutral-200',
-} as const;
-
 type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
 
 // Process quotes after HTML conversion
@@ -322,16 +290,16 @@ function processQuotes(html: string): string {
     const anchorHref =
       postNumber === '1' ? '#' : `#post-${postNumber}-${topicId}`;
     return `
-      <div class="${QUOTE_STYLES.wrapper}">
-        <div class="${QUOTE_STYLES.header}">
+      <div class="${QUOTE_STYLES_POST.wrapper}">
+        <div class="${QUOTE_STYLES_POST.header}">
           <span>Quoted from&nbsp;</span>
           <span>${username}</span>
         </div>
-        <div class="${QUOTE_STYLES.content}">
+        <div class="${QUOTE_STYLES_POST.content}">
           ${content.trim()}
         </div>
-        <div class="${QUOTE_STYLES.linkWrapper}">
-          <a href="${anchorHref}" class="${QUOTE_STYLES.link}">
+        <div class="${QUOTE_STYLES_POST.linkWrapper}">
+          <a href="${anchorHref}" class="${QUOTE_STYLES_POST.link}">
                     ${postNumber === '1' ? 'back to top ↑' : 'jump to post →'}
           </a>
         </div>
