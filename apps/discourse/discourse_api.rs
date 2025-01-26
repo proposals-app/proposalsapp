@@ -10,7 +10,10 @@ use reqwest::{
 use serde::de::DeserializeOwned;
 use std::{
     collections::{HashMap, HashSet},
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicI64, Ordering},
+        Arc, Mutex,
+    },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::{
@@ -41,6 +44,7 @@ pub struct DiscourseApi {
     pub base_url: String,
     forbidden_urls: Arc<Mutex<HashSet<(String, u64)>>>,
     pending_requests: Arc<Mutex<HashMap<String, PendingRequest>>>,
+    queue_size: Arc<AtomicI64>,
 }
 
 struct PendingRequest {
@@ -129,6 +133,7 @@ impl DiscourseApi {
             base_url: base_url.clone(),
             forbidden_urls: Arc::new(Mutex::new(HashSet::new())),
             pending_requests: Arc::new(Mutex::new(HashMap::new())),
+            queue_size: Arc::new(AtomicI64::new(0)),
         };
 
         // Spawn the queue runner
@@ -151,6 +156,16 @@ impl DiscourseApi {
 
         let (response_sender, response_receiver) = oneshot::channel();
         let url = format!("{}{}", self.base_url, endpoint);
+
+        // Update queue size when adding a job
+        self.queue_size.fetch_add(1, Ordering::SeqCst);
+        self.metrics.queue_size.add(
+            1,
+            &[KeyValue::new(
+                "type",
+                if priority { "priority" } else { "normal" },
+            )],
+        );
 
         // Check if there's already a pending request for this endpoint
         let should_send_new_request = {
@@ -203,25 +218,25 @@ impl DiscourseApi {
         let mut normal_queue = Vec::new();
 
         loop {
-            // Update queue size metrics
-            self.metrics.queue_size.add(
-                priority_queue.len() as i64,
-                &[KeyValue::new("type", "priority")],
-            );
-            self.metrics.queue_size.add(
-                normal_queue.len() as i64,
-                &[KeyValue::new("type", "normal")],
-            );
-
             // Process all priority jobs
             while let Some(priority_job) = priority_queue.pop() {
                 self.process_job(priority_job, true).await;
+                // Update queue size when processing a job
+                self.queue_size.fetch_sub(1, Ordering::SeqCst);
+                self.metrics
+                    .queue_size
+                    .add(-1, &[KeyValue::new("type", "priority")]);
             }
 
             // Process a batch of normal jobs
             for _ in 0..NORMAL_JOBS_BATCH_SIZE {
                 if let Some(normal_job) = normal_queue.pop() {
                     self.process_job(normal_job, false).await;
+                    // Update queue size when processing a job
+                    self.queue_size.fetch_sub(1, Ordering::SeqCst);
+                    self.metrics
+                        .queue_size
+                        .add(-1, &[KeyValue::new("type", "normal")]);
                 } else {
                     break;
                 }
