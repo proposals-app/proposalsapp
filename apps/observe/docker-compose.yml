@@ -2,6 +2,7 @@ services:
   nginx:
     image: nginx:latest
     container_name: nginx
+    restart: unless-stopped
     ports:
       - "4317:4317"
       - "4318:4318"

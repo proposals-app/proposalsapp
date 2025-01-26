@@ -923,10 +923,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.18.0, @eslint/js@npm:^9.18.0":
-  version: 9.18.0
-  resolution: "@eslint/js@npm:9.18.0"
-  checksum: 10c0/3938344c5ac7feef4b73fcb30f3c3e753570cea74c24904bb5d07e9c42fcd34fcbc40f545b081356a299e11f360c9c274b348c05fb0113fc3d492e5175eee140
+"@eslint/js@npm:9.19.0, @eslint/js@npm:^9.19.0":
+  version: 9.19.0
+  resolution: "@eslint/js@npm:9.19.0"
+  checksum: 10c0/45dc544c8803984f80a438b47a8e578fae4f6e15bc8478a703827aaf05e21380b42a43560374ce4dad0d5cb6349e17430fc9ce1686fed2efe5d1ff117939ff90
   languageName: node
   linkType: hard
 
@@ -2384,7 +2384,7 @@ __metadata:
   resolution: "@proposalsapp/web-arbitrum@workspace:apps/web-arbitrum"
   dependencies:
     "@eslint/eslintrc": "npm:^3.2.0"
-    "@eslint/js": "npm:^9.18.0"
+    "@eslint/js": "npm:^9.19.0"
     "@lucia-auth/adapter-postgresql": "npm:3.1.2"
     "@next/eslint-plugin-next": "npm:^15.1.6"
     "@opentelemetry/api": "npm:^1.9.0"
@@ -2418,12 +2418,12 @@ __metadata:
     "@types/uuid": "npm:^10"
     "@typescript-eslint/eslint-plugin": "npm:^8.21.0"
     "@typescript-eslint/parser": "npm:^8.21.0"
-    "@vercel/otel": "npm:^1.10.0"
+    "@vercel/otel": "npm:^1.10.1"
     date-fns: "npm:^4.1.0"
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
     echarts: "npm:^5.6.0"
-    eslint: "npm:^9.18.0"
+    eslint: "npm:^9.19.0"
     eslint-config-next: "npm:^15.1.6"
     eslint-config-prettier: "npm:^10.0.1"
     eslint-plugin-prettier: "npm:^5.2.3"
@@ -2440,7 +2440,7 @@ __metadata:
     oslo: "npm:1.2.1"
     pg: "npm:8.13.1"
     postcss: "npm:^8.5.1"
-    posthog-js: "npm:1.209.0"
+    posthog-js: "npm:1.210.2"
     prettier: "npm:^3.4.2"
     prettier-plugin-classnames: "npm:^0.7.5"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -2512,7 +2512,7 @@ __metadata:
     "@types/react-dom": "npm:^19.0.3"
     "@types/uuid": "npm:^10"
     "@types/web-push": "npm:3.6.4"
-    "@vercel/otel": "npm:^1.10.0"
+    "@vercel/otel": "npm:^1.10.1"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:2.1.1"
     cmdk: "npm:1.0.4"
@@ -2529,7 +2529,7 @@ __metadata:
     pg: "npm:8.13.1"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:^8.5.1"
-    posthog-js: "npm:1.209.0"
+    posthog-js: "npm:1.210.2"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
@@ -2549,7 +2549,7 @@ __metadata:
     typescript: "npm:^5.7.3"
     uuid: "npm:^11.0.5"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.22.13"
+    viem: "npm:2.22.14"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -5232,9 +5232,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vercel/otel@npm:^1.10.0":
-  version: 1.10.0
-  resolution: "@vercel/otel@npm:1.10.0"
+"@vercel/otel@npm:^1.10.1":
+  version: 1.10.1
+  resolution: "@vercel/otel@npm:1.10.1"
   peerDependencies:
     "@opentelemetry/api": ^1.7.0
     "@opentelemetry/api-logs": "*"
@@ -5243,7 +5243,7 @@ __metadata:
     "@opentelemetry/sdk-logs": "*"
     "@opentelemetry/sdk-metrics": ^1.19.0
     "@opentelemetry/sdk-trace-base": ^1.19.0
-  checksum: 10c0/1e5e058176c9dc7d8468942254e9b23d69676bc93085e3e3ebab5e01ae6528726cb52ee13e309f464c5ebc2448fb3fcf35ac39617db3a5484d2bf8755cc3feba
+  checksum: 10c0/81646bd600a2cda984973f5eac85bb3e9391aba326f3f67297ef1a1964559ac98e8e2755460af6cfa24fb80a40d16badb455b6a53c415330089fe2b1db7dd25b
   languageName: node
   linkType: hard
 
@@ -8312,16 +8312,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.18.0":
-  version: 9.18.0
-  resolution: "eslint@npm:9.18.0"
+"eslint@npm:^9.19.0":
+  version: 9.19.0
+  resolution: "eslint@npm:9.19.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.2.0"
     "@eslint-community/regexpp": "npm:^4.12.1"
     "@eslint/config-array": "npm:^0.19.0"
     "@eslint/core": "npm:^0.10.0"
     "@eslint/eslintrc": "npm:^3.2.0"
-    "@eslint/js": "npm:9.18.0"
+    "@eslint/js": "npm:9.19.0"
     "@eslint/plugin-kit": "npm:^0.2.5"
     "@humanfs/node": "npm:^0.16.6"
     "@humanwhocodes/module-importer": "npm:^1.0.1"
@@ -8357,7 +8357,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/7f592ad228b9bd627a24870fdc875bacdab7bf535d4b67316c4cb791e90d0125130a74769f3c407b0c4b7027b3082ef33864a63ee1024552a60a17db60493f15
+  checksum: 10c0/3b0dfaeff6a831de086884a3e2432f18468fe37c69f35e1a0a9a2833d9994a65b6dd2a524aaee28f361c849035ad9d15e3841029b67d261d0abd62c7de6d51f5
   languageName: node
   linkType: hard
 
@@ -13486,15 +13486,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.209.0":
-  version: 1.209.0
-  resolution: "posthog-js@npm:1.209.0"
+"posthog-js@npm:1.210.2":
+  version: 1.210.2
+  resolution: "posthog-js@npm:1.210.2"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.2.0"
-  checksum: 10c0/40da3014a173ef123bcc28d26bc7c3468fb5171cad770295e59c0bc33a0eeb2aacdd9c19c9244a96ddf3b4859f999bf9c1f02631cc93aa90598b0f2b97009f83
+  checksum: 10c0/18d5b69cf81c8c026648c13588c25e4d4ab2a8442deaf5c8192d01467d29517312db0c245dd56f9444ed6dac9ad1e9c2f1a21ba88320484286781fd23f5d43a5
   languageName: node
   linkType: hard
 
@@ -16289,9 +16289,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.22.13":
-  version: 2.22.13
-  resolution: "viem@npm:2.22.13"
+"viem@npm:2.22.14":
+  version: 2.22.14
+  resolution: "viem@npm:2.22.14"
   dependencies:
     "@noble/curves": "npm:1.8.1"
     "@noble/hashes": "npm:1.7.1"
@@ -16306,7 +16306,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/56d42c1a60fb665022cbc606186da256d6e79e571d73fbfd859555aad38637545a8ee75be5f7c3879a0c3b174cadbd614769884afd137d6eea04a2745358ce6f
+  checksum: 10c0/85f856f759e89c69d3266e6f6a174ee8167210274041ffbe4f683327a10e4ec57db5da3a05c0b10a653e58bfb393bbdb21909f9ed915f62c9c8cbce4ac21e423
   languageName: node
   linkType: hard
 
