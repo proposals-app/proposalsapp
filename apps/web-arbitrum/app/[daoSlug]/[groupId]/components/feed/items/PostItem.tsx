@@ -6,45 +6,20 @@ import { Root } from 'hast';
 import { CheckCheck, HeartIcon } from 'lucide-react';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toHast } from 'mdast-util-to-hast';
-import { unstable_cache } from 'next/cache';
 import { Suspense } from 'react';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
-import {
-  getDiscourseUser,
-  getPostLikedUsers,
-  getPostLikesCount,
-} from '../actions';
 import { CombinedFeedItem, PostFeedItem } from '../Feed';
 import {
   COLLAPSIBLE_STYLES,
   MARKDOWN_STYLES,
   QUOTE_STYLES_POST,
 } from '@/lib/markdown_styles';
-
-const getDiscourseUserCached = unstable_cache(
-  async (userId: number, daoDiscourseId: string) => {
-    return await getDiscourseUser(userId, daoDiscourseId);
-  },
-  ['discourse-user'],
-  { revalidate: 60 * 5, tags: ['discourse-user'] }
-);
-
-const getPostLikesCountCached = unstable_cache(
-  async (externalPostId: number, daoDiscourseId: string) => {
-    return await getPostLikesCount(externalPostId, daoDiscourseId);
-  },
-  ['post-likes-count'],
-  { revalidate: 60 * 5, tags: ['post-likes'] }
-);
-
-const getPostLikedUsersCached = unstable_cache(
-  async (externalPostId: number, daoDiscourseId: string) => {
-    return await getPostLikedUsers(externalPostId, daoDiscourseId);
-  },
-  ['post-liked-users'],
-  { revalidate: 60 * 5, tags: ['post-liked-users'] }
-);
+import {
+  getDiscourseUser_cached,
+  getPostLikedUsers_cached,
+  getPostLikesCount_cached,
+} from '../actions';
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === 'post';
@@ -60,12 +35,15 @@ export async function PostItem({
     return null;
   }
 
-  const author = await getDiscourseUserCached(item.userId, item.daoDiscourseId);
-  const likesCount = await getPostLikesCountCached(
+  const author = await getDiscourseUser_cached(
+    item.userId,
+    item.daoDiscourseId
+  );
+  const likesCount = await getPostLikesCount_cached(
     item.externalId,
     item.daoDiscourseId
   );
-  const likedUsers = await getPostLikedUsersCached(
+  const likedUsers = await getPostLikedUsers_cached(
     item.externalId,
     item.daoDiscourseId
   );

@@ -7,11 +7,12 @@ import {
   ProposalGroup,
   Selectable,
 } from '@proposalsapp/db';
+import { unstable_cache } from 'next/cache';
 import { validate } from 'uuid';
 
-export async function getGroupData(daoSlug: string, groupId: string) {
+export async function getGroup(daoSlug: string, groupId: string) {
   'use server';
-  return otel('get-group-data', async () => {
+  return otel('get-group', async () => {
     if (daoSlug == 'favicon.ico') return null;
 
     // Fetch the DAO based on the slug
@@ -103,9 +104,9 @@ export type Body = {
   type: 'proposal' | 'topic';
 };
 
-export async function getBodiesForGroup(groupID: string) {
+export async function getBodies(groupID: string) {
   'use server';
-  return otel('get-bodies-for-group', async () => {
+  return otel('get-bodies-', async () => {
     const bodies: Body[] = [];
 
     const group = await db
@@ -334,5 +335,29 @@ export async function getTotalVersions(groupID: string) {
   });
 }
 
-export type GroupWithDataType = AsyncReturnType<typeof getGroupData>;
-export type BodiesDataType = AsyncReturnType<typeof getBodiesForGroup>;
+export const getGroup_cached = unstable_cache(
+  async (daoSlug: string, groupId: string) => {
+    return await getGroup(daoSlug, groupId);
+  },
+  ['get-group'],
+  { revalidate: 60 * 5, tags: ['get-group'] }
+);
+
+export const getBodies_cached = unstable_cache(
+  async (groupId: string) => {
+    return await getBodies(groupId);
+  },
+  ['get-bodies'],
+  { revalidate: 60 * 5, tags: ['get-bodies'] }
+);
+
+export const getTotalVersions_cached = unstable_cache(
+  async (groupId: string) => {
+    return await getTotalVersions(groupId);
+  },
+  ['get-total-versions'],
+  { revalidate: 60 * 5, tags: ['get-total-versions'] }
+);
+
+export type GroupReturnType = AsyncReturnType<typeof getGroup>;
+export type BodiesReturnType = AsyncReturnType<typeof getBodies>;

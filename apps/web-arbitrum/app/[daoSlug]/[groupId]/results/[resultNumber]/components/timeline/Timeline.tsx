@@ -1,4 +1,4 @@
-import { GroupWithDataType } from '@/app/[daoSlug]/[groupId]/actions';
+import { GroupReturnType } from '@/app/[daoSlug]/[groupId]/actions';
 import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { extractEvents, TimelineEventType } from './actions';
@@ -12,7 +12,7 @@ import { ResultEvent } from './ResultEvent';
 
 // Cache the extractEvents function
 const getCachedEvents = unstable_cache(
-  async (group: GroupWithDataType) => {
+  async (group: GroupReturnType) => {
     return await extractEvents(group);
   },
   ['extractEvents'],
@@ -23,7 +23,7 @@ export async function Timeline({
   group,
   selectedResult,
 }: {
-  group: GroupWithDataType;
+  group: GroupReturnType;
   selectedResult: number;
 }) {
   if (!group) {

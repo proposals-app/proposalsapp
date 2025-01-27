@@ -1,6 +1,7 @@
 import { otel } from '@/lib/otel';
 import { AsyncReturnType } from '@/lib/utils';
 import { db } from '@proposalsapp/db';
+import { unstable_cache } from 'next/cache';
 
 export async function getGroups(
   daoSlug: string,
@@ -105,4 +106,12 @@ export async function getGroups(
   });
 }
 
-export type GroupsType = AsyncReturnType<typeof getGroups>;
+export const getGroups_cached = unstable_cache(
+  async (daoSlug: string, page: number, itemsPerPage: number) => {
+    return await getGroups(daoSlug, page, itemsPerPage);
+  },
+  ['get-groups'],
+  { revalidate: 60 * 5, tags: ['get-groups'] }
+);
+
+export type GroupsReturnType = AsyncReturnType<typeof getGroups>;

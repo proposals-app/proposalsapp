@@ -2,7 +2,7 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { Selectable, Vote } from '@proposalsapp/db';
 import { useMemo } from 'react';
 import { HiddenVote } from './HiddenVote';
-import { ProposalWithMetadata } from '../actions';
+import { ProposalWithMetadata } from '@/app/types';
 
 interface ApprovalVoteProps {
   proposal: ProposalWithMetadata;

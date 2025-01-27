@@ -1,4 +1,4 @@
-import { GroupWithDataType } from '@/app/[daoSlug]/[groupId]/actions';
+import { GroupReturnType } from '@/app/[daoSlug]/[groupId]/actions';
 import {
   db,
   IndexerVariant,
@@ -200,9 +200,7 @@ function addSummaryEvent(
 }
 
 // Main function to extract events
-export async function extractEvents(
-  group: GroupWithDataType
-): Promise<Event[]> {
+export async function extractEvents(group: GroupReturnType): Promise<Event[]> {
   if (!group) return [];
 
   let events: Event[] = [];

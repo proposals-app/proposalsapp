@@ -3,11 +3,11 @@
 import * as Avatar from '@radix-ui/react-avatar';
 import { notFound } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { BodiesDataType, GroupWithDataType } from '../../actions';
+import { BodiesReturnType, GroupReturnType } from '../../actions';
 
 interface StickyHeaderProps {
-  bodies: BodiesDataType;
-  group: GroupWithDataType;
+  bodies: BodiesReturnType;
+  group: GroupReturnType;
   version: number;
 }
 

@@ -1,3 +1,4 @@
+import { ProposalMetadata } from '@/app/types';
 import { otel } from '@/lib/otel';
 import {
   db,
@@ -37,14 +38,6 @@ export interface ProcessedResults {
   hiddenVote: boolean;
   scoresState: string;
 }
-
-export type ProposalMetadata = {
-  quorumChoices?: number[];
-  voteType?: string;
-  totalDelegatedVp?: string;
-  hiddenVote: boolean;
-  scoresState: string;
-};
 
 export function getColorForChoice(choice: string | undefined | null): string {
   if (!choice) return '#CBD5E1'; // Default grey color

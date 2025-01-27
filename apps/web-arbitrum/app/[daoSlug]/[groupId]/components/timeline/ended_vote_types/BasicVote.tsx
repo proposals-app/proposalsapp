@@ -1,10 +1,10 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
-import { Selectable, Vote } from '@proposalsapp/db';
+import { Proposal, Selectable, Vote } from '@proposalsapp/db';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Check } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { HiddenVote } from './HiddenVote';
-import { ProposalWithMetadata } from '../actions';
+import { ProposalMetadata, ProposalWithMetadata } from '@/app/types';
 
 interface BasicVoteProps {
   proposal: ProposalWithMetadata;
@@ -78,6 +78,15 @@ const calculateVotingPowerThreshold = (
 
   return threshold;
 };
+
+function getTotalDelegatedVp(
+  proposal: Selectable<Proposal>
+): number | undefined {
+  const metadata = proposal.metadata as ProposalMetadata;
+  return metadata.totalDelegatedVp
+    ? Number(metadata.totalDelegatedVp)
+    : undefined;
+}
 
 export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   const metadata =
@@ -302,6 +311,11 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
 
   const quorumReached = proposal.scoresQuorum > proposal.quorum;
 
+  const totalDelegatedVp = getTotalDelegatedVp(proposal);
+  const participationPercentage = totalDelegatedVp
+    ? (totalVotingPower / totalDelegatedVp) * 100
+    : 0;
+
   return (
     <Tooltip.Provider>
       <div className='space-y-1'>
@@ -353,15 +367,41 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
           </div>
         </div>
 
-        <div className='flex justify-between text-sm'>
-          <div className='flex items-center gap-1'>
-            {quorumReached && <Check size={12} />}
-            <span className='font-bold'>
-              {formatNumberWithSuffix(proposal.scoresQuorum)}
-            </span>
-            <span>of </span>
-            <span>{formatNumberWithSuffix(proposal.quorum)} needed</span>
-          </div>
+        {/* Delegated Voting Power */}
+        <div>
+          {totalDelegatedVp && (
+            <div className='mt-4'>
+              <div
+                className='border-neutral-350 relative h-2 w-full rounded-full border
+                  dark:border-neutral-300'
+              >
+                <div
+                  className='absolute top-0 left-0 h-full rounded-full bg-neutral-600 dark:bg-neutral-300'
+                  style={{
+                    width: `${participationPercentage}%`,
+                  }}
+                />
+              </div>
+
+              <div className='flex items-start justify-between text-[11px]'>
+                <div className='flex items-center gap-1'>
+                  {quorumReached && <Check size={12} />}
+                  <span className='font-bold'>
+                    {formatNumberWithSuffix(proposal.scoresQuorum)}
+                  </span>
+                  <span>of </span>
+                  <span>{formatNumberWithSuffix(proposal.quorum)} needed</span>
+                </div>
+
+                <div>
+                  <span className='font-semibold'>
+                    {participationPercentage.toFixed(0)}%
+                  </span>{' '}
+                  of tokens have voted
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Tooltip.Provider>

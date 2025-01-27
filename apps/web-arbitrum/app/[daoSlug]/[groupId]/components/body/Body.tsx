@@ -9,9 +9,8 @@ import { toDom } from 'hast-util-to-dom';
 import { JSDOM } from 'jsdom';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toHast } from 'mdast-util-to-hast';
-import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
-import { getBodiesForGroup, GroupWithDataType } from '../../actions';
+import { getBodies_cached, GroupReturnType } from '../../actions';
 import { BodyContent } from './BodyContent';
 import { PostedTime } from './PostedTime';
 import { StickyHeader } from './StickyHeader';
@@ -21,27 +20,19 @@ import {
   QUOTE_STYLES,
 } from '@/lib/markdown_styles';
 
-const cachedGetBodiesForGroup = unstable_cache(
-  async (groupId: string) => {
-    return await getBodiesForGroup(groupId);
-  },
-  ['getBodiesForGroup'],
-  { revalidate: 60 * 5, tags: ['bodies'] }
-);
-
 export default async function Body({
   group,
   version,
   diff,
 }: {
-  group: GroupWithDataType;
+  group: GroupReturnType;
   version: number;
   diff: boolean;
 }) {
   if (!group) {
     notFound();
   }
-  const bodies = await cachedGetBodiesForGroup(group.group.id);
+  const bodies = await getBodies_cached(group.group.id);
 
   if (!bodies || bodies.length === 0) {
     return <div className='w-full p-4'>No bodies found.</div>;

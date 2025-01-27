@@ -55,7 +55,6 @@ export function ResultsList({ results }: ResultsListProps) {
 
   return (
     <div className='ml-6 w-64'>
-      <h3 className='mb-4 text-xl font-semibold'>Vote Distribution</h3>
       <div className='space-y-4'>
         <div className='space-y-2'>
           {topChoices.map(({ choice, votingPower, color }, index) => {
@@ -162,9 +161,12 @@ export function ResultsList({ results }: ResultsListProps) {
         <div>
           {totalDelegatedVp && (
             <div className='mt-4'>
-              <div className='relative h-1 w-full rounded-full'>
+              <div
+                className='border-neutral-350 relative h-2 w-full rounded-full border
+                  dark:border-neutral-300'
+              >
                 <div
-                  className='absolute top-0 left-0 h-full rounded-full'
+                  className='absolute top-0 left-0 h-full rounded-full bg-neutral-600 dark:bg-neutral-300'
                   style={{
                     width: `${participationPercentage}%`,
                   }}

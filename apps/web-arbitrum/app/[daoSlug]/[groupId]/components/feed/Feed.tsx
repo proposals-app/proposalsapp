@@ -1,26 +1,13 @@
 import { VotesFilterEnum } from '@/app/searchParams';
 import { DiscoursePost, Selectable, Vote } from '@proposalsapp/db';
-import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
-import { GroupWithDataType } from '../../actions';
-import { getFeedForGroup } from './actions';
 import { PostItem } from './items/PostItem';
 import { VoteItem } from './items/VoteItem';
 import { LazyLoadTrigger } from './LazyLoadTrigger';
+import { GroupReturnType } from '../../actions';
+import { getFeed_cached } from './actions';
 
 // Cached version of getFeedForGroup
-const getCachedFeedForGroup = unstable_cache(
-  async (
-    groupId: string,
-    commentsFilter: boolean,
-    votesFilter: VotesFilterEnum
-    // page: number
-  ) => {
-    return await getFeedForGroup(groupId, commentsFilter, votesFilter); //, page);
-  },
-  ['feed-for-group'],
-  { revalidate: 60 * 5, tags: ['feed'] }
-);
 
 export default async function Feed({
   group,
@@ -28,7 +15,7 @@ export default async function Feed({
   votesFilter,
   //  page = 1,
 }: {
-  group: GroupWithDataType;
+  group: GroupReturnType;
   commentsFilter: boolean;
   votesFilter: VotesFilterEnum;
   page?: number;
@@ -37,11 +24,10 @@ export default async function Feed({
     notFound();
   }
 
-  const feed = await getCachedFeedForGroup(
+  const feed = await getFeed_cached(
     group.group.id,
     commentsFilter,
     votesFilter
-    //   page
   );
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);

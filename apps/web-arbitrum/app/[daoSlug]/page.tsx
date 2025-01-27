@@ -1,26 +1,9 @@
-import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import { after } from 'next/server';
 import { Suspense } from 'react';
-import { getGroupData } from './[groupId]/actions';
-import { getGroups } from './actions';
 import { LazyLoadTrigger } from './components/LazyLoadTrigger';
-
-const getCachedGroups = unstable_cache(
-  async (daoSlug: string, page: number, itemsPerPage: number) => {
-    return await getGroups(daoSlug, page, itemsPerPage);
-  },
-  ['getGroups'],
-  { revalidate: 60 * 5, tags: ['groups'] }
-);
-
-const cachedGetGroupData = unstable_cache(
-  async (daoSlug: string, groupId: string) => {
-    return await getGroupData(daoSlug, groupId);
-  },
-  ['group-data'],
-  { revalidate: 60 * 5, tags: ['group-data'] }
-);
+import { getGroups_cached } from './actions';
+import { getGroup_cached } from './[groupId]/actions';
 
 export default async function ListPage({
   params,
@@ -47,7 +30,7 @@ export default async function ListPage({
   let daoName: string | null = null;
 
   for (let i = 1; i <= currentPage; i++) {
-    const result = await getCachedGroups(daoSlug, i, itemsPerPage);
+    const result = await getGroups_cached(daoSlug, i, itemsPerPage);
 
     if (!result || !Array.isArray(result.groups)) {
       continue;
@@ -69,7 +52,7 @@ export default async function ListPage({
   after(async () => {
     await Promise.all(
       allGroups.map((group) => {
-        cachedGetGroupData(daoSlug, group.id);
+        getGroup_cached(daoSlug, group.id);
       })
     );
   });

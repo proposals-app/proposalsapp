@@ -7,7 +7,7 @@ import { QuadraticVote } from './ended_vote_types/QuadraticVote';
 import { RankedChoiceVote } from './ended_vote_types/RankedChoiceVote';
 import { SingleChoiceVote } from './ended_vote_types/SingleChoiceVote';
 import { WeightedVote } from './ended_vote_types/WeightedVote';
-import { ProposalMetadata, ProposalWithMetadata } from './actions';
+import { ProposalWithMetadata } from '@/app/types';
 
 interface ResultEventProps {
   content: string;
@@ -38,13 +38,9 @@ export function ResultEvent({
   daoSlug,
   groupId,
 }: ResultEventProps) {
-  const metadata =
-    typeof proposal.metadata === 'string'
-      ? (JSON.parse(proposal.metadata) as ProposalMetadata)
-      : (proposal.metadata as ProposalMetadata);
-
-  const voteType = metadata?.voteType;
-  const Component = voteType ? VoteComponents[voteType] : null;
+  const Component = proposal.metadata.voteType
+    ? VoteComponents[proposal.metadata.voteType]
+    : null;
 
   return (
     <Link
@@ -73,7 +69,7 @@ export function ResultEvent({
             {Component ? (
               <Component proposal={proposal} votes={votes} />
             ) : (
-              <p>Invalid or unsupported vote type: {voteType}</p>
+              <p>Invalid or unsupported vote type</p>
             )}
           </div>
         </div>

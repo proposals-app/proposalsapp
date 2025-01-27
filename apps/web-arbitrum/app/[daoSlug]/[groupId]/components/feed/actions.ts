@@ -10,18 +10,15 @@ import {
   sql,
   Vote,
 } from '@proposalsapp/db';
+import { unstable_cache } from 'next/cache';
 
-export async function getFeedForGroup(
+export async function getFeed(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum
-  // page: number = 1
 ) {
   'use server';
   return otel('get-feed-for-group', async () => {
-    // const itemsPerPage = 25;
-    // const totalItems = itemsPerPage * page;
-
     let votes: Selectable<Vote>[] = [];
     let posts: Selectable<DiscoursePost>[] = [];
 
@@ -127,18 +124,9 @@ export async function getFeedForGroup(
         return { votes: [], posts: [], hasMore: false };
       }
 
-      // Get total count
-      // const countResult = await db
-      //   .selectFrom(finalQuery.as('combined'))
-      //   .select(sql<number>`count(*)`.as('count'))
-      //   .executeTakeFirst();
-
-      //  const totalCount = Number(countResult?.count ?? 0);
-
       // Get paginated items
       const paginatedItems = await finalQuery
         .orderBy('timestamp', 'desc')
-        // .limit(totalItems)
         .execute();
 
       // Fetch full data for each paginated item
@@ -179,7 +167,6 @@ export async function getFeedForGroup(
         (p): p is Selectable<DiscoursePost> => p !== null
       );
 
-      //   const hasMore = totalCount > totalItems;
       const hasMore = false;
       return {
         votes,
@@ -410,9 +397,6 @@ export async function getDelegate(
   });
 }
 
-export type VotingPowerChangeType = AsyncReturnType<typeof getVotingPower>;
-export type FeedDataType = AsyncReturnType<typeof getFeedForGroup>;
-
 export async function getPostLikesCount(
   externalPostId: number,
   daoDiscourseId: string
@@ -463,3 +447,42 @@ export async function getPostLikedUsers(
     }
   });
 }
+
+export type VotingPowerReturnType = AsyncReturnType<typeof getVotingPower>;
+export type FeedReturnType = AsyncReturnType<typeof getFeed>;
+
+export const getFeed_cached = unstable_cache(
+  async (
+    groupId: string,
+    commentsFilter: boolean,
+    votesFilter: VotesFilterEnum
+  ) => {
+    return await getFeed(groupId, commentsFilter, votesFilter);
+  },
+  ['get-feed-for-group'],
+  { revalidate: 60 * 5, tags: ['get-feed-for-group'] }
+);
+
+export const getDiscourseUser_cached = unstable_cache(
+  async (userId: number, daoDiscourseId: string) => {
+    return await getDiscourseUser(userId, daoDiscourseId);
+  },
+  ['get-discourse-user'],
+  { revalidate: 60 * 5, tags: ['get-discourse-user'] }
+);
+
+export const getPostLikesCount_cached = unstable_cache(
+  async (externalPostId: number, daoDiscourseId: string) => {
+    return await getPostLikesCount(externalPostId, daoDiscourseId);
+  },
+  ['get-post-likes-count'],
+  { revalidate: 60 * 5, tags: ['get-post-likes-count'] }
+);
+
+export const getPostLikedUsers_cached = unstable_cache(
+  async (externalPostId: number, daoDiscourseId: string) => {
+    return await getPostLikedUsers(externalPostId, daoDiscourseId);
+  },
+  ['get-post-liked-users'],
+  { revalidate: 60 * 5, tags: ['get-post-liked-users'] }
+);

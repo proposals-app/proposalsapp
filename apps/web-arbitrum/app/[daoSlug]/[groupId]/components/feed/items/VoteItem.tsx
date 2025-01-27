@@ -5,7 +5,7 @@ import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
 import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { GroupWithDataType } from '../../../actions';
+import { GroupReturnType } from '../../../actions';
 import { getDelegate } from '../actions';
 import { CombinedFeedItem, VoteFeedItem } from '../Feed';
 import { VotingPowerTag } from './VotingPowerTag';
@@ -38,7 +38,7 @@ export async function VoteItem({
   group,
 }: {
   item: CombinedFeedItem;
-  group: GroupWithDataType;
+  group: GroupReturnType;
 }) {
   if (!isVoteItem(item) || !group) {
     notFound();

@@ -1,5 +1,6 @@
 import { otel } from '@/lib/otel';
 import { db, DiscourseTopic, Proposal, Selectable } from '@proposalsapp/db';
+import { unstable_cache } from 'next/cache';
 
 export type Body = {
   author_name: string;
@@ -127,3 +128,11 @@ export async function getAuthor(groupID: string) {
     return bodies;
   });
 }
+
+export const getAuthor_cached = unstable_cache(
+  async (groupId: string) => {
+    return await getAuthor(groupId);
+  },
+  ['get-author'],
+  { revalidate: 60 * 5, tags: ['get-author'] }
+);

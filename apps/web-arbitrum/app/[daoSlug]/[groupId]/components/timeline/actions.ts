@@ -1,20 +1,8 @@
 import { otel } from '@/lib/otel';
-import {
-  db,
-  IndexerVariant,
-  JsonValue,
-  Proposal,
-  Selectable,
-  sql,
-  Vote,
-} from '@proposalsapp/db';
+import { db, IndexerVariant, Selectable, sql, Vote } from '@proposalsapp/db';
 import { format, formatDistanceToNow } from 'date-fns';
-import { GroupWithDataType } from '../../actions';
-
-export interface ProposalMetadata {
-  voteType?: VoteType;
-  [key: string]: unknown;
-}
+import { GroupReturnType } from '../../actions';
+import { ProposalMetadata, ProposalWithMetadata } from '@/app/types';
 
 export type VoteType =
   | 'single-choice'
@@ -23,11 +11,6 @@ export type VoteType =
   | 'basic'
   | 'quadratic'
   | 'ranked-choice';
-
-export interface ProposalWithMetadata
-  extends Omit<Selectable<Proposal>, 'metadata'> {
-  metadata: ProposalMetadata | JsonValue;
-}
 
 export enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -85,7 +68,7 @@ interface ResultEvent extends BaseEvent {
     | TimelineEventType.ResultEndedBasicVote
     | TimelineEventType.ResultEndedOtherVotes;
   content: string;
-  proposal: Selectable<Proposal>;
+  proposal: ProposalWithMetadata;
   votes: Selectable<Vote>[];
 }
 
@@ -240,10 +223,8 @@ function addSummaryEvent(
 }
 
 // Main function to extract events
-export async function extractEvents(
-  group: GroupWithDataType
-): Promise<Event[]> {
-  return otel('extract-events', async () => {
+export async function getEvents(group: GroupReturnType): Promise<Event[]> {
+  return otel('get-events', async () => {
     if (!group) return [];
 
     let events: Event[] = [];
@@ -314,7 +295,7 @@ export async function extractEvents(
                 ? TimelineEventType.ResultEndedBasicVote
                 : TimelineEventType.ResultEndedOtherVotes,
             timestamp: endedAt,
-            proposal: proposal,
+            proposal: proposal as ProposalWithMetadata,
             votes: votes,
           });
         } else {
@@ -328,7 +309,7 @@ export async function extractEvents(
                 ? TimelineEventType.ResultOngoingBasicVote
                 : TimelineEventType.ResultOngoingOtherVotes,
             timestamp: endedAt,
-            proposal: proposal,
+            proposal: proposal as ProposalWithMetadata,
             votes: votes,
           });
         }

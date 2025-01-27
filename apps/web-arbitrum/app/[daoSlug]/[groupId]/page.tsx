@@ -1,30 +1,11 @@
 import { searchParamsCache } from '@/app/searchParams';
-import { unstable_cache } from 'next/cache';
 import { notFound, redirect, RedirectType } from 'next/navigation';
 import { Suspense } from 'react';
-import { getGroupData, getTotalVersions } from './actions';
+import { getGroup_cached, getTotalVersions_cached } from './actions';
 import Body, { BodyLoading } from './components/body/Body';
 import Feed, { FeedLoading } from './components/feed/Feed';
 import { MenuBar } from './components/menubar/MenuBar';
 import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
-
-// Cache the getGroupData function
-const cachedGetGroupData = unstable_cache(
-  async (daoSlug: string, groupId: string) => {
-    return await getGroupData(daoSlug, groupId);
-  },
-  ['group-data'],
-  { revalidate: 60 * 5, tags: ['group-data'] }
-);
-
-// Cache the getTotalVersions function
-const cachedGetTotalVersions = unstable_cache(
-  async (groupId: string) => {
-    return await getTotalVersions(groupId);
-  },
-  ['total-versions'],
-  { revalidate: 60 * 5, tags: ['total-versions'] }
-);
 
 export default async function ProposalPage({
   params,
@@ -36,8 +17,8 @@ export default async function ProposalPage({
   const { daoSlug, groupId } = await params;
 
   const [group, totalVersions] = await Promise.all([
-    cachedGetGroupData(daoSlug, groupId),
-    cachedGetTotalVersions(groupId),
+    getGroup_cached(daoSlug, groupId),
+    getTotalVersions_cached(groupId),
   ]);
 
   if (!group || !totalVersions) {

@@ -1,7 +1,7 @@
 import { VotesFilterEnum } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import { GroupWithDataType } from '../../actions';
-import { extractEvents, TimelineEventType } from './actions';
+import { GroupReturnType } from '../../actions';
+import { getEvents, TimelineEventType } from './actions';
 import { BasicEvent } from './BasicEvent';
 import { CommentsVolumeEvent } from './CommentsVolumeEvent';
 import { GapEvent } from './GapEvent';
@@ -13,7 +13,7 @@ export async function Timeline({
   commentsFilter,
   votesFilter,
 }: {
-  group: GroupWithDataType;
+  group: GroupReturnType;
   commentsFilter: boolean;
   votesFilter: VotesFilterEnum;
 }) {
@@ -21,8 +21,7 @@ export async function Timeline({
     notFound();
   }
 
-  // Use the cached version of extractEvents
-  const events = await extractEvents(group);
+  const events = await getEvents(group);
 
   // Map proposals to their chronological order
   const proposalOrderMap = new Map<string, number>();
@@ -32,7 +31,7 @@ export async function Timeline({
 
   return (
     <div
-      className='fixed top-0 right-0 flex h-screen w-80 flex-col items-end justify-start pt-24
+      className='fixed top-0 right-0 flex h-screen w-96 flex-col items-end justify-start pt-24
         pl-4'
     >
       <div className='relative h-[calc(100vh-96px)] w-full'>
@@ -136,7 +135,7 @@ export async function Timeline({
 export function LoadingTimeline() {
   return (
     <div
-      className='fixed top-0 right-0 flex h-screen w-80 flex-col items-end justify-start pt-24
+      className='fixed top-0 right-0 flex h-screen w-96 flex-col items-end justify-start pt-24
         pl-4'
     >
       <div className='relative h-[calc(100vh-96px)] w-full'>
