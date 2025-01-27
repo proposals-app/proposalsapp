@@ -88,12 +88,11 @@ async fn main() -> Result<()> {
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let category_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
+            if WAIT_FIRST {
+                interval.tick().await;
+            }
             loop {
                 let start = Instant::now();
-
-                if WAIT_FIRST {
-                    interval.tick().await;
-                }
 
                 let category_fetcher = CategoryIndexer::new(Arc::clone(&api_handler));
                 match category_fetcher
@@ -119,14 +118,12 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                let elapsed = start.saturating_duration_since(Instant::now());
+                let elapsed = Instant::now().saturating_duration_since(start);
                 if elapsed < SLOW_INDEX {
                     tokio::time::sleep(SLOW_INDEX - elapsed).await;
                 }
 
-                if !WAIT_FIRST {
-                    interval.tick().await;
-                }
+                interval.tick().await;
             }
         });
 
@@ -136,12 +133,11 @@ async fn main() -> Result<()> {
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let user_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
+            if WAIT_FIRST {
+                interval.tick().await;
+            }
             loop {
                 let start = Instant::now();
-
-                if WAIT_FIRST {
-                    interval.tick().await;
-                }
 
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 match user_fetcher
@@ -167,14 +163,12 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                let elapsed = start.saturating_duration_since(Instant::now());
+                let elapsed = Instant::now().saturating_duration_since(start);
                 if elapsed < SLOW_INDEX {
                     tokio::time::sleep(SLOW_INDEX - elapsed).await;
                 }
 
-                if !WAIT_FIRST {
-                    interval.tick().await;
-                }
+                interval.tick().await;
             }
         });
 
@@ -184,12 +178,11 @@ async fn main() -> Result<()> {
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let topic_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
+            if WAIT_FIRST {
+                interval.tick().await;
+            }
             loop {
                 let start = Instant::now();
-
-                if WAIT_FIRST {
-                    interval.tick().await;
-                }
 
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
                 match topic_fetcher
@@ -215,14 +208,12 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                let elapsed = start.saturating_duration_since(Instant::now());
+                let elapsed = Instant::now().saturating_duration_since(start);
                 if elapsed < SLOW_INDEX {
                     tokio::time::sleep(SLOW_INDEX - elapsed).await;
                 }
 
-                if !WAIT_FIRST {
-                    interval.tick().await;
-                }
+                interval.tick().await;
             }
         });
 
@@ -232,12 +223,11 @@ async fn main() -> Result<()> {
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let revision_handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(SLOW_INDEX);
+            if WAIT_FIRST {
+                interval.tick().await;
+            }
             loop {
                 let start = Instant::now();
-
-                if WAIT_FIRST {
-                    interval.tick().await;
-                }
 
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
                 match revision_fetcher
@@ -263,14 +253,12 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                let elapsed = start.saturating_duration_since(Instant::now());
+                let elapsed = Instant::now().saturating_duration_since(start);
                 if elapsed < SLOW_INDEX {
                     tokio::time::sleep(SLOW_INDEX - elapsed).await;
                 }
 
-                if !WAIT_FIRST {
-                    interval.tick().await;
-                }
+                interval.tick().await;
             }
         });
 
@@ -353,7 +341,7 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                let elapsed = start.saturating_duration_since(Instant::now());
+                let elapsed = Instant::now().saturating_duration_since(start);
                 if elapsed < FAST_INDEX {
                     tokio::time::sleep(FAST_INDEX - elapsed).await;
                 }
