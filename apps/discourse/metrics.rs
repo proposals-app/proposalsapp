@@ -14,7 +14,8 @@ pub struct Metrics {
     pub api_total_requests: Counter<u64>,
 
     // Queue Metrics
-    pub queue_size: UpDownCounter<i64>,
+    pub queue_size_normal: UpDownCounter<i64>,
+    pub queue_size_priority: UpDownCounter<i64>,
     pub queue_processing_time: Histogram<f64>,
     pub queue_errors: Counter<u64>,
 }
@@ -63,8 +64,14 @@ impl Metrics {
                 .build(),
 
             // Use gauge for current values
-            queue_size: meter
-                .i64_up_down_counter("discourse_queue_size_current")
+            queue_size_normal: meter
+                .i64_up_down_counter("discourse_queue_size_normal_current")
+                .with_description("Current size of the processing queue")
+                .with_unit("items")
+                .build(),
+
+            queue_size_priority: meter
+                .i64_up_down_counter("discourse_queue_size_priority_current")
                 .with_description("Current size of the processing queue")
                 .with_unit("items")
                 .build(),

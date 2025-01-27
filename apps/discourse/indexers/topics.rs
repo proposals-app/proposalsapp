@@ -59,7 +59,11 @@ impl TopicIndexer {
         let one_day_ago = Utc::now() - chrono::Duration::days(1);
         let mut has_more = true;
 
-        while has_more {
+        loop {
+            if !has_more {
+                break;
+            }
+
             let url = format!(
                 "/latest.json?order=created&ascending={}&page={}",
                 ascending, page
@@ -124,10 +128,10 @@ impl TopicIndexer {
 
                     if response.topic_list.topics.is_empty() || num_topics < per_page {
                         info!("Reached last page or no more topics. Stopping.");
-                        break;
+                        has_more = false;
+                    } else {
+                        page += 1;
                     }
-
-                    page += 1;
                 }
                 Err(e) => {
                     if e.to_string().contains("404") {

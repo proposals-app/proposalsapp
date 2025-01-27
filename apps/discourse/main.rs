@@ -13,10 +13,10 @@ use indexers::{
 use reqwest::Client;
 use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::dao_discourse;
-use std::{
-    collections::HashMap,
-    sync::Arc,
-    time::{Duration, Instant},
+use std::{collections::HashMap, sync::Arc, time::Duration};
+use tokio::{
+    signal,
+    time::{interval_at, Instant},
 };
 use tracing::{error, info, warn};
 use utils::tracing::setup_tracing;
@@ -27,7 +27,6 @@ mod indexers;
 mod metrics;
 mod models;
 
-const WAIT_FIRST: bool = true;
 const FAST_INDEX: Duration = Duration::from_secs(60);
 const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 
@@ -87,12 +86,12 @@ async fn main() -> Result<()> {
         let dao_discourse_category_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let category_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(SLOW_INDEX);
-            if WAIT_FIRST {
-                interval.tick().await;
-            }
+            let start = Instant::now() + Duration::from_secs(10);
+            let mut interval = interval_at(start, SLOW_INDEX);
+
+            interval.tick().await;
             loop {
-                let start = Instant::now();
+                interval.tick().await;
 
                 let category_fetcher = CategoryIndexer::new(Arc::clone(&api_handler));
                 match category_fetcher
@@ -117,13 +116,6 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-
-                let elapsed = Instant::now().saturating_duration_since(start);
-                if elapsed < SLOW_INDEX {
-                    tokio::time::sleep(SLOW_INDEX - elapsed).await;
-                }
-
-                interval.tick().await;
             }
         });
 
@@ -132,13 +124,12 @@ async fn main() -> Result<()> {
         let dao_discourse_users_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let user_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(SLOW_INDEX);
-            if WAIT_FIRST {
-                interval.tick().await;
-            }
-            loop {
-                let start = Instant::now();
+            let start = Instant::now() + Duration::from_secs(10);
+            let mut interval = interval_at(start, SLOW_INDEX);
 
+            interval.tick().await;
+            loop {
+                interval.tick().await;
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 match user_fetcher
                     .update_all_users(
@@ -162,13 +153,6 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-
-                let elapsed = Instant::now().saturating_duration_since(start);
-                if elapsed < SLOW_INDEX {
-                    tokio::time::sleep(SLOW_INDEX - elapsed).await;
-                }
-
-                interval.tick().await;
             }
         });
 
@@ -177,13 +161,12 @@ async fn main() -> Result<()> {
         let dao_discourse_topic_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let topic_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(SLOW_INDEX);
-            if WAIT_FIRST {
-                interval.tick().await;
-            }
-            loop {
-                let start = Instant::now();
+            let start = Instant::now() + Duration::from_secs(10);
+            let mut interval = interval_at(start, SLOW_INDEX);
 
+            interval.tick().await;
+            loop {
+                interval.tick().await;
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
                 match topic_fetcher
                     .update_all_topics(
@@ -207,13 +190,6 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-
-                let elapsed = Instant::now().saturating_duration_since(start);
-                if elapsed < SLOW_INDEX {
-                    tokio::time::sleep(SLOW_INDEX - elapsed).await;
-                }
-
-                interval.tick().await;
             }
         });
 
@@ -222,13 +198,11 @@ async fn main() -> Result<()> {
         let dao_discourse_revision_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let revision_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(SLOW_INDEX);
-            if WAIT_FIRST {
-                interval.tick().await;
-            }
+            let start = Instant::now() + Duration::from_secs(10);
+            let mut interval = interval_at(start, SLOW_INDEX);
+            interval.tick().await;
             loop {
-                let start = Instant::now();
-
+                interval.tick().await;
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
                 match revision_fetcher
                     .update_all_revisions(
@@ -252,13 +226,6 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-
-                let elapsed = Instant::now().saturating_duration_since(start);
-                if elapsed < SLOW_INDEX {
-                    tokio::time::sleep(SLOW_INDEX - elapsed).await;
-                }
-
-                interval.tick().await;
             }
         });
 
@@ -267,10 +234,11 @@ async fn main() -> Result<()> {
         let dao_discourse_newcontent_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let newcontent_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(FAST_INDEX);
-            loop {
-                let start = Instant::now();
+            let start = Instant::now() + Duration::from_secs(10);
+            let mut interval = interval_at(start, FAST_INDEX);
 
+            interval.tick().await;
+            loop {
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
@@ -340,12 +308,6 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-
-                let elapsed = Instant::now().saturating_duration_since(start);
-                if elapsed < FAST_INDEX {
-                    tokio::time::sleep(FAST_INDEX - elapsed).await;
-                }
-
                 interval.tick().await;
             }
         });
@@ -379,7 +341,17 @@ async fn main() -> Result<()> {
 
     handles.push(uptime_handle);
 
-    futures::future::join_all(handles).await;
+    let graceful_shutdown = tokio::spawn(async move {
+        signal::ctrl_c()
+            .await
+            .expect("Failed to listen for shutdown signal");
+        info!("Shutting down gracefully...");
+        // Perform cleanup here if needed
+    });
+
+    // Wait for all tasks to complete
+    let _ = futures::future::join_all(handles).await;
+    let _ = graceful_shutdown.await;
 
     Ok(())
 }

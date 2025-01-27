@@ -136,14 +136,11 @@ impl DiscourseApi {
         let (response_sender, response_receiver) = oneshot::channel();
         let url = format!("{}{}", self.base_url, endpoint);
 
-        // Update queue size when adding a job
-        self.metrics.queue_size.add(
-            1,
-            &[KeyValue::new(
-                "type",
-                if priority { "priority" } else { "normal" },
-            )],
-        );
+        if priority {
+            self.metrics.queue_size_priority.add(1, &[]);
+        } else {
+            self.metrics.queue_size_normal.add(1, &[]);
+        }
 
         // Check if there's already a pending request for this endpoint
         let should_send_new_request = {
@@ -205,18 +202,14 @@ impl DiscourseApi {
             // Process all priority jobs first
             while let Some(priority_job) = priority_queue.pop_front() {
                 self.process_job(priority_job, true).await;
-                self.metrics
-                    .queue_size
-                    .add(-1, &[KeyValue::new("type", "priority")]);
+                self.metrics.queue_size_priority.add(-1, &[]);
             }
 
             // Process a batch of normal jobs
             for _ in 0..NORMAL_JOBS_BATCH_SIZE {
                 if let Some(normal_job) = normal_queue.pop_front() {
                     self.process_job(normal_job, false).await;
-                    self.metrics
-                        .queue_size
-                        .add(-1, &[KeyValue::new("type", "normal")]);
+                    self.metrics.queue_size_normal.add(-1, &[]);
                 } else {
                     break;
                 }
