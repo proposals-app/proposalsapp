@@ -236,11 +236,6 @@ impl PostIndexer {
                             current_likes_count, "No new likes to fetch"
                         );
                     }
-                } else {
-                    warn!(
-                        post_id = post.id,
-                        "actions_summary does not contain a like action (id=2)"
-                    );
                 }
 
                 info!(post_id = post.id, "Successfully upserted post");
