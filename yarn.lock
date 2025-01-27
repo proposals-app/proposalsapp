@@ -445,6 +445,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@babel/types@npm:^7.19.0":
+  version: 7.26.7
+  resolution: "@babel/types@npm:7.26.7"
+  dependencies:
+    "@babel/helper-string-parser": "npm:^7.25.9"
+    "@babel/helper-validator-identifier": "npm:^7.25.9"
+  checksum: 10c0/7810a2bca97b13c253f07a0863a628d33dbe76ee3c163367f24be93bfaf4c8c0a325f73208abaaa050a6b36059efc2950c2e4b71fb109c0f07fa62221d8473d4
+  languageName: node
+  linkType: hard
+
 "@bcoe/v8-coverage@npm:^0.2.3":
   version: 0.2.3
   resolution: "@bcoe/v8-coverage@npm:0.2.3"
@@ -2419,6 +2429,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.21.0"
     "@typescript-eslint/parser": "npm:^8.21.0"
     "@vercel/otel": "npm:^1.10.1"
+    babel-plugin-react-compiler: "npm:19.0.0-beta-27714ef-20250124"
     date-fns: "npm:^4.1.0"
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
@@ -2442,7 +2453,7 @@ __metadata:
     postcss: "npm:^8.5.1"
     posthog-js: "npm:1.210.2"
     prettier: "npm:^3.4.2"
-    prettier-plugin-classnames: "npm:^0.7.5"
+    prettier-plugin-classnames: "npm:^0.7.6"
     prettier-plugin-merge: "npm:^0.7.2"
     prettier-plugin-organize-imports: "npm:^4.1.0"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
@@ -2549,7 +2560,7 @@ __metadata:
     typescript: "npm:^5.7.3"
     uuid: "npm:^11.0.5"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.22.14"
+    viem: "npm:2.22.15"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -5915,6 +5926,15 @@ __metadata:
     "@types/babel__core": "npm:^7.1.14"
     "@types/babel__traverse": "npm:^7.0.6"
   checksum: 10c0/7e6451caaf7dce33d010b8aafb970e62f1b0c0b57f4978c37b0d457bbcf0874d75a395a102daf0bae0bd14eafb9f6e9a165ee5e899c0a4f1f3bb2e07b304ed2e
+  languageName: node
+  linkType: hard
+
+"babel-plugin-react-compiler@npm:19.0.0-beta-27714ef-20250124":
+  version: 19.0.0-beta-27714ef-20250124
+  resolution: "babel-plugin-react-compiler@npm:19.0.0-beta-27714ef-20250124"
+  dependencies:
+    "@babel/types": "npm:^7.19.0"
+  checksum: 10c0/f7733f9461e5ca66af52dcc072a3e7f48d8020c9237f7621e4fc6229d74ae813c8883b7c5b904e69766a4de14599b95422e0374991cbbccceae3fbc17bd08262
   languageName: node
   linkType: hard
 
@@ -13530,9 +13550,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier-plugin-classnames@npm:^0.7.5":
-  version: 0.7.5
-  resolution: "prettier-plugin-classnames@npm:0.7.5"
+"prettier-plugin-classnames@npm:^0.7.6":
+  version: 0.7.6
+  resolution: "prettier-plugin-classnames@npm:0.7.6"
   peerDependencies:
     prettier: ^2 || ^3
     prettier-plugin-astro: "*"
@@ -13542,7 +13562,7 @@ __metadata:
       optional: true
     prettier-plugin-svelte:
       optional: true
-  checksum: 10c0/4a64c25e1d27259937c24e96f1b9143d8dde667faf370e3431f6547c6c351501cdbcd8f0369ffcdabaacbcddb46bec09ed3e613dcb2ae4198df3bf732acb2905
+  checksum: 10c0/97c9d168e688842764b9ab57cf839b2c0862d089f31290abefb2ea1a89cba5525394ef9a7114badcbffbd5c87439ba90435ccbe09bedd8de7bd029592fe04d1c
   languageName: node
   linkType: hard
 
@@ -16289,9 +16309,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.22.14":
-  version: 2.22.14
-  resolution: "viem@npm:2.22.14"
+"viem@npm:2.22.15":
+  version: 2.22.15
+  resolution: "viem@npm:2.22.15"
   dependencies:
     "@noble/curves": "npm:1.8.1"
     "@noble/hashes": "npm:1.7.1"
@@ -16306,7 +16326,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/85f856f759e89c69d3266e6f6a174ee8167210274041ffbe4f683327a10e4ec57db5da3a05c0b10a653e58bfb393bbdb21909f9ed915f62c9c8cbce4ac21e423
+  checksum: 10c0/de832e08423498d6b1746cfb352cbf525b433f57706890fe54c54f3576623e177f2edb9784c6a0cdc4cf77d50be15f0ead46798c2767393989477240bbbbee93
   languageName: node
   linkType: hard
 

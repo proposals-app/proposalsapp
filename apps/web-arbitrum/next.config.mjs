@@ -10,6 +10,7 @@ const withSerwist = withSerwistInit({
   maximumFileSizeToCacheInBytes: 25000000,
 });
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
@@ -26,6 +27,7 @@ const nextConfig = {
   },
   skipTrailingSlashRedirect: true,
   experimental: {
+    reactCompiler: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },

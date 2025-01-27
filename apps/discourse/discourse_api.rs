@@ -9,17 +9,15 @@ use reqwest::{
 };
 use serde::de::DeserializeOwned;
 use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
+use std::{
     collections::{HashMap, HashSet},
-    sync::{
-        atomic::{AtomicI64, Ordering},
-        Arc, Mutex,
-    },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use tokio::{
-    sync::{mpsc, oneshot},
-    time::sleep,
-};
+use tokio::sync::mpsc;
+use tokio::{sync::oneshot, time::sleep};
 use tracing::{error, info, instrument, warn};
 
 const DEFAULT_QUEUE_SIZE: usize = 100_000;
@@ -44,7 +42,6 @@ pub struct DiscourseApi {
     pub base_url: String,
     forbidden_urls: Arc<Mutex<HashSet<(String, u64)>>>,
     pending_requests: Arc<Mutex<HashMap<String, PendingRequest>>>,
-    queue_size: Arc<AtomicI64>,
 }
 
 struct PendingRequest {
@@ -61,13 +58,35 @@ struct Job {
 impl DiscourseApi {
     #[instrument(skip(metrics))]
     pub fn new(base_url: String, with_user_agent: bool, metrics: Arc<Metrics>) -> Self {
-        Self::new_with_config(
-            base_url,
-            with_user_agent,
-            DEFAULT_QUEUE_SIZE,
-            DEFAULT_MAX_RETRIES,
+        let (headers, cookie_jar) = Self::default_headers_with_cookies(with_user_agent);
+
+        let client = Client::builder()
+            .default_headers(headers)
+            .cookie_provider(cookie_jar)
+            .build()
+            .expect("Failed to build HTTP client");
+
+        let (sender, receiver) = mpsc::channel(DEFAULT_QUEUE_SIZE);
+
+        let api_handler = Self {
+            client,
             metrics,
-        )
+            max_retries: DEFAULT_MAX_RETRIES,
+            sender,
+            base_url: base_url.clone(),
+            forbidden_urls: Arc::new(Mutex::new(HashSet::new())),
+            pending_requests: Arc::new(Mutex::new(HashMap::new())),
+        };
+
+        // Spawn the queue runner
+        tokio::spawn(api_handler.clone().run_queue(receiver));
+
+        // Spawn the cache-clearing task
+        tokio::spawn(clear_forbidden_urls_cache(
+            api_handler.forbidden_urls.clone(),
+        ));
+
+        api_handler
     }
 
     #[instrument]
@@ -107,46 +126,6 @@ impl DiscourseApi {
         (headers, cookie_jar)
     }
 
-    #[instrument(skip(metrics))]
-    pub fn new_with_config(
-        base_url: String,
-        with_user_agent: bool,
-        queue_size: usize,
-        max_retries: usize,
-        metrics: Arc<Metrics>,
-    ) -> Self {
-        let (headers, cookie_jar) = Self::default_headers_with_cookies(with_user_agent);
-
-        let client = Client::builder()
-            .default_headers(headers)
-            .cookie_provider(cookie_jar)
-            .build()
-            .expect("Failed to build HTTP client");
-
-        let (sender, receiver) = mpsc::channel(queue_size);
-
-        let api_handler = Self {
-            client,
-            metrics,
-            max_retries,
-            sender,
-            base_url: base_url.clone(),
-            forbidden_urls: Arc::new(Mutex::new(HashSet::new())),
-            pending_requests: Arc::new(Mutex::new(HashMap::new())),
-            queue_size: Arc::new(AtomicI64::new(0)),
-        };
-
-        // Spawn the queue runner
-        tokio::spawn(api_handler.clone().run_queue(receiver));
-
-        // Spawn the cache-clearing task
-        tokio::spawn(clear_forbidden_urls_cache(
-            api_handler.forbidden_urls.clone(),
-        ));
-
-        api_handler
-    }
-
     #[instrument(skip(self), fields(endpoint = %endpoint, priority = priority))]
     pub async fn queue<T>(&self, endpoint: &str, priority: bool) -> Result<T>
     where
@@ -158,7 +137,6 @@ impl DiscourseApi {
         let url = format!("{}{}", self.base_url, endpoint);
 
         // Update queue size when adding a job
-        self.queue_size.fetch_add(1, Ordering::SeqCst);
         self.metrics.queue_size.add(
             1,
             &[KeyValue::new(
@@ -214,15 +192,19 @@ impl DiscourseApi {
 
     #[instrument(skip(self, receiver))]
     async fn run_queue(self, mut receiver: mpsc::Receiver<Job>) {
-        let mut priority_queue = Vec::new();
-        let mut normal_queue = Vec::new();
+        let mut priority_queue = VecDeque::new();
+        let mut normal_queue = VecDeque::new();
 
-        loop {
-            // Process all priority jobs
-            while let Some(priority_job) = priority_queue.pop() {
+        while let Some(job) = receiver.recv().await {
+            if job.priority {
+                priority_queue.push_back(job);
+            } else {
+                normal_queue.push_back(job);
+            }
+
+            // Process all priority jobs first
+            while let Some(priority_job) = priority_queue.pop_front() {
                 self.process_job(priority_job, true).await;
-                // Update queue size when processing a job
-                self.queue_size.fetch_sub(1, Ordering::SeqCst);
                 self.metrics
                     .queue_size
                     .add(-1, &[KeyValue::new("type", "priority")]);
@@ -230,10 +212,8 @@ impl DiscourseApi {
 
             // Process a batch of normal jobs
             for _ in 0..NORMAL_JOBS_BATCH_SIZE {
-                if let Some(normal_job) = normal_queue.pop() {
+                if let Some(normal_job) = normal_queue.pop_front() {
                     self.process_job(normal_job, false).await;
-                    // Update queue size when processing a job
-                    self.queue_size.fetch_sub(1, Ordering::SeqCst);
                     self.metrics
                         .queue_size
                         .add(-1, &[KeyValue::new("type", "normal")]);
@@ -242,20 +222,8 @@ impl DiscourseApi {
                 }
             }
 
-            // Wait for next job
-            match receiver.recv().await {
-                Some(job) => {
-                    if job.priority {
-                        priority_queue.push(job);
-                    } else {
-                        normal_queue.push(job);
-                    }
-                }
-                None => {
-                    // Channel closed, exit the loop
-                    break;
-                }
-            }
+            // Sleep for a short duration to avoid busy-waiting
+            tokio::time::sleep(Duration::from_millis(50)).await;
         }
     }
 
