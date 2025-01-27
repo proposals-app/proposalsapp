@@ -25,20 +25,19 @@ impl UserIndexer {
     ) -> Result<()> {
         info!("Starting to update all users");
 
-        self.update_users(db_handler, dao_discourse_id, "all", None, false)
+        self.update_users(db_handler, dao_discourse_id, "all", false)
             .await
     }
 
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_new_users(
+    pub async fn update_recent_users(
         &self,
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         info!("Starting to update new users");
 
-        const MAX_PAGES: usize = 3;
-        self.update_users(db_handler, dao_discourse_id, "daily", Some(MAX_PAGES), true)
+        self.update_users(db_handler, dao_discourse_id, "daily", true)
             .await
     }
 
@@ -48,7 +47,6 @@ impl UserIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         period: &str,
-        max_pages: Option<usize>,
         priority: bool,
     ) -> Result<()> {
         info!("Starting to update users");
@@ -116,7 +114,7 @@ impl UserIndexer {
                 {
                     info!("Detected identical response. Stopping fetch.");
                     previous_repeat += 1;
-                    if previous_repeat == 3 {
+                    if previous_repeat == 2 {
                         break;
                     }
                 }
@@ -124,13 +122,6 @@ impl UserIndexer {
 
             previous_response = Some(response);
             page += 1;
-
-            if let Some(max) = max_pages {
-                if page >= max {
-                    info!("Reached maximum number of pages ({}). Stopping.", max);
-                    break;
-                }
-            }
         }
 
         info!(total_users, "Finished updating all users");

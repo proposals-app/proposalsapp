@@ -288,11 +288,11 @@ async fn main() -> Result<()> {
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
 
                 let (user_result, topic_result, revision_result) = tokio::join!(
-                    user_fetcher.update_new_users(
+                    user_fetcher.update_recent_users(
                         Arc::clone(&db_handler_newcontent_clone),
                         dao_discourse_newcontent_clone.id,
                     ),
-                    topic_fetcher.update_new_topics(
+                    topic_fetcher.update_recent_topics(
                         Arc::clone(&db_handler_newcontent_clone),
                         dao_discourse_newcontent_clone.id,
                     ),

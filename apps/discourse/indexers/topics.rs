@@ -3,6 +3,7 @@ use crate::{
     models::topics::TopicResponse,
 };
 use anyhow::{Context, Result};
+use chrono::Utc;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tokio::task::JoinSet;
@@ -25,20 +26,19 @@ impl TopicIndexer {
     ) -> Result<()> {
         info!("Starting to update all topics");
 
-        self.update_topics(db_handler, dao_discourse_id, true, None, false)
+        self.update_topics(db_handler, dao_discourse_id, true, false, false)
             .await
     }
 
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_new_topics(
+    pub async fn update_recent_topics(
         self,
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
     ) -> Result<()> {
         info!("Starting to update new topics");
 
-        const MAX_PAGES: usize = 3;
-        self.update_topics(db_handler, dao_discourse_id, false, Some(MAX_PAGES), true)
+        self.update_topics(db_handler, dao_discourse_id, false, true, true)
             .await
     }
 
@@ -48,7 +48,7 @@ impl TopicIndexer {
         db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         ascending: bool,
-        max_pages: Option<usize>,
+        recent: bool,
         priority: bool,
     ) -> Result<()> {
         info!("Starting to update topics");
@@ -56,6 +56,8 @@ impl TopicIndexer {
         let mut total_topics = 0;
         let mut page = 0;
         let mut join_set = JoinSet::new();
+        let one_day_ago = Utc::now() - chrono::Duration::days(1);
+        let mut stop_processing = false;
 
         loop {
             let url = format!(
@@ -71,10 +73,18 @@ impl TopicIndexer {
             {
                 Ok(response) => {
                     let per_page = response.topic_list.per_page;
-                    let num_topics = response.topic_list.topics.len() as i32;
-                    total_topics += num_topics;
+                    let mut num_topics = 0;
 
                     for topic in &response.topic_list.topics {
+                        if recent && topic.bumped_at < one_day_ago {
+                            info!("Reached topics older than one day. Stopping.");
+                            stop_processing = true;
+                            break;
+                        }
+
+                        total_topics += 1;
+                        num_topics += 1;
+
                         if let Err(e) = db_handler.upsert_topic(topic, dao_discourse_id).await {
                             error!(
                                 error = ?e,
@@ -108,6 +118,10 @@ impl TopicIndexer {
                         });
                     }
 
+                    if stop_processing {
+                        break;
+                    }
+
                     info!(
                         page = page + 1,
                         num_topics, total_topics, url, "Fetched and upserted topics"
@@ -119,13 +133,6 @@ impl TopicIndexer {
                     }
 
                     page += 1;
-
-                    if let Some(max) = max_pages {
-                        if page >= max {
-                            info!("Reached maximum number of pages ({}). Stopping.", max);
-                            break;
-                        }
-                    }
                 }
                 Err(e) => {
                     if e.to_string().contains("404") {
