@@ -57,9 +57,9 @@ impl TopicIndexer {
         let mut page = 0;
         let mut join_set = JoinSet::new();
         let one_day_ago = Utc::now() - chrono::Duration::days(1);
-        let mut stop_processing = false;
+        let mut has_more = true;
 
-        loop {
+        while has_more {
             let url = format!(
                 "/latest.json?order=created&ascending={}&page={}",
                 ascending, page
@@ -78,8 +78,7 @@ impl TopicIndexer {
                     for topic in &response.topic_list.topics {
                         if recent && topic.bumped_at < one_day_ago {
                             info!("Reached topics older than one day. Stopping.");
-                            stop_processing = true;
-                            break;
+                            has_more = false;
                         }
 
                         total_topics += 1;
@@ -116,10 +115,6 @@ impl TopicIndexer {
                                 );
                             }
                         });
-                    }
-
-                    if stop_processing {
-                        break;
                     }
 
                     info!(
