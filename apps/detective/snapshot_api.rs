@@ -9,7 +9,7 @@ use tokio::{
     sync::{mpsc, oneshot, Semaphore},
     time::sleep,
 };
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{error, info, instrument, warn};
 
 use crate::{SNAPSHOT_MAX_CONCURRENT_REQUESTS, SNAPSHOT_MAX_QUEUE, SNAPSHOT_MAX_RETRIES};
 
@@ -102,7 +102,7 @@ impl SnapshotApiHandler {
             response_sender,
         };
 
-        debug!(url = ?job.url, query = ?job.query, "Job added to queue");
+        info!(url = ?job.url, query = ?job.query, "Job added to queue");
         self.sender.send(job).await?;
 
         let response = response_receiver.await??;
@@ -206,7 +206,7 @@ impl SnapshotApiHandler {
             }
         }
 
-        debug!("Rate limit updated");
+        info!("Rate limit updated");
     }
 
     #[instrument(skip(rate_limiter))]

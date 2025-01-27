@@ -13,7 +13,7 @@ use sea_orm::{
     DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set,
 };
 use seaorm::{discourse_post_like, discourse_post_revision, discourse_user};
-use tracing::{debug, info, instrument};
+use tracing::{info, instrument};
 use utils::types::{DiscussionJobData, JobData};
 
 pub struct DbHandler {
@@ -69,7 +69,7 @@ impl DbHandler {
 
         match existing_user {
             Some(existing_user) => {
-                debug!("Updating existing user");
+                info!("Updating existing user");
                 let mut user_update: discourse_user::ActiveModel = existing_user.into();
                 user_update.username = Set(user.username.clone());
                 user_update.name = Set(user.name.clone());
@@ -90,7 +90,7 @@ impl DbHandler {
                     .add(1, &[KeyValue::new("table", "discourse_user")]);
             }
             None => {
-                debug!("Inserting new user");
+                info!("Inserting new user");
                 let user_model = discourse_user::ActiveModel {
                     external_id: Set(user.id),
                     username: Set(user.username.clone()),
@@ -140,7 +140,7 @@ impl DbHandler {
 
         match existing_category {
             Some(existing_category) => {
-                debug!("Updating existing category");
+                info!("Updating existing category");
                 let mut category_update: seaorm::discourse_category::ActiveModel =
                     existing_category.into();
                 category_update.name = Set(category.name.clone());
@@ -164,7 +164,7 @@ impl DbHandler {
                     .add(1, &[KeyValue::new("table", "discourse_category")]);
             }
             None => {
-                debug!("Inserting new category");
+                info!("Inserting new category");
                 let category_model = seaorm::discourse_category::ActiveModel {
                     external_id: Set(category.id),
                     name: Set(category.name.clone()),
@@ -217,7 +217,7 @@ impl DbHandler {
 
         match existing_topic {
             Some(existing_topic) => {
-                debug!("Updating existing topic");
+                info!("Updating existing topic");
                 let mut topic_update: seaorm::discourse_topic::ActiveModel = existing_topic.into();
                 topic_update.title = Set(topic.title.clone());
                 topic_update.fancy_title = Set(topic.fancy_title.clone());
@@ -243,7 +243,7 @@ impl DbHandler {
                     .add(1, &[KeyValue::new("table", "discourse_topic")]);
             }
             None => {
-                debug!("Inserting new topic");
+                info!("Inserting new topic");
                 let topic_model = seaorm::discourse_topic::ActiveModel {
                     external_id: Set(topic.id),
                     title: Set(topic.title.clone()),
@@ -318,7 +318,7 @@ impl DbHandler {
 
         match existing_post {
             Some(existing_post) => {
-                debug!("Updating existing post");
+                info!("Updating existing post");
                 let mut post_update: seaorm::discourse_post::ActiveModel = existing_post.into();
                 post_update.name = Set(post.name.clone());
                 post_update.username = Set(post.username.clone());
@@ -360,7 +360,7 @@ impl DbHandler {
                     .add(1, &[KeyValue::new("table", "discourse_post")]);
             }
             None => {
-                debug!("Inserting new post");
+                info!("Inserting new post");
                 let post_model = seaorm::discourse_post::ActiveModel {
                     external_id: Set(post.id),
                     name: Set(post.name.clone()),
@@ -440,7 +440,7 @@ impl DbHandler {
 
         match existing_revision {
             Some(existing_revision) => {
-                debug!("Updating existing revision");
+                info!("Updating existing revision");
                 let mut revision_update: discourse_post_revision::ActiveModel =
                     existing_revision.into();
                 revision_update.created_at = Set(revision.created_at.naive_utc());
@@ -465,7 +465,7 @@ impl DbHandler {
                     .add(1, &[KeyValue::new("table", "discourse_post_revision")]);
             }
             None => {
-                debug!("Inserting new revision");
+                info!("Inserting new revision");
                 let revision_model = discourse_post_revision::ActiveModel {
                     external_post_id: Set(revision.post_id),
                     version: Set(revision.current_version),

@@ -68,7 +68,7 @@ use tokio::{
     sync::{mpsc, Mutex},
     time::sleep,
 };
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{error, info, instrument, warn};
 use utils::tracing::setup_tracing;
 
 mod chain_data;
@@ -179,7 +179,7 @@ async fn main() -> Result<()> {
                             "Added indexer to queue"
                         );
                     } else {
-                        debug!(
+                        info!(
                             indexer_type = ?indexer.indexer_type,
                             indexer_variant = ?indexer_variant,
                             dao_name = ?dao.name,
