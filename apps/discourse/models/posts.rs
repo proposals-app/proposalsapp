@@ -33,6 +33,13 @@ pub struct Post {
     pub version: i32,
     pub can_view_edit_history: bool,
     pub user_id: i32,
+    pub actions_summary: Vec<ActionSummary>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ActionSummary {
+    pub id: u64,
+    pub count: u64,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

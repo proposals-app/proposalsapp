@@ -9,8 +9,8 @@ use anyhow::Result;
 use chrono::Utc;
 use opentelemetry::KeyValue;
 use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectOptions, Database, DatabaseConnection,
-    EntityTrait, QueryFilter, Set,
+    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
+    DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set,
 };
 use seaorm::{discourse_post_like, discourse_post_revision, discourse_user};
 use tracing::{debug, info, instrument};
@@ -575,5 +575,25 @@ impl DbHandler {
         );
 
         Ok(())
+    }
+
+    #[instrument(skip(self), fields(post_external_id = post_external_id, dao_discourse_id = %dao_discourse_id))]
+    pub async fn get_post_like_count(
+        &self,
+        post_external_id: i32,
+        dao_discourse_id: Uuid,
+    ) -> Result<u64> {
+        let count = discourse_post_like::Entity::find()
+            .filter(
+                Condition::all()
+                    .add(discourse_post_like::Column::ExternalDiscoursePostId.eq(post_external_id))
+                    .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id)),
+            )
+            .count(&self.conn)
+            .await?;
+
+        info!(post_external_id, dao_discourse_id = %dao_discourse_id, count, "Fetched post like count");
+
+        Ok(count)
     }
 }

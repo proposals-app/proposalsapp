@@ -188,20 +188,58 @@ impl PostIndexer {
     ) {
         match db_handler.upsert_post(&post, dao_discourse_id).await {
             Ok(_) => {
-                let likes_indexer = LikesIndexer::new(Arc::clone(&discourse_api));
-                if let Err(e) = likes_indexer
-                    .fetch_and_store_likes(
-                        Arc::clone(&db_handler),
-                        dao_discourse_id,
-                        post.id,
-                        priority,
-                    )
+                let current_likes_count = match db_handler
+                    .get_post_like_count(post.id, dao_discourse_id)
                     .await
                 {
-                    error!(
-                        error = ?e,
+                    Ok(count) => count,
+                    Err(e) => {
+                        error!(
+                            error = ?e,
+                            post_id = post.id,
+                            "Failed to fetch current like count"
+                        );
+                        return;
+                    }
+                };
+
+                if let Some(actions_summary_item) =
+                    post.actions_summary.iter().find(|item| item.id == 2)
+                {
+                    if actions_summary_item.count > current_likes_count {
+                        info!(
+                            post_id = post.id,
+                            current_likes_count,
+                            count = actions_summary_item.count,
+                            "Fetching new likes for post"
+                        );
+
+                        let likes_indexer = LikesIndexer::new(Arc::clone(&discourse_api));
+                        if let Err(e) = likes_indexer
+                            .fetch_and_store_likes(
+                                Arc::clone(&db_handler),
+                                dao_discourse_id,
+                                post.id,
+                                priority,
+                            )
+                            .await
+                        {
+                            error!(
+                                error = ?e,
+                                post_id = post.id,
+                                "Failed to fetch and store likes"
+                            );
+                        }
+                    } else {
+                        info!(
+                            post_id = post.id,
+                            current_likes_count, "No new likes to fetch"
+                        );
+                    }
+                } else {
+                    warn!(
                         post_id = post.id,
-                        "Failed to fetch and store likes"
+                        "actions_summary does not contain a like action (id=2)"
                     );
                 }
 
