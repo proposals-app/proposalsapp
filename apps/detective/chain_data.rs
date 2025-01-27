@@ -221,7 +221,7 @@ async fn retry_request_estimate_block(
                 sleep(Duration::from_millis(2u64.pow(attempt))).await;
             }
             Err(e) => {
-                event!(Level::ERROR, "Request failed after retries: {:?}", e);
+                event!(Level::ERROR, error = %e, "Request failed after retries");
                 return Err(anyhow::anyhow!(
                     "Failed to estimate block number after retries"
                 ));
@@ -265,7 +265,7 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Estim
                 sleep(Duration::from_millis(2u64.pow(attempt))).await;
             }
             Err(e) => {
-                event!(Level::ERROR, "Request failed after retries: {:?}", e);
+                event!(Level::ERROR, error = %e, "Request failed after retries");
                 return Err(anyhow::anyhow!(
                     "Failed to estimate timestamp after retries"
                 ));

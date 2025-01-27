@@ -105,7 +105,7 @@ async fn main() -> Result<()> {
         loop {
             match client.get(&betterstack_key).send().await {
                 Ok(_) => info!("Uptime ping sent successfully"),
-                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+                Err(e) => warn!(error = %e, "Failed to send uptime ping"),
             }
             tokio::time::sleep(Duration::from_secs(10)).await;
         }
@@ -175,7 +175,7 @@ async fn main() -> Result<()> {
                             indexer_type = ?indexer.indexer_type,
                             indexer_variant = ?indexer_variant,
                             dao_name = ?dao.name,
-                            interval = ?interval.as_secs(),
+                            interval_secs = ?interval.as_secs(),
                             "Added indexer to queue"
                         );
                     } else {
@@ -211,7 +211,7 @@ async fn main() -> Result<()> {
     );
 
     // Set up the health check server
-    let app = Router::new().route("/", get("OK"));
+    let app = Router::new().route("/", get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let server = tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
@@ -277,7 +277,7 @@ fn create_job_consumer(
                         };
 
                         if let Err(e) = store_process_results(&db, &indexer, process_result).await {
-                            error!("Failed to store process results: {:?}", e);
+                            error!(error = %e, "Failed to store process results");
                             store_success = false;
                         }
 
@@ -289,21 +289,21 @@ fn create_job_consumer(
                                 update_indexer_speed_and_index(&db, &indexer, new_speed, new_index)
                                     .await
                             {
-                                error!("Failed to update indexer speed and index: {:?}", e);
+                                error!(error = %e, "Failed to update indexer speed and index");
                             }
                         } else if let Err(e) = update_indexer_speed(&db, &indexer, new_speed).await
                         {
                             error!(
-                                "Failed to update indexer speed after storage failure: {:?}",
-                                e
+                                error = %e,
+                                "Failed to update indexer speed after storage failure"
                             );
                         }
                     }
                     Ok(Err(e)) => {
-                        error!("Error processing indexer: {:?}", e);
+                        error!(error = %e, "Error processing indexer");
                         let new_speed = indexer_implementation.adjust_speed(indexer.speed, false);
                         if let Err(e) = update_indexer_speed(&db, &indexer, new_speed).await {
-                            error!("Failed to update indexer speed: {:?}", e);
+                            error!(error = %e, "Failed to update indexer speed after processing failure");
                         }
                     }
                     Err(_) => {
@@ -311,7 +311,7 @@ fn create_job_consumer(
                         error!("Indexer processing timed out");
                         let new_speed = indexer_implementation.adjust_speed(indexer.speed, false);
                         if let Err(e) = update_indexer_speed(&db, &indexer, new_speed).await {
-                            error!("Failed to update indexer speed after timeout: {:?}", e);
+                            error!(error = %e, "Failed to update indexer speed after timeout");
                         }
                     }
                 }

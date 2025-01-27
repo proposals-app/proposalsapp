@@ -102,9 +102,8 @@ impl SnapshotApiHandler {
             response_sender,
         };
 
+        debug!(url = ?job.url, query = ?job.query, "Job added to queue");
         self.sender.send(job).await?;
-
-        debug!("Job added to queue");
 
         let response = response_receiver.await??;
         Ok(serde_json::from_str(&response)?)
@@ -123,7 +122,7 @@ impl SnapshotApiHandler {
                     Self::execute_request(&client, &job.url, &job.query, &config, rate_limiter)
                         .await;
                 if let Err(e) = job.response_sender.send(result) {
-                    error!("Failed to send response: {:?}", e);
+                    error!(error = ?e, "Failed to send response");
                 }
                 drop(permit);
             });
@@ -145,7 +144,7 @@ impl SnapshotApiHandler {
             Self::wait_for_rate_limit(&rate_limiter).await;
 
             match client.get(url)
-                .json(&serde_json::json!({"query":query}))
+                .json(&serde_json::json!({"query": query}))
                 .header(reqwest::header::USER_AGENT, "proposals.app Detective/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12")
                 .header("Referer", "https://proposals.app")
                 .send()
@@ -169,7 +168,7 @@ impl SnapshotApiHandler {
                             .map(Duration::from_secs)
                             .unwrap_or(delay);
 
-                        warn!("Rate limited (429). Waiting for {:?} before retrying...", retry_after);
+                        warn!(status_code = 429, retry_after = ?retry_after, "Rate limited. Waiting before retrying...");
                         sleep(retry_after).await;
                         delay = retry_after;
                     } else {
@@ -181,7 +180,7 @@ impl SnapshotApiHandler {
                     if attempt > config.max_retries {
                         return Err(anyhow::anyhow!("Max retries reached"));
                     }
-                    warn!("Request error: {}. Retrying in {:?}...", e, delay);
+                    warn!(error = %e, retry_delay = ?delay, "Request error. Retrying...");
                     sleep(delay).await;
                     delay *= 2;
                 }
@@ -231,8 +230,9 @@ impl SnapshotApiHandler {
             }
 
             info!(
-                "Approaching rate limit. Waiting for {:?} before next request",
-                wait_time
+                remaining_requests = remaining,
+                reset_in = ?wait_time,
+                "Approaching rate limit. Waiting before next request"
             );
 
             // Add a small buffer to avoid hitting the rate limit immediately after reset
