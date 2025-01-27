@@ -64,10 +64,10 @@ impl TopicIndexer {
                 break;
             }
 
-            let url = format!(
-                "/latest.json?order=created&ascending={}&page={}",
-                ascending, page
-            );
+            let order_by = if recent { "activity" } else { "created" };
+            let asc = if ascending { "&ascending=true" } else { "" };
+
+            let url = format!("/latest.json?order={}{}&page={}", order_by, asc, page);
             info!(url, "Fetching topics");
 
             match self
