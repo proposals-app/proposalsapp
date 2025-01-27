@@ -27,7 +27,7 @@ use seaorm::{
 use serde::Deserialize;
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, instrument};
 
 sol!(
     #[allow(missing_docs)]
@@ -68,16 +68,19 @@ pub struct OptimismProposalsIndexer;
 
 #[async_trait]
 impl Indexer for OptimismProposalsIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
-
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         10_000_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::OpOptimismProposals
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -85,6 +88,7 @@ impl Indexer for OptimismProposalsIndexer {
 
 #[async_trait]
 impl ProposalsIndexer for OptimismProposalsIndexer {
+    #[instrument(skip_all)]
     async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
@@ -207,6 +211,7 @@ impl ProposalsIndexer for OptimismProposalsIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn data_for_proposal_one(
     p: (optimism_gov_v_6::ProposalCreated_0, Log),
     rpc: &Arc<ReqwestProvider>,
@@ -368,6 +373,7 @@ async fn data_for_proposal_one(
     })
 }
 
+#[instrument(skip_all)]
 async fn data_for_proposal_two(
     p: (optimism_gov_v_6::ProposalCreated_1, Log),
     rpc: &Arc<ReqwestProvider>,
@@ -629,6 +635,7 @@ async fn data_for_proposal_two(
     })
 }
 
+#[instrument(skip_all)]
 async fn data_for_proposal_three(
     p: (optimism_gov_v_6::ProposalCreated_2, Log),
     rpc: &Arc<ReqwestProvider>,
@@ -837,6 +844,7 @@ async fn data_for_proposal_three(
     })
 }
 
+#[instrument(skip_all)]
 async fn data_for_proposal_four(
     p: (optimism_gov_v_6::ProposalCreated_3, Log),
     rpc: &Arc<ReqwestProvider>,

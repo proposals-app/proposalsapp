@@ -27,7 +27,7 @@ use seaorm::{
 };
 use serde_json::json;
 use std::{collections::HashMap, sync::Arc, time::Duration};
-use tracing::{info, warn};
+use tracing::{info, instrument, warn};
 
 sol!(
     #[allow(missing_docs)]
@@ -40,15 +40,19 @@ pub struct ArbitrumCouncilNominationsProposalsAndVotesIndexer;
 
 #[async_trait]
 impl Indexer for ArbitrumCouncilNominationsProposalsAndVotesIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         10_000_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::ArbitrumCouncilNominations
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -56,6 +60,7 @@ impl Indexer for ArbitrumCouncilNominationsProposalsAndVotesIndexer {
 
 #[async_trait]
 impl ProposalsAndVotesIndexer for ArbitrumCouncilNominationsProposalsAndVotesIndexer {
+    #[instrument(skip_all)]
     async fn process_proposals_and_votes(
         &self,
         indexer: &dao_indexer::Model,
@@ -182,6 +187,7 @@ impl ProposalsAndVotesIndexer for ArbitrumCouncilNominationsProposalsAndVotesInd
     }
 }
 
+#[instrument(skip_all)]
 async fn get_votes(
     proposals: Vec<proposal::ActiveModel>,
     logs: Vec<(VoteCastForContender, Log)>,
@@ -345,6 +351,7 @@ async fn get_votes(
     Ok((votes, proposals_map.into_values().collect()))
 }
 
+#[instrument(skip_all)]
 async fn merge_with_nominees(
     proposals: Vec<proposal::ActiveModel>,
     nominee_logs: Vec<(arbitrum_security_council_nomination::ContenderAdded, Log)>,
@@ -417,6 +424,7 @@ async fn merge_with_nominees(
     Ok(proposals_map.into_values().collect())
 }
 
+#[instrument(skip_all)]
 async fn get_created_proposals(
     logs: Vec<(arbitrum_security_council_nomination::ProposalCreated, Log)>,
     rpc: &Arc<ReqwestProvider>,
@@ -568,6 +576,7 @@ async fn get_created_proposals(
     Ok(proposals)
 }
 
+#[instrument(skip_all)]
 async fn get_canceled_proposals(
     logs: Vec<(arbitrum_security_council_nomination::ProposalCanceled, Log)>,
     _rpc: &Arc<ReqwestProvider>,
@@ -624,6 +633,7 @@ async fn get_canceled_proposals(
     Ok(proposals)
 }
 
+#[instrument(skip_all)]
 async fn get_executed_proposals(
     logs: Vec<(arbitrum_security_council_nomination::ProposalExecuted, Log)>,
     _rpc: &Arc<ReqwestProvider>,

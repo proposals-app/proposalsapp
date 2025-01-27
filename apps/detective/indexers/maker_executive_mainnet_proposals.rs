@@ -23,7 +23,7 @@ use seaorm::{
 };
 use serde_json::json;
 use std::{collections::HashSet, sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, instrument};
 
 sol!(
     #[allow(missing_docs)]
@@ -36,16 +36,19 @@ pub struct MakerExecutiveMainnetProposalsIndexer;
 
 #[async_trait]
 impl Indexer for MakerExecutiveMainnetProposalsIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
-
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         1_000_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::MakerExecutiveMainnetProposals
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -53,6 +56,7 @@ impl Indexer for MakerExecutiveMainnetProposalsIndexer {
 
 #[async_trait::async_trait]
 impl ProposalsIndexer for MakerExecutiveMainnetProposalsIndexer {
+    #[instrument(skip_all)]
     async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
@@ -150,6 +154,7 @@ impl ProposalsIndexer for MakerExecutiveMainnetProposalsIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn data_for_proposal(
     spell_address: &String,
     indexer: &dao_indexer::Model,
@@ -269,6 +274,7 @@ struct ProposalData {
 
 const MAX_RETRIES: u32 = 5;
 
+#[instrument(skip_all)]
 async fn get_proposal_data(spell_address: String) -> Result<ProposalData> {
     let client = reqwest::Client::new();
 
@@ -317,6 +323,7 @@ async fn get_proposal_data(spell_address: String) -> Result<ProposalData> {
     })
 }
 
+#[instrument(skip_all)]
 fn extract_desired_bytes(bytes: &[u8]) -> Vec<[u8; 32]> {
     let mut iteration = 0;
     let mut result_vec = vec![];
@@ -335,6 +342,7 @@ fn extract_desired_bytes(bytes: &[u8]) -> Vec<[u8; 32]> {
     result_vec
 }
 
+#[instrument(skip_all)]
 pub async fn get_single_spell_addresses(
     logs: Vec<(maker_executive_gov::LogNote, Log)>,
     gov_contract: maker_executive_gov::maker_executive_govInstance<
@@ -371,6 +379,7 @@ pub async fn get_single_spell_addresses(
     Ok(result)
 }
 
+#[instrument(skip_all)]
 pub async fn get_multi_spell_addresses(
     logs: Vec<(maker_executive_gov::LogNote, Log)>,
 ) -> Result<Vec<String>> {

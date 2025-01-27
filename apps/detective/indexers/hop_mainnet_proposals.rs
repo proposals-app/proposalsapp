@@ -23,7 +23,7 @@ use seaorm::{
 };
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-use tracing::{info, warn};
+use tracing::{info, instrument, warn};
 
 sol!(
     #[allow(missing_docs)]
@@ -36,16 +36,19 @@ pub struct HopMainnetProposalsIndexer;
 
 #[async_trait]
 impl Indexer for HopMainnetProposalsIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
-
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         1_000_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::HopMainnetProposals
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -53,6 +56,7 @@ impl Indexer for HopMainnetProposalsIndexer {
 
 #[async_trait]
 impl ProposalsIndexer for HopMainnetProposalsIndexer {
+    #[instrument(skip_all)]
     async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
@@ -117,6 +121,7 @@ impl ProposalsIndexer for HopMainnetProposalsIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn data_for_proposal(
     p: (hop_gov::ProposalCreated, Log),
     rpc: &Arc<ReqwestProvider>,

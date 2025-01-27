@@ -17,7 +17,7 @@ use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use std::{sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, instrument};
 
 sol!(
     #[allow(missing_docs)]
@@ -36,16 +36,19 @@ impl MakerExecutiveMainnetVotesIndexer {
 
 #[async_trait]
 impl Indexer for MakerExecutiveMainnetVotesIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
-
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         100_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::MakerExecutiveMainnetVotes
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -53,6 +56,7 @@ impl Indexer for MakerExecutiveMainnetVotesIndexer {
 
 #[async_trait]
 impl VotesIndexer for MakerExecutiveMainnetVotesIndexer {
+    #[instrument(skip_all)]
     async fn process_votes(
         &self,
         indexer: &dao_indexer::Model,
@@ -136,6 +140,7 @@ impl VotesIndexer for MakerExecutiveMainnetVotesIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn get_votes(
     spell_casts: Vec<SpellCast>,
     indexer: &dao_indexer::Model,
@@ -163,6 +168,7 @@ async fn get_votes(
 
 //this takes out the first 4 bytes because that's the method being called
 //after that, it builds a vec of 32 byte chunks for as long as the input is
+#[instrument(skip_all)]
 fn extract_desired_bytes(bytes: &[u8]) -> Vec<[u8; 32]> {
     let mut iterration = 0;
 
@@ -192,6 +198,7 @@ pub struct SpellCast {
     spell: String,
 }
 
+#[instrument(skip_all)]
 pub async fn get_single_spell_addresses(
     logs: Vec<(LogNote, Log)>,
     gov_contract: maker_executive_gov::maker_executive_govInstance<
@@ -226,6 +233,7 @@ pub async fn get_single_spell_addresses(
     Ok(spells)
 }
 
+#[instrument(skip_all)]
 pub async fn get_multi_spell_addresses(logs: Vec<(LogNote, Log)>) -> Result<Vec<SpellCast>> {
     let mut spells: Vec<SpellCast> = vec![];
 

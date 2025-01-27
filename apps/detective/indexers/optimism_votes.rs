@@ -21,7 +21,7 @@ use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, v
 use serde::Deserialize;
 use serde_json::Value;
 use std::{sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, instrument};
 
 sol!(
     #[allow(missing_docs)]
@@ -40,16 +40,19 @@ impl OptimismVotesIndexer {
 
 #[async_trait]
 impl Indexer for OptimismVotesIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
-
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         10_000_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::OpOptimismVotes
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -57,6 +60,7 @@ impl Indexer for OptimismVotesIndexer {
 
 #[async_trait]
 impl VotesIndexer for OptimismVotesIndexer {
+    #[instrument(skip_all)]
     async fn process_votes(
         &self,
         indexer: &dao_indexer::Model,
@@ -116,6 +120,7 @@ impl VotesIndexer for OptimismVotesIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn get_votes(
     logs: Vec<(optimism_gov_v_6::VoteCast, Log)>,
     indexer: &dao_indexer::Model,
@@ -166,6 +171,7 @@ async fn get_votes(
     Ok(votes)
 }
 
+#[instrument(skip_all)]
 async fn get_votes_with_params(
     logs: Vec<(optimism_gov_v_6::VoteCastWithParams, Log)>,
     indexer: &dao_indexer::Model,

@@ -23,7 +23,7 @@ use seaorm::{
 };
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, instrument};
 
 sol!(
     #[allow(missing_docs)]
@@ -36,15 +36,19 @@ pub struct FraxAlphaMainnetProposalsIndexer;
 
 #[async_trait]
 impl Indexer for FraxAlphaMainnetProposalsIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         1_000_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::FraxAlphaMainnetProposals
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -52,6 +56,7 @@ impl Indexer for FraxAlphaMainnetProposalsIndexer {
 
 #[async_trait]
 impl ProposalsIndexer for FraxAlphaMainnetProposalsIndexer {
+    #[instrument(skip_all)]
     async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
@@ -116,6 +121,7 @@ impl ProposalsIndexer for FraxAlphaMainnetProposalsIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn data_for_proposal(
     p: (frax_alpha_gov::ProposalCreated, Log),
     rpc: &Arc<ReqwestProvider>,

@@ -20,7 +20,7 @@ use seaorm::{
 };
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-use tracing::{info, warn};
+use tracing::{info, instrument, warn};
 
 sol!(
     #[allow(missing_docs)]
@@ -33,15 +33,19 @@ pub struct ArbitrumCouncilElectionsProposalsAndVotesIndexer;
 
 #[async_trait]
 impl Indexer for ArbitrumCouncilElectionsProposalsAndVotesIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         100_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::ArbitrumCouncilElections
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -49,6 +53,7 @@ impl Indexer for ArbitrumCouncilElectionsProposalsAndVotesIndexer {
 
 #[async_trait]
 impl ProposalsAndVotesIndexer for ArbitrumCouncilElectionsProposalsAndVotesIndexer {
+    #[instrument(skip_all)]
     async fn process_proposals_and_votes(
         &self,
         indexer: &dao_indexer::Model,
@@ -128,6 +133,7 @@ impl ProposalsAndVotesIndexer for ArbitrumCouncilElectionsProposalsAndVotesIndex
     }
 }
 
+#[instrument(skip_all)]
 async fn get_proposals(
     logs: Vec<(arbitrum_security_council_election::ProposalCreated, Log)>,
     rpc: &Arc<ReqwestProvider>,

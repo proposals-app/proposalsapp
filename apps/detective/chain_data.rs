@@ -7,7 +7,7 @@ use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::Deserialize;
 use std::{collections::HashMap, fmt, sync::Arc, time::Duration};
 use tokio::time::sleep;
-use tracing::{event, Level};
+use tracing::{event, instrument, Level};
 
 // Chain-specific provider and scanner configuration
 #[derive(Clone)]
@@ -18,7 +18,7 @@ pub struct ChainConfig {
 }
 
 // Chain-specific provider and scanner configuration
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq, Debug)]
 pub enum Chain {
     Ethereum,
     Arbitrum,
@@ -125,6 +125,7 @@ struct EstimateBlock {
 }
 
 // Blockchain scanner API functions
+#[instrument]
 pub async fn estimate_timestamp(network: Chain, block_number: u64) -> Result<NaiveDateTime> {
     let config = get_chain_config(network)?;
     let provider = config.provider.clone();
@@ -163,7 +164,7 @@ pub async fn estimate_timestamp(network: Chain, block_number: u64) -> Result<Nai
         .naive_utc())
 }
 
-#[allow(dead_code)]
+#[instrument]
 pub async fn estimate_block(network: Chain, timestamp: u64) -> Result<u64> {
     let config = get_chain_config(network)?;
 
@@ -183,7 +184,7 @@ pub async fn estimate_block(network: Chain, timestamp: u64) -> Result<u64> {
         .context("Failed to parse block number")
 }
 
-#[allow(dead_code)]
+#[instrument]
 async fn retry_request_estimate_block(
     api_url: &str,
     api_key: &str,
@@ -231,6 +232,7 @@ async fn retry_request_estimate_block(
     unreachable!() // We should never reach here due to the loop structure
 }
 
+#[instrument(skip(api_key))]
 async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<EstimateTimestamp> {
     let client = ClientBuilder::new(reqwest::Client::new())
         .with(RetryTransientMiddleware::new_with_policy(

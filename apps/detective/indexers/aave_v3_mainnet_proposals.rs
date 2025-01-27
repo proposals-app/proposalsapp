@@ -25,7 +25,7 @@ use seaorm::{
 };
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, instrument};
 
 sol!(
     #[allow(missing_docs)]
@@ -38,15 +38,19 @@ pub struct AaveV3MainnetProposalsIndexer;
 
 #[async_trait]
 impl Indexer for AaveV3MainnetProposalsIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         1_000_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::AaveV3MainnetProposals
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -54,6 +58,7 @@ impl Indexer for AaveV3MainnetProposalsIndexer {
 
 #[async_trait]
 impl ProposalsIndexer for AaveV3MainnetProposalsIndexer {
+    #[instrument(skip_all)]
     async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
@@ -118,6 +123,7 @@ impl ProposalsIndexer for AaveV3MainnetProposalsIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn data_for_proposal(
     p: (aave_v3_gov::ProposalCreated, Log),
     indexer: &dao_indexer::Model,
@@ -247,6 +253,7 @@ async fn data_for_proposal(
     })
 }
 
+#[instrument(skip_all)]
 async fn get_title(hexhash: String) -> Result<String> {
     let mut retries = 0;
     let mut current_gateway = 0;
@@ -317,6 +324,7 @@ async fn get_title(hexhash: String) -> Result<String> {
     }
 }
 
+#[instrument(skip_all)]
 async fn get_discussion(hexhash: String) -> Option<String> {
     let mut retries = 0;
     let mut current_gateway = 0;
@@ -370,6 +378,7 @@ async fn get_discussion(hexhash: String) -> Option<String> {
     None
 }
 
+#[instrument(skip_all)]
 async fn get_body(hexhash: String) -> Result<String> {
     let mut retries = 0;
     let mut current_gateway = 0;

@@ -9,7 +9,7 @@ use tokio::{
     sync::{mpsc, oneshot, Semaphore},
     time::sleep,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, instrument, warn};
 
 use crate::{SNAPSHOT_MAX_CONCURRENT_REQUESTS, SNAPSHOT_MAX_QUEUE, SNAPSHOT_MAX_RETRIES};
 
@@ -27,7 +27,7 @@ impl RateLimiter {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SnapshotApiConfig {
     pub max_retries: usize,
     pub concurrency: usize,
@@ -90,6 +90,7 @@ impl SnapshotApiHandler {
         api_handler
     }
 
+    #[instrument(skip(self))]
     pub async fn fetch<T>(&self, url: &str, query: String) -> Result<T>
     where
         T: DeserializeOwned,
@@ -109,6 +110,7 @@ impl SnapshotApiHandler {
         Ok(serde_json::from_str(&response)?)
     }
 
+    #[instrument(skip(self, receiver))]
     async fn run_queue(self, mut receiver: mpsc::Receiver<Job>) {
         while let Some(job) = receiver.recv().await {
             let permit = self.semaphore.clone().acquire_owned().await.unwrap();
@@ -128,6 +130,7 @@ impl SnapshotApiHandler {
         }
     }
 
+    #[instrument(skip(client, rate_limiter))]
     async fn execute_request(
         client: &Client,
         url: &str,
@@ -186,6 +189,7 @@ impl SnapshotApiHandler {
         }
     }
 
+    #[instrument(skip(rate_limiter))]
     fn update_rate_limit_info(response: &reqwest::Response, rate_limiter: &RateLimiter) {
         if let Some(remaining) = response.headers().get("ratelimit-remaining") {
             if let Ok(remaining) = remaining.to_str().unwrap_or("0").parse::<u32>() {
@@ -206,6 +210,7 @@ impl SnapshotApiHandler {
         debug!("Rate limit updated");
     }
 
+    #[instrument(skip(rate_limiter))]
     async fn wait_for_rate_limit(rate_limiter: &RateLimiter) {
         const RATE_LIMIT_THRESHOLD: u32 = 30;
         const MIN_WAIT_DURATION: Duration = Duration::from_millis(100);

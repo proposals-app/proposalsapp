@@ -18,7 +18,7 @@ use seaorm::{
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, instrument};
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponseProposals {
@@ -76,18 +76,19 @@ impl SnapshotProposalsIndexer {
 
 #[async_trait]
 impl Indexer for SnapshotProposalsIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
-
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         1000
     }
-
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::SnapshotProposals
     }
-
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(30 * 60)
     }
@@ -95,6 +96,7 @@ impl Indexer for SnapshotProposalsIndexer {
 
 #[async_trait]
 impl ProposalsIndexer for SnapshotProposalsIndexer {
+    #[instrument(skip_all)]
     async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
@@ -237,6 +239,7 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn parse_proposals(
     graphql_proposals: Vec<GraphQLProposal>,
     indexer: &dao_indexer::Model,
@@ -351,6 +354,7 @@ struct GraphQLVote {
     ipfs: String,
 }
 
+#[instrument(skip_all)]
 async fn refresh_shutter_votes(
     indexer: dao_indexer::Model,
     snapshot_api: Arc<SnapshotApiHandler>,
@@ -480,6 +484,7 @@ async fn refresh_shutter_votes(
     Ok(())
 }
 
+#[instrument(skip_all)]
 async fn sanitize(
     indexer: &dao_indexer::Model,
     space: &str,

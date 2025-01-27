@@ -1,5 +1,5 @@
-#![allow(clippy::too_many_arguments)]
 #![warn(unused_extern_crates)]
+#![allow(clippy::too_many_arguments)]
 
 use anyhow::{bail, Result};
 use axum::{routing::get, Router};
@@ -89,7 +89,6 @@ lazy_static::lazy_static! {
 }
 
 #[tokio::main]
-#[instrument]
 async fn main() -> Result<()> {
     dotenv().ok();
     let _tracing = setup_tracing().await?;
@@ -233,6 +232,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip(rx, queued_indexers, db))]
 fn create_job_consumer(
     mut rx: mpsc::Receiver<(dao_indexer::Model, dao::Model)>,
     queued_indexers: Arc<Mutex<HashSet<Uuid>>>,
@@ -331,6 +331,7 @@ fn create_job_consumer(
     })
 }
 
+#[instrument]
 async fn process_job(indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult> {
     match indexer.indexer_type {
         IndexerType::Proposals => {
@@ -375,6 +376,7 @@ async fn process_job(indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<P
     }
 }
 
+#[instrument(skip(db, result))]
 async fn store_process_results(
     db: &DatabaseConnection,
     indexer: &dao_indexer::Model,
@@ -408,6 +410,7 @@ async fn store_process_results(
     Ok(())
 }
 
+#[instrument]
 fn get_proposals_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn ProposalsIndexer>> {
     match indexer_variant {
         IndexerVariant::SnapshotProposals => Some(Box::new(SnapshotProposalsIndexer::new(
@@ -448,6 +451,7 @@ fn get_proposals_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn Pro
     }
 }
 
+#[instrument]
 fn get_votes_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn VotesIndexer>> {
     match indexer_variant {
         IndexerVariant::SnapshotVotes => Some(Box::new(SnapshotVotesIndexer::new(
@@ -479,6 +483,7 @@ fn get_votes_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn VotesIn
     }
 }
 
+#[instrument]
 fn get_proposals_and_votes_indexer(
     indexer_variant: &IndexerVariant,
 ) -> Option<Box<dyn indexer::ProposalsAndVotesIndexer>> {
@@ -493,6 +498,7 @@ fn get_proposals_and_votes_indexer(
     }
 }
 
+#[instrument]
 fn get_voting_power_indexer(
     indexer_variant: &IndexerVariant,
 ) -> Option<Box<dyn VotingPowerIndexer>> {
@@ -502,6 +508,7 @@ fn get_voting_power_indexer(
     }
 }
 
+#[instrument]
 fn get_delegation_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn DelegationIndexer>> {
     match indexer_variant {
         IndexerVariant::ArbArbitrumDelegation => Some(Box::new(ArbitrumDelegationsIndexer)),
@@ -509,6 +516,7 @@ fn get_delegation_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn De
     }
 }
 
+#[instrument]
 fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn indexer::Indexer> {
     match indexer_variant {
         IndexerVariant::SnapshotProposals => {

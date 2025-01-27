@@ -24,7 +24,7 @@ use seaorm::{
 };
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-use tracing::{info, warn};
+use tracing::{info, instrument, warn};
 
 sol!(
     #[allow(missing_docs)]
@@ -37,15 +37,19 @@ pub struct ArbitrumTreasuryProposalsIndexer;
 
 #[async_trait]
 impl Indexer for ArbitrumTreasuryProposalsIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         10_000_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::ArbTreasuryArbitrumProposals
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -53,6 +57,7 @@ impl Indexer for ArbitrumTreasuryProposalsIndexer {
 
 #[async_trait]
 impl ProposalsIndexer for ArbitrumTreasuryProposalsIndexer {
+    #[instrument(skip_all)]
     async fn process_proposals(
         &self,
         indexer: &dao_indexer::Model,
@@ -117,6 +122,7 @@ impl ProposalsIndexer for ArbitrumTreasuryProposalsIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn data_for_proposal(
     p: (arbitrum_treasury_gov::ProposalCreated, Log),
     rpc: &Arc<ReqwestProvider>,
@@ -294,6 +300,7 @@ async fn data_for_proposal(
     })
 }
 
+#[instrument(skip_all)]
 fn extract_title(description: &str) -> String {
     let mut lines = description
         .split('\n')
@@ -318,6 +325,7 @@ fn extract_title(description: &str) -> String {
     }
 }
 
+#[instrument(skip_all)]
 async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
     use sea_orm::{DbBackend, Statement};
 

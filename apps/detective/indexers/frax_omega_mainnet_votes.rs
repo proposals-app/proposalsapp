@@ -16,7 +16,7 @@ use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use std::{sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, instrument};
 
 sol!(
     #[allow(missing_docs)]
@@ -35,15 +35,19 @@ impl FraxOmegaMainnetVotesIndexer {
 
 #[async_trait]
 impl Indexer for FraxOmegaMainnetVotesIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         100_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::FraxOmegaMainnetVotes
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -51,6 +55,7 @@ impl Indexer for FraxOmegaMainnetVotesIndexer {
 
 #[async_trait]
 impl VotesIndexer for FraxOmegaMainnetVotesIndexer {
+    #[instrument(skip_all)]
     async fn process_votes(
         &self,
         indexer: &dao_indexer::Model,
@@ -110,6 +115,7 @@ impl VotesIndexer for FraxOmegaMainnetVotesIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn get_votes(
     logs: Vec<(VoteCast, Log)>,
     indexer: &dao_indexer::Model,
@@ -165,6 +171,7 @@ async fn get_votes(
     Ok(votes)
 }
 
+#[instrument(skip_all)]
 async fn get_votes_with_params(
     logs: Vec<(VoteCastWithParams, Log)>,
     indexer: &dao_indexer::Model,

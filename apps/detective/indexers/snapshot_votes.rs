@@ -13,7 +13,7 @@ use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, v
 use serde::Deserialize;
 use serde_json::Value;
 use std::{sync::Arc, time::Duration};
-use tracing::{error, info};
+use tracing::{error, info, instrument};
 
 #[derive(Debug, Deserialize)]
 struct GraphQLResponse {
@@ -57,16 +57,19 @@ impl SnapshotVotesIndexer {
 
 #[async_trait]
 impl Indexer for SnapshotVotesIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
-
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         1000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::SnapshotVotes
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(30 * 60)
     }
@@ -74,6 +77,7 @@ impl Indexer for SnapshotVotesIndexer {
 
 #[async_trait]
 impl VotesIndexer for SnapshotVotesIndexer {
+    #[instrument(skip_all)]
     async fn process_votes(
         &self,
         indexer: &dao_indexer::Model,
@@ -86,12 +90,9 @@ impl VotesIndexer for SnapshotVotesIndexer {
         let proposals = proposal::Entity::find()
             .filter(proposal::Column::DaoId.eq(indexer.dao_id))
             .filter(
-                proposal::Column::TimeEnd.gt(DateTime::from_timestamp(
-                    indexer.index.into(),
-                    0,
-                )
-                .unwrap()
-                .naive_utc()),
+                proposal::Column::TimeEnd.gt(DateTime::from_timestamp(indexer.index.into(), 0)
+                    .unwrap()
+                    .naive_utc()),
             )
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
@@ -181,6 +182,7 @@ impl VotesIndexer for SnapshotVotesIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn parse_votes(
     graphql_votes: Vec<GraphQLVote>,
     indexer: &dao_indexer::Model,

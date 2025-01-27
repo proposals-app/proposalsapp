@@ -16,7 +16,7 @@ use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
 use seaorm::{dao, dao_indexer, delegation, sea_orm_active_enums::IndexerVariant};
 use std::{sync::Arc, time::Duration};
-use tracing::info;
+use tracing::{info, instrument};
 
 sol!(
     #[allow(missing_docs)]
@@ -29,15 +29,19 @@ pub struct ArbitrumDelegationsIndexer;
 
 #[async_trait]
 impl Indexer for ArbitrumDelegationsIndexer {
+    #[instrument(skip_all)]
     fn min_refresh_speed(&self) -> i32 {
         1
     }
+    #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
         10_000_000
     }
+    #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
         IndexerVariant::ArbArbitrumDelegation
     }
+    #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
         Duration::from_secs(5 * 60)
     }
@@ -45,6 +49,7 @@ impl Indexer for ArbitrumDelegationsIndexer {
 
 #[async_trait]
 impl DelegationIndexer for ArbitrumDelegationsIndexer {
+    #[instrument(skip_all)]
     async fn process_delegations(
         &self,
         indexer: &dao_indexer::Model,
@@ -89,6 +94,7 @@ impl DelegationIndexer for ArbitrumDelegationsIndexer {
     }
 }
 
+#[instrument(skip_all)]
 async fn get_delegations(
     logs: Vec<(DelegateChanged, Log)>,
     rpc: &Arc<ReqwestProvider>,
