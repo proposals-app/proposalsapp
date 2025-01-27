@@ -28,7 +28,7 @@ mod metrics;
 mod models;
 
 const WAIT_FIRST: bool = true;
-const FAST_INDEX: Duration = Duration::from_secs(60);
+const FAST_INDEX: Duration = Duration::from_secs(60 * 5);
 const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 
 lazy_static::lazy_static! {
