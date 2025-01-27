@@ -137,9 +137,13 @@ impl DiscourseApi {
         let url = format!("{}{}", self.base_url, endpoint);
 
         if priority {
-            self.metrics.queue_size_priority.add(1, &[]);
+            self.metrics
+                .queue_size_priority
+                .add(1, &[KeyValue::new("url", url.clone())]);
         } else {
-            self.metrics.queue_size_normal.add(1, &[]);
+            self.metrics
+                .queue_size_normal
+                .add(1, &[KeyValue::new("url", url.clone())]);
         }
 
         // Check if there's already a pending request for this endpoint
@@ -201,15 +205,19 @@ impl DiscourseApi {
 
             // Process all priority jobs first
             while let Some(priority_job) = priority_queue.pop_front() {
-                self.process_job(priority_job, true).await;
-                self.metrics.queue_size_priority.add(-1, &[]);
+                self.process_job(&priority_job, true).await;
+                self.metrics
+                    .queue_size_priority
+                    .add(-1, &[KeyValue::new("url", priority_job.url)]);
             }
 
             // Process a batch of normal jobs
             for _ in 0..NORMAL_JOBS_BATCH_SIZE {
                 if let Some(normal_job) = normal_queue.pop_front() {
-                    self.process_job(normal_job, false).await;
-                    self.metrics.queue_size_normal.add(-1, &[]);
+                    self.process_job(&normal_job, false).await;
+                    self.metrics
+                        .queue_size_normal
+                        .add(-1, &[KeyValue::new("url", normal_job.url)]);
                 } else {
                     break;
                 }
@@ -221,7 +229,7 @@ impl DiscourseApi {
     }
 
     #[instrument(skip(self, job), fields(url = %job.url, priority = is_priority))]
-    async fn process_job(&self, job: Job, is_priority: bool) {
+    async fn process_job(&self, job: &Job, is_priority: bool) {
         let start_time = std::time::Instant::now();
 
         // Record total requests metric
