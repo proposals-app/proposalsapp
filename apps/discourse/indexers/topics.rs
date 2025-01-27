@@ -76,7 +76,7 @@ impl TopicIndexer {
                     let mut num_topics = 0;
 
                     for topic in &response.topic_list.topics {
-                        if recent && topic.bumped_at < one_day_ago {
+                        if recent && topic.last_posted_at < one_day_ago {
                             info!("Reached topics older than one day. Stopping.");
                             has_more = false;
                         }
