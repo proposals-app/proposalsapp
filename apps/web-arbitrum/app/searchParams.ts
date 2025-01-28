@@ -12,7 +12,7 @@ export enum ViewEnum {
 }
 
 export enum VotesFilterEnum {
-  //  ALL = 'all',
+  ALL = 'all',
   FIFTY_THOUSAND = '50k',
   FIVE_HUNDRED_THOUSAND = '500k',
   FIVE_MILLION = '5m',

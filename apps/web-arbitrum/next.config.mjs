@@ -1,4 +1,5 @@
 import withSerwistInit from '@serwist/next';
+import { resolve } from 'path';
 
 const revision = crypto.randomUUID();
 
@@ -26,6 +27,7 @@ const nextConfig = {
     ];
   },
   skipTrailingSlashRedirect: true,
+  cacheHandler: resolve('./cache-handler.js'),
   experimental: {
     reactCompiler: true,
     serverActions: {

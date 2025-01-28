@@ -1,10 +1,6 @@
 import type { Metadata, Viewport } from 'next';
-import dynamic from 'next/dynamic';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '../styles/globals.css';
-import { PHProvider } from './providers/posthog-provider';
-import { SessionProvider } from './providers/session-provider';
-import { validateRequest } from '@/lib/auth';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -36,30 +32,16 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-const PostHogPageView = dynamic(
-  () => import('./providers/posthog-pageview'),
-  {}
-);
-
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await validateRequest();
-
   return (
     <html lang='en' suppressHydrationWarning>
-      <SessionProvider value={session}>
-        <NuqsAdapter>
-          <PHProvider>
-            <body>
-              <PostHogPageView />
-              {children}
-            </body>
-          </PHProvider>
-        </NuqsAdapter>
-      </SessionProvider>
+      <NuqsAdapter>
+        <body>{children}</body>
+      </NuqsAdapter>
     </html>
   );
 }

@@ -3,17 +3,13 @@ import { DiscoursePost, Selectable, Vote } from '@proposalsapp/db';
 import { notFound } from 'next/navigation';
 import { PostItem } from './items/PostItem';
 import { VoteItem } from './items/VoteItem';
-import { LazyLoadTrigger } from './LazyLoadTrigger';
 import { GroupReturnType } from '../../actions';
 import { getFeed_cached } from './actions';
-
-// Cached version of getFeedForGroup
 
 export default async function Feed({
   group,
   commentsFilter,
   votesFilter,
-  //  page = 1,
 }: {
   group: GroupReturnType;
   commentsFilter: boolean;
@@ -73,7 +69,6 @@ export default async function Feed({
           );
         }
       })}
-      {feed.hasMore && <LazyLoadTrigger />}
     </div>
   );
 }
