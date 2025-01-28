@@ -133,6 +133,6 @@ export const getAuthor_cached = unstable_cache(
   async (groupId: string) => {
     return await getAuthor(groupId);
   },
-  ['get-author'],
+  [],
   { revalidate: 60 * 5, tags: ['get-author'] }
 );

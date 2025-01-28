@@ -1,5 +1,6 @@
 const { CacheHandler } = require('@neshca/cache-handler');
-const createRedisHandler = require('@neshca/cache-handler/redis-stack').default;
+const createRedisHandler =
+  require('@neshca/cache-handler/redis-strings').default;
 const createLruHandler = require('@neshca/cache-handler/local-lru').default;
 const { createClient } = require('redis');
 const { PHASE_PRODUCTION_BUILD } = require('next/constants');
@@ -58,7 +59,6 @@ CacheHandler.onCreation(async () => {
   /** @type {import("@neshca/cache-handler").Handler | null} */
   let redisHandler = null;
   if (client?.isReady) {
-    // Create the `redis-stack` Handler if the client is available and connected.
     redisHandler = createRedisHandler({
       client,
       keyPrefix: 'prefix:',

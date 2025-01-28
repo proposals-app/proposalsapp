@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '../styles/globals.css';
+import Head from 'next/head';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -39,9 +40,12 @@ export default async function RootLayout({
 }) {
   return (
     <html lang='en' suppressHydrationWarning>
-      <NuqsAdapter>
-        <body>{children}</body>
-      </NuqsAdapter>
+      <Head>
+        <link rel='icon' href='/favicon.ico' />
+      </Head>
+      <body>
+        <NuqsAdapter>{children}</NuqsAdapter>
+      </body>
     </html>
   );
 }

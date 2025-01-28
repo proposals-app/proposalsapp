@@ -106,7 +106,7 @@ export const getGroups_cached = unstable_cache(
   async (daoSlug: string, page: number, itemsPerPage: number) => {
     return await getGroups(daoSlug, page, itemsPerPage);
   },
-  ['get-groups'],
+  [],
   { revalidate: 60 * 5, tags: ['get-groups'] }
 );
 

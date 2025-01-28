@@ -16,7 +16,7 @@ const getDaoBySlug = unstable_cache(
       .selectAll()
       .executeTakeFirst();
   },
-  ['dao-by-slug'],
+  [],
   { revalidate: 3600, tags: ['dao'] } // Cache for 1 hour
 );
 

@@ -209,7 +209,6 @@ impl DbHandler {
             .filter(
                 sea_orm::Condition::all()
                     .add(seaorm::discourse_topic::Column::ExternalId.eq(topic.id))
-                    .add(seaorm::discourse_topic::Column::CategoryId.eq(topic.category_id))
                     .add(seaorm::discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .one(&self.conn)

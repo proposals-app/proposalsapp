@@ -15,8 +15,8 @@ const getCachedEvents = unstable_cache(
   async (group: GroupReturnType) => {
     return await extractEvents(group);
   },
-  ['extractEvents'],
-  { revalidate: 60 * 5, tags: ['extractEvents'] }
+  [],
+  { revalidate: 60 * 5, tags: ['extract-events'] }
 );
 
 export async function Timeline({

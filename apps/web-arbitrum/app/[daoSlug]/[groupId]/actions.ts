@@ -339,7 +339,7 @@ export const getGroup_cached = unstable_cache(
   async (daoSlug: string, groupId: string) => {
     return await getGroup(daoSlug, groupId);
   },
-  ['get-group'],
+  [],
   { revalidate: 60 * 5, tags: ['get-group'] }
 );
 
@@ -347,7 +347,7 @@ export const getBodies_cached = unstable_cache(
   async (groupId: string) => {
     return await getBodies(groupId);
   },
-  ['get-bodies'],
+  [],
   { revalidate: 60 * 5, tags: ['get-bodies'] }
 );
 
@@ -355,7 +355,7 @@ export const getTotalVersions_cached = unstable_cache(
   async (groupId: string) => {
     return await getTotalVersions(groupId);
   },
-  ['get-total-versions'],
+  [],
   { revalidate: 60 * 5, tags: ['get-total-versions'] }
 );
 
