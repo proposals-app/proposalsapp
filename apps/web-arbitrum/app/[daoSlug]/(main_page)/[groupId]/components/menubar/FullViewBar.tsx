@@ -76,8 +76,8 @@ export const FullViewBar = () => {
   return (
     <div
       ref={fullViewBarRef}
-      className={`mt-4 w-full self-center px-2 transition-opacity duration-300 ${
-        view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0' }`}
+      className={`mt-4 min-w-4xl self-center overflow-visible px-2 transition-opacity duration-300
+        ${view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
         className='border-neutral-350 flex w-full items-center justify-between gap-2 rounded-full

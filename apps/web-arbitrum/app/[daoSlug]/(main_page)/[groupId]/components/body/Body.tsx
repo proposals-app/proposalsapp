@@ -54,7 +54,7 @@ export default async function Body({
       : markdownToHtml(visibleBody.content);
 
   return (
-    <div className='w-full p-6'>
+    <div className='w-full'>
       <StickyHeader
         bodies={bodies}
         group={group}

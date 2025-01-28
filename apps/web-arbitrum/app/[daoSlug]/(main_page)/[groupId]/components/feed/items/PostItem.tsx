@@ -206,16 +206,21 @@ const PostContent = ({
                 </div>
               </Tooltip.Trigger>
               <Tooltip.Content
-                className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
+                className='max-w-48 rounded border border-neutral-200 bg-white p-3 text-left text-sm
                   text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
                   dark:text-neutral-100'
                 sideOffset={5}
               >
-                {' '}
-                <p>
-                  Liked by:{' '}
-                  {likedUsers.length > 0 ? likedUsers.join(', ') : 'No one yet'}
-                </p>
+                <div className='flex flex-col gap-1'>
+                  <span className='font-semibold'>Liked by:</span>
+                  {likedUsers.length > 0 ? (
+                    likedUsers.map((user, index) => (
+                      <span key={index}>{user}</span>
+                    ))
+                  ) : (
+                    <span>No one yet</span>
+                  )}
+                </div>
               </Tooltip.Content>
             </Tooltip.Root>
           ) : (

@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 import { ReactNode } from 'react';
 import { NavBar } from './components/NavBar';
 import { ThemeProvider } from '../components/theme-provider';
-import { ModeToggle } from '../components/theme-switch';
 import { UpdateManifest } from '../components/update-manifest';
 
 // Define a cached function to fetch the DAO data
@@ -39,12 +38,10 @@ export default async function DaoLayout({
   return (
     <ThemeProvider daoSlug={daoSlug}>
       <UpdateManifest daoSlug={daoSlug} />
-      <div className='absolute top-4 right-4 z-50'>
-        <ModeToggle />
-      </div>
-      <div className='bg-red flex min-h-screen w-full flex-row bg-neutral-50 dark:bg-neutral-950'>
+
+      <div className='flex min-h-screen w-full flex-row bg-neutral-50 dark:bg-neutral-950'>
         <NavBar dao={dao} daoSlug={daoSlug} />
-        <div className='flex w-full justify-between'>{children}</div>
+        <div className='flex w-full pl-20'>{children}</div>
       </div>
     </ThemeProvider>
   );

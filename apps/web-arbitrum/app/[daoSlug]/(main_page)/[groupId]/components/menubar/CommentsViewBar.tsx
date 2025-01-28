@@ -33,8 +33,8 @@ export const CommentsViewBar = () => {
 
   return (
     <div
-      className={`fixed top-0 z-50 flex w-full max-w-[90%] justify-center self-center px-4 pt-24
-        transition-transform duration-300 md:max-w-[75%] lg:max-w-[48%] ${
+      className={`fixed top-0 z-50 flex w-4xl justify-center self-center px-4 pt-24
+        transition-transform duration-300 ${
         view === ViewEnum.COMMENTS ? 'translate-y-0' : '-translate-y-full' }`}
     >
       <div
@@ -103,7 +103,6 @@ export const CommentsViewBar = () => {
                   className='border-neutral-350 flex h-8 w-[200px] items-center justify-between rounded-full
                     border bg-neutral-50 px-4 text-sm transition-colors hover:bg-neutral-100
                     dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700'
-                  aria-expanded={false}
                 >
                   {voteFilters.find((filter) => filter.value === votesFilter)
                     ?.label || 'Select vote filter...'}
@@ -113,7 +112,9 @@ export const CommentsViewBar = () => {
               <Popover.Content
                 className='border-neutral-350 w-[200px] rounded-md border bg-neutral-50 p-1 shadow-lg
                   dark:border-neutral-700 dark:bg-neutral-800'
+                align='start'
                 sideOffset={5}
+                alignOffset={-100}
               >
                 <div className='space-y-1'>
                   {voteFilters.map((filter) => (

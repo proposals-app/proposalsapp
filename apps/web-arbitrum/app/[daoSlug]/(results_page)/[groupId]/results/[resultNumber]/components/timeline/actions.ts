@@ -1,4 +1,4 @@
-import { GroupReturnType } from '@/app/[daoSlug]/[groupId]/actions';
+import { GroupReturnType } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import {
   db,
   IndexerVariant,

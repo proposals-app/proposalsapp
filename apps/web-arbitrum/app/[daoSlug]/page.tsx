@@ -3,7 +3,7 @@ import { after } from 'next/server';
 import { Suspense } from 'react';
 import { LazyLoadTrigger } from './components/LazyLoadTrigger';
 import { getGroups_cached } from './actions';
-import { getGroup_cached } from './[groupId]/actions';
+import { getGroup_cached } from './(main_page)/[groupId]/actions';
 
 export default async function ListPage({
   params,
@@ -58,7 +58,7 @@ export default async function ListPage({
   });
 
   return (
-    <div className='flex min-h-screen w-full flex-row pl-20'>
+    <div className='flex min-h-screen w-full flex-row'>
       <div className='w-full p-8'>
         <h1 className='mb-8 text-4xl font-bold text-neutral-700 dark:text-neutral-100'>
           {daoName || daoSlug}

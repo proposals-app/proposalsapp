@@ -34,8 +34,8 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
 
   return (
     <div
-      className={`fixed bottom-0 z-50 flex w-full max-w-[90%] justify-center self-center px-4 pb-4
-        transition-transform duration-300 md:max-w-[75%] lg:max-w-[48%] ${
+      className={`fixed bottom-0 z-50 flex w-4xl justify-center self-center px-4 pb-4
+        transition-transform duration-300 ${
         view === ViewEnum.BODY ? 'translate-y-0' : 'translate-y-full' }`}
     >
       <div

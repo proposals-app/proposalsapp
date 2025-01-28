@@ -33,7 +33,7 @@ export const MenuBar = ({ totalVersions }: { totalVersions: number }) => {
   );
 
   return (
-    <div className='w-full'>
+    <div className='flex w-full justify-center'>
       <FullViewBar />
       {view == ViewEnum.BODY && <BodyViewBar totalVersions={totalVersions} />}
       {view == ViewEnum.COMMENTS && <CommentsViewBar />}

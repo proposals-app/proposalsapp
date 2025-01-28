@@ -41,7 +41,7 @@ export default async function Feed({
   let previousPostNumber: number | undefined;
 
   return (
-    <div className='mt-6 w-full p-6'>
+    <div className='w-full'>
       {itemsWithPlaceholders.map((item, index) => {
         if (item.type === 'post') {
           const postItem = (

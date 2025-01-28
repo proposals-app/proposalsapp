@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { getGroup_cached } from '../../actions';
 import { Header } from './components/Header';
 import { Results, ResultsLoading } from './components/Results';
 import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
 import { getAuthor_cached } from './actions';
+import { getGroup_cached } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 
 export default async function ResultPage({
   params,
@@ -38,13 +38,13 @@ export default async function ResultPage({
         itemId={groupId}
       />
 
-      <div className='z-10 hidden lg:flex'>
-        <Suspense fallback={<LoadingTimeline />}>
-          <Timeline group={group} selectedResult={proposalIndex + 1} />
-        </Suspense>
-      </div>
+      <Suspense fallback={<LoadingTimeline />}>
+        <Timeline group={group} selectedResult={proposalIndex + 1} />
+      </Suspense>
 
-      <div className={'flex w-full grow pt-[104px] pb-16 pl-[175px]'}>
+      <div
+        className={'flex w-full grow -translate-x-[1px] -translate-y-2 py-28'}
+      >
         <div className='h-full w-full pr-4'>
           <div
             className='flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-lg border

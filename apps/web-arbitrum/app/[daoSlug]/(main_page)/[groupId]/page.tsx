@@ -7,7 +7,7 @@ import Feed, { FeedLoading } from './components/feed/Feed';
 import { MenuBar } from './components/menubar/MenuBar';
 import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
 
-export default async function ProposalPage({
+export default async function GroupPage({
   params,
   searchParams,
 }: {
@@ -37,35 +37,27 @@ export default async function ProposalPage({
   }
 
   return (
-    <div className='flex min-h-screen w-full flex-row'>
-      <div className='flex w-full justify-between lg:pr-80'>
-        <div className='mx-auto flex w-2/3 flex-col justify-center'>
-          <Suspense fallback={<BodyLoading />}>
-            <Body group={group} version={version ?? 0} diff={diff} />
-          </Suspense>
+    <div className='flex w-full flex-col items-center pt-10'>
+      <div className='flex max-w-3xl flex-col overflow-visible'>
+        <Suspense fallback={<BodyLoading />}>
+          <Body group={group} version={version ?? 0} diff={diff} />
+        </Suspense>
 
-          <MenuBar totalVersions={totalVersions ?? 1} />
+        <MenuBar totalVersions={totalVersions ?? 1} />
 
-          <Suspense fallback={<FeedLoading />}>
-            <Feed
-              group={group}
-              commentsFilter={comments}
-              votesFilter={votes}
-              page={page ? Number(page) : 1}
-            />
-          </Suspense>
-        </div>
-
-        <div className='hidden lg:flex'>
-          <Suspense fallback={<LoadingTimeline />}>
-            <Timeline
-              group={group}
-              commentsFilter={comments}
-              votesFilter={votes}
-            />
-          </Suspense>
-        </div>
+        <Suspense fallback={<FeedLoading />}>
+          <Feed
+            group={group}
+            commentsFilter={comments}
+            votesFilter={votes}
+            page={page ? Number(page) : 1}
+          />
+        </Suspense>
       </div>
+
+      <Suspense fallback={<LoadingTimeline />}>
+        <Timeline group={group} commentsFilter={comments} votesFilter={votes} />
+      </Suspense>
     </div>
   );
 }

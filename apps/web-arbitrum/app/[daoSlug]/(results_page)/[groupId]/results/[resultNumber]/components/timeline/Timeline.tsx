@@ -1,4 +1,3 @@
-import { GroupReturnType } from '@/app/[daoSlug]/[groupId]/actions';
 import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { extractEvents, TimelineEventType } from './actions';
@@ -9,6 +8,7 @@ import {
   VotesVolumeEvent,
 } from './OtherEvents';
 import { ResultEvent } from './ResultEvent';
+import { GroupReturnType } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 
 // Cache the extractEvents function
 const getCachedEvents = unstable_cache(
@@ -48,7 +48,7 @@ export async function Timeline({
   );
 
   return (
-    <div className='fixed top-0 left-28 flex h-screen w-80 flex-col items-end justify-start pt-24'>
+    <div className='fixed top-24 left-28 z-20 flex h-screen w-44 flex-col items-end justify-start'>
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Conditionally render the top SVG */}
         {isProposalEnded && (
@@ -162,10 +162,7 @@ export async function Timeline({
 
 export function LoadingTimeline() {
   return (
-    <div
-      className='fixed top-0 left-20 flex h-screen w-80 flex-col items-end justify-start pt-24
-        pl-4'
-    >
+    <div className='fixed top-24 left-28 z-20 flex h-screen w-44 flex-col items-end justify-start'>
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
         <div className='absolute top-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>

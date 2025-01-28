@@ -33,7 +33,7 @@ export async function PostedTime({
                   : ''
                 }`}
             >
-              <div className='flex flex-col'>
+              <div className='flex flex-col text-xs'>
                 <span className='text-neutral-700 dark:text-neutral-100'>
                   {label}
                 </span>
