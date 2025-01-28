@@ -10,11 +10,11 @@ use reqwest::{
 use serde::de::DeserializeOwned;
 use std::{
     collections::VecDeque,
-    sync::{Arc, Mutex},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use std::{
     collections::{HashMap, HashSet},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    sync::{Arc, Mutex},
 };
 use tokio::sync::mpsc;
 use tokio::{sync::oneshot, time::sleep};
@@ -42,6 +42,8 @@ pub struct DiscourseApi {
     pub base_url: String,
     forbidden_urls: Arc<Mutex<HashSet<(String, u64)>>>,
     pending_requests: Arc<Mutex<HashMap<String, PendingRequest>>>,
+    priority_queue: Arc<Mutex<VecDeque<Job>>>,
+    normal_queue: Arc<Mutex<VecDeque<Job>>>,
 }
 
 struct PendingRequest {
@@ -67,6 +69,8 @@ impl DiscourseApi {
             .expect("Failed to build HTTP client");
 
         let (sender, receiver) = mpsc::channel(DEFAULT_QUEUE_SIZE);
+        let priority_queue = Arc::new(Mutex::new(VecDeque::with_capacity(DEFAULT_QUEUE_SIZE)));
+        let normal_queue = Arc::new(Mutex::new(VecDeque::with_capacity(DEFAULT_QUEUE_SIZE)));
 
         let api_handler = Self {
             client,
@@ -76,6 +80,8 @@ impl DiscourseApi {
             base_url: base_url.clone(),
             forbidden_urls: Arc::new(Mutex::new(HashSet::new())),
             pending_requests: Arc::new(Mutex::new(HashMap::new())),
+            priority_queue: priority_queue.clone(),
+            normal_queue: normal_queue.clone(),
         };
 
         // Spawn the queue runner
@@ -124,6 +130,11 @@ impl DiscourseApi {
         headers.insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1"));
 
         (headers, cookie_jar)
+    }
+
+    #[instrument(skip(self))]
+    pub fn is_priority_queue_empty(&self) -> bool {
+        self.priority_queue.lock().unwrap().is_empty()
     }
 
     #[instrument(skip(self), fields(endpoint = %endpoint, priority = priority))]
@@ -193,18 +204,20 @@ impl DiscourseApi {
 
     #[instrument(skip(self, receiver))]
     async fn run_queue(self, mut receiver: mpsc::Receiver<Job>) {
-        let mut priority_queue = VecDeque::new();
-        let mut normal_queue = VecDeque::new();
-
         while let Some(job) = receiver.recv().await {
             if job.priority {
-                priority_queue.push_back(job);
+                let mut pq = self.priority_queue.lock().unwrap();
+                pq.push_back(job);
             } else {
-                normal_queue.push_back(job);
+                let mut nq = self.normal_queue.lock().unwrap();
+                nq.push_back(job);
             }
 
             // Process all priority jobs first
-            while let Some(priority_job) = priority_queue.pop_front() {
+            while let Some(priority_job) = {
+                let mut pq = self.priority_queue.lock().unwrap();
+                pq.pop_front()
+            } {
                 self.process_job(&priority_job, true).await;
                 self.metrics
                     .queue_size_priority
@@ -213,7 +226,10 @@ impl DiscourseApi {
 
             // Process a batch of normal jobs
             for _ in 0..NORMAL_JOBS_BATCH_SIZE {
-                if let Some(normal_job) = normal_queue.pop_front() {
+                if let Some(normal_job) = {
+                    let mut nq = self.normal_queue.lock().unwrap();
+                    nq.pop_front()
+                } {
                     self.process_job(&normal_job, false).await;
                     self.metrics
                         .queue_size_normal

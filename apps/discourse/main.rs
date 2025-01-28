@@ -27,7 +27,6 @@ mod indexers;
 mod metrics;
 mod models;
 
-const FAST_INDEX: Duration = Duration::from_secs(60);
 const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
 
 lazy_static::lazy_static! {
@@ -234,11 +233,11 @@ async fn main() -> Result<()> {
         let dao_discourse_newcontent_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let newcontent_handle = tokio::spawn(async move {
-            let start = Instant::now() + Duration::from_secs(10);
-            let mut interval = interval_at(start, FAST_INDEX);
-
-            interval.tick().await;
             loop {
+                while !api_handler.is_priority_queue_empty() {
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
@@ -308,7 +307,9 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
-                interval.tick().await;
+
+                // Wait for a short duration before checking again
+                tokio::time::sleep(Duration::from_secs(1)).await;
             }
         });
 
