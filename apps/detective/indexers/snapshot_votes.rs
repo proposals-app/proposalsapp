@@ -87,6 +87,8 @@ impl VotesIndexer for SnapshotVotesIndexer {
 
         let db = DatabaseStore::connect().await?;
 
+        let proposal_limit = (indexer.speed / 10).max(10);
+
         let proposals = proposal::Entity::find()
             .filter(proposal::Column::DaoId.eq(indexer.dao_id))
             .filter(
@@ -97,7 +99,7 @@ impl VotesIndexer for SnapshotVotesIndexer {
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
             .order_by(proposal::Column::TimeEnd, sea_orm::Order::Asc)
-            .limit(indexer.speed as u64) // hacky way to get around too many proposals in the query
+            .limit(proposal_limit as u64) // hacky way to get around too many proposals in the query
             .all(&db) // indexer.speed is used both for the number of votes to pull and the number of proposals to use
             .await?; // if the query fails, they both decrease until the query works
 
