@@ -3,11 +3,7 @@ import { AsyncReturnType } from '@/lib/utils';
 import { db } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
-export async function getGroups(
-  daoSlug: string,
-  page: number,
-  itemsPerPage: number
-) {
+async function getGroups(daoSlug: string, page: number, itemsPerPage: number) {
   'use server';
   return otel('get-groups', async () => {
     // Fetch the DAO based on the slug

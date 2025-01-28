@@ -2,32 +2,12 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import * as Avatar from '@radix-ui/react-avatar';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
-import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { GroupReturnType } from '../../../actions';
-import { getDelegate } from '../actions';
+import { getDelegate_cache } from '../actions';
 import { CombinedFeedItem, VoteFeedItem } from '../Feed';
 import { VotingPowerTag } from './VotingPowerTag';
-
-const getDelegateCached = unstable_cache(
-  async (
-    voterAddress: string,
-    daoSlug: string,
-    topicIds: string[],
-    proposalIds: string[]
-  ) => {
-    return await getDelegate(
-      voterAddress,
-      daoSlug,
-      false,
-      topicIds,
-      proposalIds
-    );
-  },
-  ['delegate'],
-  { revalidate: 60 * 5, tags: ['delegate'] }
-);
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === 'vote';
@@ -52,7 +32,7 @@ export async function VoteItem({
 
   const proposal = group.proposals.find((p) => p.id == item.proposalId);
 
-  const delegate = await getDelegateCached(
+  const delegate = await getDelegate_cache(
     item.voterAddress,
     group.daoSlug,
     topicIds,

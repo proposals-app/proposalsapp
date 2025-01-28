@@ -7,7 +7,7 @@ export type Body = {
   author_picture: string;
 };
 
-export async function getAuthor(groupID: string) {
+async function getAuthor(groupID: string) {
   'use server';
   return otel('get-author', async () => {
     const bodies: Body[] = [];

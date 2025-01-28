@@ -1,19 +1,10 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { unstable_cache } from 'next/cache';
 import { CombinedFeedItem } from '../Feed';
-import { getVotingPower } from '../actions';
-
-const getVotingPowerCached = unstable_cache(
-  async (itemId: string) => {
-    return await getVotingPower(itemId);
-  },
-  ['voting-power'],
-  { revalidate: 60 * 5, tags: ['voting-power'] }
-);
+import { getVotingPower_cache } from '../actions';
 
 export async function VotingPowerTag({ item }: { item: CombinedFeedItem }) {
-  const votingPower = await getVotingPowerCached(item.id);
+  const votingPower = await getVotingPower_cache(item.id);
 
   if (!votingPower) return <></>;
 

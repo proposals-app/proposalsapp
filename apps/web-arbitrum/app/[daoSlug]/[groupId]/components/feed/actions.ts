@@ -12,7 +12,7 @@ import {
 } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
-export async function getFeed(
+async function getFeed(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum
@@ -180,24 +180,7 @@ export async function getFeed(
   });
 }
 
-export async function getProposalsByIds(proposalIds: string[]) {
-  'use server';
-  return otel('get-proposals-by-ids', async () => {
-    if (!proposalIds || proposalIds.length === 0) {
-      return [];
-    }
-
-    const proposals = await db
-      .selectFrom('proposal')
-      .selectAll()
-      .where('proposal.id', 'in', proposalIds)
-      .execute();
-
-    return proposals;
-  });
-}
-
-export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
+async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   'use server';
   return otel('get-discourse-user', async () => {
     const discourseUser = await db
@@ -211,7 +194,7 @@ export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   });
 }
 
-export async function getVotingPower(voteId: string): Promise<{
+async function getVotingPower(voteId: string): Promise<{
   votingPowerAtVote: number; // Voting power at the time of the vote
   latestVotingPower: number; // Latest voting power
   change: number | null; // Relative change between latest and voting power at vote
@@ -261,7 +244,7 @@ export async function getVotingPower(voteId: string): Promise<{
   });
 }
 
-export async function getDelegate(
+async function getDelegate(
   voterAddress: string,
   daoSlug: string,
   withPeriodCheck: boolean,
@@ -397,7 +380,7 @@ export async function getDelegate(
   });
 }
 
-export async function getPostLikesCount(
+async function getPostLikesCount(
   externalPostId: number,
   daoDiscourseId: string
 ) {
@@ -419,7 +402,7 @@ export async function getPostLikesCount(
   });
 }
 
-export async function getPostLikedUsers(
+async function getPostLikedUsers(
   externalPostId: number,
   daoDiscourseId: string
 ) {
@@ -463,6 +446,25 @@ export const getFeed_cached = unstable_cache(
   { revalidate: 60 * 5, tags: ['get-feed-for-group'] }
 );
 
+export const getDelegate_cache = unstable_cache(
+  async (
+    voterAddress: string,
+    daoSlug: string,
+    topicIds: string[],
+    proposalIds: string[]
+  ) => {
+    return await getDelegate(
+      voterAddress,
+      daoSlug,
+      false,
+      topicIds,
+      proposalIds
+    );
+  },
+  ['get-delegate'],
+  { revalidate: 60 * 5, tags: ['get-delegate'] }
+);
+
 export const getDiscourseUser_cached = unstable_cache(
   async (userId: number, daoDiscourseId: string) => {
     return await getDiscourseUser(userId, daoDiscourseId);
@@ -485,4 +487,12 @@ export const getPostLikedUsers_cached = unstable_cache(
   },
   ['get-post-liked-users'],
   { revalidate: 60 * 5, tags: ['get-post-liked-users'] }
+);
+
+export const getVotingPower_cache = unstable_cache(
+  async (itemId: string) => {
+    return await getVotingPower(itemId);
+  },
+  ['get-voting-power'],
+  { revalidate: 60 * 5, tags: ['get-voting-power'] }
 );

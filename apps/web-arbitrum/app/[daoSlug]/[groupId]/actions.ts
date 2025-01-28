@@ -10,7 +10,7 @@ import {
 import { unstable_cache } from 'next/cache';
 import { validate } from 'uuid';
 
-export async function getGroup(daoSlug: string, groupId: string) {
+async function getGroup(daoSlug: string, groupId: string) {
   'use server';
   return otel('get-group', async () => {
     if (daoSlug == 'favicon.ico') return null;
@@ -104,7 +104,7 @@ export type Body = {
   type: 'proposal' | 'topic';
 };
 
-export async function getBodies(groupID: string) {
+async function getBodies(groupID: string) {
   'use server';
   return otel('get-bodies-', async () => {
     const bodies: Body[] = [];
@@ -251,7 +251,7 @@ export async function getBodies(groupID: string) {
   });
 }
 
-export async function getTotalVersions(groupID: string) {
+async function getTotalVersions(groupID: string) {
   'use server';
   return otel('get-total-versions', async () => {
     let totalVersions = 0;
