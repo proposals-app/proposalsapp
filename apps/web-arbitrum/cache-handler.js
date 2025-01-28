@@ -59,7 +59,7 @@ CacheHandler.onCreation(async () => {
   let redisHandler = null;
   if (client?.isReady) {
     // Create the `redis-stack` Handler if the client is available and connected.
-    redisHandler = await createRedisHandler({
+    redisHandler = createRedisHandler({
       client,
       keyPrefix: 'prefix:',
       timeoutMs: 1000,
