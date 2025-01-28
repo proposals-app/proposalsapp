@@ -56,7 +56,7 @@ impl TopicIndexer {
         let mut total_topics = 0;
         let mut page = 0;
         let mut join_set = JoinSet::new();
-        let one_day_ago = Utc::now() - chrono::Duration::days(1);
+        let recent_limit = chrono::Duration::hours(6);
         let mut has_more = true;
 
         loop {
@@ -80,8 +80,8 @@ impl TopicIndexer {
                     let mut num_topics = 0;
 
                     for topic in &response.topic_list.topics {
-                        if recent && topic.last_posted_at < one_day_ago {
-                            info!("Reached topics older than one day. Stopping.");
+                        if recent && topic.last_posted_at < (Utc::now() - recent_limit) {
+                            info!("Reached topics older than {}. Stopping.", recent_limit);
                             has_more = false;
                         }
 
