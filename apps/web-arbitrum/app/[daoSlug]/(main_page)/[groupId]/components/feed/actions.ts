@@ -126,6 +126,7 @@ export async function getFeed(
               aggregatedVotes.push({
                 ...vote,
                 id: `aggregated`,
+                reason: 'Aggregated votes',
                 votingPower: currentAggregation[choice],
                 aggregate: true,
                 createdAt: vote.createdAt ?? new Date(), // Use the timestamp of the last large vote
@@ -156,6 +157,7 @@ export async function getFeed(
           aggregatedVotes.push({
             ...votes[votes.length - 1], // Use last large vote's timestamp or another reference point
             id: `aggregated`,
+            reason: 'Aggregated votes',
             votingPower: currentAggregation[choice],
             aggregate: true,
             createdAt: votes[votes.length - 1].createdAt ?? new Date(), // Use the timestamp of the last large vote

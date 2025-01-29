@@ -1,8 +1,8 @@
 'use client';
 
 import { formatNumberWithSuffix } from '@/lib/utils';
+import { ProcessedResults } from '@/lib/votes_processing';
 import { useState } from 'react';
-import { ProcessedResults } from '../actions';
 
 interface ResultsListProps {
   results: ProcessedResults;

@@ -1,16 +1,12 @@
 import { Proposal, Selectable } from '@proposalsapp/db';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import {
-  DelegateInfo,
-  getDelegateForVoter,
-  getVotesAction,
-  processResultsAction,
-} from './actions';
+import { DelegateInfo, getDelegateForVoter, getVotesAction } from './actions';
 import { LoadingChart, ResultsChart } from './result/ResultsChart';
 import { LoadingList, ResultsList } from './result/ResultsList';
 import { LoadingTable, ResultsTable } from './result/ResultsTable';
 import { unstable_cache } from 'next/cache';
+import { processResultsAction } from '@/lib/votes_processing';
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;

@@ -4,7 +4,8 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { format, toZonedTime } from 'date-fns-tz';
 import * as echarts from 'echarts';
 import { useEffect, useRef } from 'react';
-import { DelegateInfo, ProcessedResults } from '../actions';
+import { DelegateInfo } from '../actions';
+import { ProcessedResults } from '@/lib/votes_processing';
 
 interface ResultsChartProps {
   results: ProcessedResults;

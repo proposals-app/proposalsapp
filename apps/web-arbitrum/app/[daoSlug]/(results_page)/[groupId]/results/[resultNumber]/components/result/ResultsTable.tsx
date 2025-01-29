@@ -6,7 +6,8 @@ import { format, toZonedTime } from 'date-fns-tz';
 import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 import { FixedSizeList as List } from 'react-window';
-import { DelegateInfo, ProcessedResults } from '../actions';
+import { DelegateInfo } from '../actions';
+import { ProcessedResults } from '@/lib/votes_processing';
 
 interface ResultsTableProps {
   results: ProcessedResults;
