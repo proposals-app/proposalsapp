@@ -22,14 +22,19 @@ export interface ProcessedResults {
   quorum: number | null;
   quorumChoices: number[];
   voteType: 'basic' | 'weighted' | 'approval' | 'ranked-choice' | 'quadratic';
-  votes: ProcessedVote[];
-  timeSeriesData: TimeSeriesPoint[];
+  votes?: ProcessedVote[]; // Optional, only included if withVotes is true
+  timeSeriesData?: TimeSeriesPoint[]; // Optional, only included if withTimeseries is true
   finalResults: { [choice: number]: number };
   totalDelegatedVp?: number;
   hiddenVote: boolean;
   scoresState: string;
 }
 
+/**
+ * Function to get a color for a given choice.
+ * @param choice - The choice text.
+ * @returns A color code based on the choice text.
+ */
 export function getColorForChoice(choice: string | undefined | null): string {
   if (!choice) return '#CBD5E1'; // Default grey color
   const lowerCaseChoice = choice.toLowerCase();
@@ -65,6 +70,11 @@ export function getColorForChoice(choice: string | undefined | null): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+/**
+ * Function to get the total delegated voting power from a proposal's metadata.
+ * @param proposal - The proposal object.
+ * @returns The total delegated voting power or undefined if not available.
+ */
 function getTotalDelegatedVp(
   proposal: Selectable<Proposal>
 ): number | undefined {
@@ -76,73 +86,88 @@ function getTotalDelegatedVp(
 
 const ACCUMULATE_VOTING_POWER_THRESHOLD = 5000;
 
-// Process basic (single-choice) votes
+/**
+ * Process basic (single-choice) votes.
+ * @param votes - The list of votes to process.
+ * @param choices - The list of possible choices for the proposal.
+ * @param proposal - The proposal object.
+ * @param withVotes - Whether to include processed votes in the result.
+ * @param withTimeseries - Whether to include time series data in the result.
+ * @returns A promise that resolves to the processed results.
+ */
 async function processBasicVotes(
   votes: Selectable<Vote>[],
   choices: string[],
-  proposal: Selectable<Proposal>
+  proposal: Selectable<Proposal>,
+  withVotes: boolean,
+  withTimeseries: boolean
 ): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
-  const processedVotes: ProcessedVote[] = votes.map((vote) => {
-    const choice = vote.choice as number;
-    return {
-      ...vote,
-      choice,
-      choiceText: choices[choice] || 'Unknown Choice',
-      color: choiceColors[choice],
-    };
-  });
+  let processedVotes: ProcessedVote[] | undefined;
+  if (withVotes) {
+    processedVotes = votes.map((vote) => {
+      const choice = vote.choice as number;
+      return {
+        ...vote,
+        choice,
+        choiceText: choices[choice] || 'Unknown Choice',
+        color: choiceColors[choice],
+      };
+    });
+  }
 
-  const sortedVotes = [...processedVotes].sort((a, b) => {
-    return a.createdAt.getTime() - b.createdAt.getTime();
-  });
+  let timeSeriesData: TimeSeriesPoint[] = [];
+  if (withTimeseries) {
+    const sortedVotes = [...(processedVotes ?? votes)].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+    );
 
-  const timeSeriesData: TimeSeriesPoint[] = [];
-  let accumulatedVotingPower = 0;
-  let lastAccumulatedTimestamp: Date | null = null;
+    let accumulatedVotingPower = 0;
+    let lastAccumulatedTimestamp: Date | null = null;
 
-  sortedVotes.forEach((vote) => {
-    if (vote.votingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
-      // Create a new time series point for this vote
-      timeSeriesData.push({
-        timestamp: format(
-          toZonedTime(vote.createdAt, 'UTC'),
-          'yyyy-MM-dd HH:mm:ss'
-        ),
-        values: { [vote.choice as number]: vote.votingPower },
-      });
-    } else {
-      // Accumulate voting power
-      accumulatedVotingPower += vote.votingPower;
-      lastAccumulatedTimestamp = vote.createdAt;
-
-      if (accumulatedVotingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
-        // Create a new time series point for the accumulated votes
+    sortedVotes.forEach((vote) => {
+      if (vote.votingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
+        // Create a new time series point for this vote
         timeSeriesData.push({
           timestamp: format(
-            toZonedTime(lastAccumulatedTimestamp ?? new Date(), 'UTC'),
+            toZonedTime(vote.createdAt, 'UTC'),
             'yyyy-MM-dd HH:mm:ss'
           ),
-          values: { [vote.choice as number]: accumulatedVotingPower },
+          values: { [vote.choice as number]: vote.votingPower },
         });
-        accumulatedVotingPower = 0; // Reset accumulation
-      }
-    }
-  });
+      } else {
+        // Accumulate voting power
+        accumulatedVotingPower += vote.votingPower;
+        lastAccumulatedTimestamp = vote.createdAt;
 
-  // If there's any remaining accumulated voting power, add it to the last timestamp
-  if (accumulatedVotingPower > 0 && lastAccumulatedTimestamp) {
-    timeSeriesData.push({
-      timestamp: format(
-        toZonedTime(lastAccumulatedTimestamp, 'UTC'),
-        'yyyy-MM-dd HH:mm:ss'
-      ),
-      values: {
-        [sortedVotes[sortedVotes.length - 1].choice as number]:
-          accumulatedVotingPower,
-      },
+        if (accumulatedVotingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
+          // Create a new time series point for the accumulated votes
+          timeSeriesData.push({
+            timestamp: format(
+              toZonedTime(lastAccumulatedTimestamp ?? new Date(), 'UTC'),
+              'yyyy-MM-dd HH:mm:ss'
+            ),
+            values: { [vote.choice as number]: accumulatedVotingPower },
+          });
+          accumulatedVotingPower = 0; // Reset accumulation
+        }
+      }
     });
+
+    // If there's any remaining accumulated voting power, add it to the last timestamp
+    if (accumulatedVotingPower > 0 && lastAccumulatedTimestamp) {
+      timeSeriesData.push({
+        timestamp: format(
+          toZonedTime(lastAccumulatedTimestamp, 'UTC'),
+          'yyyy-MM-dd HH:mm:ss'
+        ),
+        values: {
+          [sortedVotes[sortedVotes.length - 1].choice as number]:
+            accumulatedVotingPower,
+        },
+      });
+    }
   }
 
   // Calculate final results
@@ -151,7 +176,7 @@ async function processBasicVotes(
     finalResults[index] = 0;
   });
 
-  processedVotes.forEach((vote) => {
+  (processedVotes ?? votes).forEach((vote) => {
     finalResults[vote.choice as number] =
       (finalResults[vote.choice as number] || 0) + vote.votingPower;
   });
@@ -160,15 +185,15 @@ async function processBasicVotes(
     proposal,
     choices,
     choiceColors,
-    totalVotingPower: processedVotes.reduce(
+    totalVotingPower: (processedVotes ?? votes).reduce(
       (sum, vote) => sum + vote.votingPower,
       0
     ),
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
     voteType: 'basic',
-    votes: processedVotes,
-    timeSeriesData,
+    votes: withVotes ? processedVotes : undefined,
+    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
     finalResults,
     totalDelegatedVp: getTotalDelegatedVp(proposal),
     hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
@@ -176,28 +201,45 @@ async function processBasicVotes(
   };
 }
 
-// Process weighted votes
+/**
+ * Process weighted votes.
+ * @param votes - The list of votes to process.
+ * @param choices - The list of possible choices for the proposal.
+ * @param proposal - The proposal object.
+ * @param withVotes - Whether to include processed votes in the result.
+ * @param withTimeseries - Whether to include time series data in the result.
+ * @returns A promise that resolves to the processed results.
+ */
 async function processWeightedVotes(
   votes: Selectable<Vote>[],
   choices: string[],
-  proposal: Selectable<Proposal>
+  proposal: Selectable<Proposal>,
+  withVotes: boolean,
+  withTimeseries: boolean
 ): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
-  const processedVotes: ProcessedVote[] = [];
-  const timeSeriesData: TimeSeriesPoint[] = [];
-  const accumulatedVotingPower: { [choice: number]: number } = {};
-  let lastAccumulatedTimestamp: Date | null = null;
+  let processedVotes: ProcessedVote[] | undefined;
+  if (withVotes) {
+    processedVotes = [];
+  }
 
-  // Initialize accumulated voting power for each choice
+  let timeSeriesData: TimeSeriesPoint[] | undefined;
+  if (withTimeseries) {
+    timeSeriesData = [];
+  }
+
+  const accumulatedVotingPower: { [choice: number]: number } = {};
   choices.forEach((_, index) => {
     accumulatedVotingPower[index] = 0;
   });
 
+  let lastAccumulatedTimestamp: Date | null = null;
+
   // Sort votes by timestamp
-  const sortedVotes = [...votes].sort((a, b) => {
-    return a.createdAt.getTime() - b.createdAt.getTime();
-  });
+  const sortedVotes = [...votes].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+  );
 
   sortedVotes.forEach((vote) => {
     const timestamp = new Date(vote.createdAt);
@@ -227,13 +269,14 @@ async function processWeightedVotes(
         return choiceColors[choice];
       });
 
-      // Add to processed votes
-      processedVotes.push({
-        ...vote,
-        choice: -1,
-        choiceText: combinedChoiceName,
-        color: colorList,
-      });
+      if (withVotes) {
+        processedVotes?.push({
+          ...vote,
+          choice: -1,
+          choiceText: combinedChoiceName,
+          color: colorList,
+        });
+      }
 
       // Process each choice in the weighted vote
       Object.entries(weightedChoices).forEach(([choiceIndex, weight]) => {
@@ -250,14 +293,14 @@ async function processWeightedVotes(
         accumulatedVotingPower
       ).some((power) => power >= ACCUMULATE_VOTING_POWER_THRESHOLD);
 
-      if (shouldCreateTimeSeriesPoint) {
+      if (shouldCreateTimeSeriesPoint && withTimeseries) {
         // Create a new time series point for the accumulated votes
         const values: { [choice: number]: number } = {};
         choices.forEach((_, index) => {
           values[index] = accumulatedVotingPower[index];
         });
 
-        timeSeriesData.push({
+        timeSeriesData?.push({
           timestamp: format(
             toZonedTime(timestamp, 'UTC'),
             'yyyy-MM-dd HH:mm:ss'
@@ -276,16 +319,21 @@ async function processWeightedVotes(
       // Handle non-weighted votes (fallback to basic processing)
       const choice = (vote.choice as number) - 1; // Convert to 0-based index
 
-      processedVotes.push({
-        ...vote,
-        choice,
-        choiceText: choices[choice] || 'Unknown Choice',
-        color: choiceColors[choice],
-      });
+      if (withVotes) {
+        processedVotes?.push({
+          ...vote,
+          choice,
+          choiceText: choices[choice] || 'Unknown Choice',
+          color: choiceColors[choice],
+        });
+      }
 
-      if (Number(vote.votingPower) >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
+      if (
+        Number(vote.votingPower) >= ACCUMULATE_VOTING_POWER_THRESHOLD &&
+        withTimeseries
+      ) {
         // Create a new time series point for this vote
-        timeSeriesData.push({
+        timeSeriesData?.push({
           timestamp: format(
             toZonedTime(timestamp, 'UTC'),
             'yyyy-MM-dd HH:mm:ss'
@@ -298,10 +346,11 @@ async function processWeightedVotes(
         lastAccumulatedTimestamp = timestamp;
 
         if (
-          accumulatedVotingPower[choice] >= ACCUMULATE_VOTING_POWER_THRESHOLD
+          accumulatedVotingPower[choice] >= ACCUMULATE_VOTING_POWER_THRESHOLD &&
+          withTimeseries
         ) {
           // Create a new time series point for the accumulated votes
-          timeSeriesData.push({
+          timeSeriesData?.push({
             timestamp: format(
               toZonedTime(lastAccumulatedTimestamp, 'UTC'),
               'yyyy-MM-dd HH:mm:ss'
@@ -316,11 +365,10 @@ async function processWeightedVotes(
   });
 
   // If there's any remaining accumulated voting power, add it to the last timestamp
-  if (lastAccumulatedTimestamp) {
+  if (lastAccumulatedTimestamp && withTimeseries) {
     const values: { [choice: number]: number } = {};
     let hasRemainingPower = false;
 
-    // Check if there is any remaining voting power
     choices.forEach((_, index) => {
       if (accumulatedVotingPower[index] > 0) {
         hasRemainingPower = true;
@@ -329,19 +377,19 @@ async function processWeightedVotes(
     });
 
     if (hasRemainingPower) {
-      timeSeriesData.push({
+      timeSeriesData?.push({
         timestamp: format(
           toZonedTime(lastAccumulatedTimestamp, 'UTC'),
           'yyyy-MM-dd HH:mm:ss'
         ),
         values,
       });
-
-      // Reset the accumulated voting power after pushing the remaining values
-      choices.forEach((_, index) => {
-        accumulatedVotingPower[index] = 0;
-      });
     }
+
+    // Reset the accumulated voting power after pushing the remaining values
+    choices.forEach((_, index) => {
+      accumulatedVotingPower[index] = 0;
+    });
   }
 
   // Calculate final results
@@ -350,7 +398,7 @@ async function processWeightedVotes(
     finalResults[index] = 0;
   });
 
-  processedVotes.forEach((vote) => {
+  (processedVotes ?? votes).forEach((vote) => {
     if (vote.choice === -1) {
       // Handle weighted votes
       const weightedChoices = votes.find(
@@ -378,15 +426,15 @@ async function processWeightedVotes(
     proposal,
     choices,
     choiceColors,
-    totalVotingPower: processedVotes.reduce(
+    totalVotingPower: (processedVotes ?? votes).reduce(
       (sum, vote) => sum + vote.votingPower,
       0
     ),
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
     voteType: 'weighted',
-    votes: processedVotes,
-    timeSeriesData,
+    votes: withVotes ? processedVotes : undefined,
+    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
     finalResults,
     totalDelegatedVp: getTotalDelegatedVp(proposal),
     hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
@@ -394,18 +442,34 @@ async function processWeightedVotes(
   };
 }
 
-// Process approval votes
+/**
+ * Process approval votes.
+ * @param votes - The list of votes to process.
+ * @param choices - The list of possible choices for the proposal.
+ * @param proposal - The proposal object.
+ * @param withVotes - Whether to include processed votes in the result.
+ * @param withTimeseries - Whether to include time series data in the result.
+ * @returns A promise that resolves to the processed results.
+ */
 async function processApprovalVotes(
   votes: Selectable<Vote>[],
   choices: string[],
-  proposal: Selectable<Proposal>
+  proposal: Selectable<Proposal>,
+  withVotes: boolean,
+  withTimeseries: boolean
 ): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
-  const processedVotes: ProcessedVote[] = [];
-  const timeSeriesData: TimeSeriesPoint[] = [];
+  let processedVotes: ProcessedVote[] | undefined;
+  if (withVotes) {
+    processedVotes = [];
+  }
 
-  // Initialize accumulated voting power for each choice
+  let timeSeriesData: TimeSeriesPoint[] | undefined;
+  if (withTimeseries) {
+    timeSeriesData = [];
+  }
+
   const accumulatedVotingPower: { [choice: number]: number } = {};
   choices.forEach((_, index) => {
     accumulatedVotingPower[index] = 0;
@@ -414,9 +478,9 @@ async function processApprovalVotes(
   let lastAccumulatedTimestamp: Date | null = null;
 
   // Sort votes by timestamp
-  const sortedVotes = [...votes].sort((a, b) => {
-    return a.createdAt.getTime() - b.createdAt.getTime();
-  });
+  const sortedVotes = [...votes].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+  );
 
   sortedVotes.forEach((vote) => {
     const approvedChoices = Array.isArray(vote.choice)
@@ -428,15 +492,16 @@ async function processApprovalVotes(
     const choiceText = approvedChoices
       .map((choice) => choices[choice - 1] || 'Unknown Choice')
       .join(', ');
-
     const colorList = approvedChoices.map((choice) => choiceColors[choice - 1]);
 
-    processedVotes.push({
-      ...vote,
-      choice: approvedChoices[0], // Use the first choice as the primary choice
-      choiceText, // Include all choices in the choiceText
-      color: colorList,
-    });
+    if (withVotes) {
+      processedVotes?.push({
+        ...vote,
+        choice: approvedChoices[0], // Use the first choice as the primary choice
+        choiceText, // Include all choices in the choiceText
+        color: colorList,
+      });
+    }
 
     // Accumulate voting power for each choice
     approvedChoices.forEach((choice) => {
@@ -444,9 +509,10 @@ async function processApprovalVotes(
       accumulatedVotingPower[choiceIndex] += Number(vote.votingPower);
       lastAccumulatedTimestamp = timestamp;
 
-      // Check if any accumulated voting power exceeds the threshold
       if (
-        accumulatedVotingPower[choiceIndex] >= ACCUMULATE_VOTING_POWER_THRESHOLD
+        accumulatedVotingPower[choiceIndex] >=
+          ACCUMULATE_VOTING_POWER_THRESHOLD &&
+        withTimeseries
       ) {
         // Create a new time series point for the accumulated votes
         const values: { [choice: number]: number } = {};
@@ -454,7 +520,7 @@ async function processApprovalVotes(
           values[index] = accumulatedVotingPower[index];
         });
 
-        timeSeriesData.push({
+        timeSeriesData?.push({
           timestamp: format(
             toZonedTime(lastAccumulatedTimestamp, 'UTC'),
             'yyyy-MM-dd HH:mm:ss'
@@ -471,13 +537,13 @@ async function processApprovalVotes(
   });
 
   // If there's any remaining accumulated voting power, add it to the last timestamp
-  if (lastAccumulatedTimestamp) {
+  if (lastAccumulatedTimestamp && withTimeseries) {
     const values: { [choice: number]: number } = {};
     choices.forEach((_, index) => {
       values[index] = accumulatedVotingPower[index];
     });
 
-    timeSeriesData.push({
+    timeSeriesData?.push({
       timestamp: format(
         toZonedTime(lastAccumulatedTimestamp, 'UTC'),
         'yyyy-MM-dd HH:mm:ss'
@@ -498,7 +564,7 @@ async function processApprovalVotes(
       : [vote.choice as number];
     approvedChoices.forEach((choice) => {
       const choiceIndex = choice - 1;
-      finalResults[choiceIndex] = finalResults[choiceIndex] + vote.votingPower;
+      finalResults[choiceIndex] += vote.votingPower;
     });
   });
 
@@ -506,15 +572,15 @@ async function processApprovalVotes(
     proposal,
     choices,
     choiceColors,
-    totalVotingPower: processedVotes.reduce(
+    totalVotingPower: (processedVotes ?? votes).reduce(
       (sum, vote) => sum + vote.votingPower,
       0
     ),
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
     voteType: 'approval',
-    votes: processedVotes,
-    timeSeriesData,
+    votes: withVotes ? processedVotes : undefined,
+    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
     finalResults,
     totalDelegatedVp: getTotalDelegatedVp(proposal),
     hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
@@ -522,11 +588,21 @@ async function processApprovalVotes(
   };
 }
 
-// Process ranked-choice votes
+/**
+ * Process ranked-choice votes using the Instant Runoff Voting (IRV) method.
+ * @param votes - The list of votes to process.
+ * @param choices - The list of possible choices for the proposal.
+ * @param proposal - The proposal object.
+ * @param withVotes - Whether to include processed votes in the result.
+ * @param withTimeseries - Whether to include time series data in the result.
+ * @returns A promise that resolves to the processed results.
+ */
 async function processRankedChoiceVotes(
   votes: Selectable<Vote>[],
   choices: string[],
-  proposal: Selectable<Proposal>
+  proposal: Selectable<Proposal>,
+  withVotes: boolean,
+  withTimeseries: boolean
 ): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
@@ -541,8 +617,8 @@ async function processRankedChoiceVotes(
       quorumChoices:
         (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
       voteType: 'ranked-choice',
-      votes: [],
-      timeSeriesData: [],
+      votes: withVotes ? [] : undefined,
+      timeSeriesData: withTimeseries ? [] : undefined,
       finalResults: {},
       totalDelegatedVp: getTotalDelegatedVp(proposal),
       hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
@@ -551,22 +627,28 @@ async function processRankedChoiceVotes(
   }
 
   // Pre-process votes
-  const processedVotes: ProcessedVote[] = votes
-    .filter((vote) => vote.createdAt && Array.isArray(vote.choice))
-    .map((vote) => ({
-      ...vote,
-      choice: (vote.choice as number[]).map((c) => c - 1),
-      choiceText: (vote.choice as number[])
-        .map((c) => choices[c - 1] || 'Unknown Choice')
-        .join(', '),
-      color: (vote.choice as number[]).map((c) => choiceColors[c]),
-    }))
-    .sort((a, b) => {
-      return a.createdAt.getTime() - b.createdAt.getTime();
-    });
+  const processedVotes = withVotes
+    ? votes
+        .filter((vote) => vote.createdAt && Array.isArray(vote.choice))
+        .map((vote) => ({
+          ...vote,
+          choice: (vote.choice as number[]).map((c) => c - 1),
+          choiceText: (vote.choice as number[])
+            .map((c) => choices[c - 1] || 'Unknown Choice')
+            .join(', '),
+          color: (vote.choice as number[]).map((c) => choiceColors[c]),
+        }))
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+    : undefined;
 
   // Create a promise-based chunked IRV calculation
-  const calculateIRV = (currentVotes: typeof processedVotes) => {
+  const calculateIRV = async (
+    currentVotes: typeof processedVotes
+  ): Promise<{
+    winner: number | undefined;
+    finalVoteCounts: Map<number, number>;
+    eliminatedChoices: Set<number>;
+  }> => {
     return new Promise<{
       winner: number | undefined;
       finalVoteCounts: Map<number, number>;
@@ -597,7 +679,7 @@ async function processRankedChoiceVotes(
 
           // Count votes in this round
           let totalVotes = 0;
-          currentVotes.forEach((vote) => {
+          currentVotes?.forEach((vote) => {
             if (Array.isArray(vote.choice)) {
               const validChoice = vote.choice.find(
                 (choice) => !eliminatedChoices.has(choice)
@@ -644,85 +726,98 @@ async function processRankedChoiceVotes(
     });
   };
 
-  // Generate time series data with non-blocking calculations
-  const timeSeriesMap = new Map<string, TimeSeriesPoint>();
-  const runningVotes: typeof processedVotes = [];
-  let accumulatedVotingPower = 0;
-  let lastAccumulatedTimestamp: number | null = null;
+  let timeSeriesData: TimeSeriesPoint[] = [];
+  if (withTimeseries) {
+    const timeSeriesMap = new Map<string, TimeSeriesPoint>();
+    const runningVotes: typeof processedVotes = [];
+    let accumulatedVotingPower = 0;
+    let lastAccumulatedTimestamp: number | null = null;
 
-  for (const vote of processedVotes) {
-    runningVotes.push(vote);
-    accumulatedVotingPower += vote.votingPower;
-    lastAccumulatedTimestamp = vote.createdAt.getTime();
+    for (const vote of processedVotes ?? []) {
+      runningVotes.push(vote);
+      accumulatedVotingPower += vote.votingPower;
+      lastAccumulatedTimestamp = vote.createdAt.getTime();
 
-    if (accumulatedVotingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
-      const { finalVoteCounts, eliminatedChoices } =
-        await calculateIRV(runningVotes);
+      if (accumulatedVotingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
+        const { finalVoteCounts, eliminatedChoices } =
+          await calculateIRV(runningVotes);
 
-      const timestampKey = format(
-        toZonedTime(new Date(lastAccumulatedTimestamp), 'UTC'),
-        'yyyy-MM-dd HH:mm:ss'
-      );
-      const values: Record<number | string, number> = {};
+        const timestampKey = format(
+          toZonedTime(new Date(lastAccumulatedTimestamp), 'UTC'),
+          'yyyy-MM-dd HH:mm:ss'
+        );
+        const values: Record<number | string, number> = {};
 
-      // Calculate total votes for this interval
-      let totalVotes = 0;
+        // Calculate total votes for this interval
+        let totalVotes = 0;
 
-      finalVoteCounts.forEach((count, choice) => {
-        if (!eliminatedChoices.has(choice)) {
-          values[choice] = count;
-          totalVotes += count; // Accumulate total votes
-        }
-      });
+        finalVoteCounts.forEach((count, choice) => {
+          if (!eliminatedChoices.has(choice)) {
+            values[choice] = count;
+            totalVotes += count; // Accumulate total votes
+          }
+        });
 
-      // Add the total votes as a special key "Total"
-      values['Winning threshold'] = totalVotes / 2;
+        // Add the total votes as a special key "Total"
+        values['Winning threshold'] = totalVotes / 2;
 
-      timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
+        timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
 
-      // Reset accumulation
-      accumulatedVotingPower = 0;
+        // Reset accumulation
+        accumulatedVotingPower = 0;
+      }
     }
+
+    // One final round with all votes
+    const { finalVoteCounts, eliminatedChoices } =
+      await calculateIRV(processedVotes);
+
+    const timestampKey = format(
+      toZonedTime(
+        new Date(processedVotes![processedVotes!.length - 1]?.createdAt),
+        'UTC'
+      ),
+      'yyyy-MM-dd HH:mm:ss'
+    );
+    const values: Record<number | string, number> = {};
+
+    // Calculate total votes for this interval
+    let totalVotes = 0;
+
+    finalVoteCounts.forEach((count, choice) => {
+      if (!eliminatedChoices.has(choice)) {
+        values[choice] = count;
+        totalVotes += count; // Accumulate total votes
+      }
+    });
+
+    // Add the total votes as a special key "Total"
+    values['Winning threshold'] = totalVotes / 2;
+
+    timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
+    timeSeriesData = Array.from(timeSeriesMap.values());
   }
 
-  // One final round with all votes
-  const { finalVoteCounts, eliminatedChoices } =
-    await calculateIRV(processedVotes);
-
-  const timestampKey = format(
-    toZonedTime(
-      new Date(processedVotes[processedVotes.length - 1]?.createdAt),
-      'UTC'
-    ),
-    'yyyy-MM-dd HH:mm:ss'
-  );
-  const values: Record<number | string, number> = {};
-
-  // Calculate total votes for this interval
-  let totalVotes = 0;
-
-  finalVoteCounts.forEach((count, choice) => {
-    if (!eliminatedChoices.has(choice)) {
-      values[choice] = count;
-      totalVotes += count; // Accumulate total votes
-    }
-  });
-
-  // Add the total votes as a special key "Total"
-  values['Winning threshold'] = totalVotes / 2;
-
-  timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
-
-  const totalVotingPower = processedVotes.reduce(
-    (sum, vote) => sum + vote.votingPower,
-    0
-  );
+  const totalVotingPower = processedVotes
+    ? processedVotes.reduce((sum, vote) => sum + vote.votingPower, 0)
+    : votes.reduce((sum, vote) => sum + vote.votingPower, 0);
 
   // Convert final vote counts to a plain object
-  const finalResults: { [choice: number]: number } = {};
-  finalVoteCounts.forEach((count, choice) => {
-    finalResults[choice] = count;
-  });
+  let finalResults: { [choice: number]: number } = {};
+  if (withTimeseries && timeSeriesData?.length > 0) {
+    const latestPoint = timeSeriesData[timeSeriesData.length - 1];
+    finalResults = latestPoint.values;
+  } else {
+    choices.forEach((_, index) => {
+      finalResults[index] = 0;
+    });
+    votes.forEach((vote) => {
+      if (Array.isArray(vote.choice)) {
+        const firstChoice = vote.choice[0] as number;
+        finalResults[firstChoice - 1] += vote.votingPower;
+      }
+    });
+  }
 
   return {
     proposal,
@@ -732,12 +827,14 @@ async function processRankedChoiceVotes(
     quorum: proposal.quorum ? Number(proposal.quorum) : null,
     quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
     voteType: 'ranked-choice',
-    votes: processedVotes.map((vote) => ({
-      ...vote,
-      choice: Array.isArray(vote.choice) ? vote.choice[0] : vote.choice,
-      choiceText: vote.choiceText,
-    })),
-    timeSeriesData: Array.from(timeSeriesMap.values()),
+    votes: withVotes
+      ? processedVotes?.map((vote) => ({
+          ...vote,
+          choice: Array.isArray(vote.choice) ? vote.choice[0] : vote.choice,
+          choiceText: vote.choiceText,
+        }))
+      : undefined,
+    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
     finalResults,
     totalDelegatedVp: getTotalDelegatedVp(proposal),
     hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
@@ -745,29 +842,50 @@ async function processRankedChoiceVotes(
   };
 }
 
-// Process quadratic votes
+/**
+ * Process quadratic votes.
+ * @param votes - The list of votes to process.
+ * @param choices - The list of possible choices for the proposal.
+ * @param proposal - The proposal object.
+ * @param withVotes - Whether to include processed votes in the result.
+ * @param withTimeseries - Whether to include time series data in the result.
+ * @returns A promise that resolves to the processed results.
+ */
 async function processQuadraticVotes(
   votes: Selectable<Vote>[],
   choices: string[],
-  proposal: Selectable<Proposal>
+  proposal: Selectable<Proposal>,
+  withVotes: boolean,
+  withTimeseries: boolean
 ): Promise<ProcessedResults> {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice));
-
   // Temporary fallback to basic processing
-  const result = await processBasicVotes(votes, choices, proposal);
+  const result = await processBasicVotes(
+    votes,
+    choices,
+    proposal,
+    withVotes,
+    withTimeseries
+  );
 
-  // Include choice colors in the result
   return {
     ...result,
-    choiceColors, // Include choice colors
     voteType: 'quadratic',
   };
 }
 
-// Main processResults function
+/**
+ * Main function to process votes for a given proposal.
+ * @param proposal - The proposal object to process results for.
+ * @param votes - The list of votes associated with the proposal.
+ * @param withVotes - Whether to include processed votes in the result. Defaults to true.
+ * @param withTimeseries - Whether to include time series data in the result. Defaults to true.
+ * @returns A promise that resolves to the processed results.
+ */
 export async function processResultsAction(
   proposal: Selectable<Proposal>,
-  votes: Selectable<Vote>[]
+  votes: Selectable<Vote>[],
+  withVotes: boolean = true,
+  withTimeseries: boolean = true
 ): Promise<ProcessedResults> {
   'use server';
   return otel('process-results', async () => {
@@ -779,26 +897,56 @@ export async function processResultsAction(
 
     switch (voteType) {
       case 'weighted':
-        result = await processWeightedVotes(votes, choices, proposal);
+        result = await processWeightedVotes(
+          votes,
+          choices,
+          proposal,
+          withVotes,
+          withTimeseries
+        );
         break;
       case 'approval':
-        result = await processApprovalVotes(votes, choices, proposal);
+        result = await processApprovalVotes(
+          votes,
+          choices,
+          proposal,
+          withVotes,
+          withTimeseries
+        );
         break;
       case 'ranked-choice':
-        result = await processRankedChoiceVotes(votes, choices, proposal);
+        result = await processRankedChoiceVotes(
+          votes,
+          choices,
+          proposal,
+          withVotes,
+          withTimeseries
+        );
         break;
       case 'quadratic':
-        result = await processQuadraticVotes(votes, choices, proposal);
+        result = await processQuadraticVotes(
+          votes,
+          choices,
+          proposal,
+          withVotes,
+          withTimeseries
+        );
         break;
       default:
-        result = await processBasicVotes(votes, choices, proposal);
+        result = await processBasicVotes(
+          votes,
+          choices,
+          proposal,
+          withVotes,
+          withTimeseries
+        );
         break;
     }
 
     // Check if hiddenVote is true and scoresState is not "final"
     if (metadata.hiddenVote && metadata.scoresState !== 'final') {
       // Aggregate all voting power under choice -1
-      result.timeSeriesData = result.timeSeriesData.map((point) => {
+      result.timeSeriesData = result.timeSeriesData?.map((point) => {
         const totalVotingPower = Object.values(point.values).reduce(
           (sum, power) => sum + power,
           0
