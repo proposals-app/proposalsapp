@@ -80,7 +80,7 @@ function getTotalDelegatedVp(
     : undefined;
 }
 
-const ACCUMULATED_VOTING_POWER_THRESHOLD = 5000;
+const ACCUMULATE_VOTING_POWER_THRESHOLD = 5000;
 
 // Process basic (single-choice) votes
 async function processBasicVotes(
@@ -101,9 +101,7 @@ async function processBasicVotes(
   });
 
   const sortedVotes = [...processedVotes].sort((a, b) => {
-    const aTime = a.createdAt ? a.createdAt.getTime() : Infinity;
-    const bTime = b.createdAt ? b.createdAt.getTime() : Infinity;
-    return aTime - bTime;
+    return a.createdAt.getTime() - b.createdAt.getTime();
   });
 
   const timeSeriesData: TimeSeriesPoint[] = [];
@@ -111,11 +109,11 @@ async function processBasicVotes(
   let lastAccumulatedTimestamp: Date | null = null;
 
   sortedVotes.forEach((vote) => {
-    if (vote.votingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+    if (vote.votingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
       // Create a new time series point for this vote
       timeSeriesData.push({
         timestamp: format(
-          toZonedTime(vote.createdAt ?? new Date(), 'UTC'),
+          toZonedTime(vote.createdAt, 'UTC'),
           'yyyy-MM-dd HH:mm:ss'
         ),
         values: { [vote.choice as number]: vote.votingPower },
@@ -125,7 +123,7 @@ async function processBasicVotes(
       accumulatedVotingPower += vote.votingPower;
       lastAccumulatedTimestamp = vote.createdAt;
 
-      if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+      if (accumulatedVotingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
         // Create a new time series point for the accumulated votes
         timeSeriesData.push({
           timestamp: format(
@@ -204,13 +202,11 @@ async function processWeightedVotes(
 
   // Sort votes by timestamp
   const sortedVotes = [...votes].sort((a, b) => {
-    const aTime = a.createdAt ? a.createdAt.getTime() : Infinity;
-    const bTime = b.createdAt ? b.createdAt.getTime() : Infinity;
-    return aTime - bTime;
+    return a.createdAt.getTime() - b.createdAt.getTime();
   });
 
   sortedVotes.forEach((vote) => {
-    const timestamp = new Date(vote.createdAt!);
+    const timestamp = new Date(vote.createdAt);
 
     if (
       typeof vote.choice === 'object' &&
@@ -252,7 +248,7 @@ async function processWeightedVotes(
       // Check if any accumulated voting power exceeds the threshold
       const shouldCreateTimeSeriesPoint = Object.values(
         accumulatedVotingPower
-      ).some((power) => power >= ACCUMULATED_VOTING_POWER_THRESHOLD);
+      ).some((power) => power >= ACCUMULATE_VOTING_POWER_THRESHOLD);
 
       if (shouldCreateTimeSeriesPoint) {
         // Create a new time series point for the accumulated votes
@@ -286,7 +282,7 @@ async function processWeightedVotes(
         choiceText: choices[choice] || 'Unknown Choice',
       });
 
-      if (Number(vote.votingPower) >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+      if (Number(vote.votingPower) >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
         // Create a new time series point for this vote
         timeSeriesData.push({
           timestamp: format(
@@ -301,7 +297,7 @@ async function processWeightedVotes(
         lastAccumulatedTimestamp = timestamp;
 
         if (
-          accumulatedVotingPower[choice] >= ACCUMULATED_VOTING_POWER_THRESHOLD
+          accumulatedVotingPower[choice] >= ACCUMULATE_VOTING_POWER_THRESHOLD
         ) {
           // Create a new time series point for the accumulated votes
           timeSeriesData.push({
@@ -418,16 +414,14 @@ async function processApprovalVotes(
 
   // Sort votes by timestamp
   const sortedVotes = [...votes].sort((a, b) => {
-    const aTime = a.createdAt ? a.createdAt.getTime() : Infinity;
-    const bTime = b.createdAt ? b.createdAt.getTime() : Infinity;
-    return aTime - bTime;
+    return a.createdAt.getTime() - b.createdAt.getTime();
   });
 
   sortedVotes.forEach((vote) => {
     const approvedChoices = Array.isArray(vote.choice)
       ? (vote.choice as number[])
       : [vote.choice as number];
-    const timestamp = new Date(vote.createdAt!);
+    const timestamp = new Date(vote.createdAt);
 
     // Create a single processed vote with all choices
     const choiceText = approvedChoices
@@ -448,8 +442,7 @@ async function processApprovalVotes(
 
       // Check if any accumulated voting power exceeds the threshold
       if (
-        accumulatedVotingPower[choiceIndex] >=
-        ACCUMULATED_VOTING_POWER_THRESHOLD
+        accumulatedVotingPower[choiceIndex] >= ACCUMULATE_VOTING_POWER_THRESHOLD
       ) {
         // Create a new time series point for the accumulated votes
         const values: { [choice: number]: number } = {};
@@ -564,9 +557,7 @@ async function processRankedChoiceVotes(
         .join(', '),
     }))
     .sort((a, b) => {
-      const aTime = a.createdAt ? a.createdAt.getTime() : Infinity;
-      const bTime = b.createdAt ? b.createdAt.getTime() : Infinity;
-      return aTime - bTime;
+      return a.createdAt.getTime() - b.createdAt.getTime();
     });
 
   // Create a promise-based chunked IRV calculation
@@ -657,10 +648,9 @@ async function processRankedChoiceVotes(
   for (const vote of processedVotes) {
     runningVotes.push(vote);
     accumulatedVotingPower += vote.votingPower;
-    lastAccumulatedTimestamp =
-      vote.createdAt?.getTime() ?? new Date().getTime();
+    lastAccumulatedTimestamp = vote.createdAt.getTime();
 
-    if (accumulatedVotingPower >= ACCUMULATED_VOTING_POWER_THRESHOLD) {
+    if (accumulatedVotingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
       const { finalVoteCounts, eliminatedChoices } =
         await calculateIRV(runningVotes);
 
@@ -696,9 +686,7 @@ async function processRankedChoiceVotes(
 
   const timestampKey = format(
     toZonedTime(
-      new Date(
-        processedVotes[processedVotes.length - 1]?.createdAt ?? new Date()
-      ),
+      new Date(processedVotes[processedVotes.length - 1]?.createdAt),
       'UTC'
     ),
     'yyyy-MM-dd HH:mm:ss'
