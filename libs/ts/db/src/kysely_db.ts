@@ -374,7 +374,7 @@ export interface UserToVoter {
 export interface Vote {
   blockCreated: number | null;
   choice: Generated<Json>;
-  createdAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
   daoId: string;
   id: Generated<string>;
   indexCreated: Generated<number>;
