@@ -21,66 +21,59 @@ export interface ProposalGroupItem {
 
 export async function fetchData() {
   return otel('mapping-fetch-data', async () => {
-    try {
-      const proposalGroups = await db
-        .selectFrom('proposalGroup')
-        .selectAll()
-        .orderBy('createdAt', 'desc')
-        .execute();
+    const proposalGroups = await db
+      .selectFrom('proposalGroup')
+      .selectAll()
+      .orderBy('createdAt', 'desc')
+      .execute();
 
-      const groupsWithItems = await Promise.all(
-        proposalGroups.map(async (group) => {
-          const items = group.items as unknown as ProposalGroupItem[];
-          const itemsWithIndexerName = await Promise.all(
-            items.map(async (item) => {
-              let indexerName = 'unknown';
-              if (item.type === 'proposal') {
-                const proposal = await db
-                  .selectFrom('proposal')
-                  .leftJoin(
-                    'daoIndexer',
-                    'daoIndexer.id',
-                    'proposal.daoIndexerId'
-                  )
-                  .select('indexerVariant')
-                  .where('proposal.id', '=', item.id)
-                  .executeTakeFirst();
-                indexerName = proposal?.indexerVariant ?? 'unknown';
-              } else if (item.type === 'topic') {
-                const topic = await db
-                  .selectFrom('discourseTopic')
-                  .leftJoin(
-                    'daoDiscourse',
-                    'daoDiscourse.id',
-                    'discourseTopic.daoDiscourseId'
-                  )
-                  .select('daoDiscourse.discourseBaseUrl')
-                  .where('discourseTopic.id', '=', item.id)
-                  .executeTakeFirst();
-                indexerName = topic?.discourseBaseUrl ?? 'unknown';
-              }
-              return { ...item, indexerName };
-            })
-          );
+    const groupsWithItems = await Promise.all(
+      proposalGroups.map(async (group) => {
+        const items = group.items as unknown as ProposalGroupItem[];
+        const itemsWithIndexerName = await Promise.all(
+          items.map(async (item) => {
+            let indexerName = 'unknown';
+            if (item.type === 'proposal') {
+              const proposal = await db
+                .selectFrom('proposal')
+                .leftJoin(
+                  'daoIndexer',
+                  'daoIndexer.id',
+                  'proposal.daoIndexerId'
+                )
+                .select('indexerVariant')
+                .where('proposal.id', '=', item.id)
+                .executeTakeFirst();
+              indexerName = proposal?.indexerVariant ?? 'unknown';
+            } else if (item.type === 'topic') {
+              const topic = await db
+                .selectFrom('discourseTopic')
+                .leftJoin(
+                  'daoDiscourse',
+                  'daoDiscourse.id',
+                  'discourseTopic.daoDiscourseId'
+                )
+                .select('daoDiscourse.discourseBaseUrl')
+                .where('discourseTopic.id', '=', item.id)
+                .executeTakeFirst();
+              indexerName = topic?.discourseBaseUrl ?? 'unknown';
+            }
+            return { ...item, indexerName };
+          })
+        );
 
-          return {
-            ...group,
-            id: group.id.toString(),
-            items: itemsWithIndexerName,
-            createdAt: group.createdAt.toISOString(),
-          };
-        })
-      );
+        return {
+          ...group,
+          id: group.id.toString(),
+          items: itemsWithIndexerName,
+          createdAt: group.createdAt.toISOString(),
+        };
+      })
+    );
 
-      return {
-        proposalGroups: groupsWithItems,
-      };
-    } catch (error) {
-      console.error('Error fetching proposal groups:', error);
-      return {
-        proposalGroups: [],
-      };
-    }
+    return {
+      proposalGroups: groupsWithItems,
+    };
   });
 }
 
