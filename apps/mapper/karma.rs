@@ -1,7 +1,6 @@
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use csv::ReaderBuilder;
 use reqwest::Client;
 use sea_orm::{
     prelude::{Expr, Uuid},
@@ -14,20 +13,32 @@ use seaorm::{
     voter,
 };
 use serde::Deserialize;
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 use tokio::time::{sleep, Instant};
 use tracing::{error, info, instrument, warn, Span};
 
 use crate::metrics::Metrics;
 
 #[derive(Debug, Deserialize)]
+struct KarmaApiResponse {
+    data: KarmaApiData,
+}
+
+#[derive(Debug, Deserialize)]
+struct KarmaApiData {
+    delegates: Vec<KarmaDelegate>,
+}
+
+#[derive(Debug, Deserialize)]
 struct KarmaDelegate {
-    #[serde(rename = "ensName")]
-    ens_name: String,
     #[serde(rename = "publicAddress")]
     public_address: String,
-    #[serde(rename = "forumHandle")]
-    forum_handle: Option<String>,
+    #[serde(rename = "ensName")]
+    ens_name: Option<String>,
+    #[serde(rename = "discourseHandle")]
+    discourse_handle: Option<String>,
+    #[serde(rename = "isForumVerified")]
+    is_forum_verified: bool,
 }
 
 // Static mapping from dao.slug to karma_dao_name
@@ -71,24 +82,47 @@ async fn fetch_karma_data(db: &DatabaseConnection, metrics: &Metrics) -> Result<
 
         if let Some(discourse) = maybe_dao_discourse {
             if let Some(karma_dao_name) = DAO_SLUG_TO_KARMA_DAO_NAME.get(dao.slug.as_str()) {
-                let url = format!(
-                    "https://api.karmahq.xyz/api/dao/delegates/csv?name={}&period=lifetime",
-                    karma_dao_name
-                );
+                let mut offset = 0;
+                let page_size = 10; // Adjust this if the API allows a different page size
+                let mut all_delegates = Vec::new();
 
-                let body = fetch_csv_data(&client, &url, &dao.slug).await?;
-                let delegates = parse_csv_data(&body, &dao.slug)?;
+                loop {
+                    let url = format!(
+                        "https://api.karmahq.xyz/api/dao/delegates?name={}&offset={}&order=desc&field=score&period=lifetime&pageSize={}&statuses=active,inactive,withdrawn,recognized",
+                        karma_dao_name, offset, page_size
+                    );
 
-                update_delegates_ens(db, &delegates, metrics).await?;
+                    let body = fetch_json_data(&client, &url, &dao.slug).await?;
+                    let delegates = parse_json_data(&body, &dao.slug)?;
+
+                    if delegates.is_empty() {
+                        break; // No more delegates to fetch
+                    }
+
+                    all_delegates.extend(delegates);
+                    offset += page_size;
+                }
+
+                // Checksumming all delegate addresses
+                for delegate in &mut all_delegates {
+                    let address: Address = delegate.public_address.parse()?;
+                    delegate.public_address = address.to_checksum(None);
+                }
+
+                update_delegates_ens(db, &all_delegates, metrics).await?;
 
                 metrics
                     .karma_delegates_processed
-                    .add(delegates.len() as u64, &[]);
+                    .add(all_delegates.len() as u64, &[]);
 
-                let delegates_with_forum_handle: Vec<&KarmaDelegate> = delegates
+                let delegates_with_forum_handle: Vec<&KarmaDelegate> = all_delegates
                     .iter()
-                    .filter(|d| d.forum_handle.is_some())
+                    .filter(|d| d.discourse_handle.is_some())
                     .collect();
+
+                info!("{:?}", delegates_with_forum_handle);
+
+                info!("{:?}", delegates_with_forum_handle.len());
 
                 for delegate in &delegates_with_forum_handle {
                     update_delegate(db, &dao, delegate, discourse.id, metrics).await?;
@@ -120,7 +154,7 @@ async fn fetch_daos_with_discourse(
         })
 }
 
-async fn fetch_csv_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
+async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
     const MAX_RETRIES: u32 = 3;
     const INITIAL_RETRY_DELAY: Duration = Duration::seconds(1);
 
@@ -154,7 +188,7 @@ async fn fetch_csv_data(client: &Client, url: &str, dao_slug: &str) -> Result<St
                     continue;
                 } else {
                     return Err(anyhow::anyhow!(
-                        "Failed to fetch CSV data for DAO: {} due to network error: {}",
+                        "Failed to fetch JSON data for DAO: {} due to network error: {}",
                         dao_slug,
                         e
                     ));
@@ -162,7 +196,7 @@ async fn fetch_csv_data(client: &Client, url: &str, dao_slug: &str) -> Result<St
             }
             Err(e) => {
                 return Err(e)
-                    .with_context(|| format!("Failed to fetch CSV data for DAO: {}", dao_slug))
+                    .with_context(|| format!("Failed to fetch JSON data for DAO: {}", dao_slug))
             }
         };
 
@@ -172,7 +206,7 @@ async fn fetch_csv_data(client: &Client, url: &str, dao_slug: &str) -> Result<St
         if status.is_success() {
             return response.text().await.with_context(|| {
                 format!(
-                    "Failed to read CSV response body for DAO: {}. Status: {}, URL: {}",
+                    "Failed to read JSON response body for DAO: {}. Status: {}, URL: {}",
                     dao_slug, status, url
                 )
             });
@@ -194,7 +228,7 @@ async fn fetch_csv_data(client: &Client, url: &str, dao_slug: &str) -> Result<St
         } else {
             let headers_str = format!("{:?}", headers);
             return Err(anyhow::anyhow!(
-                "Failed to fetch CSV data for DAO: {}. Status: {}, URL: {}, Headers: {}",
+                "Failed to fetch JSON data for DAO: {}. Status: {}, URL: {}, Headers: {}",
                 dao_slug,
                 status,
                 url,
@@ -204,28 +238,11 @@ async fn fetch_csv_data(client: &Client, url: &str, dao_slug: &str) -> Result<St
     }
 }
 
-fn parse_csv_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
-    let mut rdr = ReaderBuilder::new().from_reader(body.as_bytes());
-    rdr.deserialize::<KarmaDelegate>()
-        .collect::<Result<Vec<_>, _>>()
-        .with_context(|| format!("Failed to parse CSV for DAO: {}", dao_slug))
-        .map(|delegates| {
-            delegates
-                .into_iter()
-                .map(|delegate| {
-                    if let Ok(address) = Address::from_str(delegate.public_address.as_str()) {
-                        KarmaDelegate {
-                            ens_name: delegate.ens_name,
-                            public_address: address.to_checksum(None),
-                            forum_handle: delegate.forum_handle,
-                        }
-                    } else {
-                        warn!("Invalid Ethereum address: {}", delegate.public_address);
-                        delegate
-                    }
-                })
-                .collect()
-        })
+fn parse_json_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
+    let response: KarmaApiResponse = serde_json::from_str(body)
+        .with_context(|| format!("Failed to parse JSON for DAO: {}", dao_slug))?;
+
+    Ok(response.data.delegates)
 }
 
 #[instrument(skip(conn, dao, delegate_data, metrics), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
@@ -239,7 +256,7 @@ async fn update_delegate(
     let start_time = Instant::now();
 
     // Early return if forum_handle is None
-    let forum_handle = match &delegate_data.forum_handle {
+    let forum_handle = match &delegate_data.discourse_handle {
         Some(handle) => handle,
         None => return Ok(()),
     };
@@ -261,7 +278,7 @@ async fn update_delegate(
         let new_voter = voter::ActiveModel {
             id: NotSet,
             address: Set(delegate_data.public_address.clone()),
-            ens: Set(Some(delegate_data.ens_name.clone())),
+            ens: Set(delegate_data.ens_name.clone()),
         };
         let last_insert_id = voter::Entity::insert(new_voter)
             .exec(conn)
@@ -276,7 +293,7 @@ async fn update_delegate(
         voter = Some(voter::Model {
             id: last_insert_id,
             address: delegate_data.public_address.clone(),
-            ens: Some(delegate_data.ens_name.clone()),
+            ens: delegate_data.ens_name.clone(),
         });
         metrics.db_inserts.add(1, &[]);
     }
@@ -429,6 +446,7 @@ async fn update_delegate(
         // Update existing delegate_to_discourse_user mapping
         let mut active_dtdu = dtdu.into_active_model();
         active_dtdu.period_end = Set(one_hour_later);
+        active_dtdu.verified = Set(delegate_data.is_forum_verified);
         delegate_to_discourse_user::Entity::update(active_dtdu)
             .exec(conn)
             .await
@@ -448,7 +466,7 @@ async fn update_delegate(
             period_start: Set(now),
             period_end: Set(one_hour_later),
             proof: NotSet,
-            verified: Set(false),
+            verified: Set(delegate_data.is_forum_verified),
             created_at: Set(now),
         };
         delegate_to_discourse_user::Entity::insert(new_dtdu)
@@ -481,7 +499,7 @@ async fn update_delegates_ens(
     // Filter delegates with ENS set
     let filtered_delegates: Vec<&KarmaDelegate> = delegates
         .iter()
-        .filter(|delegate| !delegate.ens_name.is_empty())
+        .filter(|delegate| delegate.ens_name.is_some())
         .collect();
 
     if filtered_delegates.is_empty() {
@@ -520,10 +538,10 @@ async fn update_delegates_ens(
 
     for delegate in filtered_delegates {
         if let Some(voter) = voters_to_update.remove(&delegate.public_address) {
-            if voter.ens.as_ref() != Some(&delegate.ens_name) {
+            if voter.ens != delegate.ens_name {
                 // Convert Model to ActiveModel for updating
                 let mut active_voter = voter.into_active_model();
-                active_voter.ens = Set(Some(delegate.ens_name.clone()));
+                active_voter.ens = Set(delegate.ens_name.clone());
                 active_voters_to_save.push(active_voter);
             }
         } else {
@@ -531,7 +549,7 @@ async fn update_delegates_ens(
             let new_voter = voter::ActiveModel {
                 id: NotSet,
                 address: Set(delegate.public_address.clone()),
-                ens: Set(Some(delegate.ens_name.clone())),
+                ens: Set(delegate.ens_name.clone()),
             };
             active_voters_to_save.push(new_voter);
         }
