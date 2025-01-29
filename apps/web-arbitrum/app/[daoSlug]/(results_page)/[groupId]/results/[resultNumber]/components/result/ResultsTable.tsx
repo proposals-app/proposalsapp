@@ -29,7 +29,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           comparison = a.choiceText.localeCompare(b.choiceText);
           break;
         case 'timestamp':
-          comparison = a.timestamp.getTime() - b.timestamp.getTime();
+          comparison = a.createdAt!.getTime() - b.createdAt!.getTime();
           break;
         case 'votingPower':
           comparison = a.votingPower - b.votingPower;
@@ -122,9 +122,9 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           )}
         </div>
         <div className='cursor-default px-2'>
-          <div>{formatDistanceToNow(vote.timestamp, { addSuffix: true })}</div>
+          <div>{formatDistanceToNow(vote.createdAt!, { addSuffix: true })}</div>
           <div className='text-sm'>
-            {format(toZonedTime(vote.timestamp, 'UTC'), 'MMM d, yyyy')} UTC
+            {format(toZonedTime(vote.createdAt!, 'UTC'), 'MMM d, yyyy')} UTC
           </div>
         </div>
         <div className='cursor-default px-2'>

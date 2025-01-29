@@ -233,7 +233,8 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
           // Get the data point that contains metadata
           const timeSeriesPoint = results.votes.find(
-            (point) => point.timestamp.getTime() === adjustedTimestamp.getTime()
+            (point) =>
+              point.createdAt!.getTime() === adjustedTimestamp.getTime()
           );
 
           // Add large vote information if available

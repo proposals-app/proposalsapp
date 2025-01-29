@@ -181,7 +181,7 @@ pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
         "Vote proposal_external_id mismatch"
     );
     assert_eq!(
-        vote.created_at.clone().take().flatten(),
+        vote.created_at.clone().take(),
         expected.time_created,
         "Vote time_created mismatch"
     );

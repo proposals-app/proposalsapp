@@ -453,11 +453,9 @@ async fn refresh_shutter_votes(
                     }),
                     voting_power: Set(v.vp),
                     block_created: NotSet,
-                    created_at: Set(Some(
-                        DateTime::from_timestamp_millis(v.created * 1000)
-                            .expect("Invalid timestamp")
-                            .naive_utc(),
-                    )),
+                    created_at: Set(DateTime::from_timestamp_millis(v.created * 1000)
+                        .expect("Invalid timestamp")
+                        .naive_utc()),
                     proposal_id: NotSet,
                     proposal_external_id: Set(v.proposal.id.clone()),
                     dao_id: Set(indexer.dao_id),

@@ -150,7 +150,7 @@ async fn get_votes(
             voter_address: Set(event.voter.to_string()),
             voting_power: Set((event.weight.to::<u128>() as f64) / (10.0f64.powi(18))),
             block_created: Set(Some(created_block_number as i32)),
-            created_at: Set(Some(created_block_timestamp)),
+            created_at: Set(created_block_timestamp),
             choice: Set(match event.support {
                 0 => 1.into(),
                 1 => 0.into(),
@@ -206,7 +206,7 @@ async fn get_votes_with_params(
             voter_address: Set(event.voter.to_string()),
             voting_power: Set((event.weight.to::<u128>() as f64) / (10.0f64.powi(18))),
             block_created: Set(Some(created_block_number as i32)),
-            created_at: Set(Some(created_block_timestamp)),
+            created_at: Set(created_block_timestamp),
             choice: Set(match event.support {
                 0 => 1.into(),
                 1 => 0.into(),
