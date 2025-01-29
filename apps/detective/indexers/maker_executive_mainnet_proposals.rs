@@ -130,8 +130,8 @@ impl ProposalsIndexer for MakerExecutiveMainnetProposalsIndexer {
         }
 
         proposals.sort_by(|a, b| {
-            let time_a = a.time_created.as_ref();
-            let time_b = b.time_created.as_ref();
+            let time_a = a.created_at.as_ref();
+            let time_b = b.created_at.as_ref();
             time_a.cmp(time_b)
         });
 
@@ -239,9 +239,9 @@ async fn data_for_proposal(
         proposal_state: Set(state),
         marked_spam: NotSet,
         block_created: Set(None),
-        time_created: Set(created_timestamp),
-        time_start: Set(voting_starts_timestamp),
-        time_end: Set(voting_ends_timestamp),
+        created_at: Set(created_timestamp),
+        start_at: Set(voting_starts_timestamp),
+        end_at: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(0),

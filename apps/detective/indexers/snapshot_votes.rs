@@ -92,13 +92,13 @@ impl VotesIndexer for SnapshotVotesIndexer {
         let proposals = proposal::Entity::find()
             .filter(proposal::Column::DaoId.eq(indexer.dao_id))
             .filter(
-                proposal::Column::TimeEnd.gt(DateTime::from_timestamp(indexer.index.into(), 0)
+                proposal::Column::EndAt.gt(DateTime::from_timestamp(indexer.index.into(), 0)
                     .unwrap()
                     .naive_utc()),
             )
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
-            .order_by(proposal::Column::TimeEnd, sea_orm::Order::Asc)
+            .order_by(proposal::Column::EndAt, sea_orm::Order::Asc)
             .limit(proposal_limit as u64) // hacky way to get around too many proposals in the query
             .all(&db) // indexer.speed is used both for the number of votes to pull and the number of proposals to use
             .await?; // if the query fails, they both decrease until the query works
@@ -208,7 +208,7 @@ async fn parse_votes(
                 }),
                 voting_power: Set(v.vp),
                 block_created: NotSet,
-                time_created: Set(Some(
+                created_at: Set(Some(
                     DateTime::from_timestamp_millis(v.created * 1000)
                         .expect("Invalid timestamp")
                         .naive_utc(),

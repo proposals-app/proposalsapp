@@ -49,7 +49,7 @@ export const getProposals = async (
         "proposal.daoId",
         "proposal.name",
         "proposal.url",
-        "proposal.timeEnd",
+        "endAt",
       ])
       .where("markedSpam", "=", false)
       .leftJoin("dao", "proposal.daoId", "dao.id")
@@ -72,7 +72,7 @@ export const getProposals = async (
         ProposalState.HIDDEN,
         ProposalState.ACTIVE,
       ]);
-      proposals_query = proposals_query.orderBy("proposal.timeEnd", "desc");
+      proposals_query = proposals_query.orderBy("endAt", "desc");
     }
 
     if (state_filter == StateFilterEnum.OPEN) {
@@ -81,7 +81,7 @@ export const getProposals = async (
         "=",
         ProposalState.ACTIVE,
       );
-      proposals_query = proposals_query.orderBy("timeEnd", "asc");
+      proposals_query = proposals_query.orderBy("endAt", "asc");
     }
 
     if (state_filter == StateFilterEnum.CLOSED) {
@@ -93,7 +93,7 @@ export const getProposals = async (
         ProposalState.SUCCEEDED,
         ProposalState.HIDDEN,
       ]);
-      proposals_query = proposals_query.orderBy("timeEnd", "desc");
+      proposals_query = proposals_query.orderBy("endAt", "desc");
     }
 
     proposals_query = proposals_query.orderBy("proposal.name", "asc");

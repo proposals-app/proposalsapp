@@ -91,8 +91,8 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
   const proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
-    .where("timeEnd", "<", threeDaysLater)
-    .where("timeEnd", ">", now)
+    .where("endAt", "<", threeDaysLater)
+    .where("endAt", ">", now)
     .where(
       "proposal.daoId",
       "in",
@@ -116,7 +116,7 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
           ]),
       ).as("vote"),
     ])
-    .orderBy("proposal.timeEnd", "asc")
+    .orderBy("endAt", "asc")
     .execute();
 
   return proposals.map((p) => {
@@ -128,7 +128,7 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
       chainLogoUrl,
       url: p.url,
       proposalName: p.name,
-      timeEnd: p.timeEnd.getTime() / 1000,
+      timeEnd: p.endAt.getTime() / 1000,
       hasVoters: voters.length > 0,
       voteIconUrl: voted
         ? "assets/email/voted.png"
@@ -164,7 +164,7 @@ async function getNew(userId: string): Promise<NewProposal[]> {
   const proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
-    .where("timeCreated", ">", oneDayAgo)
+    .where("createdAt", ">", oneDayAgo)
     .where(
       "proposal.daoId",
       "in",
@@ -188,7 +188,7 @@ async function getNew(userId: string): Promise<NewProposal[]> {
           ]),
       ).as("vote"),
     ])
-    .orderBy("proposal.timeEnd", "asc")
+    .orderBy("endAt", "asc")
     .execute();
 
   return proposals.map((p) => {
@@ -200,7 +200,7 @@ async function getNew(userId: string): Promise<NewProposal[]> {
       chainLogoUrl,
       url: p.url,
       proposalName: p.name,
-      timeEnd: p.timeEnd.getTime() / 1000,
+      timeEnd: p.endAt.getTime() / 1000,
       hasVoters: voters.length > 0,
       voteIconUrl: voted
         ? "assets/email/voted.png"
@@ -237,8 +237,8 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
   const proposals = await db
     .selectFrom("proposal")
     .selectAll("proposal")
-    .where("timeEnd", "<", now)
-    .where("timeEnd", ">", oneDayAgo)
+    .where("endAt", "<", now)
+    .where("endAt", ">", oneDayAgo)
     .where(
       "proposal.daoId",
       "in",
@@ -262,7 +262,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
           ]),
       ).as("vote"),
     ])
-    .orderBy("proposal.timeEnd", "desc")
+    .orderBy("endAt", "desc")
     .execute();
 
   function getMaxScoreIndex(scores: number[]): number {
@@ -320,7 +320,7 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
       chainLogoUrl,
       url: p.url,
       proposalName: p.name,
-      timeEnd: p.timeEnd.getTime() / 1000,
+      timeEnd: p.endAt.getTime() / 1000,
       hasVoters: voters.length > 0,
       voteIconUrl: voted
         ? "assets/email/voted.png"

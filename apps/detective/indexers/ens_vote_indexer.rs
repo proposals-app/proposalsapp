@@ -141,7 +141,7 @@ async fn get_votes(
             voting_power: Set((event.weight.to::<u128>() as f64) / (10.0f64.powi(18))),
             reason: Set(Some(event.reason)),
             block_created: Set(Some(created_block_number as i32)),
-            time_created: Set(Some(created_block_timestamp)),
+            created_at: Set(Some(created_block_timestamp)),
             proposal_id: NotSet,
             proposal_external_id: Set(event.proposalId.to_string()),
             dao_id: Set(indexer.dao_id),

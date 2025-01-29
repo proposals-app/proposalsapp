@@ -29,8 +29,8 @@ const checkProposalsAndCreateJobs = async () => {
   const proposals = await db
     .selectFrom("proposal")
     .selectAll()
-    .where("timeEnd", ">", new Date())
-    .where("timeEnd", "<", new Date(new Date().getTime() + 1 * 60 * 60 * 1000))
+    .where("endAt", ">", new Date())
+    .where("endAt", "<", new Date(new Date().getTime() + 1 * 60 * 60 * 1000))
     .execute();
 
   const daos = proposals.map((p) => p.daoId);

@@ -44,7 +44,7 @@ export async function Timeline({
 
   // Check if the proposal end time is older than the current time
   const isProposalEnded = group.proposals.some(
-    (proposal) => new Date(proposal.timeEnd) < currentTime
+    (proposal) => new Date(proposal.endAt) < currentTime
   );
 
   return (

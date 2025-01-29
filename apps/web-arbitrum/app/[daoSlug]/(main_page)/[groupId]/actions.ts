@@ -151,7 +151,7 @@ async function getBodies(groupID: string) {
         content: proposal.body,
         author_name: proposal.author ?? 'Unknown',
         author_picture: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${proposal.author}`,
-        createdAt: proposal.timeCreated,
+        createdAt: proposal.createdAt,
         type: 'proposal',
       })
     );

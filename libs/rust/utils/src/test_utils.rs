@@ -106,17 +106,17 @@ pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProp
         "Proposal marked_spam mismatch"
     );
     assert_eq!(
-        proposal.time_created.clone().take().unwrap(),
+        proposal.created_at.clone().take().unwrap(),
         expected.time_created,
         "Proposal time_created mismatch"
     );
     assert_eq!(
-        proposal.time_start.clone().take().unwrap(),
+        proposal.start_at.clone().take().unwrap(),
         expected.time_start,
         "Proposal time_start mismatch"
     );
     assert_eq!(
-        proposal.time_end.clone().take().unwrap(),
+        proposal.end_at.clone().take().unwrap(),
         expected.time_end,
         "Proposal time_end mismatch"
     );
@@ -181,7 +181,7 @@ pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
         "Vote proposal_external_id mismatch"
     );
     assert_eq!(
-        vote.time_created.clone().take().flatten(),
+        vote.created_at.clone().take().flatten(),
         expected.time_created,
         "Vote time_created mismatch"
     );

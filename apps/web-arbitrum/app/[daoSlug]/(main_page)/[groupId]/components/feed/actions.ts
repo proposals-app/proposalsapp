@@ -1,16 +1,14 @@
 import { VotesFilterEnum } from '@/app/searchParams';
 import { otel } from '@/lib/otel';
 import { AsyncReturnType } from '@/lib/utils';
-import {
-  DB,
-  db,
-  DiscoursePost,
-  Selectable,
-  SelectQueryBuilder,
-  sql,
-  Vote,
-} from '@proposalsapp/db';
+import { db, DiscoursePost, Selectable, sql, Vote } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
+
+export interface VoteWithAggregate extends Selectable<Vote> {
+  aggregate: boolean;
+}
+
+const AGGREGATION_THRESHOLD = 50000;
 
 async function getFeed(
   groupID: string,
@@ -19,7 +17,7 @@ async function getFeed(
 ) {
   'use server';
   return otel('get-feed-for-group', async () => {
-    let votes: Selectable<Vote>[] = [];
+    let votes: VoteWithAggregate[] = [];
     let posts: Selectable<DiscoursePost>[] = [];
 
     try {
@@ -63,10 +61,7 @@ async function getFeed(
         firstDaoDiscourseId = topics[0]?.daoDiscourseId;
       }
 
-      // Build the base query for votes
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const queries: SelectQueryBuilder<DB, any, any>[] = [];
-
+      // Build the query for votes
       if (proposalIds.length > 0) {
         const votesQuery = db
           .selectFrom('vote')
@@ -83,17 +78,19 @@ async function getFeed(
                 return qb;
             }
           })
-          .select([
-            'id',
-            sql<Date>`time_created`.as('timestamp'),
-            sql<'vote'>`'vote'`.as('type'),
-            'id as originalId',
-          ]);
+          .selectAll();
 
-        queries.push(votesQuery);
+        const fetchedVotes = await votesQuery
+          .orderBy('createdAt', 'desc')
+          .execute();
+
+        votes = fetchedVotes.map((vote) => ({
+          ...vote,
+          aggregate: false,
+        }));
       }
 
-      // Add posts query if comments are enabled and there are topics
+      // Build the query for posts if comments are enabled and there are topics
       if (
         commentsFilter &&
         topicsExternalIds.length > 0 &&
@@ -104,72 +101,72 @@ async function getFeed(
           .where('topicId', 'in', topicsExternalIds)
           .where('daoDiscourseId', '=', firstDaoDiscourseId)
           .where('postNumber', '!=', 1)
-          .select([
-            'id',
-            sql<Date>`created_at`.as('timestamp'),
-            sql<'post'>`'post'`.as('type'),
-            'id as originalId',
-          ]);
+          .selectAll();
 
-        queries.push(postsQuery);
+        posts = await postsQuery.orderBy('createdAt', 'desc').execute();
       }
 
-      // Combine queries if there are multiple
-      let finalQuery = queries[0];
-      for (let i = 1; i < queries.length; i++) {
-        finalQuery = finalQuery.union(queries[i]);
-      }
+      // Aggregate small votes between large votes
+      const aggregatedVotes: VoteWithAggregate[] = [];
+      let currentAggregation: { [choice: string]: number } = {};
+      let inAggregationWindow = false;
 
-      if (!finalQuery) {
-        return { votes: [], posts: [], hasMore: false };
-      }
-
-      // Get paginated items
-      const paginatedItems = await finalQuery
-        .orderBy('timestamp', 'desc')
-        .execute();
-
-      // Fetch full data for each paginated item
-      const votePromises: Promise<Selectable<Vote> | null>[] = [];
-      const postPromises: Promise<Selectable<DiscoursePost> | null>[] = [];
-
-      paginatedItems.forEach((item) => {
-        if (item.type === 'vote') {
-          votePromises.push(
-            db
-              .selectFrom('vote')
-              .selectAll()
-              .where('id', '=', item.originalId)
-              .executeTakeFirst()
-              .then((result) => result ?? null)
-          );
-        } else {
-          postPromises.push(
-            db
-              .selectFrom('discoursePost')
-              .selectAll()
-              .where('id', '=', item.originalId)
-              .executeTakeFirst()
-              .then((result) => result ?? null)
-          );
-        }
+      votes.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
       });
 
-      // Wait for all promises to resolve
-      const [resolvedVotes, resolvedPosts] = await Promise.all([
-        Promise.all(votePromises),
-        Promise.all(postPromises),
-      ]);
+      for (let i = 0; i < votes.length; i++) {
+        const vote = votes[i] as VoteWithAggregate;
+        if (vote.votingPower > AGGREGATION_THRESHOLD) {
+          // If we encounter a large vote, end the current aggregation window
+          if (inAggregationWindow) {
+            for (const choice in currentAggregation) {
+              aggregatedVotes.push({
+                ...vote,
+                id: `aggregated-${choice}`,
+                votingPower: currentAggregation[choice],
+                aggregate: true,
+                createdAt: vote.createdAt, // Use the timestamp of the last large vote
+                choice: choice,
+              });
+            }
+            inAggregationWindow = false;
+            currentAggregation = {};
+          }
+          aggregatedVotes.push({
+            ...vote,
+            aggregate: false,
+          });
+        } else {
+          // Aggregate small votes between large ones
+          inAggregationWindow = true;
+          if (!currentAggregation[vote.choice?.toString() ?? 'Unknown']) {
+            currentAggregation[vote.choice?.toString() ?? 'Unknown'] = 0;
+          }
+          currentAggregation[vote.choice?.toString() ?? 'Unknown'] +=
+            vote.votingPower;
+        }
+      }
 
-      // Filter out null values and assign to result arrays
-      votes = resolvedVotes.filter((v): v is Selectable<Vote> => v !== null);
-      posts = resolvedPosts.filter(
-        (p): p is Selectable<DiscoursePost> => p !== null
-      );
+      // Handle any remaining aggregated votes at the end of the list
+      if (inAggregationWindow) {
+        for (const choice in currentAggregation) {
+          aggregatedVotes.push({
+            ...votes[votes.length - 1], // Use last large vote's timestamp or another reference point
+            id: `aggregated-${choice}`,
+            votingPower: currentAggregation[choice],
+            aggregate: true,
+            createdAt: votes[votes.length - 1].createdAt, // Use the timestamp of the last large vote
+            choice: choice,
+          });
+        }
+      }
 
       const hasMore = false;
       return {
-        votes,
+        votes: aggregatedVotes,
         posts,
         hasMore,
       };
@@ -286,10 +283,10 @@ async function getDelegate(
             .execute();
 
           proposalStartTimes = proposals.map((proposal) =>
-            proposal.timeStart.getTime()
+            proposal.startAt.getTime()
           );
           proposalEndTimes = proposals.map((proposal) =>
-            proposal.timeEnd.getTime()
+            proposal.endAt.getTime()
           );
         }
 

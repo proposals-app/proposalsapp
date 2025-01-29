@@ -160,7 +160,7 @@ async fn get_votes(
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
             reason: Set(Some(event.reason)),
-            time_created: Set(Some(created_block_timestamp)),
+            created_at: Set(Some(created_block_timestamp)),
             txid: Set(Some(format!(
                 "0x{}",
                 hex::encode(log.transaction_hash.unwrap())
@@ -301,7 +301,7 @@ async fn get_votes_with_params(
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
             reason: Set(Some(event.reason)),
-            time_created: Set(Some(created_block_timestamp)),
+            created_at: Set(Some(created_block_timestamp)),
             txid: Set(Some(format!(
                 "0x{}",
                 hex::encode(log.transaction_hash.unwrap())

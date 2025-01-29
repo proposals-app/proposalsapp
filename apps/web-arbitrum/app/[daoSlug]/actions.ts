@@ -44,9 +44,9 @@ async function getGroups(daoSlug: string, page: number, itemsPerPage: number) {
           proposalIds.length > 0
             ? db
                 .selectFrom('proposal')
-                .select('timeCreated')
+                .select('createdAt')
                 .where('id', 'in', proposalIds)
-                .orderBy('timeCreated', 'desc')
+                .orderBy('createdAt', 'desc')
                 .limit(1)
                 .executeTakeFirst()
             : Promise.resolve(null),
@@ -62,8 +62,8 @@ async function getGroups(daoSlug: string, page: number, itemsPerPage: number) {
         ]);
 
         return Math.max(
-          latestProposal?.timeCreated
-            ? new Date(latestProposal.timeCreated).getTime()
+          latestProposal?.createdAt
+            ? new Date(latestProposal.createdAt).getTime()
             : 0,
           latestTopic?.createdAt ? new Date(latestTopic.createdAt).getTime() : 0
         );

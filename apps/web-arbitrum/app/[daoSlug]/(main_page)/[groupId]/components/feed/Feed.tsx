@@ -87,7 +87,7 @@ function insertPlaceholderPosts(items: CombinedFeedItem[]): CombinedFeedItem[] {
   const result: CombinedFeedItem[] = [];
 
   let previousPostNumber = posts[0].postNumber;
-  let previousPostTimestamp = posts[0].timestamp;
+  let previousPostTimestamp = posts[0].createdAt!;
 
   for (const post of posts) {
     // If there's a gap between the current post and the previous one, insert placeholders
@@ -125,7 +125,7 @@ function insertPlaceholderPosts(items: CombinedFeedItem[]): CombinedFeedItem[] {
         daoDiscourseId: post.daoDiscourseId, // Use the same DAO ID as the next post
         canViewEditHistory: false, // Cannot view edit history
         deleted: true, // Mark as deleted
-        timestamp: placeholderTimestamp, // Use current time as a placeholder
+        createdAt: placeholderTimestamp, // Use current time as a placeholder
       });
       previousPostNumber++;
       previousPostTimestamp = placeholderTimestamp;
@@ -133,7 +133,7 @@ function insertPlaceholderPosts(items: CombinedFeedItem[]): CombinedFeedItem[] {
 
     result.push(post);
     previousPostNumber = post.postNumber;
-    previousPostTimestamp = post.timestamp;
+    previousPostTimestamp = post.createdAt;
   }
 
   // Re-insert votes into the result array, maintaining their original order
@@ -142,7 +142,7 @@ function insertPlaceholderPosts(items: CombinedFeedItem[]): CombinedFeedItem[] {
   }
 
   // Sort the final result by timestamp
-  result.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  result.sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
 
   return result;
 }
@@ -167,13 +167,11 @@ export function FeedLoading() {
 
 export type VoteFeedItem = {
   type: 'vote';
-  timestamp: Date;
-} & Omit<Selectable<Vote>, 'timeCreated'>;
+} & Selectable<Vote>;
 
 export type PostFeedItem = {
   type: 'post';
-  timestamp: Date;
-} & Omit<Selectable<DiscoursePost>, 'createdAt'>;
+} & Selectable<DiscoursePost>;
 
 export type CombinedFeedItem = VoteFeedItem | PostFeedItem;
 
@@ -185,24 +183,20 @@ export function mergeAndSortFeedItems(
     ...votes.map((vote) => ({
       type: 'vote' as const,
       ...vote,
-      timeCreated: undefined,
-      timestamp: new Date(vote.timeCreated!),
     })),
     ...posts.map((post) => ({
       type: 'post' as const,
       ...post,
-      createdAt: undefined,
-      timestamp: new Date(post.createdAt),
     })),
   ];
 
   // Sort the combined items by timestamp in descending order
   combinedItems.sort((a, b) => {
-    if (a.timestamp && b.timestamp) {
-      return b.timestamp.getTime() - a.timestamp.getTime();
-    } else if (a.timestamp) {
+    if (a.createdAt && b.createdAt) {
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    } else if (a.createdAt) {
       return -1;
-    } else if (b.timestamp) {
+    } else if (b.createdAt) {
       return 1;
     } else {
       return 0;

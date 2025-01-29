@@ -296,9 +296,11 @@ export interface Proposal {
   blockCreated: number | null;
   body: string;
   choices: Generated<Json>;
+  createdAt: Timestamp;
   daoId: string;
   daoIndexerId: string;
   discussionUrl: string | null;
+  endAt: Timestamp;
   externalId: string;
   id: Generated<string>;
   indexCreated: Generated<number>;
@@ -310,9 +312,7 @@ export interface Proposal {
   scores: Generated<Json>;
   scoresQuorum: number;
   scoresTotal: number;
-  timeCreated: Timestamp;
-  timeEnd: Timestamp;
-  timeStart: Timestamp;
+  startAt: Timestamp;
   txid: string | null;
   url: string;
 }
@@ -374,6 +374,7 @@ export interface UserToVoter {
 export interface Vote {
   blockCreated: number | null;
   choice: Generated<Json>;
+  createdAt: Timestamp | null;
   daoId: string;
   id: Generated<string>;
   indexCreated: Generated<number>;
@@ -381,7 +382,6 @@ export interface Vote {
   proposalExternalId: string;
   proposalId: string;
   reason: string | null;
-  timeCreated: Timestamp | null;
   txid: string | null;
   voterAddress: string;
   votingPower: number;

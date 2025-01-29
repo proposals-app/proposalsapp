@@ -6,7 +6,7 @@ import { Poppins } from "next/font/google";
 type ProposalProps = {
   id: string;
   name: string;
-  timeEnd: Date;
+  endAt: Date;
   daoPicture: string | null;
   url: string;
 };
@@ -59,33 +59,34 @@ export const ProposalItem = ({ proposal }: { proposal: ProposalProps }) => {
           fill
           sizes="100vw"
           style={{
-            objectFit: "contain"
-          }} />
+            objectFit: "contain",
+          }}
+        />
       </div>
 
       <div
-        className={`w-full text-ellipsis text-[18px] leading-[24px] ${poppins.className}`}
+        className={`w-full text-[18px] leading-[24px] text-ellipsis ${poppins.className}`}
       >
         {proposal.name.length < MAX_NAME_LENGTH
           ? proposal.name
           : proposal.name.slice(0, MAX_NAME_LENGTH - 3) + "..."}
       </div>
       <div className="min-w-[100px] text-center">
-        {proposal.timeEnd.getTime() > new Date().getTime() ? (
-          <div className={`${poppins.className} text-xl text-dark`}>
+        {proposal.endAt.getTime() > new Date().getTime() ? (
+          <div className={`${poppins.className} text-dark text-xl`}>
             open for
           </div>
         ) : (
-          <div className={`${poppins.className} text-xl text-gold`}>closed</div>
+          <div className={`${poppins.className} text-gold text-xl`}>closed</div>
         )}
 
-        {proposal.timeEnd.getTime() > new Date().getTime() ? (
-          <div className={`${poppinsBold.className} text-xl text-dark`}>
-            {moment(proposal.timeEnd).fromNow(true)}
+        {proposal.endAt.getTime() > new Date().getTime() ? (
+          <div className={`${poppinsBold.className} text-dark text-xl`}>
+            {moment(proposal.endAt).fromNow(true)}
           </div>
         ) : (
-          <div className={`${poppinsBold.className} text-xl text-gold`}>
-            {moment(proposal.timeEnd).fromNow(true)}
+          <div className={`${poppinsBold.className} text-gold text-xl`}>
+            {moment(proposal.endAt).fromNow(true)}
             {" ago"}
           </div>
         )}

@@ -101,7 +101,7 @@ async function processBasicVotes(
       votingPower: Number(vote.votingPower),
       voterAddress: vote.voterAddress,
       reason: vote.reason,
-      timestamp: new Date(vote.timeCreated!),
+      timestamp: new Date(vote.createdAt!),
       color: choiceColors[choice],
     };
   });
@@ -208,11 +208,11 @@ async function processWeightedVotes(
   // Sort votes by timestamp
   const sortedVotes = [...votes].sort(
     (a, b) =>
-      new Date(a.timeCreated!).getTime() - new Date(b.timeCreated!).getTime()
+      new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime()
   );
 
   sortedVotes.forEach((vote) => {
-    const timestamp = new Date(vote.timeCreated!);
+    const timestamp = new Date(vote.createdAt!);
 
     if (
       typeof vote.choice === 'object' &&
@@ -427,14 +427,14 @@ async function processApprovalVotes(
   // Sort votes by timestamp
   const sortedVotes = [...votes].sort(
     (a, b) =>
-      new Date(a.timeCreated!).getTime() - new Date(b.timeCreated!).getTime()
+      new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime()
   );
 
   sortedVotes.forEach((vote) => {
     const approvedChoices = Array.isArray(vote.choice)
       ? (vote.choice as number[])
       : [vote.choice as number];
-    const timestamp = new Date(vote.timeCreated!);
+    const timestamp = new Date(vote.createdAt!);
 
     // Create a single processed vote with all choices
     const choiceText = approvedChoices
@@ -565,9 +565,9 @@ async function processRankedChoiceVotes(
 
   // Pre-process votes
   const processedVotes = votes
-    .filter((vote) => vote.timeCreated && Array.isArray(vote.choice))
+    .filter((vote) => vote.createdAt && Array.isArray(vote.choice))
     .map((vote) => ({
-      timestamp: new Date(vote.timeCreated!).getTime(),
+      timestamp: new Date(vote.createdAt!).getTime(),
       votingPower: Number(vote.votingPower),
       choice: (vote.choice as number[]).map((c) => c - 1),
       voterAddress: vote.voterAddress,
@@ -903,7 +903,7 @@ export async function getDelegateForVoter(
       discourseUserQuery = discourseUserQuery.where(
         'periodStart',
         '<=',
-        proposal.timeStart
+        proposal.startAt
       );
 
       // Only apply the periodEnd condition if the proposal is not active
@@ -911,7 +911,7 @@ export async function getDelegateForVoter(
         discourseUserQuery = discourseUserQuery.where(
           'periodEnd',
           '>=',
-          proposal.timeEnd
+          proposal.endAt
         );
       }
     }
@@ -933,11 +933,11 @@ export async function getDelegateForVoter(
       .leftJoin('voter', 'voter.id', 'delegateToVoter.voterId');
 
     if (withPeriodCheck) {
-      ensQuery = ensQuery.where('periodStart', '<=', proposal.timeStart);
+      ensQuery = ensQuery.where('periodStart', '<=', proposal.startAt);
 
       // Only apply the periodEnd condition if the proposal is not active
       if (proposal.proposalState !== ProposalState.ACTIVE) {
-        ensQuery = ensQuery.where('periodEnd', '>=', proposal.timeEnd);
+        ensQuery = ensQuery.where('periodEnd', '>=', proposal.endAt);
       }
     }
 

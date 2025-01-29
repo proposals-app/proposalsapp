@@ -134,7 +134,7 @@ async fn get_votes(
             voter_address: Set(event.voter.to_string()),
             voting_power: Set((event.votes.to::<u128>() as f64) / (10.0f64.powi(18))),
             block_created: Set(Some(created_block_number as i32)),
-            time_created: Set(Some(created_block_timestamp)),
+            created_at: Set(Some(created_block_timestamp)),
             choice: Set(match event.support {
                 true => 0.into(),
                 false => 1.into(),

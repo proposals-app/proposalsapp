@@ -69,13 +69,13 @@ export async function VoteItem({
   const { displayName, voterAddress, avatarUrl } = getDelegateDisplayInfo();
 
   const relativeCreateTime = formatDistanceToNowStrict(
-    new Date(item.timestamp),
+    new Date(item.createdAt!),
     {
       addSuffix: true,
     }
   );
   const utcTime = format(
-    formatISO(item.timestamp),
+    formatISO(item.createdAt!),
     "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
   );
 

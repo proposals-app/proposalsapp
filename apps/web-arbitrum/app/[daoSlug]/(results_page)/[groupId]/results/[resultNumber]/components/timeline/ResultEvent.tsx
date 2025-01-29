@@ -29,11 +29,11 @@ export function ResultEvent({
   const voteType = isOnchain ? 'Onchain' : 'Offchain';
 
   // Determine if the vote is live or ended
-  const isLive = new Date() < new Date(proposal.timeEnd);
+  const isLive = new Date() < new Date(proposal.endAt);
 
   // Format dates
-  const startDate = format(new Date(proposal.timeStart), 'MMM d');
-  const endDate = format(new Date(proposal.timeEnd), 'MMM d');
+  const startDate = format(new Date(proposal.startAt), 'MMM d');
+  const endDate = format(new Date(proposal.endAt), 'MMM d');
 
   // Content to be rendered inside the div
   const eventContent = (

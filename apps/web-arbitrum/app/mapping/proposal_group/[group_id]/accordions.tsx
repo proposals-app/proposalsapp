@@ -29,8 +29,8 @@ export function ProposalAccordion({
       {proposals.map((proposal) => {
         const sortedVotes = [...proposal.votes].sort(
           (a, b) =>
-            (b.timeCreated ? new Date(b.timeCreated).getTime() : 0) -
-            (a.timeCreated ? new Date(a.timeCreated).getTime() : 0)
+            (b.createdAt ? new Date(b.createdAt).getTime() : 0) -
+            (a.createdAt ? new Date(a.createdAt).getTime() : 0)
         );
 
         return (
@@ -69,7 +69,7 @@ export function ProposalAccordion({
                 {sortedVotes.map((vote: Selectable<Vote>) => (
                   <li key={vote.id} className='rounded-md border p-2'>
                     <span className='font-medium'>Timestamp:</span>{' '}
-                    {vote.timeCreated?.toString()}
+                    {vote.createdAt?.toString()}
                     <br />
                     <span className='font-medium'>Address:</span>{' '}
                     {vote.voterAddress}

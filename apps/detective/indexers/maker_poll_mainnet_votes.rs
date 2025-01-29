@@ -141,7 +141,7 @@ async fn get_votes(
             proposal_external_id: Set(event.pollId.to_string()),
             dao_id: Set(indexer.dao_id),
             indexer_id: Set(indexer.id),
-            time_created: Set(Some(created_block_timestamp)),
+            created_at: Set(Some(created_block_timestamp)),
             reason: NotSet,
             txid: Set(Some(format!(
                 "0x{}",

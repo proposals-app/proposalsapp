@@ -304,9 +304,9 @@ async fn parse_proposals(
             proposal_state: Set(state.clone()),
             marked_spam: Set(p.flagged.unwrap_or(false)),
             block_created: NotSet,
-            time_created: Set(time_created),
-            time_start: Set(time_start),
-            time_end: Set(time_end),
+            created_at: Set(time_created),
+            start_at: Set(time_start),
+            end_at: Set(time_end),
             dao_indexer_id: Set(indexer.id),
             dao_id: Set(indexer.dao_id),
             index_created: Set(p.created.try_into().expect("Invalid timestamp")),
@@ -453,7 +453,7 @@ async fn refresh_shutter_votes(
                     }),
                     voting_power: Set(v.vp),
                     block_created: NotSet,
-                    time_created: Set(Some(
+                    created_at: Set(Some(
                         DateTime::from_timestamp_millis(v.created * 1000)
                             .expect("Invalid timestamp")
                             .naive_utc(),
@@ -512,8 +512,8 @@ async fn sanitize(
         .filter(
             Condition::all()
                 .add(proposal::Column::DaoIndexerId.eq(indexer.id))
-                .add(proposal::Column::TimeCreated.gte(sanitize_from))
-                .add(proposal::Column::TimeCreated.lte(sanitize_to)),
+                .add(proposal::Column::CreatedAt.gte(sanitize_from))
+                .add(proposal::Column::CreatedAt.lte(sanitize_to)),
         )
         .all(&db)
         .await?;
@@ -574,7 +574,7 @@ async fn sanitize(
 
         updated_proposal.marked_spam = Set(true);
         updated_proposal.proposal_state = Set(ProposalState::Canceled);
-        updated_proposal.time_end = Set(now);
+        updated_proposal.end_at = Set(now);
 
         proposal::Entity::update(updated_proposal.clone())
             .exec(&db)

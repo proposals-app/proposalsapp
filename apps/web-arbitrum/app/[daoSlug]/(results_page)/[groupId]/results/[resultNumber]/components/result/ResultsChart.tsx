@@ -257,9 +257,9 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       },
       xAxis: {
         type: 'time',
-        min: toZonedTime(new Date(results.proposal.timeStart), 'UTC').getTime(),
+        min: toZonedTime(new Date(results.proposal.startAt), 'UTC').getTime(),
         max:
-          toZonedTime(new Date(results.proposal.timeEnd), 'UTC').getTime() +
+          toZonedTime(new Date(results.proposal.endAt), 'UTC').getTime() +
           5 * 60 * 1000,
         axisLabel: {
           formatter: (value: number) =>

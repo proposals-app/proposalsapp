@@ -249,8 +249,8 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
     // Add proposal and vote events
     if (group.proposals && group.proposals.length > 0) {
       for (const proposal of group.proposals) {
-        const startedAt = new Date(proposal.timeStart);
-        const endedAt = new Date(proposal.timeEnd);
+        const startedAt = new Date(proposal.startAt);
+        const endedAt = new Date(proposal.endAt);
 
         const daoIndexer = await db
           .selectFrom('daoIndexer')

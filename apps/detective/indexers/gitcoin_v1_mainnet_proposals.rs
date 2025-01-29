@@ -273,11 +273,11 @@ async fn data_for_proposal(
         proposal_state: Set(state),
         marked_spam: NotSet,
         block_created: Set(Some(log.block_number.unwrap().to_i32().unwrap())),
-        time_created: Set(DateTime::from_timestamp(created_block_timestamp, 0)
+        created_at: Set(DateTime::from_timestamp(created_block_timestamp, 0)
             .unwrap()
             .naive_utc()),
-        time_start: Set(voting_starts_timestamp),
-        time_end: Set(voting_ends_timestamp),
+        start_at: Set(voting_starts_timestamp),
+        end_at: Set(voting_ends_timestamp),
         dao_indexer_id: Set(indexer.clone().id),
         dao_id: Set(indexer.clone().dao_id),
         index_created: Set(log.block_number.unwrap().to_i32().unwrap()),

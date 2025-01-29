@@ -51,7 +51,7 @@ export async function PostItem({
   const processedContent = markdownToHtml(item.cooked);
   const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
   const relativeCreateTime = formatDistanceToNowStrict(
-    new Date(item.timestamp),
+    new Date(item.createdAt),
     {
       addSuffix: true,
     }
@@ -66,7 +66,7 @@ export async function PostItem({
     }
   );
   const utcTime = format(
-    formatISO(item.timestamp),
+    formatISO(item.createdAt),
     "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
   );
 
@@ -186,7 +186,7 @@ const PostContent = ({
             </Tooltip.Content>
           </Tooltip.Root>
         </div>
-        {item.timestamp.getTime() != updatedAt.getTime() && (
+        {item.createdAt.getTime() != updatedAt.getTime() && (
           <div>
             <span>edited {relativeUpdateTime}</span>
           </div>
