@@ -232,7 +232,6 @@ export function LoadingList() {
       className='ml-6 w-64 rounded-lg border border-neutral-300 bg-white p-4
         dark:border-neutral-700 dark:bg-neutral-950'
     >
-      <h3 className='mb-4 text-xl font-semibold'>Vote Distribution</h3>
       <div className='space-y-4'>
         {[...Array(3)].map((_, index) => (
           <div

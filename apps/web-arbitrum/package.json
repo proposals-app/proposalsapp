@@ -41,6 +41,7 @@
     "react-window": "^1.8.11",
     "redis": "^4.7.0",
     "rehype-stringify": "^10.0.1",
+    "superjson": "^2.2.2",
     "unified": "^11.0.5",
     "uuid": "^11.0.5",
     "web-push": "^3.6.7"

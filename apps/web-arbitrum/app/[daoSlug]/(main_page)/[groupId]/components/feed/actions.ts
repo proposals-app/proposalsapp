@@ -1,6 +1,6 @@
 import { VotesFilterEnum } from '@/app/searchParams';
 import { otel } from '@/lib/otel';
-import { AsyncReturnType } from '@/lib/utils';
+import { AsyncReturnType, superjson_cache } from '@/lib/utils';
 import { ProcessedVote, processResultsAction } from '@/lib/votes_processing';
 import {
   db,
@@ -393,7 +393,7 @@ async function getPostLikedUsers(
 export type VotingPowerReturnType = AsyncReturnType<typeof getVotingPower>;
 export type FeedReturnType = AsyncReturnType<typeof getFeed>;
 
-export const getFeed_cached = unstable_cache(
+export const getFeed_cached = superjson_cache(
   async (
     groupId: string,
     commentsFilter: boolean,
