@@ -1,23 +1,24 @@
 import { VotesFilterEnum } from '@/app/searchParams';
 import { otel } from '@/lib/otel';
 import { AsyncReturnType } from '@/lib/utils';
-import { db, DiscoursePost, Selectable, sql, Vote } from '@proposalsapp/db';
+import { ProcessedVote, processResultsAction } from '@/lib/votes_processing';
+import {
+  db,
+  DiscoursePost,
+  Proposal,
+  Selectable,
+  sql,
+  Vote,
+} from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
-
-export interface VoteWithAggregate extends Selectable<Vote> {
-  aggregate: boolean;
-}
-
-const AGGREGATION_THRESHOLD = 50000;
 
 export async function getFeed(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum
-) {
+): Promise<{ votes: ProcessedVote[]; posts: Selectable<DiscoursePost>[] }> {
   'use server';
   return otel('get-feed-for-group', async () => {
-    let votes: VoteWithAggregate[] = [];
     let posts: Selectable<DiscoursePost>[] = [];
 
     try {
@@ -29,7 +30,7 @@ export async function getFeed(
         .executeTakeFirstOrThrow();
 
       if (!group) {
-        return { votes, posts };
+        return { votes: [], posts };
       }
 
       // Extract proposal and topic IDs from group items
@@ -46,6 +47,17 @@ export async function getFeed(
         .filter((item) => item.type === 'topic')
         .map((item) => item.id);
 
+      // Fetch proposals to get details
+      let proposals: Selectable<Proposal>[] = [];
+
+      if (proposalIds.length > 0) {
+        proposals = await db
+          .selectFrom('proposal')
+          .selectAll()
+          .where('id', 'in', proposalIds)
+          .execute();
+      }
+
       // Fetch topics to get daoDiscourseId and externalIds
       let topicsExternalIds: number[] = [];
       let firstDaoDiscourseId: string | undefined;
@@ -61,7 +73,9 @@ export async function getFeed(
         firstDaoDiscourseId = topics[0]?.daoDiscourseId;
       }
 
-      // Build the query for votes
+      // Fetch votes for the proposals
+      let votes: Selectable<Vote>[] = [];
+
       if (proposalIds.length > 0) {
         const votesQuery = db
           .selectFrom('vote')
@@ -80,14 +94,7 @@ export async function getFeed(
           })
           .selectAll();
 
-        const fetchedVotes = await votesQuery
-          .orderBy('createdAt', 'desc')
-          .execute();
-
-        votes = fetchedVotes.map((vote) => ({
-          ...vote,
-          aggregate: false,
-        }));
+        votes = await votesQuery.orderBy('createdAt', 'desc').execute();
       }
 
       // Build the query for posts if comments are enabled and there are topics
@@ -106,68 +113,23 @@ export async function getFeed(
         posts = await postsQuery.orderBy('createdAt', 'desc').execute();
       }
 
-      // Aggregate small votes between large votes
-      const aggregatedVotes: VoteWithAggregate[] = [];
-      let currentAggregation: { [choice: string]: number } = {};
-      let inAggregationWindow = false;
+      // Process votes using processResultsAction
+      const processedVotes: ProcessedVote[] = [];
 
-      votes.sort((a, b) => {
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeB - timeA;
-      });
+      for (const proposal of proposals) {
+        const result = await processResultsAction(
+          proposal,
+          votes.filter((vote) => vote.proposalId === proposal.id),
+          { withVotes: true, withTimeseries: false, aggregatedVotes: true }
+        );
 
-      for (let i = 0; i < votes.length; i++) {
-        const vote = votes[i] as VoteWithAggregate;
-        if (vote.votingPower > AGGREGATION_THRESHOLD) {
-          // If we encounter a large vote, end the current aggregation window
-          if (inAggregationWindow) {
-            for (const choice in currentAggregation) {
-              aggregatedVotes.push({
-                ...vote,
-                id: `aggregated`,
-                reason: 'Aggregated votes',
-                votingPower: currentAggregation[choice],
-                aggregate: true,
-                createdAt: vote.createdAt ?? new Date(), // Use the timestamp of the last large vote
-                choice: choice,
-              });
-            }
-            inAggregationWindow = false;
-            currentAggregation = {};
-          }
-          aggregatedVotes.push({
-            ...vote,
-            aggregate: false,
-          });
-        } else {
-          // Aggregate small votes between large ones
-          inAggregationWindow = true;
-          if (!currentAggregation[vote.choice?.toString() ?? 'Unknown']) {
-            currentAggregation[vote.choice?.toString() ?? 'Unknown'] = 0;
-          }
-          currentAggregation[vote.choice?.toString() ?? 'Unknown'] +=
-            vote.votingPower;
-        }
-      }
-
-      // Handle any remaining aggregated votes at the end of the list
-      if (inAggregationWindow) {
-        for (const choice in currentAggregation) {
-          aggregatedVotes.push({
-            ...votes[votes.length - 1], // Use last large vote's timestamp or another reference point
-            id: `aggregated`,
-            reason: 'Aggregated votes',
-            votingPower: currentAggregation[choice],
-            aggregate: true,
-            createdAt: votes[votes.length - 1].createdAt ?? new Date(), // Use the timestamp of the last large vote
-            choice: choice,
-          });
+        if (result.votes) {
+          processedVotes.push(...result.votes);
         }
       }
 
       return {
-        votes: aggregatedVotes,
+        votes: processedVotes,
         posts,
       };
     } catch (error) {

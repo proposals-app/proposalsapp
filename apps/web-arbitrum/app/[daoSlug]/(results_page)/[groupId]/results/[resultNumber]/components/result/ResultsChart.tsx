@@ -17,6 +17,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
   useEffect(() => {
     if (!chartRef.current) return;
+    if (!results.timeSeriesData) return;
 
     const chart = echarts.init(chartRef.current);
 
@@ -29,7 +30,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       cumulativeData[choiceIndex] = [];
       let cumulative = 0;
 
-      results.timeSeriesData.forEach((point) => {
+      results.timeSeriesData?.forEach((point) => {
         if (isWeighted) {
           // For weighted votes, use the normalized values directly
           cumulative += point.values[choiceIndex] || 0;
@@ -46,7 +47,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       if (isRankedChoice) {
         // For ranked-choice, use the raw values from the last time series point
         const lastPoint =
-          results.timeSeriesData[results.timeSeriesData.length - 1];
+          results.timeSeriesData?.[results.timeSeriesData.length - 1];
         lastKnownValues[choiceIndex] = lastPoint?.values[choiceIndex] || 0;
       } else {
         // For other vote types, use the cumulative values
@@ -114,7 +115,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
               }
             : undefined,
           data: isRankedChoice
-            ? results.timeSeriesData.map((point) => [
+            ? results.timeSeriesData?.map((point) => [
                 point.timestamp,
                 point.values[choiceIndex] || 0,
               ])
@@ -233,7 +234,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           let tooltipText = `<strong>${format(utcDate, 'MMM d, HH:mm')} UTC</strong><br/>`;
 
           // Get the data point that contains metadata
-          const timeSeriesPoint = results.votes.find(
+          const timeSeriesPoint = results.votes?.find(
             (point) =>
               point.createdAt!.getTime() === adjustedTimestamp.getTime()
           );

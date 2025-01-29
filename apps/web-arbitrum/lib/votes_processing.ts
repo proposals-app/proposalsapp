@@ -3,10 +3,19 @@ import { otel } from '@/lib/otel';
 import { Proposal, Selectable, Vote } from '@proposalsapp/db';
 import { format, toZonedTime } from 'date-fns-tz';
 
+export type VoteType =
+  | 'single-choice'
+  | 'weighted'
+  | 'approval'
+  | 'basic'
+  | 'quadratic'
+  | 'ranked-choice';
+
 export interface ProcessedVote extends Omit<Selectable<Vote>, 'choice'> {
   choice: number | number[];
   choiceText: string;
   color: string | string[];
+  aggregate?: boolean;
 }
 
 export interface TimeSeriesPoint {
@@ -21,7 +30,7 @@ export interface ProcessedResults {
   totalVotingPower: number;
   quorum: number | null;
   quorumChoices: number[];
-  voteType: 'basic' | 'weighted' | 'approval' | 'ranked-choice' | 'quadratic';
+  voteType: VoteType;
   votes?: ProcessedVote[]; // Optional, only included if withVotes is true
   timeSeriesData?: TimeSeriesPoint[]; // Optional, only included if withTimeseries is true
   finalResults: { [choice: number]: number };
@@ -117,7 +126,7 @@ async function processBasicVotes(
     });
   }
 
-  let timeSeriesData: TimeSeriesPoint[] = [];
+  const timeSeriesData: TimeSeriesPoint[] = [];
   if (withTimeseries) {
     const sortedVotes = [...(processedVotes ?? votes)].sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
@@ -873,19 +882,29 @@ async function processQuadraticVotes(
   };
 }
 
+export interface ProcessingConfig {
+  withVotes?: boolean;
+  withTimeseries?: boolean;
+  aggregatedVotes?: boolean;
+}
+
 /**
  * Main function to process votes for a given proposal.
  * @param proposal - The proposal object to process results for.
  * @param votes - The list of votes associated with the proposal.
  * @param withVotes - Whether to include processed votes in the result. Defaults to true.
  * @param withTimeseries - Whether to include time series data in the result. Defaults to true.
+ * @param aggregatedVotes - Whether to aggregate small votes between large ones. Defaults to false.
  * @returns A promise that resolves to the processed results.
  */
 export async function processResultsAction(
   proposal: Selectable<Proposal>,
   votes: Selectable<Vote>[],
-  withVotes: boolean = true,
-  withTimeseries: boolean = true
+  {
+    withVotes = true,
+    withTimeseries = true,
+    aggregatedVotes = false,
+  }: ProcessingConfig
 ): Promise<ProcessedResults> {
   'use server';
   return otel('process-results', async () => {
@@ -941,6 +960,67 @@ export async function processResultsAction(
           withTimeseries
         );
         break;
+    }
+
+    if (withVotes && aggregatedVotes && result.votes) {
+      const aggregatedResults: ProcessedVote[] = [];
+      let currentAggregation: { [choice: number]: number } = {};
+      let inAggregationWindow = false;
+
+      result.votes.sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+      );
+
+      for (let i = 0; i < result.votes.length || 0; i++) {
+        const vote = result.votes![i];
+        if (vote.votingPower > ACCUMULATE_VOTING_POWER_THRESHOLD) {
+          // If we encounter a large vote, end the current aggregation window
+          if (inAggregationWindow) {
+            for (const choice in currentAggregation) {
+              aggregatedResults.push({
+                ...vote,
+                id: `aggregated`,
+                reason: 'Aggregated votes',
+                votingPower: currentAggregation[choice],
+                aggregate: true,
+                createdAt: vote.createdAt, // Use the timestamp of the last large vote
+                choice: Number(choice),
+              });
+            }
+            inAggregationWindow = false;
+            currentAggregation = {};
+          }
+          aggregatedResults.push({
+            ...vote,
+            aggregate: false,
+          });
+        } else {
+          // Aggregate small votes between large ones
+          inAggregationWindow = true;
+          if (!currentAggregation[vote.choice as number]) {
+            currentAggregation[vote.choice as number] = 0;
+          }
+          currentAggregation[vote.choice as number] += vote.votingPower;
+        }
+      }
+
+      // Handle any remaining aggregated votes at the end of the list
+      if (inAggregationWindow) {
+        for (const choice in currentAggregation) {
+          const lastVote = result.votes![result.votes!.length - 1];
+          aggregatedResults.push({
+            ...lastVote, // Use last large vote's timestamp or another reference point
+            id: `aggregated`,
+            reason: 'Aggregated votes',
+            votingPower: currentAggregation[choice],
+            aggregate: true,
+            createdAt: lastVote.createdAt, // Use the timestamp of the last large vote
+            choice: Number(choice),
+          });
+        }
+      }
+
+      result.votes = aggregatedResults;
     }
 
     // Check if hiddenVote is true and scoresState is not "final"

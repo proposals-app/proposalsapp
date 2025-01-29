@@ -72,7 +72,11 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     })
   );
 
-  const processedResults = await processResultsAction(proposal, votes);
+  const processedResults = await processResultsAction(proposal, votes, {
+    withVotes: true,
+    withTimeseries: true,
+    aggregatedVotes: false,
+  });
 
   if (!processedResults) {
     notFound();

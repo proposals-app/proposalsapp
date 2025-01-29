@@ -44,9 +44,9 @@ export async function Timeline({
                 commentsFilter) ||
               (event.type === TimelineEventType.VotesVolume &&
                 event.metadata?.votingPower &&
-                //votesFilter === VotesFilterEnum.ALL ||
-                ((votesFilter === VotesFilterEnum.FIFTY_THOUSAND &&
-                  event.metadata.votingPower > 50000) ||
+                (votesFilter === VotesFilterEnum.ALL ||
+                  (votesFilter === VotesFilterEnum.FIFTY_THOUSAND &&
+                    event.metadata.votingPower > 50000) ||
                   (votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND &&
                     event.metadata.votingPower > 500000) ||
                   (votesFilter === VotesFilterEnum.FIVE_MILLION &&

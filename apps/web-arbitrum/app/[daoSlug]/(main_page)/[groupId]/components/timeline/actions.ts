@@ -4,14 +4,6 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { GroupReturnType } from '../../actions';
 import { ProposalMetadata, ProposalWithMetadata } from '@/app/types';
 
-export type VoteType =
-  | 'single-choice'
-  | 'weighted'
-  | 'approval'
-  | 'basic'
-  | 'quadratic'
-  | 'ranked-choice';
-
 export enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
   ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',

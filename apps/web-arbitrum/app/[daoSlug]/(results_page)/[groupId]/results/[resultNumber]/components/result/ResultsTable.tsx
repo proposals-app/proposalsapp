@@ -21,7 +21,8 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const sortedVotes = useMemo(() => {
-    return [...results.votes].sort((a, b) => {
+    const votesArray = results.votes || [];
+    return [...votesArray].sort((a, b) => {
       let comparison = 0;
 
       // Default sorting for other vote types
