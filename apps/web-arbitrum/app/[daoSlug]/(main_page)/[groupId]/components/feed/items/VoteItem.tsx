@@ -123,18 +123,20 @@ export async function VoteItem({
         bg-neutral-100 p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800`}
     >
       <div className='flex cursor-default flex-row justify-between select-none'>
-        <div className='flex flex-col gap-2'>
-          <Suspense>
-            <AuthorInfo
-              authorName={displayName}
-              authorPicture={avatarUrl}
-              voterAddress={voterAddress}
-              isDelegate={!!delegate}
-            >
-              <VotingPowerTag item={item} />
-            </AuthorInfo>
-          </Suspense>
-        </div>
+        {!item.id.includes('aggregate') && (
+          <div className='flex flex-col gap-2'>
+            <Suspense>
+              <AuthorInfo
+                authorName={displayName}
+                authorPicture={avatarUrl}
+                voterAddress={voterAddress}
+                isDelegate={!!delegate}
+              >
+                <VotingPowerTag item={item} />
+              </AuthorInfo>
+            </Suspense>
+          </div>
+        )}
 
         <div className='text-neutral-450 flex flex-col items-end text-sm dark:text-neutral-300'>
           <Tooltip.Root>

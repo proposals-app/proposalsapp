@@ -10,7 +10,7 @@ export interface VoteWithAggregate extends Selectable<Vote> {
 
 const AGGREGATION_THRESHOLD = 50000;
 
-async function getFeed(
+export async function getFeed(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum
@@ -29,7 +29,7 @@ async function getFeed(
         .executeTakeFirstOrThrow();
 
       if (!group) {
-        return { votes, posts, hasMore: false };
+        return { votes, posts };
       }
 
       // Extract proposal and topic IDs from group items
@@ -125,10 +125,10 @@ async function getFeed(
             for (const choice in currentAggregation) {
               aggregatedVotes.push({
                 ...vote,
-                id: `aggregated-${choice}`,
+                id: `aggregated`,
                 votingPower: currentAggregation[choice],
                 aggregate: true,
-                createdAt: vote.createdAt, // Use the timestamp of the last large vote
+                createdAt: vote.createdAt ?? new Date(), // Use the timestamp of the last large vote
                 choice: choice,
               });
             }
@@ -155,24 +155,22 @@ async function getFeed(
         for (const choice in currentAggregation) {
           aggregatedVotes.push({
             ...votes[votes.length - 1], // Use last large vote's timestamp or another reference point
-            id: `aggregated-${choice}`,
+            id: `aggregated`,
             votingPower: currentAggregation[choice],
             aggregate: true,
-            createdAt: votes[votes.length - 1].createdAt, // Use the timestamp of the last large vote
+            createdAt: votes[votes.length - 1].createdAt ?? new Date(), // Use the timestamp of the last large vote
             choice: choice,
           });
         }
       }
 
-      const hasMore = false;
       return {
         votes: aggregatedVotes,
         posts,
-        hasMore,
       };
     } catch (error) {
       console.error('Error fetching feed:', error);
-      return { votes: [], posts: [], hasMore: false };
+      return { votes: [], posts: [] };
     }
   });
 }

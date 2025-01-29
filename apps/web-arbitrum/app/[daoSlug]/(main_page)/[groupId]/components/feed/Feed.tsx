@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { PostItem } from './items/PostItem';
 import { VoteItem } from './items/VoteItem';
 import { GroupReturnType } from '../../actions';
-import { getFeed_cached } from './actions';
+import { getFeed, getFeed_cached, VoteWithAggregate } from './actions';
 
 export default async function Feed({
   group,
@@ -20,11 +20,7 @@ export default async function Feed({
     notFound();
   }
 
-  const feed = await getFeed_cached(
-    group.group.id,
-    commentsFilter,
-    votesFilter
-  );
+  const feed = await getFeed(group.group.id, commentsFilter, votesFilter);
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
 
@@ -167,7 +163,7 @@ export function FeedLoading() {
 
 export type VoteFeedItem = {
   type: 'vote';
-} & Selectable<Vote>;
+} & VoteWithAggregate;
 
 export type PostFeedItem = {
   type: 'post';
@@ -178,15 +174,15 @@ export type CombinedFeedItem = VoteFeedItem | PostFeedItem;
 export function mergeAndSortFeedItems(
   votes: Selectable<Vote>[],
   posts: Selectable<DiscoursePost>[]
-): CombinedFeedItem[] {
+) {
   const combinedItems = [
     ...votes.map((vote) => ({
-      type: 'vote' as const,
       ...vote,
+      type: 'vote' as const,
     })),
     ...posts.map((post) => ({
-      type: 'post' as const,
       ...post,
+      type: 'post' as const,
     })),
   ];
 
