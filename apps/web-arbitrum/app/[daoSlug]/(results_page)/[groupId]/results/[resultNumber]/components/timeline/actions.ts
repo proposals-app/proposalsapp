@@ -272,12 +272,12 @@ export async function extractEvents(group: GroupReturnType): Promise<Event[]> {
       const dailyVotes = await db
         .selectFrom('vote')
         .select([
-          sql<Date>`DATE_TRUNC('day', "time_created")`.as('date'),
+          sql<Date>`DATE_TRUNC('day', "created_at")`.as('date'),
           sql<number>`SUM("voting_power")`.as('totalVotingPower'),
-          sql<Date>`MIN("time_created")`.as('firstVoteTime'),
+          sql<Date>`MIN("created_at")`.as('firstVoteTime'),
         ])
         .where('proposalId', '=', proposal.id)
-        .groupBy(sql`DATE_TRUNC('day', "time_created")`)
+        .groupBy(sql`DATE_TRUNC('day', "created_at")`)
         .execute();
 
       const maxVotes = Math.max(
