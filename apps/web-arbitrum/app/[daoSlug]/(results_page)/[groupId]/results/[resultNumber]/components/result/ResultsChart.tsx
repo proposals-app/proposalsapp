@@ -12,6 +12,8 @@ interface ResultsChartProps {
   delegateMap: Map<string, DelegateInfo>;
 }
 
+const ACCUMULATE_VOTING_POWER_THRESHOLD = 50000;
+
 export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -25,14 +27,27 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
     // Calculate cumulative data for each choice
     const cumulativeData: { [choice: number]: [Date, number][] } = {};
+
     results.choices.forEach((_, choiceIndex) => {
       cumulativeData[choiceIndex] = [];
       let cumulative = 0;
 
+      cumulativeData[choiceIndex].push([results.proposal.startAt, 0]);
+
       results.timeSeriesData?.forEach((point) => {
-        cumulative += point.values[choiceIndex] || 0;
-        cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
+        const value = point.values[choiceIndex] || 0;
+        cumulative += value;
+        if (value >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
+          cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
+        }
       });
+
+      const lastPoint =
+        results.timeSeriesData?.[results.timeSeriesData!.length - 1];
+      cumulativeData[choiceIndex].push([
+        lastPoint?.timestamp ?? results.proposal.endAt,
+        cumulative,
+      ]);
     });
 
     // Get last known values for sorting
@@ -222,8 +237,6 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             (point) => point.createdAt.getTime() === selectedDate.getTime()
           );
 
-          console.log(results.votes);
-
           let tooltipText = `<strong>${format(selectedDate, 'MMM d, HH:mm:ss')} UTC</strong><br/>`;
 
           // Add large vote information if available
@@ -247,8 +260,8 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       },
       xAxis: {
         type: 'time',
-        min: toZonedTime(new Date(results.proposal.startAt), 'UTC').getTime(),
-        max: toZonedTime(new Date(results.proposal.endAt), 'UTC').getTime(),
+        min: results.proposal.startAt,
+        max: results.proposal.endAt,
         axisLabel: {
           formatter: (value: number) =>
             format(toZonedTime(new Date(value), 'UTC'), 'MMM d, HH:mm') +

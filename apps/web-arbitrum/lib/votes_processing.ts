@@ -93,7 +93,7 @@ function getTotalDelegatedVp(
     : undefined;
 }
 
-const ACCUMULATE_VOTING_POWER_THRESHOLD = 5000;
+const ACCUMULATE_VOTING_POWER_THRESHOLD = 50000;
 
 /**
  * Process basic (single-choice) votes.
