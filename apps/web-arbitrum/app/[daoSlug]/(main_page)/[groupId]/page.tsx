@@ -1,5 +1,5 @@
 import { searchParamsCache } from '@/app/searchParams';
-import { notFound, redirect, RedirectType } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { getGroup_cached, getTotalVersions_cached } from './actions';
 import Body, { BodyLoading } from './components/body/Body';

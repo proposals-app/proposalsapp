@@ -1,11 +1,10 @@
 'use client';
-
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { format, toZonedTime } from 'date-fns-tz';
 import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { WindowScroller, List, AutoSizer } from 'react-virtualized';
 import { DelegateInfo } from '../actions';
 import { ProcessedResults } from '@/lib/votes_processing';
 
@@ -60,11 +59,13 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     }
   };
 
-  const Row = ({
+  const rowRenderer = ({
     index,
+    key,
     style,
   }: {
     index: number;
+    key: string;
     style: React.CSSProperties;
   }) => {
     const vote = sortedVotes[index];
@@ -79,6 +80,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
     return (
       <div
+        key={key}
         style={style}
         className='grid grid-cols-4 items-center border-b border-neutral-200 p-2
           dark:border-neutral-800'
@@ -172,14 +174,25 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           </div>
         </div>
 
-        <List
-          height={600}
-          itemCount={sortedVotes.length}
-          itemSize={60}
-          width='100%'
-        >
-          {Row}
-        </List>
+        <WindowScroller>
+          {({ height, isScrolling, onChildScroll, scrollTop }) => (
+            <AutoSizer disableHeight>
+              {({ width }) => (
+                <List
+                  autoHeight
+                  width={width}
+                  height={height}
+                  isScrolling={isScrolling}
+                  onScroll={onChildScroll}
+                  scrollTop={scrollTop}
+                  rowCount={sortedVotes.length}
+                  rowHeight={60}
+                  rowRenderer={rowRenderer}
+                />
+              )}
+            </AutoSizer>
+          )}
+        </WindowScroller>
       </div>
     </div>
   );
