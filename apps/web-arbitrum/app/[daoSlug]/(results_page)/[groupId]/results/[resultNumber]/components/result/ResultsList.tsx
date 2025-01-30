@@ -2,13 +2,14 @@
 
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { ProcessedResults } from '@/lib/votes_processing';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface ResultsListProps {
   results: ProcessedResults;
 }
 
 export function ResultsList({ results }: ResultsListProps) {
+  const explicitOrder = ['For', 'Abstain', 'Against'];
   const [isExpanded, setIsExpanded] = useState(false);
   const totalVotingPower = results.totalVotingPower;
   const totalDelegatedVp = results.totalDelegatedVp;
@@ -22,9 +23,14 @@ export function ResultsList({ results }: ResultsListProps) {
   }));
 
   // Sort by voting power descending
-  const sortedChoices = choicesWithPower.sort(
-    (a, b) => b.votingPower - a.votingPower
-  );
+  const sortedChoices = explicitOrder
+    ? choicesWithPower.sort((a, b) => {
+        const indexA = explicitOrder.indexOf(a.choice);
+        const indexB = explicitOrder.indexOf(b.choice);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        return b.votingPower - a.votingPower;
+      })
+    : choicesWithPower.sort((a, b) => b.votingPower - a.votingPower);
 
   // Determine which choices to show
   const topChoices = isExpanded ? sortedChoices : sortedChoices.slice(0, 5);
@@ -195,19 +201,93 @@ interface ChoiceBarProps {
 }
 
 function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
+  const [pixels, setPixels] = useState<boolean[][]>([]);
+  const barRef = useRef<HTMLDivElement>(null);
+  const pixelSize = 8; // Size of each pixel in pixels
+  const barPixelsHeight = 5; // Number of rows in the grid
+
+  useEffect(() => {
+    if (percentage !== null && barRef.current) {
+      const barWidth = barRef.current.clientWidth; // Width of the bar in pixels
+      const columns = Math.floor(barWidth / pixelSize); // Number of columns in the grid
+      const rows = barPixelsHeight; // Number of rows in the grid
+
+      const totalPixels = columns * rows; // Total number of pixels in the grid
+      const filledPixels = Math.floor((percentage / 100) * totalPixels); // Number of pixels to fill
+
+      const newPixels = Array.from({ length: rows }, () =>
+        Array.from({ length: columns }, () => false)
+      );
+
+      let filledCount = 0;
+
+      // Fill the grid column by column, top to bottom
+      for (let col = 0; col < columns; col++) {
+        for (let row = 0; row < rows; row++) {
+          if (filledCount < filledPixels) {
+            newPixels[row][col] = true;
+            filledCount++;
+          } else {
+            break;
+          }
+        }
+      }
+
+      // Determine the last 3 filled columns
+      const filledColumns = [];
+      for (let col = 0; col < columns; col++) {
+        if (newPixels.some((row) => row[col])) {
+          filledColumns.push(col);
+        }
+      }
+
+      const lastThreeFilledColumns = filledColumns.slice(-3); // Last 3 filled columns
+
+      // Randomize the rows in the last 3 filled columns
+      for (const col of lastThreeFilledColumns) {
+        for (let row = 0; row < rows; row++) {
+          newPixels[row][col] = false; // Clear the column
+        }
+
+        // Randomly fill the column
+        const pixelsToFill = Math.ceil((filledPixels / columns) * 1.5); // Adjust as needed
+        for (let i = 0; i < pixelsToFill; i++) {
+          const randomRow = Math.floor(Math.random() * rows);
+          newPixels[randomRow][col] = true;
+        }
+      }
+
+      setPixels(newPixels);
+    }
+  }, [percentage]);
+
   return (
     <div
-      className='relative h-10 w-full rounded-lg border border-neutral-300 bg-white
+      ref={barRef}
+      className='relative w-full overflow-hidden rounded-lg border border-neutral-300 bg-white
         dark:border-neutral-700 dark:bg-neutral-950'
+      style={{ height: barPixelsHeight * pixelSize }}
     >
-      {/* Bar with percentage width */}
+      {/* Pixelated Grid */}
       <div
-        className='absolute top-0 left-0 h-full rounded-lg'
-        style={{
-          width: `${percentage}%`,
-          backgroundColor: color,
-        }}
-      />
+        className='absolute top-0 left-0 w-full'
+        style={{ height: barPixelsHeight * pixelSize }}
+      >
+        {pixels.map((row, rowIndex) => (
+          <div key={rowIndex} className='flex'>
+            {row.map((filled, colIndex) => (
+              <div
+                key={colIndex}
+                style={{
+                  backgroundColor: filled ? color : 'transparent',
+                  width: pixelSize,
+                  height: pixelSize,
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
 
       {/* Text content */}
       <div className='absolute inset-0 flex items-center justify-between px-3'>
