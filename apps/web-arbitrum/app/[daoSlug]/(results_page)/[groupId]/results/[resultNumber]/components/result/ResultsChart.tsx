@@ -32,22 +32,11 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       cumulativeData[choiceIndex] = [];
       let cumulative = 0;
 
-      cumulativeData[choiceIndex].push([results.proposal.startAt, 0]);
-
       results.timeSeriesData?.forEach((point) => {
         const value = point.values[choiceIndex] || 0;
         cumulative += value;
-        if (value >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
-          cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
-        }
+        cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
       });
-
-      const lastPoint =
-        results.timeSeriesData?.[results.timeSeriesData!.length - 1];
-      cumulativeData[choiceIndex].push([
-        lastPoint?.timestamp ?? results.proposal.endAt,
-        cumulative,
-      ]);
     });
 
     // Get last known values for sorting
@@ -102,6 +91,21 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           zIndex = 0; // Default for other choices
         }
 
+        const significantPoints: [Date, number][] = [];
+        let cumulativeValue = 0;
+        results.timeSeriesData?.forEach((point) => {
+          const value = point.values[choiceIndex] || 0;
+          cumulativeValue += value;
+          if (
+            value >= ACCUMULATE_VOTING_POWER_THRESHOLD &&
+            !significantPoints.find(
+              (sigPoint) => sigPoint[0] === point.timestamp
+            )
+          ) {
+            significantPoints.push([point.timestamp, cumulativeValue]);
+          }
+        });
+
         return {
           name: choice,
           type: 'line',
@@ -110,7 +114,34 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             width: shouldStack ? 0 : 2,
             color: color,
           },
-          showSymbol: false,
+          showSymbol: true, // Show symbols for significant points
+          symbol: (data) => {
+            const isSignificant = significantPoints.find(
+              (sigPoint) => sigPoint[0] === data[0]
+            );
+            return isSignificant ? 'square' : 'none';
+          },
+          symbolSize(value) {
+            const selectedDate = new Date(value[0]);
+
+            const timeSeriesPoint = results.votes?.find(
+              (point) => point.createdAt.getTime() === selectedDate.getTime()
+            );
+
+            const votingPower = timeSeriesPoint?.votingPower ?? 0;
+
+            // Use a power function to amplify the differences
+            const baseSize = 1; // Minimum size
+            const scalingFactor = 0.2; // Adjust this factor to control the scaling
+            const size = baseSize + Math.pow(votingPower, scalingFactor);
+
+            return size;
+          },
+          itemStyle: {
+            color: () => {
+              return color;
+            },
+          },
           emphasis: {
             itemStyle: {
               color: color,
@@ -221,16 +252,15 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
     const options: echarts.EChartsOption = {
       tooltip: {
-        trigger: 'axis',
+        trigger: 'item', // Change from 'axis' to 'item'
         backgroundColor: 'var(--neutral-100)', // Light mode background
         borderColor: 'var(--neutral-300)', // Light mode border
         textStyle: {
           color: 'var(--neutral-800)', // Light mode text color
         },
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: (params: any) => {
-          const selectedDate = new Date(params[0].axisValue);
+          const selectedDate = new Date(params.value[0]);
 
           // Get the data point that contains metadata
           const timeSeriesPoint = results.votes?.find(
@@ -245,14 +275,14 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             const voterName = delegate?.name || timeSeriesPoint.voterAddress;
 
             tooltipText += `
-                  <div class='w-fit whitespace-nowrap flex flex-col'>
-                    <span>Voter: ${voterName}</span>
-                    <span>Power: ${formatNumberWithSuffix(timeSeriesPoint.votingPower)}</span>
-                    <div class='max-w-sm break-words whitespace-normal'>
-                      <span>Choice: ${timeSeriesPoint.choiceText}</span>
-                    </div>
-                  </div>
-                 `;
+              <div class='w-fit whitespace-nowrap flex flex-col'>
+                <span>Voter: ${voterName}</span>
+                <span>Power: ${formatNumberWithSuffix(timeSeriesPoint.votingPower)}</span>
+                <div class='max-w-sm break-words whitespace-normal'>
+                  <span>Choice: ${timeSeriesPoint.choiceText}</span>
+                </div>
+              </div>
+            `;
           }
 
           return tooltipText;

@@ -113,7 +113,7 @@ async function processBasicVotes(
 ): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
-  let processedVotes: ProcessedVote[] = votes.map((vote) => {
+  const processedVotes: ProcessedVote[] = votes.map((vote) => {
     const choice = vote.choice as number;
     return {
       ...vote,
