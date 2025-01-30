@@ -19,7 +19,7 @@ export interface ProcessedVote extends Omit<Selectable<Vote>, 'choice'> {
 }
 
 export interface TimeSeriesPoint {
-  timestamp: string;
+  timestamp: Date;
   values: { [choice: number]: number };
 }
 
@@ -113,69 +113,75 @@ async function processBasicVotes(
 ): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
-  let processedVotes: ProcessedVote[] | undefined;
-  if (withVotes) {
-    processedVotes = votes.map((vote) => {
-      const choice = vote.choice as number;
-      return {
-        ...vote,
-        choice,
-        choiceText: choices[choice] || 'Unknown Choice',
-        color: choiceColors[choice],
-      };
-    });
-  }
+  let processedVotes: ProcessedVote[] = votes.map((vote) => {
+    const choice = vote.choice as number;
+    return {
+      ...vote,
+      choice,
+      choiceText: choices[choice] || 'Unknown Choice',
+      color: choiceColors[choice],
+    };
+  });
 
   const timeSeriesData: TimeSeriesPoint[] = [];
   if (withTimeseries) {
-    const sortedVotes = [...(processedVotes ?? votes)].sort(
+    const sortedVotes = [...processedVotes].sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
     );
 
-    let accumulatedVotingPower = 0;
+    // Accumulate voting power separately for each choice
+    const accumulatedVotingPower: { [choice: number]: number } = {};
+    choices.forEach((_, index) => {
+      accumulatedVotingPower[index] = 0;
+    });
+
     let lastAccumulatedTimestamp: Date | null = null;
 
     sortedVotes.forEach((vote) => {
+      const choice = vote.choice as number;
+
       if (vote.votingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
         // Create a new time series point for this vote
         timeSeriesData.push({
-          timestamp: format(
-            toZonedTime(vote.createdAt, 'UTC'),
-            'yyyy-MM-dd HH:mm:ss'
-          ),
-          values: { [vote.choice as number]: vote.votingPower },
+          timestamp: vote.createdAt,
+          values: { [choice]: vote.votingPower },
         });
       } else {
-        // Accumulate voting power
-        accumulatedVotingPower += vote.votingPower;
+        // Accumulate voting power for this choice
+        accumulatedVotingPower[choice] += vote.votingPower;
         lastAccumulatedTimestamp = vote.createdAt;
 
-        if (accumulatedVotingPower >= ACCUMULATE_VOTING_POWER_THRESHOLD) {
-          // Create a new time series point for the accumulated votes
+        if (
+          accumulatedVotingPower[choice] >= ACCUMULATE_VOTING_POWER_THRESHOLD
+        ) {
+          // Create a new time series point for the accumulated votes for this choice
           timeSeriesData.push({
-            timestamp: format(
-              toZonedTime(lastAccumulatedTimestamp ?? new Date(), 'UTC'),
-              'yyyy-MM-dd HH:mm:ss'
-            ),
-            values: { [vote.choice as number]: accumulatedVotingPower },
+            timestamp: lastAccumulatedTimestamp,
+            values: { [choice]: accumulatedVotingPower[choice] },
           });
-          accumulatedVotingPower = 0; // Reset accumulation
+          accumulatedVotingPower[choice] = 0; // Reset accumulation for this choice
         }
       }
     });
 
-    // If there's any remaining accumulated voting power, add it to the last timestamp
-    if (accumulatedVotingPower > 0 && lastAccumulatedTimestamp) {
-      timeSeriesData.push({
-        timestamp: format(
-          toZonedTime(lastAccumulatedTimestamp, 'UTC'),
-          'yyyy-MM-dd HH:mm:ss'
-        ),
-        values: {
-          [sortedVotes[sortedVotes.length - 1].choice as number]:
-            accumulatedVotingPower,
-        },
+    // If there's any remaining accumulated voting power for any choice, add it to the last timestamp
+    if (lastAccumulatedTimestamp) {
+      const remainingValues: { [choice: number]: number } = {};
+      let hasRemainingPower = false;
+
+      choices.forEach((_, index) => {
+        if (accumulatedVotingPower[index] > 0) {
+          remainingValues[index] = accumulatedVotingPower[index];
+          hasRemainingPower = true;
+        }
       });
+
+      if (hasRemainingPower) {
+        timeSeriesData.push({
+          timestamp: lastAccumulatedTimestamp,
+          values: remainingValues,
+        });
+      }
     }
   }
 
@@ -185,7 +191,7 @@ async function processBasicVotes(
     finalResults[index] = 0;
   });
 
-  (processedVotes ?? votes).forEach((vote) => {
+  processedVotes.forEach((vote) => {
     finalResults[vote.choice as number] =
       (finalResults[vote.choice as number] || 0) + vote.votingPower;
   });
@@ -194,7 +200,7 @@ async function processBasicVotes(
     proposal,
     choices,
     choiceColors,
-    totalVotingPower: (processedVotes ?? votes).reduce(
+    totalVotingPower: processedVotes.reduce(
       (sum, vote) => sum + vote.votingPower,
       0
     ),
@@ -310,10 +316,7 @@ async function processWeightedVotes(
         });
 
         timeSeriesData?.push({
-          timestamp: format(
-            toZonedTime(timestamp, 'UTC'),
-            'yyyy-MM-dd HH:mm:ss'
-          ),
+          timestamp: timestamp,
           values,
         });
 
@@ -343,10 +346,7 @@ async function processWeightedVotes(
       ) {
         // Create a new time series point for this vote
         timeSeriesData?.push({
-          timestamp: format(
-            toZonedTime(timestamp, 'UTC'),
-            'yyyy-MM-dd HH:mm:ss'
-          ),
+          timestamp: timestamp,
           values: { [choice]: Number(vote.votingPower) },
         });
       } else {
@@ -360,10 +360,7 @@ async function processWeightedVotes(
         ) {
           // Create a new time series point for the accumulated votes
           timeSeriesData?.push({
-            timestamp: format(
-              toZonedTime(lastAccumulatedTimestamp, 'UTC'),
-              'yyyy-MM-dd HH:mm:ss'
-            ),
+            timestamp: lastAccumulatedTimestamp,
             values: { [choice]: accumulatedVotingPower[choice] },
           });
 
@@ -387,10 +384,7 @@ async function processWeightedVotes(
 
     if (hasRemainingPower) {
       timeSeriesData?.push({
-        timestamp: format(
-          toZonedTime(lastAccumulatedTimestamp, 'UTC'),
-          'yyyy-MM-dd HH:mm:ss'
-        ),
+        timestamp: lastAccumulatedTimestamp,
         values,
       });
     }
@@ -530,10 +524,7 @@ async function processApprovalVotes(
         });
 
         timeSeriesData?.push({
-          timestamp: format(
-            toZonedTime(lastAccumulatedTimestamp, 'UTC'),
-            'yyyy-MM-dd HH:mm:ss'
-          ),
+          timestamp: lastAccumulatedTimestamp,
           values,
         });
 
@@ -553,10 +544,7 @@ async function processApprovalVotes(
     });
 
     timeSeriesData?.push({
-      timestamp: format(
-        toZonedTime(lastAccumulatedTimestamp, 'UTC'),
-        'yyyy-MM-dd HH:mm:ss'
-      ),
+      timestamp: lastAccumulatedTimestamp,
       values,
     });
   }
@@ -770,7 +758,10 @@ async function processRankedChoiceVotes(
         // Add the total votes as a special key "Total"
         values['Winning threshold'] = totalVotes / 2;
 
-        timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
+        timeSeriesMap.set(timestampKey, {
+          timestamp: new Date(lastAccumulatedTimestamp),
+          values,
+        });
 
         // Reset accumulation
         accumulatedVotingPower = 0;
@@ -803,7 +794,12 @@ async function processRankedChoiceVotes(
     // Add the total votes as a special key "Total"
     values['Winning threshold'] = totalVotes / 2;
 
-    timeSeriesMap.set(timestampKey, { timestamp: timestampKey, values });
+    timeSeriesMap.set(timestampKey, {
+      timestamp: new Date(
+        processedVotes![processedVotes!.length - 1]?.createdAt
+      ),
+      values,
+    });
     timeSeriesData = Array.from(timeSeriesMap.values());
   }
 
@@ -915,6 +911,16 @@ export async function processResultsAction(
     let result: ProcessedResults;
 
     switch (voteType) {
+      case 'basic':
+      case 'single-choice':
+        result = await processBasicVotes(
+          votes,
+          choices,
+          proposal,
+          withVotes,
+          withTimeseries
+        );
+        break;
       case 'weighted':
         result = await processWeightedVotes(
           votes,

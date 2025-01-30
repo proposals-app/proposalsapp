@@ -19,24 +19,18 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
     if (!chartRef.current) return;
     if (!results.timeSeriesData) return;
 
-    const chart = echarts.init(chartRef.current);
+    const chart = echarts.init(chartRef.current, null, { renderer: 'svg' });
 
     const isRankedChoice = results.voteType === 'ranked-choice';
-    const isWeighted = results.voteType === 'weighted';
 
     // Calculate cumulative data for each choice
-    const cumulativeData: { [choice: number]: [string, number][] } = {};
+    const cumulativeData: { [choice: number]: [Date, number][] } = {};
     results.choices.forEach((_, choiceIndex) => {
       cumulativeData[choiceIndex] = [];
       let cumulative = 0;
 
       results.timeSeriesData?.forEach((point) => {
-        if (isWeighted) {
-          // For weighted votes, use the normalized values directly
-          cumulative += point.values[choiceIndex] || 0;
-        } else {
-          cumulative += point.values[choiceIndex] || 0;
-        }
+        cumulative += point.values[choiceIndex] || 0;
         cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
       });
     });
@@ -210,8 +204,6 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
     );
     const yAxisMax = roundToGoodValue(maxVotingValue * 1.1);
 
-    const timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
-
     const options: echarts.EChartsOption = {
       tooltip: {
         trigger: 'axis',
@@ -223,21 +215,16 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: (params: any) => {
-          const timestamp = params[0].axisValue; // This is in milliseconds
-          const utcDate = new Date(timestamp);
-
-          // Adjust the timestamp by the timezone offset
-          const adjustedTimestamp = new Date(
-            utcDate.getTime() - timezoneOffset
-          );
-
-          let tooltipText = `<strong>${format(utcDate, 'MMM d, HH:mm')} UTC</strong><br/>`;
+          const selectedDate = new Date(params[0].axisValue);
 
           // Get the data point that contains metadata
           const timeSeriesPoint = results.votes?.find(
-            (point) =>
-              point.createdAt!.getTime() === adjustedTimestamp.getTime()
+            (point) => point.createdAt.getTime() === selectedDate.getTime()
           );
+
+          console.log(results.votes);
+
+          let tooltipText = `<strong>${format(selectedDate, 'MMM d, HH:mm:ss')} UTC</strong><br/>`;
 
           // Add large vote information if available
           if (timeSeriesPoint) {
@@ -245,7 +232,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             const voterName = delegate?.name || timeSeriesPoint.voterAddress;
 
             tooltipText += `
-                  <div class='w-fit whitespace-nowrap flex flex-col' >
+                  <div class='w-fit whitespace-nowrap flex flex-col'>
                     <span>Voter: ${voterName}</span>
                     <span>Power: ${formatNumberWithSuffix(timeSeriesPoint.votingPower)}</span>
                     <div class='max-w-sm break-words whitespace-normal'>
@@ -261,9 +248,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       xAxis: {
         type: 'time',
         min: toZonedTime(new Date(results.proposal.startAt), 'UTC').getTime(),
-        max:
-          toZonedTime(new Date(results.proposal.endAt), 'UTC').getTime() +
-          5 * 60 * 1000,
+        max: toZonedTime(new Date(results.proposal.endAt), 'UTC').getTime(),
         axisLabel: {
           formatter: (value: number) =>
             format(toZonedTime(new Date(value), 'UTC'), 'MMM d, HH:mm') +
