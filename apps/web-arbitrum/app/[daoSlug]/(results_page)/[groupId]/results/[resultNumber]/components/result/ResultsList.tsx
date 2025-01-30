@@ -113,7 +113,7 @@ export function ResultsList({ results }: ResultsListProps) {
         <div>
           {results.quorum !== null && totalDelegatedVp && (
             <div className='mb-4'>
-              <div className='relative h-4 w-full rounded-lg'>
+              <div className='relative h-4 w-full overflow-hidden rounded-lg'>
                 {/* Quorum Line */}
                 <div
                   className='absolute -top-1 z-10 h-6 w-0.5 bg-neutral-700 dark:bg-neutral-200'

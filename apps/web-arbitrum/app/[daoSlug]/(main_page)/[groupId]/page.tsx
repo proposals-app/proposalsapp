@@ -28,19 +28,13 @@ export default async function GroupPage({
   const { version, comments, votes, diff, page } =
     await searchParamsCache.parse(searchParams);
 
-  if (version === null) {
-    const latestVersion = totalVersions - 1;
-    redirect(
-      `/${daoSlug}/${groupId}?version=${latestVersion}`,
-      RedirectType.push
-    );
-  }
+  const latestVersion = totalVersions - 1;
 
   return (
     <div className='flex w-full flex-col items-center pt-10'>
       <div className='flex max-w-3xl flex-col overflow-visible'>
         <Suspense fallback={<BodyLoading />}>
-          <Body group={group} version={version ?? 0} diff={diff} />
+          <Body group={group} version={version ?? latestVersion} diff={diff} />
         </Suspense>
 
         <MenuBar totalVersions={totalVersions ?? 1} />
