@@ -100,7 +100,7 @@ async fn fetch_karma_data(db: &DatabaseConnection, metrics: &Metrics) -> Result<
                     }
 
                     all_delegates.extend(delegates);
-                    offset += page_size;
+                    offset += 1;
                 }
 
                 // Checksumming all delegate addresses
