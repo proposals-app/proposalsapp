@@ -49,7 +49,7 @@ impl Indexer for ArbitrumTreasuryVotesIndexer {
     }
     #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
-        Duration::from_secs(5 * 60)
+        Duration::from_secs(60)
     }
 }
 
