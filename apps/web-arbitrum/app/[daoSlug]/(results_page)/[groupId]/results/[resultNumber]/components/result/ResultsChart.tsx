@@ -296,6 +296,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           formatter: (value: number) =>
             format(toZonedTime(new Date(value), 'UTC'), 'MMM d, HH:mm') +
             ' UTC',
+          hideOverlap: true,
         },
       },
       yAxis: {

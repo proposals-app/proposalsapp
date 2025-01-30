@@ -41,7 +41,7 @@ impl Indexer for GitcoinV1MainnetVotesIndexer {
     }
     #[instrument(skip_all)]
     fn max_refresh_speed(&self) -> i32 {
-        1_000_000
+        100_000
     }
     #[instrument(skip_all)]
     fn indexer_variant(&self) -> IndexerVariant {
