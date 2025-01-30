@@ -130,7 +130,7 @@ export async function getFeed(
 
       return {
         votes: processedVotes,
-        posts: posts.filter((p) => p.cooked.length > 0),
+        posts: posts.filter((p) => p.name != 'System'),
       };
     } catch (error) {
       console.error('Error fetching feed:', error);
