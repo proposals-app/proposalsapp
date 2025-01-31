@@ -69,7 +69,7 @@ use tokio::{
     time::sleep,
 };
 use tracing::{error, info, instrument, warn};
-use utils::tracing::setup_tracing;
+use utils::tracing::setup_otel;
 
 mod chain_data;
 mod database;
@@ -91,7 +91,7 @@ lazy_static::lazy_static! {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let _tracing = setup_tracing().await?;
+    let _otel = setup_otel().await?;
 
     info!("Application starting up");
 

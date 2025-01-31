@@ -49,6 +49,8 @@ tokio = "1.43.0"
 tracing = "0.1.41"
 tracing-opentelemetry = "0.28.0"
 tracing-subscriber = "0.3.19"
+pyroscope = "0.5.8"
+pyroscope_pprofrs = "0.2.8"
 
 [profile.release]
 opt-level = 3

@@ -61,6 +61,7 @@ services:
       - prometheus
       - loki
       - tempo
+      - pyroscope
 
   postgres:
     image: postgres:13
@@ -95,7 +96,7 @@ services:
       - postgres
 
   pyroscope:
-    image: pyroscope/pyroscope:latest
+    image: grafana/pyroscope:latest
     container_name: pyroscope
     hostname: pyroscope
     restart: unless-stopped

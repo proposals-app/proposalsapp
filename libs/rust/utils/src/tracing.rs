@@ -8,6 +8,8 @@ use opentelemetry_sdk::{
     runtime,
     trace::{RandomIdGenerator, Sampler, TracerProvider},
 };
+use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
+use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use tracing::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -73,7 +75,7 @@ fn init_log_provider() -> LoggerProvider {
 }
 
 // Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
-fn init_tracing_subscriber() -> OtelGuard {
+fn init_otel() -> OtelGuard {
     let tracer_provider = init_tracer_provider();
     let meter_provider = init_meter_provider();
     let logs_provider = init_log_provider();
@@ -93,16 +95,22 @@ fn init_tracing_subscriber() -> OtelGuard {
     OtelGuard {
         tracer_provider,
         meter_provider,
+        agent_running: None, // Initialize to None
     }
 }
 
 pub struct OtelGuard {
     tracer_provider: TracerProvider,
     meter_provider: SdkMeterProvider,
+    agent_running: Option<PyroscopeAgent<PyroscopeAgentRunning>>,
 }
 
 impl Drop for OtelGuard {
     fn drop(&mut self) {
+        if let Some(agent) = self.agent_running.take() {
+            agent.shutdown();
+        }
+
         if let Err(err) = self.tracer_provider.shutdown() {
             eprintln!("{err:?}");
         }
@@ -112,7 +120,28 @@ impl Drop for OtelGuard {
     }
 }
 
-pub async fn setup_tracing() -> Result<OtelGuard> {
-    let guard = init_tracing_subscriber();
+pub async fn setup_otel() -> Result<OtelGuard> {
+    let mut guard = init_otel();
+
+    let pprof_config = PprofConfig::new().sample_rate(100);
+    let backend_impl = pprof_backend(pprof_config);
+
+    // Get the OTEL_EXPORTER_OTLP_ENDPOINT and replace the port with 4040
+    let endpoint =
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
+    let base_url = endpoint
+        .rsplit_once(':')
+        .map_or(endpoint.clone(), |(base, _)| format!("{}:4040", base));
+
+    // Get the OTEL_SERVICE_NAME
+    let service_name = std::env::var("OTEL_SERVICE_NAME").expect("OTEL_SERVICE_NAME not set!");
+
+    // Configure Pyroscope Agent
+    let agent = PyroscopeAgent::builder(&base_url, &service_name)
+        .backend(backend_impl)
+        .build()?;
+
+    guard.agent_running = Some(agent.start().unwrap());
+
     Ok(guard)
 }

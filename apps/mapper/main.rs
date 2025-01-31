@@ -7,7 +7,7 @@ use reqwest::Client;
 use sea_orm::{ConnectOptions, Database};
 use tokio::time::Duration;
 use tracing::{error, info, warn};
-use utils::tracing::setup_tracing;
+use utils::tracing::setup_otel;
 
 mod grouper;
 mod karma;
@@ -16,7 +16,7 @@ mod metrics;
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let _tracing = setup_tracing().await?;
+    let _otel = setup_otel().await?;
 
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
 

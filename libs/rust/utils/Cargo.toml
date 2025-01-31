@@ -29,6 +29,8 @@ opentelemetry_sdk = { workspace = true, features = [
     "metrics",
     "trace",
 ] }
+pyroscope = { workspace = true }
+pyroscope_pprofrs = { workspace = true }
 reqwest = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
