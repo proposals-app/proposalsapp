@@ -17,8 +17,8 @@ COPY --from=planner /app/recipe.json recipe.json
 
 # Install only essential build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    libssl3 \
+    pkg-config \
+    libssl-dev \
     libunwind-dev \
     libdw-dev \
     && rm -rf /var/lib/apt/lists/*

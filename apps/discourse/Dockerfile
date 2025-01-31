@@ -48,8 +48,8 @@ ARG APP_NAME
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    libssl3 \
+    pkg-config \
+    libssl-dev \
     libunwind-dev \
     libdw-dev \
     && rm -rf /var/lib/apt/lists/*
