@@ -94,6 +94,23 @@ services:
     depends_on:
       - postgres
 
+  pyroscope:
+    image: pyroscope/pyroscope:latest
+    container_name: pyroscope
+    hostname: pyroscope
+    restart: unless-stopped
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./storage/pyroscope:/var/lib/pyroscope
+    environment:
+      - PYROSCOPE_STORAGE_PATH=/var/lib/pyroscope
+      - PYROSCOPE_LOG_LEVEL=info
+    networks:
+      - observe-network
+    depends_on:
+      - prometheus
+
   tempo:
     image: grafana/tempo:latest
     container_name: tempo
