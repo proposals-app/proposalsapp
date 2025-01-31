@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::Result;
 use dotenv::dotenv;
 use opentelemetry::{global, trace::TracerProvider as _};
@@ -11,6 +13,7 @@ use opentelemetry_sdk::{
 };
 use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
+use tracing::info;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -121,6 +124,10 @@ pub async fn setup_otel() -> Result<OtelGuard> {
     dotenv().ok();
     let mut guard = init_otel();
 
+    tokio::time::sleep(Duration::from_secs(5)).await;
+
+    info!("Setting up profiling!");
+
     // Get the OTEL_EXPORTER_OTLP_ENDPOINT and replace the port with 4040
     let endpoint =
         std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
@@ -137,6 +144,8 @@ pub async fn setup_otel() -> Result<OtelGuard> {
         .build()?;
 
     guard.agent_running = Some(agent.start().unwrap());
+
+    info!("OTEL and profiling set up!");
 
     Ok(guard)
 }
