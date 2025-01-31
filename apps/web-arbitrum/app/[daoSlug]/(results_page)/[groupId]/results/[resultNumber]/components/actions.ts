@@ -1,21 +1,32 @@
 import { otel } from '@/lib/otel';
+import { superjson_cache } from '@/lib/utils';
 import { db, ProposalState } from '@proposalsapp/db';
+import { unstable_cache } from 'next/cache';
 
-export async function getVotesAction(proposalId: string) {
-  'use server';
-  const votes = await db
-    .selectFrom('vote')
-    .selectAll()
-    .where('proposalId', '=', proposalId)
-    .execute();
-  return votes;
+async function getVotesAction(proposalId: string) {
+  return otel('get-votes', async () => {
+    const votes = await db
+      .selectFrom('vote')
+      .selectAll()
+      .where('proposalId', '=', proposalId)
+      .execute();
+    return votes;
+  });
 }
+
+export const getVotesAction_cached = superjson_cache(
+  async (groupId: string) => {
+    return await getVotesAction(groupId);
+  },
+  [],
+  { revalidate: 60 * 5, tags: ['get-votes'] }
+);
 
 export type DelegateInfo = {
   name: string | null;
 } | null;
 
-export async function getDelegateForVoter(
+async function getDelegateForVoter(
   voterAddress: string,
   daoSlug: string,
   proposalId: string,
@@ -128,3 +139,11 @@ export async function getDelegateForVoter(
     };
   });
 }
+
+export const getDelegateForVoterCached_cached = unstable_cache(
+  async (voterAddress: string, daoSlug: string, proposalId: string) => {
+    return await getDelegateForVoter(voterAddress, daoSlug, proposalId, false);
+  },
+  [],
+  { revalidate: 60 * 5, tags: ['delegate-for-voter'] }
+);
