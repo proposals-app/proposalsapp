@@ -1,16 +1,13 @@
-'use client';
-
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { ProcessedResults } from '@/lib/votes_processing';
-import { useState, useEffect, useRef } from 'react';
 
 interface ResultsListProps {
   results: ProcessedResults;
+  isExpanded?: boolean; // Optional prop to control expanded state
 }
 
-export function ResultsList({ results }: ResultsListProps) {
+export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
   const explicitOrder = ['For', 'Abstain', 'Against'];
-  const [isExpanded, setIsExpanded] = useState(false);
   const totalVotingPower = results.totalVotingPower;
   const totalDelegatedVp = results.totalDelegatedVp;
 
@@ -77,9 +74,9 @@ export function ResultsList({ results }: ResultsListProps) {
           })}
 
           {otherChoices.length > 0 && (
-            <div
+            <a
+              href='?expand=true' // Link to expand the list
               className='cursor-pointer hover:opacity-80'
-              onClick={() => setIsExpanded(true)}
             >
               <ChoiceBar
                 choice='Other'
@@ -87,14 +84,14 @@ export function ResultsList({ results }: ResultsListProps) {
                 color='#CBD5E1'
                 percentage={(otherVotingPower / totalVotingPower) * 100}
               />
-            </div>
+            </a>
           )}
         </div>
 
         {isExpanded && (
-          <button className='mt-2 text-sm' onClick={() => setIsExpanded(false)}>
+          <a href='?expand=false' className='mt-2 text-sm'>
             Show less
-          </button>
+          </a>
         )}
 
         {/* Majority Support Checkmark */}
@@ -201,76 +198,65 @@ interface ChoiceBarProps {
 }
 
 function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
-  const [pixels, setPixels] = useState<boolean[][]>([]);
-  const barRef = useRef<HTMLDivElement>(null);
   const pixelSize = 8.5; // Size of each pixel in pixels
   const barPixelsHeight = 5; // Number of rows in the grid
   const barPixelsWidth = 25;
 
-  useEffect(() => {
-    if (percentage !== null && barRef.current) {
-      const columns = barPixelsWidth; // Number of columns in the grid
-      const rows = barPixelsHeight; // Number of rows in the grid
+  // Calculate the pixel grid on the server
+  const pixels = Array.from({ length: barPixelsHeight }, () =>
+    Array.from({ length: barPixelsWidth }, () => false)
+  );
 
-      const totalPixels = columns * rows; // Total number of pixels in the grid
-      const filledPixels = Math.round((percentage / 100) * totalPixels); // Number of pixels to fill
+  if (percentage !== null) {
+    const totalPixels = barPixelsWidth * barPixelsHeight;
+    const filledPixels = Math.round((percentage / 100) * totalPixels);
 
-      // Create a 2D grid to represent the pixels
-      const newPixels = Array.from({ length: rows }, () =>
-        Array.from({ length: columns }, () => false)
-      );
-
-      let filledCount = 0;
-
-      let lastFilledColumn = 0;
-      for (let col = 0; col < columns; col++) {
-        for (let row = 0; row < rows; row++) {
-          if (filledCount < filledPixels) {
-            newPixels[row][col] = true;
-            filledCount++;
-            lastFilledColumn = col;
-          }
+    let filledCount = 0;
+    let lastFilledColumn = 0;
+    for (let col = 0; col < barPixelsWidth; col++) {
+      for (let row = 0; row < barPixelsHeight; row++) {
+        if (filledCount < filledPixels) {
+          pixels[row][col] = true;
+          filledCount++;
+          lastFilledColumn = col;
         }
       }
-
-      // Determine the last 2 filled columns and check if there's an empty column after them
-      const startCol = Math.max(0, lastFilledColumn - 1); // Start from the second-to-last filled column
-      const endCol = lastFilledColumn; // End at the last filled column
-
-      // Check if there's an empty column after the last filled column
-      const hasEmptyColumnAfter = endCol + 1 < columns;
-
-      // Extract the last 2 filled columns and the empty column (if available)
-      const columnsToShuffle = hasEmptyColumnAfter
-        ? newPixels.map((row) => row.slice(startCol, endCol + 2)) // Include the empty column
-        : newPixels.map((row) => row.slice(startCol, endCol + 1)); // Only last 2 filled columns
-
-      // Flatten the columns to make shuffling easier
-      const flatColumnsToShuffle = columnsToShuffle.flat();
-
-      // Shuffle the flattened columns
-      for (let i = flatColumnsToShuffle.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [flatColumnsToShuffle[i], flatColumnsToShuffle[j]] = [
-          flatColumnsToShuffle[j],
-          flatColumnsToShuffle[i],
-        ];
-      }
-
-      // Convert the flattened array back to the columns
-      for (let i = 0; i < flatColumnsToShuffle.length; i++) {
-        const row = Math.floor(i / (hasEmptyColumnAfter ? 3 : 2)); // 2 or 3 columns
-        const col = startCol + (i % (hasEmptyColumnAfter ? 3 : 2)); // Last 2 filled columns + empty column (if available)
-        newPixels[row][col] = flatColumnsToShuffle[i];
-      }
-
-      setPixels(newPixels);
     }
-  }, [percentage]);
+
+    // Determine the last 2 filled columns and check if there's an empty column after them
+    const startCol = Math.max(0, lastFilledColumn - 1); // Start from the second-to-last filled column
+    const endCol = lastFilledColumn; // End at the last filled column
+
+    // Check if there's an empty column after the last filled column
+    const hasEmptyColumnAfter = endCol + 1 < barPixelsWidth;
+
+    // Extract the last 2 filled columns and the empty column (if available)
+    const columnsToShuffle = hasEmptyColumnAfter
+      ? pixels.map((row) => row.slice(startCol, endCol + 2)) // Include the empty column
+      : pixels.map((row) => row.slice(startCol, endCol + 1)); // Only last 2 filled columns
+
+    // Flatten the columns to make shuffling easier
+    const flatColumnsToShuffle = columnsToShuffle.flat();
+
+    // Shuffle the flattened columns
+    for (let i = flatColumnsToShuffle.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [flatColumnsToShuffle[i], flatColumnsToShuffle[j]] = [
+        flatColumnsToShuffle[j],
+        flatColumnsToShuffle[i],
+      ];
+    }
+
+    // Convert the flattened array back to the columns
+    for (let i = 0; i < flatColumnsToShuffle.length; i++) {
+      const row = Math.floor(i / (hasEmptyColumnAfter ? 3 : 2)); // 2 or 3 columns
+      const col = startCol + (i % (hasEmptyColumnAfter ? 3 : 2)); // Last 2 filled columns + empty column (if available)
+      pixels[row][col] = flatColumnsToShuffle[i];
+    }
+  }
 
   return (
     <div
-      ref={barRef}
       className='relative w-fit overflow-hidden border border-neutral-300 bg-white
         dark:border-neutral-700 dark:bg-neutral-950'
     >
