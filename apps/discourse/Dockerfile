@@ -50,6 +50,8 @@ ARG APP_NAME
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
+    libunwind-dev \
+    libdw-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage

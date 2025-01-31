@@ -17,8 +17,10 @@ COPY --from=planner /app/recipe.json recipe.json
 
 # Install only essential build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    pkg-config \
-    libssl-dev \
+    ca-certificates \
+    libssl3 \
+    libunwind-dev \
+    libdw-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo chef cook --release --recipe-path recipe.json
