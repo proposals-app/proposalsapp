@@ -16,9 +16,7 @@ interface ResultsProps {
 export function Results({ proposal, daoSlug }: ResultsProps) {
   return (
     <div className='flex w-full'>
-      <Suspense fallback={<ResultsLoading />}>
-        <ResultsContent proposal={proposal} daoSlug={daoSlug} />
-      </Suspense>
+      <ResultsContent proposal={proposal} daoSlug={daoSlug} />
     </div>
   );
 }
@@ -72,24 +70,44 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     })
   );
 
-  const processedResults = await processResultsAction(proposal, votes, {
-    withVotes: true,
-    withTimeseries: true,
-    aggregatedVotes: false,
-  });
+  const processedResultsWithoutTimeline = await processResultsAction(
+    proposal,
+    votes,
+    {
+      withVotes: true,
+      withTimeseries: false,
+      aggregatedVotes: false,
+    }
+  );
 
-  if (!processedResults) {
-    notFound();
-  }
+  const processedResultsWithTimeline = await processResultsAction(
+    proposal,
+    votes,
+    {
+      withVotes: true,
+      withTimeseries: true,
+      aggregatedVotes: false,
+    }
+  );
 
   return (
     <div className='w-full'>
-      <div className='flex'>
-        <ResultsChart results={processedResults} delegateMap={delegateMap} />
-        <ResultsList results={processedResults} />
-      </div>
+      <Suspense>
+        <div className='flex'>
+          <ResultsChart
+            results={processedResultsWithoutTimeline}
+            delegateMap={delegateMap}
+          />
+          <ResultsList results={processedResultsWithoutTimeline} />
+        </div>
+      </Suspense>
 
-      <ResultsTable results={processedResults} delegateMap={delegateMap} />
+      <Suspense>
+        <ResultsTable
+          results={processedResultsWithTimeline}
+          delegateMap={delegateMap}
+        />
+      </Suspense>
     </div>
   );
 }
