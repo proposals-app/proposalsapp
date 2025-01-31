@@ -1,5 +1,4 @@
 use crate::{
-    database::DatabaseStore,
     indexer::{Indexer, ProcessResult, VotesIndexer},
     SnapshotApiHandler,
 };
@@ -7,7 +6,8 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::DateTime;
 use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    ActiveValue::NotSet, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, Set,
 };
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use serde::Deserialize;
@@ -43,11 +43,15 @@ struct GraphQLVote {
 
 pub struct SnapshotVotesIndexer {
     api_handler: Arc<SnapshotApiHandler>,
+    db_handler: Option<Arc<DatabaseConnection>>,
 }
 
 impl SnapshotVotesIndexer {
-    pub fn new(api_handler: Arc<SnapshotApiHandler>) -> Self {
-        Self { api_handler }
+    pub fn new(api_handler: Arc<SnapshotApiHandler>, db: Option<Arc<DatabaseConnection>>) -> Self {
+        Self {
+            api_handler,
+            db_handler: db,
+        }
     }
 
     pub fn proposal_indexer_variant() -> IndexerVariant {
@@ -85,8 +89,6 @@ impl VotesIndexer for SnapshotVotesIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Snapshot Votes");
 
-        let db = DatabaseStore::connect().await?;
-
         let proposal_limit = (indexer.speed / 10).max(10);
 
         let proposals = proposal::Entity::find()
@@ -99,9 +101,9 @@ impl VotesIndexer for SnapshotVotesIndexer {
             .inner_join(dao_indexer::Entity)
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
             .order_by(proposal::Column::EndAt, sea_orm::Order::Asc)
-            .limit(proposal_limit as u64) // hacky way to get around too many proposals in the query
-            .all(&db) // indexer.speed is used both for the number of votes to pull and the number of proposals to use
-            .await?; // if the query fails, they both decrease until the query works
+            .limit(proposal_limit as u64)
+            .all(self.db_handler.as_ref().unwrap().as_ref())
+            .await?;
 
         let proposals_ext_ids: Vec<String> =
             proposals.iter().map(|p| p.external_id.clone()).collect();
@@ -261,7 +263,7 @@ mod snapshot_votes_tests {
         };
 
         let snapshot_api_handler = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig::default()));
-        let snapshot_indexer = SnapshotVotesIndexer::new(snapshot_api_handler);
+        let snapshot_indexer = SnapshotVotesIndexer::new(snapshot_api_handler, None);
 
         match snapshot_indexer.process_votes(&indexer, &dao).await {
             Ok(ProcessResult::Votes(votes, _)) => {

@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use sea_orm::{
     ActiveValue::{self, NotSet},
-    ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
+    ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set,
 };
 use seaorm::{
     dao, dao_indexer, proposal,
@@ -66,11 +66,15 @@ struct ProposalMetadata {
 
 pub struct SnapshotProposalsIndexer {
     api_handler: Arc<SnapshotApiHandler>,
+    db_handler: Option<Arc<DatabaseConnection>>,
 }
 
 impl SnapshotProposalsIndexer {
-    pub fn new(api_handler: Arc<SnapshotApiHandler>) -> Self {
-        Self { api_handler }
+    pub fn new(api_handler: Arc<SnapshotApiHandler>, db: Option<Arc<DatabaseConnection>>) -> Self {
+        Self {
+            api_handler,
+            db_handler: db,
+        }
     }
 }
 
@@ -183,7 +187,14 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
         };
 
         let proposals = if let Some(data) = graphql_response.data {
-            match parse_proposals(data.proposals, indexer, self.api_handler.clone()).await {
+            match parse_proposals(
+                data.proposals,
+                indexer,
+                self.api_handler.clone(),
+                self.db_handler.as_ref().unwrap().clone(),
+            )
+            .await
+            {
                 Ok(parsed_proposals) => parsed_proposals,
                 Err(e) => return Err(anyhow!("Failed to parse proposals: {}", e)),
             }
@@ -244,6 +255,7 @@ async fn parse_proposals(
     graphql_proposals: Vec<GraphQLProposal>,
     indexer: &dao_indexer::Model,
     snapshot_api: Arc<SnapshotApiHandler>,
+    db: Arc<DatabaseConnection>,
 ) -> Result<Vec<proposal::ActiveModel>> {
     let mut proposals = vec![];
 
@@ -317,10 +329,11 @@ async fn parse_proposals(
         proposals.push(proposal_model);
 
         if p.privacy.as_str() == "shutter" && p.scores_state.as_str() == "final" {
-            if let Err(e) = refresh_shutter_votes(indexer.clone(), snapshot_api.clone(), p.id).await
+            let db_clone = db.clone();
+            if let Err(e) =
+                refresh_shutter_votes(indexer.clone(), snapshot_api.clone(), p.id, db_clone).await
             {
                 tracing::error!("Failed to refresh shutter votes: {}", e);
-                // Optionally, continue processing other proposals or return an error
             }
         }
     }
@@ -359,12 +372,11 @@ async fn refresh_shutter_votes(
     indexer: dao_indexer::Model,
     snapshot_api: Arc<SnapshotApiHandler>,
     proposal_id: String,
+    db: Arc<DatabaseConnection>,
 ) -> Result<()> {
-    let db = DatabaseStore::connect().await?;
-
     let dao = match dao::Entity::find()
         .filter(dao::Column::Id.eq(indexer.dao_id))
-        .one(&db)
+        .one(&*db)
         .await?
     {
         Some(dao) => dao,
@@ -622,7 +634,7 @@ mod snapshot_proposals_tests {
         };
 
         let snapshot_api_handler = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig::default()));
-        let snapshot_indexer = SnapshotProposalsIndexer::new(snapshot_api_handler);
+        let snapshot_indexer = SnapshotProposalsIndexer::new(snapshot_api_handler, None);
 
         match snapshot_indexer.process_proposals(&indexer, &dao).await {
             Ok(ProcessResult::Proposals(proposals, _)) => {

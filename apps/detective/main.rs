@@ -141,7 +141,7 @@ async fn main() -> Result<()> {
                     let indexer_variant = indexer.indexer_variant.clone();
 
                     // Get the indexer implementation to access its refresh interval
-                    let indexer_impl = get_indexer(&indexer_variant);
+                    let indexer_impl = get_indexer(&indexer_variant, &db);
                     let interval = indexer_impl.refresh_interval();
 
                     // Check if enough time has passed since last processing
@@ -265,12 +265,11 @@ fn create_job_consumer(
                     "Processing indexer"
                 );
 
-                // Get the indexer implementation early
-                let indexer_implementation = get_indexer(&indexer.indexer_variant);
+                let indexer_implementation = get_indexer(&indexer.indexer_variant, &db);
 
                 let result = tokio::time::timeout(
                     indexer_implementation.timeout(),
-                    process_job(&indexer, &dao),
+                    process_job(&indexer, &dao, &db),
                 )
                 .await;
 
@@ -341,18 +340,22 @@ fn create_job_consumer(
     })
 }
 
-#[instrument]
-async fn process_job(indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult> {
+#[instrument(skip(db))]
+async fn process_job(
+    indexer: &dao_indexer::Model,
+    dao: &dao::Model,
+    db: &DatabaseConnection,
+) -> Result<ProcessResult> {
     match indexer.indexer_type {
         IndexerType::Proposals => {
-            if let Some(proposal_indexer) = get_proposals_indexer(&indexer.indexer_variant) {
+            if let Some(proposal_indexer) = get_proposals_indexer(&indexer.indexer_variant, db) {
                 proposal_indexer.process_proposals(indexer, dao).await
             } else {
                 bail!("Unsupported proposals indexer variant")
             }
         }
         IndexerType::Votes => {
-            if let Some(vote_indexer) = get_votes_indexer(&indexer.indexer_variant) {
+            if let Some(vote_indexer) = get_votes_indexer(&indexer.indexer_variant, db) {
                 vote_indexer.process_votes(indexer, dao).await
             } else {
                 bail!("Unsupported votes indexer variant")
@@ -420,11 +423,15 @@ async fn store_process_results(
     Ok(())
 }
 
-#[instrument]
-fn get_proposals_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn ProposalsIndexer>> {
+#[instrument(skip(db))]
+fn get_proposals_indexer(
+    indexer_variant: &IndexerVariant,
+    db: &DatabaseConnection,
+) -> Option<Box<dyn ProposalsIndexer>> {
     match indexer_variant {
         IndexerVariant::SnapshotProposals => Some(Box::new(SnapshotProposalsIndexer::new(
             SNAPSHOT_API_HANDLER.clone(),
+            Some(Arc::new(db.clone())),
         ))),
         IndexerVariant::AaveV2MainnetProposals => Some(Box::new(AaveV2MainnetProposalsIndexer)),
         IndexerVariant::AaveV3MainnetProposals => Some(Box::new(AaveV3MainnetProposalsIndexer)),
@@ -461,11 +468,15 @@ fn get_proposals_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn Pro
     }
 }
 
-#[instrument]
-fn get_votes_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn VotesIndexer>> {
+#[instrument(skip(db))]
+fn get_votes_indexer(
+    indexer_variant: &IndexerVariant,
+    db: &DatabaseConnection,
+) -> Option<Box<dyn VotesIndexer>> {
     match indexer_variant {
         IndexerVariant::SnapshotVotes => Some(Box::new(SnapshotVotesIndexer::new(
             SNAPSHOT_API_HANDLER.clone(),
+            Some(Arc::new(db.clone())),
         ))),
         IndexerVariant::AaveV2MainnetVotes => Some(Box::new(AaveV2MainnetVotesIndexer)),
         IndexerVariant::AaveV3MainnetVotes => Some(Box::new(AaveV3MainnetVotesIndexer)),
@@ -526,15 +537,20 @@ fn get_delegation_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn De
     }
 }
 
-#[instrument]
-fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn indexer::Indexer> {
+#[instrument(skip(db))]
+fn get_indexer(
+    indexer_variant: &IndexerVariant,
+    db: &DatabaseConnection,
+) -> Box<dyn indexer::Indexer> {
     match indexer_variant {
-        IndexerVariant::SnapshotProposals => {
-            Box::new(SnapshotProposalsIndexer::new(SNAPSHOT_API_HANDLER.clone()))
-        }
-        IndexerVariant::SnapshotVotes => {
-            Box::new(SnapshotVotesIndexer::new(SNAPSHOT_API_HANDLER.clone()))
-        }
+        IndexerVariant::SnapshotProposals => Box::new(SnapshotProposalsIndexer::new(
+            SNAPSHOT_API_HANDLER.clone(),
+            Some(Arc::new(db.clone())),
+        )),
+        IndexerVariant::SnapshotVotes => Box::new(SnapshotVotesIndexer::new(
+            SNAPSHOT_API_HANDLER.clone(),
+            Some(Arc::new(db.clone())),
+        )),
         IndexerVariant::AaveV2MainnetProposals => Box::new(AaveV2MainnetProposalsIndexer),
         IndexerVariant::AaveV2MainnetVotes => Box::new(AaveV2MainnetVotesIndexer),
         IndexerVariant::AaveV3MainnetProposals => Box::new(AaveV3MainnetProposalsIndexer),
