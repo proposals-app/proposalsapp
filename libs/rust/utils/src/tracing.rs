@@ -1,4 +1,5 @@
 use anyhow::Result;
+use dotenv::dotenv;
 use opentelemetry::{global, trace::TracerProvider as _};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{LogExporter, Protocol, WithExportConfig};
@@ -10,7 +11,6 @@ use opentelemetry_sdk::{
 };
 use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
-use tracing::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -83,9 +83,6 @@ fn init_otel() -> OtelGuard {
     let tracer = tracer_provider.tracer("tracing-otel-subscriber");
 
     tracing_subscriber::registry()
-        .with(tracing_subscriber::filter::LevelFilter::from_level(
-            Level::INFO,
-        ))
         .with(tracing_subscriber::fmt::layer())
         .with(MetricsLayer::new(meter_provider.clone()))
         .with(OpenTelemetryLayer::new(tracer))
@@ -121,10 +118,8 @@ impl Drop for OtelGuard {
 }
 
 pub async fn setup_otel() -> Result<OtelGuard> {
+    dotenv().ok();
     let mut guard = init_otel();
-
-    let pprof_config = PprofConfig::new().sample_rate(100);
-    let backend_impl = pprof_backend(pprof_config);
 
     // Get the OTEL_EXPORTER_OTLP_ENDPOINT and replace the port with 4040
     let endpoint =
@@ -134,11 +129,11 @@ pub async fn setup_otel() -> Result<OtelGuard> {
         .map_or(endpoint.clone(), |(base, _)| format!("{}:4040", base));
 
     // Get the OTEL_SERVICE_NAME
-    let service_name = std::env::var("OTEL_SERVICE_NAME").expect("OTEL_SERVICE_NAME not set!");
+    let service_name = std::env::var("OTEL_SERVICE_NAME").unwrap_or("local_app".to_string());
 
     // Configure Pyroscope Agent
     let agent = PyroscopeAgent::builder(&base_url, &service_name)
-        .backend(backend_impl)
+        .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
         .build()?;
 
     guard.agent_running = Some(agent.start().unwrap());

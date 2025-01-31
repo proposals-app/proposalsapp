@@ -18,6 +18,8 @@ async fn main() -> Result<()> {
     dotenv().ok();
     let _otel = setup_otel().await?;
 
+    info!("Application starting up");
+
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
 
     // Start health check server
