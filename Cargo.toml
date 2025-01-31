@@ -53,7 +53,8 @@ pyroscope = "0.5.8"
 pyroscope_pprofrs = "0.2.8"
 
 [profile.release]
-opt-level = 0
+opt-level = 3
+codegen-units = 1
 lto = true
 debug = true
 debug-assertions = true
