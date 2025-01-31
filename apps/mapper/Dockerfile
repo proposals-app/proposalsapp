@@ -19,8 +19,6 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
-    libunwind-dev \
-    libdw-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -38,10 +36,12 @@ COPY . .
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
+    libunwind-dev \
+    libdw-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Build the project
-RUN cargo build --release --package ${APP_NAME}
+RUN cargo build --release --bin ${APP_NAME}
 
 # Stage 4: Final
 FROM debian:bookworm-slim
@@ -52,6 +52,8 @@ ARG APP_NAME
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
+    libunwind-dev \
+    libdw-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage

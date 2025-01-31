@@ -69,6 +69,8 @@ export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
                 votingPower={votingPower}
                 color={color}
                 percentage={isNaN(percentage) ? null : percentage}
+                choiceIndex={index}
+                totalChoices={topChoices.length}
               />
             );
           })}
@@ -83,6 +85,8 @@ export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
                 votingPower={otherVotingPower}
                 color='#CBD5E1'
                 percentage={(otherVotingPower / totalVotingPower) * 100}
+                choiceIndex={topChoices.length}
+                totalChoices={topChoices.length}
               />
             </a>
           )}
@@ -195,12 +199,22 @@ interface ChoiceBarProps {
   votingPower: number;
   color: string;
   percentage: number | null;
+  choiceIndex: number; // Index of the current choice
+  totalChoices: number; // Total number of choices
 }
 
-function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
+function ChoiceBar({
+  choice,
+  votingPower,
+  color,
+  percentage,
+  choiceIndex,
+  totalChoices,
+}: ChoiceBarProps) {
   const pixelSize = 8.5; // Size of each pixel in pixels
   const barPixelsHeight = 5; // Number of rows in the grid
   const barPixelsWidth = 25;
+  const totalPixels = barPixelsHeight * barPixelsWidth;
 
   // Calculate the pixel grid on the server
   const pixels = Array.from({ length: barPixelsHeight }, () =>
@@ -208,8 +222,17 @@ function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
   );
 
   if (percentage !== null) {
-    const totalPixels = barPixelsWidth * barPixelsHeight;
-    const filledPixels = Math.round((percentage / 100) * totalPixels);
+    let filledPixels =
+      (percentage / 100) * totalPixels > 0.1 &&
+      (percentage / 100) * totalPixels < 1
+        ? 1
+        : Math.round((percentage / 100) * totalPixels);
+
+    // Adjust the filled pixels for the last choice to ensure the total adds up to 100%
+    if (choiceIndex === totalChoices - 1) {
+      const totalFilledPixelsSoFar = totalPixels - filledPixels;
+      filledPixels = totalPixels - totalFilledPixelsSoFar;
+    }
 
     let filledCount = 0;
     let lastFilledColumn = 0;
