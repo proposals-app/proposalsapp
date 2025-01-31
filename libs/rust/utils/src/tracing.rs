@@ -108,7 +108,8 @@ pub struct OtelGuard {
 impl Drop for OtelGuard {
     fn drop(&mut self) {
         if let Some(agent) = self.agent_running.take() {
-            agent.shutdown();
+            let agent_ready = agent.stop().unwrap();
+            agent_ready.shutdown();
         }
 
         if let Err(err) = self.tracer_provider.shutdown() {
@@ -143,9 +144,11 @@ pub async fn setup_otel() -> Result<OtelGuard> {
     // Configure Pyroscope Agent
     let agent = PyroscopeAgent::builder(&base_url, &service_name)
         .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
+        .tags([("app", service_name.as_str())].to_vec())
         .build()?;
 
-    guard.agent_running = Some(agent.start().unwrap());
+    let agent_running = agent.start()?;
+    guard.agent_running = Some(agent_running);
 
     info!("OTEL and profiling set up!");
 

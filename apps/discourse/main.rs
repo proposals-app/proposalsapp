@@ -14,10 +14,7 @@ use reqwest::Client;
 use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
 use seaorm::dao_discourse;
 use std::{collections::HashMap, sync::Arc, time::Duration};
-use tokio::{
-    signal,
-    time::{interval_at, Instant},
-};
+use tokio::time::{interval_at, Instant};
 use tracing::{error, info, warn};
 use utils::tracing::setup_otel;
 
@@ -56,7 +53,7 @@ async fn main() -> Result<()> {
     let app = Router::new().route("/", get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move {
+    let server_handle = tokio::spawn(async move {
         info!(address = %addr, "Starting health check server");
         if let Err(e) = axum::serve(listener, app).await {
             error!(error = ?e, "Health check server error");
@@ -342,17 +339,25 @@ async fn main() -> Result<()> {
 
     handles.push(uptime_handle);
 
-    let graceful_shutdown = tokio::spawn(async move {
-        signal::ctrl_c()
-            .await
-            .expect("Failed to listen for shutdown signal");
-        info!("Shutting down gracefully...");
-        // Perform cleanup here if needed
-    });
+    // Wait for Ctrl+C or SIGTERM
+    let ctrl_c = tokio::signal::ctrl_c();
+    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        .expect("Failed to set up SIGTERM handler");
 
-    // Wait for all tasks to complete
-    let _ = futures::future::join_all(handles).await;
-    let _ = graceful_shutdown.await;
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Received Ctrl+C, shutting down...");
+        }
+        _ = sigterm.recv() => {
+            info!("Received SIGTERM, shutting down...");
+        }
+    }
+
+    // Clean up tasks
+    for handle in handles {
+        handle.abort();
+    }
+    server_handle.abort();
 
     Ok(())
 }

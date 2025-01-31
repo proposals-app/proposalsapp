@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
     let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move {
+    let server_handle = tokio::spawn(async move {
         info!(address = %addr, "Starting health check server");
         if let Err(e) = axum::serve(listener, app).await {
             error!(error = %e, "Health check server error");
@@ -69,7 +69,25 @@ async fn main() -> Result<()> {
         }
     });
 
-    futures::future::join_all(vec![grouper_handle, karma_handle, uptime_handle]).await;
+    // Wait for Ctrl+C or SIGTERM
+    let ctrl_c = tokio::signal::ctrl_c();
+    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        .expect("Failed to set up SIGTERM handler");
+
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Received Ctrl+C, shutting down...");
+        }
+        _ = sigterm.recv() => {
+            info!("Received SIGTERM, shutting down...");
+        }
+    }
+
+    // Clean up tasks
+    grouper_handle.abort();
+    karma_handle.abort();
+    uptime_handle.abort();
+    server_handle.abort();
 
     Ok(())
 }

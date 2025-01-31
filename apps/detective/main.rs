@@ -218,9 +218,19 @@ async fn main() -> Result<()> {
     });
     info!(port = 3000, "Health check server running");
 
-    // Wait for Ctrl+C
-    tokio::signal::ctrl_c().await?;
-    println!("Shutting down...");
+    // Wait for Ctrl+C or SIGTERM
+    let ctrl_c = tokio::signal::ctrl_c();
+    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        .expect("Failed to set up SIGTERM handler");
+
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Received Ctrl+C, shutting down...");
+        }
+        _ = sigterm.recv() => {
+            info!("Received SIGTERM, shutting down...");
+        }
+    }
 
     // Clean up tasks
     job_producer.abort();
