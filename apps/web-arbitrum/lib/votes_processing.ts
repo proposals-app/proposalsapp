@@ -11,7 +11,17 @@ export type VoteType =
   | 'quadratic'
   | 'ranked-choice';
 
-export interface ProcessedVote extends Omit<Selectable<Vote>, 'choice'> {
+export interface ProcessedVote
+  extends Pick<
+    Selectable<Vote>,
+    | 'choice'
+    | 'createdAt'
+    | 'proposalId'
+    | 'reason'
+    | 'voterAddress'
+    | 'votingPower'
+    | 'id'
+  > {
   choice: number | number[];
   choiceText: string;
   color: string | string[];
@@ -105,7 +115,16 @@ const ACCUMULATE_VOTING_POWER_THRESHOLD = 50000;
  * @returns A promise that resolves to the processed results.
  */
 async function processBasicVotes(
-  votes: Selectable<Vote>[],
+  votes: Pick<
+    Selectable<Vote>,
+    | 'choice'
+    | 'createdAt'
+    | 'proposalId'
+    | 'reason'
+    | 'voterAddress'
+    | 'votingPower'
+    | 'id'
+  >[],
   choices: string[],
   proposal: Selectable<Proposal>,
   withVotes: boolean,
@@ -226,7 +245,16 @@ async function processBasicVotes(
  * @returns A promise that resolves to the processed results.
  */
 async function processWeightedVotes(
-  votes: Selectable<Vote>[],
+  votes: Pick<
+    Selectable<Vote>,
+    | 'choice'
+    | 'createdAt'
+    | 'proposalId'
+    | 'reason'
+    | 'voterAddress'
+    | 'votingPower'
+    | 'id'
+  >[],
   choices: string[],
   proposal: Selectable<Proposal>,
   withVotes: boolean,
@@ -455,7 +483,16 @@ async function processWeightedVotes(
  * @returns A promise that resolves to the processed results.
  */
 async function processApprovalVotes(
-  votes: Selectable<Vote>[],
+  votes: Pick<
+    Selectable<Vote>,
+    | 'choice'
+    | 'createdAt'
+    | 'proposalId'
+    | 'reason'
+    | 'voterAddress'
+    | 'votingPower'
+    | 'id'
+  >[],
   choices: string[],
   proposal: Selectable<Proposal>,
   withVotes: boolean,
@@ -595,7 +632,16 @@ async function processApprovalVotes(
  * @returns A promise that resolves to the processed results.
  */
 async function processRankedChoiceVotes(
-  votes: Selectable<Vote>[],
+  votes: Pick<
+    Selectable<Vote>,
+    | 'choice'
+    | 'createdAt'
+    | 'proposalId'
+    | 'reason'
+    | 'voterAddress'
+    | 'votingPower'
+    | 'id'
+  >[],
   choices: string[],
   proposal: Selectable<Proposal>,
   withVotes: boolean,
@@ -857,7 +903,16 @@ async function processRankedChoiceVotes(
  * @returns A promise that resolves to the processed results.
  */
 async function processQuadraticVotes(
-  votes: Selectable<Vote>[],
+  votes: Pick<
+    Selectable<Vote>,
+    | 'choice'
+    | 'createdAt'
+    | 'proposalId'
+    | 'reason'
+    | 'voterAddress'
+    | 'votingPower'
+    | 'id'
+  >[],
   choices: string[],
   proposal: Selectable<Proposal>,
   withVotes: boolean,
@@ -895,7 +950,16 @@ export interface ProcessingConfig {
  */
 export async function processResultsAction(
   proposal: Selectable<Proposal>,
-  votes: Selectable<Vote>[],
+  votes: Pick<
+    Selectable<Vote>,
+    | 'choice'
+    | 'createdAt'
+    | 'proposalId'
+    | 'reason'
+    | 'voterAddress'
+    | 'votingPower'
+    | 'id'
+  >[],
   {
     withVotes = true,
     withTimeseries = true,
@@ -985,7 +1049,6 @@ export async function processResultsAction(
             for (const choice in currentAggregation) {
               aggregatedResults.push({
                 ...vote,
-                id: `aggregated`,
                 reason: 'Aggregated votes',
                 votingPower: currentAggregation[choice],
                 aggregate: true,
@@ -1016,7 +1079,6 @@ export async function processResultsAction(
           const lastVote = result.votes![result.votes!.length - 1];
           aggregatedResults.push({
             ...lastVote, // Use last large vote's timestamp or another reference point
-            id: `aggregated`,
             reason: 'Aggregated votes',
             votingPower: currentAggregation[choice],
             aggregate: true,

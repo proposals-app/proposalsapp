@@ -7,7 +7,15 @@ async function getVotesAction(proposalId: string) {
   return otel('get-votes', async () => {
     const votes = await db
       .selectFrom('vote')
-      .selectAll()
+      .select([
+        'id',
+        'choice',
+        'createdAt',
+        'proposalId',
+        'reason',
+        'voterAddress',
+        'votingPower',
+      ])
       .where('proposalId', '=', proposalId)
       .execute();
     return votes;

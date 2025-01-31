@@ -1,5 +1,4 @@
 import { Proposal, Selectable } from '@proposalsapp/db';
-import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import {
   DelegateInfo,

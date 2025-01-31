@@ -177,7 +177,16 @@ export type PostFeedItem = {
 export type CombinedFeedItem = VoteFeedItem | PostFeedItem;
 
 export function mergeAndSortFeedItems(
-  votes: Selectable<Vote>[],
+  votes: Pick<
+    Selectable<Vote>,
+    | 'choice'
+    | 'createdAt'
+    | 'proposalId'
+    | 'reason'
+    | 'voterAddress'
+    | 'votingPower'
+    | 'id'
+  >[],
   posts: Selectable<DiscoursePost>[]
 ) {
   const combinedItems = [

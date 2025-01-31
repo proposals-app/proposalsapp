@@ -123,7 +123,7 @@ export async function VoteItem({
         bg-neutral-100 p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800`}
     >
       <div className='flex cursor-default flex-row justify-between select-none'>
-        {!item.id.includes('aggregate') && (
+        {!item.aggregate && (
           <div className='flex flex-col gap-2'>
             <Suspense>
               <AuthorInfo
