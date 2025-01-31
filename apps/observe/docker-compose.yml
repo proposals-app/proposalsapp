@@ -95,33 +95,33 @@ services:
     depends_on:
       - postgres
 
-pyroscope:
-  image: grafana/pyroscope:latest
-  container_name: pyroscope
-  hostname: pyroscope
-  restart: unless-stopped
-  ports:
-    - "4040:4040"
-  volumes:
-    - ./storage/pyroscope:/var/lib/pyroscope
-  environment:
-    - PYROSCOPE_STORAGE_PATH=/var/lib/pyroscope
-    - PYROSCOPE_LOG_LEVEL=debug
-    # Memory configuration
-    - PYROSCOPE_HEAP_SIZE=4096 # 4GB
-    - PYROSCOPE_MEMORY_SPIKE_LIMIT=2048 # 2GB
-    # Ingestion limits
-    - PYROSCOPE_INGESTION_MAX_PAYLOAD_SIZE=20971520 # 20MB
-    - PYROSCOPE_CACHE_EVICT_THRESHOLD=0.5 # Keep more data in cache
-    # Retention settings
-    - PYROSCOPE_RETENTION=72h # Keep data longer
-    # Query limits
-    - PYROSCOPE_QUERY_MAX_CONCURRENT=20
-    - PYROSCOPE_QUERY_TIMEOUT=5m
-  networks:
-    - observe-network
-  depends_on:
-    - prometheus
+  pyroscope:
+    image: grafana/pyroscope:latest
+    container_name: pyroscope
+    hostname: pyroscope
+    restart: unless-stopped
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./storage/pyroscope:/var/lib/pyroscope
+    environment:
+      - PYROSCOPE_STORAGE_PATH=/var/lib/pyroscope
+      - PYROSCOPE_LOG_LEVEL=debug
+      # Memory configuration
+      - PYROSCOPE_HEAP_SIZE=4096 # 4GB
+      - PYROSCOPE_MEMORY_SPIKE_LIMIT=2048 # 2GB
+      # Ingestion limits
+      - PYROSCOPE_INGESTION_MAX_PAYLOAD_SIZE=20971520 # 20MB
+      - PYROSCOPE_CACHE_EVICT_THRESHOLD=0.5 # Keep more data in cache
+      # Retention settings
+      - PYROSCOPE_RETENTION=72h # Keep data longer
+      # Query limits
+      - PYROSCOPE_QUERY_MAX_CONCURRENT=20
+      - PYROSCOPE_QUERY_TIMEOUT=5m
+    networks:
+      - observe-network
+    depends_on:
+      - prometheus
 
   tempo:
     image: grafana/tempo:latest
