@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     database::DatabaseStore,
     indexer::{Indexer, ProcessResult, VotesIndexer},
 };
@@ -10,6 +10,7 @@ use alloy::{
     rpc::types::{BlockTransactionsKind, Log},
     sol,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
@@ -68,7 +69,7 @@ impl VotesIndexer for OptimismVotesIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Optimism Votes");
 
-        let op_rpc = chain_data::get_chain_config(Chain::Optimism)?
+        let op_rpc = chain_data::get_chain_config(NamedChain::Optimism)?
             .provider
             .clone();
 

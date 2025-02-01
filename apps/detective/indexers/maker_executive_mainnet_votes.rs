@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     indexer::{Indexer, ProcessResult, VotesIndexer},
 };
 use alloy::{
@@ -9,6 +9,7 @@ use alloy::{
     sol,
     transports::http::Http,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use itertools::Itertools;
@@ -64,7 +65,7 @@ impl VotesIndexer for MakerExecutiveMainnetVotesIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Maker Executive Votes");
 
-        let eth_rpc = chain_data::get_chain_config(Chain::Ethereum)?
+        let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
             .provider
             .clone();
 

@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     database::DatabaseStore,
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
 };
@@ -11,6 +11,7 @@ use alloy::{
     sol,
     transports::http::Http,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
@@ -96,7 +97,7 @@ impl ProposalsIndexer for OptimismProposalsIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Optimism Proposals");
 
-        let op_rpc = chain_data::get_chain_config(Chain::Optimism)?
+        let op_rpc = chain_data::get_chain_config(NamedChain::Optimism)?
             .provider
             .clone();
 
@@ -248,7 +249,8 @@ async fn data_for_proposal_one(
         .to::<u64>();
 
     let voting_starts_timestamp =
-        match chain_data::estimate_timestamp(Chain::Optimism, voting_start_block_number).await {
+        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await
+        {
             Ok(r) => r,
             Err(_) => DateTime::from_timestamp_millis(
                 (created_block_timestamp * 1000)
@@ -259,7 +261,7 @@ async fn data_for_proposal_one(
         };
 
     let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(Chain::Optimism, voting_end_block_number).await {
+        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
             Ok(r) => r,
             Err(_) => DateTime::from_timestamp_millis(
                 created_block_timestamp * 1000
@@ -399,7 +401,8 @@ async fn data_for_proposal_two(
     let voting_end_block_number = event.endBlock.to::<u64>();
 
     let voting_starts_timestamp =
-        match chain_data::estimate_timestamp(Chain::Optimism, voting_start_block_number).await {
+        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await
+        {
             Ok(r) => r,
             Err(_) => DateTime::from_timestamp_millis(
                 (created_block_timestamp * 1000)
@@ -410,7 +413,7 @@ async fn data_for_proposal_two(
         };
 
     let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(Chain::Optimism, voting_end_block_number).await {
+        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
             Ok(r) => r,
             Err(_) => DateTime::from_timestamp_millis(
                 created_block_timestamp * 1000
@@ -672,7 +675,8 @@ async fn data_for_proposal_three(
         .to::<u64>();
 
     let voting_starts_timestamp =
-        match chain_data::estimate_timestamp(Chain::Optimism, voting_start_block_number).await {
+        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await
+        {
             Ok(r) => r,
             Err(_) => DateTime::from_timestamp_millis(
                 (created_block_timestamp * 1000)
@@ -683,7 +687,7 @@ async fn data_for_proposal_three(
         };
 
     let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(Chain::Optimism, voting_end_block_number).await {
+        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
             Ok(r) => r,
             Err(_) => DateTime::from_timestamp_millis(
                 created_block_timestamp * 1000
@@ -881,7 +885,8 @@ async fn data_for_proposal_four(
         .to::<u64>();
 
     let voting_starts_timestamp =
-        match chain_data::estimate_timestamp(Chain::Optimism, voting_start_block_number).await {
+        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await
+        {
             Ok(r) => r,
             Err(_) => DateTime::from_timestamp_millis(
                 (created_block_timestamp * 1000)
@@ -892,7 +897,7 @@ async fn data_for_proposal_four(
         };
 
     let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(Chain::Optimism, voting_end_block_number).await {
+        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
             Ok(r) => r,
             Err(_) => DateTime::from_timestamp_millis(
                 created_block_timestamp * 1000

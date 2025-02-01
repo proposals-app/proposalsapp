@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     database::DatabaseStore,
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
 };
@@ -10,6 +10,7 @@ use alloy::{
     sol,
     transports::http::Http,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime};
@@ -65,7 +66,7 @@ impl ProposalsIndexer for ArbitrumTreasuryProposalsIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Arbitrum Treasury Proposals");
 
-        let arb_rpc = chain_data::get_chain_config(Chain::Arbitrum)?
+        let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
             .provider
             .clone();
 
@@ -165,28 +166,32 @@ async fn data_for_proposal(
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp =
-        match chain_data::estimate_timestamp(Chain::Ethereum, voting_start_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_start_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
-                .context("bad timestamp")?
-                .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_start_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(
+        NamedChain::Mainnet,
+        voting_start_block_number,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis(
+                (log.block_timestamp.unwrap()
+                    + (voting_start_block_number - log.block_number.unwrap())
+                        * average_block_time_millis) as i64,
+            )
+            .context("bad timestamp")?
+            .naive_utc();
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_start_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
 
     let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(Chain::Ethereum, voting_end_block_number).await {
+        match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
             Ok(r) => r,
             Err(_) => {
                 let fallback = DateTime::from_timestamp_millis(

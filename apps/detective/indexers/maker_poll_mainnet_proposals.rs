@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
 };
 use alloy::{
@@ -8,6 +8,7 @@ use alloy::{
     rpc::types::{BlockTransactionsKind, Log},
     sol,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, Utc};
@@ -67,7 +68,7 @@ impl ProposalsIndexer for MakerPollMainnetProposalsIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Maker Poll Proposals");
 
-        let eth_rpc = chain_data::get_chain_config(Chain::Ethereum)?
+        let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
             .provider
             .clone();
 

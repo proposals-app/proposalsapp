@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
 };
 use alloy::{
@@ -9,6 +9,7 @@ use alloy::{
     sol,
     transports::http::Http,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
@@ -66,7 +67,7 @@ impl ProposalsIndexer for AaveV3MainnetProposalsIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Aave V3 Mainnet Proposals");
 
-        let eth_rpc = chain_data::get_chain_config(Chain::Ethereum)?
+        let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
             .provider
             .clone();
 

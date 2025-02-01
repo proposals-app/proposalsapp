@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     indexer::{Indexer, ProcessResult, VotesIndexer},
 };
 use aave_v3_voting_machine_mainnet::VoteEmitted;
@@ -9,6 +9,7 @@ use alloy::{
     rpc::types::{BlockTransactionsKind, Log},
     sol,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
@@ -63,7 +64,7 @@ impl VotesIndexer for AaveV3MainnetVotesIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Aave V3 Mainnet Votes");
 
-        let eth_rpc = chain_data::get_chain_config(Chain::Ethereum)?
+        let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
             .provider
             .clone();
 

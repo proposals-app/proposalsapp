@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     indexer::{Indexer, ProcessResult, VotesIndexer},
 };
 use alloy::{
@@ -8,6 +8,7 @@ use alloy::{
     rpc::types::{BlockTransactionsKind, Log},
     sol,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use arbitrum_core_gov::{VoteCast, VoteCastWithParams};
 use async_trait::async_trait;
@@ -63,7 +64,7 @@ impl VotesIndexer for ArbitrumCoreVotesIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Arbitrum Core Votes");
 
-        let arb_rpc = chain_data::get_chain_config(Chain::Arbitrum)?
+        let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
             .provider
             .clone();
 

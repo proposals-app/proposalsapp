@@ -1,11 +1,12 @@
 use alloy::providers::{Provider, ProviderBuilder, ReqwestProvider};
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use lazy_static::lazy_static;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::Deserialize;
-use std::{collections::HashMap, fmt, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::time::sleep;
 use tracing::{event, instrument, Level};
 
@@ -17,66 +18,44 @@ pub struct ChainConfig {
     pub scan_api_key: Option<String>,
 }
 
-// Chain-specific provider and scanner configuration
-#[derive(Clone, Copy, Eq, Hash, PartialEq, Debug)]
-pub enum Chain {
-    Ethereum,
-    Arbitrum,
-    Optimism,
-    Polygon,
-    Avalanche,
-}
-
-impl fmt::Display for Chain {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Chain::Ethereum => write!(f, "Ethereum"),
-            Chain::Arbitrum => write!(f, "Arbitrum"),
-            Chain::Optimism => write!(f, "Optimism"),
-            Chain::Polygon => write!(f, "Polygon"),
-            Chain::Avalanche => write!(f, "Avalanche"),
-        }
-    }
-}
-
 lazy_static! {
-    static ref CHAIN_CONFIG_MAP: HashMap<Chain, ChainConfig> = vec![
+    static ref CHAIN_CONFIG_MAP: HashMap<NamedChain, ChainConfig> = vec![
         (
-            Chain::Ethereum,
+            NamedChain::Mainnet,
             ChainConfig {
-                provider: create_provider("ETHEREUM_NODE_URL"),
+                provider: create_provider("ETHEREUM_NODE_URL",),
                 scan_api_url: Some("https://api.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("ETHERSCAN_API_KEY").ok(),
             }
         ),
         (
-            Chain::Arbitrum,
+            NamedChain::Arbitrum,
             ChainConfig {
-                provider: create_provider("ARBITRUM_NODE_URL"),
+                provider: create_provider("ARBITRUM_NODE_URL",),
                 scan_api_url: Some("https://api.arbiscan.io/api".to_string()),
                 scan_api_key: std::env::var("ARBISCAN_API_KEY").ok(),
             }
         ),
         (
-            Chain::Optimism,
+            NamedChain::Optimism,
             ChainConfig {
-                provider: create_provider("OPTIMISM_NODE_URL"),
+                provider: create_provider("OPTIMISM_NODE_URL",),
                 scan_api_url: Some("https://api-optimistic.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("OPTIMISTIC_SCAN_API_KEY").ok(),
             }
         ),
         (
-            Chain::Polygon,
+            NamedChain::Polygon,
             ChainConfig {
-                provider: create_provider("POLYGON_NODE_URL"),
+                provider: create_provider("POLYGON_NODE_URL",),
                 scan_api_url: None,
                 scan_api_key: None,
             }
         ),
         (
-            Chain::Avalanche,
+            NamedChain::Avalanche,
             ChainConfig {
-                provider: create_provider("AVALANCHE_NODE_URL"),
+                provider: create_provider("AVALANCHE_NODE_URL",),
                 scan_api_url: None,
                 scan_api_key: None,
             }
@@ -91,7 +70,7 @@ fn create_provider(env_var: &str) -> Arc<ReqwestProvider> {
     Arc::new(ProviderBuilder::new().on_http(rpc_url.parse().unwrap()))
 }
 
-pub fn get_chain_config(network: Chain) -> Result<ChainConfig> {
+pub fn get_chain_config(network: NamedChain) -> Result<ChainConfig> {
     CHAIN_CONFIG_MAP
         .get(&network)
         .cloned()
@@ -126,7 +105,7 @@ struct EstimateBlock {
 
 // Blockchain scanner API functions
 #[instrument]
-pub async fn estimate_timestamp(network: Chain, block_number: u64) -> Result<NaiveDateTime> {
+pub async fn estimate_timestamp(network: NamedChain, block_number: u64) -> Result<NaiveDateTime> {
     let config = get_chain_config(network)?;
     let provider = config.provider.clone();
 
@@ -165,7 +144,7 @@ pub async fn estimate_timestamp(network: Chain, block_number: u64) -> Result<Nai
 }
 
 #[instrument]
-pub async fn estimate_block(network: Chain, timestamp: u64) -> Result<u64> {
+pub async fn estimate_block(network: NamedChain, timestamp: u64) -> Result<u64> {
     let config = get_chain_config(network)?;
 
     let response = retry_request_estimate_block(
@@ -287,7 +266,7 @@ mod tests {
         dotenv().ok();
 
         let block_number = 12000000;
-        let result = estimate_timestamp(Chain::Ethereum, block_number)
+        let result = estimate_timestamp(NamedChain::Mainnet, block_number)
             .await
             .unwrap();
 
@@ -301,11 +280,11 @@ mod tests {
     async fn test_estimate_timestamp_future_block() {
         dotenv().ok();
 
-        let config = get_chain_config(Chain::Ethereum).unwrap();
+        let config = get_chain_config(NamedChain::Mainnet).unwrap();
         let current_block = config.provider.get_block_number().await.unwrap();
         let block_number = current_block + 100;
 
-        let result = estimate_timestamp(Chain::Ethereum, block_number)
+        let result = estimate_timestamp(NamedChain::Mainnet, block_number)
             .await
             .unwrap();
 
@@ -320,7 +299,9 @@ mod tests {
         dotenv().ok();
 
         let timestamp = 1681908547;
-        let result = estimate_block(Chain::Ethereum, timestamp).await.unwrap();
+        let result = estimate_block(NamedChain::Mainnet, timestamp)
+            .await
+            .unwrap();
 
         assert!(result > 0, "Block number should be non-zero");
     }

@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     indexer::{Indexer, ProcessResult, VotesIndexer},
 };
 use alloy::{
@@ -8,6 +8,7 @@ use alloy::{
     rpc::types::{BlockTransactionsKind, Log},
     sol,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
@@ -64,7 +65,7 @@ impl VotesIndexer for MakerPollArbitrumVotesIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Maker Poll Arbitrum Votes");
 
-        let arb_rpc = chain_data::get_chain_config(Chain::Arbitrum)?
+        let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
             .provider
             .clone();
 

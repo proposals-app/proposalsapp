@@ -1,5 +1,5 @@
 use crate::{
-    chain_data::{self, Chain},
+    chain_data::{self},
     indexer::{Indexer, ProcessResult, ProposalsAndVotesIndexer},
 };
 use alloy::{
@@ -9,6 +9,7 @@ use alloy::{
     sol,
     transports::http::Http,
 };
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
@@ -61,7 +62,7 @@ impl ProposalsAndVotesIndexer for ArbitrumCouncilElectionsProposalsAndVotesIndex
     ) -> Result<ProcessResult> {
         info!("Processing Arbitrum Council Elections and Votes");
 
-        let arb_rpc = chain_data::get_chain_config(Chain::Arbitrum)?
+        let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
             .provider
             .clone();
 
@@ -177,9 +178,31 @@ async fn get_proposals(
 
         let average_block_time_millis = 12_200;
 
-        let voting_starts_timestamp = match chain_data::estimate_timestamp(
-            Chain::Ethereum,
-            voting_start_block_number,
+        let voting_starts_timestamp =
+            match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number)
+                .await
+            {
+                Ok(r) => r,
+                Err(_) => {
+                    let fallback = DateTime::from_timestamp_millis(
+                        (log.block_timestamp.unwrap()
+                            + (voting_start_block_number - log.block_number.unwrap())
+                                * average_block_time_millis) as i64,
+                    )
+                    .context("bad timestamp")?
+                    .naive_utc();
+                    warn!(
+                        "Could not estimate timestamp for {:?}",
+                        voting_start_block_number
+                    );
+                    info!("Fallback to {:?}", fallback);
+                    fallback
+                }
+            };
+
+        let voting_ends_timestamp = match chain_data::estimate_timestamp(
+            NamedChain::Mainnet,
+            voting_end_block_number,
         )
         .await
         {
@@ -187,39 +210,19 @@ async fn get_proposals(
             Err(_) => {
                 let fallback = DateTime::from_timestamp_millis(
                     (log.block_timestamp.unwrap()
-                        + (voting_start_block_number - log.block_number.unwrap())
+                        + (voting_end_block_number - log.block_number.unwrap())
                             * average_block_time_millis) as i64,
                 )
                 .context("bad timestamp")?
                 .naive_utc();
                 warn!(
                     "Could not estimate timestamp for {:?}",
-                    voting_start_block_number
+                    voting_end_block_number
                 );
                 info!("Fallback to {:?}", fallback);
                 fallback
             }
         };
-
-        let voting_ends_timestamp =
-            match chain_data::estimate_timestamp(Chain::Ethereum, voting_end_block_number).await {
-                Ok(r) => r,
-                Err(_) => {
-                    let fallback = DateTime::from_timestamp_millis(
-                        (log.block_timestamp.unwrap()
-                            + (voting_end_block_number - log.block_number.unwrap())
-                                * average_block_time_millis) as i64,
-                    )
-                    .context("bad timestamp")?
-                    .naive_utc();
-                    warn!(
-                        "Could not estimate timestamp for {:?}",
-                        voting_end_block_number
-                    );
-                    info!("Fallback to {:?}", fallback);
-                    fallback
-                }
-            };
 
         proposals.push(proposal::ActiveModel {
             id: NotSet,
