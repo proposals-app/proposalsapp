@@ -309,7 +309,7 @@ impl DbHandler {
             deleted: Set(post
                 .raw
                 .as_ref()
-                .map_or(false, |raw| raw == "<p>(post deleted by author)</p>")),
+                .is_some_and(|raw| raw == "<p>(post deleted by author)</p>")),
             ..Default::default()
         };
 
