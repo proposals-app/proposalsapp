@@ -10,7 +10,7 @@ pub struct Post {
     #[serde(with = "date_format")]
     pub created_at: DateTime<Utc>,
     // pub cooked: String,
-    pub raw: String,
+    pub raw: Option<String>,
     pub post_number: i32,
     pub post_type: i32,
     #[serde(with = "date_format")]

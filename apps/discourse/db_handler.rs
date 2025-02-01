@@ -279,10 +279,10 @@ impl DbHandler {
             name: Set(post.name.clone()),
             username: Set(post.username.clone()),
             created_at: Set(post.created_at.naive_utc()),
-            cooked: if post.raw == "<p>(post deleted by author)</p>" {
-                NotSet
-            } else {
-                Set(post.raw.clone())
+            cooked: match &post.raw {
+                Some(raw) if raw == "<p>(post deleted by author)</p>" => NotSet,
+                Some(raw) => Set(raw.clone()),
+                None => NotSet,
             },
             post_number: Set(post.post_number),
             post_type: Set(post.post_type),
@@ -306,7 +306,10 @@ impl DbHandler {
             user_id: Set(post.user_id),
             dao_discourse_id: Set(dao_discourse_id),
             can_view_edit_history: Set(post.can_view_edit_history),
-            deleted: Set(post.raw == "<p>(post deleted by author)</p>"),
+            deleted: Set(post
+                .raw
+                .as_ref()
+                .map_or(false, |raw| raw == "<p>(post deleted by author)</p>")),
             ..Default::default()
         };
 
