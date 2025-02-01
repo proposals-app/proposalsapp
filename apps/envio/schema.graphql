@@ -1,0 +1,54 @@
+type TransparentUpgradeableProxy_ProposalCanceled {
+  id: ID!
+  proposalId: BigInt!
+}
+
+type TransparentUpgradeableProxy_ProposalCreated {
+  id: ID!
+  proposalId: BigInt!
+  proposer: String!
+  targets: [String!]!
+  values: [BigInt!]!
+  signatures: [String!]!
+  calldatas: [String!]!
+  startBlock: BigInt!
+  endBlock: BigInt!
+  description: String!
+}
+
+type TransparentUpgradeableProxy_ProposalExecuted {
+  id: ID!
+  proposalId: BigInt!
+}
+
+type TransparentUpgradeableProxy_ProposalExtended {
+  id: ID!
+  proposalId: BigInt!
+  extendedDeadline: BigInt!
+}
+
+type TransparentUpgradeableProxy_ProposalQueued {
+  id: ID!
+  proposalId: BigInt!
+  eta: BigInt!
+}
+
+type TransparentUpgradeableProxy_VoteCast {
+  id: ID!
+  voter: String!
+  proposalId: BigInt!
+  support: BigInt!
+  weight: BigInt!
+  reason: String!
+}
+
+type TransparentUpgradeableProxy_VoteCastWithParams {
+  id: ID!
+  voter: String!
+  proposalId: BigInt!
+  support: BigInt!
+  weight: BigInt!
+  reason: String!
+  params: String!
+}
+
