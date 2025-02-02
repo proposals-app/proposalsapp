@@ -1,0 +1,112 @@
+name: detective
+description: rindexer detective
+project_type: no-code
+
+networks:
+  - name: ethereum
+    chain_id: 1
+    rpc: ${ETHEREUM_NODE_URL}
+
+  - name: arbitrum
+    chain_id: 42161
+    rpc: ${ARBITRUM_NODE_URL}
+
+  - name: optimism
+    chain_id: 10
+    rpc: ${OPTIMISM_NODE_URL}
+
+  - name: polygon
+    chain_id: 137
+    rpc: ${POLYGON_NODE_URL}
+
+  - name: avalanche
+    chain_id: 43114
+    rpc: ${AVALANCHE_NODE_URL}
+
+contracts:
+  - name: ArbitrumCoreGovernor
+    abi: ./abis/ArbitrumCoreGovernor.abi.json
+    details:
+      - network: arbitrum
+        address: "0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9"
+        start_block: 0
+        include_events:
+          - ProposalCreated
+          - ProposalCanceled
+          - ProposalExecuted
+          - ProposalExtended
+          - ProposalQueued
+          - VoteCast
+          - VoteCastWithParams
+        index_event_in_order:
+          - ProposalCreated
+          - ProposalCanceled
+          - ProposalExecuted
+          - ProposalExtended
+          - ProposalQueued
+          - VoteCast
+          - VoteCastWithParams
+    streams:
+      redis:
+        connection_uri: ${RINDEXER_REDIS}
+        streams:
+          - stream_name: "proposals_stream"
+            networks:
+              - arbitrum
+            events:
+              - event_name: ProposalCreated
+              - event_name: ProposalCanceled
+              - event_name: ProposalExecuted
+              - event_name: ProposalExtended
+              - event_name: ProposalQueued
+          - stream_name: "votes_stream"
+            networks:
+              - arbitrum
+            events:
+              - event_name: VoteCast
+              - event_name: VoteCastWithParams
+
+  - name: ArbitrumTreasuryGovernor
+    abi: ./abis/ArbitrumTreasuryGovernor.abi.json
+    details:
+      - network: arbitrum
+        address: "0x789fC99093B09aD01C34DC7251D0C89ce743e5a4"
+        start_block: 0
+        include_events:
+          - ProposalCreated
+          - ProposalCanceled
+          - ProposalExecuted
+          - ProposalExtended
+          - ProposalQueued
+          - VoteCast
+          - VoteCastWithParams
+        index_event_in_order:
+          - ProposalCreated
+          - ProposalCanceled
+          - ProposalExecuted
+          - ProposalExtended
+          - ProposalQueued
+          - VoteCast
+          - VoteCastWithParams
+    streams:
+      redis:
+        connection_uri: ${RINDEXER_REDIS}
+        streams:
+          - stream_name: "proposals_stream"
+            networks:
+              - arbitrum
+            events:
+              - event_name: ProposalCreated
+              - event_name: ProposalCanceled
+              - event_name: ProposalExecuted
+              - event_name: ProposalExtended
+              - event_name: ProposalQueued
+          - stream_name: "votes_stream"
+            networks:
+              - arbitrum
+            events:
+              - event_name: VoteCast
+              - event_name: VoteCastWithParams
+
+global:
+  etherscan_api_key: ${ETHERSCAN_API_KEY}

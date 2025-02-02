@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 alloy = { workspace = true, features = ["full"] }
-alloy-chains = "0.1.58"
+alloy-chains = { workspace = true }
 anyhow = { workspace = true, features = ["backtrace"] }
 async-trait = { workspace = true }
 axum = { workspace = true }
