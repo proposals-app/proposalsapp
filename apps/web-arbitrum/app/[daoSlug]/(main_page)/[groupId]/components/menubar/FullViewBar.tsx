@@ -6,6 +6,7 @@ import { ArrowDown, Check, ChevronsUpDown } from 'lucide-react';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useEffect, useRef } from 'react';
 import { voteFilters } from './MenuBar';
+import Image from 'next/image';
 
 const useDebouncedScroll = (callback: () => void, delay: number) => {
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
@@ -76,15 +77,15 @@ export const FullViewBar = () => {
   return (
     <div
       ref={fullViewBarRef}
-      className={`mt-4 min-w-4xl self-center overflow-visible px-2 transition-opacity duration-300
+      className={`mt-4 min-w-4xl self-center overflow-visible px-2 text-neutral-800
+        transition-opacity duration-300 dark:text-neutral-200
         ${view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
-        className='border-neutral-350 flex w-full items-center justify-between gap-2 rounded-full
-          border bg-white p-2 text-sm font-bold shadow-lg transition-colors
-          dark:border-neutral-800 dark:bg-neutral-950'
+        className='flex w-full items-center justify-between gap-2 border border-neutral-800
+          bg-white p-2 text-sm font-bold shadow-lg transition-colors'
       >
-        <div className='flex w-full justify-between text-neutral-600 dark:text-neutral-200'>
+        <div className='flex w-full justify-between'>
           {expanded ? (
             <div
               className='flex cursor-pointer items-center gap-4 hover:underline'
@@ -94,11 +95,13 @@ export const FullViewBar = () => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             >
-              <ArrowDown
-                className='border-neutral-350 h-8 w-8 rounded-full border bg-neutral-50 p-1
-                  hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
-                  dark:hover:bg-neutral-700'
+              <Image
+                src='/assets/web/arrow-up.svg'
+                alt={''}
+                width={24}
+                height={24}
               />
+
               <div>Collapse Proposal</div>
             </div>
           ) : (
@@ -109,69 +112,70 @@ export const FullViewBar = () => {
                 setExpanded(true);
               }}
             >
-              <ArrowDown
-                className='border-neutral-350 h-8 w-8 rounded-full border bg-neutral-50 p-1
-                  hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
-                  dark:hover:bg-neutral-700'
+              <Image
+                src='/assets/web/arrow-down.svg'
+                alt={''}
+                width={24}
+                height={24}
               />
-              <div>Read Full Proposal</div>
+              <div>Read Proposal</div>
             </div>
           )}
 
-          <div className='flex gap-2'>
-            <div
-              className='border-neutral-350 flex h-8 cursor-pointer items-center justify-start
-                rounded-full border bg-neutral-50 px-4 pr-4 pl-1 text-sm transition-colors
-                hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800
-                dark:hover:bg-neutral-700'
-            >
+          <div className='flex'>
+            <div className='flex h-8 cursor-pointer items-center justify-start gap-2 px-3 text-sm'>
+              <div className='relative flex items-start'>
+                <input
+                  type='checkbox'
+                  id='comments'
+                  checked={comments}
+                  onChange={(e) => setComments(e.target.checked)}
+                  className='h-6 w-6 cursor-pointer appearance-none'
+                />
+                {comments ? (
+                  <Image
+                    className='absolute'
+                    src='/assets/web/checkbox_check.svg'
+                    alt={''}
+                    width={24}
+                    height={24}
+                  />
+                ) : (
+                  <Image
+                    className='absolute'
+                    src='/assets/web/checkbox_nocheck.svg'
+                    alt={''}
+                    width={24}
+                    height={24}
+                  />
+                )}
+              </div>
               <label
                 htmlFor='comments'
                 className='flex cursor-pointer items-center gap-2'
               >
-                <div className='relative flex items-start'>
-                  <input
-                    type='checkbox'
-                    id='comments'
-                    checked={comments}
-                    onChange={(e) => setComments(e.target.checked)}
-                    className='border-neutral-350 h-6 w-6 cursor-pointer appearance-none rounded-full border
-                      bg-neutral-50 checked:border-neutral-400 dark:border-neutral-700
-                      dark:bg-neutral-800'
-                  />
-                  {comments && (
-                    <svg
-                      width='12'
-                      height='9'
-                      viewBox='0 0 12 9'
-                      fill='none'
-                      xmlns='http://www.w3.org/2000/svg'
-                      className='pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                        fill-neutral-700 dark:fill-neutral-200'
-                    >
-                      <path d='M0.680398 4.75L1.54403 3.86364L4.54403 6.81818L10.7486 0.636363L11.6349 1.52273L4.54403 8.59091L0.680398 4.75Z' />
-                    </svg>
-                  )}
-                </div>
-                Show comments
+                All comments
               </label>
             </div>
 
             <Popover.Root>
               <Popover.Trigger asChild>
                 <button
-                  className='border-neutral-350 flex h-8 w-[200px] items-center justify-between rounded-full
-                    border bg-neutral-50 px-4 text-sm transition-colors hover:bg-neutral-100
-                    dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700'
+                  className='flex h-8 w-44 items-center justify-between px-3 text-sm'
                   aria-expanded={false}
                 >
                   {voteFilters.find((filter) => filter.value === votesFilter)
                     ?.label || 'Select vote filter...'}
-                  <ChevronsUpDown className='h-4 w-4 opacity-50' />
+                  <Image
+                    src='/assets/web/chevron_down.svg'
+                    alt={''}
+                    width={24}
+                    height={24}
+                  />
                 </button>
               </Popover.Trigger>
               <Popover.Content
-                className='border-neutral-350 w-[200px] rounded-md border bg-neutral-50 p-1 shadow-lg
+                className='w-[200px] border border-neutral-800 bg-neutral-50 p-1 shadow-lg
                   dark:border-neutral-700 dark:bg-neutral-800'
                 sideOffset={5}
               >
@@ -187,7 +191,12 @@ export const FullViewBar = () => {
                     >
                       {filter.label}
                       {votesFilter === filter.value && (
-                        <Check className='h-4 w-4' />
+                        <Image
+                          src='/assets/web/check.svg'
+                          alt={''}
+                          width={24}
+                          height={24}
+                        />
                       )}
                     </button>
                   ))}

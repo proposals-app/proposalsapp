@@ -60,7 +60,7 @@ export default async function Body({
         group={group}
         version={version ?? defaultVersion}
       />
-      <div className='flex w-full flex-col gap-4'>
+      <div className='flex w-full flex-col gap-6'>
         <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-100'>
           {visibleBody.title}
         </h1>
@@ -73,7 +73,7 @@ export default async function Body({
             />
 
             <div className='flex flex-col items-center gap-2'>
-              <div className='flex flex-row'>
+              <div className='flex flex-row gap-4'>
                 <PostedTime
                   label='initially posted'
                   createdAt={initialBody.createdAt}

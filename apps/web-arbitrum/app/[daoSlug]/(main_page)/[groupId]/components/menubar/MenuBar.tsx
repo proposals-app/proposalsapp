@@ -8,19 +8,19 @@ import { FullViewBar } from './FullViewBar';
 export const voteFilters = [
   {
     value: VotesFilterEnum.ALL,
-    label: 'No Filter',
+    label: 'All votes',
   },
   {
     value: VotesFilterEnum.FIFTY_THOUSAND,
-    label: 'Votes > 50k ARB',
+    label: 'Votes +50k ARB',
   },
   {
     value: VotesFilterEnum.FIVE_HUNDRED_THOUSAND,
-    label: 'Votes > 500k ARB',
+    label: 'Votes +500k ARB',
   },
   {
     value: VotesFilterEnum.FIVE_MILLION,
-    label: 'Votes > 5m ARB',
+    label: 'Votes +5m ARB',
   },
 ];
 

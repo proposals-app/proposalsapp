@@ -1,5 +1,6 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { format, formatDistanceToNow, formatISO } from 'date-fns';
+import Image from 'next/image';
 
 // Helper component to display the time with a tooltip
 export async function PostedTime({
@@ -26,12 +27,8 @@ export async function PostedTime({
         <Tooltip.Trigger asChild>
           <div>
             <div
-              className={`flex flex-row items-center gap-4 p-2 ${
-                border
-                  ? `rounded-lg border border-neutral-200 bg-white dark:border-neutral-500
-                    dark:bg-neutral-600`
-                  : ''
-                }`}
+              className={`flex flex-row items-center gap-2 px-2 py-1 ${
+                border ? 'bg-white dark:bg-neutral-600' : '' }`}
             >
               <div className='flex flex-col text-xs'>
                 <span className='text-neutral-700 dark:text-neutral-100'>
@@ -42,7 +39,12 @@ export async function PostedTime({
                 </span>
               </div>
               {border && (
-                <div className='bg-neutral-350 h-8 w-8 rounded-sm dark:bg-neutral-800'></div>
+                <Image
+                  src='/assets/web/edit-icon-posted-time.svg'
+                  alt={''}
+                  width={24}
+                  height={24}
+                />
               )}
             </div>
           </div>
