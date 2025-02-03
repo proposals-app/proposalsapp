@@ -12,7 +12,7 @@ import {
 } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
-async function getFeed(
+export async function getFeed(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum
@@ -121,11 +121,18 @@ async function getFeed(
       const processedVotes: ProcessedVote[] = [];
 
       for (const proposal of proposals) {
-        const processedResults = await processResultsAction(proposal, votes, {
-          withVotes: true,
-          withTimeseries: false,
-          aggregatedVotes: false,
-        });
+        const votesForProposal = votes.filter(
+          (v) => v.proposalId == proposal.id
+        );
+        const processedResults = await processResultsAction(
+          proposal,
+          votesForProposal,
+          {
+            withVotes: true,
+            withTimeseries: false,
+            aggregatedVotes: false,
+          }
+        );
 
         if (processedResults.votes) {
           processedVotes.push(...processedResults.votes);

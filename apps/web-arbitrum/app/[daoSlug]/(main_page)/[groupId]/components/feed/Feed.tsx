@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { PostItem } from './items/PostItem/PostItem';
 import { VoteItem } from './items/VoteItem/VoteItem';
 import { GroupReturnType } from '../../actions';
-import { getFeed_cached } from './actions';
+import { getFeed } from './actions';
 import { ProcessedVote } from '@/lib/results_processing';
 
 export default async function Feed({
@@ -21,11 +21,7 @@ export default async function Feed({
     notFound();
   }
 
-  const feed = await getFeed_cached(
-    group.group.id,
-    commentsFilter,
-    votesFilter
-  );
+  const feed = await getFeed(group.group.id, commentsFilter, votesFilter);
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
 
