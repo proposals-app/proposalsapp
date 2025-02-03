@@ -12,14 +12,24 @@ import {
 } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
+interface RelativeVotingPower {
+  relativeVotingPower: number; // This will be a value between 0 and 1, where 1 means it's the most powerful vote.
+}
+
+export type ExtendedProcessedVote = ProcessedVote & RelativeVotingPower;
+
 export async function getFeed(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum
-): Promise<{ votes: ProcessedVote[]; posts: Selectable<DiscoursePost>[] }> {
+): Promise<{
+  votes: ExtendedProcessedVote[];
+  posts: Selectable<DiscoursePost>[];
+}> {
   'use server';
   return otel('get-feed-for-group', async () => {
     let posts: Selectable<DiscoursePost>[] = [];
+    const totalVotingPowerByProposalId: { [proposalId: string]: number } = {};
 
     try {
       // Fetch the proposal group
@@ -30,7 +40,7 @@ export async function getFeed(
         .executeTakeFirstOrThrow();
 
       if (!group) {
-        return { votes: [], posts };
+        return { votes: [], posts, totalVotingPowerByProposalId };
       }
 
       // Extract proposal and topic IDs from group items
@@ -113,18 +123,38 @@ export async function getFeed(
         posts = await postsQuery.orderBy('createdAt', 'desc').execute();
       }
 
-      // Process votes using processResultsAction
-      const processedVotes: ProcessedVote[] = [];
-
+      // Process votes using processResultsAction and calculate relative voting power
+      const processedVotes: ExtendedProcessedVote[] = [];
       for (const proposal of proposals) {
-        const result = await processResultsAction(
-          proposal,
-          votes.filter((vote) => vote.proposalId === proposal.id),
-          { withVotes: true, withTimeseries: false, aggregatedVotes: true }
+        const proposalVotes = votes.filter(
+          (vote) => vote.proposalId === proposal.id
         );
 
-        if (result.votes) {
-          processedVotes.push(...result.votes);
+        if (proposalVotes.length > 0) {
+          const maxVotingPower = Math.max(
+            ...proposalVotes.map((vote) => vote.votingPower)
+          );
+          for (const vote of proposalVotes) {
+            const processedVote: ExtendedProcessedVote =
+              await processResultsAction(proposal, [vote], {
+                withVotes: true,
+                withTimeseries: false,
+                aggregatedVotes: true,
+              }).then((result) => ({
+                ...result.votes![0],
+                relativeVotingPower:
+                  maxVotingPower > 0 ? vote.votingPower / maxVotingPower : 0,
+              }));
+
+            processedVotes.push(processedVote);
+          }
+
+          // Store totalVotingPower for each proposal
+          const totalVotingPower = proposalVotes.reduce(
+            (sum, vote) => sum + vote.votingPower,
+            0
+          );
+          totalVotingPowerByProposalId[proposal.id] = totalVotingPower;
         }
       }
 

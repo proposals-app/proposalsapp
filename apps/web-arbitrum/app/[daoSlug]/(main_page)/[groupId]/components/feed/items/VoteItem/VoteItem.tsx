@@ -84,26 +84,7 @@ export async function VoteItem({
     ? formatNumberWithSuffix(item.votingPower)
     : '0';
 
-  const result = choiceToClass(
-    (proposal?.choices ?? []) as string[],
-    item.choice as number
-  );
-
-  let resultClass = '';
-  switch (result) {
-    case Result.FOR:
-      resultClass = 'place-self-start';
-      break;
-    case Result.AGAINST:
-      resultClass = 'ml-20 place-self-end';
-      break;
-    case Result.ABSTAIN:
-    case Result.UNKNOWN:
-      resultClass = 'place-self-center self-center';
-      break;
-    default:
-      resultClass = 'place-self-center self-center w-full';
-  }
+  const barWidth = `${(item.relativeVotingPower || 0) * 100}%`;
 
   const baseUrl = daoBaseUrlMap[group.daoSlug] || '';
   const urlPattern = new RegExp(`${baseUrl}/t/[^/]+/(\\d+)/(\\d+)(?:\\?.*)?`);
@@ -119,10 +100,29 @@ export async function VoteItem({
   }
 
   return (
-    <div
-      className={`${resultClass} flex w-2/3 flex-col gap-2 rounded-lg border border-neutral-200
-        bg-neutral-100 p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800`}
-    >
+    <div className='flex w-full flex-col gap-2 p-4'>
+      <div style={{ width: barWidth }}>
+        {Array.isArray(item.color) ? (
+          <div className='flex w-full'>
+            {item.color.map((color, index) => (
+              <div
+                key={index}
+                className={'h-2'}
+                style={{
+                  width: `${(1 / item.color.length) * 100}%`,
+                  backgroundColor: color,
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            className={'h-2 w-full'}
+            style={{ width: '100%', backgroundColor: item.color }}
+          />
+        )}
+      </div>
+
       <div className='flex cursor-default flex-row justify-between select-none'>
         {!item.aggregate && (
           <div className='flex flex-col gap-2'>
@@ -202,35 +202,6 @@ export async function VoteItem({
 
 const daoBaseUrlMap: { [key: string]: string } = {
   arbitrum_dao: 'https://forum.arbitrum.foundation',
-};
-
-enum Result {
-  FOR,
-  ABSTAIN,
-  AGAINST,
-  UNKNOWN,
-}
-
-export const choiceToClass = (
-  proposalChoices: string[],
-  choiceIndex: number
-) => {
-  try {
-    switch (proposalChoices[choiceIndex].toLowerCase()) {
-      case 'for':
-      case 'yes':
-      case 'yae':
-        return Result.FOR;
-      case 'against':
-      case 'no':
-      case 'nay':
-        return Result.AGAINST;
-      default:
-        return Result.ABSTAIN;
-    }
-  } catch {
-    return Result.UNKNOWN;
-  }
 };
 
 export function formatNameOrAddress(address: string): string {

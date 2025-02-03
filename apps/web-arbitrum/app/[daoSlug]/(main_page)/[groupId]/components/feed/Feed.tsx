@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { PostItem } from './items/PostItem/PostItem';
 import { VoteItem } from './items/VoteItem/VoteItem';
 import { GroupReturnType } from '../../actions';
-import { getFeed_cached } from './actions';
+import { ExtendedProcessedVote, getFeed_cached } from './actions';
 import { ProcessedVote } from '@/lib/votes_processing';
 
 export default async function Feed({
@@ -166,7 +166,7 @@ export function FeedLoading() {
 
 export type VoteFeedItem = {
   type: 'vote';
-} & ProcessedVote;
+} & ExtendedProcessedVote;
 
 export type PostFeedItem = {
   type: 'post';
