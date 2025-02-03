@@ -130,7 +130,7 @@ async function getFeed(
           {
             withVotes: true,
             withTimeseries: false,
-            aggregatedVotes: false,
+            aggregatedVotes: true,
           }
         );
 

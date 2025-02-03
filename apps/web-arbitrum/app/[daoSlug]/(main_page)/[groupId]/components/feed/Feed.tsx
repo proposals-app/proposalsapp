@@ -6,6 +6,7 @@ import { VoteItem } from './items/VoteItem/VoteItem';
 import { GroupReturnType } from '../../actions';
 import { getFeed_cached } from './actions';
 import { ProcessedVote } from '@/lib/results_processing';
+import { AggregateVoteItem } from './items/VoteItem/AggregateVoteItem';
 
 export default async function Feed({
   group,
@@ -59,7 +60,11 @@ export default async function Feed({
           return (
             <div key={index}>
               <div className='flex w-full flex-col p-4'>
-                <VoteItem item={item} group={group} />
+                {item.aggregate ? (
+                  <AggregateVoteItem item={item} group={group} />
+                ) : (
+                  <VoteItem item={item} group={group} />
+                )}
               </div>
               {index < itemsWithPlaceholders.length - 1 && (
                 <div className='border-b border-neutral-200' />

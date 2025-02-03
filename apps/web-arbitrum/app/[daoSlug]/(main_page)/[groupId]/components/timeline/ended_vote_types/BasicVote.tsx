@@ -9,28 +9,40 @@ interface BasicVoteProps {
 }
 
 export const BasicVote = ({ result }: BasicVoteProps) => {
-  const { finalResults, totalVotingPower, choiceColors, choices } =
-    useMemo(() => {
-      if (result.hiddenVote && result.scoresState !== 'final') {
-        return {
-          finalResults: {},
-          totalVotingPower: 0,
-          choiceColors: result.choiceColors || [],
-          choices: result.choices || [],
-        };
-      }
-
-      const totalVotingPower = result.totalVotingPower;
-      const choiceColors = result.choiceColors || [];
-      const choices = result.choices || [];
-
+  const {
+    finalResults,
+    totalVotingPower,
+    choiceColors,
+    choices,
+    quorum,
+    scoresQuorum,
+  } = useMemo(() => {
+    if (result.hiddenVote && result.scoresState !== 'final') {
       return {
-        finalResults: result.finalResults || {},
-        totalVotingPower,
-        choiceColors,
-        choices,
+        finalResults: {},
+        totalVotingPower: 0,
+        choiceColors: result.choiceColors || [],
+        choices: result.choices || [],
+        quorum: result.quorum || 0,
+        scoresQuorum: result.proposal.scoresQuorum || 0,
       };
-    }, [result]);
+    }
+
+    const totalVotingPower = result.totalVotingPower;
+    const choiceColors = result.choiceColors || [];
+    const choices = result.choices || [];
+    const quorum = result.quorum || 0;
+    const scoresQuorum = result.proposal.scoresQuorum || 0;
+
+    return {
+      finalResults: result.finalResults || {},
+      totalVotingPower,
+      choiceColors,
+      choices,
+      quorum,
+      scoresQuorum,
+    };
+  }, [result]);
 
   if (result.hiddenVote && result.scoresState !== 'final') {
     return <HiddenVote result={result} />;
@@ -72,6 +84,13 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
     { choiceIndex: -1, votingPower: 0 }
   );
 
+  // Calculate participation percentage
+  const totalDelegatedVp = result.totalDelegatedVp || 0;
+  const participationPercentage = (totalVotingPower / totalDelegatedVp) * 100;
+
+  // Check if quorum is reached
+  const quorumReached = scoresQuorum >= quorum;
+
   return (
     <div className='space-y-1'>
       <div className='flex h-4 w-full overflow-hidden border'>
@@ -99,6 +118,38 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
           </div>
         ))}
       </div>
+
+      {/* Quorum and Participation Segments */}
+      {totalDelegatedVp > 0 && (
+        <div className='mt-4'>
+          <div className='border-neutral-80 relative h-2 w-full border'>
+            <div
+              className='absolute top-0 left-0 h-full bg-neutral-800'
+              style={{
+                width: `${participationPercentage}%`,
+              }}
+            />
+          </div>
+
+          <div className='flex items-start justify-between text-[11px]'>
+            <div className='flex items-center gap-1'>
+              {quorumReached && <Check size={12} />}
+              <span className='font-bold'>
+                {formatNumberWithSuffix(scoresQuorum)}
+              </span>
+              <span>of </span>
+              <span>{formatNumberWithSuffix(quorum)} needed</span>
+            </div>
+
+            <div>
+              <span className='font-semibold'>
+                {participationPercentage.toFixed(0)}%
+              </span>{' '}
+              of tokens have voted
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

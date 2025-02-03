@@ -124,38 +124,32 @@ export async function VoteItem({
       </div>
 
       <div className='flex cursor-default flex-row justify-between select-none'>
-        {!item.aggregate && (
-          <div className='flex flex-col gap-2'>
-            <Suspense>
-              <div className='flex flex-row items-center gap-2'>
-                <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
-                  <Avatar.Image
-                    src={
-                      avatarUrl ??
-                      `https://api.dicebear.com/9.x/pixel-art/svg?seed=${displayName}`
-                    }
-                    className='w-full rounded-full'
-                    fetchPriority='high'
-                  />
-                  <Avatar.Fallback>
-                    {displayName.slice(0, 2).toUpperCase()}
-                  </Avatar.Fallback>
-                </Avatar.Root>
-                <div className='flex flex-col'>
-                  <div className='font-bold text-neutral-700'>
-                    {displayName}
-                  </div>
-                  {displayName !== voterAddress && (
-                    <div className='text-sm text-neutral-500'>
-                      {voterAddress}
-                    </div>
-                  )}
-                  <VotingPowerTag item={item} />
-                </div>
+        <div className='flex flex-col gap-2'>
+          <Suspense>
+            <div className='flex flex-row items-center gap-2'>
+              <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
+                <Avatar.Image
+                  src={
+                    avatarUrl ??
+                    `https://api.dicebear.com/9.x/pixel-art/svg?seed=${displayName}`
+                  }
+                  className='w-full rounded-full'
+                  fetchPriority='high'
+                />
+                <Avatar.Fallback>
+                  {displayName.slice(0, 2).toUpperCase()}
+                </Avatar.Fallback>
+              </Avatar.Root>
+              <div className='flex flex-col'>
+                <div className='font-bold text-neutral-700'>{displayName}</div>
+                {displayName !== voterAddress && (
+                  <div className='text-sm text-neutral-500'>{voterAddress}</div>
+                )}
+                <VotingPowerTag item={item} />
               </div>
-            </Suspense>
-          </div>
-        )}
+            </div>
+          </Suspense>
+        </div>
 
         <div className='text-neutral-450 flex flex-col items-end text-sm'>
           <Tooltip.Root>
