@@ -2,7 +2,6 @@
 
 import { ViewEnum, VotesFilterEnum } from '@/app/searchParams';
 import * as Popover from '@radix-ui/react-popover';
-import { ArrowDown, Check, ChevronsUpDown } from 'lucide-react';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useEffect, useRef } from 'react';
 import { voteFilters } from './MenuBar';
@@ -96,7 +95,7 @@ export const FullViewBar = () => {
               }}
             >
               <Image
-                src='/assets/web/arrow-up.svg'
+                src='/assets/web/arrow.svg'
                 alt={''}
                 width={24}
                 height={24}
@@ -112,7 +111,8 @@ export const FullViewBar = () => {
               }}
             >
               <Image
-                src='/assets/web/arrow-down.svg'
+                className='rotate-180'
+                src='/assets/web/arrow.svg'
                 alt={''}
                 width={24}
                 height={24}
