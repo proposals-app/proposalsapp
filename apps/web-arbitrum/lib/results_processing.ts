@@ -50,13 +50,14 @@ export interface ProcessedResults {
   scoresState: string;
 }
 
+export const DEFAULT_CHOICE_COLOR = '#CBD5E1';
 /**
  * Function to get a color for a given choice.
  * @param choice - The choice text.
  * @returns A color code based on the choice text.
  */
 export function getColorForChoice(choice: string | undefined | null): string {
-  if (!choice) return '#CBD5E1'; // Default grey color
+  if (!choice) return DEFAULT_CHOICE_COLOR; // Default grey color
   const lowerCaseChoice = choice.toLowerCase();
   if (/^(for|yes|yae)/.test(lowerCaseChoice)) return '#56B200'; // Green
   if (/^(against|no|nay)/.test(lowerCaseChoice)) return '#FF4242'; // Red

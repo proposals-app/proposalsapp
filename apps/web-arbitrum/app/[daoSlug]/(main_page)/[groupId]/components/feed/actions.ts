@@ -12,7 +12,7 @@ import {
 } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
-export async function getFeed(
+async function getFeed(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum
@@ -119,6 +119,7 @@ export async function getFeed(
 
       // Process votes using processResultsAction and calculate relative voting power
       const processedVotes: ProcessedVote[] = [];
+
       for (const proposal of proposals) {
         const processedResults = await processResultsAction(proposal, votes, {
           withVotes: true,
