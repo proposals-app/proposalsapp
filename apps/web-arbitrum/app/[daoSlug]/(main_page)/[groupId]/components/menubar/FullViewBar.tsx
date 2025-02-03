@@ -82,12 +82,12 @@ export const FullViewBar = () => {
         ${view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
-        className='flex w-full items-center justify-between gap-2 border border-neutral-800
-          bg-white p-2 text-sm font-bold shadow-lg transition-colors'
+        className='flex w-full items-center justify-between gap-2 border bg-white p-2 text-sm
+          font-bold shadow-lg transition-colors'
       >
         <div className='flex w-full justify-between'>
           {expanded ? (
-            <div
+            <button
               className='flex cursor-pointer items-center gap-4 hover:underline'
               onClick={() => {
                 setView(ViewEnum.FULL);
@@ -101,11 +101,10 @@ export const FullViewBar = () => {
                 width={24}
                 height={24}
               />
-
               <div>Collapse Proposal</div>
-            </div>
+            </button>
           ) : (
-            <div
+            <button
               className='flex cursor-pointer items-center gap-4 hover:underline'
               onClick={() => {
                 setView(ViewEnum.BODY);
@@ -119,41 +118,41 @@ export const FullViewBar = () => {
                 height={24}
               />
               <div>Read Proposal</div>
-            </div>
+            </button>
           )}
 
           <div className='flex'>
             <div className='flex h-8 cursor-pointer items-center justify-start gap-2 px-3 text-sm'>
-              <div className='relative flex items-start'>
-                <input
-                  type='checkbox'
-                  id='comments'
-                  checked={comments}
-                  onChange={(e) => setComments(e.target.checked)}
-                  className='h-6 w-6 cursor-pointer appearance-none'
-                />
-                {comments ? (
-                  <Image
-                    className='absolute'
-                    src='/assets/web/checkbox_check.svg'
-                    alt={''}
-                    width={24}
-                    height={24}
-                  />
-                ) : (
-                  <Image
-                    className='absolute'
-                    src='/assets/web/checkbox_nocheck.svg'
-                    alt={''}
-                    width={24}
-                    height={24}
-                  />
-                )}
-              </div>
               <label
                 htmlFor='comments'
                 className='flex cursor-pointer items-center gap-2'
               >
+                <div className='relative flex items-start'>
+                  <input
+                    type='checkbox'
+                    id='comments'
+                    checked={comments}
+                    onChange={(e) => setComments(e.target.checked)}
+                    className='h-6 w-6 cursor-pointer appearance-none'
+                  />
+                  {comments ? (
+                    <Image
+                      className='absolute inset-0'
+                      src='/assets/web/checkbox_check.svg'
+                      alt={''}
+                      width={24}
+                      height={24}
+                    />
+                  ) : (
+                    <Image
+                      className='absolute inset-0'
+                      src='/assets/web/checkbox_nocheck.svg'
+                      alt={''}
+                      width={24}
+                      height={24}
+                    />
+                  )}
+                </div>
                 All comments
               </label>
             </div>
@@ -175,16 +174,16 @@ export const FullViewBar = () => {
                 </button>
               </Popover.Trigger>
               <Popover.Content
-                className='w-[200px] border border-neutral-800 bg-neutral-50 p-1 shadow-lg
-                  dark:border-neutral-700 dark:bg-neutral-800'
+                className='w-[200px] border bg-neutral-50 p-1 shadow-lg dark:border-neutral-700
+                  dark:bg-neutral-800'
                 sideOffset={5}
               >
                 <div className='space-y-1'>
                   {voteFilters.map((filter) => (
                     <button
                       key={filter.value}
-                      className='flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm
-                        transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                      className='flex w-full items-center justify-between px-2 py-1.5 text-sm transition-colors
+                        hover:bg-neutral-100 dark:hover:bg-neutral-700'
                       onClick={() => {
                         setVotesFilter(filter.value as VotesFilterEnum);
                       }}
