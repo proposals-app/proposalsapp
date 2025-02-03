@@ -12,7 +12,7 @@ import {
 } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
-export async function getFeed(
+async function getFeed(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum
