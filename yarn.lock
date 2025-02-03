@@ -2448,7 +2448,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.22.0"
     "@typescript-eslint/parser": "npm:^8.22.0"
     "@vercel/otel": "npm:^1.10.1"
-    babel-plugin-react-compiler: "npm:19.0.0-beta-27714ef-20250124"
+    babel-plugin-react-compiler: "npm:19.0.0-beta-714736e-20250131"
     date-fns: "npm:^4.1.0"
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
@@ -2457,7 +2457,7 @@ __metadata:
     eslint-config-next: "npm:^15.1.6"
     eslint-config-prettier: "npm:^10.0.1"
     eslint-plugin-prettier: "npm:^5.2.3"
-    fuse.js: "npm:^7.0.0"
+    fuse.js: "npm:^7.1.0"
     hast: "npm:^1.0.0"
     hast-util-to-dom: "npm:^4.0.0"
     jsdom: "npm:26.0.0"
@@ -2547,7 +2547,7 @@ __metadata:
     cmdk: "npm:1.0.4"
     date-fns: "npm:^4.1.0"
     embla-carousel-react: "npm:^8.5.2"
-    fuse.js: "npm:^7.0.0"
+    fuse.js: "npm:^7.1.0"
     input-otp: "npm:^1.4.2"
     lucia: "npm:3.2.2"
     lucide-react: "npm:0.474.0"
@@ -2578,7 +2578,7 @@ __metadata:
     typescript: "npm:^5.7.3"
     uuid: "npm:^11.0.5"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.22.17"
+    viem: "npm:2.22.19"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -6011,12 +6011,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-plugin-react-compiler@npm:19.0.0-beta-27714ef-20250124":
-  version: 19.0.0-beta-27714ef-20250124
-  resolution: "babel-plugin-react-compiler@npm:19.0.0-beta-27714ef-20250124"
+"babel-plugin-react-compiler@npm:19.0.0-beta-714736e-20250131":
+  version: 19.0.0-beta-714736e-20250131
+  resolution: "babel-plugin-react-compiler@npm:19.0.0-beta-714736e-20250131"
   dependencies:
     "@babel/types": "npm:^7.19.0"
-  checksum: 10c0/f7733f9461e5ca66af52dcc072a3e7f48d8020c9237f7621e4fc6229d74ae813c8883b7c5b904e69766a4de14599b95422e0374991cbbccceae3fbc17bd08262
+  checksum: 10c0/b0e16cadc72792acad1de9821e776ba063dee888d6f77c0a754a78235922404cc59bf384968fbf65085f87ae45c3b38f2074ec6b654662ffef72bd594f781795
   languageName: node
   linkType: hard
 
@@ -9044,10 +9044,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fuse.js@npm:^7.0.0":
-  version: 7.0.0
-  resolution: "fuse.js@npm:7.0.0"
-  checksum: 10c0/3574b7fc2e0ccb047e05dbe5f8f04e8f0754f62fa209669ef426ea1354a32ae7355620788af8f1d29f94e1fdecd513f1f3787f012848a31ec90bb4e0e6092504
+"fuse.js@npm:^7.1.0":
+  version: 7.1.0
+  resolution: "fuse.js@npm:7.1.0"
+  checksum: 10c0/c0d1b1d192a4bdf3eade897453ddd28aff96b70bf3e49161a45880f9845ebaee97265595db633776700a5bcf8942223c752754a848d70c508c3c9fd997faad1e
   languageName: node
   linkType: hard
 
@@ -16475,9 +16475,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.22.17":
-  version: 2.22.17
-  resolution: "viem@npm:2.22.17"
+"viem@npm:2.22.19":
+  version: 2.22.19
+  resolution: "viem@npm:2.22.19"
   dependencies:
     "@noble/curves": "npm:1.8.1"
     "@noble/hashes": "npm:1.7.1"
@@ -16492,7 +16492,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/fcf1c5ba57a309d8c604488ca55d7b48c655a35f4b383accaa5dbc5245690ae43b45fbd2d6e3e067feb0e62807b2f5daefe7803e5c58fffb2ca34683e46a2a6b
+  checksum: 10c0/1013e0325895ca2e1ae8916c454273ff7383699cf407136c1c34633120ff4edbc1eeeb643bfb0e8661521a384e2e2ed0945a28d785d578892fba8bbd441b07ab
   languageName: node
   linkType: hard
 

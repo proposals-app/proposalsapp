@@ -48,7 +48,7 @@
     "cmdk": "1.0.4",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.5.2",
-    "fuse.js": "^7.0.0",
+    "fuse.js": "^7.1.0",
     "input-otp": "^1.4.2",
     "lucia": "3.2.2",
     "lucide-react": "0.474.0",
@@ -72,7 +72,7 @@
     "tailwindcss-animate": "1.0.7",
     "uuid": "^11.0.5",
     "vaul": "^1.1.2",
-    "viem": "2.22.17",
+    "viem": "2.22.19",
     "web-push": "^3.6.7",
     "zod": "^3.24.1"
   },
