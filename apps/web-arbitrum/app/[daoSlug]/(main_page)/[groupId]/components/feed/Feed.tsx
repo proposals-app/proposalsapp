@@ -1,8 +1,8 @@
 import { VotesFilterEnum } from '@/app/searchParams';
 import { DiscoursePost, Selectable, Vote } from '@proposalsapp/db';
 import { notFound } from 'next/navigation';
-import { PostItem } from './items/PostItem';
-import { VoteItem } from './items/VoteItem';
+import { PostItem } from './items/PostItem/PostItem';
+import { VoteItem } from './items/VoteItem/VoteItem';
 import { GroupReturnType } from '../../actions';
 import { getFeed_cached } from './actions';
 import { ProcessedVote } from '@/lib/votes_processing';
@@ -39,8 +39,6 @@ export default async function Feed({
   // Generate a list of posts with placeholders for missing post numbers
   const itemsWithPlaceholders = insertPlaceholderPosts(itemsToDisplay);
 
-  let previousPostNumber: number | undefined;
-
   return (
     <div className='w-full'>
       {itemsWithPlaceholders.map((item, index) => {
@@ -48,14 +46,14 @@ export default async function Feed({
           const postItem = (
             <div key={index}>
               <div className='flex w-full flex-col p-4'>
-                <PostItem item={item} />
+                <PostItem item={item} group={group} />
               </div>
               {index < itemsWithPlaceholders.length - 1 && (
                 <div className='border-b border-neutral-200 dark:border-neutral-800' />
               )}
             </div>
           );
-          previousPostNumber = item.postNumber;
+
           return postItem;
         } else {
           return (

@@ -1,7 +1,7 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { CombinedFeedItem } from '../Feed';
-import { getVotingPower_cache } from '../actions';
+import { CombinedFeedItem } from '../../Feed';
+import { getVotingPower_cache } from '../../actions';
 
 export async function VotingPowerTag({ item }: { item: CombinedFeedItem }) {
   const votingPower = await getVotingPower_cache(item.id);

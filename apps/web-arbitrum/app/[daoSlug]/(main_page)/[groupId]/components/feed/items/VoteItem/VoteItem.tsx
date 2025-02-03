@@ -4,10 +4,10 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { GroupReturnType } from '../../../actions';
-import { getDelegateByVoterAddress_cache } from '../actions';
-import { CombinedFeedItem, VoteFeedItem } from '../Feed';
 import { VotingPowerTag } from './VotingPowerTag';
+import { GroupReturnType } from '../../../../actions';
+import { getDelegateByVoterAddress_cache } from '../../actions';
+import { CombinedFeedItem, VoteFeedItem } from '../../Feed';
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === 'vote';
@@ -127,14 +127,31 @@ export async function VoteItem({
         {!item.aggregate && (
           <div className='flex flex-col gap-2'>
             <Suspense>
-              <AuthorInfo
-                authorName={displayName}
-                authorPicture={avatarUrl}
-                voterAddress={voterAddress}
-                isDelegate={!!delegate}
-              >
-                <VotingPowerTag item={item} />
-              </AuthorInfo>
+              <div className='flex flex-row items-center gap-2'>
+                <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
+                  <Avatar.Image
+                    src={
+                      avatarUrl ??
+                      `https://api.dicebear.com/9.x/pixel-art/svg?seed=${displayName}`
+                    }
+                    className='w-full rounded-full'
+                  />
+                  <Avatar.Fallback>
+                    {displayName.slice(0, 2).toUpperCase()}
+                  </Avatar.Fallback>
+                </Avatar.Root>
+                <div className='flex flex-col'>
+                  <div className='font-bold text-neutral-700 dark:text-neutral-200'>
+                    {displayName}
+                  </div>
+                  {displayName !== voterAddress && (
+                    <div className='text-sm text-neutral-500 dark:text-neutral-400'>
+                      {voterAddress}
+                    </div>
+                  )}
+                  <VotingPowerTag item={item} />
+                </div>
+              </div>
             </Suspense>
           </div>
         )}
@@ -185,45 +202,6 @@ export async function VoteItem({
 
 const daoBaseUrlMap: { [key: string]: string } = {
   arbitrum_dao: 'https://forum.arbitrum.foundation',
-};
-
-const AuthorInfo = ({
-  authorName,
-  authorPicture,
-  voterAddress,
-  children,
-}: {
-  authorName: string;
-  authorPicture: string | null;
-  voterAddress: string;
-  isDelegate: boolean;
-  children?: React.ReactNode; // Added children prop
-}) => {
-  const displayPicture =
-    authorPicture ??
-    `https://api.dicebear.com/9.x/pixel-art/svg?seed=${authorName}`;
-
-  return (
-    <div className='flex flex-row items-center gap-2'>
-      <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
-        <Avatar.Image src={displayPicture} className='w-full rounded-full' />
-        <Avatar.Fallback>
-          {authorName.slice(0, 2).toUpperCase()}
-        </Avatar.Fallback>
-      </Avatar.Root>
-      <div className='flex flex-col'>
-        <div className='font-bold text-neutral-700 dark:text-neutral-200'>
-          {authorName}
-        </div>
-        {authorName !== voterAddress && (
-          <div className='text-sm text-neutral-500 dark:text-neutral-400'>
-            {voterAddress}
-          </div>
-        )}
-        {children}
-      </div>
-    </div>
-  );
 };
 
 enum Result {

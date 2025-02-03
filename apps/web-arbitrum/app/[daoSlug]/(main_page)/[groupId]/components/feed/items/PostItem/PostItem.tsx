@@ -9,24 +9,33 @@ import { toHast } from 'mdast-util-to-hast';
 import { Suspense } from 'react';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
-import { CombinedFeedItem, PostFeedItem } from '../Feed';
+import { CombinedFeedItem, PostFeedItem } from '../../Feed';
 import {
   COLLAPSIBLE_STYLES,
   MARKDOWN_STYLES,
   QUOTE_STYLES_POST,
 } from '@/lib/markdown_styles';
 import {
+  getDelegateByDiscourseUser_cached,
   getDiscourseUser_cached,
   getPostLikedUsers_cached,
   getPostLikesCount_cached,
-} from '../actions';
+} from '../../actions';
+import { GroupReturnType } from '../../../../actions';
+import { formatNumberWithSuffix } from '@/lib/utils';
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === 'post';
 };
 
-export async function PostItem({ item }: { item: CombinedFeedItem }) {
-  if (!isPostItem(item)) {
+export async function PostItem({
+  item,
+  group,
+}: {
+  item: CombinedFeedItem;
+  group: GroupReturnType;
+}) {
+  if (!isPostItem(item) || !group) {
     return null;
   }
 
@@ -42,6 +51,19 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
     item.externalId,
     item.daoDiscourseId
   );
+
+  const proposalIds = Array.from(new Set(group.proposals.map((p) => p.id)));
+  const topicIds = Array.from(new Set(group.topics.map((t) => t.id)));
+
+  const delegate = await getDelegateByDiscourseUser_cached(
+    item.userId,
+    group.daoSlug,
+    false,
+    topicIds,
+    proposalIds
+  );
+
+  const votingPower = delegate?.delegatetovoter?.latestVotingPower?.votingPower;
 
   const processedContent = markdownToHtml(item.cooked);
   const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
@@ -102,6 +124,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
                 likesCount={likesCount}
                 likedUsers={likedUsers}
                 processedContent={processedContent}
+                votingPower={votingPower}
                 item={item}
               />
             )}
@@ -118,6 +141,7 @@ export async function PostItem({ item }: { item: CombinedFeedItem }) {
             likesCount={likesCount}
             likedUsers={likedUsers}
             processedContent={processedContent}
+            votingPower={votingPower}
             item={item}
           />
         </div>
@@ -136,6 +160,7 @@ const PostContent = ({
   likedUsers,
   processedContent,
   item,
+  votingPower,
 }: {
   author: Selectable<DiscourseUser> | undefined;
   relativeCreateTime: string;
@@ -146,17 +171,44 @@ const PostContent = ({
   likedUsers: string[];
   processedContent: string;
   item: PostFeedItem;
+  votingPower?: number;
 }) => (
   <>
     <div className='flex cursor-default flex-row justify-between select-none'>
       {author && (
         <Suspense>
-          <AuthorInfo
-            authorName={
-              author.name && author.name.length ? author.name : author.username
-            }
-            authorPicture={author.avatarTemplate}
-          />
+          <div className='flex flex-row items-center gap-2'>
+            <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
+              <Avatar.Image
+                src={author.avatarTemplate}
+                className='w-full rounded-full'
+              />
+              <Avatar.Fallback>
+                {(author.name && author.name.length
+                  ? author.name
+                  : author.username
+                ).slice(0, 2)}
+              </Avatar.Fallback>
+            </Avatar.Root>
+            <div className='flex flex-col'>
+              <div className='font-bold text-neutral-700 dark:text-neutral-200'>
+                {author.name && author.name.length
+                  ? author.name
+                  : author.username}
+              </div>
+              <div>
+                {votingPower && (
+                  <div
+                    className='text-neutral-650 flex w-fit gap-4 rounded-lg border border-neutral-300
+                      bg-neutral-100 p-0.5 text-xs dark:border-neutral-700 dark:bg-neutral-800
+                      dark:text-neutral-300'
+                  >
+                    {formatNumberWithSuffix(votingPower)} ARB
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </Suspense>
       )}
       <div
@@ -176,7 +228,6 @@ const PostContent = ({
                 dark:text-neutral-100'
               sideOffset={5}
             >
-              {' '}
               <p>{utcTime}</p>
             </Tooltip.Content>
           </Tooltip.Root>
@@ -233,24 +284,6 @@ const PostContent = ({
       className='prose prose-lg mt-4 max-w-none'
     />
   </>
-);
-
-const AuthorInfo = ({
-  authorName,
-  authorPicture,
-}: {
-  authorName: string;
-  authorPicture: string;
-}) => (
-  <div className='flex flex-row items-center gap-2'>
-    <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
-      <Avatar.Image src={authorPicture} className='w-full rounded-full' />
-      <Avatar.Fallback>{authorName.slice(0, 2)}</Avatar.Fallback>
-    </Avatar.Root>
-    <div className='font-bold text-neutral-700 dark:text-neutral-200'>
-      {authorName}
-    </div>
-  </div>
 );
 
 type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;

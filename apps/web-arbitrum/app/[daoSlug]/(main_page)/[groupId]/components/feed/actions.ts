@@ -215,11 +215,9 @@ async function getDelegateByVoterAddress(
     try {
       const dao = await db
         .selectFrom('dao')
-        .where('slug', '=', daoSlug)
         .selectAll()
-        .executeTakeFirst();
-
-      if (!dao) return null;
+        .where('dao.slug', '=', daoSlug)
+        .executeTakeFirstOrThrow();
 
       const voter = await db
         .selectFrom('voter')
@@ -341,7 +339,7 @@ async function getDelegateByVoterAddress(
 
 async function getDelegateByDiscourseUser(
   discourseUserId: number,
-  daoDiscourseId: string,
+  daoSlug: string,
   withPeriodCheck: boolean,
   topicIds?: string[],
   proposalIds?: string[]
@@ -349,12 +347,24 @@ async function getDelegateByDiscourseUser(
   'use server';
   return otel('get-delegate-by-discourse-user', async () => {
     try {
+      const dao = await db
+        .selectFrom('dao')
+        .selectAll()
+        .where('dao.slug', '=', daoSlug)
+        .executeTakeFirstOrThrow();
+
+      const daoDiscourse = await db
+        .selectFrom('daoDiscourse')
+        .selectAll()
+        .where('daoId', '=', dao.id)
+        .executeTakeFirstOrThrow();
+
       // Fetch the discourse user
       const discourseUser = await db
         .selectFrom('discourseUser')
         .selectAll()
         .where('externalId', '=', discourseUserId)
-        .where('daoDiscourseId', '=', daoDiscourseId)
+        .where('daoDiscourseId', '=', daoDiscourse.id)
         .executeTakeFirst();
 
       if (!discourseUser) return null;
@@ -475,6 +485,15 @@ async function getDelegateByDiscourseUser(
 
       if (!delegateData) return null;
 
+      const latestVotingPower = await db
+        .selectFrom('votingPower')
+        .selectAll()
+        .where('voter', '=', delegateData.voterAddress)
+        .where('daoId', '=', dao.id)
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .executeTakeFirst();
+
       // Transform the data into the expected format
       return {
         delegate: { id: delegateData.delegateId },
@@ -489,6 +508,7 @@ async function getDelegateByDiscourseUser(
           ? {
               ens: delegateData.voterEns,
               address: delegateData.voterAddress,
+              latestVotingPower: latestVotingPower,
             }
           : null,
       };
@@ -588,14 +608,14 @@ export const getDelegateByVoterAddress_cache = unstable_cache(
 export const getDelegateByDiscourseUser_cached = unstable_cache(
   async (
     discourseUserId: number,
-    daoDiscourseId: string,
+    daoSlug: string,
     withPeriodCheck: boolean,
     topicIds?: string[],
     proposalIds?: string[]
   ) => {
     return await getDelegateByDiscourseUser(
       discourseUserId,
-      daoDiscourseId,
+      daoSlug,
       withPeriodCheck,
       topicIds,
       proposalIds
