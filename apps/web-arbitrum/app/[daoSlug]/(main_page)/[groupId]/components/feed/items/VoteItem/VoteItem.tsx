@@ -135,6 +135,7 @@ export async function VoteItem({
                       `https://api.dicebear.com/9.x/pixel-art/svg?seed=${displayName}`
                     }
                     className='w-full rounded-full'
+                    fetchPriority='high'
                   />
                   <Avatar.Fallback>
                     {displayName.slice(0, 2).toUpperCase()}

@@ -178,6 +178,7 @@ const PostContent = ({
               <Avatar.Image
                 src={author.avatarTemplate}
                 className='w-full rounded-full'
+                fetchPriority='high'
               />
               <Avatar.Fallback>
                 {(author.name && author.name.length

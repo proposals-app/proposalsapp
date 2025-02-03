@@ -53,6 +53,7 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
               className='h-full w-full rounded-full object-cover'
               width={40}
               height={40}
+              fetchPriority='high'
             />
             <Avatar.Fallback className='flex h-full w-full items-center justify-center text-neutral-700'>
               {authorName.slice(0, 2)}
