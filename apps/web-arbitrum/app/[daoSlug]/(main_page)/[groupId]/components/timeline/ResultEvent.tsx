@@ -1,4 +1,3 @@
-import { Selectable, Vote } from '@proposalsapp/db';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { ApprovalVote } from './ended_vote_types/ApprovalVote';
@@ -7,8 +6,7 @@ import { QuadraticVote } from './ended_vote_types/QuadraticVote';
 import { RankedChoiceVote } from './ended_vote_types/RankedChoiceVote';
 import { SingleChoiceVote } from './ended_vote_types/SingleChoiceVote';
 import { WeightedVote } from './ended_vote_types/WeightedVote';
-import { ProposalWithMetadata } from '@/app/types';
-import { ProcessedResults, ProcessedVote } from '@/lib/results_processing';
+import { ProcessedResults } from '@/lib/results_processing';
 
 interface ResultEventProps {
   content: string;

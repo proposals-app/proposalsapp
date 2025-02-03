@@ -2,10 +2,9 @@ import { otel } from '@/lib/otel';
 import { db, IndexerVariant, sql } from '@proposalsapp/db';
 import { format, formatDistanceToNow } from 'date-fns';
 import { GroupReturnType } from '../../actions';
-import { ProposalMetadata, ProposalWithMetadata } from '@/app/types';
+import { ProposalMetadata } from '@/app/types';
 import {
   ProcessedResults,
-  ProcessedVote,
   processResultsAction,
 } from '@/lib/results_processing';
 

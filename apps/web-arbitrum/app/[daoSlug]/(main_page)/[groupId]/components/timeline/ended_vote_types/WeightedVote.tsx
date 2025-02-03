@@ -1,22 +1,15 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
-import { Selectable, Vote } from '@proposalsapp/db';
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { HiddenVote } from './HiddenVote';
-import { ProposalWithMetadata } from '@/app/types';
+import { ProcessedResults } from '@/lib/results_processing';
 
 interface WeightedVoteProps {
-  proposal: ProposalWithMetadata;
-  votes: Selectable<Vote>[];
+  result: ProcessedResults;
 }
 
-export const WeightedVote = ({ proposal, votes }: WeightedVoteProps) => {
-  const metadata =
-    typeof proposal.metadata === 'string'
-      ? JSON.parse(proposal.metadata)
-      : proposal.metadata;
-
+export const WeightedVote = ({ result }: WeightedVoteProps) => {
   const { winningChoice, winningPercentage, maxVotingPower } = useMemo(() => {
-    if (metadata?.hiddenVote && metadata?.scoresState !== 'final') {
+    if (result.hiddenVote && result.scoresState !== 'final') {
       return {
         winningChoice: 'Hidden',
         totalVotingPower: 0,
@@ -25,56 +18,19 @@ export const WeightedVote = ({ proposal, votes }: WeightedVoteProps) => {
       };
     }
 
-    // Process weighted votes where each vote can distribute voting power across multiple choices
-    const voteCounts: { [choice: number]: number } = {};
-    const choices = proposal.choices as string[];
+    const { choices, finalResults } = result;
 
-    // Initialize vote counts
-    choices.forEach((_, index) => {
-      voteCounts[index] = 0;
-    });
-
-    // Process each vote
-    votes.forEach((vote) => {
-      if (
-        typeof vote.choice === 'object' &&
-        vote.choice !== null &&
-        !Array.isArray(vote.choice)
-      ) {
-        const weightedChoices = vote.choice as Record<string, number>;
-        const totalWeight = Object.values(weightedChoices).reduce(
-          (sum, weight) => sum + weight,
-          0
-        );
-
-        // Distribute voting power according to weights
-        Object.entries(weightedChoices).forEach(([choice, weight]) => {
-          const choiceIndex = parseInt(choice) - 1; // Convert to 0-based index
-          const normalizedPower =
-            (Number(vote.votingPower) * weight) / totalWeight;
-          voteCounts[choiceIndex] =
-            (voteCounts[choiceIndex] || 0) + normalizedPower;
-        });
-      } else {
-        // Handle non-weighted votes (fallback to basic processing)
-        const choice = (vote.choice as number) - 1; // Convert to 0-based index
-        voteCounts[choice] =
-          (voteCounts[choice] || 0) + Number(vote.votingPower);
-      }
-    });
-
-    // Find the winning choice
     let winningChoice = 'Unknown';
     let maxVotingPower = 0;
 
-    for (const [choice, votingPower] of Object.entries(voteCounts)) {
+    for (const [choiceIndex, votingPower] of Object.entries(finalResults)) {
       if (votingPower > maxVotingPower) {
         maxVotingPower = votingPower;
-        winningChoice = choices[Number(choice)] || 'Unknown';
+        winningChoice = choices[Number(choiceIndex)] || 'Unknown';
       }
     }
 
-    const totalVotingPower = Object.values(voteCounts).reduce(
+    const totalVotingPower = Object.values(finalResults).reduce(
       (sum, power) => sum + power,
       0
     );
@@ -83,14 +39,13 @@ export const WeightedVote = ({ proposal, votes }: WeightedVoteProps) => {
 
     return {
       winningChoice,
-      totalVotingPower,
       winningPercentage,
       maxVotingPower,
     };
-  }, [votes, proposal.choices, metadata]);
+  }, [result]);
 
-  if (metadata?.hiddenVote && metadata?.scoresState !== 'final') {
-    return <HiddenVote votes={votes} />;
+  if (result.hiddenVote && result.scoresState !== 'final') {
+    return <HiddenVote result={result} />;
   }
 
   return (

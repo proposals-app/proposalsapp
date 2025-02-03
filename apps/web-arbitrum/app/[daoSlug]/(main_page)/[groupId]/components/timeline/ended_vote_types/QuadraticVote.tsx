@@ -1,18 +1,14 @@
-import { Selectable, Vote } from '@proposalsapp/db';
-import { ProposalWithMetadata } from '@/app/types';
+import { ProcessedResults } from '@/lib/results_processing';
 
 interface QuadraticVoteProps {
-  proposal: ProposalWithMetadata;
-  votes: Selectable<Vote>[];
+  result: ProcessedResults;
 }
 
-export const QuadraticVote = ({ votes }: QuadraticVoteProps) => {
-  // Implement the UI for quadratic voting
+export const QuadraticVote = ({ result }: QuadraticVoteProps) => {
   return (
     <div>
       <h3>Quadratic Vote</h3>
-      <p>Total Votes: {votes.length}</p>
-      {/* Add more UI elements as needed */}
+      <p>Total Votes: {result.totalVotingPower}</p>
     </div>
   );
 };

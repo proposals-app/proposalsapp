@@ -1,227 +1,39 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
-import { Proposal, Selectable, Vote } from '@proposalsapp/db';
-import * as Tooltip from '@radix-ui/react-tooltip';
-import { Check } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { HiddenVote } from './HiddenVote';
-import { ProposalMetadata, ProposalWithMetadata } from '@/app/types';
+import { ProcessedResults } from '@/lib/results_processing';
+import { Check } from 'lucide-react';
 
 interface BasicVoteProps {
-  proposal: ProposalWithMetadata;
-  votes: Selectable<Vote>[];
+  result: ProcessedResults;
 }
 
-interface ProcessedVote {
-  choice: VoteChoice;
-  votingPower: number;
-  voter: string;
-}
-
-type VoteChoice = 'For' | 'Against' | 'Abstain' | 'Unknown';
-
-type VotesByChoice = Record<
-  VoteChoice,
-  {
-    topVotes: ProcessedVote[];
-    aggregated: { votingPower: number; count: number };
-  }
->;
-
-const VOTE_COLORS = {
-  For: 'bg-for-600',
-  Against: 'bg-against-600',
-  Abstain: 'bg-abstain-600',
-  Unknown: 'bg-neutral-600',
-} as const;
-
-const MIN_VISIBLE_WIDTH_PERCENT = 1; // Minimum width for a vote to be visible (0.5% of total width)
-
-const calculateTopVotesCount = (
-  totalVotes: number,
-  votingPowerThreshold: number,
-  votes: ProcessedVote[]
-) => {
-  // If very few votes, show all of them
-  if (totalVotes <= 5) return totalVotes;
-
-  // Calculate the number of votes that exceed the voting power threshold
-  const significantVotesCount = votes.filter(
-    (vote) => vote.votingPower >= votingPowerThreshold
-  ).length;
-
-  // For larger numbers, use a combination of count and voting power threshold
-  if (totalVotes <= 100) return Math.min(10, significantVotesCount);
-  if (totalVotes <= 1000) return Math.min(8, significantVotesCount);
-  if (totalVotes <= 10000) return Math.min(6, significantVotesCount);
-  return Math.min(4, significantVotesCount);
-};
-
-const calculateVotingPowerThreshold = (
-  votes: ProcessedVote[],
-  totalVotingPower: number
-) => {
-  // Sort votes by voting power in descending order
-  const sortedVotes = [...votes].sort((a, b) => b.votingPower - a.votingPower);
-
-  // Calculate cumulative voting power
-  let cumulativePower = 0;
-  let threshold = 0;
-
-  // Find the voting power that represents the top 95% of total voting power
-  for (const vote of sortedVotes) {
-    cumulativePower += vote.votingPower;
-    if (cumulativePower >= totalVotingPower * 0.95) {
-      threshold = vote.votingPower;
-      break;
-    }
-  }
-
-  return threshold;
-};
-
-function getTotalDelegatedVp(
-  proposal: Selectable<Proposal>
-): number | undefined {
-  const metadata = proposal.metadata as ProposalMetadata;
-  return metadata.totalDelegatedVp
-    ? Number(metadata.totalDelegatedVp)
-    : undefined;
-}
-
-export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
-  const metadata =
-    typeof proposal.metadata === 'string'
-      ? JSON.parse(proposal.metadata)
-      : proposal.metadata;
-
-  const { votesByChoice, totalVotingPower } = useMemo(() => {
-    if (metadata?.hiddenVote && metadata?.scoresState !== 'final') {
-      return {
-        votesByChoice: {
-          For: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
-          Against: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
-          Abstain: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
-          Unknown: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
-        },
-        totalVotingPower: 0,
-      };
-    }
-
-    const sortedVotes = [...votes]
-      .filter((vote) => vote.votingPower)
-      .sort((a, b) => Number(b.votingPower) - Number(a.votingPower));
-
-    const processVote = (vote: Selectable<Vote>): ProcessedVote => {
-      const choiceIndex = vote.choice as number;
-      const choiceText = (proposal.choices as string[])[
-        choiceIndex
-      ]?.toLowerCase();
-      let choice: VoteChoice = 'Unknown';
-
-      if (
-        choiceText?.includes('for') ||
-        choiceText?.includes('yes') ||
-        choiceText?.includes('yae')
-      ) {
-        choice = 'For';
-      } else if (
-        choiceText?.includes('against') ||
-        choiceText?.includes('no') ||
-        choiceText?.includes('nay')
-      ) {
-        choice = 'Against';
-      } else if (choiceText?.includes('abstain')) {
-        choice = 'Abstain';
+export const BasicVote = ({ result }: BasicVoteProps) => {
+  const { finalResults, totalVotingPower, choiceColors, choices } =
+    useMemo(() => {
+      if (result.hiddenVote && result.scoresState !== 'final') {
+        return {
+          finalResults: {},
+          totalVotingPower: 0,
+          choiceColors: result.choiceColors || [],
+          choices: result.choices || [],
+        };
       }
+
+      const totalVotingPower = result.totalVotingPower;
+      const choiceColors = result.choiceColors || [];
+      const choices = result.choices || [];
 
       return {
-        choice,
-        votingPower: Number(vote.votingPower),
-        voter: vote.voterAddress,
+        finalResults: result.finalResults || {},
+        totalVotingPower,
+        choiceColors,
+        choices,
       };
-    };
+    }, [result]);
 
-    const processedVotes = sortedVotes.map(processVote);
-    const total = processedVotes.reduce(
-      (sum, vote) => sum + vote.votingPower,
-      0
-    );
-
-    // Group votes by choice
-    const groupedVotes = processedVotes.reduce<
-      Record<VoteChoice, ProcessedVote[]>
-    >(
-      (acc, vote) => {
-        acc[vote.choice].push(vote);
-        return acc;
-      },
-      {
-        For: [],
-        Against: [],
-        Abstain: [],
-        Unknown: [],
-      }
-    );
-
-    // Process each choice's votes
-    const votesByChoice = Object.entries(groupedVotes).reduce<VotesByChoice>(
-      (acc, [choice, votes]) => {
-        const sortedVotes = [...votes].sort(
-          (a, b) => b.votingPower - a.votingPower
-        );
-
-        // Calculate the voting power threshold for this choice
-        const votingPowerThreshold = calculateVotingPowerThreshold(
-          sortedVotes,
-          sortedVotes.reduce((sum, vote) => sum + vote.votingPower, 0)
-        );
-
-        // Get number of top votes to show
-        const topVotesCount = calculateTopVotesCount(
-          sortedVotes.length,
-          votingPowerThreshold,
-          sortedVotes
-        );
-
-        // Split votes into significant and remaining
-        const significantVotes = sortedVotes.filter(
-          (vote) => vote.votingPower >= votingPowerThreshold
-        );
-
-        // Take either the calculated top votes or significant votes, whichever is smaller
-        const topVotes = sortedVotes
-          .slice(0, Math.min(topVotesCount, significantVotes.length))
-          .filter(
-            (vote) =>
-              (vote.votingPower / total) * 100 >= MIN_VISIBLE_WIDTH_PERCENT
-          ); // Ensure top votes are visible
-
-        const remaining = sortedVotes.slice(topVotes.length);
-
-        const aggregated = remaining.reduce(
-          (sum, vote) => ({
-            votingPower: sum.votingPower + vote.votingPower,
-            count: sum.count + 1,
-          }),
-          { votingPower: 0, count: 0 }
-        );
-
-        acc[choice as VoteChoice] = { topVotes, aggregated };
-        return acc;
-      },
-      {
-        For: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
-        Against: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
-        Abstain: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
-        Unknown: { topVotes: [], aggregated: { votingPower: 0, count: 0 } },
-      }
-    );
-
-    return { votesByChoice, totalVotingPower: total };
-  }, [votes, proposal.choices, metadata]);
-
-  if (metadata?.hiddenVote && metadata?.scoresState !== 'final') {
-    return <HiddenVote votes={votes} />;
+  if (result.hiddenVote && result.scoresState !== 'final') {
+    return <HiddenVote result={result} />;
   }
 
   if (!totalVotingPower) {
@@ -231,161 +43,62 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   const VoteSegment = ({
     color,
     width,
-    isAggregated = false,
+    tooltip,
   }: {
-    color:
-      | 'bg-for-600'
-      | 'bg-against-600'
-      | 'bg-abstain-600'
-      | 'bg-neutral-600'; // Explicitly define the allowed CSS class names
+    color: string;
     width: number;
     tooltip: string;
-    isAggregated?: boolean;
-  }) => {
-    const colorMap = {
-      'bg-for-600': '#56B200',
-      'bg-against-600': '#FF4242',
-      'bg-abstain-600': '#FFBC1F',
-      'bg-neutral-600': '#6b7280',
-    } as const;
-
-    const cssColor = colorMap[color] || '#6b7280';
-
-    return (
-      <div
-        className={'h-full border-r border-white hover:opacity-90'}
-        style={{
-          width: `${width}%`,
-          ...(isAggregated
-            ? {
-                background: `repeating-linear-gradient(
-                                  90deg,
-                                  ${cssColor} 0px,
-                                  ${cssColor} 2px,
-                                  transparent 2px,
-                                  transparent 4px
-                                )`,
-              }
-            : { backgroundColor: cssColor }),
-        }}
-      />
-    );
-  };
+  }) => (
+    <div
+      className={'h-full border-white hover:opacity-90'}
+      style={{ width: `${width}%`, backgroundColor: color }}
+      title={tooltip}
+    />
+  );
 
   // Calculate total voting power for each choice
-  const totalForVotingPower = votesByChoice.For
-    ? votesByChoice.For.topVotes.reduce(
-        (sum, vote) => sum + vote.votingPower,
-        0
-      ) + votesByChoice.For.aggregated.votingPower
-    : 0;
-
-  const totalAgainstVotingPower = votesByChoice.Against
-    ? votesByChoice.Against.topVotes.reduce(
-        (sum, vote) => sum + vote.votingPower,
-        0
-      ) + votesByChoice.Against.aggregated.votingPower
-    : 0;
-
-  // Format the total voting power for display
-  const formattedForVotes = formatNumberWithSuffix(totalForVotingPower);
-  const formattedAgainstVotes = formatNumberWithSuffix(totalAgainstVotingPower);
+  const votingPowerByChoice = Object.entries(finalResults).map(
+    ([choiceIndex, votingPower]) => ({
+      choiceIndex: parseInt(choiceIndex),
+      votingPower,
+      formattedVotes: formatNumberWithSuffix(votingPower),
+      color: choiceColors[parseInt(choiceIndex)] || '#CBD5E1', // Default grey color if no color provided
+    })
+  );
 
   // Determine the winning option based on voting power
-  const forWinning = totalForVotingPower > totalAgainstVotingPower;
-
-  const quorumReached = proposal.scoresQuorum > proposal.quorum;
-
-  const totalDelegatedVp = getTotalDelegatedVp(proposal);
-  const participationPercentage = totalDelegatedVp
-    ? (totalVotingPower / totalDelegatedVp) * 100
-    : 0;
+  const winningChoice = votingPowerByChoice.reduce(
+    (a, b) => (a.votingPower > b.votingPower ? a : b),
+    { choiceIndex: -1, votingPower: 0 }
+  );
 
   return (
-    <Tooltip.Provider>
-      <div className='space-y-1'>
-        <div className='rounde flex h-4 w-full overflow-hidden'>
-          {(['For', 'Abstain', 'Against', 'Unknown'] as const).map((choice) => {
-            const voteData = votesByChoice[choice];
-            if (!voteData) return null;
-
-            return (
-              <React.Fragment key={choice}>
-                {/* Top votes for this choice */}
-                {voteData.topVotes.map((vote, index) => (
-                  <VoteSegment
-                    key={`${choice}-top-${index}`}
-                    color={VOTE_COLORS[choice]}
-                    width={(vote.votingPower / totalVotingPower) * 100}
-                    tooltip={`${vote.voter.slice(0, 4)}...${vote.voter.slice(-4)}: ${vote.votingPower.toLocaleString()} voting power`}
-                  />
-                ))}
-
-                {/* Aggregated remaining votes for this choice */}
-                {voteData.aggregated.votingPower > 0 && (
-                  <VoteSegment
-                    key={`${choice}-aggregated`}
-                    color={VOTE_COLORS[choice]}
-                    width={
-                      (voteData.aggregated.votingPower / totalVotingPower) * 100
-                    }
-                    tooltip={`${
-                      voteData.aggregated.count
-                    } more votes with ${voteData.aggregated.votingPower.toLocaleString()} total voting power`}
-                    isAggregated={true}
-                  />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-        <div className='flex justify-between text-sm'>
-          <div className='flex items-center gap-1'>
-            {forWinning && <Check size={14} />}
-            <span className='font-bold'>For</span>
-            <span>{formattedForVotes}</span>
-          </div>
-          <div className='flex items-center gap-1'>
-            {!forWinning && <Check size={14} />}
-            <span>{formattedAgainstVotes} </span>
-            <span className='font-bold'>Against</span>
-          </div>
-        </div>
-
-        {/* Delegated Voting Power */}
-        <div>
-          {totalDelegatedVp && (
-            <div className='mt-4'>
-              <div className='border-neutral-80 relative h-2 w-full border'>
-                <div
-                  className='absolute top-0 left-0 h-full bg-neutral-800'
-                  style={{
-                    width: `${participationPercentage}%`,
-                  }}
-                />
-              </div>
-
-              <div className='flex items-start justify-between text-[11px]'>
-                <div className='flex items-center gap-1'>
-                  {quorumReached && <Check size={12} />}
-                  <span className='font-bold'>
-                    {formatNumberWithSuffix(proposal.scoresQuorum)}
-                  </span>
-                  <span>of </span>
-                  <span>{formatNumberWithSuffix(proposal.quorum)} needed</span>
-                </div>
-
-                <div>
-                  <span className='font-semibold'>
-                    {participationPercentage.toFixed(0)}%
-                  </span>{' '}
-                  of tokens have voted
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+    <div className='space-y-1'>
+      <div className='flex h-4 w-full overflow-hidden border'>
+        {votingPowerByChoice.map(({ choiceIndex, votingPower, color }) => (
+          <VoteSegment
+            key={choiceIndex}
+            color={color}
+            width={(votingPower / totalVotingPower) * 100}
+            tooltip={`${formatNumberWithSuffix(votingPower)} voting power for ${choices[choiceIndex]}`}
+          />
+        ))}
       </div>
-    </Tooltip.Provider>
+      <div className='flex justify-between text-sm'>
+        {votingPowerByChoice.map(({ choiceIndex, formattedVotes }) => (
+          <div key={choiceIndex} className='flex items-center gap-1'>
+            {choiceIndex === winningChoice.choiceIndex && <Check size={14} />}
+            <span
+              className={
+                choiceIndex === winningChoice.choiceIndex ? 'font-bold' : ''
+              }
+            >
+              {choices[choiceIndex]}
+            </span>
+            <span>{formattedVotes}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
