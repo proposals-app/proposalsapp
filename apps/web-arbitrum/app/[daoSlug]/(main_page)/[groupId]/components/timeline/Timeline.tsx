@@ -150,7 +150,7 @@ export function LoadingTimeline() {
             className='absolute -top-[10px] -left-[10px]'
           >
             <rect
-              className='dark:fill-bg-neutral-700 fill-neutral-300'
+              className='fill-neutral-300'
               x='0.5'
               y='0.5'
               width='20'
@@ -176,7 +176,7 @@ export function LoadingTimeline() {
             className='absolute -bottom-[10px] -left-[10px]'
           >
             <rect
-              className='dark:fill-bg-neutral-700 fill-neutral-300'
+              className='fill-neutral-300'
               x='0.5'
               y='0.5'
               width='20'

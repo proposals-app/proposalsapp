@@ -27,14 +27,11 @@ export async function PostedTime({
         <Tooltip.Trigger asChild>
           <div>
             <div
-              className={`flex flex-row items-center gap-2 px-2 py-1 ${
-                border ? 'bg-white dark:bg-neutral-600' : '' }`}
+              className={`flex flex-row items-center gap-2 px-2 py-1 ${border ? 'bg-white' : ''}`}
             >
               <div className='flex flex-col text-xs'>
-                <span className='text-neutral-700 dark:text-neutral-100'>
-                  {label}
-                </span>
-                <span className='font-bold text-neutral-700 dark:text-neutral-100'>
+                <span className='text-neutral-700'>{label}</span>
+                <span className='font-bold text-neutral-700'>
                   {relativeTime}
                 </span>
               </div>
@@ -52,8 +49,7 @@ export async function PostedTime({
 
         <Tooltip.Content
           className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
-            text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
-            dark:text-neutral-100'
+            text-neutral-700 shadow-lg'
           sideOffset={5}
         >
           {formattedDateTime}

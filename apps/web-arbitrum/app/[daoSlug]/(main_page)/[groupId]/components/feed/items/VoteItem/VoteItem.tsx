@@ -141,11 +141,11 @@ export async function VoteItem({
                   </Avatar.Fallback>
                 </Avatar.Root>
                 <div className='flex flex-col'>
-                  <div className='font-bold text-neutral-700 dark:text-neutral-200'>
+                  <div className='font-bold text-neutral-700'>
                     {displayName}
                   </div>
                   {displayName !== voterAddress && (
-                    <div className='text-sm text-neutral-500 dark:text-neutral-400'>
+                    <div className='text-sm text-neutral-500'>
                       {voterAddress}
                     </div>
                   )}
@@ -156,7 +156,7 @@ export async function VoteItem({
           </div>
         )}
 
-        <div className='text-neutral-450 flex flex-col items-end text-sm dark:text-neutral-300'>
+        <div className='text-neutral-450 flex flex-col items-end text-sm'>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <div>
@@ -165,8 +165,7 @@ export async function VoteItem({
             </Tooltip.Trigger>
             <Tooltip.Content
               className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
-                text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
-                dark:text-neutral-100'
+                text-neutral-700 shadow-lg'
               sideOffset={5}
             >
               {' '}
@@ -176,7 +175,7 @@ export async function VoteItem({
         </div>
       </div>
 
-      <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
+      <div className='cursor-default text-neutral-700 select-none'>
         <p className='font-bold'>{formattedVotingPower} ARB</p>
         <p className='font-bold'>
           {((proposal?.choices ?? []) as string[])[item.choice as number]}
@@ -189,7 +188,7 @@ export async function VoteItem({
           <p className='self-end'>
             <a
               href={anchorHref ?? ''}
-              className='text-sm font-bold text-neutral-700 hover:underline dark:text-neutral-200'
+              className='text-sm font-bold text-neutral-700 hover:underline'
             >
               jump to post →
             </a>

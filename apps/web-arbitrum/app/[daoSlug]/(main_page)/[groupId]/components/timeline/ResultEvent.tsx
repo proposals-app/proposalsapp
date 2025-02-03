@@ -49,10 +49,7 @@ export function ResultEvent({
       prefetch={true}
     >
       <div className='relative flex w-full items-center py-2'>
-        <div
-          className='flex w-full flex-col gap-1 rounded-l-xl border border-neutral-300 bg-white px-4
-            py-2 pr-8 dark:border-neutral-700 dark:bg-neutral-950'
-        >
+        <div className='flex w-full flex-col gap-1 border border-neutral-800 bg-white px-4 py-2 pr-8'>
           <div className='absolute top-5 left-3 z-20 h-[7px] w-[7px] rounded-full bg-neutral-500' />
           {!last && (
             <div

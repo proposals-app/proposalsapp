@@ -77,7 +77,7 @@ export const FullViewBar = () => {
     <div
       ref={fullViewBarRef}
       className={`mt-4 min-w-4xl self-center overflow-visible px-2 text-neutral-800
-        transition-opacity duration-300 dark:text-neutral-200
+        transition-opacity duration-300
         ${view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
@@ -174,8 +174,7 @@ export const FullViewBar = () => {
                 </button>
               </Popover.Trigger>
               <Popover.Content
-                className='w-[200px] border bg-neutral-50 p-1 shadow-lg dark:border-neutral-700
-                  dark:bg-neutral-800'
+                className='w-[200px] border bg-neutral-50 p-1 shadow-lg'
                 sideOffset={5}
               >
                 <div className='space-y-1'>
@@ -183,7 +182,7 @@ export const FullViewBar = () => {
                     <button
                       key={filter.value}
                       className='flex w-full items-center justify-between px-2 py-1.5 text-sm transition-colors
-                        hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                        hover:bg-neutral-100'
                       onClick={() => {
                         setVotesFilter(filter.value as VotesFilterEnum);
                       }}

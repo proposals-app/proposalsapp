@@ -123,7 +123,7 @@ export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
               <div className='relative h-4 w-full overflow-hidden rounded-lg'>
                 {/* Quorum Line */}
                 <div
-                  className='absolute -top-1 z-10 h-6 w-0.5 bg-neutral-700 dark:bg-neutral-200'
+                  className='absolute -top-1 z-10 h-6 w-0.5 bg-neutral-700'
                   style={{
                     left: `${(results.quorum / totalDelegatedVp) * 100}%`,
                   }}
@@ -132,7 +132,7 @@ export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
                 {/* Choices that count towards quorum */}
                 <div
                   className='absolute inset-0 flex overflow-hidden rounded-lg border border-neutral-300
-                    bg-white dark:border-neutral-700 dark:bg-neutral-950'
+                    bg-white'
                 >
                   {sortedChoices
                     .filter((choice) => choice.countsTowardsQuorum)
@@ -168,12 +168,9 @@ export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
         <div>
           {totalDelegatedVp && (
             <div className='mt-4'>
-              <div
-                className='border-neutral-350 relative h-2 w-full rounded-full border
-                  dark:border-neutral-300'
-              >
+              <div className='border-neutral-350 relative h-2 w-full rounded-full border'>
                 <div
-                  className='absolute top-0 left-0 h-full rounded-full bg-neutral-600 dark:bg-neutral-300'
+                  className='absolute top-0 left-0 h-full rounded-full bg-neutral-600'
                   style={{
                     width: `${participationPercentage}%`,
                   }}
@@ -279,10 +276,7 @@ function ChoiceBar({
   }
 
   return (
-    <div
-      className='relative w-fit overflow-hidden border border-neutral-300 bg-white
-        dark:border-neutral-700 dark:bg-neutral-950'
-    >
+    <div className='relative w-fit overflow-hidden border border-neutral-300 bg-white'>
       {/* Pixelated Grid */}
       <div
         className='top-0 left-0 w-fit'
@@ -326,15 +320,12 @@ function ChoiceBar({
 
 export function LoadingList() {
   return (
-    <div
-      className='ml-6 w-64 rounded-lg border border-neutral-300 bg-white p-4
-        dark:border-neutral-700 dark:bg-neutral-950'
-    >
+    <div className='ml-6 w-64 rounded-lg border border-neutral-300 bg-white p-4'>
       <div className='space-y-4'>
         {[...Array(3)].map((_, index) => (
           <div
             key={index}
-            className='h-10 w-full animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'
+            className='h-10 w-full animate-pulse rounded-lg bg-neutral-200'
           />
         ))}
       </div>

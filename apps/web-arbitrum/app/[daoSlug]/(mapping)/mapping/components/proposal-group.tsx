@@ -224,9 +224,9 @@ export default function GroupingInterface({
                       <span className='flex gap-2'>
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
-                      item.type === 'proposal'
-                              ? 'bg-blue-100 dark:bg-blue-800'
-                              : 'bg-gray-100 dark:bg-gray-800'
+                        item.type === 'proposal'
+                              ? 'bg-blue-100'
+                              : 'bg-gray-100'
                           }`}
                         >
                           {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
@@ -234,10 +234,10 @@ export default function GroupingInterface({
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
                       item.indexerName.includes('SNAPSHOT')
-                              ? 'bg-yellow-100 dark:bg-yellow-800'
+                              ? 'bg-yellow-100'
                               : item.indexerName.includes('http')
-                                ? 'bg-blue-100 dark:bg-blue-800'
-                                : 'bg-green-100 dark:bg-green-800'
+                                ? 'bg-blue-100'
+                                : 'bg-green-100'
                           }`}
                         >
                           {item.indexerName}
@@ -270,8 +270,8 @@ export default function GroupingInterface({
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
                           item.type === 'proposal'
-                            ? 'bg-blue-100 dark:bg-blue-800'
-                            : 'bg-gray-100 dark:bg-gray-800'
+                            ? 'bg-blue-100'
+                            : 'bg-gray-100'
                         }`}
                       >
                         {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
@@ -279,16 +279,16 @@ export default function GroupingInterface({
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
                           item.indexerName.includes('SNAPSHOT')
-                            ? 'bg-yellow-100 dark:bg-yellow-800'
+                            ? 'bg-yellow-100'
                             : item.indexerName.includes('http')
-                              ? 'bg-blue-100 dark:bg-blue-800'
-                              : 'bg-green-100 dark:bg-green-800'
+                              ? 'bg-blue-100'
+                              : 'bg-green-100'
                         }`}
                       >
                         {item.indexerName}
                       </span>
                       <label htmlFor={`item-${item.id}`}>{item.name}</label>
-                      <span className='rounded-full bg-red-100 px-2 py-1 text-xs dark:bg-red-800'>
+                      <span className='rounded-full bg-red-100 px-2 py-1 text-xs'>
                         {item.score}
                       </span>
                     </li>
@@ -302,20 +302,17 @@ export default function GroupingInterface({
                   <li key={item.id} className='flex items-center gap-2'>
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-medium ${
-                        item.type === 'proposal'
-                          ? 'bg-blue-100 dark:bg-blue-800'
-                          : 'bg-gray-100 dark:bg-gray-800'
-                      }`}
+                      item.type === 'proposal' ? 'bg-blue-100' : 'bg-gray-100' }`}
                     >
                       {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
                     </span>
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-medium ${
                         item.indexerName.includes('SNAPSHOT')
-                          ? 'bg-yellow-100 dark:bg-yellow-800'
+                          ? 'bg-yellow-100'
                           : item.indexerName.includes('http')
-                            ? 'bg-blue-100 dark:bg-blue-800'
-                            : 'bg-green-100 dark:bg-green-800'
+                            ? 'bg-blue-100'
+                            : 'bg-green-100'
                       }`}
                     >
                       {item.indexerName}

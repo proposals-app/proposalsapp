@@ -26,6 +26,7 @@ export interface ProcessedVote
   choiceText: string;
   color: string | string[];
   aggregate?: boolean;
+  relativeVotingPower: number; // Added relativeVotingPower
 }
 
 export interface TimeSeriesPoint {
@@ -132,6 +133,9 @@ async function processBasicVotes(
 ): Promise<ProcessedResults> {
   const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
+  // Calculate the maximum voting power to compute relative voting power
+  const maxVotingPower = Math.max(...votes.map((vote) => vote.votingPower), 0);
+
   const processedVotes: ProcessedVote[] = votes.map((vote) => {
     const choice = vote.choice as number;
     return {
@@ -139,6 +143,8 @@ async function processBasicVotes(
       choice,
       choiceText: choices[choice] || 'Unknown Choice',
       color: choiceColors[choice],
+      relativeVotingPower:
+        maxVotingPower > 0 ? vote.votingPower / maxVotingPower : 0, // Calculate relative voting power
     };
   });
 
@@ -272,6 +278,9 @@ async function processWeightedVotes(
     timeSeriesData = [];
   }
 
+  // Calculate the maximum voting power to compute relative voting power
+  const maxVotingPower = Math.max(...votes.map((vote) => vote.votingPower), 0);
+
   const accumulatedVotingPower: { [choice: number]: number } = {};
   choices.forEach((_, index) => {
     accumulatedVotingPower[index] = 0;
@@ -318,6 +327,8 @@ async function processWeightedVotes(
           choice: -1,
           choiceText: combinedChoiceName,
           color: colorList,
+          relativeVotingPower:
+            maxVotingPower > 0 ? vote.votingPower / maxVotingPower : 0, // Calculate relative voting power
         });
       }
 
@@ -365,6 +376,8 @@ async function processWeightedVotes(
           choice,
           choiceText: choices[choice] || 'Unknown Choice',
           color: choiceColors[choice],
+          relativeVotingPower:
+            maxVotingPower > 0 ? vote.votingPower / maxVotingPower : 0, // Calculate relative voting power
         });
       }
 
@@ -510,6 +523,9 @@ async function processApprovalVotes(
     timeSeriesData = [];
   }
 
+  // Calculate the maximum voting power to compute relative voting power
+  const maxVotingPower = Math.max(...votes.map((vote) => vote.votingPower), 0);
+
   const accumulatedVotingPower: { [choice: number]: number } = {};
   choices.forEach((_, index) => {
     accumulatedVotingPower[index] = 0;
@@ -540,6 +556,8 @@ async function processApprovalVotes(
         choice: approvedChoices[0], // Use the first choice as the primary choice
         choiceText, // Include all choices in the choiceText
         color: colorList,
+        relativeVotingPower:
+          maxVotingPower > 0 ? vote.votingPower / maxVotingPower : 0, // Calculate relative voting power
       });
     }
 
@@ -669,6 +687,9 @@ async function processRankedChoiceVotes(
     };
   }
 
+  // Calculate the maximum voting power to compute relative voting power
+  const maxVotingPower = Math.max(...votes.map((vote) => vote.votingPower), 0);
+
   // Pre-process votes
   const processedVotes = withVotes
     ? votes
@@ -680,6 +701,8 @@ async function processRankedChoiceVotes(
             .map((c) => choices[c - 1] || 'Unknown Choice')
             .join(', '),
           color: (vote.choice as number[]).map((c) => choiceColors[c]),
+          relativeVotingPower:
+            maxVotingPower > 0 ? vote.votingPower / maxVotingPower : 0, // Calculate relative voting power
         }))
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
     : undefined;
@@ -918,6 +941,9 @@ async function processQuadraticVotes(
   withVotes: boolean,
   withTimeseries: boolean
 ): Promise<ProcessedResults> {
+  // Calculate the maximum voting power to compute relative voting power
+  const maxVotingPower = Math.max(...votes.map((vote) => vote.votingPower), 0);
+
   // Temporary fallback to basic processing
   const result = await processBasicVotes(
     votes,
@@ -930,6 +956,11 @@ async function processQuadraticVotes(
   return {
     ...result,
     voteType: 'quadratic',
+    votes: result.votes?.map((vote) => ({
+      ...vote,
+      relativeVotingPower:
+        maxVotingPower > 0 ? vote.votingPower / maxVotingPower : 0, // Calculate relative voting power
+    })),
   };
 }
 
@@ -1054,6 +1085,10 @@ export async function processResultsAction(
                 aggregate: true,
                 createdAt: vote.createdAt, // Use the timestamp of the last large vote
                 choice: Number(choice),
+                relativeVotingPower:
+                  result.totalVotingPower > 0
+                    ? currentAggregation[choice] / result.totalVotingPower
+                    : 0, // Calculate relative voting power
               });
             }
             inAggregationWindow = false;
@@ -1062,6 +1097,10 @@ export async function processResultsAction(
           aggregatedResults.push({
             ...vote,
             aggregate: false,
+            relativeVotingPower:
+              result.totalVotingPower > 0
+                ? vote.votingPower / result.totalVotingPower
+                : 0, // Calculate relative voting power
           });
         } else {
           // Aggregate small votes between large ones
@@ -1084,6 +1123,10 @@ export async function processResultsAction(
             aggregate: true,
             createdAt: lastVote.createdAt, // Use the timestamp of the last large vote
             choice: Number(choice),
+            relativeVotingPower:
+              result.totalVotingPower > 0
+                ? currentAggregation[choice] / result.totalVotingPower
+                : 0, // Calculate relative voting power
           });
         }
       }

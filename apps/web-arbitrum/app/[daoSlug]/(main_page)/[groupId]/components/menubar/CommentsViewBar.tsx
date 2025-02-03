@@ -38,8 +38,7 @@ export const CommentsViewBar = () => {
     >
       <div
         className='flex w-full items-center justify-between gap-2 border bg-white p-2 text-sm
-          font-bold shadow-lg dark:border-neutral-700 dark:bg-neutral-800
-          dark:text-neutral-200'
+          font-bold shadow-lg'
       >
         <div className='flex w-full justify-between'>
           <button
@@ -102,8 +101,7 @@ export const CommentsViewBar = () => {
                 </button>
               </Popover.Trigger>
               <Popover.Content
-                className='w-[200px] border bg-neutral-50 p-1 shadow-lg dark:border-neutral-700
-                  dark:bg-neutral-800'
+                className='w-[200px] border bg-neutral-50 p-1 shadow-lg'
                 sideOffset={5}
               >
                 <div className='space-y-1'>
@@ -111,7 +109,7 @@ export const CommentsViewBar = () => {
                     <button
                       key={filter.value}
                       className='flex w-full items-center justify-between px-2 py-1.5 text-sm transition-colors
-                        hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                        hover:bg-neutral-100'
                       onClick={() => {
                         setVotesFilter(filter.value as VotesFilterEnum);
                       }}

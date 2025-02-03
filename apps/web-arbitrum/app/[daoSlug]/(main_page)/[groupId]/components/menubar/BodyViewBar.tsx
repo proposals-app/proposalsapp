@@ -39,8 +39,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
     >
       <div
         className='flex w-full items-center justify-between gap-2 border bg-white p-2 text-sm
-          font-bold shadow-lg dark:border-neutral-700 dark:bg-neutral-800
-          dark:text-neutral-200'
+          font-bold shadow-lg'
       >
         <div className='flex w-full justify-between'>
           <div className='flex items-center gap-4'>
@@ -92,9 +91,8 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
               disabled={currentVersion === 0}
               className={`flex h-8 items-center justify-center px-3 text-sm ${
                 currentVersion === 0
-                  ? `cursor-not-allowed bg-neutral-50 text-neutral-400 dark:bg-neutral-800
-                    dark:text-neutral-600`
-                  : 'hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                  ? 'cursor-not-allowed bg-neutral-50 text-neutral-400'
+                  : 'hover:bg-neutral-100'
                   }`}
             >
               <Image
@@ -115,9 +113,8 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
               disabled={currentVersion === totalVersions - 1}
               className={`flex h-8 items-center justify-center px-3 text-sm ${
                 currentVersion === totalVersions - 1
-                  ? `cursor-not-allowed bg-neutral-50 text-neutral-400 dark:bg-neutral-800
-                    dark:text-neutral-600`
-                  : 'hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                  ? 'cursor-not-allowed bg-neutral-50 text-neutral-400'
+                  : 'hover:bg-neutral-100'
               }`}
             >
               <Image

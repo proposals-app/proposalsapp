@@ -67,7 +67,7 @@ export async function Timeline({
                 width='20'
                 height='20'
                 rx='10'
-                className='dark:fill-bg-neutral-700 fill-neutral-300'
+                className='fill-neutral-300'
                 stroke='#D3D3D3'
               />
               <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
@@ -93,7 +93,7 @@ export async function Timeline({
               width='20'
               height='20'
               rx='10'
-              className='dark:fill-bg-neutral-700 fill-neutral-300'
+              className='fill-neutral-300'
               stroke='#D3D3D3'
             />
             <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
@@ -180,7 +180,7 @@ export function LoadingTimeline() {
               width='20'
               height='20'
               rx='10'
-              className='dark:fill-bg-neutral-700 fill-neutral-300'
+              className='fill-neutral-300'
               stroke='#D3D3D3'
             />
             <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
@@ -200,7 +200,7 @@ export function LoadingTimeline() {
               {/* Placeholder Event Content */}
               <div
                 className='flex h-[122px] flex-col gap-1 rounded-xl border border-neutral-300 bg-white px-4
-                  py-2 dark:border-neutral-700 dark:bg-neutral-950'
+                  py-2'
               >
                 <div className='h-4 w-20 rounded-sm bg-gray-300' />
                 <div className='h-4 w-16 rounded-sm bg-gray-300' />
@@ -226,7 +226,7 @@ export function LoadingTimeline() {
               width='20'
               height='20'
               rx='10'
-              className='dark:fill-bg-neutral-700 fill-neutral-300'
+              className='fill-neutral-300'
               stroke='#D3D3D3'
             />
             <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />

@@ -39,7 +39,7 @@ export default async function DaoLayout({
     <ThemeProvider daoSlug={daoSlug}>
       <UpdateManifest daoSlug={daoSlug} />
 
-      <div className='flex min-h-screen w-full flex-row bg-neutral-50 dark:bg-neutral-950'>
+      <div className='flex min-h-screen w-full flex-row bg-neutral-50'>
         <NavBar dao={dao} daoSlug={daoSlug} />
         <div className='flex w-full pl-20'>{children}</div>
       </div>

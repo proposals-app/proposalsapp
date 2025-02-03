@@ -43,13 +43,10 @@ export function ResultEvent({
           resultNumber == selectedResult
             ? 'w-36 rounded-l-xl border-t border-b border-l'
             : 'w-28 rounded-xl border'
-          } border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-950`}
+          } border-neutral-300 bg-white`}
       >
         {eventIndex == 0 && resultNumber == selectedResult && (
-          <div
-            className='absolute top-2 -right-2 h-2 w-10 border-t border-neutral-300 bg-white
-              dark:border-neutral-700 dark:bg-neutral-950'
-          />
+          <div className='absolute top-2 -right-2 h-2 w-10 border-t border-neutral-300 bg-white' />
         )}
         <div
           className='absolute top-5 left-3 z-20 h-[7px] w-[7px] -translate-x-[0.5px] rounded-full

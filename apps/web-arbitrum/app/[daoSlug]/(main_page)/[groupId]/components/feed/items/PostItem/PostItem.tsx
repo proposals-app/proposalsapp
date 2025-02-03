@@ -93,25 +93,21 @@ export async function PostItem({
     <div id={postAnchorId} className='w-full scroll-mt-36'>
       {item.id.includes('placeholder') ? (
         // Show just the "deleted post" summary
-        <div
-          className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500
-            dark:border-neutral-600'
-        >
-          <div className='grow border-t border-neutral-400 dark:border-neutral-600'></div>
+        <div className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500'>
+          <div className='grow border-t border-neutral-400'></div>
           <span className='mx-4'>deleted post</span>
-          <div className='grow border-t border-neutral-400 dark:border-neutral-600'></div>
+          <div className='grow border-t border-neutral-400'></div>
         </div>
       ) : isPostDeleted ? (
         // Show the full details/summary UI for deleted posts
         <details className='w-full'>
           <summary
             className='flex h-12 cursor-pointer list-none items-center justify-center
-              border-neutral-400 text-neutral-500 dark:border-neutral-600
-              [&::-webkit-details-marker]:hidden'
+              border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'
           >
-            <div className='grow border-t border-neutral-400 dark:border-neutral-600'></div>
+            <div className='grow border-t border-neutral-400'></div>
             <span className='mx-4'>deleted post</span>
-            <div className='grow border-t border-neutral-400 dark:border-neutral-600'></div>
+            <div className='grow border-t border-neutral-400'></div>
           </summary>
           <div className='p-4'>
             {item.id != 'placeholder' && (
@@ -191,7 +187,7 @@ const PostContent = ({
               </Avatar.Fallback>
             </Avatar.Root>
             <div className='flex flex-col'>
-              <div className='font-bold text-neutral-700 dark:text-neutral-200'>
+              <div className='font-bold text-neutral-700'>
                 {author.name && author.name.length
                   ? author.name
                   : author.username}
@@ -200,8 +196,7 @@ const PostContent = ({
                 {votingPower && (
                   <div
                     className='text-neutral-650 flex w-fit gap-4 rounded-lg border border-neutral-300
-                      bg-neutral-100 p-0.5 text-xs dark:border-neutral-700 dark:bg-neutral-800
-                      dark:text-neutral-300'
+                      bg-neutral-100 p-0.5 text-xs'
                   >
                     {formatNumberWithSuffix(votingPower)} ARB
                   </div>
@@ -211,10 +206,7 @@ const PostContent = ({
           </div>
         </Suspense>
       )}
-      <div
-        className='flex cursor-default flex-col items-end text-sm text-neutral-500 select-none
-          dark:text-neutral-300'
-      >
+      <div className='flex cursor-default flex-col items-end text-sm text-neutral-500 select-none'>
         <div className='flex flex-col items-end'>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
@@ -224,8 +216,7 @@ const PostContent = ({
             </Tooltip.Trigger>
             <Tooltip.Content
               className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
-                text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
-                dark:text-neutral-100'
+                text-neutral-700 shadow-lg'
               sideOffset={5}
             >
               <p>{utcTime}</p>
@@ -253,8 +244,7 @@ const PostContent = ({
               </Tooltip.Trigger>
               <Tooltip.Content
                 className='max-w-48 rounded border border-neutral-200 bg-white p-3 text-left text-sm
-                  text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
-                  dark:text-neutral-100'
+                  text-neutral-700 shadow-lg'
                 sideOffset={5}
               >
                 <div className='flex flex-col gap-1'>

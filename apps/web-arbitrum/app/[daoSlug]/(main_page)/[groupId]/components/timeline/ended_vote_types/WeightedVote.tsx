@@ -95,10 +95,7 @@ export const WeightedVote = ({ proposal, votes }: WeightedVoteProps) => {
 
   return (
     <div className='flex-col items-center justify-between space-y-1'>
-      <div
-        className='border-neutral-350 flex h-4 w-full overflow-hidden rounded-md border
-          dark:border-neutral-300'
-      >
+      <div className='border-neutral-350 flex h-4 w-full overflow-hidden border'>
         <div
           className='bg-for-600 h-full'
           style={{ width: `${winningPercentage}%` }}

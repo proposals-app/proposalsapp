@@ -207,7 +207,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           silent: true,
           symbol: 'none',
           lineStyle: {
-            color: 'bg-neutral-700 dark:bg-neutral-200',
+            color: 'bg-neutral-700 ',
             type: 'solid',
             width: 2,
           },
@@ -360,11 +360,8 @@ const roundToGoodValue = (value: number): number => {
 
 export function LoadingChart() {
   return (
-    <div
-      className='w-full rounded-lg border border-neutral-300 bg-white p-4 dark:border-neutral-700
-        dark:bg-neutral-950'
-    >
-      <div className='h-[400px] w-full animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800' />
+    <div className='w-full rounded-lg border border-neutral-300 bg-white p-4'>
+      <div className='h-[400px] w-full animate-pulse rounded-lg bg-neutral-200' />
     </div>
   );
 }

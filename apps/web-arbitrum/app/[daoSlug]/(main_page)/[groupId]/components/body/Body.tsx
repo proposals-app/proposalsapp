@@ -61,7 +61,7 @@ export default async function Body({
         version={version ?? defaultVersion}
       />
       <div className='flex w-full flex-col gap-6'>
-        <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-100'>
+        <h1 className='text-4xl font-bold text-neutral-700'>
           {visibleBody.title}
         </h1>
 
@@ -130,9 +130,7 @@ const AuthorInfo = ({
         {authorName[0]}
       </Avatar.Fallback>
     </Avatar.Root>
-    <div className='font-bold text-neutral-700 dark:text-neutral-100'>
-      {authorName}
-    </div>
+    <div className='font-bold text-neutral-700'>{authorName}</div>
   </div>
 );
 

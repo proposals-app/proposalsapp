@@ -231,7 +231,6 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   const VoteSegment = ({
     color,
     width,
-    tooltip,
     isAggregated = false,
   }: {
     color:
@@ -253,37 +252,23 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
     const cssColor = colorMap[color] || '#6b7280';
 
     return (
-      <Tooltip.Root>
-        <Tooltip.Trigger asChild>
-          <div
-            className={
-              'h-full border-r border-white hover:opacity-90 dark:border-neutral-950'
-            }
-            style={{
-              width: `${width}%`,
-              ...(isAggregated
-                ? {
-                    background: `repeating-linear-gradient(
+      <div
+        className={'h-full border-r border-white hover:opacity-90'}
+        style={{
+          width: `${width}%`,
+          ...(isAggregated
+            ? {
+                background: `repeating-linear-gradient(
                                   90deg,
                                   ${cssColor} 0px,
                                   ${cssColor} 2px,
                                   transparent 2px,
                                   transparent 4px
                                 )`,
-                  }
-                : { backgroundColor: cssColor }),
-            }}
-          />
-        </Tooltip.Trigger>
-        <Tooltip.Content
-          className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
-            text-neutral-700 shadow-lg dark:border-neutral-700 dark:bg-neutral-800
-            dark:text-neutral-100'
-          sideOffset={5}
-        >
-          <p className='text-sm'>{tooltip}</p>
-        </Tooltip.Content>
-      </Tooltip.Root>
+              }
+            : { backgroundColor: cssColor }),
+        }}
+      />
     );
   };
 
@@ -319,7 +304,7 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
   return (
     <Tooltip.Provider>
       <div className='space-y-1'>
-        <div className='rounde flex h-4 w-full overflow-hidden rounded-sm'>
+        <div className='rounde flex h-4 w-full overflow-hidden'>
           {(['For', 'Abstain', 'Against', 'Unknown'] as const).map((choice) => {
             const voteData = votesByChoice[choice];
             if (!voteData) return null;
@@ -371,12 +356,9 @@ export const BasicVote = ({ proposal, votes }: BasicVoteProps) => {
         <div>
           {totalDelegatedVp && (
             <div className='mt-4'>
-              <div
-                className='border-neutral-350 relative h-2 w-full rounded-full border
-                  dark:border-neutral-300'
-              >
+              <div className='border-neutral-80 relative h-2 w-full border'>
                 <div
-                  className='absolute top-0 left-0 h-full rounded-full bg-neutral-600 dark:bg-neutral-300'
+                  className='absolute top-0 left-0 h-full bg-neutral-800'
                   style={{
                     width: `${participationPercentage}%`,
                   }}

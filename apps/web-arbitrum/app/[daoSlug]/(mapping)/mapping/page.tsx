@@ -24,14 +24,14 @@ export default async function MappingPage({
             <ul className='space-y-2'>
               {ungroupedProposals.map((proposal) => (
                 <li key={proposal.id} className='flex items-center gap-2'>
-                  <span className='rounded-full bg-blue-100 px-2 py-1 text-xs font-medium dark:bg-blue-800'>
+                  <span className='rounded-full bg-blue-100 px-2 py-1 text-xs font-medium'>
                     Proposal
                   </span>
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-medium ${
                     proposal.indexerName.includes('SNAPSHOT')
-                        ? 'bg-yellow-100 dark:bg-yellow-800'
-                        : 'bg-green-100 dark:bg-green-800'
+                        ? 'bg-yellow-100'
+                        : 'bg-green-100'
                     }`}
                   >
                     {proposal.indexerName}

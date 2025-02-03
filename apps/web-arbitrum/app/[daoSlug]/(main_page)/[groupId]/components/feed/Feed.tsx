@@ -5,7 +5,6 @@ import { PostItem } from './items/PostItem/PostItem';
 import { VoteItem } from './items/VoteItem/VoteItem';
 import { GroupReturnType } from '../../actions';
 import { ExtendedProcessedVote, getFeed_cached } from './actions';
-import { ProcessedVote } from '@/lib/votes_processing';
 
 export default async function Feed({
   group,
@@ -49,7 +48,7 @@ export default async function Feed({
                 <PostItem item={item} group={group} />
               </div>
               {index < itemsWithPlaceholders.length - 1 && (
-                <div className='border-b border-neutral-200 dark:border-neutral-800' />
+                <div className='border-b border-neutral-200' />
               )}
             </div>
           );
@@ -62,7 +61,7 @@ export default async function Feed({
                 <VoteItem item={item} group={group} />
               </div>
               {index < itemsWithPlaceholders.length - 1 && (
-                <div className='border-b border-neutral-200 dark:border-neutral-800' />
+                <div className='border-b border-neutral-200' />
               )}
             </div>
           );

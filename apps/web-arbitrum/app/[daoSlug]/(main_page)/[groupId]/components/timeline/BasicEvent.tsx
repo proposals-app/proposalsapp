@@ -12,8 +12,8 @@ export function BasicEvent({ content, url, last }: BasicEventProps) {
   return (
     <div className='relative mr-4 flex h-8 w-full items-center py-2'>
       <div
-        className='flex w-full items-center justify-between rounded-full border border-neutral-300
-          bg-white px-4 py-1 dark:border-neutral-700 dark:bg-neutral-950'
+        className='flex w-full items-center justify-between border border-neutral-800 bg-white px-4
+          py-1'
       >
         <div className='absolute top-3 left-3 z-20 h-[7px] w-[7px] rounded-full bg-neutral-500' />
         {!last && (
