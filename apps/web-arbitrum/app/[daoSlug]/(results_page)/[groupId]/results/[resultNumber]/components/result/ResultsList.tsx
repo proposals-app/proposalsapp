@@ -1,5 +1,5 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
-import { ProcessedResults } from '@/lib/votes_processing';
+import { ProcessedResults } from '@/lib/results_processing';
 
 interface ResultsListProps {
   results: ProcessedResults;

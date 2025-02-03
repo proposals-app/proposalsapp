@@ -8,12 +8,12 @@ import { RankedChoiceVote } from './ended_vote_types/RankedChoiceVote';
 import { SingleChoiceVote } from './ended_vote_types/SingleChoiceVote';
 import { WeightedVote } from './ended_vote_types/WeightedVote';
 import { ProposalWithMetadata } from '@/app/types';
+import { ProcessedResults, ProcessedVote } from '@/lib/results_processing';
 
 interface ResultEventProps {
   content: string;
   timestamp: Date;
-  proposal: ProposalWithMetadata;
-  votes: Selectable<Vote>[];
+  result: ProcessedResults;
   resultNumber: number;
   last: boolean;
   daoSlug: string;
@@ -31,16 +31,13 @@ const VoteComponents = {
 
 export function ResultEvent({
   content,
-  proposal,
-  votes,
+  result,
   resultNumber,
   last,
   daoSlug,
   groupId,
 }: ResultEventProps) {
-  const Component = proposal.metadata.voteType
-    ? VoteComponents[proposal.metadata.voteType]
-    : null;
+  const Component = result.voteType ? VoteComponents[result.voteType] : null;
 
   return (
     <Link
@@ -64,7 +61,7 @@ export function ResultEvent({
           </div>
           <div className='ml-2 text-sm'>
             {Component ? (
-              <Component proposal={proposal} votes={votes} />
+              <Component result={result} />
             ) : (
               <p>Invalid or unsupported vote type</p>
             )}

@@ -1,8 +1,13 @@
 import { otel } from '@/lib/otel';
-import { db, IndexerVariant, Selectable, sql, Vote } from '@proposalsapp/db';
+import { db, IndexerVariant, sql } from '@proposalsapp/db';
 import { format, formatDistanceToNow } from 'date-fns';
 import { GroupReturnType } from '../../actions';
 import { ProposalMetadata, ProposalWithMetadata } from '@/app/types';
+import {
+  ProcessedResults,
+  ProcessedVote,
+  processResultsAction,
+} from '@/lib/results_processing';
 
 export enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -60,8 +65,7 @@ interface ResultEvent extends BaseEvent {
     | TimelineEventType.ResultEndedBasicVote
     | TimelineEventType.ResultEndedOtherVotes;
   content: string;
-  proposal: ProposalWithMetadata;
-  votes: Selectable<Vote>[];
+  result: ProcessedResults;
 }
 
 type Event =
@@ -269,6 +273,12 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
           .where('proposalId', '=', proposal.id)
           .execute();
 
+        const processedResults = await processResultsAction(proposal, votes, {
+          withVotes: true,
+          withTimeseries: false,
+          aggregatedVotes: false,
+        });
+
         const metadata =
           typeof proposal.metadata === 'string'
             ? (JSON.parse(proposal.metadata) as ProposalMetadata)
@@ -287,8 +297,7 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
                 ? TimelineEventType.ResultEndedBasicVote
                 : TimelineEventType.ResultEndedOtherVotes,
             timestamp: endedAt,
-            proposal: proposal as ProposalWithMetadata,
-            votes: votes,
+            result: processedResults,
           });
         } else {
           events.push({
@@ -301,8 +310,7 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
                 ? TimelineEventType.ResultOngoingBasicVote
                 : TimelineEventType.ResultOngoingOtherVotes,
             timestamp: endedAt,
-            proposal: proposal as ProposalWithMetadata,
-            votes: votes,
+            result: processedResults,
           });
         }
 

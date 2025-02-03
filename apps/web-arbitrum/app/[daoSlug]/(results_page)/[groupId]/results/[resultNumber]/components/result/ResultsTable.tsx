@@ -6,7 +6,7 @@ import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 import { WindowScroller, List, AutoSizer } from 'react-virtualized';
 import { DelegateInfo } from '../actions';
-import { ProcessedResults } from '@/lib/votes_processing';
+import { ProcessedResults } from '@/lib/results_processing';
 
 interface ResultsTableProps {
   results: ProcessedResults;

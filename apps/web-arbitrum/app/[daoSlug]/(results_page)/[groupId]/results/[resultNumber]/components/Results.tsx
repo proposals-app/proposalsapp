@@ -8,7 +8,7 @@ import {
 import { LoadingChart, ResultsChart } from './result/ResultsChart';
 import { LoadingList, ResultsList } from './result/ResultsList';
 import { LoadingTable, ResultsTable } from './result/ResultsTable';
-import { processResultsAction } from '@/lib/votes_processing';
+import { processResultsAction } from '@/lib/results_processing';
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;

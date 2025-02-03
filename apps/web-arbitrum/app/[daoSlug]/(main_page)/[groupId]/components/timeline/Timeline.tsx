@@ -63,7 +63,7 @@ export async function Timeline({
               event.type === TimelineEventType.ResultOngoingOtherVotes ||
               event.type === TimelineEventType.ResultEndedBasicVote ||
               event.type === TimelineEventType.ResultEndedOtherVotes
-                ? proposalOrderMap.get(event.proposal.id)
+                ? proposalOrderMap.get(event.result.proposal.id)
                 : undefined;
 
             return (
@@ -96,8 +96,7 @@ export async function Timeline({
                   <ResultEvent
                     content={event.content}
                     timestamp={event.timestamp}
-                    proposal={event.proposal}
-                    votes={event.votes}
+                    result={event.result}
                     resultNumber={resultNumber!} // Pass the resultNumber
                     last={index == 0}
                     daoSlug={group.daoSlug}
@@ -108,8 +107,7 @@ export async function Timeline({
                   <ResultEvent
                     content={event.content}
                     timestamp={event.timestamp}
-                    proposal={event.proposal}
-                    votes={event.votes}
+                    result={event.result}
                     resultNumber={resultNumber!} // Pass the resultNumber
                     last={index == 0}
                     daoSlug={group.daoSlug}

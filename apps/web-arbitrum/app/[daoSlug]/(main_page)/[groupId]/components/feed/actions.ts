@@ -1,7 +1,7 @@
 import { VotesFilterEnum } from '@/app/searchParams';
 import { otel } from '@/lib/otel';
 import { AsyncReturnType, superjson_cache } from '@/lib/utils';
-import { ProcessedVote, processResultsAction } from '@/lib/votes_processing';
+import { ProcessedVote, processResultsAction } from '@/lib/results_processing';
 import {
   db,
   DiscoursePost,
@@ -12,18 +12,12 @@ import {
 } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
-interface RelativeVotingPower {
-  relativeVotingPower: number; // This will be a value between 0 and 1, where 1 means it's the most powerful vote.
-}
-
-export type ExtendedProcessedVote = ProcessedVote & RelativeVotingPower;
-
 export async function getFeed(
   groupID: string,
   commentsFilter: boolean,
   votesFilter: VotesFilterEnum
 ): Promise<{
-  votes: ExtendedProcessedVote[];
+  votes: ProcessedVote[];
   posts: Selectable<DiscoursePost>[];
 }> {
   'use server';
@@ -124,37 +118,16 @@ export async function getFeed(
       }
 
       // Process votes using processResultsAction and calculate relative voting power
-      const processedVotes: ExtendedProcessedVote[] = [];
+      const processedVotes: ProcessedVote[] = [];
       for (const proposal of proposals) {
-        const proposalVotes = votes.filter(
-          (vote) => vote.proposalId === proposal.id
-        );
+        const processedResults = await processResultsAction(proposal, votes, {
+          withVotes: true,
+          withTimeseries: false,
+          aggregatedVotes: false,
+        });
 
-        if (proposalVotes.length > 0) {
-          const maxVotingPower = Math.max(
-            ...proposalVotes.map((vote) => vote.votingPower)
-          );
-          for (const vote of proposalVotes) {
-            const processedVote: ExtendedProcessedVote =
-              await processResultsAction(proposal, [vote], {
-                withVotes: true,
-                withTimeseries: false,
-                aggregatedVotes: true,
-              }).then((result) => ({
-                ...result.votes![0],
-                relativeVotingPower:
-                  maxVotingPower > 0 ? vote.votingPower / maxVotingPower : 0,
-              }));
-
-            processedVotes.push(processedVote);
-          }
-
-          // Store totalVotingPower for each proposal
-          const totalVotingPower = proposalVotes.reduce(
-            (sum, vote) => sum + vote.votingPower,
-            0
-          );
-          totalVotingPowerByProposalId[proposal.id] = totalVotingPower;
+        if (processedResults.votes) {
+          processedVotes.push(...processedResults.votes);
         }
       }
 

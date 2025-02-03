@@ -5,7 +5,7 @@ import { format, toZonedTime } from 'date-fns-tz';
 import * as echarts from 'echarts';
 import { useEffect, useRef } from 'react';
 import { DelegateInfo } from '../actions';
-import { ProcessedResults } from '@/lib/votes_processing';
+import { ProcessedResults } from '@/lib/results_processing';
 
 interface ResultsChartProps {
   results: ProcessedResults;
