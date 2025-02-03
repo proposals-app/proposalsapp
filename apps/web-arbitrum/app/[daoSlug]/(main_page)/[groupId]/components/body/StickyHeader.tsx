@@ -40,7 +40,7 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
 
   return (
     <div
-      className={`fixed top-0 right-0 left-0 z-10 h-20 bg-neutral-50 shadow-md
+      className={`fixed top-0 right-0 left-0 z-10 ml-20 h-20 bg-neutral-50 shadow-md
         transition-transform duration-300 dark:bg-neutral-950
         ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
     >
