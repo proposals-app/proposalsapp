@@ -48,7 +48,7 @@ export default async function Feed({
           const postItem = (
             <div key={index}>
               <div className='flex w-full flex-col p-4'>
-                <PostItem item={item} previousPostNumber={previousPostNumber} />
+                <PostItem item={item} />
               </div>
               {index < itemsWithPlaceholders.length - 1 && (
                 <div className='border-b border-neutral-200 dark:border-neutral-800' />

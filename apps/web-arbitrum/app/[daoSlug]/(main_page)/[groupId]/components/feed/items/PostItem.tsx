@@ -25,12 +25,7 @@ const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === 'post';
 };
 
-export async function PostItem({
-  item,
-}: {
-  item: CombinedFeedItem;
-  previousPostNumber?: number;
-}) {
+export async function PostItem({ item }: { item: CombinedFeedItem }) {
   if (!isPostItem(item)) {
     return null;
   }

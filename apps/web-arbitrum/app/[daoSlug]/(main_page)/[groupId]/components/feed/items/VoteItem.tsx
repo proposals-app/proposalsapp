@@ -5,7 +5,7 @@ import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { GroupReturnType } from '../../../actions';
-import { getDelegate_cache } from '../actions';
+import { getDelegateByVoterAddress_cache } from '../actions';
 import { CombinedFeedItem, VoteFeedItem } from '../Feed';
 import { VotingPowerTag } from './VotingPowerTag';
 
@@ -32,9 +32,10 @@ export async function VoteItem({
 
   const proposal = group.proposals.find((p) => p.id == item.proposalId);
 
-  const delegate = await getDelegate_cache(
+  const delegate = await getDelegateByVoterAddress_cache(
     item.voterAddress,
     group.daoSlug,
+    false,
     topicIds,
     proposalIds
   );

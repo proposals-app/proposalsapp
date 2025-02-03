@@ -203,7 +203,7 @@ async function getVotingPower(voteId: string): Promise<{
   });
 }
 
-async function getDelegate(
+async function getDelegateByVoterAddress(
   voterAddress: string,
   daoSlug: string,
   withPeriodCheck: boolean,
@@ -339,6 +339,166 @@ async function getDelegate(
   });
 }
 
+async function getDelegateByDiscourseUser(
+  discourseUserId: number,
+  daoDiscourseId: string,
+  withPeriodCheck: boolean,
+  topicIds?: string[],
+  proposalIds?: string[]
+) {
+  'use server';
+  return otel('get-delegate-by-discourse-user', async () => {
+    try {
+      // Fetch the discourse user
+      const discourseUser = await db
+        .selectFrom('discourseUser')
+        .selectAll()
+        .where('externalId', '=', discourseUserId)
+        .where('daoDiscourseId', '=', daoDiscourseId)
+        .executeTakeFirst();
+
+      if (!discourseUser) return null;
+
+      // Find the associated delegate via delegateToDiscourseUser
+      const delegateToDiscourseUser = await db
+        .selectFrom('delegateToDiscourseUser')
+        .selectAll()
+        .where('discourseUserId', '=', discourseUser.id)
+        .executeTakeFirst();
+
+      if (!delegateToDiscourseUser) return null;
+
+      // Find the associated voter via delegateToVoter
+      const delegateToVoter = await db
+        .selectFrom('delegateToVoter')
+        .selectAll()
+        .where('delegateId', '=', delegateToDiscourseUser.delegateId)
+        .executeTakeFirst();
+
+      if (!delegateToVoter) return null;
+
+      // Fetch the voter using the voter ID from delegateToVoter
+      const voter = await db
+        .selectFrom('voter')
+        .selectAll()
+        .where('id', '=', delegateToVoter.voterId)
+        .executeTakeFirst();
+
+      if (!voter) return null;
+
+      let startTime: Date | undefined;
+      let endTime: Date | undefined;
+
+      if (withPeriodCheck) {
+        // Fetch the timestamps from proposals and topics
+        let proposalStartTimes: number[] = [];
+        let proposalEndTimes: number[] = [];
+
+        if (proposalIds && proposalIds.length > 0) {
+          const proposals = await db
+            .selectFrom('proposal')
+            .selectAll()
+            .where('id', 'in', proposalIds)
+            .execute();
+
+          proposalStartTimes = proposals.map((proposal) =>
+            proposal.startAt.getTime()
+          );
+          proposalEndTimes = proposals.map((proposal) =>
+            proposal.endAt.getTime()
+          );
+        }
+
+        let topicStartTimes: number[] = [];
+        let topicEndTimes: number[] = [];
+
+        if (topicIds && topicIds.length > 0) {
+          const topics = await db
+            .selectFrom('discourseTopic')
+            .selectAll()
+            .where('id', 'in', topicIds)
+            .execute();
+
+          topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
+          topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
+        }
+
+        // Determine the start and end times based on proposals and topics
+        startTime = new Date(
+          Math.min(...proposalStartTimes, ...topicStartTimes)
+        );
+
+        endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
+      }
+
+      // Fetch the delegate with all related data in one query
+      let query = db
+        .selectFrom('delegate')
+        .innerJoin(
+          'delegateToVoter',
+          'delegate.id',
+          'delegateToVoter.delegateId'
+        )
+        .leftJoin(
+          'delegateToDiscourseUser',
+          'delegate.id',
+          'delegateToDiscourseUser.delegateId'
+        )
+        .leftJoin(
+          'discourseUser',
+          'discourseUser.id',
+          'delegateToDiscourseUser.discourseUserId'
+        )
+        .leftJoin('voter', 'voter.id', 'delegateToVoter.voterId')
+        .where(
+          'delegateToDiscourseUser.discourseUserId',
+          '=',
+          discourseUser.id
+        );
+
+      if (withPeriodCheck && startTime && endTime) {
+        query = query
+          .where('delegateToVoter.periodStart', '<=', startTime)
+          .where('delegateToVoter.periodEnd', '>=', endTime);
+      }
+
+      const delegateData = await query
+        .select([
+          'delegate.id as delegateId',
+          'discourseUser.name as discourseName',
+          'discourseUser.username as discourseUsername',
+          'discourseUser.avatarTemplate as discourseAvatarTemplate',
+          'voter.ens as voterEns',
+          'voter.address as voterAddress',
+        ])
+        .executeTakeFirst();
+
+      if (!delegateData) return null;
+
+      // Transform the data into the expected format
+      return {
+        delegate: { id: delegateData.delegateId },
+        delegatetodiscourseuser: delegateData.discourseName
+          ? {
+              name: delegateData.discourseName,
+              username: delegateData.discourseUsername,
+              avatarTemplate: delegateData.discourseAvatarTemplate,
+            }
+          : null,
+        delegatetovoter: delegateData.voterEns
+          ? {
+              ens: delegateData.voterEns,
+              address: delegateData.voterAddress,
+            }
+          : null,
+      };
+    } catch (error) {
+      console.error('Error fetching delegate by discourse user:', error);
+      return null;
+    }
+  });
+}
+
 async function getPostLikesCount(
   externalPostId: number,
   daoDiscourseId: string
@@ -405,23 +565,44 @@ export const getFeed_cached = superjson_cache(
   { revalidate: 60 * 5, tags: ['get-feed-for-group'] }
 );
 
-export const getDelegate_cache = unstable_cache(
+export const getDelegateByVoterAddress_cache = unstable_cache(
   async (
     voterAddress: string,
     daoSlug: string,
+    withPeriodCheck: boolean,
     topicIds: string[],
     proposalIds: string[]
   ) => {
-    return await getDelegate(
+    return await getDelegateByVoterAddress(
       voterAddress,
       daoSlug,
-      false,
+      withPeriodCheck,
       topicIds,
       proposalIds
     );
   },
   [],
-  { revalidate: 60 * 5, tags: ['get-delegate'] }
+  { revalidate: 60 * 5, tags: ['get-delegate-by-voter-address'] }
+);
+
+export const getDelegateByDiscourseUser_cached = unstable_cache(
+  async (
+    discourseUserId: number,
+    daoDiscourseId: string,
+    withPeriodCheck: boolean,
+    topicIds?: string[],
+    proposalIds?: string[]
+  ) => {
+    return await getDelegateByDiscourseUser(
+      discourseUserId,
+      daoDiscourseId,
+      withPeriodCheck,
+      topicIds,
+      proposalIds
+    );
+  },
+  [],
+  { revalidate: 60 * 5, tags: ['get-delegate-by-discourse-user'] }
 );
 
 export const getDiscourseUser_cached = unstable_cache(
