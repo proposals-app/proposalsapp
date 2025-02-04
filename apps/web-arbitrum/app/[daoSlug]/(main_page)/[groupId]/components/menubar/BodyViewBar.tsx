@@ -5,7 +5,9 @@ import {
   parseAsStringEnum,
   useQueryState,
 } from 'nuqs';
-import Image from 'next/image';
+import ArrowSvg from '@/public/assets/web/arrow.svg'; // Import the SVG as a React component
+import CheckboxCheck from '@/public/assets/web/checkbox_check.svg'; // Import the SVG as a React component
+import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg'; // Import the SVG as a React component
 
 export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
   const [view, setView] = useQueryState(
@@ -38,19 +40,13 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
         duration-300 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
-        className='flex w-full items-center justify-between gap-2 border bg-white p-2 text-sm
-          font-bold shadow-lg'
+        className='dark:border-neutral-450 flex w-full items-center justify-between gap-2 border
+          border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold
+          text-neutral-800 shadow-lg transition-colors dark:bg-black dark:fill-neutral-200
+          dark:text-neutral-200'
       >
         <div className='flex w-full justify-between'>
           <div className='flex items-center gap-4'>
-            {/* <ArrowUp
-              className='h-8 w-8 cursor-pointer rounded-full p-1 hover:bg-neutral-100
-                dark:hover:bg-neutral-700'
-              onClick={() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            /> */}
-
             <div className='flex h-8 cursor-pointer items-center justify-start gap-2 px-3'>
               <label
                 htmlFor='changes'
@@ -65,16 +61,14 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
                     className='h-6 w-6 cursor-pointer appearance-none'
                   />
                   {diff ? (
-                    <Image
-                      src='/assets/web/checkbox_check.svg'
-                      alt=''
+                    <CheckboxCheck
+                      className='absolute inset-0'
                       width={24}
                       height={24}
                     />
                   ) : (
-                    <Image
-                      src='/assets/web/checkbox_nocheck.svg'
-                      alt=''
+                    <CheckboxNocheck
+                      className='absolute inset-0'
                       width={24}
                       height={24}
                     />
@@ -90,18 +84,9 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
               onClick={() => setVersion(Math.max(0, currentVersion - 1))}
               disabled={currentVersion === 0}
               className={`flex h-8 items-center justify-center px-3 text-sm ${
-                currentVersion === 0
-                  ? 'cursor-not-allowed bg-neutral-50 text-neutral-400'
-                  : 'hover:bg-neutral-100'
-                  }`}
+                currentVersion === 0 ? 'cursor-not-allowed' : '' }`}
             >
-              <Image
-                className='-rotate-90'
-                src='/assets/web/arrow.svg'
-                alt=''
-                width={24}
-                height={24}
-              />
+              <ArrowSvg className='-rotate-90' width={24} height={24} />
             </button>
             <div className='flex h-8 items-center justify-center gap-2 text-sm'>
               Version {currentVersion + 1} of {totalVersions}
@@ -112,18 +97,9 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
               }
               disabled={currentVersion === totalVersions - 1}
               className={`flex h-8 items-center justify-center px-3 text-sm ${
-                currentVersion === totalVersions - 1
-                  ? 'cursor-not-allowed bg-neutral-50 text-neutral-400'
-                  : 'hover:bg-neutral-100'
-              }`}
+                currentVersion === totalVersions - 1 ? 'cursor-not-allowed' : '' }`}
             >
-              <Image
-                className='rotate-90'
-                src='/assets/web/arrow.svg'
-                alt=''
-                width={24}
-                height={24}
-              />
+              <ArrowSvg className='rotate-90' width={24} height={24} />
             </button>
           </div>
 
@@ -137,13 +113,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
               }
             }}
           >
-            <Image
-              className='rotate-180'
-              src='/assets/web/arrow.svg'
-              alt=''
-              width={24}
-              height={24}
-            />
+            <ArrowSvg className='rotate-180' width={24} height={24} />
             <div>Comments and Votes</div>
           </button>
         </div>

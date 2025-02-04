@@ -43,6 +43,14 @@ const nextConfig = {
     ],
   },
   serverExternalPackages: ['@proposalsapp/db'],
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    });
+
+    return config;
+  },
 };
 
 export default withSerwist(nextConfig);

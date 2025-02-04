@@ -4,7 +4,11 @@ import { ViewEnum, VotesFilterEnum } from '@/app/searchParams';
 import * as Popover from '@radix-ui/react-popover';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { voteFilters } from './MenuBar';
-import Image from 'next/image';
+import ArrowSvg from '@/public/assets/web/arrow.svg'; // Import the SVG as a React component
+import CheckboxCheck from '@/public/assets/web/checkbox_check.svg'; // Import the SVG as a React component
+import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg'; // Import the SVG as a React component
+import ChevronDownSvg from '@/public/assets/web/chevron_down.svg'; // Import the SVG as a React component
+import CheckSvg from '@/public/assets/web/check.svg'; // Import the SVG as a React component
 
 export const CommentsViewBar = () => {
   const [comments, setComments] = useQueryState(
@@ -37,8 +41,10 @@ export const CommentsViewBar = () => {
         duration-300 ${view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
-        className='flex w-full items-center justify-between gap-2 border bg-white p-2 text-sm
-          font-bold shadow-lg'
+        className='dark:border-neutral-450 flex w-full items-center justify-between gap-2 border
+          border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold
+          text-neutral-800 shadow-lg transition-colors dark:bg-black dark:fill-neutral-200
+          dark:text-neutral-200'
       >
         <div className='flex w-full justify-between'>
           <button
@@ -49,7 +55,7 @@ export const CommentsViewBar = () => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           >
-            <Image src='/assets/web/arrow.svg' alt='' width={24} height={24} />
+            <ArrowSvg className='rotate-180' width={24} height={24} />
             <div>Read Full Proposal</div>
           </button>
 
@@ -68,16 +74,14 @@ export const CommentsViewBar = () => {
                     className='h-6 w-6 cursor-pointer appearance-none'
                   />
                   {comments ? (
-                    <Image
-                      src='/assets/web/checkbox_check.svg'
-                      alt=''
+                    <CheckboxCheck
+                      className='absolute inset-0'
                       width={24}
                       height={24}
                     />
                   ) : (
-                    <Image
-                      src='/assets/web/checkbox_nocheck.svg'
-                      alt=''
+                    <CheckboxNocheck
+                      className='absolute inset-0'
                       width={24}
                       height={24}
                     />
@@ -92,16 +96,12 @@ export const CommentsViewBar = () => {
                 <button className='flex h-8 w-[200px] items-center justify-between px-3 text-sm'>
                   {voteFilters.find((filter) => filter.value === votesFilter)
                     ?.label || 'Select vote filter...'}
-                  <Image
-                    src='/assets/web/chevron_down.svg'
-                    alt=''
-                    width={24}
-                    height={24}
-                  />
+                  <ChevronDownSvg width={24} height={24} />
                 </button>
               </Popover.Trigger>
               <Popover.Content
-                className='w-[200px] border bg-neutral-50 p-1 shadow-lg'
+                className='dark:border-neutral-450 w-[200px] border border-neutral-800 bg-white p-1
+                  shadow-lg dark:bg-black'
                 sideOffset={5}
               >
                 <div className='space-y-1'>
@@ -109,19 +109,14 @@ export const CommentsViewBar = () => {
                     <button
                       key={filter.value}
                       className='flex w-full items-center justify-between px-2 py-1.5 text-sm transition-colors
-                        hover:bg-neutral-100'
+                        hover:bg-neutral-100 dark:hover:bg-neutral-800'
                       onClick={() => {
                         setVotesFilter(filter.value as VotesFilterEnum);
                       }}
                     >
                       {filter.label}
                       {votesFilter === filter.value && (
-                        <Image
-                          src='/assets/web/check.svg'
-                          alt=''
-                          width={24}
-                          height={24}
-                        />
+                        <CheckSvg width={24} height={24} />
                       )}
                     </button>
                   ))}

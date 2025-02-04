@@ -40,15 +40,6 @@ export function NavBar({ daoSlug, dao }: NavBarProps) {
           alt={'proposals.app'}
           width={48}
           height={48}
-          className='rounded-sm dark:hidden'
-        />
-
-        <Image
-          src={`/assets/logo_dark.svg`}
-          alt={'proposals.app'}
-          width={48}
-          height={48}
-          className='hidden rounded-sm dark:block'
         />
       </div>
     </div>

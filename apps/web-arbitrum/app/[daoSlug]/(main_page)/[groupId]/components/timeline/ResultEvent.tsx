@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { ApprovalVote } from './ended_vote_types/ApprovalVote';
 import { BasicVote } from './ended_vote_types/BasicVote';
 import { QuadraticVote } from './ended_vote_types/QuadraticVote';
@@ -6,7 +5,10 @@ import { RankedChoiceVote } from './ended_vote_types/RankedChoiceVote';
 import { SingleChoiceVote } from './ended_vote_types/SingleChoiceVote';
 import { WeightedVote } from './ended_vote_types/WeightedVote';
 import { ProcessedResults } from '@/lib/results_processing';
-import Image from 'next/image';
+import TimelineEventIcon from '@/public/assets/web/timeline_event.svg'; // Import the SVG as a React component
+import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg'; // Import the SVG as a React component
+import ArrowResultRightIcon from '@/public/assets/web/arrow_result_right.svg'; // Import the SVG as a React component
+import Link from 'next/link';
 
 interface ResultEventProps {
   content: string;
@@ -43,19 +45,20 @@ export function ResultEvent({
         ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} my-1
         w-full items-center`}
     >
-      <div className='flex h-full w-full rounded-xs border border-neutral-400 bg-white px-4 py-1'>
+      <div
+        className='dark:border-neutral-450 flex h-full w-full rounded-xs border border-neutral-800
+          bg-white px-4 py-1 text-neutral-800 dark:bg-black dark:text-neutral-200'
+      >
         {last ? (
-          <Image
-            className='absolute top-1 left-1 z-20'
-            src='/assets/web/timeline_event_active.svg'
+          <TimelineEventActiveIcon
+            className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}
           />
         ) : (
-          <Image
-            className='absolute top-1 left-1 z-20'
-            src='/assets/web/timeline_event.svg'
+          <TimelineEventIcon
+            className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}
@@ -63,8 +66,8 @@ export function ResultEvent({
         )}
         {!last && (
           <div
-            className='absolute top-0 left-3 z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[3px]
-              bg-neutral-800'
+            className='dark:bg-neutral-350 absolute top-0 left-3 z-10 h-[15px] max-h-[15px] w-0.5
+              translate-x-[3px] bg-neutral-800'
           />
         )}
         <Link
@@ -75,8 +78,8 @@ export function ResultEvent({
           <div className='flex w-full items-center justify-between pl-3'>
             <div className='text-xs'>{content}</div>
 
-            <Image
-              src='/assets/web/arrow_result_right.svg'
+            <ArrowResultRightIcon
+              className='fill-neutral-900 dark:fill-neutral-100'
               width={24}
               height={24}
               alt={'Go to results'}

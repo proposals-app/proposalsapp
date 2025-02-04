@@ -22,8 +22,8 @@ export function GapEvent() {
                      to bottom,
                      transparent,
                      transparent 4px,
-                     var(--neutral-950) 4px,
-                     var(--neutral-950) 8px
+                     var(--neutral-900) 4px,
+                     var(--neutral-900) 8px
                    )`,
         }}
       />
