@@ -101,7 +101,7 @@ export async function VoteItem({
 
   return (
     <div className='flex w-full flex-col gap-2 p-4'>
-      <div style={{ width: barWidth }} className='opacity-75'>
+      <div style={{ width: barWidth }} className='opacity-30'>
         {Array.isArray(item.color) ? (
           <div className='flex w-full'>
             {item.color.map((color, index) => (
@@ -142,13 +142,13 @@ export async function VoteItem({
               </Avatar.Root>
               <div className='flex flex-col'>
                 <div>
-                  <span className='font-bold text-neutral-700'>
+                  <span className='font-bold text-neutral-800 dark:text-neutral-200'>
                     {displayName}
                   </span>
                   {displayName !== voterAddress && (
-                    <span className='text-sm text-neutral-500'>
+                    <span className='text-neutral-450 dark:text-neutral-350 text-sm'>
                       {' '}
-                      with {voterAddress}
+                      with <span className='font-bold'>{voterAddress}</span>
                     </span>
                   )}
                 </div>
@@ -158,30 +158,18 @@ export async function VoteItem({
           </Suspense>
         </div>
 
-        <div className='text-neutral-450 flex flex-col items-end text-sm'>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <div>
-                voted <span className='font-bold'>{relativeCreateTime}</span>
-              </div>
-            </Tooltip.Trigger>
-            <Tooltip.Content
-              className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
-                text-neutral-700 shadow-lg'
-              sideOffset={5}
-            >
-              {' '}
-              <p>{utcTime}</p>
-            </Tooltip.Content>
-          </Tooltip.Root>
+        <div className='dark:text-neutral-350 flex flex-col items-end text-sm text-neutral-600'>
+          <div>
+            voted <span className='font-bold'>{relativeCreateTime}</span>
+          </div>
         </div>
       </div>
 
-      <div className='cursor-default text-neutral-700 select-none'>
-        <p className='font-bold'>{formattedVotingPower} ARB</p>
-        <p className='font-bold'>
+      <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
+        <span className=''>{formattedVotingPower} ARB </span>
+        <span className='font-bold'>
           {((proposal?.choices ?? []) as string[])[item.choice as number]}
-        </p>
+        </span>
       </div>
 
       <div className='flex flex-col'>
@@ -190,7 +178,7 @@ export async function VoteItem({
           <p className='self-end'>
             <a
               href={anchorHref ?? ''}
-              className='text-sm font-bold text-neutral-700 hover:underline'
+              className='dark:text-neutral-350 text-sm font-bold text-neutral-600 hover:underline'
             >
               jump to post →
             </a>

@@ -14,8 +14,7 @@ export function NavBar({ daoSlug, dao }: NavBarProps) {
   return (
     <div
       className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 flex h-full
-        min-h-screen w-20 flex-col items-center justify-between border-r bg-neutral-50
-        px-4 py-6 dark:bg-neutral-950'
+        min-h-screen w-20 flex-col items-center justify-between border-r px-4 py-6'
     >
       <Link href={`/${daoSlug}`} className='h-10 w-10'>
         <Image

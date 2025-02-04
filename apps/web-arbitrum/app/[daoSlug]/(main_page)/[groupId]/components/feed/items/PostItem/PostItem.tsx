@@ -188,7 +188,7 @@ const PostContent = ({
               </Avatar.Fallback>
             </Avatar.Root>
             <div className='flex flex-col'>
-              <div className='font-bold text-neutral-700'>
+              <div className='font-bold text-neutral-800 dark:text-neutral-200'>
                 {author.name && author.name.length
                   ? author.name
                   : author.username}
@@ -198,22 +198,14 @@ const PostContent = ({
           </div>
         </Suspense>
       )}
-      <div className='flex cursor-default flex-col items-end text-sm text-neutral-500 select-none'>
+      <div
+        className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm
+          text-neutral-600 select-none'
+      >
         <div className='flex flex-col items-end'>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <div>
-                posted <span className='font-bold'>{relativeCreateTime}</span>
-              </div>
-            </Tooltip.Trigger>
-            <Tooltip.Content
-              className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
-                text-neutral-700 shadow-lg'
-              sideOffset={5}
-            >
-              <p>{utcTime}</p>
-            </Tooltip.Content>
-          </Tooltip.Root>
+          <div>
+            posted <span className='font-bold'>{relativeCreateTime}</span>
+          </div>
         </div>
         {item.createdAt.getTime() != updatedAt.getTime() && (
           <div>
@@ -227,30 +219,10 @@ const PostContent = ({
             <span>{item.reads}</span>
           </div>
           {likesCount > 0 ? (
-            <Tooltip.Root>
-              <Tooltip.Trigger asChild>
-                <div className='flex items-center gap-1 text-sm'>
-                  <HeartIcon className='h-4 w-4' />
-                  <span>{likesCount}</span>
-                </div>
-              </Tooltip.Trigger>
-              <Tooltip.Content
-                className='max-w-48 rounded border border-neutral-200 bg-white p-3 text-left text-sm
-                  text-neutral-700 shadow-lg'
-                sideOffset={5}
-              >
-                <div className='flex flex-col gap-1'>
-                  <span className='font-semibold'>Liked by:</span>
-                  {likedUsers.length > 0 ? (
-                    likedUsers.map((user, index) => (
-                      <span key={index}>{user}</span>
-                    ))
-                  ) : (
-                    <span>No one yet</span>
-                  )}
-                </div>
-              </Tooltip.Content>
-            </Tooltip.Root>
+            <div className='flex items-center gap-1 text-sm'>
+              <HeartIcon className='h-4 w-4' />
+              <span>{likesCount}</span>
+            </div>
           ) : (
             <div className='flex items-center gap-1 text-sm'>
               <HeartIcon className='h-4 w-4' />

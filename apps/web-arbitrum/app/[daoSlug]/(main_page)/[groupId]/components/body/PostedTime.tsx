@@ -1,4 +1,3 @@
-import * as Tooltip from '@radix-ui/react-tooltip';
 import { format, formatDistanceToNow, formatISO } from 'date-fns';
 import Image from 'next/image';
 
@@ -22,39 +21,22 @@ export async function PostedTime({
   );
 
   return (
-    <div>
-      <Tooltip.Root>
-        <Tooltip.Trigger asChild>
-          <div>
-            <div
-              className={`flex flex-row items-center gap-2 px-2 py-1 ${border ? 'bg-white' : ''}`}
-            >
-              <div className='flex flex-col text-xs'>
-                <span className='text-neutral-700'>{label}</span>
-                <span className='font-bold text-neutral-700'>
-                  {relativeTime}
-                </span>
-              </div>
-              {border && (
-                <Image
-                  src='/assets/web/edit-icon-posted-time.svg'
-                  alt={''}
-                  width={24}
-                  height={24}
-                />
-              )}
-            </div>
-          </div>
-        </Tooltip.Trigger>
-
-        <Tooltip.Content
-          className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
-            text-neutral-700 shadow-lg'
-          sideOffset={5}
-        >
-          {formattedDateTime}
-        </Tooltip.Content>
-      </Tooltip.Root>
+    <div
+      className={`flex flex-row items-center gap-2 px-2 py-1
+        ${border ? 'bg-white dark:bg-black' : ''}`}
+    >
+      <div className='dark:text-neutral-350 flex flex-col text-xs text-neutral-600'>
+        <span className=''>{label}</span>
+        <span className='font-bold'>{relativeTime}</span>
+      </div>
+      {border && (
+        <Image
+          src='/assets/web/edit-icon-posted-time.svg'
+          alt={''}
+          width={24}
+          height={24}
+        />
+      )}
     </div>
   );
 }
