@@ -260,7 +260,7 @@ async function getTotalVersions(groupID: string) {
       .selectFrom('proposalGroup')
       .selectAll()
       .where('id', '=', groupID)
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
 
     if (!group) {
       return null;

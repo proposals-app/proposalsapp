@@ -38,35 +38,41 @@ export function ResultEvent({
   const Component = result.voteType ? VoteComponents[result.voteType] : null;
 
   return (
-    <Link
-      className='w-full'
-      href={`/${daoSlug}/${groupId}/results/${resultNumber}`} // Link to the results page
-      prefetch={true}
+    <div
+      className={`relative mr-4 flex
+        ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} my-1
+        w-full items-center`}
     >
-      <div className='relative flex w-full items-center py-2'>
-        <div className='flex w-full flex-col gap-1 border border-neutral-800 bg-white px-5 py-1 pr-8'>
-          {last ? (
-            <Image
-              className='absolute top-3 left-1 z-20'
-              src='/assets/web/timeline_active_event.svg'
-              width={24}
-              height={24}
-              alt={'Timeline event'}
-            />
-          ) : (
-            <div>
-              <Image
-                className='absolute top-4 left-1 z-20'
-                src='/assets/web/timeline_event.svg'
-                width={24}
-                height={24}
-                alt={'Timeline event'}
-              />
-              <div className='absolute top-1 left-3 z-10 h-[25px] w-0.5 translate-x-[3px] bg-neutral-800' />
-            </div>
-          )}
-
-          <div className='ml-2 flex w-full items-center justify-between'>
+      <div className='flex h-full w-full rounded-xs border border-neutral-400 bg-white px-4 py-1'>
+        {last ? (
+          <Image
+            className='absolute top-1 left-1 z-20'
+            src='/assets/web/timeline_event_active.svg'
+            width={24}
+            height={24}
+            alt={'Timeline event'}
+          />
+        ) : (
+          <Image
+            className='absolute top-1 left-1 z-20'
+            src='/assets/web/timeline_event.svg'
+            width={24}
+            height={24}
+            alt={'Timeline event'}
+          />
+        )}
+        {!last && (
+          <div
+            className='absolute top-0 left-3 z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[3px]
+              bg-neutral-800'
+          />
+        )}
+        <Link
+          className='w-full'
+          href={`/${daoSlug}/${groupId}/results/${resultNumber}`} // Link to the results page
+          prefetch={true}
+        >
+          <div className='flex w-full items-center justify-between pl-3'>
             <div className='text-xs'>{content}</div>
 
             <Image
@@ -76,15 +82,15 @@ export function ResultEvent({
               alt={'Go to results'}
             />
           </div>
-          <div className='ml-2 text-sm'>
+          <div className='text-sm'>
             {Component ? (
               <Component result={result} />
             ) : (
               <p>Invalid or unsupported vote type</p>
             )}
           </div>
-        </div>
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 }

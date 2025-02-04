@@ -74,18 +74,17 @@ type Event =
   | GapEvent
   | ResultEvent;
 
-const MAX_EVENTS = 20;
 const MIN_TIME_BETWEEN_EVENTS = 1000 * 60 * 60 * 24; // 1 day in milliseconds
 
 const MAX_HEIGHT = 800;
 const EVENT_HEIGHT_UNITS = {
-  [TimelineEventType.Basic]: 32,
-  [TimelineEventType.ResultEndedBasicVote]: 118,
-  [TimelineEventType.ResultEndedOtherVotes]: 94,
-  [TimelineEventType.ResultOngoingBasicVote]: 120,
-  [TimelineEventType.ResultOngoingOtherVotes]: 95,
-  [TimelineEventType.CommentsVolume]: 3,
-  [TimelineEventType.VotesVolume]: 3,
+  [TimelineEventType.Basic]: 40,
+  [TimelineEventType.ResultEndedBasicVote]: 136,
+  [TimelineEventType.ResultEndedOtherVotes]: 88,
+  [TimelineEventType.ResultOngoingBasicVote]: 136,
+  [TimelineEventType.ResultOngoingOtherVotes]: 88,
+  [TimelineEventType.CommentsVolume]: 4,
+  [TimelineEventType.VotesVolume]: 4,
   [TimelineEventType.Gap]: 20,
 } as const;
 
@@ -387,26 +386,19 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
 
     // Aggregate events if necessary
     const totalHeightUnits = calculateTotalHeightUnits(events);
+
     const maxHeightUnits = MAX_HEIGHT;
 
     if (totalHeightUnits > maxHeightUnits) {
-      const timeSpan =
-        events[0].timestamp.getTime() -
-        events[events.length - 1].timestamp.getTime();
-      const aggregationWindow = Math.max(
-        timeSpan / MAX_EVENTS,
-        MIN_TIME_BETWEEN_EVENTS
-      );
-
       const commentEvents = aggregateVolumeEvents(
         events,
         TimelineEventType.CommentsVolume,
-        aggregationWindow
+        MIN_TIME_BETWEEN_EVENTS
       );
       const voteEvents = aggregateVolumeEvents(
         events,
         TimelineEventType.VotesVolume,
-        aggregationWindow
+        MIN_TIME_BETWEEN_EVENTS
       );
 
       const importantEvents = events.filter(

@@ -10,10 +10,10 @@ interface BasicEventProps {
 
 export function BasicEvent({ content, url, last }: BasicEventProps) {
   return (
-    <div className='relative mr-4 flex h-8 w-full items-center py-2'>
+    <div className='relative my-1 mr-4 flex h-8 w-full items-center'>
       <div
-        className='flex w-full items-center justify-between border border-neutral-800 bg-white px-4
-          py-1'
+        className='flex h-full w-full items-center justify-between rounded-xs border
+          border-neutral-300 bg-neutral-100 px-4 py-1'
       >
         <Image
           className='absolute top-1 left-1 z-20'

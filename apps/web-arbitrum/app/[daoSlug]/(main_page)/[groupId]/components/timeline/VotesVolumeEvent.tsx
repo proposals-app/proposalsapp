@@ -7,7 +7,7 @@ interface VotesVolumeEventProps {
 
 export function VotesVolumeEvent({ volume }: VotesVolumeEventProps) {
   return (
-    <div className='flex h-full w-full items-center'>
+    <div className='flex h-1 w-full items-center'>
       <div
         className='bg-neutral-350 ml-4 h-1 translate-x-[1px]'
         style={{
