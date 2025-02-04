@@ -5,9 +5,9 @@ import {
   parseAsStringEnum,
   useQueryState,
 } from 'nuqs';
-import ArrowSvg from '@/public/assets/web/arrow.svg'; // Import the SVG as a React component
-import CheckboxCheck from '@/public/assets/web/checkbox_check.svg'; // Import the SVG as a React component
-import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg'; // Import the SVG as a React component
+import ArrowSvg from '@/public/assets/web/arrow.svg';
+import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
+import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 
 export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
   const [view, setView] = useQueryState(

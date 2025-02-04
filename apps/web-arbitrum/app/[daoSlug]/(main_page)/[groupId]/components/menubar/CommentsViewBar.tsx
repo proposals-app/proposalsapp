@@ -4,11 +4,11 @@ import { ViewEnum, VotesFilterEnum } from '@/app/searchParams';
 import * as Popover from '@radix-ui/react-popover';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { voteFilters } from './MenuBar';
-import ArrowSvg from '@/public/assets/web/arrow.svg'; // Import the SVG as a React component
-import CheckboxCheck from '@/public/assets/web/checkbox_check.svg'; // Import the SVG as a React component
-import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg'; // Import the SVG as a React component
-import ChevronDownSvg from '@/public/assets/web/chevron_down.svg'; // Import the SVG as a React component
-import CheckSvg from '@/public/assets/web/check.svg'; // Import the SVG as a React component
+import ArrowSvg from '@/public/assets/web/arrow.svg';
+import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
+import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
+import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
+import CheckSvg from '@/public/assets/web/check.svg';
 
 export const CommentsViewBar = () => {
   const [comments, setComments] = useQueryState(
