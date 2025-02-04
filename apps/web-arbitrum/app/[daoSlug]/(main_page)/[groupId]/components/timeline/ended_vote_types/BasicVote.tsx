@@ -145,7 +145,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
               <span className='font-semibold'>
                 {participationPercentage.toFixed(0)}%
               </span>{' '}
-              of tokens have voted
+              have voted
             </div>
           </div>
         </div>

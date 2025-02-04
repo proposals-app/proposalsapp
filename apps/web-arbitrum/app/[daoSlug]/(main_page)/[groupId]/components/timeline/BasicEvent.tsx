@@ -1,5 +1,5 @@
-import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface BasicEventProps {
   content: string;
@@ -15,17 +15,28 @@ export function BasicEvent({ content, url, last }: BasicEventProps) {
         className='flex w-full items-center justify-between border border-neutral-800 bg-white px-4
           py-1'
       >
-        <div className='absolute top-3 left-3 z-20 h-[7px] w-[7px] rounded-full bg-neutral-500' />
+        <Image
+          className='absolute top-1 left-1 z-20'
+          src='/assets/web/timeline_event.svg'
+          width={24}
+          height={24}
+          alt={'Timeline event'}
+        />
         {!last && (
           <div
-            className='absolute top-[1px] left-3 z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px]
-              bg-neutral-500'
+            className='absolute top-0 left-3 z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[3px]
+              bg-neutral-800'
           />
         )}
         <div className='ml-2 text-xs'>{content}</div>
         {url && (
           <Link href={url} target='_blank'>
-            <ArrowUpRight size={14} />
+            <Image
+              src='/assets/web/arrow_external_link.svg'
+              width={24}
+              height={24}
+              alt={'Go to event'}
+            />
           </Link>
         )}
       </div>

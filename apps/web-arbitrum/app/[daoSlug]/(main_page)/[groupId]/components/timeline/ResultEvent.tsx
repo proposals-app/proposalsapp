@@ -1,4 +1,3 @@
-import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { ApprovalVote } from './ended_vote_types/ApprovalVote';
 import { BasicVote } from './ended_vote_types/BasicVote';
@@ -7,6 +6,7 @@ import { RankedChoiceVote } from './ended_vote_types/RankedChoiceVote';
 import { SingleChoiceVote } from './ended_vote_types/SingleChoiceVote';
 import { WeightedVote } from './ended_vote_types/WeightedVote';
 import { ProcessedResults } from '@/lib/results_processing';
+import Image from 'next/image';
 
 interface ResultEventProps {
   content: string;
@@ -44,18 +44,37 @@ export function ResultEvent({
       prefetch={true}
     >
       <div className='relative flex w-full items-center py-2'>
-        <div className='flex w-full flex-col gap-1 border border-neutral-800 bg-white px-4 py-2 pr-8'>
-          <div className='absolute top-5 left-3 z-20 h-[7px] w-[7px] rounded-full bg-neutral-500' />
-          {!last && (
-            <div
-              className='absolute top-[7px] left-3 z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px]
-                bg-neutral-500'
+        <div className='flex w-full flex-col gap-1 border border-neutral-800 bg-white px-5 py-1 pr-8'>
+          {last ? (
+            <Image
+              className='absolute top-3 left-1 z-20'
+              src='/assets/web/timeline_active_event.svg'
+              width={24}
+              height={24}
+              alt={'Timeline event'}
             />
+          ) : (
+            <div>
+              <Image
+                className='absolute top-4 left-1 z-20'
+                src='/assets/web/timeline_event.svg'
+                width={24}
+                height={24}
+                alt={'Timeline event'}
+              />
+              <div className='absolute top-1 left-3 z-10 h-[25px] w-0.5 translate-x-[3px] bg-neutral-800' />
+            </div>
           )}
+
           <div className='ml-2 flex w-full items-center justify-between'>
             <div className='text-xs'>{content}</div>
 
-            <ArrowRight size={14} />
+            <Image
+              src='/assets/web/arrow_result_right.svg'
+              width={24}
+              height={24}
+              alt={'Go to results'}
+            />
           </div>
           <div className='ml-2 text-sm'>
             {Component ? (

@@ -35,7 +35,7 @@ export async function Timeline({
         pl-4'
     >
       <div className='relative h-[calc(100vh-96px)] w-full'>
-        <div className='absolute top-5 bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500' />
+        <div className='absolute top-5 bottom-5 left-[14px] w-0.5 translate-x-[1px] bg-neutral-800' />
         <div className='flex h-full flex-col justify-between'>
           {events.map((event, index) => {
             // Determine visibility based on filters and metadata
