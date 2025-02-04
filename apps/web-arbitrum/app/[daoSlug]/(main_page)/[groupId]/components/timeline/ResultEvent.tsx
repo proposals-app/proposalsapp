@@ -47,7 +47,7 @@ export function ResultEvent({
     >
       <div
         className='dark:border-neutral-450 flex h-full w-full rounded-xs border border-neutral-800
-          bg-white px-4 py-1 text-neutral-800 dark:bg-black dark:text-neutral-200'
+          bg-white px-4 py-1 text-neutral-800 dark:bg-neutral-950 dark:text-neutral-200'
       >
         {last ? (
           <TimelineEventActiveIcon

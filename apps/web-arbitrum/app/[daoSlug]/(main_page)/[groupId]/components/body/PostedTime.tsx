@@ -18,7 +18,7 @@ export async function PostedTime({
   return (
     <div
       className={`flex flex-row items-center gap-2 px-2 py-1
-        ${border ? 'bg-white dark:bg-black' : ''}`}
+        ${border ? 'bg-white dark:bg-neutral-950' : ''}`}
     >
       <div className='dark:text-neutral-350 flex flex-col text-xs text-neutral-600'>
         <span className=''>{label}</span>

@@ -40,9 +40,9 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
 
   return (
     <div
-      className={`fixed top-0 right-0 left-0 z-10 ml-20 h-20 bg-white shadow-md
-        transition-transform duration-300 dark:bg-black
-        ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
+      className={`dark:border-neutral-450 fixed top-0 right-0 left-0 z-10 ml-20 h-20 border-b
+        border-neutral-800 bg-white shadow-md transition-transform duration-300
+        dark:bg-neutral-950 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
     >
       <div className='mx-auto flex h-full w-full items-center px-6 lg:px-24'>
         <div className='flex flex-row items-center gap-4 md:pl-10 lg:pl-20'>
