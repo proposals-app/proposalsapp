@@ -28,17 +28,17 @@ export const MARKDOWN_STYLES = {
 };
 
 export const QUOTE_STYLES = {
-  wrapper: 'my-4 border-l-2 p-4 text-neutral-700 dark:text-neutral-300',
-  header: 'flex text-sm mb-2 font-bold text-neutral-700 dark:text-neutral-300',
-  content: 'text-neutral-700 dark:text-neutral-300',
+  wrapper: 'my-4 border-l-2 p-4 text-neutral-600 dark:text-neutral-400',
+  header: 'flex text-sm mb-2 font-bold text-neutral-600 dark:text-neutral-400',
+  content: 'text-neutral-600 dark:text-neutral-400',
 } as const;
 
 export const QUOTE_STYLES_POST = {
-  wrapper: 'my-4 border-l-2 p-4',
-  header: 'flex text-sm mb-2 font-bold',
-  content: '',
+  wrapper: 'my-4 border-l-2 p-4 border-neutral-400 dark:border-neutral-600',
+  header: 'flex text-sm mb-2 font-bold text-neutral-400 dark:text-neutral-600',
+  content: 'text-neutral-600 dark:text-neutral-400',
   linkWrapper: 'w-full flex justify-end mt-2 cursor-default select-none',
-  link: 'hover:underline text-sm font-bold no-underline',
+  link: 'hover:underline text-sm font-bold no-underline text-neutral-400 dark:text-neutral-600',
 } as const;
 
 export const COLLAPSIBLE_STYLES = {

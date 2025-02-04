@@ -234,8 +234,14 @@ function processQuotes(html: string): string {
     topicId: string,
     content: string
   ) {
-    const anchorHref =
-      postNumber === '1' ? '#' : `#post-${postNumber}-${topicId}`;
+    // Process the content to ensure paragraphs are properly formatted
+    const formattedContent = content
+      .split('\n\n')
+      .map((paragraph) => paragraph.trim())
+      .filter((paragraph) => paragraph.length > 0)
+      .map((paragraph) => `<p class="${MARKDOWN_STYLES.p}">${paragraph}</p>`)
+      .join('\n');
+
     return `
       <div class="${QUOTE_STYLES_POST.wrapper}">
         <div class="${QUOTE_STYLES_POST.header}">
@@ -243,11 +249,12 @@ function processQuotes(html: string): string {
           <span>${username}</span>
         </div>
         <div class="${QUOTE_STYLES_POST.content}">
-          ${content.trim()}
+          ${formattedContent}
         </div>
         <div class="${QUOTE_STYLES_POST.linkWrapper}">
-          <a href="${anchorHref}" class="${QUOTE_STYLES_POST.link}">
-                    ${postNumber === '1' ? 'back to top ↑' : 'jump to post →'}
+          <a href="${postNumber === '1' ? '#' : `#post-${postNumber}-${topicId}`}"
+             class="${QUOTE_STYLES_POST.link}">
+            ${postNumber === '1' ? 'back to top ↑' : 'jump to post →'}
           </a>
         </div>
       </div>

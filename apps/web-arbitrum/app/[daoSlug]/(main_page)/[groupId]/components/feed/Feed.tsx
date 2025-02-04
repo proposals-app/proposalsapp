@@ -50,7 +50,7 @@ export default async function Feed({
                 <PostItem item={item} group={group} />
               </div>
               {index < itemsWithPlaceholders.length - 1 && (
-                <div className='border-b border-neutral-200' />
+                <div className='border-b border-neutral-200 dark:border-neutral-800' />
               )}
             </div>
           );
@@ -67,7 +67,7 @@ export default async function Feed({
                 )}
               </div>
               {index < itemsWithPlaceholders.length - 1 && (
-                <div className='border-b border-neutral-200' />
+                <div className='border-b border-neutral-200 dark:border-neutral-800' />
               )}
             </div>
           );
