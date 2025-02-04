@@ -2438,7 +2438,7 @@ __metadata:
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
-    "@types/node": "npm:22.13.0"
+    "@types/node": "npm:22.13.1"
     "@types/postcss-load-config": "npm:^3.0.1"
     "@types/prettier": "npm:^3.0.0"
     "@types/react": "npm:^19.0.8"
@@ -2535,7 +2535,7 @@ __metadata:
     "@radix-ui/react-tooltip": "npm:^1.1.7"
     "@serwist/next": "npm:9.0.11"
     "@tailwindcss/postcss": "npm:^4.0.3"
-    "@types/node": "npm:22.13.0"
+    "@types/node": "npm:22.13.1"
     "@types/react": "npm:^19.0.8"
     "@types/react-day-picker": "npm:5.3.0"
     "@types/react-dom": "npm:^19.0.3"
@@ -2558,7 +2558,7 @@ __metadata:
     pg: "npm:8.13.1"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:^8.5.1"
-    posthog-js: "npm:1.215.1"
+    posthog-js: "npm:1.215.2"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.4.2"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
@@ -2578,7 +2578,7 @@ __metadata:
     typescript: "npm:^5.7.3"
     uuid: "npm:^11.0.5"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.22.19"
+    viem: "npm:2.22.21"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.1"
   languageName: unknown
@@ -4867,12 +4867,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:22.13.0":
-  version: 22.13.0
-  resolution: "@types/node@npm:22.13.0"
+"@types/node@npm:22.13.1":
+  version: 22.13.1
+  resolution: "@types/node@npm:22.13.1"
   dependencies:
     undici-types: "npm:~6.20.0"
-  checksum: 10c0/9cf6358b2863ae7bf9588ca1cc3d87f6a6289c3880e95a046a188760666870e2c12502df8b0a473bec8aa8ffee85e025d60382a6104b10f197120793235b2c22
+  checksum: 10c0/d4e56d41d8bd53de93da2651c0a0234e330bd7b1b6d071b1a94bd3b5ee2d9f387519e739c52a15c1faa4fb9d97e825b848421af4b2e50e6518011e7adb4a34b7
   languageName: node
   linkType: hard
 
@@ -13625,15 +13625,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.215.1":
-  version: 1.215.1
-  resolution: "posthog-js@npm:1.215.1"
+"posthog-js@npm:1.215.2":
+  version: 1.215.2
+  resolution: "posthog-js@npm:1.215.2"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.2.0"
-  checksum: 10c0/2e7bfdb7d27484dfaad0f90e06e04c6e986c1d47843d08b7095ec10bfd8d1d9b1b29e909a0f96624881345f466d3028fda41c73f664c435f991e513e6610d2a2
+  checksum: 10c0/6f9758de7f486f8ca0a57a245b9853427be932ef666de7a086c365b019c3288aed56ed2c867b7c8fb9640a8c6c32ab9cd866924277fc67d0e87ab0fab05aa112
   languageName: node
   linkType: hard
 
@@ -16484,9 +16484,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.22.19":
-  version: 2.22.19
-  resolution: "viem@npm:2.22.19"
+"viem@npm:2.22.21":
+  version: 2.22.21
+  resolution: "viem@npm:2.22.21"
   dependencies:
     "@noble/curves": "npm:1.8.1"
     "@noble/hashes": "npm:1.7.1"
@@ -16501,7 +16501,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/1013e0325895ca2e1ae8916c454273ff7383699cf407136c1c34633120ff4edbc1eeeb643bfb0e8661521a384e2e2ed0945a28d785d578892fba8bbd441b07ab
+  checksum: 10c0/7d502ea91310556878eabe31bbfac56d0d87589a3f9f07608df26e0e044d049ca885c15554f3fae8dced66a2e7d8652d3cfc93c8878b754a44ec4d50ead4a3d3
   languageName: node
   linkType: hard
 
