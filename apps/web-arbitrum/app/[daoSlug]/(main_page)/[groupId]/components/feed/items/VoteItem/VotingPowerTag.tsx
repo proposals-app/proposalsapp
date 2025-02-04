@@ -10,8 +10,8 @@ export async function VotingPowerTag({ item }: { item: CombinedFeedItem }) {
 
   return (
     <div
-      className='text-neutral-650 flex w-fit gap-4 rounded-lg border border-neutral-300
-        bg-neutral-100 p-0.5 text-xs'
+      className='text-neutral-650 flex w-fit gap-4 rounded-sm border border-neutral-300
+        bg-neutral-100 p-0.5 px-2 text-xs'
     >
       <Tooltip.Root>
         <Tooltip.Trigger asChild>

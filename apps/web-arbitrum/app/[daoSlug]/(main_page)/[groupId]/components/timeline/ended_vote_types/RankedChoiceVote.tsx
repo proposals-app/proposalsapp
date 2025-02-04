@@ -65,7 +65,7 @@ export const RankedChoiceVote = ({ result }: RankedChoiceVoteProps) => {
     <div className='flex-col items-center justify-between space-y-1'>
       <div className='border-neutral-350 flex h-4 w-full overflow-hidden border'>
         <div
-          className='h-full'
+          className='h-full opacity-75'
           style={{
             width: `${winningPercentage}%`,
             backgroundColor: winningChoiceColor,

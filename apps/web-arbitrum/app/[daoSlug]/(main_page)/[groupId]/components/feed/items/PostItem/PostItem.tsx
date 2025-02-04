@@ -22,7 +22,7 @@ import {
   getPostLikesCount_cached,
 } from '../../actions';
 import { GroupReturnType } from '../../../../actions';
-import { formatNumberWithSuffix } from '@/lib/utils';
+import { VotingPowerTag } from './VotingPowerTag';
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === 'post';
@@ -193,16 +193,7 @@ const PostContent = ({
                   ? author.name
                   : author.username}
               </div>
-              <div>
-                {votingPower && (
-                  <div
-                    className='text-neutral-650 flex w-fit gap-4 rounded-lg border border-neutral-300
-                      bg-neutral-100 p-0.5 text-xs'
-                  >
-                    {formatNumberWithSuffix(votingPower)} ARB
-                  </div>
-                )}
-              </div>
+              {votingPower && <VotingPowerTag vp={votingPower} />}
             </div>
           </div>
         </Suspense>

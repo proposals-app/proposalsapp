@@ -62,7 +62,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
     tooltip: string;
   }) => (
     <div
-      className={'h-full border-white hover:opacity-90'}
+      className={'h-full border-white opacity-75 hover:opacity-90'}
       style={{ width: `${width}%`, backgroundColor: color }}
       title={tooltip}
     />

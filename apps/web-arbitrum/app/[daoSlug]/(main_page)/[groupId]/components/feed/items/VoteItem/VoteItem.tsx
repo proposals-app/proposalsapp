@@ -101,7 +101,7 @@ export async function VoteItem({
 
   return (
     <div className='flex w-full flex-col gap-2 p-4'>
-      <div style={{ width: barWidth }}>
+      <div style={{ width: barWidth }} className='opacity-75'>
         {Array.isArray(item.color) ? (
           <div className='flex w-full'>
             {item.color.map((color, index) => (
@@ -141,10 +141,17 @@ export async function VoteItem({
                 </Avatar.Fallback>
               </Avatar.Root>
               <div className='flex flex-col'>
-                <div className='font-bold text-neutral-700'>{displayName}</div>
-                {displayName !== voterAddress && (
-                  <div className='text-sm text-neutral-500'>{voterAddress}</div>
-                )}
+                <div>
+                  <span className='font-bold text-neutral-700'>
+                    {displayName}
+                  </span>
+                  {displayName !== voterAddress && (
+                    <span className='text-sm text-neutral-500'>
+                      {' '}
+                      with {voterAddress}
+                    </span>
+                  )}
+                </div>
                 <VotingPowerTag item={item} />
               </div>
             </div>
