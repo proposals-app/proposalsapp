@@ -99,57 +99,49 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
     return <div>No votes recorded</div>;
   }
 
-  // Get all votes sorted by voting power in descending order
   const sortedVotes =
     result.votes
-      ?.filter((vote) => !vote.aggregate) // Exclude aggregated votes
+      ?.filter((vote) => !vote.aggregate)
       .sort((a, b) => b.votingPower - a.votingPower) || [];
 
-  // Process votes into segments for each choice
-  const voteSegments: { [key: number]: VoteSegmentData[] } = {};
+  const voteSegments: { [key: string]: VoteSegmentData[] } = {};
   const aggregatedVotes: { [key: number]: { count: number; power: number } } =
     {};
 
-  // Initialize segments for each choice
   choices.forEach((_, index) => {
-    voteSegments[index] = [];
+    voteSegments[index.toString()] = [];
     aggregatedVotes[index] = { count: 0, power: 0 };
   });
 
-  // Process each vote
   sortedVotes.forEach((vote) => {
     const choice = vote.choice as number;
     const percentage = (vote.votingPower / totalVotingPower) * 100;
 
     if (percentage >= MIN_VISIBLE_WIDTH_PERCENT) {
-      // Add as individual segment
-      voteSegments[choice].push({
+      voteSegments[choice.toString()].push({
         votingPower: vote.votingPower,
         tooltip: `${formatNumberWithSuffix(vote.votingPower)} vote "${
           choices[choice]
         }"`,
       });
     } else {
-      // Add to aggregated votes
       aggregatedVotes[choice].count += 1;
       aggregatedVotes[choice].power += vote.votingPower;
     }
   });
 
-  // Add aggregated segments
   Object.entries(aggregatedVotes).forEach(([choice, data]) => {
     if (data.power > 0) {
-      voteSegments[Number(choice)].push({
+      voteSegments[choice.toString()].push({
         votingPower: data.power,
         tooltip: `${data.count} votes with ${formatNumberWithSuffix(
           data.power
-        )} total voting power for "${choices[Number(choice)]}"`,
+        )} total voting power for "${choices[parseInt(choice)]}"`,
         isAggregated: true,
       });
     }
   });
 
-  // Calculate total voting power for each choice
   const votingPowerByChoice = Object.entries(finalResults).map(
     ([choiceIndex, votingPower]) => ({
       choiceIndex: parseInt(choiceIndex),
@@ -158,52 +150,90 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
     })
   );
 
-  // Determine the winning option based on voting power
   const winningChoice = votingPowerByChoice.reduce(
     (a, b) => (a.votingPower > b.votingPower ? a : b),
     { choiceIndex: -1, votingPower: 0, formattedVotes: '' }
   );
 
-  // Calculate participation percentage
   const totalDelegatedVp = result.totalDelegatedVp || 0;
   const participationPercentage = (totalVotingPower / totalDelegatedVp) * 100;
-
-  // Check if quorum is reached
   const quorumReached = scoresQuorum >= quorum;
+  const isBasicVote = ['For', 'Against', 'Abstain'].includes(choices[0]);
 
   return (
     <div className='space-y-1'>
       <div className='flex h-4 w-full overflow-hidden'>
-        {Object.entries(voteSegments).map(([choice, segments]) =>
-          segments.map((segment, index) => (
-            <VoteSegment
-              key={`${choice}-${index}`}
-              color={choiceColors[Number(choice)]}
-              width={(segment.votingPower / totalVotingPower) * 100}
-              tooltip={segment.tooltip}
-              isAggregated={segment.isAggregated}
-            />
-          ))
-        )}
+        {isBasicVote
+          ? // Order: For, Abstain, Against
+            ['For', 'Abstain', 'Against'].map((choiceLabel) => {
+              const choiceIndex = choices.indexOf(choiceLabel);
+              if (choiceIndex === -1) return null;
+
+              return voteSegments[choiceIndex.toString()].map(
+                (segment, index) => (
+                  <VoteSegment
+                    key={`${choiceLabel}-${index}`}
+                    color={choiceColors[choiceIndex]}
+                    width={(segment.votingPower / totalVotingPower) * 100}
+                    tooltip={segment.tooltip}
+                    isAggregated={segment.isAggregated}
+                  />
+                )
+              );
+            })
+          : // Only show winning choice for non-basic votes
+            voteSegments[winningChoice.choiceIndex.toString()].map(
+              (segment, index) => (
+                <VoteSegment
+                  key={`winning-${index}`}
+                  color={choiceColors[winningChoice.choiceIndex]}
+                  width={(segment.votingPower / totalVotingPower) * 100}
+                  tooltip={segment.tooltip}
+                  isAggregated={segment.isAggregated}
+                />
+              )
+            )}
       </div>
 
       <div className='flex justify-between text-sm'>
-        {votingPowerByChoice.map(({ choiceIndex, formattedVotes }) => (
-          <div key={choiceIndex} className='flex items-center gap-1'>
-            {choiceIndex === winningChoice.choiceIndex && <Check size={14} />}
-            <span
-              className={
-                choiceIndex === winningChoice.choiceIndex ? 'font-bold' : ''
-              }
-            >
-              {choices[choiceIndex]}
+        {isBasicVote ? (
+          // Show For and Against labels for basic votes
+          <>
+            <div className='flex items-center gap-1'>
+              {winningChoice.choiceIndex === choices.indexOf('For') && (
+                <Check size={14} />
+              )}
+              <span className='font-bold'>For </span>
+              <span>
+                {formatNumberWithSuffix(
+                  finalResults[choices.indexOf('For')] || 0
+                )}
+              </span>
+            </div>
+            <div className='flex items-center gap-1'>
+              {winningChoice.choiceIndex === choices.indexOf('Against') && (
+                <Check size={14} />
+              )}
+              <span>
+                {formatNumberWithSuffix(
+                  finalResults[choices.indexOf('Against')] || 0
+                )}{' '}
+              </span>
+              <span className='font-bold'>Against</span>
+            </div>
+          </>
+        ) : (
+          // Show only winning choice for non-basic votes
+          <div className='flex items-center gap-1'>
+            <Check size={14} />
+            <span className='font-bold'>
+              {choices[winningChoice.choiceIndex]}{' '}
             </span>
-            <span>{formattedVotes}</span>
+            <span>{formatNumberWithSuffix(winningChoice.votingPower)}</span>
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Quorum and Participation Segments */}
       {totalDelegatedVp > 0 && (
         <div className='mt-4'>
           <div className='border-neutral-80 relative h-2 w-full border'>
@@ -221,7 +251,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
               <span className='font-bold'>
                 {formatNumberWithSuffix(scoresQuorum)}
               </span>
-              <span>of </span>
+              <span>of</span>
               <span>{formatNumberWithSuffix(quorum)} needed</span>
             </div>
 
