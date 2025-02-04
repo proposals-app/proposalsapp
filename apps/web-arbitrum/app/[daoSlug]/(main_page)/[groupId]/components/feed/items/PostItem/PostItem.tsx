@@ -1,7 +1,6 @@
 import { DiscourseUser, Selectable } from '@proposalsapp/db';
 import * as Avatar from '@radix-ui/react-avatar';
-import * as Tooltip from '@radix-ui/react-tooltip';
-import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
+import { formatDistanceToNowStrict } from 'date-fns';
 import { Root } from 'hast';
 import { CheckCheck, HeartIcon } from 'lucide-react';
 import { fromMarkdown } from 'mdast-util-from-markdown';
@@ -18,7 +17,6 @@ import {
 import {
   getDelegateByDiscourseUser_cached,
   getDiscourseUser_cached,
-  getPostLikedUsers_cached,
   getPostLikesCount_cached,
 } from '../../actions';
 import { GroupReturnType } from '../../../../actions';
@@ -44,10 +42,6 @@ export async function PostItem({
     item.daoDiscourseId
   );
   const likesCount = await getPostLikesCount_cached(
-    item.externalId,
-    item.daoDiscourseId
-  );
-  const likedUsers = await getPostLikedUsers_cached(
     item.externalId,
     item.daoDiscourseId
   );
@@ -82,10 +76,6 @@ export async function PostItem({
       addSuffix: true,
     }
   );
-  const utcTime = format(
-    formatISO(item.createdAt),
-    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
-  );
 
   const isPostDeleted = item.deleted;
 
@@ -114,11 +104,9 @@ export async function PostItem({
               <PostContent
                 author={author}
                 relativeCreateTime={relativeCreateTime}
-                utcTime={utcTime}
                 relativeUpdateTime={relativeUpdateTime}
                 updatedAt={updatedAt}
                 likesCount={likesCount}
-                likedUsers={likedUsers}
                 processedContent={processedContent}
                 votingPower={votingPower}
                 item={item}
@@ -131,11 +119,9 @@ export async function PostItem({
           <PostContent
             author={author}
             relativeCreateTime={relativeCreateTime}
-            utcTime={utcTime}
             relativeUpdateTime={relativeUpdateTime}
             updatedAt={updatedAt}
             likesCount={likesCount}
-            likedUsers={likedUsers}
             processedContent={processedContent}
             votingPower={votingPower}
             item={item}
@@ -149,22 +135,18 @@ export async function PostItem({
 const PostContent = ({
   author,
   relativeCreateTime,
-  utcTime,
   relativeUpdateTime,
   updatedAt,
   likesCount,
-  likedUsers,
   processedContent,
   item,
   votingPower,
 }: {
   author: Selectable<DiscourseUser> | undefined;
   relativeCreateTime: string;
-  utcTime: string;
   relativeUpdateTime: string;
   updatedAt: Date;
   likesCount: number;
-  likedUsers: string[];
   processedContent: string;
   item: PostFeedItem;
   votingPower?: number;

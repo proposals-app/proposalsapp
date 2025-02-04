@@ -1,7 +1,6 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import * as Avatar from '@radix-ui/react-avatar';
-import * as Tooltip from '@radix-ui/react-tooltip';
-import { format, formatDistanceToNowStrict, formatISO } from 'date-fns';
+import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { VotingPowerTag } from './VotingPowerTag';
@@ -74,10 +73,6 @@ export async function VoteItem({
     {
       addSuffix: true,
     }
-  );
-  const utcTime = format(
-    formatISO(item.createdAt!),
-    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
   );
 
   const formattedVotingPower = item.votingPower

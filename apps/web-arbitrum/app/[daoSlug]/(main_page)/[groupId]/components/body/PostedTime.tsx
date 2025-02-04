@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow, formatISO } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
 
 // Helper component to display the time with a tooltip
@@ -14,11 +14,6 @@ export async function PostedTime({
   const relativeTime = formatDistanceToNow(new Date(createdAt), {
     addSuffix: true,
   });
-
-  const formattedDateTime = format(
-    formatISO(new Date(createdAt)),
-    "MMMM do, yyyy 'at' HH:mm:ss 'UTC'"
-  );
 
   return (
     <div
