@@ -32,7 +32,7 @@ const VoteSegment = ({
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
         <div
-          className={'h-full opacity-75'}
+          className={'h-full'}
           style={{
             width: `${width}%`,
             ...(isAggregated

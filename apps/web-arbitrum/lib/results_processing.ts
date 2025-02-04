@@ -59,9 +59,9 @@ export const DEFAULT_CHOICE_COLOR = '#CBD5E1';
 export function getColorForChoice(choice: string | undefined | null): string {
   if (!choice) return DEFAULT_CHOICE_COLOR; // Default grey color
   const lowerCaseChoice = choice.toLowerCase();
-  if (/^(for|yes|yae)/.test(lowerCaseChoice)) return '#56B200'; // Green
-  if (/^(against|no|nay)/.test(lowerCaseChoice)) return '#FF4242'; // Red
-  if (lowerCaseChoice === 'abstain') return '#FFBC1F'; // Yellow
+  if (/^(for|yes|yae)/.test(lowerCaseChoice)) return '#69E000'; // Green
+  if (/^(against|no|nay)/.test(lowerCaseChoice)) return '#FF4C42'; // Red
+  if (lowerCaseChoice === 'abstain') return '#FFCC33'; // Yellow
   const colors = [
     '#3B82F6', // Blue
     '#8B5CF6', // Purple
