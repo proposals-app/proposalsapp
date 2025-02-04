@@ -43,14 +43,20 @@ export function ResultEvent({
           resultNumber == selectedResult
             ? 'w-36 rounded-l-xl border-t border-b border-l'
             : 'w-28 rounded-xl border'
-        } border-neutral-300 bg-white`}
+          } border-neutral-300 bg-white`}
       >
         {eventIndex == 0 && resultNumber == selectedResult && (
           <div className='absolute top-2 -right-2 h-2 w-10 border-t border-neutral-300 bg-white' />
         )}
-        <div className='absolute top-5 left-3 z-20 h-[7px] w-[7px] -translate-x-[0.5px] rounded-full bg-neutral-500' />
+        <div
+          className='absolute top-5 left-3 z-20 h-[7px] w-[7px] -translate-x-[0.5px] rounded-full
+            bg-neutral-500'
+        />
         {!last && (
-          <div className='absolute top-[7px] left-[11.5px] z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px] bg-neutral-500' />
+          <div
+            className='absolute top-[7px] left-[11.5px] z-10 h-[15px] max-h-[15px] w-0.5
+              translate-x-[2.5px] bg-neutral-500'
+          />
         )}
         <div className='ml-2 text-sm font-semibold'>{voteType}</div>
         {isLive && <div className='text-foreground text-sm'>Live Voting</div>}

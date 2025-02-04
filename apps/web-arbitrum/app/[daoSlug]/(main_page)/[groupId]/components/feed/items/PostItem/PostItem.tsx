@@ -101,7 +101,10 @@ export async function PostItem({
       ) : isPostDeleted ? (
         // Show the full details/summary UI for deleted posts
         <details className='w-full'>
-          <summary className='flex h-12 cursor-pointer list-none items-center justify-center border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'>
+          <summary
+            className='flex h-12 cursor-pointer list-none items-center justify-center
+              border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'
+          >
             <div className='grow border-t border-neutral-400'></div>
             <span className='mx-4'>deleted post</span>
             <div className='grow border-t border-neutral-400'></div>
@@ -204,7 +207,8 @@ const PostContent = ({
               </div>
             </Tooltip.Trigger>
             <Tooltip.Content
-              className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm text-neutral-700 shadow-lg'
+              className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
+                text-neutral-700 shadow-lg'
               sideOffset={5}
             >
               <p>{utcTime}</p>
@@ -231,7 +235,8 @@ const PostContent = ({
                 </div>
               </Tooltip.Trigger>
               <Tooltip.Content
-                className='max-w-48 rounded border border-neutral-200 bg-white p-3 text-left text-sm text-neutral-700 shadow-lg'
+                className='max-w-48 rounded border border-neutral-200 bg-white p-3 text-left text-sm
+                  text-neutral-700 shadow-lg'
                 sideOffset={5}
               >
                 <div className='flex flex-col gap-1'>

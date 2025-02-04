@@ -76,9 +76,14 @@ export const FullViewBar = () => {
   return (
     <div
       ref={fullViewBarRef}
-      className={`mt-4 min-w-4xl self-center overflow-visible px-2 text-neutral-800 transition-opacity duration-300 ${view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'}`}
+      className={`mt-4 min-w-4xl self-center overflow-visible px-2 text-neutral-800
+        transition-opacity duration-300
+        ${view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'}`}
     >
-      <div className='flex w-full items-center justify-between gap-2 border bg-white p-2 text-sm font-bold shadow-lg transition-colors'>
+      <div
+        className='flex w-full items-center justify-between gap-2 border bg-white p-2 text-sm
+          font-bold shadow-lg transition-colors'
+      >
         <div className='flex w-full justify-between'>
           {expanded ? (
             <button
@@ -176,7 +181,8 @@ export const FullViewBar = () => {
                   {voteFilters.map((filter) => (
                     <button
                       key={filter.value}
-                      className='flex w-full items-center justify-between px-2 py-1.5 text-sm transition-colors hover:bg-neutral-100'
+                      className='flex w-full items-center justify-between px-2 py-1.5 text-sm transition-colors
+                        hover:bg-neutral-100'
                       onClick={() => {
                         setVotesFilter(filter.value as VotesFilterEnum);
                       }}

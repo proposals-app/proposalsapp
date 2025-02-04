@@ -30,7 +30,10 @@ export async function Timeline({
   });
 
   return (
-    <div className='fixed top-0 right-0 flex h-screen w-96 flex-col items-end justify-start pt-24 pl-4'>
+    <div
+      className='fixed top-0 right-0 flex h-screen w-96 flex-col items-end justify-start pt-24
+        pl-4'
+    >
       <div className='relative h-full max-h-[840px] w-full'>
         <div className='absolute top-4 bottom-4 left-[14px] w-0.5 translate-x-[1px] bg-neutral-800' />
         <div className='flex h-full flex-col justify-between'>
@@ -128,7 +131,10 @@ export async function Timeline({
 
 export function LoadingTimeline() {
   return (
-    <div className='fixed top-0 right-0 flex h-screen w-96 flex-col items-end justify-start pt-24 pl-4'>
+    <div
+      className='fixed top-0 right-0 flex h-screen w-96 flex-col items-end justify-start pt-24
+        pl-4'
+    >
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
         <div className='absolute top-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>

@@ -15,7 +15,8 @@ export function GapEvent() {
       />
 
       <div
-        className='absolute top-0 left-1/2 hidden h-full w-full -translate-x-1/2 transform dark:block'
+        className='absolute top-0 left-1/2 hidden h-full w-full -translate-x-1/2 transform
+          dark:block'
         style={{
           background: `repeating-linear-gradient(
                      to bottom,

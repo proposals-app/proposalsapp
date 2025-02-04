@@ -51,7 +51,8 @@ const VoteSegment = ({
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
-          className='rounded border bg-white p-2 text-sm shadow-md dark:bg-neutral-800 dark:text-neutral-100'
+          className='rounded border bg-white p-2 text-sm shadow-md dark:bg-neutral-800
+            dark:text-neutral-100'
           sideOffset={5}
         >
           {tooltip}

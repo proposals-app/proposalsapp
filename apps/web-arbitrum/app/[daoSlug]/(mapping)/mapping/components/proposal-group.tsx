@@ -224,7 +224,7 @@ export default function GroupingInterface({
                       <span className='flex gap-2'>
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
-                            item.type === 'proposal'
+                        item.type === 'proposal'
                               ? 'bg-blue-100'
                               : 'bg-gray-100'
                           }`}
@@ -233,7 +233,7 @@ export default function GroupingInterface({
                         </span>
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
-                            item.indexerName.includes('SNAPSHOT')
+                      item.indexerName.includes('SNAPSHOT')
                               ? 'bg-yellow-100'
                               : item.indexerName.includes('http')
                                 ? 'bg-blue-100'
@@ -302,8 +302,7 @@ export default function GroupingInterface({
                   <li key={item.id} className='flex items-center gap-2'>
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-medium ${
-                        item.type === 'proposal' ? 'bg-blue-100' : 'bg-gray-100'
-                      }`}
+                      item.type === 'proposal' ? 'bg-blue-100' : 'bg-gray-100' }`}
                     >
                       {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
                     </span>

@@ -18,7 +18,10 @@ export function Header({
   itemId,
 }: ResultsHeaderProps) {
   return (
-    <div className='fixed top-0 right-0 left-0 z-50 ml-20 flex h-20 items-center gap-4 bg-neutral-50 px-6 shadow-md'>
+    <div
+      className='fixed top-0 right-0 left-0 z-50 ml-20 flex h-20 items-center gap-4 bg-neutral-50
+        px-6 shadow-md'
+    >
       <Link
         href={`/${daoSlug}/${itemId}`}
         className='flex items-center gap-2 rounded-full px-3 py-2'
