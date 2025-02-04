@@ -8,6 +8,13 @@ interface BasicVoteProps {
   result: ProcessedResults;
 }
 
+interface VoteChoice {
+  choiceIndex: number;
+  votingPower: number;
+  formattedVotes: string;
+  color: string;
+}
+
 export const BasicVote = ({ result }: BasicVoteProps) => {
   const {
     finalResults,
@@ -52,24 +59,15 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
     return <div>No votes recorded</div>;
   }
 
-  const VoteSegment = ({
-    color,
-    width,
-    tooltip,
-  }: {
-    color: string;
-    width: number;
-    tooltip: string;
-  }) => (
+  const VoteSegment = ({ color, width }: { color: string; width: number }) => (
     <div
-      className={'h-full border-white opacity-75 hover:opacity-90'}
+      className={'h-full border-white opacity-75'}
       style={{ width: `${width}%`, backgroundColor: color }}
-      title={tooltip}
     />
   );
 
   // Calculate total voting power for each choice
-  const votingPowerByChoice = Object.entries(finalResults).map(
+  const votingPowerByChoice: VoteChoice[] = Object.entries(finalResults).map(
     ([choiceIndex, votingPower]) => ({
       choiceIndex: parseInt(choiceIndex),
       votingPower,
@@ -81,8 +79,31 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
   // Determine the winning option based on voting power
   const winningChoice = votingPowerByChoice.reduce(
     (a, b) => (a.votingPower > b.votingPower ? a : b),
-    { choiceIndex: -1, votingPower: 0 }
+    { choiceIndex: -1, votingPower: 0, formattedVotes: '', color: '' }
   );
+
+  // Sort choices if they are "For", "Against", and "Abstain"
+  const sortedChoices: VoteChoice[] = (() => {
+    if (
+      choices.includes('For') &&
+      choices.includes('Against') &&
+      choices.includes('Abstain')
+    ) {
+      return ['For', 'Abstain', 'Against']
+        .map((choice) => {
+          const index = choices.indexOf(choice);
+          const votingPower = finalResults[index] || 0;
+          return {
+            choiceIndex: index,
+            votingPower,
+            formattedVotes: formatNumberWithSuffix(votingPower),
+            color: choiceColors[index] || '#CBD5E1',
+          };
+        })
+        .filter((item) => item.choiceIndex !== -1);
+    }
+    return [winningChoice];
+  })();
 
   // Calculate participation percentage
   const totalDelegatedVp = result.totalDelegatedVp || 0;
@@ -94,17 +115,16 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
   return (
     <div className='space-y-1'>
       <div className='flex h-4 w-full overflow-hidden border'>
-        {votingPowerByChoice.map(({ choiceIndex, votingPower, color }) => (
+        {sortedChoices.map(({ choiceIndex, votingPower, color }) => (
           <VoteSegment
             key={choiceIndex}
             color={color}
             width={(votingPower / totalVotingPower) * 100}
-            tooltip={`${formatNumberWithSuffix(votingPower)} voting power for ${choices[choiceIndex]}`}
           />
         ))}
       </div>
       <div className='flex justify-between text-sm'>
-        {votingPowerByChoice.map(({ choiceIndex, formattedVotes }) => (
+        {sortedChoices.map(({ choiceIndex, formattedVotes }) => (
           <div key={choiceIndex} className='flex items-center gap-1'>
             {choiceIndex === winningChoice.choiceIndex && <Check size={14} />}
             <span
