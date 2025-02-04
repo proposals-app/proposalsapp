@@ -39,9 +39,7 @@ export function ResultEvent({
 
   return (
     <div
-      className={`relative mr-4 flex
-        ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} my-1
-        w-full items-center`}
+      className={`relative mr-4 flex ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} my-1 w-full items-center`}
     >
       <div className='flex h-full w-full rounded-xs border border-neutral-400 bg-white px-4 py-1'>
         {last ? (
@@ -62,10 +60,7 @@ export function ResultEvent({
           />
         )}
         {!last && (
-          <div
-            className='absolute top-0 left-3 z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[3px]
-              bg-neutral-800'
-          />
+          <div className='absolute top-0 left-3 z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[3px] bg-neutral-800' />
         )}
         <Link
           className='w-full'

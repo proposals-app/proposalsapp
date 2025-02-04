@@ -130,10 +130,7 @@ export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
                 />
 
                 {/* Choices that count towards quorum */}
-                <div
-                  className='absolute inset-0 flex overflow-hidden rounded-lg border border-neutral-300
-                    bg-white'
-                >
+                <div className='absolute inset-0 flex overflow-hidden rounded-lg border border-neutral-300 bg-white'>
                   {sortedChoices
                     .filter((choice) => choice.countsTowardsQuorum)
                     .map((choice, index) => (

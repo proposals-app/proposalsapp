@@ -213,8 +213,7 @@ export function LoadingTable() {
         {[...Array(10)].map((_, index) => (
           <div
             key={index}
-            className='grid h-12 grid-cols-4 items-center gap-4 rounded-lg bg-neutral-200 p-2
-              dark:bg-neutral-800'
+            className='grid h-12 grid-cols-4 items-center gap-4 rounded-lg bg-neutral-200 p-2'
           >
             <div className='h-4 w-full animate-pulse rounded-sm bg-neutral-300' />
             <div className='h-4 w-full animate-pulse rounded-sm bg-neutral-300' />

@@ -70,10 +70,7 @@ export default async function ListPage({
               href={`/${daoSlug}/${group.id}`}
               prefetch={true}
             >
-              <div
-                className='rounded-lg border border-neutral-200 bg-white p-6 shadow-sm transition-all
-                  duration-200 hover:border-neutral-300 hover:shadow-md'
-              >
+              <div className='rounded-lg border border-neutral-200 bg-white p-6 shadow-sm transition-all duration-200 hover:border-neutral-300 hover:shadow-md'>
                 <h2 className='text-xl font-semibold text-neutral-700'>
                   {group.name}
                 </h2>

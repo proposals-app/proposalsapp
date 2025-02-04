@@ -10,6 +10,14 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children, daoSlug }: ThemeProviderProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return <div />;
+
   return (
     <NextThemesProvider attribute='class' defaultTheme='light' enableSystem>
       <Tooltip.Provider>

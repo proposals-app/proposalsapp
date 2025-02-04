@@ -48,8 +48,7 @@ export async function PostedTime({
         </Tooltip.Trigger>
 
         <Tooltip.Content
-          className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm
-            text-neutral-700 shadow-lg'
+          className='max-w-44 rounded border border-neutral-200 bg-white p-2 text-center text-sm text-neutral-700 shadow-lg'
           sideOffset={5}
         >
           {formattedDateTime}

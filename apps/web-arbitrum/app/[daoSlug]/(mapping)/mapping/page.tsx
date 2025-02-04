@@ -29,7 +29,7 @@ export default async function MappingPage({
                   </span>
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-medium ${
-                    proposal.indexerName.includes('SNAPSHOT')
+                      proposal.indexerName.includes('SNAPSHOT')
                         ? 'bg-yellow-100'
                         : 'bg-green-100'
                     }`}

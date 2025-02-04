@@ -198,10 +198,7 @@ export function LoadingTimeline() {
               className='h relative flex w-full items-center justify-start'
             >
               {/* Placeholder Event Content */}
-              <div
-                className='flex h-[122px] flex-col gap-1 rounded-xl border border-neutral-300 bg-white px-4
-                  py-2'
-              >
+              <div className='flex h-[122px] flex-col gap-1 rounded-xl border border-neutral-300 bg-white px-4 py-2'>
                 <div className='h-4 w-20 rounded-sm bg-gray-300' />
                 <div className='h-4 w-16 rounded-sm bg-gray-300' />
                 <div className='h-4 w-20 rounded-sm bg-gray-300' />

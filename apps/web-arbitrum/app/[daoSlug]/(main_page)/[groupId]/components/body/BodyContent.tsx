@@ -26,10 +26,7 @@ const BodyContent = memo(
             className='diff-content'
           />
           {!expanded && (
-            <div
-              className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-[var(--neutral-50)]
-                to-transparent dark:from-[var(--neutral-950)]'
-            />
+            <div className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-neutral-50 to-transparent dark:from-neutral-950' />
           )}
         </div>
       </div>

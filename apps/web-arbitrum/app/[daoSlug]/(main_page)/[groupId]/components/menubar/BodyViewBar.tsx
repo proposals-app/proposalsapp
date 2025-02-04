@@ -34,13 +34,9 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
 
   return (
     <div
-      className={`fixed bottom-0 z-50 mt-4 min-w-4xl self-center px-4 pb-4 transition-opacity
-        duration-300 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed bottom-0 z-50 mt-4 min-w-4xl self-center px-4 pb-4 transition-opacity duration-300 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
     >
-      <div
-        className='flex w-full items-center justify-between gap-2 border bg-white p-2 text-sm
-          font-bold shadow-lg'
-      >
+      <div className='flex w-full items-center justify-between gap-2 border bg-white p-2 text-sm font-bold shadow-lg'>
         <div className='flex w-full justify-between'>
           <div className='flex items-center gap-4'>
             {/* <ArrowUp
@@ -93,7 +89,7 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
                 currentVersion === 0
                   ? 'cursor-not-allowed bg-neutral-50 text-neutral-400'
                   : 'hover:bg-neutral-100'
-                  }`}
+              }`}
             >
               <Image
                 className='-rotate-90'
