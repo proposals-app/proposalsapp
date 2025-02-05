@@ -20,46 +20,29 @@ const MIN_VISIBLE_WIDTH_PERCENT = 1;
 const VoteSegment = ({
   color,
   width,
-  tooltip,
   isAggregated = false,
 }: {
   color: string;
   width: number;
-  tooltip: string;
   isAggregated?: boolean;
 }) => (
-  <Tooltip.Provider>
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>
-        <div
-          className={'h-full'}
-          style={{
-            width: `${width}%`,
-            ...(isAggregated
-              ? {
-                  background: `repeating-linear-gradient(
+  <div
+    className={'h-full'}
+    style={{
+      width: `${width}%`,
+      ...(isAggregated
+        ? {
+            background: `repeating-linear-gradient(
                     90deg,
                     ${color} 0px,
                     ${color} 1px,
                     transparent 1px,
                     transparent 2px
                   )`,
-                }
-              : { backgroundColor: color, marginRight: 1 }),
-          }}
-        />
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content
-          className='rounded border bg-white p-2 text-sm shadow-md dark:bg-neutral-800
-            dark:text-neutral-100'
-          sideOffset={5}
-        >
-          {tooltip}
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
-  </Tooltip.Provider>
+          }
+        : { backgroundColor: color, marginRight: 1 }),
+    }}
+  />
 );
 
 export const BasicVote = ({ result }: BasicVoteProps) => {
@@ -182,7 +165,6 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
                     key={`${choiceLabel}-${index}`}
                     color={choiceColors[choiceIndex]}
                     width={(segment.votingPower / totalVotingPower) * 100}
-                    tooltip={segment.tooltip}
                     isAggregated={segment.isAggregated}
                   />
                 )
@@ -195,7 +177,6 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
                   key={`winning-${index}`}
                   color={choiceColors[winningChoice.choiceIndex]}
                   width={(segment.votingPower / totalVotingPower) * 100}
-                  tooltip={segment.tooltip}
                   isAggregated={segment.isAggregated}
                 />
               )
