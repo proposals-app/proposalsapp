@@ -166,7 +166,7 @@ export default function GroupingInterface({
                 />
               ) : (
                 <Link
-                  href={`/${daoSlug}/${group.id}`}
+                  href={`/${group.id}`}
                   target='_blank'
                   className='flex gap-2'
                 >

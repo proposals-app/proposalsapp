@@ -73,7 +73,7 @@ export function ResultEvent({
         )}
         <Link
           className='w-full'
-          href={`/${daoSlug}/${groupId}/results/${resultNumber}`} // Link to the results page
+          href={`/${groupId}/results/${resultNumber}`} // Link to the results page
           prefetch={true}
         >
           <div className='flex w-full items-center justify-between pl-3'>

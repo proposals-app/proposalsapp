@@ -63,11 +63,7 @@ export default async function ListPage({
         <h1 className='mb-8 text-4xl font-bold'>{daoName || daoSlug}</h1>
         <div className='flex flex-col gap-4'>
           {allGroups.map((group) => (
-            <Link
-              key={group.id}
-              href={`/${daoSlug}/${group.id}`}
-              prefetch={true}
-            >
+            <Link key={group.id} href={`/${group.id}`} prefetch={true}>
               <div
                 className='rounded-lg border border-neutral-200 bg-white p-6 shadow-sm transition-all
                   duration-200 hover:border-neutral-300 hover:shadow-md'
