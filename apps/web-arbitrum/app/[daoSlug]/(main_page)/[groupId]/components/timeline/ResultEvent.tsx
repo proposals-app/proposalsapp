@@ -46,8 +46,9 @@ export function ResultEvent({
         w-full items-center`}
     >
       <div
-        className='dark:border-neutral-450 flex h-full w-full rounded-xs border border-neutral-800
-          bg-white px-4 py-1 text-neutral-800 dark:bg-neutral-950 dark:text-neutral-200'
+        className={`${last ? 'dark:border-neutral-450 border-neutral-800' : 'dark:border-neutral-650 border-neutral-400'}flex
+          h-full w-full rounded-xs border bg-white px-4 py-1 text-neutral-800
+          dark:bg-neutral-950 dark:text-neutral-200`}
       >
         {last ? (
           <TimelineEventActiveIcon

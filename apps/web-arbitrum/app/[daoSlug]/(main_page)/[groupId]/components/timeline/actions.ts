@@ -255,8 +255,10 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
         const offchain =
           daoIndexer.indexerVariant == IndexerVariant.SNAPSHOT_PROPOSALS;
 
+        const currentTimestamp = new Date();
+
         events.push({
-          content: `${offchain ? 'Offchain' : 'Onchain'} vote started on ${format(
+          content: `${offchain ? 'Offchain' : 'Onchain'} vote ${currentTimestamp > startedAt ? 'started' : 'starts'} on ${format(
             startedAt,
             'MMM d'
           )}`,
@@ -265,86 +267,89 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
           url: proposal.url,
         });
 
-        const votes = await db
-          .selectFrom('vote')
-          .selectAll()
-          .where('proposalId', '=', proposal.id)
-          .execute();
+        // Fetch votes only if the vote has started
+        if (currentTimestamp >= startedAt) {
+          const votes = await db
+            .selectFrom('vote')
+            .selectAll()
+            .where('proposalId', '=', proposal.id)
+            .execute();
 
-        const processedResults = await processResultsAction(proposal, votes, {
-          withVotes: true,
-          withTimeseries: false,
-          aggregatedVotes: false,
-        });
-
-        const metadata =
-          typeof proposal.metadata === 'string'
-            ? (JSON.parse(proposal.metadata) as ProposalMetadata)
-            : (proposal.metadata as ProposalMetadata);
-
-        const voteType = metadata?.voteType;
-
-        if (new Date() > endedAt) {
-          events.push({
-            content: `${offchain ? 'Offchain' : 'Onchain'} vote ended ${formatDistanceToNow(
-              endedAt,
-              { addSuffix: true }
-            )}`,
-            type:
-              voteType === 'basic'
-                ? TimelineEventType.ResultEndedBasicVote
-                : TimelineEventType.ResultEndedOtherVotes,
-            timestamp: endedAt,
-            result: processedResults,
+          const processedResults = await processResultsAction(proposal, votes, {
+            withVotes: true,
+            withTimeseries: false,
+            aggregatedVotes: false,
           });
-        } else {
-          events.push({
-            content: `${offchain ? 'Offchain' : 'Onchain'} vote ends ${formatDistanceToNow(
-              endedAt,
-              { addSuffix: true }
-            )}`,
-            type:
-              voteType === 'basic'
-                ? TimelineEventType.ResultOngoingBasicVote
-                : TimelineEventType.ResultOngoingOtherVotes,
-            timestamp: endedAt,
-            result: processedResults,
+
+          const metadata =
+            typeof proposal.metadata === 'string'
+              ? (JSON.parse(proposal.metadata) as ProposalMetadata)
+              : (proposal.metadata as ProposalMetadata);
+
+          const voteType = metadata?.voteType;
+
+          if (currentTimestamp > endedAt) {
+            events.push({
+              content: `${offchain ? 'Offchain' : 'Onchain'} vote ended ${formatDistanceToNow(
+                endedAt,
+                { addSuffix: true }
+              )}`,
+              type:
+                voteType === 'basic'
+                  ? TimelineEventType.ResultEndedBasicVote
+                  : TimelineEventType.ResultEndedOtherVotes,
+              timestamp: endedAt,
+              result: processedResults,
+            });
+          } else {
+            events.push({
+              content: `${offchain ? 'Offchain' : 'Onchain'} vote ends ${formatDistanceToNow(
+                endedAt,
+                { addSuffix: true }
+              )}`,
+              type:
+                voteType === 'basic'
+                  ? TimelineEventType.ResultOngoingBasicVote
+                  : TimelineEventType.ResultOngoingOtherVotes,
+              timestamp: endedAt,
+              result: processedResults,
+            });
+          }
+
+          const dailyVotes = await db
+            .selectFrom('vote')
+            .select([
+              sql<Date>`DATE_TRUNC('day', "created_at")`.as('date'),
+              sql<number>`SUM("voting_power")`.as('totalVotingPower'),
+              sql<Date>`MAX("created_at")`.as('lastVoteTime'),
+            ])
+            .where('proposalId', '=', proposal.id)
+            .groupBy(sql`DATE_TRUNC('day', "created_at")`)
+            .execute();
+
+          const maxVotes = Math.max(
+            ...dailyVotes.map((dv) => Number(dv.totalVotingPower))
+          );
+
+          dailyVotes.forEach((dailyVote) => {
+            const timestamp = new Date(dailyVote.lastVoteTime);
+            const normalizedVolume =
+              Number(dailyVote.totalVotingPower) / maxVotes;
+            events.push({
+              content: `${Number(dailyVote.totalVotingPower).toFixed(2)} voting power on ${format(
+                timestamp,
+                'MMM d'
+              )}`,
+              type: TimelineEventType.VotesVolume,
+              timestamp,
+              volume: normalizedVolume,
+              volumeType: 'votes',
+              metadata: {
+                votingPower: Number(dailyVote.totalVotingPower),
+              },
+            });
           });
         }
-
-        const dailyVotes = await db
-          .selectFrom('vote')
-          .select([
-            sql<Date>`DATE_TRUNC('day', "created_at")`.as('date'),
-            sql<number>`SUM("voting_power")`.as('totalVotingPower'),
-            sql<Date>`MAX("created_at")`.as('lastVoteTime'),
-          ])
-          .where('proposalId', '=', proposal.id)
-          .groupBy(sql`DATE_TRUNC('day', "created_at")`)
-          .execute();
-
-        const maxVotes = Math.max(
-          ...dailyVotes.map((dv) => Number(dv.totalVotingPower))
-        );
-
-        dailyVotes.forEach((dailyVote) => {
-          const timestamp = new Date(dailyVote.lastVoteTime);
-          const normalizedVolume =
-            Number(dailyVote.totalVotingPower) / maxVotes;
-          events.push({
-            content: `${Number(dailyVote.totalVotingPower).toFixed(2)} voting power on ${format(
-              timestamp,
-              'MMM d'
-            )}`,
-            type: TimelineEventType.VotesVolume,
-            timestamp,
-            volume: normalizedVolume,
-            volumeType: 'votes',
-            metadata: {
-              votingPower: Number(dailyVote.totalVotingPower),
-            },
-          });
-        });
       }
     }
 
