@@ -19,11 +19,6 @@ export default function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'example.com';
 
-  // If the hostname is the root domain, redirect to a default subdomain
-  if (hostname === rootDomain) {
-    return NextResponse.redirect(new URL(`https://arbitrum.${rootDomain}`));
-  }
-
   // Get the subdomain from the hostname
   const subdomain = hostname.replace(`.${rootDomain}`, '');
 
