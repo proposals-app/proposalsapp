@@ -7,10 +7,9 @@ interface NavBarProps {
     name: string;
     picture: string;
   };
-  daoSlug: string;
 }
 
-export function NavBar({ daoSlug, dao }: NavBarProps) {
+export function NavBar({ dao }: NavBarProps) {
   return (
     <div
       className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 flex h-full
