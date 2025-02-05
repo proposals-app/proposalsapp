@@ -1,7 +1,6 @@
 'use client';
 
 import { ViewEnum, VotesFilterEnum } from '@/app/searchParams';
-import * as Popover from '@radix-ui/react-popover';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { voteFilters } from './MenuBar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
@@ -9,6 +8,29 @@ import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import CheckSvg from '@/public/assets/web/check.svg';
+import * as Select from '@radix-ui/react-select';
+import React from 'react';
+
+const SelectItem = React.forwardRef<
+  HTMLDivElement,
+  { children: React.ReactNode; value: string }
+>(({ children, value, ...props }, forwardedRef) => {
+  return (
+    <Select.Item
+      className='relative flex h-[35px] cursor-pointer items-center px-2 text-sm
+        transition-colors outline-none hover:bg-neutral-100 dark:hover:bg-neutral-800'
+      {...props}
+      ref={forwardedRef}
+      value={value}
+    >
+      <Select.ItemText>{children}</Select.ItemText>
+      <Select.ItemIndicator className='absolute right-2'>
+        <CheckSvg width={24} height={24} />
+      </Select.ItemIndicator>
+    </Select.Item>
+  );
+});
+SelectItem.displayName = 'SelectItem';
 
 export const CommentsViewBar = () => {
   const [comments, setComments] = useQueryState(
@@ -91,38 +113,44 @@ export const CommentsViewBar = () => {
               </label>
             </div>
 
-            <Popover.Root>
-              <Popover.Trigger asChild>
-                <button className='flex h-8 w-[200px] items-center justify-between px-3 text-sm'>
-                  {voteFilters.find((filter) => filter.value === votesFilter)
-                    ?.label || 'Select vote filter...'}
-                  <ChevronDownSvg width={24} height={24} />
-                </button>
-              </Popover.Trigger>
-              <Popover.Content
-                className='dark:border-neutral-450 w-[200px] border border-neutral-800 bg-white p-1
-                  shadow-lg dark:bg-neutral-950'
-                sideOffset={5}
+            <Select.Root
+              value={votesFilter}
+              onValueChange={(value) =>
+                setVotesFilter(value as VotesFilterEnum)
+              }
+            >
+              <Select.Trigger
+                className='flex h-8 w-[200px] cursor-pointer items-center justify-between px-3 text-sm
+                  outline-none'
               >
-                <div className='space-y-1'>
-                  {voteFilters.map((filter) => (
-                    <button
-                      key={filter.value}
-                      className='flex w-full items-center justify-between px-2 py-1.5 text-sm transition-colors
-                        hover:bg-neutral-100 dark:hover:bg-neutral-800'
-                      onClick={() => {
-                        setVotesFilter(filter.value as VotesFilterEnum);
-                      }}
-                    >
-                      {filter.label}
-                      {votesFilter === filter.value && (
-                        <CheckSvg width={24} height={24} />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </Popover.Content>
-            </Popover.Root>
+                <Select.Value>
+                  {
+                    voteFilters.find((filter) => filter.value === votesFilter)
+                      ?.label
+                  }
+                </Select.Value>
+                <Select.Icon>
+                  <ChevronDownSvg width={24} height={24} />
+                </Select.Icon>
+              </Select.Trigger>
+
+              <Select.Portal>
+                <Select.Content
+                  className='dark:border-neutral-450 w-[200px] border border-neutral-800 bg-white p-1
+                    shadow-lg dark:bg-neutral-950'
+                  position='popper'
+                  sideOffset={5}
+                >
+                  <Select.Viewport>
+                    {voteFilters.map((filter) => (
+                      <SelectItem key={filter.value} value={filter.value}>
+                        {filter.label}
+                      </SelectItem>
+                    ))}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Portal>
+            </Select.Root>
           </div>
         </div>
       </div>

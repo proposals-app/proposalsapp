@@ -3524,7 +3524,6 @@ __metadata:
     "@proposalsapp/db": "npm:1.0.0"
     "@proposalsapp/visual-dom-diff": "npm:0.7.2"
     "@radix-ui/react-dropdown-menu": "npm:^2.1.5"
-    "@radix-ui/react-popover": "npm:^1.1.5"
     "@radix-ui/react-select": "npm:^2.1.5"
     "@radix-ui/react-tooltip": "npm:^1.1.7"
     "@serwist/next": "npm:9.0.11"
