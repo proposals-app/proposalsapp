@@ -116,18 +116,24 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
 
   sortedVotes.forEach((vote) => {
     const choice = vote.choice as number;
-    const percentage = (vote.votingPower / totalVotingPower) * 100;
 
-    if (percentage >= MIN_VISIBLE_WIDTH_PERCENT) {
-      voteSegments[choice.toString()].push({
-        votingPower: vote.votingPower,
-        tooltip: `${formatNumberWithSuffix(vote.votingPower)} vote "${
-          choices[choice]
-        }"`,
-      });
+    // Ensure the choice is a valid index in the choices array
+    if (choice >= 0 && choice < choices.length) {
+      const percentage = (vote.votingPower / totalVotingPower) * 100;
+
+      if (percentage >= MIN_VISIBLE_WIDTH_PERCENT) {
+        voteSegments[choice.toString()].push({
+          votingPower: vote.votingPower,
+          tooltip: `${formatNumberWithSuffix(vote.votingPower)} vote "${
+            choices[choice]
+          }"`,
+        });
+      } else {
+        aggregatedVotes[choice].count += 1;
+        aggregatedVotes[choice].power += vote.votingPower;
+      }
     } else {
-      aggregatedVotes[choice].count += 1;
-      aggregatedVotes[choice].power += vote.votingPower;
+      console.warn(`Invalid choice index: ${choice}. Skipping this vote.`);
     }
   });
 

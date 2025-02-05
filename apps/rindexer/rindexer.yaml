@@ -1,7 +1,5 @@
-name: detective
-description: rindexer detective
-project_type: no-code
-
+name: rindexer
+project_type: rust
 networks:
   - name: ethereum
     chain_id: 1
@@ -22,6 +20,10 @@ networks:
   - name: avalanche
     chain_id: 43114
     rpc: ${AVALANCHE_NODE_URL}
+
+storage:
+  postgres:
+    enabled: false
 
 contracts:
   - name: ArbitrumCoreGovernor
@@ -46,25 +48,6 @@ contracts:
           - ProposalQueued
           - VoteCast
           - VoteCastWithParams
-    streams:
-      redis:
-        connection_uri: ${RINDEXER_REDIS}
-        streams:
-          - stream_name: "proposals_stream"
-            networks:
-              - arbitrum
-            events:
-              - event_name: ProposalCreated
-              - event_name: ProposalCanceled
-              - event_name: ProposalExecuted
-              - event_name: ProposalExtended
-              - event_name: ProposalQueued
-          - stream_name: "votes_stream"
-            networks:
-              - arbitrum
-            events:
-              - event_name: VoteCast
-              - event_name: VoteCastWithParams
 
   - name: ArbitrumTreasuryGovernor
     abi: ./abis/ArbitrumTreasuryGovernor.abi.json
@@ -88,25 +71,3 @@ contracts:
           - ProposalQueued
           - VoteCast
           - VoteCastWithParams
-    streams:
-      redis:
-        connection_uri: ${RINDEXER_REDIS}
-        streams:
-          - stream_name: "proposals_stream"
-            networks:
-              - arbitrum
-            events:
-              - event_name: ProposalCreated
-              - event_name: ProposalCanceled
-              - event_name: ProposalExecuted
-              - event_name: ProposalExtended
-              - event_name: ProposalQueued
-          - stream_name: "votes_stream"
-            networks:
-              - arbitrum
-            events:
-              - event_name: VoteCast
-              - event_name: VoteCastWithParams
-
-global:
-  etherscan_api_key: ${ETHERSCAN_API_KEY}

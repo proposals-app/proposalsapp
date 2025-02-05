@@ -1,0 +1,22 @@
+
+[package]
+name = "rindexer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dotenv.workspace = true
+ethers = { workspace = true, features = ["rustls", "openssl"] }
+rindexer = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["full"] }
+sea-orm = { workspace = true, features = [
+    "sqlx-mysql",
+    "runtime-tokio-rustls",
+    "macros",
+    "with-chrono",
+    "with-json",
+    "with-bigdecimal",
+    "with-uuid",
+] }
+seaorm = { path = "../../libs/rust/seaorm" }
