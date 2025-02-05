@@ -1,6 +1,6 @@
-import * as Avatar from '@radix-ui/react-avatar';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface ResultsHeaderProps {
   authorName: string;
@@ -32,16 +32,15 @@ export function Header({
       </Link>
 
       <div className='flex items-center gap-2'>
-        <Avatar.Root className='h-10 w-10 overflow-hidden rounded-full'>
-          <Avatar.Image
+        <div className='h-10 w-10 overflow-hidden rounded-full'>
+          <Image
             src={authorPicture}
             alt={authorName}
-            className='h-full w-full object-cover'
+            className='object-cover'
+            width={40}
+            height={40}
           />
-          <Avatar.Fallback className='flex h-full w-full items-center justify-center'>
-            {authorName.slice(0, 2)}
-          </Avatar.Fallback>
-        </Avatar.Root>
+        </div>
         <h1 className='text-lg font-bold'>{proposalName}</h1>
       </div>
     </div>
