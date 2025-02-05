@@ -185,7 +185,7 @@ export async function VoteItem({
 }
 
 const daoBaseUrlMap: { [key: string]: string } = {
-  arbitrum_dao: 'https://forum.arbitrum.foundation',
+  arbitrum: 'https://forum.arbitrum.foundation',
 };
 
 export function formatNameOrAddress(address: string): string {

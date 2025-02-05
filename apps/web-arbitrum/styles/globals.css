@@ -3,7 +3,7 @@
 
 @layer utilities {
   /* Arbitrum Theme */
-  [data-theme='arbitrum_dao'] {
+  [data-theme='arbitrum'] {
     --for-400: #87ff42;
     --for-600: #56b200;
     --abstain-400: #ffdc42;

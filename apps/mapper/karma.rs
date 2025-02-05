@@ -45,7 +45,7 @@ struct KarmaDelegate {
 lazy_static::lazy_static! {
     static ref DAO_SLUG_TO_KARMA_DAO_NAME: HashMap<&'static str, &'static str> = {
         let mut map = HashMap::new();
-        map.insert("arbitrum_dao", "arbitrum");
+        map.insert("arbitrum", "arbitrum");
         // Add more mappings as needed
         map
     };

@@ -111,7 +111,7 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
         let snapshot_space = match dao.slug.as_str() {
             "compound" => "comp-vote.eth",
             "gitcoin" => "gitcoindao.eth",
-            "arbitrum_dao" => "arbitrumfoundation.eth",
+            "arbitrum" => "arbitrumfoundation.eth",
             "optimism" => "opcollective.eth",
             "uniswap" => "uniswapgovernance.eth",
             "hop_protocol" => "hop.eth",
@@ -386,7 +386,7 @@ async fn refresh_shutter_votes(
     let snapshot_space = match dao.slug.as_str() {
         "compound" => "comp-vote.eth",
         "gitcoin" => "gitcoindao.eth",
-        "arbitrum_dao" => "arbitrumfoundation.eth",
+        "arbitrum" => "arbitrumfoundation.eth",
         "optimism" => "opcollective.eth",
         "uniswap" => "uniswapgovernance.eth",
         "hop_protocol" => "hop.eth",
