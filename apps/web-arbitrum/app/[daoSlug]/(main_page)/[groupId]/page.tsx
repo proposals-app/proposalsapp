@@ -28,16 +28,17 @@ export default async function GroupPage({
   const { version, comments, votes, diff, page } =
     await searchParamsCache.parse(searchParams);
 
-  const latestVersion = totalVersions - 1;
+  // Always use the latest version if no version is specified
+  const currentVersion = version ?? totalVersions - 1;
 
   return (
     <div className='flex w-full flex-col items-center pt-10'>
       <div className='flex max-w-3xl flex-col overflow-visible'>
         <Suspense fallback={<BodyLoading />}>
-          <Body group={group} version={version ?? latestVersion} diff={diff} />
+          <Body group={group} version={currentVersion} diff={diff} />
         </Suspense>
 
-        <MenuBar totalVersions={totalVersions ?? 1} />
+        <MenuBar totalVersions={totalVersions} />
 
         <Suspense fallback={<FeedLoading />}>
           <Feed

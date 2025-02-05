@@ -41,15 +41,18 @@ export default async function Body({
   // Find the initial and latest bodies based on createdAt
   const initialBody = bodies[0];
   const latestBody = bodies[bodies.length - 1];
-  const visibleBody = bodies[version];
 
-  const defaultVersion = bodies ? bodies.length - 1 : 0;
+  // Use the latest version if no specific version is provided
+  const defaultVersion = bodies.length - 1;
+  const currentVersion =
+    typeof version === 'undefined' ? defaultVersion : version;
+  const visibleBody = bodies[currentVersion];
 
   const processedContent =
-    diff && version > 0
+    diff && currentVersion > 0
       ? processDiff(
           visibleBody.content,
-          bodies.map((b) => b.content)[version - 1]
+          bodies.map((b) => b.content)[currentVersion - 1]
         )
       : markdownToHtml(visibleBody.content);
 

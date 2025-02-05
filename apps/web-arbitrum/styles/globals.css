@@ -117,23 +117,23 @@
 }
 
 .prose .diff-deleted {
-  @apply border border-red-300 bg-red-100 line-through; /* Outer diff-deleted */
+  @apply border border-red-300 bg-red-100 line-through dark:border-red-800 dark:bg-red-900/50;
 }
 
 .prose .diff-deleted * {
-  @apply border-none bg-red-200; /* Inner diff-deleted */
+  @apply border-none bg-red-200 dark:bg-red-900/70;
 }
 
 .prose .diff-added {
-  @apply border border-emerald-300 bg-emerald-100 no-underline; /* Outer diff-added */
+  @apply border border-emerald-300 bg-emerald-100 no-underline dark:border-emerald-800 dark:bg-emerald-900/50;
 }
 
 .prose .diff-added * {
-  @apply border-none bg-emerald-200; /* Inner diff-added */
+  @apply border-none bg-emerald-200 dark:bg-emerald-900/70;
 }
 
-/* Keeping the modified styles unchanged */
+/* Modified styles with dark theme support */
 .prose .diff-modified,
 .prose .diff-modified * {
-  @apply border! border-amber-400! bg-amber-100!;
+  @apply border! border-amber-400! bg-amber-100! dark:border-amber-800! dark:bg-amber-900/50!;
 }

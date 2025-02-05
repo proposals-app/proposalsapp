@@ -201,8 +201,8 @@ async function getBodies(groupID: string) {
           title: discourseTopic.title,
           content: discourseFirstPost.cooked ?? 'Unknown',
           author_name:
-            discourseFirstPostAuthor.name ??
-            discourseFirstPostAuthor.username ??
+            discourseFirstPostAuthor.name?.trim() ||
+            discourseFirstPostAuthor.username ||
             'Unknown',
           author_picture: discourseFirstPostAuthor.avatarTemplate,
           createdAt: discourseFirstPost.createdAt,
@@ -220,8 +220,8 @@ async function getBodies(groupID: string) {
               discourseFirstPostRevision.cookedBodyBefore ??
               discourseFirstPost.cooked,
             author_name:
-              discourseFirstPostAuthor.name ??
-              discourseFirstPostAuthor.username ??
+              discourseFirstPostAuthor.name?.trim() ||
+              discourseFirstPostAuthor.username ||
               'Unknown',
             author_picture: discourseFirstPostAuthor.avatarTemplate,
             createdAt: discourseFirstPost.createdAt,
@@ -235,8 +235,8 @@ async function getBodies(groupID: string) {
             discourseFirstPostRevision.cookedBodyAfter ??
             discourseFirstPost.cooked,
           author_name:
-            discourseFirstPostAuthor.name ??
-            discourseFirstPostAuthor.username ??
+            discourseFirstPostAuthor.name?.trim() ||
+            discourseFirstPostAuthor.username ||
             'Unknown',
           author_picture: discourseFirstPostAuthor.avatarTemplate,
           createdAt: discourseFirstPostRevision.createdAt,

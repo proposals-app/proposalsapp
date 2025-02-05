@@ -33,7 +33,9 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
 
   const [version, setVersion] = useQueryState(
     'version',
-    parseAsInteger.withOptions({ shallow: false })
+    parseAsInteger
+      .withDefault(totalVersions - 1)
+      .withOptions({ shallow: false })
   );
 
   const currentVersion = version ?? 0;
