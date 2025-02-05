@@ -134,22 +134,20 @@ export const CommentsViewBar = () => {
                 </Select.Icon>
               </Select.Trigger>
 
-              <Select.Portal>
-                <Select.Content
-                  className='dark:border-neutral-450 w-[200px] border border-neutral-800 bg-white p-1
-                    shadow-lg dark:bg-neutral-950'
-                  position='popper'
-                  sideOffset={5}
-                >
-                  <Select.Viewport>
-                    {voteFilters.map((filter) => (
-                      <SelectItem key={filter.value} value={filter.value}>
-                        {filter.label}
-                      </SelectItem>
-                    ))}
-                  </Select.Viewport>
-                </Select.Content>
-              </Select.Portal>
+              <Select.Content
+                className='dark:border-neutral-450 w-[200px] border border-neutral-800 bg-white p-1
+                  shadow-lg dark:bg-neutral-950'
+                position='popper'
+                sideOffset={5}
+              >
+                <Select.Viewport>
+                  {voteFilters.map((filter) => (
+                    <SelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SelectItem>
+                  ))}
+                </Select.Viewport>
+              </Select.Content>
             </Select.Root>
           </div>
         </div>

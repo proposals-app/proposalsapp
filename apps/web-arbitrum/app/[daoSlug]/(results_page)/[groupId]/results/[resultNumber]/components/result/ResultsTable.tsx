@@ -8,6 +8,7 @@ import { WindowScroller, List, AutoSizer } from 'react-virtualized';
 import { DelegateInfo } from '../actions';
 import { ProcessedResults } from '@/lib/results_processing';
 import * as Select from '@radix-ui/react-select';
+import CheckSvg from '@/public/assets/web/check.svg';
 
 interface ResultsTableProps {
   results: ProcessedResults;
@@ -20,13 +21,16 @@ const SelectItem = React.forwardRef<
 >(({ children, value, ...props }, forwardedRef) => {
   return (
     <Select.Item
-      className='relative flex h-[25px] cursor-pointer items-center pr-4 pl-2 outline-none
-        focus:outline-none'
+      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm
+        transition-colors outline-none hover:bg-neutral-100 dark:hover:bg-neutral-800'
       {...props}
       ref={forwardedRef}
       value={value}
     >
       <Select.ItemText>{children}</Select.ItemText>
+      <Select.ItemIndicator className='absolute right-2'>
+        <CheckSvg width={24} height={24} />
+      </Select.ItemIndicator>
     </Select.Item>
   );
 });
@@ -167,7 +171,10 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     <div className='mt-6'>
       <div className='rounded-md border border-neutral-300'>
         {/* Header */}
-        <div className='grid grid-cols-4 border-b border-neutral-300 p-3'>
+        <div
+          className='grid grid-cols-4 border-b border-neutral-300 p-3 text-sm font-bold
+            text-neutral-800 dark:text-neutral-200'
+        >
           <div>Delegate</div>
           <div className='flex items-center gap-2'>
             <Select.Root
@@ -186,11 +193,11 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
               <Select.Portal>
                 <Select.Content
-                  className='overflow-hidden bg-white'
+                  className='dark:border-neutral-450 w-full border border-neutral-800 bg-white p-1 shadow-lg
+                    dark:bg-neutral-950'
                   position='popper'
-                  sideOffset={5}
                 >
-                  <Select.Viewport className='p-[5px]'>
+                  <Select.Viewport>
                     <SelectItem value='all'>All Choices</SelectItem>
                     {results.choices.map((choice, index) => (
                       <SelectItem key={index} value={choice}>
