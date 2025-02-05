@@ -2,7 +2,7 @@ import { Proposal, Selectable } from '@proposalsapp/db';
 import { Suspense } from 'react';
 import {
   DelegateInfo,
-  getDelegateForVoterCached_cached,
+  getDelegateForVoter_cached,
   getVotesAction_cached,
 } from './actions';
 import { LoadingChart, ResultsChart } from './result/ResultsChart';
@@ -48,7 +48,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   await Promise.all(
     votes.map(async (vote) => {
       if (vote.votingPower > 50000) {
-        const delegate = await getDelegateForVoterCached_cached(
+        const delegate = await getDelegateForVoter_cached(
           vote.voterAddress,
           daoSlug,
           proposal.id

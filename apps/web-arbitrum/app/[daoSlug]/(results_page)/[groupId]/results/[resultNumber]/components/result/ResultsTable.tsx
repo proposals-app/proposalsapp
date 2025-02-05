@@ -20,8 +20,8 @@ const SelectItem = React.forwardRef<
 >(({ children, value, ...props }, forwardedRef) => {
   return (
     <Select.Item
-      className='relative flex h-[25px] cursor-pointer items-center pr-[35px] pl-[25px]
-        outline-none focus:outline-none'
+      className='relative flex h-[25px] cursor-pointer items-center pr-4 pl-2 outline-none
+        focus:outline-none'
       {...props}
       ref={forwardedRef}
       value={value}
@@ -113,15 +113,14 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
         <div className='flex items-center gap-2 px-2 font-bold'>
           {delegate && (
             <>
-              <span className='truncate'>{delegate.name}</span>
+              <span className='truncate'>
+                {delegate.ens ?? delegate.address}
+              </span>
             </>
           )}
           {!delegate && <span className='truncate'>{vote.voterAddress}</span>}
         </div>
-        <div
-          className='flex cursor-default flex-col truncate px-2'
-          title={choiceText}
-        >
+        <div className='flex cursor-default flex-col truncate px-2'>
           <div className='font-bold'>
             {choiceText.length > 20
               ? `${choiceText.substring(0, 20)}...`
@@ -177,7 +176,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
             >
               <Select.Trigger
                 className='inline-flex h-[35px] cursor-pointer items-center justify-center gap-[5px]
-                  px-[15px] outline-none focus:outline-none'
+                  outline-none focus:outline-none'
                 aria-label='Choice'
               >
                 <Select.Value placeholder='Filter by choice'>

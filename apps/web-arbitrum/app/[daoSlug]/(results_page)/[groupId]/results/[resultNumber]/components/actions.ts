@@ -31,7 +31,10 @@ export const getVotesAction_cached = superjson_cache(
 );
 
 export type DelegateInfo = {
-  name: string | null;
+  id: string | null | undefined;
+  address: string;
+  ens: string | null;
+  discourseName: string | null;
 } | null;
 
 async function getDelegateForVoter(
@@ -78,7 +81,10 @@ async function getDelegateForVoter(
 
     if (!delegateData)
       return {
-        name: `${voterAddress}`,
+        id: null,
+        address: voter.address,
+        ens: voter.ens?.length ? voter.ens : null,
+        discourseName: null,
       };
 
     // Try to get discourse user first
@@ -114,7 +120,10 @@ async function getDelegateForVoter(
 
     if (discourseUser) {
       return {
-        name: discourseUser.name || discourseUser.username,
+        id: delegateData.id,
+        address: voter.address,
+        ens: voter.ens?.length ? voter.ens : null,
+        discourseName: discourseUser.name || discourseUser.username,
       };
     }
 
@@ -137,18 +146,24 @@ async function getDelegateForVoter(
 
     if (ens?.ens) {
       return {
-        name: ens.ens,
+        id: delegateData.id,
+        address: voter.address,
+        ens: voter.ens?.length ? voter.ens : null,
+        discourseName: null,
       };
     }
 
     // Fallback to address
     return {
-      name: `${voterAddress}`,
+      id: null,
+      address: `${voterAddress}`,
+      ens: null,
+      discourseName: null,
     };
   });
 }
 
-export const getDelegateForVoterCached_cached = unstable_cache(
+export const getDelegateForVoter_cached = unstable_cache(
   async (voterAddress: string, daoSlug: string, proposalId: string) => {
     return await getDelegateForVoter(voterAddress, daoSlug, proposalId, false);
   },

@@ -272,7 +272,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           // Add large vote information if available
           if (timeSeriesPoint) {
             const delegate = delegateMap.get(timeSeriesPoint.voterAddress);
-            const voterName = delegate?.name || timeSeriesPoint.voterAddress;
+            const voterName = delegate?.ens || timeSeriesPoint.voterAddress;
 
             tooltipText += `
               <div class='w-fit whitespace-nowrap flex flex-col'>

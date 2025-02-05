@@ -268,6 +268,7 @@ function processQuotes(html: string): string {
           /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)(?:,\s*full:\w+)?"\]([\s\S]*?)\[\/quote\]/
         );
         if (match) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const [_, username, postNumber, topicId, content] = match;
           return createQuoteHtml(username, postNumber, topicId, content);
         }
@@ -315,6 +316,7 @@ function processDetails(html: string): string {
     // Process one level of details at a time
     processedHtml = processedHtml.replace(
       /\[details="([^"]+)"\]((?!\[details=)[\s\S]*?)\[\/details\]/g,
+      // @typescript-eslint/no-unused-vars
       (_, summary, content) => {
         wasProcessed = true;
         return createDetailsHtml(summary, content);
