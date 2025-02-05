@@ -7,28 +7,54 @@ import React, { useMemo, useState } from 'react';
 import { WindowScroller, List, AutoSizer } from 'react-virtualized';
 import { DelegateInfo } from '../actions';
 import { ProcessedResults } from '@/lib/results_processing';
+import * as Select from '@radix-ui/react-select';
 
 interface ResultsTableProps {
   results: ProcessedResults;
   delegateMap: Map<string, DelegateInfo>;
 }
 
-export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
-  const [sortColumn, setSortColumn] = useState<
-    'choice' | 'timestamp' | 'votingPower'
-  >('votingPower');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+const SelectItem = React.forwardRef<
+  HTMLDivElement,
+  { children: React.ReactNode; value: string }
+>(({ children, value, ...props }, forwardedRef) => {
+  return (
+    <Select.Item
+      className='relative flex h-[25px] cursor-pointer items-center pr-[35px] pl-[25px]
+        outline-none focus:outline-none'
+      {...props}
+      ref={forwardedRef}
+      value={value}
+    >
+      <Select.ItemText>{children}</Select.ItemText>
+    </Select.Item>
+  );
+});
+SelectItem.displayName = 'SelectItem';
 
-  const sortedVotes = useMemo(() => {
+export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
+  const [sortColumn, setSortColumn] = useState<'timestamp' | 'votingPower'>(
+    'votingPower'
+  );
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedChoice, setSelectedChoice] = useState<string>('all');
+
+  const sortedAndFilteredVotes = useMemo(() => {
     const votesArray = results.votes || [];
-    return [...votesArray].sort((a, b) => {
+    let filteredVotes = votesArray;
+
+    // Apply choice filter
+    if (selectedChoice !== 'all') {
+      filteredVotes = votesArray.filter((vote) =>
+        vote.choiceText.includes(selectedChoice)
+      );
+    }
+
+    // Apply sorting
+    return [...filteredVotes].sort((a, b) => {
       let comparison = 0;
 
-      // Default sorting for other vote types
       switch (sortColumn) {
-        case 'choice':
-          comparison = a.choiceText.localeCompare(b.choiceText);
-          break;
         case 'timestamp':
           comparison = a.createdAt!.getTime() - b.createdAt!.getTime();
           break;
@@ -39,7 +65,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [results.votes, sortColumn, sortDirection]);
+  }, [results.votes, sortColumn, sortDirection, selectedChoice]);
 
   const handleSortChange = (column: typeof sortColumn) => {
     if (sortColumn === column) {
@@ -68,7 +94,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     key: string;
     style: React.CSSProperties;
   }) => {
-    const vote = sortedVotes[index];
+    const vote = sortedAndFilteredVotes[index];
     const delegate = delegateMap.get(vote.voterAddress);
 
     const votingPowerPercentage =
@@ -144,18 +170,42 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
         {/* Header */}
         <div className='grid grid-cols-4 border-b border-neutral-300 p-3'>
           <div>Delegate</div>
-          <div
-            onClick={() => handleSortChange('choice')}
-            className='flex cursor-default items-center gap-1'
-          >
-            Choice
-            {sortColumn === 'choice' && (
-              <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
-            )}
+          <div className='flex items-center gap-2'>
+            <Select.Root
+              value={selectedChoice}
+              onValueChange={setSelectedChoice}
+            >
+              <Select.Trigger
+                className='inline-flex h-[35px] cursor-pointer items-center justify-center gap-[5px]
+                  px-[15px] outline-none focus:outline-none'
+                aria-label='Choice'
+              >
+                <Select.Value placeholder='Filter by choice'>
+                  {selectedChoice === 'all' ? 'All Choices' : selectedChoice} ▼
+                </Select.Value>
+              </Select.Trigger>
+
+              <Select.Portal>
+                <Select.Content
+                  className='overflow-hidden bg-white'
+                  position='popper'
+                  sideOffset={5}
+                >
+                  <Select.Viewport className='p-[5px]'>
+                    <SelectItem value='all'>All Choices</SelectItem>
+                    {results.choices.map((choice, index) => (
+                      <SelectItem key={index} value={choice}>
+                        {choice}
+                      </SelectItem>
+                    ))}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Portal>
+            </Select.Root>
           </div>
           <div
             onClick={() => handleSortChange('timestamp')}
-            className='flex cursor-default items-center gap-1'
+            className='flex cursor-pointer items-center gap-1'
           >
             Date
             {sortColumn === 'timestamp' && (
@@ -164,7 +214,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           </div>
           <div
             onClick={() => handleSortChange('votingPower')}
-            className='flex cursor-default items-center gap-1'
+            className='flex cursor-pointer items-center gap-1'
           >
             Voting Power
             {sortColumn === 'votingPower' && (
@@ -184,7 +234,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
                   isScrolling={isScrolling}
                   onScroll={onChildScroll}
                   scrollTop={scrollTop}
-                  rowCount={sortedVotes.length}
+                  rowCount={sortedAndFilteredVotes.length}
                   rowHeight={60}
                   rowRenderer={rowRenderer}
                 />
