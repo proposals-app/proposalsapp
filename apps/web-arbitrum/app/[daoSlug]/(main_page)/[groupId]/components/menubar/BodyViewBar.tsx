@@ -6,6 +6,10 @@ import {
   useQueryState,
 } from 'nuqs';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
+import NextSvg from '@/public/assets/web/next.svg';
+import PreviousSvg from '@/public/assets/web/previous.svg';
+import FirstSvg from '@/public/assets/web/first.svg';
+import LastSvg from '@/public/assets/web/last.svg';
 import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 
@@ -81,25 +85,59 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
 
           <div className='flex items-center gap-2'>
             <button
-              onClick={() => setVersion(Math.max(0, currentVersion - 1))}
+              onClick={() => setVersion(0)}
               disabled={currentVersion === 0}
-              className={`flex h-8 items-center justify-center px-3 text-sm ${
+              className={`flex h-8 items-center justify-center px-1 text-sm ${
                 currentVersion === 0 ? 'cursor-not-allowed' : '' }`}
             >
-              <ArrowSvg className='-rotate-90' width={24} height={24} />
+              <FirstSvg
+                className={`${currentVersion === 0 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
+                width={24}
+                height={24}
+              />
             </button>
-            <div className='flex h-8 items-center justify-center gap-2 text-sm'>
+
+            <button
+              onClick={() => setVersion(Math.max(0, currentVersion - 1))}
+              disabled={currentVersion === 0}
+              className={`flex h-8 items-center justify-center px-1 text-sm ${
+                currentVersion === 0 ? 'cursor-not-allowed' : '' }`}
+            >
+              <PreviousSvg
+                className={`${currentVersion === 0 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
+                width={24}
+                height={24}
+              />
+            </button>
+            <div className='flex h-8 w-32 items-center justify-center gap-2 text-sm'>
               Version {currentVersion + 1} of {totalVersions}
             </div>
+
             <button
               onClick={() =>
                 setVersion(Math.min(totalVersions - 1, currentVersion + 1))
               }
               disabled={currentVersion === totalVersions - 1}
-              className={`flex h-8 items-center justify-center px-3 text-sm ${
+              className={`flex h-8 items-center justify-center px-1 text-sm ${
                 currentVersion === totalVersions - 1 ? 'cursor-not-allowed' : '' }`}
             >
-              <ArrowSvg className='rotate-90' width={24} height={24} />
+              <NextSvg
+                className={`${currentVersion === totalVersions - 1 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
+                width={24}
+                height={24}
+              />
+            </button>
+            <button
+              onClick={() => setVersion(totalVersions - 1)}
+              disabled={currentVersion === totalVersions - 1}
+              className={`flex h-8 items-center justify-center px-1 text-sm ${
+                currentVersion === totalVersions - 1 ? 'cursor-not-allowed' : '' }`}
+            >
+              <LastSvg
+                className={`${currentVersion === totalVersions - 1 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
+                width={24}
+                height={24}
+              />
             </button>
           </div>
 
