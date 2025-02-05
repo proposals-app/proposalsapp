@@ -14,7 +14,6 @@ export function Header({
   authorName,
   authorPicture,
   proposalName,
-  daoSlug,
   itemId,
 }: ResultsHeaderProps) {
   return (

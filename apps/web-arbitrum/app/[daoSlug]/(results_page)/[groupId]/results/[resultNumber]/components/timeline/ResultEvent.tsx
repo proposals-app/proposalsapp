@@ -19,7 +19,6 @@ export function ResultEvent({
   proposal,
   resultNumber,
   selectedResult,
-  daoSlug,
   groupId,
   eventIndex,
   last,

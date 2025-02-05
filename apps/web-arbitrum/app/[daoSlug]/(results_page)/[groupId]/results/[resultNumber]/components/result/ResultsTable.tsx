@@ -172,43 +172,39 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
       <div className='rounded-md border border-neutral-300'>
         {/* Header */}
         <div
-          className='grid grid-cols-4 border-b border-neutral-300 p-3 text-sm font-bold
-            text-neutral-800 dark:text-neutral-200'
+          className='dark:border-neutral-450 grid grid-cols-4 items-center justify-between gap-2
+            border-b border-neutral-800 bg-white p-2 text-sm font-bold text-neutral-800
+            transition-colors dark:bg-neutral-950 dark:text-neutral-200'
         >
-          <div>Delegate</div>
-          <div className='flex items-center gap-2'>
-            <Select.Root
-              value={selectedChoice}
-              onValueChange={setSelectedChoice}
+          <div className='flex items-center gap-1'>Delegate</div>
+          <Select.Root value={selectedChoice} onValueChange={setSelectedChoice}>
+            <Select.Trigger
+              className='flex h-8 w-full cursor-pointer items-center justify-between px-3 text-sm
+                outline-none'
             >
-              <Select.Trigger
-                className='inline-flex h-[35px] cursor-pointer items-center justify-center gap-[5px]
-                  outline-none focus:outline-none'
-                aria-label='Choice'
-              >
-                <Select.Value placeholder='Filter by choice'>
-                  {selectedChoice === 'all' ? 'All Choices' : selectedChoice} ▼
-                </Select.Value>
-              </Select.Trigger>
+              <Select.Value placeholder='Filter by choice'>
+                {selectedChoice === 'all' ? 'All Choices' : selectedChoice} ▼
+              </Select.Value>
+            </Select.Trigger>
 
-              <Select.Portal>
-                <Select.Content
-                  className='dark:border-neutral-450 w-full border border-neutral-800 bg-white p-1 shadow-lg
-                    dark:bg-neutral-950'
-                  position='popper'
-                >
-                  <Select.Viewport>
-                    <SelectItem value='all'>All Choices</SelectItem>
-                    {results.choices.map((choice, index) => (
-                      <SelectItem key={index} value={choice}>
-                        {choice}
-                      </SelectItem>
-                    ))}
-                  </Select.Viewport>
-                </Select.Content>
-              </Select.Portal>
-            </Select.Root>
-          </div>
+            <Select.Portal>
+              <Select.Content
+                className='dark:border-neutral-450 w-full border border-neutral-800 bg-white p-1 shadow-lg
+                  dark:bg-neutral-950'
+                position='popper'
+                sideOffset={5}
+              >
+                <Select.Viewport>
+                  <SelectItem value='all'>All Choices</SelectItem>
+                  {results.choices.map((choice, index) => (
+                    <SelectItem key={index} value={choice}>
+                      {choice}
+                    </SelectItem>
+                  ))}
+                </Select.Viewport>
+              </Select.Content>
+            </Select.Portal>
+          </Select.Root>
           <div
             onClick={() => handleSortChange('timestamp')}
             className='flex cursor-pointer items-center gap-1'

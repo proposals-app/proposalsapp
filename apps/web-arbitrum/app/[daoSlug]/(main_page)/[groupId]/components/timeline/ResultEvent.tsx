@@ -34,7 +34,6 @@ export function ResultEvent({
   result,
   resultNumber,
   last,
-  daoSlug,
   groupId,
 }: ResultEventProps) {
   const Component = result.voteType ? VoteComponents[result.voteType] : null;
