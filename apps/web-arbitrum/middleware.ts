@@ -22,11 +22,13 @@ export default function middleware(request: NextRequest) {
   // Get the subdomain from the hostname
   const subdomain = hostname.replace(`.${rootDomain}`, '');
 
-  // Rewrite the URL to include the subdomain as the daoSlug
-  if (subdomain) {
-    // Rewrite the URL pathname
-    url.pathname = `/${subdomain}${url.pathname}`;
-    return NextResponse.rewrite(url);
+  if (hostname !== rootDomain) {
+    // Rewrite the URL to include the subdomain as the daoSlug
+    if (subdomain) {
+      // Rewrite the URL pathname
+      url.pathname = `/${subdomain}${url.pathname}`;
+      return NextResponse.rewrite(url);
+    }
   }
 
   return NextResponse.next();
