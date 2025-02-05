@@ -227,14 +227,13 @@ type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
 // Process quotes after HTML conversion
 function processQuotes(html: string): string {
   if (!html.includes('[quote="')) return html;
-  // Helper function to create a quote HTML structure
+
   function createQuoteHtml(
     username: string,
     postNumber: string,
     topicId: string,
     content: string
   ) {
-    // Process the content to ensure paragraphs are properly formatted
     const formattedContent = content
       .split('\n\n')
       .map((paragraph) => paragraph.trim())
@@ -261,24 +260,38 @@ function processQuotes(html: string): string {
     `;
   }
 
-  // Find the innermost quote first
-  let processedHtml = html;
-  let wasProcessed = true;
+  // Split the content into segments (quotes and non-quotes)
+  const segments = html.split(/(\[quote="[^"]*"[\s\S]*?\[\/quote\])/g);
 
-  while (wasProcessed) {
-    wasProcessed = false;
-
-    // Process one level of quotes at a time, starting with the innermost
-    processedHtml = processedHtml.replace(
-      /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)(?:,\s*full:\w+)?"]((?!\[quote=)[\s\S]*?)\[\/quote\]/g,
-      (_, username, postNumber, topicId, content) => {
-        wasProcessed = true;
-        return createQuoteHtml(username, postNumber, topicId, content);
+  return segments
+    .map((segment) => {
+      if (segment.startsWith('[quote="')) {
+        // Process quote
+        const match = segment.match(
+          /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)(?:,\s*full:\w+)?"\]([\s\S]*?)\[\/quote\]/
+        );
+        if (match) {
+          const [_, username, postNumber, topicId, content] = match;
+          return createQuoteHtml(username, postNumber, topicId, content);
+        }
+        return segment;
+      } else {
+        // Process non-quote content
+        // Wrap any non-empty content in a paragraph if it's not already wrapped
+        return segment
+          .split('\n\n')
+          .map((paragraph) => paragraph.trim())
+          .filter((paragraph) => paragraph.length > 0)
+          .map((paragraph) => {
+            if (!paragraph.startsWith('<p') && !paragraph.startsWith('<')) {
+              return `<p class="${MARKDOWN_STYLES.p}">${paragraph}</p>`;
+            }
+            return paragraph;
+          })
+          .join('\n');
       }
-    );
-  }
-
-  return processedHtml;
+    })
+    .join('\n');
 }
 
 function processDetails(html: string): string {
