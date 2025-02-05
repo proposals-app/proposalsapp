@@ -1,5 +1,4 @@
 import { DiscourseUser, Selectable } from '@proposalsapp/db';
-import * as Avatar from '@radix-ui/react-avatar';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Root } from 'hast';
 import { CheckCheck, HeartIcon } from 'lucide-react';
@@ -21,6 +20,7 @@ import {
 } from '../../actions';
 import { GroupReturnType } from '../../../../actions';
 import { VotingPowerTag } from './VotingPowerTag';
+import Image from 'next/image';
 
 const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
   return item.type === 'post';
@@ -156,19 +156,16 @@ const PostContent = ({
       {author && (
         <Suspense>
           <div className='flex flex-row items-center gap-2'>
-            <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
-              <Avatar.Image
+            <div className='flex h-10 w-10 items-center justify-center rounded-full'>
+              <Image
                 src={author.avatarTemplate}
-                className='w-full rounded-full'
+                className='rounded-full'
                 fetchPriority='high'
+                alt={author.username}
+                width={40}
+                height={40}
               />
-              <Avatar.Fallback>
-                {(author.name && author.name.length
-                  ? author.name
-                  : author.username
-                ).slice(0, 2)}
-              </Avatar.Fallback>
-            </Avatar.Root>
+            </div>
             <div className='flex flex-col'>
               <div className='font-bold text-neutral-800 dark:text-neutral-200'>
                 {author.name && author.name.length

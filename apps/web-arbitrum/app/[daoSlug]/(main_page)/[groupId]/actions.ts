@@ -150,7 +150,7 @@ async function getBodies(groupID: string) {
         title: proposal.name,
         content: proposal.body,
         author_name: proposal.author ?? 'Unknown',
-        author_picture: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${proposal.author}`,
+        author_picture: `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author}`,
         createdAt: proposal.createdAt,
         type: 'proposal',
       })

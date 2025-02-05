@@ -1,9 +1,9 @@
 'use client';
 
-import * as Avatar from '@radix-ui/react-avatar';
 import { notFound } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { BodiesReturnType, GroupReturnType } from '../../actions';
+import Image from 'next/image';
 
 interface StickyHeaderProps {
   bodies: BodiesReturnType;
@@ -46,8 +46,8 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
     >
       <div className='mx-auto flex h-full w-full items-center px-6 lg:px-24'>
         <div className='flex flex-row items-center gap-4 md:pl-10 lg:pl-20'>
-          <Avatar.Root className='h-10 w-10 overflow-hidden rounded-full'>
-            <Avatar.Image
+          <div className='h-10 w-10 overflow-hidden rounded-full'>
+            <Image
               src={authorPicture}
               alt={authorName}
               className='h-full w-full rounded-full object-cover'
@@ -55,10 +55,7 @@ export function StickyHeader({ bodies, group, version }: StickyHeaderProps) {
               height={40}
               fetchPriority='high'
             />
-            <Avatar.Fallback className='flex h-full w-full items-center justify-center'>
-              {authorName.slice(0, 2)}
-            </Avatar.Fallback>
-          </Avatar.Root>
+          </div>
           <h1 className='text-lg font-bold text-neutral-800 dark:text-neutral-200'>
             {title}
           </h1>

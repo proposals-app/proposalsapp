@@ -1,10 +1,10 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
-import * as Avatar from '@radix-ui/react-avatar';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { CombinedFeedItem, VoteFeedItem } from '../../Feed';
 import { GroupReturnType } from '../../../../actions';
+import Image from 'next/image';
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === 'vote';
@@ -38,14 +38,16 @@ export async function AggregateVoteItem({
   return (
     <div className='flex items-center justify-between gap-2 p-4'>
       <div className='flex items-center gap-2 opacity-50'>
-        <Avatar.Root className='h-10 w-10 rounded-full'>
-          <Avatar.Image
-            src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${item.votingPower}`}
-            className='h-full w-full rounded-full'
+        <div className='h-10 w-10 rounded-full'>
+          <Image
+            src={`https://api.dicebear.com/9.x/pixel-art/png?seed=${item.votingPower}`}
+            className='rounded-full'
             fetchPriority='high'
+            width={40}
+            height={40}
+            alt={'Aggregated votes'}
           />
-          <Avatar.Fallback>AG</Avatar.Fallback>
-        </Avatar.Root>
+        </div>
         <div className='flex flex-col'>
           <div className='font-bold text-neutral-700'>
             Multiple {optionText} votes with {formattedVotingPower} ARB

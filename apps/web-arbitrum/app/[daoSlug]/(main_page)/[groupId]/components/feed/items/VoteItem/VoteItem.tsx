@@ -1,5 +1,4 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
-import * as Avatar from '@radix-ui/react-avatar';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -7,6 +6,7 @@ import { VotingPowerTag } from './VotingPowerTag';
 import { GroupReturnType } from '../../../../actions';
 import { getDelegateByVoterAddress_cache } from '../../actions';
 import { CombinedFeedItem, VoteFeedItem } from '../../Feed';
+import Image from 'next/image';
 
 const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
   return item.type === 'vote';
@@ -122,19 +122,19 @@ export async function VoteItem({
         <div className='flex flex-col gap-2'>
           <Suspense>
             <div className='flex flex-row items-center gap-2'>
-              <Avatar.Root className='flex h-10 w-10 items-center justify-center rounded-full'>
-                <Avatar.Image
+              <div className='flex h-10 w-10 items-center justify-center rounded-full'>
+                <Image
                   src={
                     avatarUrl ??
-                    `https://api.dicebear.com/9.x/pixel-art/svg?seed=${displayName}`
+                    `https://api.dicebear.com/9.x/pixel-art/png?seed=${displayName}`
                   }
-                  className='w-full rounded-full'
+                  className='rounded-full'
                   fetchPriority='high'
+                  alt={displayName}
+                  width={40}
+                  height={40}
                 />
-                <Avatar.Fallback>
-                  {displayName.slice(0, 2).toUpperCase()}
-                </Avatar.Fallback>
-              </Avatar.Root>
+              </div>
               <div className='flex flex-col'>
                 <div>
                   <span className='font-bold text-neutral-800 dark:text-neutral-200'>

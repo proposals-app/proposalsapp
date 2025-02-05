@@ -51,7 +51,7 @@ async function getAuthor(groupID: string) {
     proposals.map((proposal) =>
       bodies.push({
         author_name: proposal.author ?? 'Unknown',
-        author_picture: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${proposal.author}`,
+        author_picture: `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author}`,
       })
     );
 

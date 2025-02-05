@@ -3523,7 +3523,6 @@ __metadata:
     "@opentelemetry/sdk-trace-base": "npm:^1.30.1"
     "@proposalsapp/db": "npm:1.0.0"
     "@proposalsapp/visual-dom-diff": "npm:0.7.2"
-    "@radix-ui/react-avatar": "npm:^1.1.2"
     "@radix-ui/react-dropdown-menu": "npm:^2.1.5"
     "@radix-ui/react-popover": "npm:^1.1.5"
     "@radix-ui/react-tooltip": "npm:^1.1.7"

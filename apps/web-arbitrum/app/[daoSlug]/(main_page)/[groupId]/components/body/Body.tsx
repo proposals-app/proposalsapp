@@ -2,7 +2,6 @@ import {
   cleanUpNodeMarkers,
   visualDomDiff,
 } from '@proposalsapp/visual-dom-diff';
-import * as Avatar from '@radix-ui/react-avatar';
 import { Diff, DIFF_EQUAL, diff_match_patch } from 'diff-match-patch';
 import { Nodes } from 'hast';
 import { toDom } from 'hast-util-to-dom';
@@ -19,6 +18,7 @@ import {
   MARKDOWN_STYLES,
   QUOTE_STYLES,
 } from '@/lib/markdown_styles';
+import Image from 'next/image';
 
 export default async function Body({
   group,
@@ -120,17 +120,16 @@ const AuthorInfo = ({
   authorPicture: string;
 }) => (
   <div className='flex flex-row items-center gap-2'>
-    <Avatar.Root className='h-10 w-10 overflow-hidden rounded-full'>
-      <Avatar.Image
+    <div className='h-10 w-10 overflow-hidden rounded-full'>
+      <Image
         src={authorPicture}
         alt={authorName}
-        className='h-full w-full object-cover'
+        className='object-cover'
         fetchPriority='high'
+        width={40}
+        height={40}
       />
-      <Avatar.Fallback className='flex h-full w-full items-center justify-center text-sm font-medium'>
-        {authorName[0]}
-      </Avatar.Fallback>
-    </Avatar.Root>
+    </div>
     <div className='font-bold text-neutral-700 dark:text-neutral-200'>
       {authorName}
     </div>

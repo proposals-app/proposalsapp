@@ -3,7 +3,6 @@ import React, { useMemo } from 'react';
 import { HiddenVote } from './HiddenVote';
 import { ProcessedResults } from '@/lib/results_processing';
 import { Check } from 'lucide-react';
-import * as Tooltip from '@radix-ui/react-tooltip';
 
 interface BasicVoteProps {
   result: ProcessedResults;
