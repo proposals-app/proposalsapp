@@ -22,7 +22,7 @@ export function ResultEvent({
   resultNumber,
   selectedResult,
   groupId,
-  eventIndex,
+
   last,
 }: ResultEventProps) {
   // Determine if the vote is onchain or offchain
@@ -33,7 +33,6 @@ export function ResultEvent({
   const isLive = new Date() < new Date(proposal.endAt);
 
   // Format dates
-  const startDate = format(new Date(proposal.startAt), 'MMM d');
   const endDate = format(new Date(proposal.endAt), 'MMM d');
 
   // Content to be rendered inside the div
