@@ -39,7 +39,7 @@ export function ResultEvent({
   const eventContent = (
     <div className='relative z-20 flex items-center py-2'>
       <div
-        className={`flex flex-col gap-1 py-1.5 pl-5 ${
+        className={`flex flex-col gap-1 py-1.5 ${last ? 'pl-5' : 'pl-3'} ${
           resultNumber == selectedResult
             ? 'w-32 border-t border-b border-l'
             : 'w-24 border'
@@ -54,7 +54,7 @@ export function ResultEvent({
           />
         ) : (
           <TimelineEventIcon
-            className='dark:fill-neutral-350 absolute top-2 left-0 fill-neutral-800'
+            className='dark:fill-neutral-350 absolute top-3 left-0 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}

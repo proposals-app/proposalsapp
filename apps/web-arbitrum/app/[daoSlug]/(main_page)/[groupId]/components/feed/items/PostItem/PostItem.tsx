@@ -59,7 +59,7 @@ export async function PostItem({
 
   const votingPower = delegate?.delegatetovoter?.latestVotingPower?.votingPower;
 
-  const processedContent = markdownToHtml(item.cooked);
+  const processedContent = markdownToHtml(item.cooked ?? 'Unknown');
   const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
   const relativeCreateTime = formatDistanceToNowStrict(
     new Date(item.createdAt),

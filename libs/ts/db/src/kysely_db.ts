@@ -117,6 +117,7 @@ export interface DaoIndexer {
   index: Generated<number>;
   indexerType: IndexerType;
   indexerVariant: IndexerVariant;
+  name: string | null;
   portalUrl: string | null;
   speed: Generated<number>;
   updatedAt: Generated<Timestamp>;
@@ -180,7 +181,7 @@ export interface DiscourseCategory {
 
 export interface DiscoursePost {
   canViewEditHistory: Generated<boolean>;
-  cooked: string;
+  cooked: string | null;
   createdAt: Timestamp;
   daoDiscourseId: string;
   deleted: Generated<boolean>;

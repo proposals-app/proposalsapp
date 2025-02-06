@@ -218,7 +218,8 @@ async function getBodies(groupID: string) {
               discourseTopic.title,
             content:
               discourseFirstPostRevision.cookedBodyBefore ??
-              discourseFirstPost.cooked,
+              discourseFirstPost.cooked ??
+              'Unknown',
             author_name:
               discourseFirstPostAuthor.name?.trim() ||
               discourseFirstPostAuthor.username ||
@@ -233,7 +234,8 @@ async function getBodies(groupID: string) {
             discourseFirstPostRevision.cookedTitleAfter ?? discourseTopic.title,
           content:
             discourseFirstPostRevision.cookedBodyAfter ??
-            discourseFirstPost.cooked,
+            discourseFirstPost.cooked ??
+            'Unknown',
           author_name:
             discourseFirstPostAuthor.name?.trim() ||
             discourseFirstPostAuthor.username ||

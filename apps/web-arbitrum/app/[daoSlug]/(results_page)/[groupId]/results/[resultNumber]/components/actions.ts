@@ -3,6 +3,44 @@ import { superjson_cache } from '@/lib/utils';
 import { db, ProposalState } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
+async function getProposalGovernor(proposalId: string) {
+  return otel('get-proposal-governor', async () => {
+    const proposal = await db
+      .selectFrom('proposal')
+      .where('id', '=', proposalId)
+      .select(['daoIndexerId'])
+      .executeTakeFirst();
+
+    if (!proposal) {
+      console.warn(`Proposal with id ${proposalId} not found.`);
+      return null;
+    }
+
+    const daoIndexer = await db
+      .selectFrom('daoIndexer')
+      .where('id', '=', proposal.daoIndexerId)
+      .selectAll()
+      .executeTakeFirst();
+
+    if (!daoIndexer) {
+      console.warn(
+        `DaoIndexer with id ${proposal.daoIndexerId} not found for proposal ${proposalId}.`
+      );
+      return null;
+    }
+
+    return daoIndexer;
+  });
+}
+
+export const getProposalGovernor_cached = superjson_cache(
+  async (proposalId: string) => {
+    return await getProposalGovernor(proposalId);
+  },
+  [],
+  { revalidate: 60 * 5, tags: ['get-proposal-governor'] }
+);
+
 async function getVotesAction(proposalId: string) {
   return otel('get-votes', async () => {
     const votes = await db
