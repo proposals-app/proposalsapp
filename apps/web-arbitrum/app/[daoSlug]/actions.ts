@@ -1,5 +1,5 @@
 import { otel } from '@/lib/otel';
-import { AsyncReturnType } from '@/lib/utils';
+import { AsyncReturnType, superjson_cache } from '@/lib/utils';
 import { db } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
@@ -170,8 +170,10 @@ async function getGroupAuthor(groupId: string): Promise<{
             discourseFirstPostAuthor.name?.trim() ||
             discourseFirstPostAuthor.username ||
             'Unknown',
-          originalAuthorPicture: discourseFirstPostAuthor.avatarTemplate,
-          createdAt: discourseTopic.createdAt, // Include createdAt for sorting
+          originalAuthorPicture: discourseFirstPostAuthor.avatarTemplate.length
+            ? discourseFirstPostAuthor.avatarTemplate
+            : `https://api.dicebear.com/9.x/pixel-art/png?seed=${discourseFirstPostAuthor.username}`,
+          createdAt: discourseTopic.createdAt,
         };
       } catch (topicError) {
         console.error('Error fetching topic author data:', topicError);
@@ -191,9 +193,9 @@ async function getGroupAuthor(groupId: string): Promise<{
           .executeTakeFirstOrThrow();
 
         return {
-          originalAuthorName: proposal.author || 'Unknown', // Replace 'author' with the correct field
-          originalAuthorPicture: `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author}`, // No avatar available from proposal, using fallback
-          createdAt: proposal.createdAt, // Include createdAt for sorting
+          originalAuthorName: proposal.author || 'Unknown',
+          originalAuthorPicture: `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author}`,
+          createdAt: proposal.createdAt,
         };
       } catch (proposalError) {
         console.error('Error fetching proposal author data:', proposalError);
@@ -238,7 +240,7 @@ async function getGroupAuthor(groupId: string): Promise<{
   });
 }
 
-export const getGroupAuthor_cached = unstable_cache(
+export const getGroupAuthor_cached = superjson_cache(
   async (groupId: string) => {
     return await getGroupAuthor(groupId);
   },
