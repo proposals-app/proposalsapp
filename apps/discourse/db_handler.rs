@@ -281,7 +281,7 @@ impl DbHandler {
             created_at: Set(post.created_at.naive_utc()),
             cooked: match &post.raw {
                 Some(raw) if raw == "<p>(post deleted by author)</p>" => NotSet,
-                Some(raw) => Set(raw.clone()),
+                Some(raw) => Set(Some(raw.clone())),
                 None => NotSet,
             },
             post_number: Set(post.post_number),
