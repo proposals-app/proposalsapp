@@ -1,6 +1,6 @@
 import { otel } from '@/lib/otel';
 import { AsyncReturnType } from '@/lib/utils';
-import { db } from '@proposalsapp/db';
+import { db, DiscourseUser } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
 async function getGroups(daoSlug: string) {
@@ -99,3 +99,89 @@ export const getGroups_cached = unstable_cache(
 );
 
 export type GroupsReturnType = AsyncReturnType<typeof getGroups>;
+
+async function getGroupData(groupId: string): Promise<{
+  originalAuthorName: string;
+  originalAuthorPicture: string;
+  groupName: string;
+}> {
+  'use server';
+  return otel('get-group-data', async () => {
+    const group = await db
+      .selectFrom('proposalGroup')
+      .where('id', '=', groupId)
+      .selectAll()
+      .executeTakeFirst();
+
+    if (!group) {
+      return {
+        originalAuthorName: 'Unknown',
+        originalAuthorPicture: '/fallback-avatar.png',
+        groupName: 'Unknown Group',
+      };
+    }
+
+    const items = group.items as Array<{
+      id: string;
+      type: 'proposal' | 'topic';
+    }>;
+
+    // Find the first topic in the group
+    const firstTopic = items.find((item) => item.type === 'topic');
+
+    if (!firstTopic) {
+      return {
+        originalAuthorName: 'Unknown',
+        originalAuthorPicture: '/fallback-avatar.png',
+        groupName: group.name,
+      };
+    }
+
+    try {
+      const discourseTopic = await db
+        .selectFrom('discourseTopic')
+        .where('id', '=', firstTopic.id)
+        .selectAll()
+        .executeTakeFirstOrThrow();
+
+      const discourseFirstPost = await db
+        .selectFrom('discoursePost')
+        .where('discoursePost.topicId', '=', discourseTopic.externalId)
+        .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
+        .where('discoursePost.postNumber', '=', 1)
+        .selectAll()
+        .executeTakeFirstOrThrow();
+
+      const discourseFirstPostAuthor = await db
+        .selectFrom('discourseUser')
+        .where('discourseUser.externalId', '=', discourseFirstPost.userId)
+        .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
+        .selectAll()
+        .executeTakeFirstOrThrow();
+
+      return {
+        originalAuthorName:
+          discourseFirstPostAuthor.name?.trim() ||
+          discourseFirstPostAuthor.username ||
+          'Unknown',
+        originalAuthorPicture: discourseFirstPostAuthor.avatarTemplate,
+        groupName: group.name,
+      };
+    } catch (error) {
+      console.error('Error fetching author data:', error);
+      return {
+        originalAuthorName: 'Unknown',
+        originalAuthorPicture: '/fallback-avatar.png',
+        groupName: group.name,
+      };
+    }
+  });
+}
+
+export const getGroupData_cached = unstable_cache(
+  async (groupId: string) => {
+    return await getGroupData(groupId);
+  },
+  [],
+  { revalidate: 60 * 5, tags: ['get-group-data'] }
+);

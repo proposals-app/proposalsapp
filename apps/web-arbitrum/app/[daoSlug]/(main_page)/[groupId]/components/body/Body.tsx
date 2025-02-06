@@ -12,13 +12,13 @@ import { notFound } from 'next/navigation';
 import { getBodies_cached, GroupReturnType } from '../../actions';
 import { BodyContent } from './BodyContent';
 import { PostedTime } from './PostedTime';
-import { StickyHeader } from './StickyHeader';
 import {
   COLLAPSIBLE_STYLES,
   MARKDOWN_STYLES,
   QUOTE_STYLES,
 } from '@/lib/markdown_styles';
 import Image from 'next/image';
+import { Header } from '@/app/[daoSlug]/components/Header';
 
 export default async function Body({
   group,
@@ -58,11 +58,8 @@ export default async function Body({
 
   return (
     <div className='w-full'>
-      <StickyHeader
-        bodies={bodies}
-        group={group}
-        version={version ?? defaultVersion}
-      />
+      <Header groupId={group.groupId} withBack={false} withHide={true} />
+
       <div className='flex w-full flex-col gap-6'>
         <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-300'>
           {visibleBody.title}

@@ -65,7 +65,6 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     proposal.id
   );
 
-  console.log(governor);
   const onChain = !governor?.indexerVariant.includes('SNAPSHOT');
 
   return (

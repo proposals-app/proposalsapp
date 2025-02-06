@@ -1,10 +1,9 @@
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { Header } from './components/Header';
 import { Results, ResultsLoading } from './components/Results';
 import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
-import { getAuthor_cached } from './actions';
 import { getGroup_cached } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
+import { Header } from '@/app/[daoSlug]/components/Header';
 
 export default async function ResultPage({
   params,
@@ -25,18 +24,9 @@ export default async function ResultPage({
     notFound();
   }
 
-  const bodies = await getAuthor_cached(group.group.id);
-  const author = bodies?.[0];
-
   return (
     <div className='flex min-h-screen w-full flex-row'>
-      <Header
-        authorName={author?.author_name || 'Unknown'}
-        authorPicture={author?.author_picture || ''}
-        proposalName={proposal.name}
-        daoSlug={daoSlug}
-        itemId={groupId}
-      />
+      <Header groupId={group.groupId} withBack={true} withHide={false} />
 
       <Suspense fallback={<LoadingTimeline />}>
         <Timeline group={group} selectedResult={proposalIndex + 1} />
