@@ -1,6 +1,6 @@
 import { otel } from '@/lib/otel';
 import { AsyncReturnType } from '@/lib/utils';
-import { db, DiscourseUser } from '@proposalsapp/db';
+import { db } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
 async function getGroups(daoSlug: string) {
