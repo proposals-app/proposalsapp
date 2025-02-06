@@ -1,6 +1,8 @@
 import { Proposal, Selectable } from '@proposalsapp/db';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
+import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg';
 
 interface ResultEventProps {
   content: string;
@@ -36,41 +38,55 @@ export function ResultEvent({
 
   // Content to be rendered inside the div
   const eventContent = (
-    <div className='relative flex items-center py-2'>
+    <div className='relative z-20 flex items-center py-2'>
       <div
-        className={`flex flex-col gap-1 px-4 py-2 pr-8 ${
+        className={`flex flex-col gap-1 py-1.5 pl-5 ${
           resultNumber == selectedResult
-            ? 'w-36 rounded-l-xl border-t border-b border-l'
-            : 'w-28 rounded-xl border'
-          } border-neutral-300 bg-white`}
+            ? 'w-32 border-t border-b border-l'
+            : 'w-24 border'
+          } border-neutral-800 bg-white`}
       >
-        {eventIndex == 0 && resultNumber == selectedResult && (
-          <div className='absolute top-2 -right-2 h-2 w-10 border-t border-neutral-300 bg-white' />
-        )}
-        <div
-          className='absolute top-5 left-3 z-20 h-[7px] w-[7px] -translate-x-[0.5px] rounded-full
-            bg-neutral-500'
-        />
-        {!last && (
-          <div
-            className='absolute top-[7px] left-[11.5px] z-10 h-[15px] max-h-[15px] w-0.5
-              translate-x-[2.5px] bg-neutral-500'
+        {last ? (
+          <TimelineEventActiveIcon
+            className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
+            width={24}
+            height={24}
+            alt={'Timeline event'}
+          />
+        ) : (
+          <TimelineEventIcon
+            className='dark:fill-neutral-350 absolute top-2 left-0 fill-neutral-800'
+            width={24}
+            height={24}
+            alt={'Timeline event'}
           />
         )}
-        <div className='ml-2 text-sm font-semibold'>{voteType}</div>
-        {isLive && <div className='text-foreground text-sm'>Live Voting</div>}
-        <div className='text-foreground ml-2 text-sm'>
-          {isLive ? (
-            <>
-              <span>{startDate}</span> - <span>{endDate}</span>
-            </>
-          ) : (
-            <>
-              <span>Ended {endDate}</span>
-              <br />
-              <span>Started {startDate}</span>
-            </>
-          )}
+
+        {!last && (
+          <div
+            className='absolute top-[7px] left-[8.5px] z-10 h-[15px] max-h-[15px] w-0.5
+              translate-x-[2.5px] bg-neutral-800'
+          />
+        )}
+        <div className='ml-2 flex flex-col gap-2'>
+          <div className='text-sm font-semibold'>{voteType}</div>
+
+          <div className='text-foreground w-full text-sm'>
+            {isLive ? (
+              <div className='flex flex-col'>
+                <span className='font-bold'>Live Voting</span>
+                <div className='flex flex-col'>
+                  <span>Ends </span>
+                  <span className='font-bold'>{endDate}</span>
+                </div>
+              </div>
+            ) : (
+              <div className='flex flex-col'>
+                <span>Ended </span>
+                <span className='font-bold'>{endDate}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
