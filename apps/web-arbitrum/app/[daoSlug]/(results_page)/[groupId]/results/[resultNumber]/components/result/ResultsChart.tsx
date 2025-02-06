@@ -114,7 +114,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             width: shouldStack ? 0 : 2,
             color: color,
           },
-          showSymbol: true, // Show symbols for significant points
+          showSymbol: false, // Show symbols for significant points
           symbol: (data) => {
             const isSignificant = significantPoints.find(
               (sigPoint) => sigPoint[0] === data[0]
@@ -207,7 +207,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           silent: true,
           symbol: 'none',
           lineStyle: {
-            color: 'bg-neutral-700 ',
+            color: 'var(--neutral-800)',
             type: 'solid',
             width: 2,
           },
@@ -218,7 +218,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
                 formatter: () => {
                   // Use ECharts' text styling capabilities
                   if (results.quorum !== null)
-                    return `{bold|${formatNumberWithSuffix(results.quorum)}} Quorum threshold`;
+                    return `{bold|${formatNumberWithSuffix(results.quorum)}} Quorum needed`;
                   return '';
                 },
                 rich: {
@@ -229,10 +229,10 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
                 },
                 position: 'insideStartTop', // Position the label on the left
                 fontSize: 12,
-                backgroundColor: '#e5e7eb', // Background color
-                borderColor: '#4b5563', // Border color
+                backgroundColor: 'var(--neutral-100)', // Background color
+                borderColor: 'var(--neutral-800)', // Border color
                 borderWidth: 1, // Border width
-                borderRadius: 12, // Rounded corners
+                borderRadius: 2, // Rounded corners
                 padding: [4, 8], // Padding
                 offset: [-5, 15], // Move the label slightly above the line
               },
@@ -293,10 +293,19 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
         min: results.proposal.startAt,
         max: results.proposal.endAt,
         axisLabel: {
-          formatter: (value: number) =>
-            format(toZonedTime(new Date(value), 'UTC'), 'MMM d, HH:mm') +
-            ' UTC',
+          formatter: (value: number) => {
+            const zonedDate = toZonedTime(new Date(value), 'UTC');
+            const formattedDate = format(zonedDate, 'MMM d');
+            const formattedTime = format(zonedDate, 'h:mm a').toLowerCase();
+
+            return `{bold|${formattedDate}} at\n${formattedTime} UTC`;
+          },
           hideOverlap: true,
+          rich: {
+            bold: {
+              fontWeight: 'bold',
+            },
+          },
         },
       },
       yAxis: {
@@ -308,8 +317,8 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       },
       series,
       grid: {
-        left: '10%',
-        right: '10%',
+        left: '0%',
+        right: '0%',
         bottom: '15%',
         containLabel: true,
       },

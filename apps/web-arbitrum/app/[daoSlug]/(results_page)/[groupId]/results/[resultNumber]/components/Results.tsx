@@ -66,9 +66,14 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
 
   return (
     <div className='w-full'>
-      <div className='flex'>
-        <ResultsChart results={processedResults} delegateMap={delegateMap} />
-        <ResultsList results={processedResults} />
+      <div className='flex flex-col'>
+        <div className='text-2xl font-bold'>
+          {processedResults.proposal.name}
+        </div>
+        <div className='flex'>
+          <ResultsChart results={processedResults} delegateMap={delegateMap} />
+          <ResultsList results={processedResults} />
+        </div>
       </div>
 
       <ResultsTable results={processedResults} delegateMap={delegateMap} />

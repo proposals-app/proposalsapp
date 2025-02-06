@@ -123,7 +123,10 @@ const AuthorInfo = ({
   authorPicture: string;
 }) => (
   <div className='flex flex-row items-center gap-2'>
-    <div className='h-10 w-10 overflow-hidden rounded-full'>
+    <div
+      className='h-10 w-10 overflow-hidden rounded-full border-2 border-neutral-700
+        dark:border-neutral-300'
+    >
       <Image
         src={authorPicture}
         alt={authorName}
