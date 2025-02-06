@@ -75,7 +75,7 @@ impl Indexer for SnapshotVotesIndexer {
     }
     #[instrument(skip_all)]
     fn timeout(&self) -> Duration {
-        Duration::from_secs(30 * 60)
+        Duration::from_secs(5 * 60)
     }
 }
 

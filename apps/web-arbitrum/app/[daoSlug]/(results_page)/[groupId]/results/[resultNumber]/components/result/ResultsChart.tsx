@@ -165,6 +165,8 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       }
     );
 
+    console.log(series);
+
     // Add the "Total" series for ranked-choice voting
     let totalSeriesMaxValue = 0;
     if (isRankedChoice) {
@@ -290,8 +292,8 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       },
       xAxis: {
         type: 'time',
-        min: results.proposal.startAt,
-        max: results.proposal.endAt,
+        min: toZonedTime(results.proposal.startAt, 'UTC'),
+        max: toZonedTime(results.proposal.endAt, 'UTC'),
         axisLabel: {
           formatter: (value: number) => {
             const zonedDate = toZonedTime(new Date(value), 'UTC');

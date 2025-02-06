@@ -41,7 +41,7 @@ export const getProposalGovernor_cached = unstable_cache(
   { revalidate: 60 * 5, tags: ['get-proposal-governor'] }
 );
 
-async function getVotesAction(proposalId: string) {
+export async function getVotesAction(proposalId: string) {
   return otel('get-votes', async () => {
     const votes = await db
       .selectFrom('vote')

@@ -5,6 +5,7 @@ import {
   getDelegateForVoter_cached,
   getProposalGovernor_cached,
   getVotesAction_cached,
+  getVotesAction,
 } from './actions';
 import { LoadingChart, ResultsChart } from './result/ResultsChart';
 import { LoadingList, ResultsList } from './result/ResultsList';
@@ -33,7 +34,7 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 
 // New component to handle the async content
 async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
-  const votes = await getVotesAction_cached(proposal.id);
+  const votes = await getVotesAction(proposal.id);
 
   // Create a map of voter addresses to their delegate information
   const delegateMap = new Map<string, DelegateInfo>();

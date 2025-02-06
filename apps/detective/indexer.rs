@@ -55,7 +55,7 @@ pub trait Indexer: Send + Sync {
             IndexerVariant::OpOptimismProposals => Duration::from_secs(5 * 60),
             IndexerVariant::OpOptimismVotes => Duration::from_secs(5 * 60),
             IndexerVariant::SnapshotProposals => Duration::from_secs(5 * 60),
-            IndexerVariant::SnapshotVotes => Duration::from_secs(5),
+            IndexerVariant::SnapshotVotes => Duration::from_secs(60),
             IndexerVariant::UniswapMainnetProposals => Duration::from_secs(5 * 60),
             IndexerVariant::UniswapMainnetVotes => Duration::from_secs(5 * 60),
         }
