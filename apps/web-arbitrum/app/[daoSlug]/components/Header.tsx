@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getGroupData_cached } from '../actions';
+import { getGroupAuthor_cached } from '../actions';
 import { HeaderClient } from './HeaderClient';
 import { Suspense } from 'react';
 
@@ -13,7 +13,7 @@ interface HeaderProps {
 
 export async function Header({ groupId, withBack, withHide }: HeaderProps) {
   const { originalAuthorName, originalAuthorPicture, groupName } =
-    await getGroupData_cached(groupId);
+    await getGroupAuthor_cached(groupId);
 
   if (withHide)
     return (

@@ -100,13 +100,19 @@ export const getGroups_cached = unstable_cache(
 
 export type GroupsReturnType = AsyncReturnType<typeof getGroups>;
 
-async function getGroupData(groupId: string): Promise<{
+interface AuthorInfo {
+  originalAuthorName: string;
+  originalAuthorPicture: string;
+  createdAt: Date;
+}
+
+async function getGroupAuthor(groupId: string): Promise<{
   originalAuthorName: string;
   originalAuthorPicture: string;
   groupName: string;
 }> {
   'use server';
-  return otel('get-group-data', async () => {
+  return otel('get-group-author', async () => {
     const group = await db
       .selectFrom('proposalGroup')
       .where('id', '=', groupId)
@@ -132,7 +138,9 @@ async function getGroupData(groupId: string): Promise<{
     };
 
     // Helper function to fetch topic and its author info
-    const getTopicAuthorInfo = async (topicId: string) => {
+    const getTopicAuthorInfo = async (
+      topicId: string
+    ): Promise<AuthorInfo | null> => {
       try {
         const discourseTopic = await db
           .selectFrom('discourseTopic')
@@ -170,7 +178,9 @@ async function getGroupData(groupId: string): Promise<{
     };
 
     // Helper function to fetch proposal and its author info
-    const getProposalAuthorInfo = async (proposalId: string) => {
+    const getProposalAuthorInfo = async (
+      proposalId: string
+    ): Promise<AuthorInfo | null> => {
       try {
         const proposal = await db
           .selectFrom('proposal')
@@ -205,9 +215,9 @@ async function getGroupData(groupId: string): Promise<{
 
     // Combine topics and proposals, filter out null results, and sort by createdAt
     const allItemsWithAuthors = [...topicsWithAuthors, ...proposalsWithAuthors]
-      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+      .filter((item): item is NonNullable<AuthorInfo> => Boolean(item))
       .sort(
-        (a: any, b: any) =>
+        (a, b) =>
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
 
@@ -226,10 +236,10 @@ async function getGroupData(groupId: string): Promise<{
   });
 }
 
-export const getGroupData_cached = unstable_cache(
+export const getGroupAuthor_cached = unstable_cache(
   async (groupId: string) => {
-    return await getGroupData(groupId);
+    return await getGroupAuthor(groupId);
   },
   [],
-  { revalidate: 60 * 5, tags: ['get-group-data'] }
+  { revalidate: 60 * 5, tags: ['get-group-author'] }
 );
