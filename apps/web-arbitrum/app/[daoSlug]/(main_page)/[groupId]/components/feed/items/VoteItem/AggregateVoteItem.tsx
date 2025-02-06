@@ -39,8 +39,8 @@ export async function AggregateVoteItem({
     <div className='flex items-center justify-between gap-2 p-4'>
       <div className='flex items-center gap-2 opacity-50'>
         <div
-          className='h-10 w-10 overflow-hidden rounded-full border-2 border-neutral-700
-            dark:border-neutral-300'
+          className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
+            border-neutral-700 dark:border-neutral-300'
         >
           <Image
             src={`https://api.dicebear.com/9.x/pixel-art/png?seed=${item.votingPower}`}

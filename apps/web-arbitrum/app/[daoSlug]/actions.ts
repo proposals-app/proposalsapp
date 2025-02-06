@@ -126,55 +126,103 @@ async function getGroupData(groupId: string): Promise<{
       type: 'proposal' | 'topic';
     }>;
 
-    // Find the first topic in the group
-    const firstTopic = items.find((item) => item.type === 'topic');
+    let authorInfo = {
+      originalAuthorName: 'Unknown',
+      originalAuthorPicture: '/fallback-avatar.png',
+    };
 
-    if (!firstTopic) {
-      return {
-        originalAuthorName: 'Unknown',
-        originalAuthorPicture: '/fallback-avatar.png',
-        groupName: group.name,
+    // Helper function to fetch topic and its author info
+    const getTopicAuthorInfo = async (topicId: string) => {
+      try {
+        const discourseTopic = await db
+          .selectFrom('discourseTopic')
+          .where('id', '=', topicId)
+          .selectAll()
+          .executeTakeFirstOrThrow();
+
+        const discourseFirstPost = await db
+          .selectFrom('discoursePost')
+          .where('discoursePost.topicId', '=', discourseTopic.externalId)
+          .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
+          .where('discoursePost.postNumber', '=', 1)
+          .selectAll()
+          .executeTakeFirstOrThrow();
+
+        const discourseFirstPostAuthor = await db
+          .selectFrom('discourseUser')
+          .where('discourseUser.externalId', '=', discourseFirstPost.userId)
+          .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
+          .selectAll()
+          .executeTakeFirstOrThrow();
+
+        return {
+          originalAuthorName:
+            discourseFirstPostAuthor.name?.trim() ||
+            discourseFirstPostAuthor.username ||
+            'Unknown',
+          originalAuthorPicture: discourseFirstPostAuthor.avatarTemplate,
+          createdAt: discourseTopic.createdAt, // Include createdAt for sorting
+        };
+      } catch (topicError) {
+        console.error('Error fetching topic author data:', topicError);
+        return null;
+      }
+    };
+
+    // Helper function to fetch proposal and its author info
+    const getProposalAuthorInfo = async (proposalId: string) => {
+      try {
+        const proposal = await db
+          .selectFrom('proposal')
+          .where('id', '=', proposalId)
+          .selectAll()
+          .executeTakeFirstOrThrow();
+
+        return {
+          originalAuthorName: proposal.author || 'Unknown', // Replace 'author' with the correct field
+          originalAuthorPicture: '/fallback-avatar.png', // No avatar available from proposal, using fallback
+          createdAt: proposal.createdAt, // Include createdAt for sorting
+        };
+      } catch (proposalError) {
+        console.error('Error fetching proposal author data:', proposalError);
+        return null;
+      }
+    };
+
+    // Fetch all topics with their author info
+    const topicsWithAuthors = await Promise.all(
+      items
+        .filter((item) => item.type === 'topic')
+        .map((topic) => getTopicAuthorInfo(topic.id))
+    );
+
+    // Fetch all proposals with their author info
+    const proposalsWithAuthors = await Promise.all(
+      items
+        .filter((item) => item.type === 'proposal')
+        .map((proposal) => getProposalAuthorInfo(proposal.id))
+    );
+
+    // Combine topics and proposals, filter out null results, and sort by createdAt
+    const allItemsWithAuthors = [...topicsWithAuthors, ...proposalsWithAuthors]
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+      .sort(
+        (a: any, b: any) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+
+    // If there are any items with authors, use the first one
+    if (allItemsWithAuthors.length > 0) {
+      authorInfo = {
+        originalAuthorName: allItemsWithAuthors[0].originalAuthorName,
+        originalAuthorPicture: allItemsWithAuthors[0].originalAuthorPicture,
       };
     }
 
-    try {
-      const discourseTopic = await db
-        .selectFrom('discourseTopic')
-        .where('id', '=', firstTopic.id)
-        .selectAll()
-        .executeTakeFirstOrThrow();
-
-      const discourseFirstPost = await db
-        .selectFrom('discoursePost')
-        .where('discoursePost.topicId', '=', discourseTopic.externalId)
-        .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
-        .where('discoursePost.postNumber', '=', 1)
-        .selectAll()
-        .executeTakeFirstOrThrow();
-
-      const discourseFirstPostAuthor = await db
-        .selectFrom('discourseUser')
-        .where('discourseUser.externalId', '=', discourseFirstPost.userId)
-        .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
-        .selectAll()
-        .executeTakeFirstOrThrow();
-
-      return {
-        originalAuthorName:
-          discourseFirstPostAuthor.name?.trim() ||
-          discourseFirstPostAuthor.username ||
-          'Unknown',
-        originalAuthorPicture: discourseFirstPostAuthor.avatarTemplate,
-        groupName: group.name,
-      };
-    } catch (error) {
-      console.error('Error fetching author data:', error);
-      return {
-        originalAuthorName: 'Unknown',
-        originalAuthorPicture: '/fallback-avatar.png',
-        groupName: group.name,
-      };
-    }
+    return {
+      ...authorInfo,
+      groupName: group.name,
+    };
   });
 }
 
