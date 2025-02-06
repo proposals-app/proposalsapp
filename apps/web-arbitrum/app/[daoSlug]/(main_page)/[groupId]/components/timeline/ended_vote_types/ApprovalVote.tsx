@@ -49,7 +49,7 @@ export const ApprovalVote = ({ result }: ApprovalVoteProps) => {
   }
 
   return (
-    <div className='flex-col items-center justify-between space-y-1 text-neutral-950'>
+    <div className='flex-col items-center justify-between space-y-1'>
       <div className='border-neutral-350 flex h-4 w-full overflow-hidden border'>
         <div
           className='bg-for-600 h-full'
