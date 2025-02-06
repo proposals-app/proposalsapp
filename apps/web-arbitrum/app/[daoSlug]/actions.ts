@@ -3,7 +3,7 @@ import { AsyncReturnType } from '@/lib/utils';
 import { db } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
-async function getGroups(daoSlug: string, page: number, itemsPerPage: number) {
+async function getGroups(daoSlug: string) {
   'use server';
   return otel('get-groups', async () => {
     // Fetch the DAO based on the slug
@@ -83,28 +83,16 @@ async function getGroups(daoSlug: string, page: number, itemsPerPage: number) {
       (a, b) => b.newestItemTimestamp - a.newestItemTimestamp
     );
 
-    // Calculate the start and end indices for pagination
-    const startIndex = (page - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-
-    // Slice the sorted groups array to get the requested page
-    const paginatedGroups = groupsWithTimestamps
-      .slice(startIndex, endIndex)
-      .map((group) => {
-        const { ...rest } = group;
-        return rest;
-      });
-
     return {
       daoName: dao.name,
-      groups: paginatedGroups,
+      groups: groupsWithTimestamps,
     };
   });
 }
 
 export const getGroups_cached = unstable_cache(
-  async (daoSlug: string, page: number, itemsPerPage: number) => {
-    return await getGroups(daoSlug, page, itemsPerPage);
+  async (daoSlug: string) => {
+    return await getGroups(daoSlug);
   },
   [],
   { revalidate: 60 * 5, tags: ['get-groups'] }
