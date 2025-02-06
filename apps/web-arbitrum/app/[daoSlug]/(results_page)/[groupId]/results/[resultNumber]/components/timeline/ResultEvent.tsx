@@ -45,16 +45,16 @@ export function ResultEvent({
             : 'w-24 border'
           } border-neutral-800 bg-white`}
       >
-        {last ? (
+        {isLive ? (
           <TimelineEventActiveIcon
-            className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
+            className='dark:fill-neutral-350 absolute top-3 left-2 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}
           />
         ) : (
           <TimelineEventIcon
-            className='dark:fill-neutral-350 absolute top-3 left-0 fill-neutral-800'
+            className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}
@@ -63,7 +63,7 @@ export function ResultEvent({
 
         {!last && (
           <div
-            className='absolute top-[7px] left-[8.5px] z-10 h-[15px] max-h-[15px] w-0.5
+            className='absolute top-[7px] left-[12.5px] z-10 h-[15px] max-h-[15px] w-0.5
               translate-x-[2.5px] bg-neutral-800'
           />
         )}

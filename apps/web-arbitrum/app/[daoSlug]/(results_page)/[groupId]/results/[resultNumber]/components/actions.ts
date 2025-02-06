@@ -33,7 +33,7 @@ async function getProposalGovernor(proposalId: string) {
   });
 }
 
-export const getProposalGovernor_cached = superjson_cache(
+export const getProposalGovernor_cached = unstable_cache(
   async (proposalId: string) => {
     return await getProposalGovernor(proposalId);
   },

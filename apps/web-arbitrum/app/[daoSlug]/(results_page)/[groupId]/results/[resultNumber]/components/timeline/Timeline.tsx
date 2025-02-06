@@ -54,8 +54,8 @@ export async function Timeline({
         {/* Conditionally render the top SVG */}
         {isProposalEnded && (
           <div
-            className='absolute top-1 -translate-x-[2px] rounded-sm border-2 border-neutral-300
-              bg-neutral-100'
+            className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-sm border-2
+              border-neutral-300 bg-neutral-100'
           >
             <TimelineEventIcon
               className='dark:fill-neutral-350 fill-neutral-800'
@@ -67,14 +67,14 @@ export async function Timeline({
         )}
 
         <div
-          className='dark:bg-neutral-350 absolute top-5 bottom-5 left-[11px] z-10 w-0.5
+          className='dark:bg-neutral-350 absolute top-5 bottom-5 left-[15px] z-10 w-0.5
             bg-neutral-800'
         />
 
         {/* Bottom SVG */}
         <div
-          className='absolute bottom-1 -translate-x-[2px] rounded-sm border-2 border-neutral-300
-            bg-neutral-100'
+          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-sm border-2
+            border-neutral-300 bg-neutral-100'
         >
           <TimelineEventIcon
             className='dark:fill-neutral-350 fill-neutral-800'
