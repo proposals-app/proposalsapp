@@ -19,6 +19,7 @@ use crate::indexers::{
     snapshot_votes::SnapshotVotesIndexer, uniswap_mainnet_votes::UniswapMainnetVotesIndexer,
 };
 use anyhow::{Context, Result};
+use once_cell::sync::OnceCell;
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
     DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
@@ -31,6 +32,7 @@ use std::{
     collections::{HashMap, HashSet},
     time::Duration,
 };
+use tracing::instrument;
 use utils::types::{JobData, ProposalJobData};
 
 pub struct DatabaseStore;
@@ -55,12 +57,35 @@ impl DatabaseStore {
     }
 }
 
+pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
+
+pub async fn initialize_db() -> Result<()> {
+    let database_url =
+        std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
+
+    let mut opt = sea_orm::ConnectOptions::new(database_url);
+    opt.max_connections(100)
+        .min_connections(5)
+        .connect_timeout(Duration::from_secs(8))
+        .acquire_timeout(Duration::from_secs(8))
+        .idle_timeout(Duration::from_secs(8))
+        .max_lifetime(Duration::from_secs(8))
+        .sqlx_logging(false);
+
+    let db = sea_orm::Database::connect(opt)
+        .await
+        .context("Failed to connect to the database")?;
+
+    DB.set(db)
+        .map_err(|_| anyhow::anyhow!("Failed to set database connection"))
+}
+
+#[instrument]
 pub async fn store_proposals(
-    db: &DatabaseConnection,
     indexer: &dao_indexer::Model,
     proposals: Vec<proposal::ActiveModel>,
 ) -> Result<()> {
-    let txn = db.begin().await?;
+    let txn = DB.get().unwrap().begin().await?;
 
     let external_ids: Vec<String> = proposals
         .iter()
@@ -123,8 +148,8 @@ pub async fn store_proposals(
     Ok(())
 }
 
+#[instrument]
 pub async fn store_votes(
-    db: &DatabaseConnection,
     indexer: &dao_indexer::Model,
     votes: Vec<vote::ActiveModel>,
 ) -> Result<()> {
@@ -132,7 +157,7 @@ pub async fn store_votes(
         return Ok(());
     }
 
-    let txn = db.begin().await?;
+    let txn = DB.get().unwrap().begin().await?;
 
     let proposal_external_ids: Vec<String> = votes
         .iter()
@@ -269,6 +294,7 @@ pub async fn store_votes(
     Ok(())
 }
 
+#[instrument(skip(txn, voter_addresses))]
 async fn ensure_voters_exist(
     txn: &DatabaseTransaction,
     voter_addresses: HashSet<String>,
@@ -306,15 +332,13 @@ async fn ensure_voters_exist(
     Ok(())
 }
 
-pub async fn store_voting_powers(
-    db: &DatabaseConnection,
-    voting_powers: Vec<voting_power::ActiveModel>,
-) -> Result<()> {
+#[instrument]
+pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) -> Result<()> {
     if voting_powers.is_empty() {
         return Ok(());
     }
 
-    let txn = db.begin().await?;
+    let txn = DB.get().unwrap().begin().await?;
 
     // Insert or update voting powers
     const BATCH_SIZE: usize = 1000;
@@ -328,15 +352,13 @@ pub async fn store_voting_powers(
     Ok(())
 }
 
-pub async fn store_delegations(
-    db: &DatabaseConnection,
-    delegations: Vec<delegation::ActiveModel>,
-) -> Result<()> {
+#[instrument]
+pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Result<()> {
     if delegations.is_empty() {
         return Ok(());
     }
 
-    let txn = db.begin().await?;
+    let txn = DB.get().unwrap().begin().await?;
 
     // Insert or update delegations
     const BATCH_SIZE: usize = 1000;
@@ -350,8 +372,8 @@ pub async fn store_delegations(
     Ok(())
 }
 
+#[instrument]
 pub async fn update_indexer_speed_and_index(
-    db: &DatabaseConnection,
     indexer: &dao_indexer::Model,
     new_speed: i32,
     new_index: i32,
@@ -362,49 +384,42 @@ pub async fn update_indexer_speed_and_index(
         index: Set(new_index),
         ..Default::default()
     })
-    .exec(db)
+    .exec(DB.get().unwrap())
     .await?;
     Ok(())
 }
 
-pub async fn update_indexer_speed(
-    db: &DatabaseConnection,
-    indexer: &dao_indexer::Model,
-    new_speed: i32,
-) -> Result<()> {
+#[instrument]
+pub async fn update_indexer_speed(indexer: &dao_indexer::Model, new_speed: i32) -> Result<()> {
     dao_indexer::Entity::update(dao_indexer::ActiveModel {
         id: Set(indexer.id),
         speed: Set(new_speed),
         ..Default::default()
     })
-    .exec(db)
+    .exec(DB.get().unwrap())
     .await?;
 
     Ok(())
 }
 
-pub async fn update_indexer_updated_at(
-    db: &DatabaseConnection,
-    indexer: &dao_indexer::Model,
-) -> Result<()> {
+#[instrument]
+pub async fn update_indexer_updated_at(indexer: &dao_indexer::Model) -> Result<()> {
     dao_indexer::Entity::update(dao_indexer::ActiveModel {
         id: Set(indexer.id),
         updated_at: Set(chrono::Utc::now().naive_utc()),
         ..Default::default()
     })
-    .exec(db)
+    .exec(DB.get().unwrap())
     .await?;
 
     Ok(())
 }
 
-pub async fn fetch_dao_indexers(
-    db: &DatabaseConnection,
-) -> Result<Vec<(dao_indexer::Model, dao::Model)>> {
+pub async fn fetch_dao_indexers() -> Result<Vec<(dao_indexer::Model, dao::Model)>> {
     Ok(dao_indexer::Entity::find()
         .find_also_related(seaorm::dao::Entity)
         .filter(dao_indexer::Column::Enabled.eq(true))
-        .all(db)
+        .all(DB.get().unwrap())
         .await
         .context("Failed to fetch indexers with daos")?
         .into_iter()

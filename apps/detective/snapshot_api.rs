@@ -1,4 +1,5 @@
 use anyhow::Result;
+use once_cell::sync::OnceCell;
 use reqwest::Client;
 use serde::de::DeserializeOwned;
 use std::{
@@ -68,6 +69,17 @@ impl Clone for SnapshotApiHandler {
             rate_limiter: self.rate_limiter.clone(),
         }
     }
+}
+
+pub static SNAPSHOT_API_HANDLER: OnceCell<Arc<SnapshotApiHandler>> = OnceCell::new();
+
+pub async fn initialize_snapshot_api() -> Result<()> {
+    let config = SnapshotApiConfig::default();
+    let handler = SnapshotApiHandler::new(config);
+
+    SNAPSHOT_API_HANDLER
+        .set(Arc::new(handler))
+        .map_err(|_| anyhow::anyhow!("Failed to set snapshot api handler"))
 }
 
 impl SnapshotApiHandler {

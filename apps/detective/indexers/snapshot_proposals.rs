@@ -1,14 +1,14 @@
 use crate::{
-    database::{store_votes, DatabaseStore},
+    database::{store_votes, DatabaseStore, DB},
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
-    snapshot_api::SnapshotApiHandler,
+    snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use sea_orm::{
     ActiveValue::{self, NotSet},
-    ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
 };
 use seaorm::{
     dao, dao_indexer, proposal,
@@ -17,7 +17,7 @@ use seaorm::{
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 use tracing::{info, instrument};
 
 #[derive(Debug, Deserialize)]
@@ -62,21 +62,7 @@ struct ProposalMetadata {
     scores_state: String,
 }
 
-// Implement Default for ProposalMetadata
-
-pub struct SnapshotProposalsIndexer {
-    api_handler: Arc<SnapshotApiHandler>,
-    db_handler: Option<Arc<DatabaseConnection>>,
-}
-
-impl SnapshotProposalsIndexer {
-    pub fn new(api_handler: Arc<SnapshotApiHandler>, db: Option<Arc<DatabaseConnection>>) -> Self {
-        Self {
-            api_handler,
-            db_handler: db,
-        }
-    }
-}
+pub struct SnapshotProposalsIndexer;
 
 #[async_trait]
 impl Indexer for SnapshotProposalsIndexer {
@@ -172,8 +158,9 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
             indexer.speed, snapshot_space, indexer.index
         );
 
-        let graphql_response: GraphQLResponseProposals = match self
-            .api_handler
+        let graphql_response: GraphQLResponseProposals = match SNAPSHOT_API_HANDLER
+            .get()
+            .unwrap()
             .fetch("https://hub.snapshot.org/graphql", graphql_query)
             .await
         {
@@ -187,14 +174,7 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
         };
 
         let proposals = if let Some(data) = graphql_response.data {
-            match parse_proposals(
-                data.proposals,
-                indexer,
-                self.api_handler.clone(),
-                self.db_handler.as_ref().unwrap().clone(),
-            )
-            .await
-            {
+            match parse_proposals(data.proposals, indexer).await {
                 Ok(parsed_proposals) => parsed_proposals,
                 Err(e) => return Err(anyhow!("Failed to parse proposals: {}", e)),
             }
@@ -254,8 +234,6 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
 async fn parse_proposals(
     graphql_proposals: Vec<GraphQLProposal>,
     indexer: &dao_indexer::Model,
-    snapshot_api: Arc<SnapshotApiHandler>,
-    db: Arc<DatabaseConnection>,
 ) -> Result<Vec<proposal::ActiveModel>> {
     let mut proposals = vec![];
 
@@ -329,10 +307,7 @@ async fn parse_proposals(
         proposals.push(proposal_model);
 
         if p.privacy.as_str() == "shutter" && p.scores_state.as_str() == "final" {
-            let db_clone = db.clone();
-            if let Err(e) =
-                refresh_shutter_votes(indexer.clone(), snapshot_api.clone(), p.id, db_clone).await
-            {
+            if let Err(e) = refresh_shutter_votes(indexer.clone(), p.id).await {
                 tracing::error!("Failed to refresh shutter votes: {}", e);
             }
         }
@@ -368,15 +343,10 @@ struct GraphQLVote {
 }
 
 #[instrument(skip_all)]
-async fn refresh_shutter_votes(
-    indexer: dao_indexer::Model,
-    snapshot_api: Arc<SnapshotApiHandler>,
-    proposal_id: String,
-    db: Arc<DatabaseConnection>,
-) -> Result<()> {
+async fn refresh_shutter_votes(indexer: dao_indexer::Model, proposal_id: String) -> Result<()> {
     let dao = match dao::Entity::find()
         .filter(dao::Column::Id.eq(indexer.dao_id))
-        .one(&*db)
+        .one(DB.get().unwrap())
         .await?
     {
         Some(dao) => dao,
@@ -436,7 +406,9 @@ async fn refresh_shutter_votes(
             BATCH_SIZE, skip, snapshot_space, proposal_id
         );
 
-        let graphql_response: GraphQLResponseVotes = match snapshot_api
+        let graphql_response: GraphQLResponseVotes = match SNAPSHOT_API_HANDLER
+            .get()
+            .unwrap()
             .fetch("https://hub.snapshot.org/graphql", graphql_query)
             .await
         {
@@ -489,7 +461,7 @@ async fn refresh_shutter_votes(
         skip += BATCH_SIZE;
     }
 
-    store_votes(&db, &indexer, all_votes).await?;
+    store_votes(&indexer, all_votes).await?;
 
     Ok(())
 }
@@ -596,14 +568,11 @@ async fn sanitize(
 
 #[cfg(test)]
 mod snapshot_proposals_tests {
-    use crate::snapshot_api::SnapshotApiConfig;
-
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
     use serde_json::json;
-    use std::sync::Arc;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
 
     #[ignore = "needs db mocking"]
@@ -634,10 +603,10 @@ mod snapshot_proposals_tests {
             email_quorum_warning_support: true,
         };
 
-        let snapshot_api_handler = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig::default()));
-        let snapshot_indexer = SnapshotProposalsIndexer::new(snapshot_api_handler, None);
-
-        match snapshot_indexer.process_proposals(&indexer, &dao).await {
+        match SnapshotProposalsIndexer
+            .process_proposals(&indexer, &dao)
+            .await
+        {
             Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
                 let expected_proposals = [ExpectedProposal {

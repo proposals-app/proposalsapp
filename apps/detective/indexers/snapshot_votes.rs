@@ -1,18 +1,18 @@
 use crate::{
+    database::DB,
     indexer::{Indexer, ProcessResult, VotesIndexer},
-    SnapshotApiHandler,
+    snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::DateTime;
 use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect, Set,
+    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use serde::Deserialize;
 use serde_json::Value;
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 use tracing::{error, info, instrument};
 
 #[derive(Debug, Deserialize)]
@@ -41,19 +41,9 @@ struct GraphQLVote {
     ipfs: String,
 }
 
-pub struct SnapshotVotesIndexer {
-    api_handler: Arc<SnapshotApiHandler>,
-    db_handler: Option<Arc<DatabaseConnection>>,
-}
+pub struct SnapshotVotesIndexer;
 
 impl SnapshotVotesIndexer {
-    pub fn new(api_handler: Arc<SnapshotApiHandler>, db: Option<Arc<DatabaseConnection>>) -> Self {
-        Self {
-            api_handler,
-            db_handler: db,
-        }
-    }
-
     pub fn proposal_indexer_variant() -> IndexerVariant {
         IndexerVariant::SnapshotProposals
     }
@@ -102,7 +92,7 @@ impl VotesIndexer for SnapshotVotesIndexer {
             .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
             .order_by(proposal::Column::EndAt, sea_orm::Order::Asc)
             .limit(proposal_limit as u64)
-            .all(self.db_handler.as_ref().unwrap().as_ref())
+            .all(DB.get().unwrap())
             .await?;
 
         let proposals_ext_ids: Vec<String> =
@@ -164,8 +154,9 @@ impl VotesIndexer for SnapshotVotesIndexer {
             indexer.index
         );
 
-        let graphql_response: GraphQLResponse = self
-            .api_handler
+        let graphql_response: GraphQLResponse = SNAPSHOT_API_HANDLER
+            .get()
+            .unwrap()
             .fetch("https://hub.snapshot.org/graphql", graphql_query.to_owned())
             .await?;
 
@@ -225,14 +216,11 @@ async fn parse_votes(
 
 #[cfg(test)]
 mod snapshot_votes_tests {
-    use crate::snapshot_api::{SnapshotApiConfig, SnapshotApiHandler};
-
     use super::*;
     use dotenv::dotenv;
     use sea_orm::prelude::Uuid;
     use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
     use serde_json::json;
-    use std::sync::Arc;
     use utils::test_utils::{assert_vote, parse_datetime, ExpectedVote};
 
     #[ignore = "needs db mocking"]
@@ -263,10 +251,7 @@ mod snapshot_votes_tests {
             email_quorum_warning_support: true,
         };
 
-        let snapshot_api_handler = Arc::new(SnapshotApiHandler::new(SnapshotApiConfig::default()));
-        let snapshot_indexer = SnapshotVotesIndexer::new(snapshot_api_handler, None);
-
-        match snapshot_indexer.process_votes(&indexer, &dao).await {
+        match SnapshotVotesIndexer.process_votes(&indexer, &dao).await {
             Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
