@@ -250,6 +250,7 @@ mod snapshot_votes_tests {
             index: 1718819228,
             dao_id: Uuid::parse_str("d86b6b16-9a0f-40ef-82cf-4f2d9e946612").unwrap(),
             updated_at: chrono::Utc::now().naive_utc(),
+            name: Some("Indexer".into()),
         };
 
         let dao = dao::Model {

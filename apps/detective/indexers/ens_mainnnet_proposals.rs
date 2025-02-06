@@ -321,6 +321,7 @@ mod ens_mainnet_proposals {
             index: 19583608,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             updated_at: chrono::Utc::now().naive_utc(),
+            name: Some("Indexer".into()),
         };
 
         let dao = dao::Model {

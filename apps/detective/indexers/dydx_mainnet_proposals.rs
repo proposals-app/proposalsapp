@@ -531,6 +531,7 @@ mod dydx_mainnet_proposals_tests {
             index: 13628320,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             updated_at: chrono::Utc::now().naive_utc(),
+            name: Some("Indexer".into()),
         };
 
         let dao = dao::Model {
@@ -592,6 +593,7 @@ mod dydx_mainnet_proposals_tests {
             index: 17076736,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             updated_at: chrono::Utc::now().naive_utc(),
+            name: Some("Indexer".into()),
         };
 
         let dao = dao::Model {

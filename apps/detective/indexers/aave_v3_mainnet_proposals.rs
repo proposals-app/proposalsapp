@@ -442,6 +442,7 @@ mod aave_v3_proposals {
             index: 18959200,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             updated_at: chrono::Utc::now().naive_utc(),
+            name: Some("Indexer".into()),
         };
 
         let dao = dao::Model {
@@ -503,6 +504,7 @@ mod aave_v3_proposals {
             index: 19812127,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             updated_at: chrono::Utc::now().naive_utc(),
+            name: Some("Indexer".into()),
         };
 
         let dao = dao::Model {
@@ -587,6 +589,7 @@ mod aave_v3_proposals {
             index: 19412601,
             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             updated_at: chrono::Utc::now().naive_utc(),
+            name: Some("Indexer".into()),
         };
 
         let dao = dao::Model {
