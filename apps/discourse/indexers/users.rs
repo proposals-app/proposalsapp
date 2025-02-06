@@ -4,17 +4,22 @@ use crate::{
     models::users::{User, UserDetailResponse, UserResponse},
 };
 use anyhow::{Context, Result};
+use reqwest::Client;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tracing::{error, info, instrument};
 
 pub struct UserIndexer {
     discourse_api: Arc<DiscourseApi>,
+    http_client: Client,
 }
 
 impl UserIndexer {
     pub fn new(discourse_api: Arc<DiscourseApi>) -> Self {
-        Self { discourse_api }
+        Self {
+            discourse_api,
+            http_client: Client::new(),
+        }
     }
 
     #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
@@ -87,7 +92,7 @@ impl UserIndexer {
             total_users += num_users;
 
             for mut user in page_users {
-                user.avatar_template = self.process_avatar_url(&user.avatar_template);
+                user.avatar_template = self.process_avatar_url(&user.avatar_template).await?;
                 if let Err(e) = db_handler.upsert_user(&user, dao_discourse_id).await {
                     error!(
                         error = ?e,
@@ -151,7 +156,9 @@ impl UserIndexer {
             id: response.user.id,
             username: response.user.username,
             name: response.user.name,
-            avatar_template: self.process_avatar_url(&response.user.avatar_template),
+            avatar_template: self
+                .process_avatar_url(&response.user.avatar_template)
+                .await?,
             title: response.user.title,
             likes_received: None,
             likes_given: None,
@@ -166,8 +173,8 @@ impl UserIndexer {
     }
 
     #[instrument(skip(self))]
-    fn process_avatar_url(&self, avatar_template: &str) -> String {
-        if avatar_template.starts_with("http") {
+    async fn process_avatar_url(&self, avatar_template: &str) -> Result<String> {
+        let full_url = if avatar_template.starts_with("http") {
             // It's already a full URL, just replace {size}
             avatar_template.replace("{size}", "120")
         } else {
@@ -177,6 +184,36 @@ impl UserIndexer {
                 self.discourse_api.base_url,
                 avatar_template.replace("{size}", "120")
             )
+        };
+
+        // Attempt to fetch the URL and check for redirects
+        info!(url = %full_url, "Fetching avatar URL to check for redirects");
+        let response = self
+            .http_client
+            .get(&full_url)
+            .send()
+            .await
+            .with_context(|| format!("Failed to fetch avatar URL: {}", full_url))?;
+
+        if response.status().is_redirection() {
+            // If there's a redirect, get the final URL
+            if let Some(final_url) = response
+                .headers()
+                .get("location")
+                .and_then(|h| h.to_str().ok())
+            {
+                info!(original_url = %full_url, redirected_url = %final_url, "Avatar URL redirected");
+                Ok(final_url.to_string())
+            } else {
+                error!(url = %full_url, "Redirection without a location header");
+                Ok(full_url) // Return the original URL if no location header
+            }
+        } else if response.status().is_success() {
+            info!(url = %full_url, "Avatar URL fetched successfully");
+            Ok(full_url) // Return the original URL if no redirect and the request was successful
+        } else {
+            error!(url = %full_url, status = %response.status(), "Failed to fetch avatar URL");
+            Ok(full_url) // Return the original URL if the request failed
         }
     }
 }

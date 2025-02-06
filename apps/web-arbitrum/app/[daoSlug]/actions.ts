@@ -122,7 +122,8 @@ async function getGroupAuthor(groupId: string): Promise<{
     if (!group) {
       return {
         originalAuthorName: 'Unknown',
-        originalAuthorPicture: '/fallback-avatar.png',
+        originalAuthorPicture:
+          'https://api.dicebear.com/9.x/pixel-art/png?seed=proposals.app',
         groupName: 'Unknown Group',
       };
     }
@@ -134,7 +135,8 @@ async function getGroupAuthor(groupId: string): Promise<{
 
     let authorInfo = {
       originalAuthorName: 'Unknown',
-      originalAuthorPicture: '/fallback-avatar.png',
+      originalAuthorPicture:
+        'https://api.dicebear.com/9.x/pixel-art/png?seed=proposals.app',
     };
 
     // Helper function to fetch topic and its author info
@@ -190,7 +192,7 @@ async function getGroupAuthor(groupId: string): Promise<{
 
         return {
           originalAuthorName: proposal.author || 'Unknown', // Replace 'author' with the correct field
-          originalAuthorPicture: '/fallback-avatar.png', // No avatar available from proposal, using fallback
+          originalAuthorPicture: `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author}`, // No avatar available from proposal, using fallback
           createdAt: proposal.createdAt, // Include createdAt for sorting
         };
       } catch (proposalError) {
