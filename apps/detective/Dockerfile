@@ -19,6 +19,8 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
+    python3 \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo chef cook --release --recipe-path recipe.json
