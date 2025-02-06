@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { WindowScroller, List, AutoSizer } from 'react-virtualized';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, type RefCallback } from 'react';
 
 interface Group {
   id: string;
@@ -64,7 +64,7 @@ export const VirtualizedGroupList = memo(function VirtualizedGroupList({
       {({ height, isScrolling, onChildScroll, scrollTop, registerChild }) => (
         <AutoSizer disableHeight>
           {({ width }) => (
-            <div ref={registerChild as any}>
+            <div ref={registerChild as RefCallback<HTMLDivElement>}>
               <List
                 autoHeight
                 width={width}
