@@ -3,10 +3,9 @@ import { ProcessedResults } from '@/lib/results_processing';
 
 interface ResultsListProps {
   results: ProcessedResults;
-  isExpanded?: boolean; // Optional prop to control expanded state
 }
 
-export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
+export function ResultsList({ results }: ResultsListProps) {
   const explicitOrder = ['For', 'Abstain', 'Against'];
   const totalVotingPower = results.totalVotingPower;
   const totalDelegatedVp = results.totalDelegatedVp;
@@ -30,11 +29,9 @@ export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
     : choicesWithPower.sort((a, b) => b.votingPower - a.votingPower);
 
   // Determine which choices to show
-  const topChoices = isExpanded ? sortedChoices : sortedChoices.slice(0, 5);
-  const otherChoices = isExpanded ? [] : sortedChoices.slice(5);
 
   // Calculate total voting power for "Other" choices
-  const otherVotingPower = otherChoices.reduce(
+  const otherVotingPower = sortedChoices.reduce(
     (sum, choice) => sum + choice.votingPower,
     0
   );
@@ -60,7 +57,7 @@ export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
     <div className='ml-6 w-64'>
       <div className='space-y-4'>
         <div className='space-y-2'>
-          {topChoices.map(({ choice, votingPower, color }, index) => {
+          {sortedChoices.map(({ choice, votingPower, color }, index) => {
             const percentage = (votingPower / totalVotingPower) * 100;
             return (
               <ChoiceBar
@@ -70,33 +67,11 @@ export function ResultsList({ results, isExpanded = false }: ResultsListProps) {
                 color={color}
                 percentage={isNaN(percentage) ? null : percentage}
                 choiceIndex={index}
-                totalChoices={topChoices.length}
+                totalChoices={sortedChoices.length}
               />
             );
           })}
-
-          {otherChoices.length > 0 && (
-            <a
-              href='?expand=true' // Link to expand the list
-              className='cursor-pointer hover:opacity-80'
-            >
-              <ChoiceBar
-                choice='Other'
-                votingPower={otherVotingPower}
-                color='#CBD5E1'
-                percentage={(otherVotingPower / totalVotingPower) * 100}
-                choiceIndex={topChoices.length}
-                totalChoices={topChoices.length}
-              />
-            </a>
-          )}
         </div>
-
-        {isExpanded && (
-          <a href='?expand=false' className='mt-2 text-sm'>
-            Show less
-          </a>
-        )}
 
         {/* Majority Support Checkmark */}
         <div>

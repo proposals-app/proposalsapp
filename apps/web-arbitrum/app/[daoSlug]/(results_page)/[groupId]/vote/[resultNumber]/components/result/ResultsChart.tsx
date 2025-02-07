@@ -114,7 +114,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             width: shouldStack ? 0 : 2,
             color: color,
           },
-          showSymbol: false, // Show symbols for significant points
+          showSymbol: true, // Show symbols for significant points
           symbol: (data) => {
             const isSignificant = significantPoints.find(
               (sigPoint) => sigPoint[0] === data[0]

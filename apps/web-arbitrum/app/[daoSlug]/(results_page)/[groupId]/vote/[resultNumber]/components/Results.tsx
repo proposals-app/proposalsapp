@@ -68,60 +68,67 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   const onChain = !governor?.indexerVariant.includes('SNAPSHOT');
 
   return (
-    <div className='w-full'>
+    <div className='flex w-full flex-col'>
       <div className='flex flex-col'>
-        <div className='flex flex-col'>
-          <div className='text-2xl font-bold'>
-            {processedResults.proposal.name}
+        <div className='text-2xl font-bold'>
+          {processedResults.proposal.name}
+        </div>
+        <div className='flex items-center gap-4 text-xs'>
+          <div>
+            Published {onChain ? 'onchain' : 'offchain'} by{' '}
+            <span className='font-bold'>
+              {publisher?.ens ?? publisher?.address}
+            </span>{' '}
+            at{' '}
+            <span className='font-bold'>
+              {format(processedResults.proposal.createdAt, 'MMM d, yyyy')}
+            </span>
           </div>
-          <div className='flex items-center gap-4 text-xs'>
-            <div>
-              Published {onChain ? 'onchain' : 'offchain'} by{' '}
-              <span className='font-bold'>
-                {publisher?.ens ?? publisher?.address}
-              </span>{' '}
-              at{' '}
-              <span className='font-bold'>
-                {format(processedResults.proposal.createdAt, 'MMM d, yyyy')}
-              </span>
-            </div>
-            <Link
-              className='flex items-center gap-1 rounded-xs bg-neutral-100 px-2'
-              href={governor?.portalUrl ?? 'https://proposals.app'}
-              target='_blank'
-            >
-              {onChain ? (
-                <OnchainIcon
-                  width={24}
-                  height={24}
-                  alt={'Go to governor'}
-                  className='fill-neutral-800 dark:fill-neutral-600'
-                />
-              ) : (
-                <OffchainIcon
-                  width={24}
-                  height={24}
-                  alt={'Go to governor'}
-                  className='fill-neutral-800 dark:fill-neutral-600'
-                />
-              )}
-              <div className='font-bold text-neutral-800'>{governor?.name}</div>
-              <ExternalLinkIcon
+          <Link
+            className='flex items-center gap-1 rounded-xs bg-neutral-100 px-2'
+            href={governor?.portalUrl ?? 'https://proposals.app'}
+            target='_blank'
+          >
+            {onChain ? (
+              <OnchainIcon
                 width={24}
                 height={24}
                 alt={'Go to governor'}
-                className='fill-neutral-400 dark:fill-neutral-600'
+                className='fill-neutral-800 dark:fill-neutral-600'
               />
-            </Link>
-          </div>
+            ) : (
+              <OffchainIcon
+                width={24}
+                height={24}
+                alt={'Go to governor'}
+                className='fill-neutral-800 dark:fill-neutral-600'
+              />
+            )}
+            <div className='font-bold text-neutral-800'>{governor?.name}</div>
+            <ExternalLinkIcon
+              width={24}
+              height={24}
+              alt={'Go to governor'}
+              className='fill-neutral-400 dark:fill-neutral-600'
+            />
+          </Link>
         </div>
-        <div className='flex'>
-          <ResultsChart results={processedResults} delegateMap={delegateMap} />
+      </div>
+      <div className='flex w-full'>
+        <div className='flex w-full'>
+          <div className='flex w-full flex-col'>
+            <ResultsChart
+              results={processedResults}
+              delegateMap={delegateMap}
+            />
+            <ResultsTable
+              results={processedResults}
+              delegateMap={delegateMap}
+            />
+          </div>
           <ResultsList results={processedResults} />
         </div>
       </div>
-
-      <ResultsTable results={processedResults} delegateMap={delegateMap} />
     </div>
   );
 }
@@ -131,9 +138,9 @@ export function ResultsLoading() {
     <div className='flex w-full flex-col gap-6'>
       <div className='flex w-full gap-4'>
         <LoadingChart />
-        <LoadingList />
+        <LoadingTable />
       </div>
-      <LoadingTable />
+      <LoadingList />
     </div>
   );
 }
