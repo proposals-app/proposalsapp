@@ -72,7 +72,7 @@ export function ResultEvent({
         )}
         <Link
           className='w-full'
-          href={`/${groupId}/results/${resultNumber}`} // Link to the results page
+          href={`/${groupId}/vote/${resultNumber}`} // Link to the results page
           prefetch={true}
         >
           <div className='flex w-full items-center justify-between pl-3'>
