@@ -11,8 +11,8 @@ chrono = { workspace = true }
 csv = { workspace = true }
 dotenv = { workspace = true }
 futures = { workspace = true }
-once_cell = { workspace = true }
 lazy_static = { workspace = true }
+once_cell = { workspace = true }
 opentelemetry = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
