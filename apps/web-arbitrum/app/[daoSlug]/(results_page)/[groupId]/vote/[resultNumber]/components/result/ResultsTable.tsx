@@ -167,64 +167,66 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     );
   };
 
+  const TableHeader = () => (
+    <div
+      className='dark:border-neutral-450 sticky top-[88px] z-10 grid grid-cols-4 items-center
+        justify-between gap-2 border-b border-neutral-800 bg-white p-2 text-sm font-bold
+        text-neutral-800 transition-colors dark:bg-neutral-950 dark:text-neutral-200'
+    >
+      <div className='flex items-center gap-1'>Delegate</div>
+      <Select.Root value={selectedChoice} onValueChange={setSelectedChoice}>
+        <Select.Trigger
+          className='flex h-8 w-full cursor-pointer items-center justify-between px-3 text-sm
+            outline-none'
+        >
+          <Select.Value placeholder='Filter by choice'>
+            {selectedChoice === 'all' ? 'All Choices' : selectedChoice} ▼
+          </Select.Value>
+        </Select.Trigger>
+
+        <Select.Portal>
+          <Select.Content
+            className='dark:border-neutral-450 w-full border border-neutral-800 bg-white p-1 shadow-lg
+              dark:bg-neutral-950'
+            position='popper'
+            sideOffset={5}
+          >
+            <Select.Viewport>
+              <SelectItem value='all'>All Choices</SelectItem>
+              {results.choices.map((choice, index) => (
+                <SelectItem key={index} value={choice}>
+                  {choice}
+                </SelectItem>
+              ))}
+            </Select.Viewport>
+          </Select.Content>
+        </Select.Portal>
+      </Select.Root>
+      <div
+        onClick={() => handleSortChange('timestamp')}
+        className='flex cursor-pointer items-center gap-1'
+      >
+        Date
+        {sortColumn === 'timestamp' && (
+          <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
+        )}
+      </div>
+      <div
+        onClick={() => handleSortChange('votingPower')}
+        className='flex cursor-pointer items-center gap-1'
+      >
+        Voting Power
+        {sortColumn === 'votingPower' && (
+          <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className='mt-6'>
       <div className='rounded-md border border-neutral-300'>
-        {/* Header */}
-        <div
-          className='dark:border-neutral-450 grid grid-cols-4 items-center justify-between gap-2
-            border-b border-neutral-800 bg-white p-2 text-sm font-bold text-neutral-800
-            transition-colors dark:bg-neutral-950 dark:text-neutral-200'
-        >
-          <div className='flex items-center gap-1'>Delegate</div>
-          <Select.Root value={selectedChoice} onValueChange={setSelectedChoice}>
-            <Select.Trigger
-              className='flex h-8 w-full cursor-pointer items-center justify-between px-3 text-sm
-                outline-none'
-            >
-              <Select.Value placeholder='Filter by choice'>
-                {selectedChoice === 'all' ? 'All Choices' : selectedChoice} ▼
-              </Select.Value>
-            </Select.Trigger>
-
-            <Select.Portal>
-              <Select.Content
-                className='dark:border-neutral-450 w-full border border-neutral-800 bg-white p-1 shadow-lg
-                  dark:bg-neutral-950'
-                position='popper'
-                sideOffset={5}
-              >
-                <Select.Viewport>
-                  <SelectItem value='all'>All Choices</SelectItem>
-                  {results.choices.map((choice, index) => (
-                    <SelectItem key={index} value={choice}>
-                      {choice}
-                    </SelectItem>
-                  ))}
-                </Select.Viewport>
-              </Select.Content>
-            </Select.Portal>
-          </Select.Root>
-          <div
-            onClick={() => handleSortChange('timestamp')}
-            className='flex cursor-pointer items-center gap-1'
-          >
-            Date
-            {sortColumn === 'timestamp' && (
-              <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
-            )}
-          </div>
-          <div
-            onClick={() => handleSortChange('votingPower')}
-            className='flex cursor-pointer items-center gap-1'
-          >
-            Voting Power
-            {sortColumn === 'votingPower' && (
-              <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
-            )}
-          </div>
-        </div>
-
+        <TableHeader />
         <WindowScroller>
           {({ height, isScrolling, onChildScroll, scrollTop }) => (
             <AutoSizer disableHeight>

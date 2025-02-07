@@ -33,14 +33,12 @@ export default async function ResultPage({
       </Suspense>
 
       <div
-        className={
-          'flex w-full grow -translate-x-[1px] -translate-y-2 bg-white py-28'
-        }
+        className={'flex w-full grow -translate-x-[1px] -translate-y-2 py-28'}
       >
         <div className='h-full w-full pr-4'>
           <div
             className='flex h-full min-h-[calc(100vh-114px)] w-full flex-col border border-neutral-800
-              p-6'
+              bg-white p-6'
           >
             {group ? (
               <Suspense fallback={<ResultsLoading />}>
