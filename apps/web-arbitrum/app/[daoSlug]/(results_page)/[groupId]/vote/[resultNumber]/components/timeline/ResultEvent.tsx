@@ -94,7 +94,7 @@ export function ResultEvent({
   // If resultNumber is not equal to selectedResult, wrap the content in a Link
   if (resultNumber !== selectedResult) {
     return (
-      <Link href={`/${groupId}/results/${resultNumber}`}>{eventContent}</Link>
+      <Link href={`/${groupId}/vote/${resultNumber}`}>{eventContent}</Link>
     );
   }
 
