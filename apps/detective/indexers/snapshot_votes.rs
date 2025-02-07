@@ -1,15 +1,12 @@
 use crate::{
-    database::DB,
     indexer::{Indexer, ProcessResult, VotesIndexer},
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::DateTime;
-use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
-};
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
+use sea_orm::{ActiveValue::NotSet, Set};
+use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use serde::Deserialize;
 use serde_json::Value;
 use std::time::Duration;
@@ -79,25 +76,6 @@ impl VotesIndexer for SnapshotVotesIndexer {
     ) -> Result<ProcessResult> {
         info!("Processing Snapshot Votes");
 
-        let proposal_limit = (indexer.speed / 10).max(10);
-
-        let proposals = proposal::Entity::find()
-            .filter(proposal::Column::DaoId.eq(indexer.dao_id))
-            .filter(
-                proposal::Column::EndAt.gt(DateTime::from_timestamp(indexer.index.into(), 0)
-                    .unwrap()
-                    .naive_utc()),
-            )
-            .inner_join(dao_indexer::Entity)
-            .filter(dao_indexer::Column::IndexerVariant.eq(IndexerVariant::SnapshotProposals))
-            .order_by(proposal::Column::EndAt, sea_orm::Order::Asc)
-            .limit(proposal_limit as u64)
-            .all(DB.get().unwrap())
-            .await?;
-
-        let proposals_ext_ids: Vec<String> =
-            proposals.iter().map(|p| p.external_id.clone()).collect();
-
         let snapshot_space = match dao.slug.as_str() {
             "compound" => "comp-vote.eth",
             "gitcoin" => "gitcoindao.eth",
@@ -126,7 +104,6 @@ impl VotesIndexer for SnapshotVotesIndexer {
                            orderDirection: asc,
                            where: {{
                                space: "{}",
-                               proposal_in: [{}],
                                created_gt: {}
                            }}
                        )
@@ -144,14 +121,7 @@ impl VotesIndexer for SnapshotVotesIndexer {
                            }}
                        }}
                    }}"#,
-            indexer.speed,
-            snapshot_space,
-            proposals_ext_ids
-                .iter()
-                .map(|id| format!("\"{}\"", id))
-                .collect::<Vec<_>>()
-                .join(", "),
-            indexer.index
+            indexer.speed, snapshot_space, indexer.index
         );
 
         let graphql_response: GraphQLResponse = SNAPSHOT_API_HANDLER
