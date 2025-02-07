@@ -1,9 +1,9 @@
 #![warn(unused_extern_crates)]
 
 use crate::metrics::Metrics;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use axum::{routing::get, Router};
-use db_handler::DbHandler;
+use db_handler::{initialize_db, DB};
 use discourse_api::DiscourseApi;
 use dotenv::dotenv;
 use indexers::{
@@ -44,11 +44,8 @@ async fn main() -> Result<()> {
 
     info!("Application starting up");
 
-    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
-
-    let metrics = Arc::new(Metrics::new());
-    let db_handler = Arc::new(DbHandler::new(&database_url, Arc::clone(&metrics)).await?);
-    info!(database_url = %database_url, "Initial database connection established");
+    initialize_db().await?;
+    Metrics::init();
 
     let app = Router::new().route("/", get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -63,7 +60,7 @@ async fn main() -> Result<()> {
 
     let dao_discourses = seaorm::dao_discourse::Entity::find()
         .filter(dao_discourse::Column::Enabled.eq(true))
-        .all(&db_handler.conn)
+        .all(DB.get().unwrap())
         .await?;
 
     let mut handles = vec![];
@@ -73,12 +70,10 @@ async fn main() -> Result<()> {
         let discourse_api = Arc::new(DiscourseApi::new(
             dao_discourse.discourse_base_url.clone(),
             dao_discourse.with_user_agent,
-            Arc::clone(&metrics),
         ));
         discourse_apis.insert(dao_discourse.id, Arc::clone(&discourse_api));
 
         // Spawn category fetcher thread
-        let db_handler_category_clone = Arc::clone(&db_handler);
         let dao_discourse_category_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let category_handle = tokio::spawn(async move {
@@ -91,10 +86,7 @@ async fn main() -> Result<()> {
 
                 let category_fetcher = CategoryIndexer::new(Arc::clone(&api_handler));
                 match category_fetcher
-                    .update_all_categories(
-                        Arc::clone(&db_handler_category_clone),
-                        dao_discourse_category_clone.id,
-                    )
+                    .update_all_categories(dao_discourse_category_clone.id)
                     .await
                 {
                     Ok(_) => {
@@ -116,7 +108,6 @@ async fn main() -> Result<()> {
         });
 
         // Spawn user fetcher thread
-        let db_handler_users_clone = Arc::clone(&db_handler);
         let dao_discourse_users_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let user_handle = tokio::spawn(async move {
@@ -128,10 +119,7 @@ async fn main() -> Result<()> {
                 interval.tick().await;
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
                 match user_fetcher
-                    .update_all_users(
-                        Arc::clone(&db_handler_users_clone),
-                        dao_discourse_users_clone.id,
-                    )
+                    .update_all_users(dao_discourse_users_clone.id)
                     .await
                 {
                     Ok(_) => {
@@ -153,7 +141,6 @@ async fn main() -> Result<()> {
         });
 
         // Spawn topic fetcher thread
-        let db_handler_topic_clone = Arc::clone(&db_handler);
         let dao_discourse_topic_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let topic_handle = tokio::spawn(async move {
@@ -165,10 +152,7 @@ async fn main() -> Result<()> {
                 interval.tick().await;
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
                 match topic_fetcher
-                    .update_all_topics(
-                        Arc::clone(&db_handler_topic_clone),
-                        dao_discourse_topic_clone.id,
-                    )
+                    .update_all_topics(dao_discourse_topic_clone.id)
                     .await
                 {
                     Ok(_) => {
@@ -190,7 +174,6 @@ async fn main() -> Result<()> {
         });
 
         // Spawn revision fetcher thread
-        let db_handler_revision_clone = Arc::clone(&db_handler);
         let dao_discourse_revision_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let revision_handle = tokio::spawn(async move {
@@ -201,10 +184,7 @@ async fn main() -> Result<()> {
                 interval.tick().await;
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
                 match revision_fetcher
-                    .update_all_revisions(
-                        Arc::clone(&db_handler_revision_clone),
-                        dao_discourse_revision_clone.id,
-                    )
+                    .update_all_revisions(dao_discourse_revision_clone.id)
                     .await
                 {
                     Ok(_) => {
@@ -226,7 +206,6 @@ async fn main() -> Result<()> {
         });
 
         // Spawn new content fetcher thread
-        let db_handler_newcontent_clone = Arc::clone(&db_handler);
         let dao_discourse_newcontent_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
         let newcontent_handle = tokio::spawn(async move {
@@ -240,18 +219,9 @@ async fn main() -> Result<()> {
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
 
                 let (user_result, topic_result, revision_result) = tokio::join!(
-                    user_fetcher.update_recent_users(
-                        Arc::clone(&db_handler_newcontent_clone),
-                        dao_discourse_newcontent_clone.id,
-                    ),
-                    topic_fetcher.update_recent_topics(
-                        Arc::clone(&db_handler_newcontent_clone),
-                        dao_discourse_newcontent_clone.id,
-                    ),
-                    revision_fetcher.update_recent_revisions(
-                        Arc::clone(&db_handler_newcontent_clone),
-                        dao_discourse_newcontent_clone.id,
-                    )
+                    user_fetcher.update_recent_users(dao_discourse_newcontent_clone.id,),
+                    topic_fetcher.update_recent_topics(dao_discourse_newcontent_clone.id,),
+                    revision_fetcher.update_recent_revisions(dao_discourse_newcontent_clone.id,)
                 );
 
                 match user_result {

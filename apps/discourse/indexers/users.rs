@@ -1,5 +1,5 @@
 use crate::{
-    db_handler::DbHandler,
+    db_handler::upsert_user,
     discourse_api::DiscourseApi,
     models::users::{User, UserDetailResponse, UserResponse},
 };
@@ -22,34 +22,23 @@ impl UserIndexer {
         }
     }
 
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_all_users(
-        &self,
-        db_handler: Arc<DbHandler>,
-        dao_discourse_id: Uuid,
-    ) -> Result<()> {
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
+    pub async fn update_all_users(&self, dao_discourse_id: Uuid) -> Result<()> {
         info!("Starting to update all users");
 
-        self.update_users(db_handler, dao_discourse_id, "all", false)
-            .await
+        self.update_users(dao_discourse_id, "all", false).await
     }
 
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_recent_users(
-        &self,
-        db_handler: Arc<DbHandler>,
-        dao_discourse_id: Uuid,
-    ) -> Result<()> {
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
+    pub async fn update_recent_users(&self, dao_discourse_id: Uuid) -> Result<()> {
         info!("Starting to update new users");
 
-        self.update_users(db_handler, dao_discourse_id, "daily", true)
-            .await
+        self.update_users(dao_discourse_id, "daily", true).await
     }
 
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_users(
         &self,
-        db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         period: &str,
         priority: bool,
@@ -93,7 +82,7 @@ impl UserIndexer {
 
             for mut user in page_users {
                 user.avatar_template = self.process_avatar_url(&user.avatar_template).await?;
-                if let Err(e) = db_handler.upsert_user(&user, dao_discourse_id).await {
+                if let Err(e) = upsert_user(&user, dao_discourse_id).await {
                     error!(
                         error = ?e,
                         user_id = user.id,
@@ -133,11 +122,10 @@ impl UserIndexer {
         Ok(())
     }
 
-    #[instrument(skip(self, db_handler), fields(username = %username, dao_discourse_id = %dao_discourse_id))]
+    #[instrument(skip(self), fields(username = %username, dao_discourse_id = %dao_discourse_id))]
     pub async fn fetch_user_by_username(
         &self,
         username: &str,
-        db_handler: &DbHandler,
         dao_discourse_id: Uuid,
         priority: bool,
     ) -> Result<()> {
@@ -169,7 +157,7 @@ impl UserIndexer {
             days_visited: None,
         };
 
-        db_handler.upsert_user(&user, dao_discourse_id).await
+        upsert_user(&user, dao_discourse_id).await
     }
 
     #[instrument(skip(self))]

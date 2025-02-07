@@ -1,4 +1,4 @@
-use crate::metrics::Metrics;
+use crate::metrics::METRICS;
 use anyhow::{anyhow, Result};
 use opentelemetry::KeyValue;
 use rand::{seq::SliceRandom, thread_rng};
@@ -36,7 +36,6 @@ const USER_AGENTS: [&str; 5] = [
 #[derive(Clone)]
 pub struct DiscourseApi {
     client: Client,
-    metrics: Arc<Metrics>,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     pub base_url: String,
@@ -58,8 +57,8 @@ struct Job {
 }
 
 impl DiscourseApi {
-    #[instrument(skip(metrics))]
-    pub fn new(base_url: String, with_user_agent: bool, metrics: Arc<Metrics>) -> Self {
+    #[instrument]
+    pub fn new(base_url: String, with_user_agent: bool) -> Self {
         let (headers, cookie_jar) = Self::default_headers_with_cookies(with_user_agent);
 
         let client = Client::builder()
@@ -74,7 +73,6 @@ impl DiscourseApi {
 
         let api_handler = Self {
             client,
-            metrics,
             max_retries: DEFAULT_MAX_RETRIES,
             sender,
             base_url: base_url.clone(),
@@ -148,11 +146,15 @@ impl DiscourseApi {
         let url = format!("{}{}", self.base_url, endpoint);
 
         if priority {
-            self.metrics
+            METRICS
+                .get()
+                .unwrap()
                 .queue_size_priority
                 .add(1, &[KeyValue::new("url", url.clone())]);
         } else {
-            self.metrics
+            METRICS
+                .get()
+                .unwrap()
                 .queue_size_normal
                 .add(1, &[KeyValue::new("url", url.clone())]);
         }
@@ -219,7 +221,9 @@ impl DiscourseApi {
                 pq.pop_front()
             } {
                 self.process_job(&priority_job, true).await;
-                self.metrics
+                METRICS
+                    .get()
+                    .unwrap()
                     .queue_size_priority
                     .add(-1, &[KeyValue::new("url", priority_job.url)]);
             }
@@ -231,7 +235,9 @@ impl DiscourseApi {
                     nq.pop_front()
                 } {
                     self.process_job(&normal_job, false).await;
-                    self.metrics
+                    METRICS
+                        .get()
+                        .unwrap()
                         .queue_size_normal
                         .add(-1, &[KeyValue::new("url", normal_job.url)]);
                 } else {
@@ -249,7 +255,7 @@ impl DiscourseApi {
         let start_time = std::time::Instant::now();
 
         // Record total requests metric
-        self.metrics.api_total_requests.add(
+        METRICS.get().unwrap().api_total_requests.add(
             1,
             &[
                 KeyValue::new("url", job.url.clone()),
@@ -261,7 +267,7 @@ impl DiscourseApi {
 
         // Record the duration of the request
         let duration = start_time.elapsed().as_secs_f64();
-        self.metrics.api_request_duration.record(
+        METRICS.get().unwrap().api_request_duration.record(
             duration,
             &[
                 KeyValue::new("url", job.url.clone()),
@@ -293,7 +299,7 @@ impl DiscourseApi {
                 }
 
                 // Record the error
-                self.metrics.api_request_errors.add(
+                METRICS.get().unwrap().api_request_errors.add(
                     1,
                     &[
                         KeyValue::new("url", job.url.clone()),
@@ -303,14 +309,16 @@ impl DiscourseApi {
                 );
 
                 // Record queue errors
-                self.metrics
+                METRICS
+                    .get()
+                    .unwrap()
                     .queue_errors
                     .add(1, &[KeyValue::new("url", job.url.clone())]);
             }
         }
 
         // Record queue processing time
-        self.metrics.queue_processing_time.record(
+        METRICS.get().unwrap().queue_processing_time.record(
             start_time.elapsed().as_secs_f64(),
             &[KeyValue::new("url", job.url.clone())],
         );
@@ -367,7 +375,7 @@ impl DiscourseApi {
                             delay = delay.max(retry_after) * 2;
 
                             // Record retry metrics
-                            self.metrics.api_request_errors.add(
+                            METRICS.get().unwrap().api_request_errors.add(
                                 1,
                                 &[
                                     KeyValue::new("url", url.to_string()),
@@ -391,7 +399,7 @@ impl DiscourseApi {
                             delay *= 2;
 
                             // Record retry metrics
-                            self.metrics.api_request_errors.add(
+                            METRICS.get().unwrap().api_request_errors.add(
                                 1,
                                 &[
                                     KeyValue::new("url", url.to_string()),
@@ -437,7 +445,7 @@ impl DiscourseApi {
                     delay *= 2; // Exponential backoff
 
                     // Record retry metrics
-                    self.metrics.api_request_errors.add(
+                    METRICS.get().unwrap().api_request_errors.add(
                         1,
                         &[
                             KeyValue::new("url", url.to_string()),

@@ -1,4 +1,7 @@
-use crate::{db_handler::DbHandler, discourse_api::DiscourseApi, models::likes::PostLikeResponse};
+use crate::{
+    db_handler::upsert_post_likes_batch, discourse_api::DiscourseApi,
+    models::likes::PostLikeResponse,
+};
 use anyhow::{Context, Result};
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
@@ -13,10 +16,9 @@ impl LikesIndexer {
         Self { discourse_api }
     }
 
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id, post_id = post_id))]
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id, post_id = post_id))]
     pub async fn fetch_and_store_likes(
         &self,
-        db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         post_id: i32,
         priority: bool,
@@ -41,10 +43,7 @@ impl LikesIndexer {
             .map(|user| user.id)
             .collect::<Vec<_>>();
 
-        if let Err(e) = db_handler
-            .upsert_post_likes_batch(post_id, user_ids, dao_discourse_id)
-            .await
-        {
+        if let Err(e) = upsert_post_likes_batch(post_id, user_ids, dao_discourse_id).await {
             error!(
                 error = ?e,
                 post_id,

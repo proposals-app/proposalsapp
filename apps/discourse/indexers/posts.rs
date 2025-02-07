@@ -1,5 +1,5 @@
 use crate::{
-    db_handler::DbHandler,
+    db_handler::{get_or_create_unknown_user, get_post_like_count, upsert_post, DB},
     discourse_api::DiscourseApi,
     indexers::{likes::LikesIndexer, users::UserIndexer},
     models::posts::{Post, PostResponse},
@@ -23,10 +23,9 @@ impl PostIndexer {
         Self { discourse_api }
     }
 
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id, topic_id = topic_id))]
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id, topic_id = topic_id))]
     pub async fn update_posts_for_topic(
         &self,
-        db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         topic_id: i32,
         priority: bool,
@@ -40,7 +39,7 @@ impl PostIndexer {
                     .add(seaorm::discourse_post::Column::TopicId.eq(topic_id))
                     .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
-            .all(&db_handler.conn)
+            .all(DB.get().unwrap())
             .await
             .context("Failed to fetch existing posts")?;
 
@@ -80,12 +79,10 @@ impl PostIndexer {
                     if !is_empty {
                         stream::iter(posts)
                             .map(|post| {
-                                let db_handler = Arc::clone(&db_handler);
                                 let api_handler = Arc::clone(&self.discourse_api);
                                 task::spawn(async move {
                                     Self::process_post(
                                         post,
-                                        db_handler,
                                         dao_discourse_id,
                                         api_handler,
                                         priority,
@@ -161,7 +158,7 @@ impl PostIndexer {
                         .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
                         .add(seaorm::discourse_post::Column::TopicId.eq(topic_id)),
                 )
-                .exec(&db_handler.conn)
+                .exec(DB.get().unwrap())
                 .await?;
 
             info!(
@@ -178,19 +175,16 @@ impl PostIndexer {
         Ok(())
     }
 
-    #[instrument(skip(db_handler, discourse_api), fields(post_id = %post.id, username = %post.username))]
+    #[instrument(skip( discourse_api), fields(post_id = %post.id, username = %post.username))]
     async fn process_post(
         post: Post,
-        db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         discourse_api: Arc<DiscourseApi>,
         priority: bool,
     ) {
-        match db_handler.upsert_post(&post, dao_discourse_id).await {
+        match upsert_post(&post, dao_discourse_id).await {
             Ok(_) => {
-                let current_likes_count = match db_handler
-                    .get_post_like_count(post.id, dao_discourse_id)
-                    .await
+                let current_likes_count = match get_post_like_count(post.id, dao_discourse_id).await
                 {
                     Ok(count) => count,
                     Err(e) => {
@@ -216,12 +210,7 @@ impl PostIndexer {
 
                         let likes_indexer = LikesIndexer::new(Arc::clone(&discourse_api));
                         if let Err(e) = likes_indexer
-                            .fetch_and_store_likes(
-                                Arc::clone(&db_handler),
-                                dao_discourse_id,
-                                post.id,
-                                priority,
-                            )
+                            .fetch_and_store_likes(dao_discourse_id, post.id, priority)
                             .await
                         {
                             error!(
@@ -249,17 +238,12 @@ impl PostIndexer {
                     );
                     let user_fetcher = UserIndexer::new(Arc::clone(&discourse_api));
                     match user_fetcher
-                        .fetch_user_by_username(
-                            &post.username,
-                            &db_handler,
-                            dao_discourse_id,
-                            priority,
-                        )
+                        .fetch_user_by_username(&post.username, dao_discourse_id, priority)
                         .await
                     {
                         Ok(_) => {
                             // Try to upsert the post again with the fetched user
-                            if let Err(e) = db_handler.upsert_post(&post, dao_discourse_id).await {
+                            if let Err(e) = upsert_post(&post, dao_discourse_id).await {
                                 error!(
                                     error = ?e,
                                     post_id = post.id,
@@ -275,10 +259,7 @@ impl PostIndexer {
                                 "Failed to fetch user, using unknown user"
                             );
                             // Get or create the unknown user
-                            match db_handler
-                                .get_or_create_unknown_user(dao_discourse_id)
-                                .await
-                            {
+                            match get_or_create_unknown_user(dao_discourse_id).await {
                                 Ok(unknown_user) => {
                                     // Create a new post with the unknown user
                                     let mut unknown_post = post.clone();
@@ -286,9 +267,8 @@ impl PostIndexer {
                                     unknown_post.username = unknown_user.username.clone();
 
                                     // Upsert the post with the unknown user
-                                    if let Err(e) = db_handler
-                                        .upsert_post(&unknown_post, dao_discourse_id)
-                                        .await
+                                    if let Err(e) =
+                                        upsert_post(&unknown_post, dao_discourse_id).await
                                     {
                                         error!(
                                             error = ?e,

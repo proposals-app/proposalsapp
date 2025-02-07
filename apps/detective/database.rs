@@ -21,8 +21,8 @@ use crate::indexers::{
 use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
 use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database,
-    DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
+    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection,
+    DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
 };
 use seaorm::{
     dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote, voter,
@@ -34,28 +34,6 @@ use std::{
 };
 use tracing::instrument;
 use utils::types::{JobData, ProposalJobData};
-
-pub struct DatabaseStore;
-
-impl DatabaseStore {
-    pub async fn connect() -> Result<DatabaseConnection> {
-        let database_url =
-            std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
-
-        let mut opt = ConnectOptions::new(database_url);
-        opt.max_connections(100)
-            .min_connections(5)
-            .connect_timeout(Duration::from_secs(8))
-            .acquire_timeout(Duration::from_secs(8))
-            .idle_timeout(Duration::from_secs(8))
-            .max_lifetime(Duration::from_secs(8))
-            .sqlx_logging(false);
-
-        Database::connect(opt)
-            .await
-            .context("Failed to connect to the database")
-    }
-}
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 

@@ -11,6 +11,7 @@ dotenv = { workspace = true }
 fancy-regex = { workspace = true }
 futures = { workspace = true }
 html-escape = { workspace = true }
+once_cell = { workspace = true }
 lazy_static = { workspace = true }
 oneshot = { workspace = true }
 opentelemetry = { workspace = true }

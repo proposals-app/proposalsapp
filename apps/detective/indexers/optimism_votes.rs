@@ -1,6 +1,6 @@
 use crate::{
     chain_data::{self},
-    database::DatabaseStore,
+    database::DB,
     indexer::{Indexer, ProcessResult, VotesIndexer},
 };
 use alloy::{
@@ -178,7 +178,7 @@ async fn get_votes_with_params(
     indexer: &dao_indexer::Model,
     rpc: &Arc<ReqwestProvider>,
 ) -> Result<Vec<vote::ActiveModel>> {
-    let db = DatabaseStore::connect().await?;
+    let db = DB.get().unwrap();
 
     let voter_logs: Vec<(optimism_gov_v_6::VoteCastWithParams, Log)> = logs.into_iter().collect();
 
@@ -208,7 +208,7 @@ async fn get_votes_with_params(
             .filter(
                 dao_indexer::Column::IndexerVariant.is_in([IndexerVariant::OpOptimismProposals]),
             )
-            .all(&db)
+            .all(db)
             .await?
             .into_iter()
             .map(|dh| dh.id)
@@ -220,7 +220,7 @@ async fn get_votes_with_params(
                     .add(proposal::Column::ExternalId.eq(event.proposalId.to_string()))
                     .add(proposal::Column::DaoIndexerId.is_in(proposal_handler_id)),
             )
-            .one(&db)
+            .one(db)
             .await?
             .unwrap();
 
@@ -269,7 +269,7 @@ async fn get_votes_with_params(
                         scores: Set(proposal.scores),
                         ..Default::default()
                     })
-                    .exec(&db)
+                    .exec(db)
                     .await?;
                 }
             }

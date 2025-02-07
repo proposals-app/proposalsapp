@@ -81,9 +81,11 @@ mod snapshot_api;
 static MAX_JOBS: usize = 100;
 static CONCURRENT_JOBS_ONCHAIN: usize = 1;
 static CONCURRENT_JOBS_SNAPSHOT: usize = 3;
+
 static SNAPSHOT_MAX_RETRIES: usize = 5;
 static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
 static SNAPSHOT_MAX_QUEUE: usize = 100;
+static SNAPSHOT_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -1,6 +1,6 @@
 use crate::{
     chain_data::{self},
-    database::DatabaseStore,
+    database::DB,
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
 };
 use alloy::{
@@ -334,7 +334,7 @@ fn extract_title(description: &str) -> String {
 async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
     use sea_orm::{DbBackend, Statement};
 
-    let db = DatabaseStore::connect().await?;
+    let db = DB.get().unwrap();
 
     // Construct the raw SQL query
     let sql = r#"

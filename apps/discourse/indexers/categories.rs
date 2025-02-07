@@ -1,7 +1,7 @@
 use crate::{
+    db_handler::upsert_category,
     discourse_api::DiscourseApi,
     models::categories::{Category, CategoryResponse},
-    DbHandler,
 };
 use anyhow::{Context, Result};
 use sea_orm::prelude::Uuid;
@@ -17,12 +17,8 @@ impl CategoryIndexer {
         Self { discourse_api }
     }
 
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_all_categories(
-        &self,
-        db_handler: Arc<DbHandler>,
-        dao_discourse_id: Uuid,
-    ) -> Result<()> {
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
+    pub async fn update_all_categories(&self, dao_discourse_id: Uuid) -> Result<()> {
         info!("Starting to update all categories");
 
         let mut page = 0;
@@ -46,10 +42,7 @@ impl CategoryIndexer {
             total_categories += num_categories;
 
             for category in all_categories {
-                if let Err(e) = db_handler
-                    .upsert_category(&category, dao_discourse_id)
-                    .await
-                {
+                if let Err(e) = upsert_category(&category, dao_discourse_id).await {
                     error!(
                         error = ?e,
                         category_id = category.id,

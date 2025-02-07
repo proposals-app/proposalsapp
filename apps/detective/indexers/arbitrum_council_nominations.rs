@@ -1,6 +1,6 @@
 use crate::{
     chain_data::{self},
-    database::DatabaseStore,
+    database::DB,
     indexer::{Indexer, ProcessResult, ProposalsAndVotesIndexer},
     indexers::arbitrum_council_nominations::arbitrum_security_council_nomination::Date,
 };
@@ -231,7 +231,7 @@ async fn get_votes(
 
         // First, try to find the proposal in proposals_map
         if !proposals_map.contains_key(&event.proposalId.to_string()) {
-            let db = DatabaseStore::connect().await?;
+            let db = DB.get().unwrap();
             // If not found in proposals_map, fetch from the database once
             if let std::collections::hash_map::Entry::Vacant(e) =
                 db_proposals_fetched.entry(event.proposalId.to_string())
@@ -242,7 +242,7 @@ async fn get_votes(
                             .add(proposal::Column::DaoIndexerId.eq(indexer.id))
                             .add(proposal::Column::ExternalId.eq(event.proposalId.to_string())),
                     )
-                    .one(&db)
+                    .one(db)
                     .await?
                 {
                     Some(active_proposal) => {
@@ -375,7 +375,7 @@ async fn merge_with_nominees(
 
         // First, try to find the proposal in proposals_map
         if !proposals_map.contains_key(&proposal_id_str) {
-            let db = DatabaseStore::connect().await?;
+            let db = DB.get().unwrap();
             // If not found in proposals_map, fetch from the database once
             if !db_proposals_fetched.contains_key(&proposal_id_str) {
                 match proposal::Entity::find()
@@ -384,7 +384,7 @@ async fn merge_with_nominees(
                             .add(proposal::Column::DaoIndexerId.eq(indexer.id))
                             .add(proposal::Column::ExternalId.eq(event.proposalId.to_string())),
                     )
-                    .one(&db)
+                    .one(db)
                     .await?
                 {
                     Some(proposal) => db_proposals_fetched

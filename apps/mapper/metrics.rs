@@ -1,7 +1,9 @@
+use once_cell::sync::OnceCell;
 use opentelemetry::metrics::{Counter, Histogram, UpDownCounter};
 use utils::tracing::get_meter;
 
-#[derive(Clone)]
+pub static METRICS: OnceCell<Metrics> = OnceCell::new();
+
 pub struct Metrics {
     // Database Metrics
     pub db_query_duration: Histogram<f64>,
@@ -21,7 +23,7 @@ pub struct Metrics {
 }
 
 impl Metrics {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let meter = get_meter();
 
         Self {
@@ -85,5 +87,9 @@ impl Metrics {
                 .with_unit("delegates")
                 .build(),
         }
+    }
+
+    pub fn init() -> &'static Self {
+        METRICS.get_or_init(|| Metrics::new())
     }
 }

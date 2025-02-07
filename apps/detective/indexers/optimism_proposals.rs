@@ -1,6 +1,6 @@
 use crate::{
     chain_data::{self},
-    database::DatabaseStore,
+    database::DB,
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
 };
 use alloy::{
@@ -386,7 +386,7 @@ async fn data_for_proposal_two(
     >,
     op_token: optimism_token::optimism_tokenInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>,
 ) -> Result<proposal::ActiveModel> {
-    let db = DatabaseStore::connect().await?;
+    let db = DB.get().unwrap();
     let (event, log) = p;
 
     let created_block_number = log.block_number.unwrap();
@@ -547,7 +547,7 @@ async fn data_for_proposal_two(
                     .add(vote::Column::IndexerId.eq(indexer.id))
                     .add(vote::Column::ProposalExternalId.eq(event.proposalId.to_string())),
             )
-            .all(&db)
+            .all(db)
             .await?;
 
         let mut choice_scores: Vec<Decimal> = vec![Decimal::ZERO; choices.len()];

@@ -1,5 +1,5 @@
 use crate::{
-    database::{store_votes, DatabaseStore, DB},
+    database::{store_votes, DB},
     indexer::{Indexer, ProcessResult, ProposalsIndexer},
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
@@ -488,7 +488,7 @@ async fn sanitize(
         id: String,
     }
 
-    let db = DatabaseStore::connect().await?;
+    let db = DB.get().unwrap();
 
     let database_proposals = proposal::Entity::find()
         .filter(
@@ -497,7 +497,7 @@ async fn sanitize(
                 .add(proposal::Column::CreatedAt.gte(sanitize_from))
                 .add(proposal::Column::CreatedAt.lte(sanitize_to)),
         )
-        .all(&db)
+        .all(db)
         .await?;
 
     let graphql_query = format!(
@@ -559,7 +559,7 @@ async fn sanitize(
         updated_proposal.end_at = Set(now);
 
         proposal::Entity::update(updated_proposal.clone())
-            .exec(&db)
+            .exec(db)
             .await?;
     }
 

@@ -1,5 +1,5 @@
 use crate::{
-    db_handler::DbHandler, discourse_api::DiscourseApi, indexers::posts::PostIndexer,
+    db_handler::upsert_topic, discourse_api::DiscourseApi, indexers::posts::PostIndexer,
     models::topics::TopicResponse,
 };
 use anyhow::{Context, Result};
@@ -18,34 +18,25 @@ impl TopicIndexer {
         Self { discourse_api }
     }
 
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_all_topics(
-        self,
-        db_handler: Arc<DbHandler>,
-        dao_discourse_id: Uuid,
-    ) -> Result<()> {
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
+    pub async fn update_all_topics(self, dao_discourse_id: Uuid) -> Result<()> {
         info!("Starting to update all topics");
 
-        self.update_topics(db_handler, dao_discourse_id, true, false, false)
+        self.update_topics(dao_discourse_id, true, false, false)
             .await
     }
 
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_recent_topics(
-        self,
-        db_handler: Arc<DbHandler>,
-        dao_discourse_id: Uuid,
-    ) -> Result<()> {
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
+    pub async fn update_recent_topics(self, dao_discourse_id: Uuid) -> Result<()> {
         info!("Starting to update new topics");
 
-        self.update_topics(db_handler, dao_discourse_id, false, true, true)
+        self.update_topics(dao_discourse_id, false, true, true)
             .await
     }
 
-    #[instrument(skip(self, db_handler), fields(dao_discourse_id = %dao_discourse_id))]
+    #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_topics(
         self,
-        db_handler: Arc<DbHandler>,
         dao_discourse_id: Uuid,
         ascending: bool,
         recent: bool,
@@ -88,7 +79,7 @@ impl TopicIndexer {
                         total_topics += 1;
                         num_topics += 1;
 
-                        if let Err(e) = db_handler.upsert_topic(topic, dao_discourse_id).await {
+                        if let Err(e) = upsert_topic(topic, dao_discourse_id).await {
                             error!(
                                 error = ?e,
                                 topic_id = topic.id,
@@ -98,18 +89,12 @@ impl TopicIndexer {
                         }
 
                         let post_fetcher = PostIndexer::new(Arc::clone(&self.discourse_api));
-                        let db_handler_clone = Arc::clone(&db_handler);
                         let dao_discourse_id_clone = dao_discourse_id;
                         let topic_id = topic.id;
 
                         join_set.spawn(async move {
                             if let Err(e) = post_fetcher
-                                .update_posts_for_topic(
-                                    db_handler_clone,
-                                    dao_discourse_id_clone,
-                                    topic_id,
-                                    priority,
-                                )
+                                .update_posts_for_topic(dao_discourse_id_clone, topic_id, priority)
                                 .await
                             {
                                 error!(

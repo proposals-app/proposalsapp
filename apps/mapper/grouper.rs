@@ -4,7 +4,7 @@ use sea_orm::{
     prelude::{Expr, Uuid},
     sea_query::Alias,
     ActiveValue::NotSet,
-    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
+    ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set,
 };
 use seaorm::{dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group};
 use std::time::Duration as StdDuration;
@@ -12,16 +12,16 @@ use tokio::time::{sleep, Instant};
 use tracing::{error, info, instrument, warn, Span};
 use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalJobData};
 
-use crate::metrics::Metrics;
+use crate::{metrics::METRICS, DB};
 
-pub async fn run_group_task(db: &DatabaseConnection, metrics: Metrics) -> Result<()> {
+pub async fn run_group_task() -> Result<()> {
     let interval = Duration::minutes(1);
     let mut next_tick = Instant::now() + StdDuration::from_secs(interval.num_seconds() as u64);
 
     loop {
-        if let Err(e) = process_jobs(db, &metrics).await {
+        if let Err(e) = process_jobs().await {
             error!(error = %e, "Error processing jobs");
-            metrics.job_processing_errors.add(1, &[]);
+            METRICS.get().unwrap().job_processing_errors.add(1, &[]);
         }
 
         sleep(next_tick.saturating_duration_since(Instant::now())).await;
@@ -29,8 +29,8 @@ pub async fn run_group_task(db: &DatabaseConnection, metrics: Metrics) -> Result
     }
 }
 
-#[instrument(skip(conn, metrics), fields(job_count = 0))]
-async fn process_jobs(conn: &DatabaseConnection, metrics: &Metrics) -> Result<()> {
+#[instrument(, fields(job_count = 0))]
+async fn process_jobs() -> Result<()> {
     let start_time = Instant::now();
     let pending_jobs = job_queue::Entity::find()
         .filter(
@@ -42,11 +42,15 @@ async fn process_jobs(conn: &DatabaseConnection, metrics: &Metrics) -> Result<()
                 ])),
         )
         .order_by_asc(job_queue::Column::CreatedAt)
-        .all(conn)
+        .all(DB.get().unwrap())
         .await
         .context("Failed to fetch pending jobs")?;
 
-    metrics.job_queue_size.add(pending_jobs.len() as i64, &[]);
+    METRICS
+        .get()
+        .unwrap()
+        .job_queue_size
+        .add(pending_jobs.len() as i64, &[]);
     Span::current().record("job_count", pending_jobs.len());
 
     for job in pending_jobs {
@@ -62,12 +66,12 @@ async fn process_jobs(conn: &DatabaseConnection, metrics: &Metrics) -> Result<()
             JobType::MapperNewProposalDiscussion => {
                 let data: DiscussionJobData = serde_json::from_value(job.data.clone())
                     .context("Failed to deserialize discussion job data")?;
-                process_new_discussion_job(conn, job.id, data.discourse_topic_id, metrics).await
+                process_new_discussion_job(job.id, data.discourse_topic_id).await
             }
             JobType::MapperNewSnapshotProposal => {
                 let data: ProposalJobData = serde_json::from_value(job.data.clone())
                     .context("Failed to deserialize proposal job data")?;
-                process_snapshot_proposal_job(conn, job.id, data.proposal_id, metrics).await
+                process_snapshot_proposal_job(job.id, data.proposal_id).await
             }
         };
 
@@ -77,16 +81,16 @@ async fn process_jobs(conn: &DatabaseConnection, metrics: &Metrics) -> Result<()
                 let job_id = job.id;
                 let mut job: job_queue::ActiveModel = job.into();
                 job.status = Set("COMPLETED".to_string());
-                if let Err(e) = job_queue::Entity::update(job).exec(conn).await {
+                if let Err(e) = job_queue::Entity::update(job).exec(DB.get().unwrap()).await {
                     error!(
                         error = %e,
                         job_id = job_id,
                         "Failed to update job status"
                     );
-                    metrics.db_updates.add(1, &[]);
+                    METRICS.get().unwrap().db_updates.add(1, &[]);
                 } else {
                     info!(job_id = job_id, "Job completed successfully");
-                    metrics.job_processed_total.add(1, &[]);
+                    METRICS.get().unwrap().job_processed_total.add(1, &[]);
                 }
             }
             Err(e) => {
@@ -95,25 +99,22 @@ async fn process_jobs(conn: &DatabaseConnection, metrics: &Metrics) -> Result<()
                     job_id = job.id,
                     "Job processing failed"
                 );
-                metrics.job_processing_errors.add(1, &[]);
+                METRICS.get().unwrap().job_processing_errors.add(1, &[]);
             }
         }
     }
 
-    metrics
+    METRICS
+        .get()
+        .unwrap()
         .job_processing_duration
         .record(start_time.elapsed().as_secs_f64(), &[]);
 
     Ok(())
 }
 
-#[instrument(skip(conn, metrics), fields(job_id = job_id, discourse_topic_id = %discourse_topic_id))]
-async fn process_new_discussion_job(
-    conn: &DatabaseConnection,
-    job_id: i32,
-    discourse_topic_id: Uuid,
-    metrics: &Metrics,
-) -> Result<()> {
+#[instrument(fields(job_id = job_id, discourse_topic_id = %discourse_topic_id))]
+async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Result<()> {
     let start_time = Instant::now();
 
     info!(
@@ -124,7 +125,7 @@ async fn process_new_discussion_job(
 
     // Find the discourse topic
     let topic = match discourse_topic::Entity::find_by_id(discourse_topic_id)
-        .one(conn)
+        .one(DB.get().unwrap())
         .await
         .context("Failed to find discourse topic")?
     {
@@ -158,7 +159,7 @@ async fn process_new_discussion_job(
             Expr::expr(Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text")))
                 .like(format!("%{}%", discourse_topic_id)),
         )
-        .all(conn)
+        .all(DB.get().unwrap())
         .await
         .context("Failed to check if topic is already mapped")?
         .is_empty();
@@ -177,7 +178,7 @@ async fn process_new_discussion_job(
         );
 
         let discourse_indexer = dao_discourse::Entity::find_by_id(topic.dao_discourse_id)
-            .one(conn)
+            .one(DB.get().unwrap())
             .await
             .context("Failed to find discourse indexer")?;
 
@@ -204,14 +205,17 @@ async fn process_new_discussion_job(
                 created_at: NotSet,
             };
 
-            if let Err(e) = proposal_group::Entity::insert(new_group).exec(conn).await {
+            if let Err(e) = proposal_group::Entity::insert(new_group)
+                .exec(DB.get().unwrap())
+                .await
+            {
                 error!(
                     error = %e,
                     job_id = job_id,
                     discourse_topic_id = %discourse_topic_id,
                     "Failed to create proposal group"
                 );
-                metrics.db_inserts.add(1, &[]);
+                METRICS.get().unwrap().db_inserts.add(1, &[]);
                 return Ok(());
             }
 
@@ -220,7 +224,7 @@ async fn process_new_discussion_job(
                 discourse_topic_id = %discourse_topic_id,
                 "Created new proposal group"
             );
-            metrics.db_inserts.add(1, &[]);
+            METRICS.get().unwrap().db_inserts.add(1, &[]);
         } else {
             error!(
                 job_id = job_id,
@@ -231,7 +235,9 @@ async fn process_new_discussion_job(
         }
     }
 
-    metrics
+    METRICS
+        .get()
+        .unwrap()
         .db_query_duration
         .record(start_time.elapsed().as_secs_f64(), &[]);
 
@@ -244,13 +250,8 @@ async fn process_new_discussion_job(
     Ok(())
 }
 
-#[instrument(skip(conn, metrics), fields(job_id = job_id, proposal_id = %proposal_id))]
-async fn process_snapshot_proposal_job(
-    conn: &DatabaseConnection,
-    job_id: i32,
-    proposal_id: Uuid,
-    metrics: &Metrics,
-) -> Result<()> {
+#[instrument(fields(job_id = job_id, proposal_id = %proposal_id))]
+async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result<()> {
     let start_time = Instant::now();
 
     info!(
@@ -260,7 +261,10 @@ async fn process_snapshot_proposal_job(
     );
 
     // Find the snapshot proposal
-    let proposal = match proposal::Entity::find_by_id(proposal_id).one(conn).await {
+    let proposal = match proposal::Entity::find_by_id(proposal_id)
+        .one(DB.get().unwrap())
+        .await
+    {
         Ok(Some(proposal)) => {
             info!(
                 job_id = job_id,
@@ -301,7 +305,7 @@ async fn process_snapshot_proposal_job(
 
         let Some(dao_discourse) = dao_discourse::Entity::find()
             .filter(dao_discourse::Column::DaoId.eq(proposal.dao_id))
-            .one(conn)
+            .one(DB.get().unwrap())
             .await
             .context("Failed to find DAO discourse configuration")?
         else {
@@ -329,7 +333,7 @@ async fn process_snapshot_proposal_job(
                         .eq(topic_id)
                         .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
                 )
-                .one(conn)
+                .one(DB.get().unwrap())
                 .await
                 .context("Failed to find discourse topic by ID")?
         } else if let Some(topic_slug) = topic_slug {
@@ -339,7 +343,7 @@ async fn process_snapshot_proposal_job(
                         .eq(topic_slug)
                         .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
                 )
-                .one(conn)
+                .one(DB.get().unwrap())
                 .await
                 .context("Failed to find discourse topic by slug")?
         } else {
@@ -362,7 +366,7 @@ async fn process_snapshot_proposal_job(
                     )
                     .like(format!("%{}%", topic.id)),
                 )
-                .one(conn)
+                .one(DB.get().unwrap())
                 .await
                 .context("Failed to find proposal group")?;
 
@@ -389,7 +393,7 @@ async fn process_snapshot_proposal_job(
 
                         // Add the proposal to the group
                         let indexer = dao_indexer::Entity::find_by_id(proposal.dao_indexer_id)
-                            .one(conn)
+                            .one(DB.get().unwrap())
                             .await
                             .context("Failed to find DAO indexer")?
                             .unwrap();
@@ -406,7 +410,7 @@ async fn process_snapshot_proposal_job(
                         group.items = Set(serde_json::to_value(items)
                             .context("Failed to serialize proposal group items")?);
                         proposal_group::Entity::update(group)
-                            .exec(conn)
+                            .exec(DB.get().unwrap())
                             .await
                             .context("Failed to update proposal group")?;
 
@@ -416,7 +420,7 @@ async fn process_snapshot_proposal_job(
                             discourse_topic_id = %topic.id,
                             "Added snapshot proposal to existing group"
                         );
-                        metrics.db_updates.add(1, &[]);
+                        METRICS.get().unwrap().db_updates.add(1, &[]);
                     } else {
                         info!(
                             job_id = job_id,
@@ -454,7 +458,9 @@ async fn process_snapshot_proposal_job(
         );
     }
 
-    metrics
+    METRICS
+        .get()
+        .unwrap()
         .db_query_duration
         .record(start_time.elapsed().as_secs_f64(), &[]);
 

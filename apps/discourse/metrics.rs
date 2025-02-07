@@ -1,12 +1,11 @@
+use once_cell::sync::OnceCell;
 use opentelemetry::metrics::{Counter, Histogram, UpDownCounter};
 use utils::tracing::get_meter;
 
+pub static METRICS: OnceCell<Metrics> = OnceCell::new();
+
 #[derive(Clone)]
 pub struct Metrics {
-    // Database Metrics
-    pub db_query_duration: Histogram<f64>,
-    pub db_upserts: Counter<u64>,
-
     // API Metrics
     pub api_request_duration: Histogram<f64>,
     pub api_request_errors: Counter<u64>,
@@ -24,19 +23,6 @@ impl Metrics {
         let meter = get_meter();
 
         Self {
-            // Use monotonic counters for cumulative metrics
-            db_query_duration: meter
-                .f64_histogram("discourse_db_query_duration_seconds")
-                .with_description("Duration of database queries in seconds")
-                .with_unit("seconds")
-                .build(),
-
-            db_upserts: meter
-                .u64_counter("discourse_db_upserts_total")
-                .with_description("Total number of database upserts")
-                .with_unit("operations")
-                .build(),
-
             // Use cumulative histograms
             api_request_duration: meter
                 .f64_histogram("discourse_api_request_duration_seconds")
@@ -81,5 +67,9 @@ impl Metrics {
                 .with_unit("errors")
                 .build(),
         }
+    }
+
+    pub fn init() -> &'static Self {
+        METRICS.get_or_init(|| Metrics::new())
     }
 }

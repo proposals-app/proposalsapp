@@ -8,11 +8,13 @@ use std::{
 };
 use tokio::{
     sync::{mpsc, oneshot, Semaphore},
-    time::sleep,
+    time::{sleep, timeout},
 };
 use tracing::{error, info, instrument, warn};
 
-use crate::{SNAPSHOT_MAX_CONCURRENT_REQUESTS, SNAPSHOT_MAX_QUEUE, SNAPSHOT_MAX_RETRIES};
+use crate::{
+    SNAPSHOT_MAX_CONCURRENT_REQUESTS, SNAPSHOT_MAX_QUEUE, SNAPSHOT_MAX_RETRIES, SNAPSHOT_TIMEOUT,
+};
 
 struct RateLimiter {
     remaining: std::sync::atomic::AtomicU32,
@@ -33,6 +35,7 @@ pub struct SnapshotApiConfig {
     pub max_retries: usize,
     pub concurrency: usize,
     pub queue_size: usize,
+    pub request_timeout: Duration,
 }
 
 impl Default for SnapshotApiConfig {
@@ -41,6 +44,7 @@ impl Default for SnapshotApiConfig {
             max_retries: SNAPSHOT_MAX_RETRIES,
             concurrency: SNAPSHOT_MAX_CONCURRENT_REQUESTS,
             queue_size: SNAPSHOT_MAX_QUEUE,
+            request_timeout: SNAPSHOT_TIMEOUT,
         }
     }
 }
@@ -155,14 +159,15 @@ impl SnapshotApiHandler {
         loop {
             Self::wait_for_rate_limit(&rate_limiter).await;
 
-            match client.get(url)
+            let request_builder = client.get(url)
                 .json(&serde_json::json!({"query": query}))
                 .header(reqwest::header::USER_AGENT, "proposals.app Detective/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12")
-                .header("Referer", "https://proposals.app")
-                .send()
-                .await
-            {
-                Ok(response) => {
+                .header("Referer", "https://proposals.app");
+
+            let timeout_fut = timeout(config.request_timeout, request_builder.send());
+
+            match timeout_fut.await {
+                Ok(Ok(response)) => {
                     Self::update_rate_limit_info(&response, &rate_limiter);
 
                     if response.status().is_success() {
@@ -173,7 +178,8 @@ impl SnapshotApiHandler {
                             return Err(anyhow::anyhow!("Max retries reached"));
                         }
 
-                        let retry_after = response.headers()
+                        let retry_after = response
+                            .headers()
                             .get(reqwest::header::RETRY_AFTER)
                             .and_then(|h| h.to_str().ok())
                             .and_then(|s| s.parse::<u64>().ok())
@@ -187,12 +193,21 @@ impl SnapshotApiHandler {
                         return Err(anyhow::anyhow!("HTTP error: {}", response.status()));
                     }
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
                     attempt += 1;
                     if attempt > config.max_retries {
                         return Err(anyhow::anyhow!("Max retries reached"));
                     }
                     warn!(error = %e, retry_delay = ?delay, "Request error. Retrying...");
+                    sleep(delay).await;
+                    delay *= 2;
+                }
+                Err(_timeout_err) => {
+                    attempt += 1;
+                    if attempt > config.max_retries {
+                        return Err(anyhow::anyhow!("Max retries reached - Timeout"));
+                    }
+                    warn!(retry_delay = ?delay, "Request timed out. Retrying...");
                     sleep(delay).await;
                     delay *= 2;
                 }
@@ -261,7 +276,10 @@ mod snapshot_api_tests {
 
     #[tokio::test]
     async fn test_fetch_space() {
-        let config = SnapshotApiConfig::default();
+        let config = SnapshotApiConfig {
+            request_timeout: Duration::from_secs(5), // Shorter timeout for testing
+            ..Default::default()
+        };
         let handler = SnapshotApiHandler::new(config);
 
         let query = r#"
@@ -291,7 +309,10 @@ mod snapshot_api_tests {
 
     #[tokio::test]
     async fn test_fetch_proposal() {
-        let config = SnapshotApiConfig::default();
+        let config = SnapshotApiConfig {
+            request_timeout: Duration::from_secs(5), // Shorter timeout for testing
+            ..Default::default()
+        };
         let handler = SnapshotApiHandler::new(config);
 
         let query = r#"
@@ -334,7 +355,10 @@ mod snapshot_api_tests {
 
     #[tokio::test]
     async fn test_error_handling() {
-        let config = SnapshotApiConfig::default();
+        let config = SnapshotApiConfig {
+            request_timeout: Duration::from_secs(5), // Shorter timeout for testing
+            ..Default::default()
+        };
         let handler = SnapshotApiHandler::new(config);
 
         let query = "invalid query".to_string();
@@ -343,5 +367,33 @@ mod snapshot_api_tests {
             .fetch::<serde_json::Value>("https://hub.snapshot.org/graphql", query)
             .await;
         assert!(result.is_err(), "Should return an error for invalid query");
+    }
+
+    #[tokio::test]
+    async fn test_timeout() {
+        let config = SnapshotApiConfig {
+            request_timeout: Duration::from_millis(10), // Very short timeout for testing
+            ..Default::default()
+        };
+        let handler = SnapshotApiHandler::new(config);
+
+        let query = r#"
+            query {
+                space(id: "yam.eth") {
+                    id
+                    name
+                    about
+                    network
+                    symbol
+                    members
+                }
+            }
+        "#
+        .to_string();
+
+        let result = handler
+            .fetch::<serde_json::Value>("https://hub.snapshot.org/graphql", query)
+            .await;
+        assert!(result.is_err(), "Should return an error due to timeout");
     }
 }
