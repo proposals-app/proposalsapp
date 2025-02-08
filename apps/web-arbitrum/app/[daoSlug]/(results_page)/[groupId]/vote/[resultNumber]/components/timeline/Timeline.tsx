@@ -58,7 +58,7 @@ export async function Timeline({
               border-neutral-300 bg-neutral-100'
           >
             <TimelineEventIcon
-              className='dark:fill-neutral-350 fill-neutral-800'
+              className='fill-neutral-800'
               width={24}
               height={24}
               alt={'Timeline event'}
@@ -66,10 +66,7 @@ export async function Timeline({
           </div>
         )}
 
-        <div
-          className='dark:bg-neutral-350 absolute top-5 bottom-5 left-[15px] z-10 w-0.5
-            bg-neutral-800'
-        />
+        <div className='absolute top-5 bottom-5 left-[15px] z-10 w-0.5 bg-neutral-800' />
 
         {/* Bottom SVG */}
         <div
@@ -77,7 +74,7 @@ export async function Timeline({
             border-neutral-300 bg-neutral-100'
         >
           <TimelineEventIcon
-            className='dark:fill-neutral-350 fill-neutral-800'
+            className='fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}

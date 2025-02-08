@@ -24,7 +24,7 @@ const SelectItem = React.forwardRef<
   return (
     <Select.Item
       className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm
-        transition-colors outline-none hover:bg-neutral-100 dark:hover:bg-neutral-800'
+        transition-colors outline-none hover:bg-neutral-100'
       {...props}
       ref={forwardedRef}
       value={value}
@@ -173,8 +173,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
     <div
       className='sticky top-[88px] z-10 grid grid-cols-4 items-center justify-between gap-2
         border-b border-neutral-800 bg-neutral-200 p-2 text-sm font-bold
-        text-neutral-800 transition-colors dark:border-neutral-400 dark:bg-neutral-950
-        dark:text-neutral-200'
+        text-neutral-800 transition-colors'
     >
       <div className='flex items-center gap-1'>Delegate</div>
       <Select.Root value={selectedChoice} onValueChange={setSelectedChoice}>
@@ -196,8 +195,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
         <Select.Portal>
           <Select.Content
-            className='dark:border-neutral-450 w-full border border-neutral-800 bg-white p-1 shadow-lg
-              dark:bg-neutral-950'
+            className='w-full border border-neutral-800 bg-white p-1 shadow-lg'
             position='popper'
             sideOffset={5}
           >

@@ -96,14 +96,14 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
                     width={24}
                     height={24}
                     alt={'Go to governor'}
-                    className='fill-neutral-800 dark:fill-neutral-600'
+                    className='fill-neutral-800'
                   />
                 ) : (
                   <OffchainIcon
                     width={24}
                     height={24}
                     alt={'Go to governor'}
-                    className='fill-neutral-800 dark:fill-neutral-600'
+                    className='fill-neutral-800'
                   />
                 )}
                 <div className='font-bold text-neutral-800'>
@@ -113,7 +113,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
                   width={24}
                   height={24}
                   alt={'Go to governor'}
-                  className='fill-neutral-400 dark:fill-neutral-600'
+                  className='fill-neutral-400'
                 />
               </Link>
             </div>
