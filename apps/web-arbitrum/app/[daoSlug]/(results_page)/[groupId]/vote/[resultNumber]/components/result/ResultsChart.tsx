@@ -114,7 +114,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             width: shouldStack ? 0 : 2,
             color: color,
           },
-          showSymbol: true, // Show symbols for significant points
+          showSymbol: false, // Show symbols for significant points
           symbol: (data) => {
             const isSignificant = significantPoints.find(
               (sigPoint) => sigPoint[0] === data[0]
@@ -164,8 +164,6 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
         };
       }
     );
-
-    console.log(series);
 
     // Add the "Total" series for ranked-choice voting
     let totalSeriesMaxValue = 0;
@@ -223,20 +221,20 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
                     return `{bold|${formatNumberWithSuffix(results.quorum)}} Quorum needed`;
                   return '';
                 },
+                color: 'var(--neutral-50)',
                 rich: {
                   bold: {
                     fontWeight: 'bold',
-                    color: '#4b5563',
                   },
                 },
                 position: 'insideStartTop', // Position the label on the left
                 fontSize: 12,
-                backgroundColor: 'var(--neutral-100)', // Background color
-                borderColor: 'var(--neutral-800)', // Border color
+                backgroundColor: 'var(--neutral-600)', // Background color
+                borderColor: 'var(--neutral-900)', // Border color
                 borderWidth: 1, // Border width
                 borderRadius: 2, // Rounded corners
                 padding: [4, 8], // Padding
-                offset: [-5, 15], // Move the label slightly above the line
+                offset: [-4, 15], // Move the label slightly above the line
               },
             },
           ],
@@ -309,12 +307,18 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             },
           },
         },
+        axisLine: {
+          show: true,
+        },
       },
       yAxis: {
         type: 'value',
         max: yAxisMax,
         axisLabel: {
           formatter: (value: number) => formatNumberWithSuffix(value),
+        },
+        axisLine: {
+          show: true,
         },
       },
       series,

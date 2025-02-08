@@ -1,11 +1,17 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { ProcessedResults } from '@/lib/results_processing';
+import { toZonedTime } from 'date-fns-tz';
+import { formatDistanceToNow } from 'date-fns';
+import { JSX } from 'react';
+import PassedIcon from '@/public/assets/web/passed.svg';
+import FailedIcon from '@/public/assets/web/failed.svg';
 
 interface ResultsListProps {
   results: ProcessedResults;
+  onchain: boolean;
 }
 
-export function ResultsList({ results }: ResultsListProps) {
+export function ResultsList({ results, onchain }: ResultsListProps) {
   const explicitOrder = ['For', 'Abstain', 'Against'];
   const totalVotingPower = results.totalVotingPower;
   const totalDelegatedVp = results.totalDelegatedVp;
@@ -30,12 +36,6 @@ export function ResultsList({ results }: ResultsListProps) {
 
   // Determine which choices to show
 
-  // Calculate total voting power for "Other" choices
-  const otherVotingPower = sortedChoices.reduce(
-    (sum, choice) => sum + choice.votingPower,
-    0
-  );
-
   const quorumVotingPower = sortedChoices
     .filter((choice) => choice.countsTowardsQuorum)
     .reduce((sum, choice) => sum + choice.votingPower, 0);
@@ -49,12 +49,27 @@ export function ResultsList({ results }: ResultsListProps) {
 
   // Check if the majority choice is "For"
   const hasMajoritySupport =
-    majorityChoice &&
-    majorityChoice.choice === 'For' &&
-    majorityChoice.votingPower > totalVotingPower / 2;
+    majorityChoice.choice === 'For'
+      ? majorityChoice.votingPower > totalVotingPower / 2
+      : true;
+
+  const hasQuorum = quorumVotingPower > (results.quorum || 0);
+
+  const statusMessage = getStatusMessage(
+    toZonedTime(results.proposal.endAt, 'UTC'),
+    hasQuorum,
+    hasMajoritySupport,
+    onchain
+  );
 
   return (
-    <div className='ml-6 w-64'>
+    <div className='ml-6 w-72'>
+      {statusMessage && (
+        <div className='mb-4 text-sm font-medium text-neutral-700'>
+          {statusMessage}
+        </div>
+      )}
+
       <div className='space-y-4'>
         <div className='space-y-2'>
           {sortedChoices.map(({ choice, votingPower, color }, index) => {
@@ -74,22 +89,17 @@ export function ResultsList({ results }: ResultsListProps) {
         </div>
 
         {/* Majority Support Checkmark */}
-        <div>
-          {hasMajoritySupport && (
-            <div>
-              {results.quorum !== null && totalDelegatedVp && (
-                <div
-                  className='w-full text-sm font-semibold'
-                  style={{
-                    left: `${(results.quorum / totalDelegatedVp) * 100}%`,
-                  }}
-                >
-                  ✓ Majority support
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {results.quorum !== null && totalDelegatedVp && (
+          <div
+            className='flex w-full items-center gap-1 text-sm font-semibold'
+            style={{
+              left: `${(results.quorum / totalDelegatedVp) * 100}%`,
+            }}
+          >
+            {hasMajoritySupport ? <PassedIcon /> : <FailedIcon />}
+            <span>Majority support</span>
+          </div>
+        )}
 
         {/* Quorum Bar */}
         <div>
@@ -124,16 +134,18 @@ export function ResultsList({ results }: ResultsListProps) {
                 </div>
               </div>
               {/* Quorum Text */}
-              <div className='mt-2 text-sm'>
+              <div className='mt-2 flex items-center gap-1 text-sm'>
+                {quorumVotingPower > results.quorum ? (
+                  <PassedIcon />
+                ) : (
+                  <FailedIcon />
+                )}
                 <span className='font-semibold'>
-                  {quorumVotingPower > results.quorum && '✓'}{' '}
                   {formatNumberWithSuffix(quorumVotingPower)}
-                </span>{' '}
-                of{' '}
-                <span className='font-semibold'>
-                  {formatNumberWithSuffix(results.quorum)}
-                </span>{' '}
-                Quorum
+                </span>
+                <span>of</span>
+                <span>{formatNumberWithSuffix(results.quorum)}</span>
+                <span>Quorum</span>
               </div>
             </div>
           )}
@@ -143,9 +155,9 @@ export function ResultsList({ results }: ResultsListProps) {
         <div>
           {totalDelegatedVp && (
             <div className='mt-4'>
-              <div className='border-neutral-350 relative h-2 w-full rounded-full border'>
+              <div className='border-neutral-350 relative h-2 w-full border'>
                 <div
-                  className='absolute top-0 left-0 h-full rounded-full bg-neutral-600'
+                  className='absolute top-0 left-0 h-full bg-neutral-800'
                   style={{
                     width: `${participationPercentage}%`,
                   }}
@@ -171,110 +183,31 @@ interface ChoiceBarProps {
   votingPower: number;
   color: string;
   percentage: number | null;
-  choiceIndex: number; // Index of the current choice
-  totalChoices: number; // Total number of choices
+  choiceIndex: number;
+  totalChoices: number;
 }
 
-function ChoiceBar({
-  choice,
-  votingPower,
-  color,
-  percentage,
-  choiceIndex,
-  totalChoices,
-}: ChoiceBarProps) {
-  const pixelSize = 8.5; // Size of each pixel in pixels
-  const barPixelsHeight = 5; // Number of rows in the grid
-  const barPixelsWidth = 25;
-  const totalPixels = barPixelsHeight * barPixelsWidth;
-
-  // Calculate the pixel grid on the server
-  const pixels = Array.from({ length: barPixelsHeight }, () =>
-    Array.from({ length: barPixelsWidth }, () => false)
-  );
-
-  if (percentage !== null) {
-    let filledPixels =
-      (percentage / 100) * totalPixels > 0.1 &&
-      (percentage / 100) * totalPixels < 1
-        ? 1
-        : Math.round((percentage / 100) * totalPixels);
-
-    // Adjust the filled pixels for the last choice to ensure the total adds up to 100%
-    if (choiceIndex === totalChoices - 1) {
-      const totalFilledPixelsSoFar = totalPixels - filledPixels;
-      filledPixels = totalPixels - totalFilledPixelsSoFar;
-    }
-
-    let filledCount = 0;
-    let lastFilledColumn = 0;
-    for (let col = 0; col < barPixelsWidth; col++) {
-      for (let row = 0; row < barPixelsHeight; row++) {
-        if (filledCount < filledPixels) {
-          pixels[row][col] = true;
-          filledCount++;
-          lastFilledColumn = col;
-        }
-      }
-    }
-
-    // Determine the last 2 filled columns and check if there's an empty column after them
-    const startCol = Math.max(0, lastFilledColumn - 1); // Start from the second-to-last filled column
-    const endCol = lastFilledColumn; // End at the last filled column
-
-    // Check if there's an empty column after the last filled column
-    const hasEmptyColumnAfter = endCol + 1 < barPixelsWidth;
-
-    // Extract the last 2 filled columns and the empty column (if available)
-    const columnsToShuffle = hasEmptyColumnAfter
-      ? pixels.map((row) => row.slice(startCol, endCol + 2)) // Include the empty column
-      : pixels.map((row) => row.slice(startCol, endCol + 1)); // Only last 2 filled columns
-
-    // Flatten the columns to make shuffling easier
-    const flatColumnsToShuffle = columnsToShuffle.flat();
-
-    // Shuffle the flattened columns
-    for (let i = flatColumnsToShuffle.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [flatColumnsToShuffle[i], flatColumnsToShuffle[j]] = [
-        flatColumnsToShuffle[j],
-        flatColumnsToShuffle[i],
-      ];
-    }
-
-    // Convert the flattened array back to the columns
-    for (let i = 0; i < flatColumnsToShuffle.length; i++) {
-      const row = Math.floor(i / (hasEmptyColumnAfter ? 3 : 2)); // 2 or 3 columns
-      const col = startCol + (i % (hasEmptyColumnAfter ? 3 : 2)); // Last 2 filled columns + empty column (if available)
-      pixels[row][col] = flatColumnsToShuffle[i];
-    }
-  }
-
+function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
   return (
-    <div className='relative w-fit overflow-hidden border border-neutral-300 bg-white'>
-      {/* Pixelated Grid */}
-      <div
-        className='top-0 left-0 w-fit'
-        style={{
-          height: barPixelsHeight * pixelSize,
-          width: barPixelsWidth * pixelSize,
-        }}
-      >
-        {pixels.map((row, rowIndex) => (
-          <div key={rowIndex} className='flex'>
-            {row.map((filled, colIndex) => (
-              <div
-                key={colIndex}
-                style={{
-                  backgroundColor: filled ? color : 'transparent',
-                  width: pixelSize,
-                  height: pixelSize,
-                }}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
+    <div
+      className={'relative h-10 w-full overflow-hidden border bg-white'}
+      style={{
+        borderWidth: '2px',
+        borderStyle: 'solid',
+        borderColor: color,
+      }}
+    >
+      {/* Filled bar */}
+      {percentage !== null && (
+        <div
+          className='absolute inset-y-0 left-0 h-full'
+          style={{
+            width: `${percentage}%`,
+            backgroundColor: color,
+            opacity: 0.5,
+          }}
+        />
+      )}
 
       {/* Text content */}
       <div className='absolute inset-0 flex items-center justify-between px-3'>
@@ -293,6 +226,69 @@ function ChoiceBar({
   );
 }
 
+function getStatusMessage(
+  endTime: Date,
+  hasQuorum: boolean,
+  hasMajoritySupport: boolean,
+  isOnchain: boolean
+): JSX.Element {
+  const now = new Date();
+  const isEnded = now > endTime;
+  const voteType = isOnchain ? 'onchain' : 'offchain';
+
+  const timeString = isEnded
+    ? `${formatDistanceToNow(endTime)} ago`
+    : `in ${formatDistanceToNow(endTime)}`;
+
+  // Vote has ended
+  if (isEnded) {
+    if (!hasQuorum) {
+      return (
+        <div className='mb-4 text-sm font-medium text-neutral-700'>
+          This {voteType} vote ended{' '}
+          <span className='font-bold'>{timeString}</span> and{' '}
+          <span className='font-bold'>
+            did not pass due to insufficient quorum
+          </span>
+          .
+        </div>
+      );
+    }
+    // Has quorum and ended
+    return (
+      <div className='mb-4 text-sm font-medium text-neutral-700'>
+        This {voteType} vote ended{' '}
+        <span className='font-bold'>{timeString}</span> and{' '}
+        <span className='font-bold'>
+          {hasMajoritySupport ? 'passed' : 'did not pass'}
+        </span>
+        .
+      </div>
+    );
+  }
+
+  // Vote is still active
+  if (!hasQuorum) {
+    return (
+      <div className='mb-4 text-sm font-medium text-neutral-700'>
+        This {voteType} vote ends{' '}
+        <span className='font-bold'>{timeString}</span> and{' '}
+        <span className='font-bold'>is not reaching quorum</span>.
+      </div>
+    );
+  }
+  // Has quorum and is active
+  return (
+    <div className='mb-4 text-sm font-medium text-neutral-700'>
+      This {voteType} vote ends <span className='font-bold'>{timeString}</span>{' '}
+      and is{' '}
+      <span className='font-bold'>
+        {hasMajoritySupport ? 'passing' : 'not passing'}
+      </span>
+      .
+    </div>
+  );
+}
 export function LoadingList() {
   return (
     <div className='ml-6 w-64 rounded-lg border border-neutral-300 bg-white p-4'>

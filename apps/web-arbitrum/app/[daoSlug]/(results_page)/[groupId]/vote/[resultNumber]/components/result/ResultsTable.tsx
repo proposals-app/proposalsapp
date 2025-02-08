@@ -225,7 +225,7 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
   return (
     <div className='mt-6'>
-      <div className='rounded-md border border-neutral-300'>
+      <div className='border border-neutral-300'>
         <TableHeader />
         <WindowScroller>
           {({ height, isScrolling, onChildScroll, scrollTop }) => (
