@@ -88,7 +88,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
               </div>
               <Link
                 className='flex items-center gap-1 rounded-xs bg-neutral-100 px-2'
-                href={governor?.portalUrl ?? 'https://proposals.app'}
+                href={processedResults.proposal.url}
                 target='_blank'
               >
                 {onChain ? (

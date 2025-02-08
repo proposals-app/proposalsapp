@@ -9,6 +9,8 @@ import { DelegateInfo } from '../actions';
 import { ProcessedResults } from '@/lib/results_processing';
 import * as Select from '@radix-ui/react-select';
 import CheckSvg from '@/public/assets/web/check.svg';
+import ArrowSvg from '@/public/assets/web/arrow.svg';
+import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 
 interface ResultsTableProps {
   results: ProcessedResults;
@@ -169,9 +171,10 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
 
   const TableHeader = () => (
     <div
-      className='dark:border-neutral-450 sticky top-[88px] z-10 grid grid-cols-4 items-center
-        justify-between gap-2 border-b border-neutral-800 bg-white p-2 text-sm font-bold
-        text-neutral-800 transition-colors dark:bg-neutral-950 dark:text-neutral-200'
+      className='sticky top-[88px] z-10 grid grid-cols-4 items-center justify-between gap-2
+        border-b border-neutral-800 bg-neutral-200 p-2 text-sm font-bold
+        text-neutral-800 transition-colors dark:border-neutral-400 dark:bg-neutral-950
+        dark:text-neutral-200'
     >
       <div className='flex items-center gap-1'>Delegate</div>
       <Select.Root value={selectedChoice} onValueChange={setSelectedChoice}>
@@ -179,8 +182,15 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
           className='flex h-8 w-full cursor-pointer items-center justify-between px-3 text-sm
             outline-none'
         >
-          <Select.Value placeholder='Filter by choice'>
-            {selectedChoice === 'all' ? 'All Choices' : selectedChoice} ▼
+          <Select.Value
+            placeholder='Filter by choice'
+            className='flex w-full items-center justify-between'
+          >
+            <div className='flex items-center'>
+              {selectedChoice === 'all' ? 'All Choices' : selectedChoice}
+
+              <ChevronDownSvg width={24} height={24} />
+            </div>
           </Select.Value>
         </Select.Trigger>
 
@@ -207,18 +217,30 @@ export function ResultsTable({ results, delegateMap }: ResultsTableProps) {
         className='flex cursor-pointer items-center gap-1'
       >
         Date
-        {sortColumn === 'timestamp' && (
-          <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
-        )}
+        <span className='transform'>
+          {sortColumn === 'timestamp' && (
+            <ArrowSvg
+              width={24}
+              height={24}
+              className={`transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
+            />
+          )}
+        </span>
       </div>
       <div
         onClick={() => handleSortChange('votingPower')}
         className='flex cursor-pointer items-center gap-1'
       >
         Voting Power
-        {sortColumn === 'votingPower' && (
-          <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>
-        )}
+        <span className='transform'>
+          {sortColumn === 'votingPower' && (
+            <ArrowSvg
+              width={24}
+              height={24}
+              className={`transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
+            />
+          )}
+        </span>
       </div>
     </div>
   );
