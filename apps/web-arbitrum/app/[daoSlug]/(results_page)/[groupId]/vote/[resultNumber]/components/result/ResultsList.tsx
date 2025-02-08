@@ -51,15 +51,15 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
   const hasMajoritySupport =
     majorityChoice.choice === 'For'
       ? majorityChoice.votingPower > totalVotingPower / 2
-      : true;
+      : undefined;
 
   const hasQuorum = quorumVotingPower > (results.quorum || 0);
 
   const statusMessage = getStatusMessage(
     toZonedTime(results.proposal.endAt, 'UTC'),
     hasQuorum,
-    hasMajoritySupport,
-    onchain
+    onchain,
+    hasMajoritySupport
   );
 
   return (
@@ -229,8 +229,8 @@ function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
 function getStatusMessage(
   endTime: Date,
   hasQuorum: boolean,
-  hasMajoritySupport: boolean,
-  isOnchain: boolean
+  isOnchain: boolean,
+  hasMajoritySupport?: boolean
 ): JSX.Element {
   const now = new Date();
   const isEnded = now > endTime;
@@ -258,10 +258,16 @@ function getStatusMessage(
     return (
       <div className='mb-4 text-sm font-medium text-neutral-700'>
         This {voteType} vote ended{' '}
-        <span className='font-bold'>{timeString}</span> and{' '}
-        <span className='font-bold'>
-          {hasMajoritySupport ? 'passed' : 'did not pass'}
-        </span>
+        <span className='font-bold'>{timeString}</span>
+        {hasMajoritySupport !== undefined && (
+          <>
+            {' '}
+            and{' '}
+            <span className='font-bold'>
+              {hasMajoritySupport ? 'passed' : 'did not pass'}
+            </span>
+          </>
+        )}
         .
       </div>
     );
