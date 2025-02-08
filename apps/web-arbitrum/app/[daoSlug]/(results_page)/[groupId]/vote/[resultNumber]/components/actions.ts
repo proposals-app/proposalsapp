@@ -73,6 +73,7 @@ export type DelegateInfo = {
   address: string;
   ens: string | null;
   discourseName: string | null;
+  profilePictureUrl: string | null;
 } | null;
 
 async function getDelegateForVoter(
@@ -123,6 +124,7 @@ async function getDelegateForVoter(
         address: voter.address,
         ens: voter.ens?.length ? voter.ens : null,
         discourseName: null,
+        profilePictureUrl: `https://api.dicebear.com/9.x/pixel-art/png?seed=${voterAddress}`,
       };
 
     // Try to get discourse user first
@@ -162,6 +164,7 @@ async function getDelegateForVoter(
         address: voter.address,
         ens: voter.ens?.length ? voter.ens : null,
         discourseName: discourseUser.name || discourseUser.username,
+        profilePictureUrl: discourseUser.avatarTemplate,
       };
     }
 
@@ -188,6 +191,7 @@ async function getDelegateForVoter(
         address: voter.address,
         ens: voter.ens?.length ? voter.ens : null,
         discourseName: null,
+        profilePictureUrl: `https://api.dicebear.com/9.x/pixel-art/png?seed=${voter.address}`,
       };
     }
 
@@ -197,6 +201,7 @@ async function getDelegateForVoter(
       address: `${voterAddress}`,
       ens: null,
       discourseName: null,
+      profilePictureUrl: `https://api.dicebear.com/9.x/pixel-art/png?seed=${voterAddress}`,
     };
   });
 }
@@ -207,4 +212,87 @@ export const getDelegateForVoter_cached = unstable_cache(
   },
   [],
   { revalidate: 60 * 5, tags: ['delegate-for-voter'] }
+);
+export type DelegateVotingPower = {
+  votingPowerAtVote: number;
+  latestVotingPower: number;
+  change: number | null;
+};
+
+async function getDelegateVotingPower(
+  voterAddress: string,
+  daoSlug: string,
+  proposalId: string
+): Promise<DelegateVotingPower | null> {
+  return otel('get-delegate-voting-power', async () => {
+    try {
+      // Get the proposal to determine timestamps
+      const proposal = await db
+        .selectFrom('proposal')
+        .where('id', '=', proposalId)
+        .selectAll()
+        .executeTakeFirst();
+
+      if (!proposal) return null;
+
+      // Get the dao
+      const dao = await db
+        .selectFrom('dao')
+        .where('slug', '=', daoSlug)
+        .selectAll()
+        .executeTakeFirst();
+
+      if (!dao) return null;
+
+      // Get the vote
+      const vote = await db
+        .selectFrom('vote')
+        .where('voterAddress', '=', voterAddress)
+        .where('proposalId', '=', proposalId)
+        .selectAll()
+        .executeTakeFirst();
+
+      if (!vote) return null;
+
+      // Get the latest voting power
+      const latestVotingPowerRecord = await db
+        .selectFrom('votingPower')
+        .where('voter', '=', voterAddress)
+        .where('daoId', '=', dao.id)
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .selectAll()
+        .executeTakeFirst();
+
+      const latestVotingPower = latestVotingPowerRecord?.votingPower ?? 0;
+      const votingPowerAtVote = vote.votingPower;
+
+      // Compute relative change
+      let change: number | null = null;
+      if (votingPowerAtVote !== 0) {
+        const rawChange =
+          ((latestVotingPower - votingPowerAtVote) / votingPowerAtVote) * 100;
+        if (rawChange > 0.01 || rawChange < -0.01) {
+          change = rawChange;
+        }
+      }
+
+      return {
+        votingPowerAtVote,
+        latestVotingPower,
+        change,
+      };
+    } catch (error) {
+      console.error('Error fetching delegate voting power:', error);
+      return null;
+    }
+  });
+}
+
+export const getDelegateVotingPower_cached = unstable_cache(
+  async (voterAddress: string, daoSlug: string, proposalId: string) => {
+    return await getDelegateVotingPower(voterAddress, daoSlug, proposalId);
+  },
+  [],
+  { revalidate: 60 * 5, tags: ['get-delegate-voting-power'] }
 );

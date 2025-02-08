@@ -2,7 +2,9 @@ import { Proposal, Selectable } from '@proposalsapp/db';
 import { Suspense } from 'react';
 import {
   DelegateInfo,
+  DelegateVotingPower,
   getDelegateForVoter_cached,
+  getDelegateVotingPower_cached,
   getProposalGovernor_cached,
   getVotesAction_cached,
 } from './actions';
@@ -35,19 +37,26 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   const votes = await getVotesAction_cached(proposal.id);
 
-  // Create a map of voter addresses to their delegate information
+  // Create maps for delegate info and voting power
   const delegateMap = new Map<string, DelegateInfo>();
+  const votingPowerMap = new Map<string, DelegateVotingPower>();
 
-  // Fetch delegate information for all voters
+  // Fetch delegate information and voting power for all voters
   await Promise.all(
     votes.map(async (vote) => {
       if (vote.votingPower > 50000) {
-        const delegate = await getDelegateForVoter_cached(
-          vote.voterAddress,
-          daoSlug,
-          proposal.id
-        );
+        const [delegate, votingPower] = await Promise.all([
+          getDelegateForVoter_cached(vote.voterAddress, daoSlug, proposal.id),
+          getDelegateVotingPower_cached(
+            vote.voterAddress,
+            daoSlug,
+            proposal.id
+          ),
+        ]);
         delegateMap.set(vote.voterAddress, delegate);
+        if (votingPower) {
+          votingPowerMap.set(vote.voterAddress, votingPower);
+        }
       }
     })
   );
@@ -120,7 +129,11 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
           </div>
 
           <ResultsChart results={processedResults} delegateMap={delegateMap} />
-          <ResultsTable results={processedResults} delegateMap={delegateMap} />
+          <ResultsTable
+            results={processedResults}
+            delegateMap={delegateMap}
+            votingPowerMap={votingPowerMap}
+          />
         </div>
         <ResultsList results={processedResults} onchain={onChain} />
       </div>
