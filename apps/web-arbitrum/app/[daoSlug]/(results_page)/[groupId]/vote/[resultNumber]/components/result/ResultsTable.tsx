@@ -125,7 +125,7 @@ export function ResultsTable({
       <div key={key} style={style} className='relative'>
         {/* Color bar */}
         <div
-          className='absolute top-0 left-0 h-2 opacity-30'
+          className='absolute top-0 left-0 h-2 opacity-50'
           style={{ width: barWidth }}
         >
           {Array.isArray(vote.color) ? (

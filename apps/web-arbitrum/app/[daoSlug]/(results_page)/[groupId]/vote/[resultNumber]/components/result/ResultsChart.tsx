@@ -109,6 +109,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
         return {
           name: choice,
           type: 'line',
+          step: 'end',
           stack: shouldStack ? 'QuorumTotal' : undefined,
           lineStyle: {
             width: shouldStack ? 0 : 2,
@@ -290,8 +291,8 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       },
       xAxis: {
         type: 'time',
-        min: toZonedTime(results.proposal.startAt, 'UTC'),
-        max: toZonedTime(results.proposal.endAt, 'UTC'),
+        min: results.proposal.startAt,
+        max: results.proposal.endAt,
         axisLabel: {
           formatter: (value: number) => {
             const zonedDate = toZonedTime(new Date(value), 'UTC');
