@@ -48,10 +48,12 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
   const majorityChoice = sortedChoices[0];
 
   // Check if the majority choice is "For"
-  const hasMajoritySupport =
-    majorityChoice.choice === 'For'
-      ? majorityChoice.votingPower > totalVotingPower / 2
-      : undefined;
+  const hasMajoritySupport = sortedChoices.map((c) => c.choice).includes('For')
+    ? majorityChoice.choice === 'For' &&
+      majorityChoice.votingPower > totalVotingPower / 2
+      ? true
+      : false
+    : undefined;
 
   const hasQuorum = quorumVotingPower > (results.quorum || 0);
 
