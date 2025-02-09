@@ -239,7 +239,8 @@ export function ResultsTable({
     <div
       className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center justify-between gap-2
         border-b border-neutral-800 bg-neutral-200 p-2 text-sm font-bold
-        text-neutral-800 transition-colors'
+        text-neutral-800 transition-colors dark:border-neutral-600 dark:bg-neutral-800
+        dark:text-neutral-200'
     >
       <div className='col-span-2 flex items-center gap-1'>Delegate</div>
       <div className='col-span-3'>
@@ -312,54 +313,84 @@ export function ResultsTable({
 
   return (
     <div className='mt-6'>
-      <div className='border border-neutral-300'>
-        <TableHeader />
-        <WindowScroller>
-          {({ height, isScrolling, onChildScroll, scrollTop }) => (
-            <AutoSizer disableHeight>
-              {({ width }) => (
-                <List
-                  autoHeight
-                  width={width}
-                  height={height}
-                  isScrolling={isScrolling}
-                  onScroll={onChildScroll}
-                  scrollTop={scrollTop}
-                  rowCount={sortedAndFilteredVotes.length}
-                  rowHeight={80}
-                  rowRenderer={rowRenderer}
-                />
-              )}
-            </AutoSizer>
-          )}
-        </WindowScroller>
-      </div>
+      <TableHeader />
+      <WindowScroller>
+        {({ height, isScrolling, onChildScroll, scrollTop }) => (
+          <AutoSizer disableHeight>
+            {({ width }) => (
+              <List
+                autoHeight
+                width={width}
+                height={height}
+                isScrolling={isScrolling}
+                onScroll={onChildScroll}
+                scrollTop={scrollTop}
+                rowCount={sortedAndFilteredVotes.length}
+                rowHeight={80}
+                rowRenderer={rowRenderer}
+              />
+            )}
+          </AutoSizer>
+        )}
+      </WindowScroller>
     </div>
   );
 }
 
 export function LoadingTable() {
   return (
-    <div className='mt-6 w-full rounded-lg border border-neutral-300 bg-white p-4'>
-      {/* Header */}
-      <div className='grid grid-cols-7 border-b border-neutral-300 p-3'>
-        <div className='col-span-2 h-4 w-24 animate-pulse rounded-sm bg-neutral-200' />
-        <div className='col-span-3 h-4 w-24 animate-pulse rounded-sm bg-neutral-200' />
-        <div className='col-span-1 h-4 w-24 animate-pulse rounded-sm bg-neutral-200' />
-        <div className='col-span-1 h-4 w-24 animate-pulse rounded-sm bg-neutral-200' />
-      </div>
+    <div className='mt-6'>
+      <div>
+        {/* Header */}
+        <div
+          className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center gap-2 border-b
+            border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-700
+            dark:bg-neutral-800'
+        >
+          <div className='col-span-2'>
+            <div className='h-4 w-20 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          </div>
+          <div className='col-span-3'>
+            <div className='h-8 w-32 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          </div>
+          <div className='col-span-1'>
+            <div className='h-4 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          </div>
+          <div className='col-span-1'>
+            <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          </div>
+        </div>
 
-      {/* Rows */}
-      <div className='mt-4 space-y-2'>
+        {/* Rows */}
         {[...Array(10)].map((_, index) => (
-          <div
-            key={index}
-            className='grid h-12 grid-cols-7 items-center gap-4 rounded-lg bg-neutral-200 p-2'
-          >
-            <div className='col-span-2 h-4 w-full animate-pulse rounded-sm bg-neutral-300' />
-            <div className='col-span-3 h-4 w-full animate-pulse rounded-sm bg-neutral-300' />
-            <div className='col-span-1 h-4 w-full animate-pulse rounded-sm bg-neutral-300' />
-            <div className='col-span-1 h-4 w-full animate-pulse rounded-sm bg-neutral-300' />
+          <div key={index} className='relative'>
+            {/* Color bar */}
+            <div className='absolute top-0 left-0 h-2 w-full'>
+              <div className='h-full w-1/3 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
+            </div>
+
+            {/* Row content */}
+            <div className='relative grid h-20 grid-cols-7 items-center p-2'>
+              <div className='col-span-2 flex items-center gap-2'>
+                <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700' />
+                <div className='flex flex-col gap-1'>
+                  <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+                  <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+                </div>
+              </div>
+              <div className='col-span-3 flex flex-col gap-1 px-2'>
+                <div className='h-4 w-48 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+                <div className='h-3 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+              </div>
+              <div className='col-span-1 flex flex-col gap-1 px-2'>
+                <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+                <div className='h-3 w-20 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+              </div>
+              <div className='col-span-1 flex flex-col items-end gap-1 px-2'>
+                <div className='h-4 w-28 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+                <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+              </div>
+            </div>
           </div>
         ))}
       </div>

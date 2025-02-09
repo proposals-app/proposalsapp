@@ -55,10 +55,10 @@ export async function Timeline({
         {isProposalEnded && (
           <div
             className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-sm border-2
-              border-neutral-300 bg-neutral-100'
+              border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
           >
             <TimelineEventIcon
-              className='fill-neutral-800'
+              className='dark:fill-neutral-350 fill-neutral-800'
               width={24}
               height={24}
               alt={'Timeline event'}
@@ -66,15 +66,18 @@ export async function Timeline({
           </div>
         )}
 
-        <div className='absolute top-5 bottom-5 left-[15px] z-10 w-0.5 bg-neutral-800' />
+        <div
+          className='dark:bg-neutral-350 absolute top-5 bottom-5 left-[15px] z-10 w-0.5
+            bg-neutral-800'
+        />
 
         {/* Bottom SVG */}
         <div
           className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-sm border-2
-            border-neutral-300 bg-neutral-100'
+            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
         >
           <TimelineEventIcon
-            className='fill-neutral-800'
+            className='dark:fill-neutral-350 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}

@@ -6,6 +6,7 @@ import * as echarts from 'echarts';
 import { useEffect, useRef } from 'react';
 import { DelegateInfo } from '../actions';
 import { ProcessedResults } from '@/lib/results_processing';
+import { useTheme } from 'next-themes';
 
 interface ResultsChartProps {
   results: ProcessedResults;
@@ -16,10 +17,29 @@ const ACCUMULATE_VOTING_POWER_THRESHOLD = 50000;
 
 export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!chartRef.current) return;
     if (!results.timeSeriesData) return;
+
+    const themeColors = {
+      axisLabel: theme == 'dark' ? 'var(--neutral-300)' : 'var(--neutral-500)',
+      gridLine: theme == 'dark' ? 'var(--neutral-600)' : 'var(--neutral-300)',
+      axisLine: theme == 'dark' ? 'var(--neutral-600)' : 'var(--neutral-300)',
+      quorumLine: theme == 'dark' ? 'var(--neutral-50)' : 'var(--neutral-900)',
+      quorumLabel: {
+        text: theme == 'dark' ? 'var(--neutral-800)' : 'var(--neutral-50)',
+        background:
+          theme == 'dark' ? 'var(--neutral-200)' : 'var(--neutral-600)',
+        border: theme == 'dark' ? 'var(--neutral-50)' : 'var(--neutral-900)',
+      },
+      tooltip: {
+        background: theme == 'dark' ? '#27272A' : '#FFFFFF', // neutral-800 : white
+        border: theme == 'dark' ? '#3F3F46' : '#E4E4E7', // neutral-700 : neutral-200
+        text: theme == 'dark' ? '#F4F4F5' : '#27272A', // neutral-100 : neutral-800
+      },
+    };
 
     const chart = echarts.init(chartRef.current, null, { renderer: 'svg' });
 
@@ -209,7 +229,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           silent: true,
           symbol: 'none',
           lineStyle: {
-            color: 'var(--neutral-800)',
+            color: themeColors.quorumLine,
             type: 'solid',
             width: 2,
           },
@@ -218,25 +238,24 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
               yAxis: results.quorum,
               label: {
                 formatter: () => {
-                  // Use ECharts' text styling capabilities
                   if (results.quorum !== null)
                     return `{bold|${formatNumberWithSuffix(results.quorum)}} Quorum needed`;
                   return '';
                 },
-                color: 'var(--neutral-50)',
+                color: themeColors.quorumLabel.text,
                 rich: {
                   bold: {
                     fontWeight: 'bold',
                   },
                 },
-                position: 'insideStartTop', // Position the label on the left
+                position: 'insideStartTop',
                 fontSize: 12,
-                backgroundColor: 'var(--neutral-600)', // Background color
-                borderColor: 'var(--neutral-900)', // Border color
-                borderWidth: 1, // Border width
-                borderRadius: 2, // Rounded corners
-                padding: [4, 8], // Padding
-                offset: [-4, 15], // Move the label slightly above the line
+                backgroundColor: themeColors.quorumLabel.background,
+                borderColor: themeColors.quorumLabel.border,
+                borderWidth: 1,
+                borderRadius: 2,
+                padding: [4, 8],
+                offset: [-4, 15],
               },
             },
           ],
@@ -255,10 +274,10 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
     const options: echarts.EChartsOption = {
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'var(--neutral-100)', // Light mode background
-        borderColor: 'var(--neutral-300)', // Light mode border
+        backgroundColor: themeColors.tooltip.background,
+        borderColor: themeColors.tooltip.border,
         textStyle: {
-          color: 'var(--neutral-800)', // Light mode text color
+          color: themeColors.tooltip.text,
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: (params: any) => {
@@ -295,6 +314,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
         min: results.proposal.startAt,
         max: results.proposal.endAt,
         axisLabel: {
+          color: themeColors.axisLabel,
           formatter: (value: number) => {
             const zonedDate = toZonedTime(new Date(value), 'UTC');
             const formattedDate = format(zonedDate, 'MMM d');
@@ -311,16 +331,29 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
         },
         axisLine: {
           show: true,
+          lineStyle: {
+            color: themeColors.axisLine,
+          },
         },
       },
       yAxis: {
         type: 'value',
         max: yAxisMax,
         axisLabel: {
+          color: themeColors.axisLabel,
           formatter: (value: number) => formatNumberWithSuffix(value),
         },
         axisLine: {
           show: true,
+          lineStyle: {
+            color: themeColors.axisLine,
+          },
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: themeColors.gridLine,
+          },
         },
       },
       series,
@@ -344,7 +377,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, [results, delegateMap]);
+  }, [results, delegateMap, theme]);
 
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
@@ -377,8 +410,56 @@ const roundToGoodValue = (value: number): number => {
 
 export function LoadingChart() {
   return (
-    <div className='w-full rounded-lg border border-neutral-300 bg-white p-4'>
-      <div className='h-[400px] w-full animate-pulse rounded-lg bg-neutral-200' />
+    <div className='flex h-[400px] w-full items-center justify-center'>
+      <div className='w-full space-y-4'>
+        {/* Chart area placeholder */}
+        <div className='relative h-[320px] w-full'>
+          {/* Y-axis labels */}
+          <div className='absolute top-0 left-0 flex h-full w-16 flex-col justify-between py-4'>
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className='h-4 w-12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
+              />
+            ))}
+          </div>
+
+          {/* Chart grid lines */}
+          <div className='absolute inset-0 ml-16'>
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className='border-b border-neutral-200 dark:border-neutral-700'
+                style={{ height: `${100 / 5}%` }}
+              />
+            ))}
+          </div>
+
+          {/* Loading lines */}
+          <div className='absolute inset-0 mt-4 ml-16 flex flex-col justify-around'>
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className='h-1 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
+                style={{
+                  opacity: 1 - i * 0.2,
+                  width: `${100 - i * 15}%`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* X-axis labels */}
+        <div className='flex justify-between px-16'>
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className='h-4 w-20 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

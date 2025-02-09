@@ -43,18 +43,18 @@ export function ResultEvent({
           resultNumber == selectedResult
             ? 'w-32 border-t border-b border-l'
             : 'w-24 border'
-          } border-neutral-800 bg-white`}
+          } dark:border-neutral-650 border-neutral-800 bg-white dark:bg-neutral-950`}
       >
         {isLive ? (
           <TimelineEventActiveIcon
-            className='absolute top-3 left-2 fill-neutral-800'
+            className='dark:fill-neutral-350 absolute top-3 left-2 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}
           />
         ) : (
           <TimelineEventIcon
-            className='absolute top-3 left-1 fill-neutral-800'
+            className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}
@@ -63,8 +63,8 @@ export function ResultEvent({
 
         {!last && (
           <div
-            className='absolute top-[7px] left-[12.5px] z-10 h-[15px] max-h-[15px] w-0.5
-              translate-x-[2.5px] bg-neutral-800'
+            className='dark:bg-neutral-350 absolute top-[7px] left-[12.5px] z-10 h-[15px] max-h-[15px]
+              w-0.5 translate-x-[2.5px] bg-neutral-800'
           />
         )}
         <div className='ml-3 flex flex-col gap-2'>

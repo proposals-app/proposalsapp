@@ -42,7 +42,8 @@ export function HeaderClient({
     <div
       className={`border-neutral-350 dark:border-neutral-650 fixed top-0 right-0 left-0 z-50 ml-20
         flex h-20 items-center border-b bg-neutral-50 px-6 transition-transform
-        duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
+        duration-300 dark:bg-neutral-900
+        ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
     >
       {withBack && (
         <Link
