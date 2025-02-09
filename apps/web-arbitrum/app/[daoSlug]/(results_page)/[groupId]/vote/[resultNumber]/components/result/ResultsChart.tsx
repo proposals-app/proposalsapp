@@ -116,28 +116,29 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
             color: color,
           },
           showSymbol: false, // Show symbols for significant points
-          symbol: (data) => {
-            const isSignificant = significantPoints.find(
-              (sigPoint) => sigPoint[0] === data[0]
-            );
-            return isSignificant ? 'square' : 'none';
-          },
-          symbolSize(value) {
-            const selectedDate = new Date(value[0]);
 
-            const timeSeriesPoint = results.votes?.find(
-              (point) => point.createdAt.getTime() === selectedDate.getTime()
-            );
+          // symbol: (data) => {
+          //   const isSignificant = significantPoints.find(
+          //     (sigPoint) => sigPoint[0] === data[0]
+          //   );
+          //   return isSignificant ? 'square' : 'none';
+          // },
+          // symbolSize(value) {
+          //   const selectedDate = new Date(value[0]);
 
-            const votingPower = timeSeriesPoint?.votingPower ?? 0;
+          //   const timeSeriesPoint = results.votes?.find(
+          //     (point) => point.createdAt.getTime() === selectedDate.getTime()
+          //   );
 
-            // Use a power function to amplify the differences
-            const baseSize = 1; // Minimum size
-            const scalingFactor = 0.2; // Adjust this factor to control the scaling
-            const size = baseSize + Math.pow(votingPower, scalingFactor);
+          //   const votingPower = timeSeriesPoint?.votingPower ?? 0;
 
-            return size;
-          },
+          //   // Use a power function to amplify the differences
+          //   const baseSize = 1; // Minimum size
+          //   const scalingFactor = 0.2; // Adjust this factor to control the scaling
+          //   const size = baseSize + Math.pow(votingPower, scalingFactor);
+
+          //   return size;
+          // },
           itemStyle: {
             color: () => {
               return color;
@@ -253,7 +254,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
     const options: echarts.EChartsOption = {
       tooltip: {
-        trigger: 'item', // Change from 'axis' to 'item'
+        trigger: 'item',
         backgroundColor: 'var(--neutral-100)', // Light mode background
         borderColor: 'var(--neutral-300)', // Light mode border
         textStyle: {

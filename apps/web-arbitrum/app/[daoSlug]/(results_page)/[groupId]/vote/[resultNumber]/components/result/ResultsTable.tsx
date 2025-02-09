@@ -151,7 +151,7 @@ export function ResultsTable({
 
         {/* Existing content */}
         <div className='relative grid h-20 grid-cols-7 items-center p-2'>
-          <div className='col-span-2 flex items-center gap-2 overflow-hidden px-2 font-bold'>
+          <div className='col-span-2 flex items-center gap-2 overflow-hidden pb-2 font-bold'>
             {delegate && (
               <div className='flex w-full min-w-0 items-center gap-2'>
                 <div
