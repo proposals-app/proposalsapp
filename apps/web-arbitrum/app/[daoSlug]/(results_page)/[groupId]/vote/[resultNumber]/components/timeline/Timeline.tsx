@@ -88,8 +88,10 @@ export async function Timeline({
           {events.map((event, index) => {
             // Add resultNumber for ResultEndedEvent and ResultOngoingEvent
             const resultNumber =
-              event.type === TimelineEventType.ResultEnded ||
-              event.type === TimelineEventType.ResultOngoing
+              event.type === TimelineEventType.ResultEndedBasicVote ||
+              event.type === TimelineEventType.ResultOngoingBasicVote ||
+              event.type === TimelineEventType.ResultEndedOtherVotes ||
+              event.type === TimelineEventType.ResultOngoingOtherVotes
                 ? (proposalOrderMap.get(event.proposal.id) ?? 0)
                 : 0;
 
@@ -108,20 +110,12 @@ export async function Timeline({
                     timestamp={event.timestamp}
                     volume={event.volume}
                   />
-                ) : event.type === TimelineEventType.ResultOngoing ? (
+                ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
+                  event.type === TimelineEventType.ResultOngoingOtherVotes ||
+                  event.type === TimelineEventType.ResultEndedBasicVote ||
+                  event.type === TimelineEventType.ResultEndedOtherVotes ? (
                   <ResultEvent
-                    content={event.content}
-                    timestamp={event.timestamp}
-                    proposal={event.proposal}
-                    resultNumber={resultNumber!}
-                    selectedResult={selectedResult}
-                    daoSlug={group.daoSlug}
-                    groupId={group.group.id}
-                    eventIndex={index}
-                    last={index == 0}
-                  />
-                ) : event.type === TimelineEventType.ResultEnded ? (
-                  <ResultEvent
+                    eventType={event.type}
                     content={event.content}
                     timestamp={event.timestamp}
                     proposal={event.proposal}

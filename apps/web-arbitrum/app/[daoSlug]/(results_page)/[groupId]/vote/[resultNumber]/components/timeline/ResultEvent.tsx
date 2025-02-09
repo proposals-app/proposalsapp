@@ -3,8 +3,10 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg';
+import { TimelineEventType } from './actions';
 
 interface ResultEventProps {
+  eventType: TimelineEventType;
   content: string;
   timestamp: Date;
   proposal: Selectable<Proposal>;
@@ -16,7 +18,19 @@ interface ResultEventProps {
   last: boolean;
 }
 
+const EVENT_HEIGHT = {
+  [TimelineEventType.Basic]: 'h-8',
+  [TimelineEventType.ResultEndedBasicVote]: 'h-[136px]',
+  [TimelineEventType.ResultEndedOtherVotes]: 'h-[88px]',
+  [TimelineEventType.ResultOngoingBasicVote]: 'h-[136px]',
+  [TimelineEventType.ResultOngoingOtherVotes]: 'h-[88px]',
+  [TimelineEventType.CommentsVolume]: 'h-1',
+  [TimelineEventType.VotesVolume]: 'h-1',
+  [TimelineEventType.Gap]: 'h-5',
+} as const;
+
 export function ResultEvent({
+  eventType,
   content,
   proposal,
   resultNumber,
@@ -34,6 +48,8 @@ export function ResultEvent({
   // Format dates
   const endDate = format(new Date(proposal.endAt), 'MMM d');
 
+  const heightClass = EVENT_HEIGHT[eventType] || 'h-8';
+
   // Content to be rendered inside the div
   const eventContent = (
     <div className='relative z-20 flex items-center py-2'>
@@ -41,8 +57,9 @@ export function ResultEvent({
         className={`flex flex-col gap-1 py-1.5 ${last ? 'pl-5' : 'pl-3'} ${
           resultNumber == selectedResult
             ? 'w-32 border-t border-b border-l'
-            : 'w-24 border'
-          } dark:border-neutral-650 border-neutral-800 bg-white dark:bg-neutral-950`}
+            : 'w-28 border'
+          } dark:border-neutral-650 border-neutral-800 bg-white dark:bg-neutral-950
+          ${heightClass}`}
       >
         {isLive ? (
           <TimelineEventActiveIcon
@@ -72,7 +89,7 @@ export function ResultEvent({
           <div className='text-foreground w-full text-sm'>
             {isLive ? (
               <div className='flex flex-col'>
-                <span className='font-bold'>Live Voting</span>
+                <span className='font-bold'>Live Vote</span>
                 <div className='flex flex-col'>
                   <span>Ends </span>
                   <span className='font-bold'>{endDate}</span>

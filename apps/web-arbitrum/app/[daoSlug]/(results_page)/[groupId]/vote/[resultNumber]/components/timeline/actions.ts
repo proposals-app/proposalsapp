@@ -1,4 +1,5 @@
 import { GroupReturnType } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
+import { ProposalMetadata } from '@/app/types';
 import {
   db,
   IndexerVariant,
@@ -9,8 +10,10 @@ import {
 import { endOfDay, format, formatDistanceToNow } from 'date-fns';
 
 export enum TimelineEventType {
-  ResultOngoing = 'ResultOngoing',
-  ResultEnded = 'ResultEnded',
+  ResultOngoingBasicVote = 'ResultOngoingBasicVote',
+  ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',
+  ResultEndedBasicVote = 'ResultEndedBasicVote',
+  ResultEndedOtherVotes = 'ResultEndedOtherVotes',
   Basic = 'Basic',
   CommentsVolume = 'CommentsVolume',
   VotesVolume = 'VotesVolume',
@@ -49,7 +52,11 @@ interface GapEvent extends BaseEvent {
 }
 
 interface ResultEvent extends BaseEvent {
-  type: TimelineEventType.ResultOngoing | TimelineEventType.ResultEnded;
+  type:
+    | TimelineEventType.ResultOngoingBasicVote
+    | TimelineEventType.ResultOngoingOtherVotes
+    | TimelineEventType.ResultEndedBasicVote
+    | TimelineEventType.ResultEndedOtherVotes;
   content: string;
   proposal: Selectable<Proposal>;
 }
@@ -65,12 +72,14 @@ const MAX_EVENTS = 20;
 const MIN_TIME_BETWEEN_EVENTS = 1000 * 60 * 60 * 24; // 1 day in milliseconds
 
 const EVENT_HEIGHT_UNITS = {
-  [TimelineEventType.Basic]: 30,
-  [TimelineEventType.ResultEnded]: 110,
-  [TimelineEventType.ResultOngoing]: 110,
-  [TimelineEventType.CommentsVolume]: 3,
-  [TimelineEventType.VotesVolume]: 3,
-  [TimelineEventType.Gap]: 10,
+  [TimelineEventType.Basic]: 40,
+  [TimelineEventType.ResultEndedBasicVote]: 136,
+  [TimelineEventType.ResultEndedOtherVotes]: 88,
+  [TimelineEventType.ResultOngoingBasicVote]: 136,
+  [TimelineEventType.ResultOngoingOtherVotes]: 88,
+  [TimelineEventType.CommentsVolume]: 4,
+  [TimelineEventType.VotesVolume]: 4,
+  [TimelineEventType.Gap]: 20,
 } as const;
 
 // Helper function to aggregate volume events
@@ -247,13 +256,23 @@ export async function extractEvents(group: GroupReturnType): Promise<Event[]> {
         url: proposal.url,
       });
 
+      const metadata =
+        typeof proposal.metadata === 'string'
+          ? (JSON.parse(proposal.metadata) as ProposalMetadata)
+          : (proposal.metadata as ProposalMetadata);
+
+      const voteType = metadata?.voteType;
+
       if (new Date() > endedAt) {
         events.push({
           content: `${offchain ? 'Offchain' : 'Onchain'} vote ended ${formatDistanceToNow(
             endedAt,
             { addSuffix: true }
           )}`,
-          type: TimelineEventType.ResultEnded,
+          type:
+            voteType === 'basic'
+              ? TimelineEventType.ResultEndedBasicVote
+              : TimelineEventType.ResultEndedOtherVotes,
           timestamp: endedAt,
           proposal: proposal,
         });
@@ -263,7 +282,10 @@ export async function extractEvents(group: GroupReturnType): Promise<Event[]> {
             endedAt,
             { addSuffix: true }
           )}`,
-          type: TimelineEventType.ResultOngoing,
+          type:
+            voteType === 'basic'
+              ? TimelineEventType.ResultOngoingBasicVote
+              : TimelineEventType.ResultOngoingOtherVotes,
           timestamp: endedAt,
           proposal: proposal,
         });
@@ -362,8 +384,10 @@ export async function extractEvents(group: GroupReturnType): Promise<Event[]> {
     const importantEvents = events.filter(
       (e) =>
         e.type === TimelineEventType.Basic ||
-        e.type === TimelineEventType.ResultOngoing ||
-        e.type === TimelineEventType.ResultEnded
+        e.type === TimelineEventType.ResultOngoingBasicVote ||
+        e.type === TimelineEventType.ResultEndedBasicVote ||
+        e.type === TimelineEventType.ResultOngoingOtherVotes ||
+        e.type === TimelineEventType.ResultEndedOtherVotes
     );
 
     events = [...importantEvents, ...commentEvents, ...voteEvents].sort(
