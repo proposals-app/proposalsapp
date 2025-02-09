@@ -243,11 +243,11 @@ export async function extractEvents(group: GroupReturnType): Promise<Event[]> {
         .where('id', '=', proposal.daoIndexerId)
         .executeTakeFirstOrThrow();
 
-      const offchain =
-        daoIndexer.indexerVariant == IndexerVariant.SNAPSHOT_PROPOSALS;
+      const onchain =
+        daoIndexer.indexerVariant != IndexerVariant.SNAPSHOT_PROPOSALS;
 
       events.push({
-        content: `${offchain ? 'Offchain' : 'Onchain'} vote started on ${format(
+        content: `${onchain ? 'Onchain' : 'Offchain'} vote started on ${format(
           startedAt,
           'MMM d'
         )}`,
@@ -265,12 +265,12 @@ export async function extractEvents(group: GroupReturnType): Promise<Event[]> {
 
       if (new Date() > endedAt) {
         events.push({
-          content: `${offchain ? 'Offchain' : 'Onchain'} vote ended ${formatDistanceToNow(
+          content: `${onchain ? 'Onchain' : 'Offchain'} vote ended ${formatDistanceToNow(
             endedAt,
             { addSuffix: true }
           )}`,
           type:
-            voteType === 'basic'
+            voteType === 'basic' && onchain
               ? TimelineEventType.ResultEndedBasicVote
               : TimelineEventType.ResultEndedOtherVotes,
           timestamp: endedAt,
@@ -278,12 +278,12 @@ export async function extractEvents(group: GroupReturnType): Promise<Event[]> {
         });
       } else {
         events.push({
-          content: `${offchain ? 'Offchain' : 'Onchain'} vote ends ${formatDistanceToNow(
+          content: `${onchain ? 'Onchain' : 'Offchain'} vote ends ${formatDistanceToNow(
             endedAt,
             { addSuffix: true }
           )}`,
           type:
-            voteType === 'basic'
+            voteType === 'basic' && onchain
               ? TimelineEventType.ResultOngoingBasicVote
               : TimelineEventType.ResultOngoingOtherVotes,
           timestamp: endedAt,

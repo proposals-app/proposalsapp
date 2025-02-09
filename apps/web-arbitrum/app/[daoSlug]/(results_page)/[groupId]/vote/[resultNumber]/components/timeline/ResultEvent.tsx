@@ -38,7 +38,6 @@ export function ResultEvent({
   groupId,
   last,
 }: ResultEventProps) {
-  // Determine if the vote is onchain or offchain
   const isOnchain = content.includes('Onchain vote'); // Adjust this logic based on your data model
   const voteType = isOnchain ? 'Onchain' : 'Offchain';
 
