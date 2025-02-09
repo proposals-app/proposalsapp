@@ -238,17 +238,16 @@ export function ResultsTable({
   const TableHeader = () => (
     <div
       className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center justify-between gap-2
-        border-b border-neutral-800 bg-neutral-200 p-2 text-sm font-bold
-        text-neutral-800 transition-colors dark:border-neutral-600 dark:bg-neutral-800
+        border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800
+        transition-colors dark:border-neutral-600 dark:bg-neutral-800
         dark:text-neutral-200'
     >
-      <div className='col-span-2 flex items-center gap-1'>Delegate</div>
+      <div className='col-span-2 flex items-center gap-1 text-left'>
+        Delegate
+      </div>
       <div className='col-span-3'>
         <Select.Root value={selectedChoice} onValueChange={setSelectedChoice}>
-          <Select.Trigger
-            className='flex h-8 w-full cursor-pointer items-center justify-between px-3 text-sm
-              outline-none'
-          >
+          <Select.Trigger className='flex h-8 w-full cursor-pointer items-center justify-between text-sm outline-none'>
             <Select.Value
               placeholder='Filter by choice'
               className='flex w-full items-center justify-between'
@@ -295,7 +294,7 @@ export function ResultsTable({
       </div>
       <div
         onClick={() => handleSortChange('votingPower')}
-        className='col-span-1 flex cursor-pointer items-center gap-1'
+        className='col-span-1 flex cursor-pointer items-center justify-end gap-1 text-right'
       >
         Voting Power
         <span className='transform'>
