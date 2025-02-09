@@ -22,7 +22,6 @@ export function ResultEvent({
   resultNumber,
   selectedResult,
   groupId,
-
   last,
 }: ResultEventProps) {
   // Determine if the vote is onchain or offchain

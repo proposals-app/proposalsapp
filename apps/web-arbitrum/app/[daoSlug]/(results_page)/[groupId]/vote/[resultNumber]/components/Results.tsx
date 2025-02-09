@@ -80,11 +80,11 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     <div className='flex w-full flex-col'>
       <div className='flex w-full'>
         <div className='flex w-full flex-col'>
-          <div className='flex flex-col'>
+          <div className='flex flex-col gap-2'>
             <div className='text-2xl font-bold'>
               {processedResults.proposal.name}
             </div>
-            <div className='flex items-center gap-4 text-xs'>
+            <div className='flex items-center gap-2 text-xs'>
               <div>
                 Published {onChain ? 'onchain' : 'offchain'} by{' '}
                 <span className='font-bold'>
@@ -96,7 +96,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
                 </span>
               </div>
               <Link
-                className='flex items-center gap-1 rounded-xs bg-neutral-100 px-2'
+                className='flex items-center gap-1 rounded-xs bg-neutral-100 px-1 dark:bg-neutral-800'
                 href={processedResults.proposal.url}
                 target='_blank'
               >
@@ -105,17 +105,17 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
                     width={24}
                     height={24}
                     alt={'Go to governor'}
-                    className='fill-neutral-800'
+                    className='fill-neutral-800 dark:fill-neutral-200'
                   />
                 ) : (
                   <OffchainIcon
                     width={24}
                     height={24}
                     alt={'Go to governor'}
-                    className='fill-neutral-800'
+                    className='fill-neutral-800 dark:fill-neutral-200'
                   />
                 )}
-                <div className='font-bold text-neutral-800'>
+                <div className='font-bold text-neutral-800 dark:text-neutral-200'>
                   {governor?.name}
                 </div>
                 <ExternalLinkIcon
