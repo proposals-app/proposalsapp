@@ -7,7 +7,7 @@
     "dotenv": "^16.4.7",
     "moment": "2.30.1",
     "postmark": "^4.0.5",
-    "prettier": "^3.4.2",
+    "prettier": "^3.5.0",
     "prettier-plugin-tailwindcss": "0.6.11",
     "react": "19.0.0",
     "react-dom": "19.0.0",

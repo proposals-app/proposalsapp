@@ -149,33 +149,39 @@ export function LoadingTimeline() {
     <div className='fixed top-24 left-28 z-20 flex h-screen w-44 flex-col items-end justify-start'>
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
-        <div className='absolute top-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>
-          <svg
-            width='21'
-            height='21'
-            viewBox='0 0 21 21'
-            fill='none'
-            xmlns='http://www.w3.org/2000/svg'
-            className='absolute -top-[10px] -left-[10px]'
-          >
-            <rect
-              x='0.5'
-              y='0.5'
-              width='20'
-              height='20'
-              rx='10'
-              className='fill-neutral-300'
-              stroke='#D3D3D3'
-            />
-            <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
-          </svg>
+        <div
+          className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-sm border-2
+            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
+        >
+          <TimelineEventIcon
+            className='dark:fill-neutral-350 fill-neutral-800'
+            width={24}
+            height={24}
+            alt={'Timeline event'}
+          />
         </div>
 
         {/* Vertical Line Placeholder */}
-        <div className='absolute top-5 bottom-5 left-[14px] w-0.5 bg-neutral-500' />
+        <div
+          className='dark:bg-neutral-350 absolute top-2 bottom-4 left-[15px] z-10 w-0.5
+            bg-neutral-800'
+        />
+
+        {/* Bottom SVG Placeholder */}
+        <div
+          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-sm border-2
+            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
+        >
+          <TimelineEventIcon
+            className='dark:fill-neutral-350 fill-neutral-800'
+            width={24}
+            height={24}
+            alt={'Timeline event'}
+          />
+        </div>
 
         {/* Placeholder Items */}
-        <div className='flex h-full flex-col gap-8'>
+        <div className='flex h-full flex-col gap-16 pt-2'>
           {Array.from({ length: 3 }).map((_, index) => (
             <div
               key={index}
@@ -183,8 +189,8 @@ export function LoadingTimeline() {
             >
               {/* Placeholder Event Content */}
               <div
-                className='flex h-[122px] flex-col gap-1 rounded-xl border border-neutral-300 bg-white px-4
-                  py-2'
+                className='dark:border-neutral-650 z-20 flex h-[120px] flex-col gap-2 border
+                  border-neutral-300 bg-white px-4 py-2 dark:bg-neutral-950'
               >
                 <div className='h-4 w-20 rounded-sm bg-gray-300' />
                 <div className='h-4 w-16 rounded-sm bg-gray-300' />
@@ -192,29 +198,6 @@ export function LoadingTimeline() {
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Bottom SVG Placeholder */}
-        <div className='absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>
-          <svg
-            width='21'
-            height='21'
-            viewBox='0 0 21 21'
-            fill='none'
-            xmlns='http://www.w3.org/2000/svg'
-            className='absolute -bottom-[10px] -left-[10px]'
-          >
-            <rect
-              x='0.5'
-              y='0.5'
-              width='20'
-              height='20'
-              rx='10'
-              className='fill-neutral-300'
-              stroke='#D3D3D3'
-            />
-            <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
-          </svg>
         </div>
       </div>
     </div>

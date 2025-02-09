@@ -410,7 +410,7 @@ const roundToGoodValue = (value: number): number => {
 
 export function LoadingChart() {
   return (
-    <div className='flex h-[400px] w-full items-center justify-center'>
+    <div className='flex h-[380px] w-full items-center justify-center'>
       <div className='w-full space-y-4'>
         {/* Chart area placeholder */}
         <div className='relative h-[320px] w-full'>

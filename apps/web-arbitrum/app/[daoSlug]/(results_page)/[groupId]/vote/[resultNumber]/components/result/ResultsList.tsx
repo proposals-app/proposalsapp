@@ -34,8 +34,6 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
       })
     : choicesWithPower.sort((a, b) => b.votingPower - a.votingPower);
 
-  // Determine which choices to show
-
   const quorumVotingPower = sortedChoices
     .filter((choice) => choice.countsTowardsQuorum)
     .reduce((sum, choice) => sum + choice.votingPower, 0);
@@ -44,10 +42,8 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
     ? (totalVotingPower / totalDelegatedVp) * 100
     : 0;
 
-  // Find the choice with the highest voting power
+  // Determine which choices to show and the status message
   const majorityChoice = sortedChoices[0];
-
-  // Check if the majority choice is "For"
   const hasMajoritySupport = sortedChoices.map((c) => c.choice).includes('For')
     ? majorityChoice.choice === 'For' &&
       majorityChoice.votingPower > totalVotingPower / 2
@@ -57,120 +53,39 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
 
   const hasQuorum = quorumVotingPower > (results.quorum || 0);
 
-  const statusMessage = getStatusMessage(
-    toZonedTime(results.proposal.endAt, 'UTC'),
-    hasQuorum,
-    onchain,
-    hasMajoritySupport
-  );
-
   return (
-    <div className='ml-6 w-72 text-neutral-700 dark:text-neutral-200'>
-      {statusMessage && (
-        <div className='mb-4 text-sm font-medium'>{statusMessage}</div>
+    <div className='ml-6 flex w-72 flex-col gap-4 text-neutral-700 dark:text-neutral-200'>
+      <StatusMessage
+        endTime={toZonedTime(results.proposal.endAt, 'UTC')}
+        hasQuorum={hasQuorum}
+        isOnchain={onchain}
+        hasMajoritySupport={hasMajoritySupport}
+      />
+      <ChoiceList choices={sortedChoices} totalVotingPower={totalVotingPower} />
+      {results.quorum !== null && totalDelegatedVp && (
+        <div className='flex flex-col gap-2'>
+          <MajoritySupportCheckmark
+            hasQuorum={hasMajoritySupport}
+            results={{ quorum: results.quorum, totalDelegatedVp }}
+          />
+          {results.totalDelegatedVp && (
+            <QuorumBar
+              choices={sortedChoices.filter(
+                (choice) => choice.countsTowardsQuorum
+              )}
+              quorumVotingPower={quorumVotingPower}
+              quorum={results.quorum}
+              totalDelegatedVp={results.totalDelegatedVp}
+            />
+          )}
+        </div>
       )}
-
-      <div className='space-y-4'>
-        <div className='space-y-2'>
-          {sortedChoices.map(({ choice, votingPower, color }, index) => {
-            const percentage = (votingPower / totalVotingPower) * 100;
-            return (
-              <ChoiceBar
-                key={index}
-                choice={choice}
-                votingPower={votingPower}
-                color={color}
-                percentage={isNaN(percentage) ? null : percentage}
-                choiceIndex={index}
-                totalChoices={sortedChoices.length}
-              />
-            );
-          })}
-        </div>
-
-        {/* Majority Support Checkmark */}
-        {results.quorum !== null && totalDelegatedVp && (
-          <div
-            className='flex w-full items-center gap-1 text-sm font-semibold'
-            style={{
-              left: `${(results.quorum / totalDelegatedVp) * 100}%`,
-            }}
-          >
-            {hasMajoritySupport ? <PassedIcon /> : <FailedIcon />}
-            <span>Majority support</span>
-          </div>
-        )}
-
-        {/* Quorum Bar */}
-        <div>
-          {results.quorum !== null && totalDelegatedVp && (
-            <div className='mb-4'>
-              <div className='relative h-4 w-full'>
-                {/* Quorum Line */}
-                <div
-                  className='absolute -top-1 z-10 h-6 w-0.5 bg-neutral-900 dark:bg-neutral-50'
-                  style={{
-                    left: `${(results.quorum / totalDelegatedVp) * 100}%`,
-                  }}
-                />
-
-                {/* Choices that count towards quorum */}
-                <div className='absolute inset-0 flex border border-neutral-800 dark:border-neutral-200'>
-                  {sortedChoices
-                    .filter((choice) => choice.countsTowardsQuorum)
-                    .map((choice, index) => (
-                      <div
-                        key={index}
-                        className='h-full'
-                        style={{
-                          width: `${(choice.votingPower / totalDelegatedVp) * 100}%`,
-                          backgroundColor: choice.color,
-                        }}
-                      />
-                    ))}
-                </div>
-              </div>
-              {/* Quorum Text */}
-              <div className='mt-2 flex items-center gap-1 text-sm'>
-                {quorumVotingPower > results.quorum ? (
-                  <PassedIcon />
-                ) : (
-                  <FailedIcon />
-                )}
-                <span className='font-semibold'>
-                  {formatNumberWithSuffix(quorumVotingPower)}
-                </span>
-                <span>of</span>
-                <span>{formatNumberWithSuffix(results.quorum)}</span>
-                <span>Quorum</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Delegated Voting Power */}
-        <div>
-          {totalDelegatedVp && (
-            <div className='mt-4'>
-              <div className='relative h-2 w-full border border-neutral-800 dark:border-neutral-200'>
-                <div
-                  className='absolute top-0 left-0 h-full bg-neutral-800 dark:bg-neutral-200'
-                  style={{
-                    width: `${participationPercentage}%`,
-                  }}
-                />
-              </div>
-
-              <div className='mt-2 text-xs'>
-                <span className='font-semibold'>
-                  {participationPercentage.toFixed(0)}%
-                </span>{' '}
-                of all delegated ARB has voted
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {totalDelegatedVp && (
+        <ParticipationPercentage
+          percentage={participationPercentage}
+          totalVotingPower={totalDelegatedVp}
+        />
+      )}
     </div>
   );
 }
@@ -223,12 +138,19 @@ function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
   );
 }
 
-function getStatusMessage(
-  endTime: Date,
-  hasQuorum: boolean,
-  isOnchain: boolean,
-  hasMajoritySupport?: boolean
-): JSX.Element {
+interface StatusMessageProps {
+  endTime: Date;
+  hasQuorum: boolean;
+  isOnchain: boolean;
+  hasMajoritySupport?: boolean;
+}
+
+function StatusMessage({
+  endTime,
+  hasQuorum,
+  isOnchain,
+  hasMajoritySupport,
+}: StatusMessageProps) {
   const now = new Date();
   const isEnded = now > endTime;
   const voteType = isOnchain ? 'onchain' : 'offchain';
@@ -241,7 +163,7 @@ function getStatusMessage(
   if (isEnded) {
     if (!hasQuorum) {
       return (
-        <div className='mb-4 text-sm font-medium'>
+        <div className='text-sm font-medium'>
           This {voteType} vote ended{' '}
           <span className='font-bold'>{timeString}</span> and{' '}
           <span className='font-bold'>
@@ -253,7 +175,7 @@ function getStatusMessage(
     }
     // Has quorum and ended
     return (
-      <div className='mb-4 text-sm font-medium'>
+      <div className='text-sm font-medium'>
         This {voteType} vote ended{' '}
         <span className='font-bold'>{timeString}</span>
         {hasMajoritySupport !== undefined && (
@@ -273,7 +195,7 @@ function getStatusMessage(
   // Vote is still active
   if (!hasQuorum) {
     return (
-      <div className='mb-4 text-sm font-medium'>
+      <div className='text-sm font-medium'>
         This {voteType} vote ends{' '}
         <span className='font-bold'>{timeString}</span> and{' '}
         <span className='font-bold'>is not reaching quorum</span>.
@@ -282,7 +204,7 @@ function getStatusMessage(
   }
   // Has quorum and is active
   return (
-    <div className='mb-4 text-sm font-medium'>
+    <div className='text-sm font-medium'>
       This {voteType} vote ends <span className='font-bold'>{timeString}</span>{' '}
       and is{' '}
       <span className='font-bold'>
@@ -293,30 +215,153 @@ function getStatusMessage(
   );
 }
 
+interface ChoiceListProps {
+  choices: { choice: string; votingPower: number; color: string }[];
+  totalVotingPower: number;
+}
+
+function ChoiceList({ choices, totalVotingPower }: ChoiceListProps) {
+  return (
+    <div className='space-y-2'>
+      {choices.map(({ choice, votingPower, color }, index) => {
+        const percentage = (votingPower / totalVotingPower) * 100;
+        return (
+          <ChoiceBar
+            key={index}
+            choice={choice}
+            votingPower={votingPower}
+            color={color}
+            percentage={isNaN(percentage) ? null : percentage}
+            choiceIndex={index}
+            totalChoices={choices.length}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+interface MajoritySupportCheckmarkProps {
+  hasQuorum: boolean | undefined;
+  results: { quorum: number; totalDelegatedVp: number };
+}
+
+function MajoritySupportCheckmark({
+  hasQuorum,
+  results,
+}: MajoritySupportCheckmarkProps) {
+  return (
+    <div
+      className='flex w-full items-center gap-1 text-sm font-semibold'
+      style={{
+        left: `${(results.quorum / results.totalDelegatedVp) * 100}%`,
+      }}
+    >
+      {hasQuorum ? <PassedIcon /> : <FailedIcon />}
+      <span>Majority support</span>
+    </div>
+  );
+}
+
+interface QuorumBarProps {
+  choices: { votingPower: number; color: string }[];
+  quorumVotingPower: number;
+  quorum: number;
+  totalDelegatedVp: number;
+}
+
+function QuorumBar({
+  choices,
+  quorumVotingPower,
+  quorum,
+  totalDelegatedVp,
+}: QuorumBarProps) {
+  return (
+    <div>
+      <div className='relative h-4 w-full'>
+        {/* Quorum Line */}
+        <div
+          className='absolute -top-1 z-10 h-6 w-0.5 bg-neutral-900 dark:bg-neutral-50'
+          style={{
+            left: `${(quorum / totalDelegatedVp) * 100}%`,
+          }}
+        />
+        {/* Choices that count towards quorum */}
+        <div className='absolute inset-0 flex border border-neutral-800 dark:border-neutral-200'>
+          {choices.map((choice, index) => (
+            <div
+              key={index}
+              className='h-full'
+              style={{
+                width: `${(choice.votingPower / totalDelegatedVp) * 100}%`,
+                backgroundColor: choice.color,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+      {/* Quorum Text */}
+      <div className='mt-2 flex items-center gap-1 text-sm'>
+        {quorumVotingPower > quorum ? <PassedIcon /> : <FailedIcon />}
+        <span className='font-semibold'>
+          {formatNumberWithSuffix(quorumVotingPower)}
+        </span>
+        <span>of</span>
+        <span>{formatNumberWithSuffix(quorum)}</span>
+        <span>Quorum</span>
+      </div>
+    </div>
+  );
+}
+
+interface ParticipationPercentageProps {
+  percentage: number;
+  totalVotingPower: number;
+}
+
+function ParticipationPercentage({
+  percentage,
+  totalVotingPower,
+}: ParticipationPercentageProps) {
+  return (
+    <div>
+      <div className='relative h-2 w-full border border-neutral-800 dark:border-neutral-200'>
+        <div
+          className='absolute top-0 left-0 h-full bg-neutral-800 dark:bg-neutral-200'
+          style={{
+            width: `${percentage}%`,
+          }}
+        />
+      </div>
+      <div className='mt-2 text-xs'>
+        <span className='font-semibold'>{percentage.toFixed(0)}%</span> of all
+        delegated ARB has voted
+      </div>
+    </div>
+  );
+}
+
 export function LoadingList() {
   return (
     <div className='ml-6 w-72 text-neutral-700 dark:text-neutral-200'>
       {/* Status message placeholder */}
+      <div className='mb-1 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
       <div className='mb-4 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
 
-      <div className='space-y-4'>
+      <div className='space-y-2'>
         {/* Choice bars loading state */}
-        <div className='space-y-2'>
-          {[...Array(3)].map((_, index) => (
-            <div
-              key={index}
-              className='relative h-10 w-full animate-pulse overflow-hidden border-2 border-neutral-200
-                dark:border-neutral-700'
-            />
-          ))}
-        </div>
-
+        {[...Array(3)].map((_, index) => (
+          <div
+            key={index}
+            className='relative h-10 w-full animate-pulse overflow-hidden border-2 border-neutral-200
+              dark:border-neutral-700'
+          />
+        ))}
         {/* Majority support placeholder */}
         <div className='flex w-full items-center gap-1'>
           <div className='h-4 w-4 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700' />
           <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
         </div>
-
         {/* Quorum bar placeholder */}
         <div>
           <div className='mb-4'>
@@ -333,7 +378,6 @@ export function LoadingList() {
             </div>
           </div>
         </div>
-
         {/* Delegated voting power placeholder */}
         <div className='mt-4'>
           <div className='relative h-2 w-full border border-neutral-200 dark:border-neutral-700'>
