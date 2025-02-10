@@ -183,9 +183,9 @@ export function ResultsTable({
           </div>
           <div className='col-span-3 flex cursor-default flex-col truncate px-2'>
             <div className='font-bold'>
-              {choiceText.length > 20
-                ? `${choiceText.substring(0, 20)}...`
-                : choiceText}
+              <div className='truncate' title={choiceText}>
+                {choiceText}
+              </div>
             </div>
             {vote.reason && (
               <div className='text-neutral-450 text-sm'>
