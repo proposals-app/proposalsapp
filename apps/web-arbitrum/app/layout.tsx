@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import '../styles/globals.css';
+import '@/styles/globals.css';
 import Head from 'next/head';
 import { PostHogProvider } from './components/posthog-provider';
 import SuspendedPostHogPageView from './components/PostHogPageView';

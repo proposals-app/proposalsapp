@@ -2,7 +2,6 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { ProcessedResults } from '@/lib/results_processing';
 import { toZonedTime } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
-import { JSX } from 'react';
 import PassedIcon from '@/public/assets/web/passed.svg';
 import FailedIcon from '@/public/assets/web/failed.svg';
 
@@ -319,10 +318,7 @@ interface ParticipationPercentageProps {
   totalVotingPower: number;
 }
 
-function ParticipationPercentage({
-  percentage,
-  totalVotingPower,
-}: ParticipationPercentageProps) {
+function ParticipationPercentage({ percentage }: ParticipationPercentageProps) {
   return (
     <div>
       <div className='relative h-2 w-full border border-neutral-800 dark:border-neutral-200'>

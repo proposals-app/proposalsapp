@@ -3,6 +3,7 @@
 import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect } from 'react';
+import { cookieConsentGiven } from './Banner';
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -11,6 +12,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       ui_host: 'https://eu.posthog.com',
       capture_pageview: false, // Disable automatic pageview capture, as we capture manually
       capture_pageleave: true,
+      persistence:
+        cookieConsentGiven() === 'yes' ? 'localStorage+cookie' : 'memory',
     });
   }, []);
 

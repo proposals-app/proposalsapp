@@ -1,10 +1,11 @@
 import { db } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
-import { ReactNode } from 'react';
+import { ReactNode, Suspense } from 'react';
 import { NavBar } from './components/NavBar';
 import { ThemeProvider } from '../components/theme-provider';
 import { UpdateManifest } from '../components/update-manifest';
+import Banner from '../components/Banner';
 
 // Define a cached function to fetch the DAO data
 const getDaoBySlug = unstable_cache(
@@ -46,6 +47,9 @@ export default async function DaoLayout({
         <NavBar dao={dao} />
         <div className='flex w-full pl-20'>{children}</div>
       </div>
+      <Suspense>
+        <Banner />
+      </Suspense>
     </ThemeProvider>
   );
 }
