@@ -33,25 +33,35 @@ const SelectItem = React.forwardRef<
 });
 SelectItem.displayName = 'SelectItem';
 
-const useDebouncedScroll = (callback: () => void, delay: number) => {
-  const timeoutId = useRef<NodeJS.Timeout | null>(null);
+const useIntersectionObserver = (
+  callback: (entry: IntersectionObserverEntry) => void,
+  options: IntersectionObserverInit = {}
+) => {
+  const targetRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
-      timeoutId.current = setTimeout(callback, delay);
-    };
+    const target = targetRef.current;
+    if (!target) return;
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(callback);
+      },
+      {
+        threshold: [0, 0.5, 1],
+        rootMargin: '-80px 0px 0px 0px',
+        ...options,
       }
-      window.removeEventListener('scroll', handleScroll);
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
     };
-  }, [callback, delay]);
+  }, [callback, options]);
+
+  return targetRef;
 };
 
 export const FullViewBar = () => {
@@ -79,25 +89,24 @@ export const FullViewBar = () => {
     parseAsBoolean.withDefault(false).withOptions({ shallow: false })
   );
 
-  const fullViewBarRef = useRef<HTMLDivElement | null>(null);
+  const handleIntersection = (entry: IntersectionObserverEntry) => {
+    const { intersectionRatio, boundingClientRect } = entry;
 
-  useDebouncedScroll(() => {
-    if (!fullViewBarRef.current) return;
-
-    const rect = fullViewBarRef.current.getBoundingClientRect();
-
-    if (rect.top < 80 && view !== ViewEnum.COMMENTS) {
-      setView(ViewEnum.COMMENTS);
-    } else if (
-      rect.top >= 80 &&
-      rect.bottom <= window.innerHeight &&
-      view !== ViewEnum.FULL
-    ) {
+    // Element is mostly visible in the viewport
+    if (intersectionRatio > 0.5) {
       setView(ViewEnum.FULL);
-    } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
+    }
+    // Element is above the viewport
+    else if (boundingClientRect.top < 0) {
+      setView(ViewEnum.COMMENTS);
+    }
+    // Element is below the viewport
+    else if (boundingClientRect.top > window.innerHeight) {
       setView(ViewEnum.BODY);
     }
-  }, 10);
+  };
+
+  const fullViewBarRef = useIntersectionObserver(handleIntersection);
 
   return (
     <div

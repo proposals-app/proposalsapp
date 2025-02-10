@@ -99,14 +99,40 @@ export default async function Body({
 
 export function BodyLoading() {
   return (
-    <div className='w-full rounded-lg p-6 shadow-sm'>
-      <div className='space-y-4'>
-        <div className='h-10 w-3/4 animate-pulse rounded-sm bg-gray-200'></div>
+    <div className='w-full'>
+      {/* Title Loading */}
+      <div className='mb-8 h-12 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
+
+      {/* Author Info Loading */}
+      <div className='mb-6 flex animate-pulse items-center justify-between'>
         <div className='flex items-center gap-4'>
-          <div className='h-10 w-10 animate-pulse rounded-full bg-gray-200'></div>
-          <div className='h-4 w-32 animate-pulse rounded-sm bg-gray-200'></div>
+          <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='space-y-2'>
+            <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          </div>
         </div>
-        <div className='h-[400px] w-full animate-pulse rounded-sm bg-gray-200'></div>
+        <div className='flex space-x-2'>
+          <div className='space-y-2'>
+            <div className='h-4 w-40 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          </div>
+          <div className='space-y-2'>
+            <div className='h-4 w-40 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Loading */}
+      <div className='space-y-4'>
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={i}
+            className='h-4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'
+            style={{ width: `${Math.random() * 40 + 60}%` }}
+          ></div>
+        ))}
       </div>
     </div>
   );
