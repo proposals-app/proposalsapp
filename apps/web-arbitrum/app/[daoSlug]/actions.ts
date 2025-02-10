@@ -22,11 +22,14 @@ async function getGroups(daoSlug: string) {
       .where('daoId', '=', dao.id)
       .execute();
 
-    // Function to find the newest item timestamp in a group
-    const getNewestItemTimestamp = async (
+    const getGroupTimestamps = async (
       group: (typeof allGroups)[0]
-    ): Promise<number> => {
-      return otel('get-newest-item-timestamp', async () => {
+    ): Promise<{
+      newestItemTimestamp: number;
+      newestPostTimestamp: number;
+      newestVoteTimestamp: number;
+    }> => {
+      return otel('get-group-timestamps', async () => {
         const items = group.items as Array<{
           id: string;
           type: 'proposal' | 'topic';
@@ -40,47 +43,99 @@ async function getGroups(daoSlug: string) {
           .filter((item) => item.type === 'topic')
           .map((item) => item.id);
 
-        const [latestProposal, latestTopic] = await Promise.all([
-          proposalIds.length > 0
-            ? db
-                .selectFrom('proposal')
-                .select('createdAt')
-                .where('id', 'in', proposalIds)
-                .orderBy('createdAt', 'desc')
-                .limit(1)
-                .executeTakeFirst()
-            : Promise.resolve(null),
-          topicIds.length > 0
-            ? db
-                .selectFrom('discourseTopic')
-                .select('createdAt')
-                .where('id', 'in', topicIds)
-                .orderBy('createdAt', 'desc')
-                .limit(1)
-                .executeTakeFirst()
-            : Promise.resolve(null),
-        ]);
+        const [latestProposal, latestTopic, latestPost, latestVote] =
+          await Promise.all([
+            // Get latest proposal
+            proposalIds.length > 0
+              ? db
+                  .selectFrom('proposal')
+                  .select('createdAt')
+                  .where('id', 'in', proposalIds)
+                  .orderBy('createdAt', 'desc')
+                  .limit(1)
+                  .executeTakeFirst()
+              : Promise.resolve(null),
 
-        return Math.max(
-          latestProposal?.createdAt
-            ? new Date(latestProposal.createdAt).getTime()
+            // Get latest topic
+            topicIds.length > 0
+              ? db
+                  .selectFrom('discourseTopic')
+                  .select('createdAt')
+                  .where('id', 'in', topicIds)
+                  .orderBy('createdAt', 'desc')
+                  .limit(1)
+                  .executeTakeFirst()
+              : Promise.resolve(null),
+
+            // Get latest post from all topics
+            topicIds.length > 0
+              ? db
+                  .selectFrom('discoursePost')
+                  .select('createdAt')
+                  .where(
+                    'topicId',
+                    'in',
+                    db
+                      .selectFrom('discourseTopic')
+                      .select('externalId')
+                      .where('id', 'in', topicIds)
+                  )
+                  .orderBy('createdAt', 'desc')
+                  .limit(1)
+                  .executeTakeFirst()
+              : Promise.resolve(null),
+
+            // Get latest vote from all proposals
+            proposalIds.length > 0
+              ? db
+                  .selectFrom('vote')
+                  .select('createdAt')
+                  .where('proposalId', 'in', proposalIds)
+                  .orderBy('createdAt', 'desc')
+                  .limit(1)
+                  .executeTakeFirst()
+              : Promise.resolve(null),
+          ]);
+
+        return {
+          newestItemTimestamp: Math.max(
+            latestProposal?.createdAt
+              ? new Date(latestProposal.createdAt).getTime()
+              : 0,
+            latestTopic?.createdAt
+              ? new Date(latestTopic.createdAt).getTime()
+              : 0
+          ),
+          newestPostTimestamp: latestPost?.createdAt
+            ? new Date(latestPost.createdAt).getTime()
             : 0,
-          latestTopic?.createdAt ? new Date(latestTopic.createdAt).getTime() : 0
-        );
+          newestVoteTimestamp: latestVote?.createdAt
+            ? new Date(latestVote.createdAt).getTime()
+            : 0,
+        };
       });
     };
 
     // Add timestamps to all groups
     const groupsWithTimestamps = await Promise.all(
-      allGroups.map(async (group) => ({
-        ...group,
-        newestItemTimestamp: await getNewestItemTimestamp(group),
-      }))
+      allGroups.map(async (group) => {
+        const timestamps = await getGroupTimestamps(group);
+        return {
+          ...group,
+          ...timestamps,
+          // Add a new field that tracks the newest timestamp across all activities
+          newestActivityTimestamp: Math.max(
+            timestamps.newestItemTimestamp,
+            timestamps.newestPostTimestamp,
+            timestamps.newestVoteTimestamp
+          ),
+        };
+      })
     );
 
-    // Sort all groups by their items' timestamps
+    // Sort all groups by their newest activity timestamp
     groupsWithTimestamps.sort(
-      (a, b) => b.newestItemTimestamp - a.newestItemTimestamp
+      (a, b) => b.newestActivityTimestamp - a.newestActivityTimestamp
     );
 
     return {
