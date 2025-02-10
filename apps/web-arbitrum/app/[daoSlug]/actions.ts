@@ -81,6 +81,7 @@ async function getGroups(daoSlug: string) {
               ? db
                   .selectFrom('discoursePost')
                   .select('createdAt')
+                  .where('daoDiscourseId', '=', daoDiscourse.id)
                   .where(
                     'topicId',
                     'in',
