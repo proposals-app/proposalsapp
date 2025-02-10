@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '../styles/globals.css';
 import Head from 'next/head';
+import { PostHogProvider } from './components/posthog-provider';
+import SuspendedPostHogPageView from './components/PostHogPageView';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -40,12 +42,15 @@ export default async function RootLayout({
 }) {
   return (
     <html lang='en'>
-      <Head>
-        <link rel='icon' href='/favicon.ico' />
-      </Head>
-      <body>
-        <NuqsAdapter>{children}</NuqsAdapter>
-      </body>
+      <PostHogProvider>
+        <SuspendedPostHogPageView />
+        <Head>
+          <link rel='icon' href='/favicon.ico' />
+        </Head>
+        <body>
+          <NuqsAdapter>{children}</NuqsAdapter>
+        </body>
+      </PostHogProvider>
     </html>
   );
 }

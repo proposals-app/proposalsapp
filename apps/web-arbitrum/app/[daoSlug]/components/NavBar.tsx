@@ -17,14 +17,14 @@ export function NavBar({ dao }: NavBarProps) {
     >
       <Link href={`/`} className='h-10 w-10'>
         <Image
-          src={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${dao.picture}.svg`}
+          src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${dao.picture}.svg`}
           alt={dao.name}
           width={64}
           height={64}
           className='rounded-sm dark:hidden'
         />
         <Image
-          src={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${dao.picture}_dark.svg`}
+          src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${dao.picture}_dark.svg`}
           alt={dao.name}
           width={64}
           height={64}
@@ -35,14 +35,14 @@ export function NavBar({ dao }: NavBarProps) {
         <ModeToggle />
 
         <Image
-          src={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/logo.svg`}
+          src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/logo.svg`}
           alt={'proposals.app'}
           width={48}
           height={48}
           className='rounded-sm dark:hidden'
         />
         <Image
-          src={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/logo_dark.svg`}
+          src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/logo_dark.svg`}
           alt={'proposals.app'}
           width={48}
           height={48}

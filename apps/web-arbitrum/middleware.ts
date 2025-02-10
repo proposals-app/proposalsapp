@@ -17,7 +17,13 @@ export const config = {
 export default function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'example.com';
+  const configuredRootDomain =
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'example.com';
+
+  // Strip http:// or https:// and any trailing slashes from the configured root domain
+  const rootDomain = configuredRootDomain
+    .replace(/^(https?:\/\/)?/, '')
+    .replace(/\/$/, '');
 
   // Get the subdomain from the hostname
   const subdomain = hostname.replace(`.${rootDomain}`, '');

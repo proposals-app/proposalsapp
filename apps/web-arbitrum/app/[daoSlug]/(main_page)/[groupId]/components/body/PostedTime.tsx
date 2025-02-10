@@ -26,7 +26,7 @@ export async function PostedTime({
       </div>
       {border && (
         <Image
-          src={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/edit-icon-posted-time.svg`}
+          src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/edit-icon-posted-time.svg`}
           alt={''}
           width={24}
           height={24}

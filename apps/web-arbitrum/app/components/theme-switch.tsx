@@ -44,8 +44,8 @@ export function ModeToggle() {
             <Image
               src={
                 theme === 'dark'
-                  ? `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/moon.svg`
-                  : `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/sun.svg`
+                  ? `${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/moon.svg`
+                  : `${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/sun.svg`
               }
               alt={theme === 'dark' ? 'Dark mode' : 'Light mode'}
               width={12}

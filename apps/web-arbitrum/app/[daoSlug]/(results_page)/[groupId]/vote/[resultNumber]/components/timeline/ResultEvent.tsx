@@ -82,7 +82,7 @@ export function ResultEvent({
               w-0.5 translate-x-[2.5px] bg-neutral-800'
           />
         )}
-        <div className='ml-3 flex flex-col gap-2'>
+        <div className='ml-3 flex flex-col'>
           <div className='text-sm font-semibold'>{voteType}</div>
 
           <div className='text-foreground w-full text-sm'>

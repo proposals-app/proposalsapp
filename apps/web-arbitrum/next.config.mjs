@@ -16,6 +16,20 @@ const nextConfig = {
   reactStrictMode: true,
   rewrites: () => {
     return [
+      // PostHog rewrites need to come first to ensure they're not caught by the catch-all subdomain rewrite
+      {
+        source: '/ingest/static/:path*',
+        destination: 'https://eu-assets.i.posthog.com/static/:path*',
+      },
+      {
+        source: '/ingest/:path*',
+        destination: 'https://eu.i.posthog.com/:path*',
+      },
+      {
+        source: '/ingest/decide',
+        destination: 'https://eu.i.posthog.com/decide',
+      },
+      // Subdomain rewrite comes last as it's a catch-all
       {
         source: '/:path*',
         has: [
@@ -25,14 +39,6 @@ const nextConfig = {
           },
         ],
         destination: '/:daoSlug/:path*',
-      },
-      {
-        source: '/ingest/static/:path*',
-        destination: 'https://eu-assets.i.posthog.com/static/:path*',
-      },
-      {
-        source: '/ingest/:path*',
-        destination: 'https://eu.i.posthog.com/:path*',
       },
     ];
   },
