@@ -3579,6 +3579,7 @@ __metadata:
     next-themes: "npm:^0.4.4"
     nuqs: "npm:^2.3.2"
     postcss: "npm:^8.5.1"
+    posthog-js: "npm:^1.215.7"
     prettier: "npm:^3.5.0"
     prettier-plugin-classnames: "npm:^0.7.6"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -15186,7 +15187,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.215.7":
+"posthog-js@npm:1.215.7, posthog-js@npm:^1.215.7":
   version: 1.215.7
   resolution: "posthog-js@npm:1.215.7"
   dependencies:
