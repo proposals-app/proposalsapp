@@ -12,7 +12,13 @@ async function getGroups(daoSlug: string) {
       .selectFrom('dao')
       .where('slug', '=', daoSlug)
       .selectAll()
-      .executeTakeFirst();
+      .executeTakeFirstOrThrow();
+
+    const daoDiscourse = await db
+      .selectFrom('daoDiscourse')
+      .where('daoId', '=', dao.id)
+      .selectAll()
+      .executeTakeFirstOrThrow();
 
     if (!dao) return null;
 
@@ -52,6 +58,7 @@ async function getGroups(daoSlug: string) {
                   .selectFrom('proposal')
                   .select('createdAt')
                   .where('id', 'in', proposalIds)
+                  .where('daoId', '=', dao.id)
                   .orderBy('createdAt', 'desc')
                   .limit(1)
                   .executeTakeFirst()
@@ -63,6 +70,7 @@ async function getGroups(daoSlug: string) {
                   .selectFrom('discourseTopic')
                   .select('createdAt')
                   .where('id', 'in', topicIds)
+                  .where('daoDiscourseId', '=', daoDiscourse.id)
                   .orderBy('createdAt', 'desc')
                   .limit(1)
                   .executeTakeFirst()
@@ -80,6 +88,7 @@ async function getGroups(daoSlug: string) {
                       .selectFrom('discourseTopic')
                       .select('externalId')
                       .where('id', 'in', topicIds)
+                      .where('daoDiscourseId', '=', daoDiscourse.id)
                   )
                   .orderBy('createdAt', 'desc')
                   .limit(1)
@@ -92,6 +101,7 @@ async function getGroups(daoSlug: string) {
                   .selectFrom('vote')
                   .select('createdAt')
                   .where('proposalId', 'in', proposalIds)
+                  .where('daoId', '=', dao.id)
                   .where('votingPower', '>=', 5000000)
                   .orderBy('createdAt', 'desc')
                   .limit(1)
