@@ -56,9 +56,9 @@ export function ResultEvent({
         className={`flex flex-col gap-1 py-1.5 ${last ? 'pl-5' : 'pl-3'} ${
           resultNumber == selectedResult
             ? 'w-32 border-t border-b border-l'
-            : 'w-28 border'
-          } dark:border-neutral-650 border-neutral-800 bg-white dark:bg-neutral-950
-          ${heightClass}`}
+            : 'w-28 rounded-xs border'
+          } dark:border-neutral-650 rounded-l-xs border-neutral-800 bg-white
+          dark:bg-neutral-950 ${heightClass}`}
       >
         {isLive ? (
           <TimelineEventActiveIcon

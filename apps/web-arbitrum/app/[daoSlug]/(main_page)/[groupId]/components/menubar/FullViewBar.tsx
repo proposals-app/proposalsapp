@@ -106,10 +106,10 @@ export const FullViewBar = () => {
         ${view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
-        className='dark:border-neutral-450 flex w-full items-center justify-between gap-2 border
-          border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold
-          text-neutral-800 transition-colors dark:bg-neutral-950 dark:fill-neutral-200
-          dark:text-neutral-200'
+        className='dark:border-neutral-450 flex w-full items-center justify-between gap-2
+          rounded-xs border border-neutral-800 bg-white fill-neutral-800 p-2 text-sm
+          font-bold text-neutral-800 transition-colors dark:bg-neutral-950
+          dark:fill-neutral-200 dark:text-neutral-200'
       >
         <div className='flex w-full justify-between'>
           {expanded ? (

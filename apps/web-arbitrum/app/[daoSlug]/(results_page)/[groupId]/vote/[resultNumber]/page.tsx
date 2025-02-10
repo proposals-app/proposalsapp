@@ -38,7 +38,7 @@ export default async function ResultPage({
         <div className='h-full w-full pr-4'>
           <div
             className='dark:border-neutral-650 flex h-full min-h-[calc(100vh-114px)] w-full flex-col
-              border border-neutral-800 bg-white p-6 dark:bg-neutral-950'
+              rounded-r-xs border border-neutral-800 bg-white p-6 dark:bg-neutral-950'
           >
             {group ? (
               <Suspense fallback={<ResultsLoading />}>

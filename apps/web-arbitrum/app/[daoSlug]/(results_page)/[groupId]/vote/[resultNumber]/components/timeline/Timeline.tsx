@@ -54,7 +54,7 @@ export async function Timeline({
         {/* Conditionally render the top SVG */}
         {isProposalEnded && (
           <div
-            className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-sm border-2
+            className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2
               border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
           >
             <TimelineEventIcon
@@ -73,7 +73,7 @@ export async function Timeline({
 
         {/* Bottom SVG */}
         <div
-          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-sm border-2
+          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2
             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
         >
           <TimelineEventIcon
@@ -144,7 +144,7 @@ export function LoadingTimeline() {
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
         <div
-          className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-sm border-2
+          className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2
             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
         >
           <TimelineEventIcon
@@ -163,7 +163,7 @@ export function LoadingTimeline() {
 
         {/* Bottom SVG Placeholder */}
         <div
-          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-sm border-2
+          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2
             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
         >
           <TimelineEventIcon

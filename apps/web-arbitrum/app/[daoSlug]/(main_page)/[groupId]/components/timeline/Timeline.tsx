@@ -7,6 +7,7 @@ import { CommentsVolumeEvent } from './CommentsVolumeEvent';
 import { GapEvent } from './GapEvent';
 import { ResultEvent } from './ResultEvent';
 import { VotesVolumeEvent } from './VotesVolumeEvent';
+import TimelineEventIcon from '@/public/assets/web/timeline_event.svg'; // Import the SVG as a React component
 
 export async function Timeline({
   group,
@@ -138,54 +139,34 @@ export function LoadingTimeline() {
       className='fixed top-0 right-0 flex h-screen w-96 flex-col items-end justify-start pt-24
         pl-4'
     >
-      <div className='relative h-[calc(100vh-96px)] w-full'>
-        {/* Top SVG Placeholder */}
-        <div className='absolute top-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>
-          <svg
-            width='21'
-            height='21'
-            viewBox='0 0 21 21'
-            fill='none'
-            xmlns='http://www.w3.org/2000/svg'
-            className='absolute -top-[10px] -left-[10px]'
-          >
-            <rect
-              className='fill-neutral-300'
-              x='0.5'
-              y='0.5'
-              width='20'
-              height='20'
-              rx='10'
-              stroke='#D3D3D3'
-            />
-            <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
-          </svg>
+      <div className='relative h-full max-h-[840px] w-full'>
+        <div
+          className='absolute top-1 flex h-8 w-8 items-center justify-center rounded-xs border-2
+            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
+        >
+          <TimelineEventIcon
+            className='dark:fill-neutral-350 fill-neutral-800'
+            width={24}
+            height={24}
+            alt={'Timeline event'}
+          />
         </div>
 
-        {/* Vertical Line Placeholder */}
-        <div className='absolute top-5 bottom-5 left-[14px] w-0.5 bg-neutral-500' />
+        <div
+          className='dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 translate-x-[1px]
+            bg-neutral-800'
+        />
 
-        {/* Bottom SVG Placeholder */}
-        <div className='absolute bottom-5 left-[14px] w-0.5 translate-x-[0.5px] bg-neutral-500'>
-          <svg
-            width='21'
-            height='21'
-            viewBox='0 0 21 21'
-            fill='none'
-            xmlns='http://www.w3.org/2000/svg'
-            className='absolute -bottom-[10px] -left-[10px]'
-          >
-            <rect
-              className='fill-neutral-300'
-              x='0.5'
-              y='0.5'
-              width='20'
-              height='20'
-              rx='10'
-              stroke='#D3D3D3'
-            />
-            <circle cx='10.5' cy='10.5' r='3' className='fill-neutral-500' />
-          </svg>
+        <div
+          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2
+            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
+        >
+          <TimelineEventIcon
+            className='dark:fill-neutral-350 fill-neutral-800'
+            width={24}
+            height={24}
+            alt={'Timeline event'}
+          />
         </div>
       </div>
     </div>

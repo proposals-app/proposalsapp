@@ -14,7 +14,7 @@ export function VotingPowerTag({ votingPower }: VotingPowerTagProps) {
   return (
     <div
       className='border-neutral-350 text-neutral-650 dark:text-neutral-350 flex w-fit
-        cursor-default gap-4 rounded-sm border bg-neutral-100 p-0.5 px-2 text-xs
+        cursor-default gap-4 rounded-xs border bg-neutral-100 p-0.5 px-2 text-xs
         font-normal dark:border-neutral-600 dark:bg-neutral-900'
     >
       <Tooltip.Root>

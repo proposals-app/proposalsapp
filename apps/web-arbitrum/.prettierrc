@@ -5,7 +5,7 @@
   "singleQuote": true,
   "jsxSingleQuote": true,
   "printWidth": 80,
-  "jsxBracketSameLine": false,
+  "bracketSameLine": false,
   "arrowParens": "always",
   "plugins": [
     "prettier-plugin-organize-imports",
