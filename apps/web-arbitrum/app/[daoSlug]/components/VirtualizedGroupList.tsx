@@ -22,11 +22,11 @@ interface VirtualizedGroupListProps {
 const GroupCard = memo(({ group }: GroupCardProps) => (
   <Link href={`/${group.id}`} prefetch={true}>
     <div
-      className='mb-4 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm transition-all
-        duration-200 hover:border-neutral-300 hover:shadow-md'
+      className='border-neutral-350 dark:border-neutral-650 mb-4 rounded-xs border bg-white p-6
+        text-neutral-700 dark:bg-neutral-950 dark:text-neutral-200'
     >
-      <h2 className='text-xl font-semibold text-neutral-700'>{group.name}</h2>
-      <p className='mt-2 text-sm text-neutral-500'>
+      <h2 className='text-xl font-semibold'>{group.name}</h2>
+      <p className='mt-2 text-sm'>
         View proposals and discussions in the {group.name} group.
       </p>
     </div>

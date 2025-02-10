@@ -30,7 +30,9 @@ export default async function ListPage({
   return (
     <div className='flex min-h-screen w-full flex-row'>
       <div className='w-full p-8'>
-        <h1 className='mb-8 text-4xl font-bold'>{daoName || daoSlug}</h1>
+        <h1 className='mb-8 text-4xl font-bold text-neutral-700 dark:text-neutral-200'>
+          {daoName || daoSlug}
+        </h1>
         <VirtualizedGroupList groups={groups} />
       </div>
     </div>
