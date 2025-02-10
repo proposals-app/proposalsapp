@@ -1018,6 +1018,7 @@ mod optimism_proposals_tests {
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_proposals_1() {
         let _ = dotenv().ok();
@@ -1080,6 +1081,7 @@ mod optimism_proposals_tests {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_proposals_2() {
         let _ = dotenv().ok();
@@ -1142,6 +1144,7 @@ mod optimism_proposals_tests {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_proposals_3() {
         let _ = dotenv().ok();
@@ -1204,6 +1207,7 @@ mod optimism_proposals_tests {
         }
     }
 
+    #[ignore = "needs db mocking"]
     #[tokio::test]
     async fn optimism_proposals_4() {
         let _ = dotenv().ok();
