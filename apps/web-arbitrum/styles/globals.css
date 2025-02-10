@@ -2,6 +2,34 @@
 @config '../tailwind.config.ts';
 
 @layer utilities {
+  /* Default Theme (when data-theme is null) */
+  :root:not([data-theme]) {
+    --for-400: #87ff42;
+    --for-600: #56b200;
+    --abstain-400: #ffdc42;
+    --abstain-600: #ffbc1f;
+    --against-400: #ff5842;
+    --against-600: #ff4242;
+    --neutral-50: #f9fafb;
+    --neutral-100: #f4f5f6;
+    --neutral-200: #e1e6e9;
+    --neutral-300: #ced6da;
+    --neutral-350: #b3bfc6;
+    --neutral-400: #96a6b0;
+    --neutral-450: #80949f;
+    --neutral-500: #637783;
+    --neutral-550: #566771;
+    --neutral-600: #47555d;
+    --neutral-650: #414e56;
+    --neutral-700: #374249;
+    --neutral-800: #21272b;
+    --neutral-900: #14181a;
+    --neutral-950: #0d1011;
+    --brand-accent: #12aaff;
+    --brand-accent-bright: #12aaff;
+    --brand-accent-darker: #0088cc;
+  }
+
   /* Arbitrum Theme */
   [data-theme='arbitrum'] {
     --for-400: #87ff42;

@@ -43,13 +43,13 @@ export default async function RootLayout({
   return (
     <html lang='en'>
       <PostHogProvider>
-        <SuspendedPostHogPageView />
-        <Head>
-          <link rel='icon' href='/favicon.ico' />
-        </Head>
-        <body>
-          <NuqsAdapter>{children}</NuqsAdapter>
-        </body>
+        <NuqsAdapter>
+          <SuspendedPostHogPageView />
+          <Head>
+            <link rel='icon' href='/favicon.ico' />
+          </Head>
+          <body>{children}</body>
+        </NuqsAdapter>
       </PostHogProvider>
     </html>
   );
