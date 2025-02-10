@@ -211,7 +211,7 @@ export const getDelegateForVoter_cached = unstable_cache(
     return await getDelegateForVoter(voterAddress, daoSlug, proposalId, false);
   },
   [],
-  { revalidate: 60 * 5, tags: ['delegate-for-voter'] }
+  { revalidate: 60 * 30, tags: ['delegate-for-voter'] }
 );
 export type DelegateVotingPower = {
   votingPowerAtVote: number;
@@ -294,5 +294,5 @@ export const getDelegateVotingPower_cached = unstable_cache(
     return await getDelegateVotingPower(voterAddress, daoSlug, proposalId);
   },
   [],
-  { revalidate: 60 * 5, tags: ['get-delegate-voting-power'] }
+  { revalidate: 60 * 30, tags: ['get-delegate-voting-power'] }
 );

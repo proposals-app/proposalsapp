@@ -613,7 +613,7 @@ export const getDelegateByVoterAddress_cache = unstable_cache(
     );
   },
   [],
-  { revalidate: 60 * 5, tags: ['get-delegate-by-voter-address'] }
+  { revalidate: 60 * 30, tags: ['get-delegate-by-voter-address'] }
 );
 
 export const getDelegateByDiscourseUser_cached = unstable_cache(
@@ -633,7 +633,7 @@ export const getDelegateByDiscourseUser_cached = unstable_cache(
     );
   },
   [],
-  { revalidate: 60 * 5, tags: ['get-delegate-by-discourse-user'] }
+  { revalidate: 60 * 30, tags: ['get-delegate-by-discourse-user'] }
 );
 
 export const getDiscourseUser_cached = unstable_cache(
@@ -641,7 +641,7 @@ export const getDiscourseUser_cached = unstable_cache(
     return await getDiscourseUser(userId, daoDiscourseId);
   },
   [],
-  { revalidate: 60 * 5, tags: ['get-discourse-user'] }
+  { revalidate: 60 * 30, tags: ['get-discourse-user'] }
 );
 
 export const getPostLikesCount_cached = unstable_cache(

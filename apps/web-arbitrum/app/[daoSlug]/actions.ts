@@ -302,5 +302,5 @@ export const getGroupAuthor_cached = superjson_cache(
     return await getGroupAuthor(groupId);
   },
   [],
-  { revalidate: 60 * 5, tags: ['get-group-author'] }
+  { revalidate: 60 * 30, tags: ['get-group-author'] }
 );
