@@ -6,7 +6,6 @@ import { NavBar } from './components/NavBar';
 import { ThemeProvider } from '../components/theme-provider';
 import { UpdateManifest } from '../components/update-manifest';
 import Banner from '../components/Banner';
-import Loading from './loading';
 
 // Define a cached function to fetch the DAO data
 const getDaoBySlug = unstable_cache(
@@ -17,7 +16,7 @@ const getDaoBySlug = unstable_cache(
       .selectAll()
       .executeTakeFirst();
   },
-  [],
+  ['dao'],
   { revalidate: 3600, tags: ['dao'] } // Cache for 1 hour
 );
 

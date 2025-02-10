@@ -37,7 +37,7 @@ export const getProposalGovernor_cached = unstable_cache(
   async (proposalId: string) => {
     return await getProposalGovernor(proposalId);
   },
-  [],
+  ['get-proposal-governor'],
   { revalidate: 60 * 5, tags: ['get-proposal-governor'] }
 );
 
@@ -64,7 +64,7 @@ export const getVotesAction_cached = superjson_cache(
   async (groupId: string) => {
     return await getVotesAction(groupId);
   },
-  [],
+  ['get-votes'],
   { revalidate: 60 * 5, tags: ['get-votes'] }
 );
 
@@ -210,7 +210,7 @@ export const getDelegateForVoter_cached = unstable_cache(
   async (voterAddress: string, daoSlug: string, proposalId: string) => {
     return await getDelegateForVoter(voterAddress, daoSlug, proposalId, false);
   },
-  [],
+  ['delegate-for-voter'],
   { revalidate: 60 * 30, tags: ['delegate-for-voter'] }
 );
 export type DelegateVotingPower = {
@@ -293,6 +293,6 @@ export const getDelegateVotingPower_cached = unstable_cache(
   async (voterAddress: string, daoSlug: string, proposalId: string) => {
     return await getDelegateVotingPower(voterAddress, daoSlug, proposalId);
   },
-  [],
+  ['get-delegate-voting-power'],
   { revalidate: 60 * 30, tags: ['get-delegate-voting-power'] }
 );

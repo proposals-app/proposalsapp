@@ -162,7 +162,7 @@ export const getGroups_cached = unstable_cache(
   async (daoSlug: string) => {
     return await getGroups(daoSlug);
   },
-  [],
+  ['get-groups'],
   { revalidate: 60 * 5, tags: ['get-groups'] }
 );
 
@@ -312,6 +312,6 @@ export const getGroupAuthor_cached = superjson_cache(
   async (groupId: string) => {
     return await getGroupAuthor(groupId);
   },
-  [],
+  ['get-group-author'],
   { revalidate: 60 * 30, tags: ['get-group-author'] }
 );

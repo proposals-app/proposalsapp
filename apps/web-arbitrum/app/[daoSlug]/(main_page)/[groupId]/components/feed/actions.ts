@@ -592,7 +592,7 @@ export const getFeed_cached = superjson_cache(
   ) => {
     return await getFeed(groupId, commentsFilter, votesFilter);
   },
-  [],
+  ['get-feed-for-group'],
   { revalidate: 60 * 5, tags: ['get-feed-for-group'] }
 );
 
@@ -612,7 +612,7 @@ export const getDelegateByVoterAddress_cache = unstable_cache(
       proposalIds
     );
   },
-  [],
+  ['get-delegate-by-voter-address'],
   { revalidate: 60 * 30, tags: ['get-delegate-by-voter-address'] }
 );
 
@@ -632,7 +632,7 @@ export const getDelegateByDiscourseUser_cached = unstable_cache(
       proposalIds
     );
   },
-  [],
+  ['get-delegate-by-discourse-user'],
   { revalidate: 60 * 30, tags: ['get-delegate-by-discourse-user'] }
 );
 
@@ -640,7 +640,7 @@ export const getDiscourseUser_cached = unstable_cache(
   async (userId: number, daoDiscourseId: string) => {
     return await getDiscourseUser(userId, daoDiscourseId);
   },
-  [],
+  ['get-discourse-user'],
   { revalidate: 60 * 30, tags: ['get-discourse-user'] }
 );
 
@@ -648,7 +648,7 @@ export const getPostLikesCount_cached = unstable_cache(
   async (externalPostId: number, daoDiscourseId: string) => {
     return await getPostLikesCount(externalPostId, daoDiscourseId);
   },
-  [],
+  ['get-post-likes-count'],
   { revalidate: 60 * 5, tags: ['get-post-likes-count'] }
 );
 
@@ -656,7 +656,7 @@ export const getPostLikedUsers_cached = unstable_cache(
   async (externalPostId: number, daoDiscourseId: string) => {
     return await getPostLikedUsers(externalPostId, daoDiscourseId);
   },
-  [],
+  ['get-post-liked-users'],
   { revalidate: 60 * 5, tags: ['get-post-liked-users'] }
 );
 
@@ -664,6 +664,6 @@ export const getVotingPower_cache = unstable_cache(
   async (itemId: string) => {
     return await getVotingPower(itemId);
   },
-  [],
+  ['get-voting-power'],
   { revalidate: 60 * 5, tags: ['get-voting-power'] }
 );

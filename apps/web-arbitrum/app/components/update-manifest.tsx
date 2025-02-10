@@ -18,12 +18,10 @@ export const UpdateManifest = ({ daoSlug }: { daoSlug: string }) => {
 
     if (resolvedTheme) {
       const isDark = resolvedTheme === 'dark';
-      // Use different timeouts for dark/light transitions
-      const timeoutDuration = isDark ? 100 : 0;
 
       const timeoutId = setTimeout(() => {
         updateManifest(isDark);
-      }, timeoutDuration);
+      }, 100);
 
       return () => clearTimeout(timeoutId);
     }
