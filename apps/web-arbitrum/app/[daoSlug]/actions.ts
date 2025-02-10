@@ -1,10 +1,11 @@
+'use server';
+
 import { otel } from '@/lib/otel';
 import { AsyncReturnType, superjson_cache } from '@/lib/utils';
 import { db } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
 
 async function getGroups(daoSlug: string) {
-  'use server';
   return otel('get-groups', async () => {
     // Fetch the DAO based on the slug
     const dao = await db
@@ -91,6 +92,7 @@ async function getGroups(daoSlug: string) {
                   .selectFrom('vote')
                   .select('createdAt')
                   .where('proposalId', 'in', proposalIds)
+                  .where('votingPower', '>=', 5000000)
                   .orderBy('createdAt', 'desc')
                   .limit(1)
                   .executeTakeFirst()

@@ -22,7 +22,7 @@ export default async function ListPage({
   after(async () => {
     await Promise.all(
       groups.map((group) => {
-        getGroup_cached(daoSlug, group.id);
+        return getGroup_cached(daoSlug, group.id);
       })
     );
   });
