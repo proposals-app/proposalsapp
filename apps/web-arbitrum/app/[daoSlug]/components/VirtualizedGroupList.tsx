@@ -36,7 +36,7 @@ export function VirtualizedGroupList({ groups }: VirtualizedGroupListProps) {
   );
 
   return (
-    <WindowScroller serverHeight={800} serverWidth={1200}>
+    <WindowScroller serverHeight={2400} serverWidth={1200}>
       {({ height, isScrolling, onChildScroll, scrollTop, registerChild }) => (
         <AutoSizer disableHeight>
           {({ width }) => (
@@ -49,7 +49,7 @@ export function VirtualizedGroupList({ groups }: VirtualizedGroupListProps) {
                 onScroll={onChildScroll}
                 scrollTop={scrollTop}
                 rowCount={groups.length}
-                rowHeight={100}
+                rowHeight={96 + 8}
                 rowRenderer={rowRenderer}
                 overscanRowCount={5}
               />

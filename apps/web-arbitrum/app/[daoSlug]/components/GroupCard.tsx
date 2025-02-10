@@ -28,7 +28,7 @@ export function GroupCard({ group }: GroupCardProps) {
   return (
     <GroupLink groupId={group.id}>
       <div
-        className='border-neutral-350 dark:border-neutral-650 relative mb-4 rounded-xs border
+        className='border-neutral-350 dark:border-neutral-650 relative mb-4 h-24 rounded-xs border
           bg-white p-2 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-200'
       >
         <div className='flex h-full flex-col'>
