@@ -4,6 +4,35 @@ import { parseAsStringEnum, useQueryState } from 'nuqs';
 import { BodyViewBar } from './BodyViewBar';
 import { CommentsViewBar } from './CommentsViewBar';
 import { FullViewBar } from './FullViewBar';
+import * as Select from '@radix-ui/react-select';
+import CheckSvg from '@/public/assets/web/check.svg';
+import React from 'react';
+
+export const SharedSelectItem = React.forwardRef<
+  HTMLDivElement,
+  { children: React.ReactNode; value: string }
+>(({ children, value, ...props }, forwardedRef) => {
+  return (
+    <Select.Item
+      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm
+        text-neutral-800 transition-colors outline-none hover:bg-neutral-100
+        dark:text-neutral-200 dark:hover:bg-neutral-800'
+      {...props}
+      ref={forwardedRef}
+      value={value}
+    >
+      <Select.ItemText>{children}</Select.ItemText>
+      <Select.ItemIndicator className='absolute right-2'>
+        <CheckSvg
+          className='fill-neutral-800 dark:fill-neutral-200'
+          width={24}
+          height={24}
+        />
+      </Select.ItemIndicator>
+    </Select.Item>
+  );
+});
+SharedSelectItem.displayName = 'SharedSelectItem';
 
 export const voteFilters = [
   {

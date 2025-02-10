@@ -3,35 +3,12 @@
 import { ViewEnum, VotesFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useEffect, useRef } from 'react';
-import { voteFilters } from './MenuBar';
+import { SharedSelectItem, voteFilters } from './MenuBar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
-import CheckSvg from '@/public/assets/web/check.svg';
 import * as Select from '@radix-ui/react-select';
-import React from 'react';
-
-const SelectItem = React.forwardRef<
-  HTMLDivElement,
-  { children: React.ReactNode; value: string }
->(({ children, value, ...props }, forwardedRef) => {
-  return (
-    <Select.Item
-      className='relative flex h-[35px] cursor-pointer items-center px-2 text-sm
-        transition-colors outline-none hover:bg-neutral-100 dark:hover:bg-neutral-800'
-      {...props}
-      ref={forwardedRef}
-      value={value}
-    >
-      <Select.ItemText>{children}</Select.ItemText>
-      <Select.ItemIndicator className='absolute right-2'>
-        <CheckSvg width={24} height={24} />
-      </Select.ItemIndicator>
-    </Select.Item>
-  );
-});
-SelectItem.displayName = 'SelectItem';
 
 const useIntersectionObserver = (
   callback: (entry: IntersectionObserverEntry) => void,
@@ -207,9 +184,9 @@ export const FullViewBar = () => {
               >
                 <Select.Viewport>
                   {voteFilters.map((filter) => (
-                    <SelectItem key={filter.value} value={filter.value}>
+                    <SharedSelectItem key={filter.value} value={filter.value}>
                       {filter.label}
-                    </SelectItem>
+                    </SharedSelectItem>
                   ))}
                 </Select.Viewport>
               </Select.Content>

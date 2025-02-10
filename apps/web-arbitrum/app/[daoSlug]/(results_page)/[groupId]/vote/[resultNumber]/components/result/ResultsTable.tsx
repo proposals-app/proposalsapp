@@ -27,7 +27,8 @@ const SelectItem = React.forwardRef<
   return (
     <Select.Item
       className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm
-        transition-colors outline-none hover:bg-neutral-100'
+        text-neutral-800 transition-colors outline-none hover:bg-neutral-100
+        dark:text-neutral-200 dark:hover:bg-neutral-700'
       {...props}
       ref={forwardedRef}
       value={value}
@@ -241,25 +242,33 @@ export function ResultsTable({
       </div>
       <div className='col-span-3'>
         <Select.Root value={selectedChoice} onValueChange={setSelectedChoice}>
-          <Select.Trigger className='flex h-8 w-full cursor-pointer items-center justify-between text-sm outline-none'>
+          <Select.Trigger
+            className='flex h-8 w-full cursor-pointer items-center justify-between rounded-sm text-sm
+              text-neutral-800 transition-colors outline-none dark:text-neutral-200'
+          >
             <Select.Value
               placeholder='Filter by choice'
               className='flex w-full items-center justify-between'
             >
-              <div className='flex items-center'>
+              <div className='flex items-center gap-1'>
                 {selectedChoice === 'all' ? 'All Choices' : selectedChoice}
-                <ChevronDownSvg width={24} height={24} />
+                <ChevronDownSvg
+                  width={24}
+                  height={24}
+                  className='text-neutral-800 dark:text-neutral-200'
+                />
               </div>
             </Select.Value>
           </Select.Trigger>
 
           <Select.Portal>
             <Select.Content
-              className='w-full border border-neutral-800 bg-white p-1 shadow-lg'
+              className='w-full rounded-sm border border-neutral-200 bg-white p-1 shadow-lg
+                dark:border-neutral-700 dark:bg-neutral-800'
               position='popper'
               sideOffset={5}
             >
-              <Select.Viewport>
+              <Select.Viewport className=''>
                 <SelectItem value='all'>All Choices</SelectItem>
                 {results.choices.map((choice, index) => (
                   <SelectItem key={index} value={choice}>
