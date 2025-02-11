@@ -1,9 +1,61 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { otel } from '@/lib/otel';
 import { AsyncReturnType, superjson_cache } from '@/lib/utils';
 import { db } from '@proposalsapp/db';
 import { unstable_cache } from 'next/cache';
+
+const COOKIE_PREFIX = 'group_last_seen_';
+const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
+
+export async function getGroupLastSeenTimestamp(
+  groupId: string
+): Promise<number> {
+  const cookieStore = await cookies();
+  const timestamp = cookieStore.get(`${COOKIE_PREFIX}${groupId}`)?.value;
+  return timestamp ? parseInt(timestamp, 10) : 0;
+}
+
+export async function initializeGroupCookie(
+  groupId: string,
+  timestamp: number
+) {
+  'use server';
+  const cookieStore = await cookies();
+  const existingTimestamp = cookieStore.get(`${COOKIE_PREFIX}${groupId}`);
+  if (!existingTimestamp) {
+    cookieStore.set(`${COOKIE_PREFIX}${groupId}`, timestamp.toString(), {
+      maxAge: COOKIE_MAX_AGE,
+      path: '/',
+    });
+  }
+  return getGroupLastSeenTimestamp(groupId);
+}
+
+export async function setGroupLastSeenTimestamp(
+  groupId: string,
+  timestamp: number
+) {
+  const cookieStore = await cookies();
+  cookieStore.set(`${COOKIE_PREFIX}${groupId}`, timestamp.toString(), {
+    maxAge: COOKIE_MAX_AGE,
+    path: '/',
+  });
+}
+
+export async function updateLastSeenTimestampAction(
+  groupId: string,
+  timestamp: number
+) {
+  'use server';
+  const cookieStore = await cookies();
+  cookieStore.set(`${COOKIE_PREFIX}${groupId}`, timestamp.toString(), {
+    maxAge: COOKIE_MAX_AGE,
+    path: '/',
+  });
+  return timestamp;
+}
 
 async function getGroups(daoSlug: string) {
   return otel('get-groups', async () => {

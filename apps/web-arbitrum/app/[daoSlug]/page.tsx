@@ -9,8 +9,6 @@ export default async function ListPage({
   params: Promise<{ daoSlug: string }>;
 }) {
   const { daoSlug } = await params;
-
-  // Load all groups at once
   const result = await getGroups_cached(daoSlug);
 
   if (!result) {

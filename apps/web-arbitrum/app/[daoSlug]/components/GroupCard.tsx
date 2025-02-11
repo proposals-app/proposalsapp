@@ -1,5 +1,9 @@
+'use client';
+
 import { formatDistanceToNowStrict } from 'date-fns';
+import { useState } from 'react';
 import { GroupLink } from './GroupLink';
+import { GroupCookieInitializer } from './GroupCookieInitializer';
 
 interface GroupCardProps {
   group: {
@@ -12,6 +16,10 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group }: GroupCardProps) {
+  const [lastSeenTimestamp, setLastSeenTimestamp] = useState<number | null>(
+    null
+  );
+
   const formatTimestamp = (timestamp: number) => {
     if (!timestamp) return 'No activity yet';
     return formatDistanceToNowStrict(timestamp, { addSuffix: true });
@@ -24,53 +32,49 @@ export function GroupCard({ group }: GroupCardProps) {
   );
 
   const hasActivity = latestActivityTimestamp > 0;
+  const hasNewActivity =
+    lastSeenTimestamp !== null && latestActivityTimestamp > lastSeenTimestamp;
 
   return (
-    <GroupLink groupId={group.id}>
-      <div
-        className='border-neutral-350 dark:border-neutral-650 relative mb-4 h-24 rounded-xs border
-          bg-white p-2 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-200'
-      >
-        <div className='flex h-full flex-col'>
-          {/* Top section with title */}
-          <div className='mb-4'>
-            <h2 className='text-xl font-semibold'>{group.name}</h2>
-          </div>
-
-          {/* Middle section with details */}
-          {/* <div className='mb-4 space-y-1 text-sm text-neutral-500 dark:text-neutral-400'>
-            <p>
-              <span className='font-medium'>Latest created item:</span>{' '}
-              {formatTimestamp(group.newestItemTimestamp)}
-            </p>
-            <p>
-              <span className='font-medium'>Latest post:</span>{' '}
-              {formatTimestamp(group.newestPostTimestamp)}
-            </p>
-            <p>
-              <span className='font-medium'>Latest vote:</span>{' '}
-              {formatTimestamp(group.newestVoteTimestamp)}
-            </p>
-          </div> */}
-
-          {/* Bottom section with activity status */}
-          <div className='mt-auto flex justify-end'>
-            <div
-              className={`rounded-xs px-3 py-1 text-sm ${
-                hasActivity
-                  ? 'bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-200'
-                  : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-200'
-                }`}
-            >
-              {hasActivity ? (
-                <>Last activity: {formatTimestamp(latestActivityTimestamp)}</>
-              ) : (
-                'No activity yet'
+    <>
+      <GroupCookieInitializer
+        group={group}
+        onSetLastSeenTimestampAction={setLastSeenTimestamp}
+      />
+      <GroupLink groupId={group.id} timestamp={latestActivityTimestamp}>
+        <div
+          data-group-id={group.id}
+          className='border-neutral-350 dark:border-neutral-650 relative mb-4 h-24 rounded-xs border
+            bg-white p-2 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-200'
+        >
+          <div className='flex h-full flex-col'>
+            <div className='mb-4 flex items-center justify-between'>
+              <h2 className='text-xl font-semibold'>{group.name}</h2>
+              {hasNewActivity && (
+                <div className='bg-brand-accent rounded-full px-2 py-1 text-xs text-white'>
+                  New Activity
+                </div>
               )}
+            </div>
+
+            <div className='mt-auto flex justify-end'>
+              <div
+                className={`rounded-xs px-3 py-1 text-sm ${
+                  hasActivity
+                    ? 'bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-200'
+                    : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-200'
+                  }`}
+              >
+                {hasActivity ? (
+                  <>Last activity: {formatTimestamp(latestActivityTimestamp)}</>
+                ) : (
+                  'No activity yet'
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </GroupLink>
+      </GroupLink>
+    </>
   );
 }
