@@ -151,11 +151,34 @@ const PostContent = ({
   item: PostFeedItem;
   votingPower?: number;
 }) => {
-  const CONTENT_THRESHOLD = 500;
+  const CONTENT_THRESHOLD = 600;
+
+  // Helper function to find the next paragraph break
+  const findNextParagraphBreak = (
+    content: string,
+    minLength: number
+  ): number => {
+    if (content.length <= minLength) return content.length;
+
+    // Look for the next paragraph break after the threshold
+    // Common paragraph breaks in HTML: </p>, <br>, \n\n
+    const breakPatterns = ['</p>', '<br>', '\n\n'];
+    let nextBreak = content.length;
+
+    for (const pattern of breakPatterns) {
+      const index = content.indexOf(pattern, minLength);
+      if (index !== -1 && index < nextBreak) {
+        nextBreak = index + pattern.length;
+      }
+    }
+
+    return nextBreak;
+  };
+
   const shouldCollapse = processedContent.length > CONTENT_THRESHOLD;
-  const previewContent = shouldCollapse
-    ? processedContent.slice(0, CONTENT_THRESHOLD) + '...'
-    : processedContent;
+  const slicePoint = shouldCollapse
+    ? findNextParagraphBreak(processedContent, CONTENT_THRESHOLD)
+    : processedContent.length;
 
   return (
     <>
@@ -223,28 +246,30 @@ const PostContent = ({
       </div>
 
       {shouldCollapse ? (
-        <details className='group'>
+        <details className='group mt-4'>
           <summary className='cursor-pointer list-none [&::-webkit-details-marker]:hidden'>
-            <div
-              dangerouslySetInnerHTML={{ __html: previewContent }}
-              className='prose prose-lg mt-4 max-w-none'
-            />
-            <div className='relative my-4 flex items-center justify-center group-open:hidden'>
-              <div className='absolute w-full border-t border-neutral-300 dark:border-neutral-700' />
-              <span
-                className='relative bg-neutral-50 px-4 text-sm text-neutral-500 hover:text-neutral-800
-                  dark:bg-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
-              >
-                Read More
-              </span>
+            <div className='prose prose-lg max-w-none'>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: processedContent.slice(0, slicePoint),
+                }}
+                className='group-open:hidden'
+              />
+              <div className='relative my-4 flex items-center justify-center group-open:hidden'>
+                <div className='absolute w-full border-t border-neutral-300 dark:border-neutral-700' />
+                <span
+                  className='relative bg-neutral-50 px-4 text-sm text-neutral-500 hover:text-neutral-800
+                    dark:bg-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
+                >
+                  Read More
+                </span>
+              </div>
             </div>
           </summary>
-          <div>
-            <div
-              dangerouslySetInnerHTML={{ __html: processedContent }}
-              className='prose prose-lg mt-4 max-w-none'
-            />
-          </div>
+          <div
+            dangerouslySetInnerHTML={{ __html: processedContent }}
+            className='prose prose-lg max-w-none'
+          />
         </details>
       ) : (
         <div
