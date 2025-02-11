@@ -150,77 +150,111 @@ const PostContent = ({
   processedContent: string;
   item: PostFeedItem;
   votingPower?: number;
-}) => (
-  <>
-    <div className='flex cursor-default flex-row justify-between select-none'>
-      {author && (
-        <Suspense>
-          <div className='flex flex-row items-center gap-2'>
-            <div
-              className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
-                border-neutral-700 dark:border-neutral-300'
-            >
-              <Image
-                src={author.avatarTemplate}
-                className='rounded-full'
-                fetchPriority='high'
-                alt={author.username}
-                width={40}
-                height={40}
-              />
-            </div>
-            <div className='flex flex-col'>
-              <div className='font-bold text-neutral-800 dark:text-neutral-200'>
-                {author.name && author.name.length
-                  ? author.name
-                  : author.username}
-              </div>
-              {votingPower && <VotingPowerTag vp={votingPower} />}
-            </div>
-          </div>
-        </Suspense>
-      )}
-      <div
-        className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm
-          text-neutral-600 select-none'
-      >
-        <div className='flex flex-col items-end'>
-          <div>
-            posted <span className='font-bold'>{relativeCreateTime}</span>
-          </div>
-        </div>
-        {item.createdAt.getTime() != updatedAt.getTime() && (
-          <div>
-            <span>edited {relativeUpdateTime}</span>
-          </div>
-        )}
+}) => {
+  const CONTENT_THRESHOLD = 500;
+  const shouldCollapse = processedContent.length > CONTENT_THRESHOLD;
+  const previewContent = shouldCollapse
+    ? processedContent.slice(0, CONTENT_THRESHOLD) + '...'
+    : processedContent;
 
-        <div className='flex flex-row items-center gap-4'>
-          <div className='flex items-center gap-1 text-sm'>
-            <CheckCheck className='h-4 w-4' />
-            <span>{item.reads}</span>
-          </div>
-          {likesCount > 0 ? (
-            <div className='flex items-center gap-1 text-sm'>
-              <HeartIcon className='h-4 w-4' />
-              <span>{likesCount}</span>
+  return (
+    <>
+      <div className='flex cursor-default flex-row justify-between select-none'>
+        {author && (
+          <Suspense>
+            <div className='flex flex-row items-center gap-2'>
+              <div
+                className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
+                  border-neutral-700 dark:border-neutral-300'
+              >
+                <Image
+                  src={author.avatarTemplate}
+                  className='rounded-full'
+                  fetchPriority='high'
+                  alt={author.username}
+                  width={40}
+                  height={40}
+                />
+              </div>
+              <div className='flex flex-col'>
+                <div className='font-bold text-neutral-800 dark:text-neutral-200'>
+                  {author.name && author.name.length
+                    ? author.name
+                    : author.username}
+                </div>
+                {votingPower && <VotingPowerTag vp={votingPower} />}
+              </div>
             </div>
-          ) : (
-            <div className='flex items-center gap-1 text-sm'>
-              <HeartIcon className='h-4 w-4' />
-              <span>{likesCount}</span>
+          </Suspense>
+        )}
+        <div
+          className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm
+            text-neutral-600 select-none'
+        >
+          <div className='flex flex-col items-end'>
+            <div>
+              posted <span className='font-bold'>{relativeCreateTime}</span>
+            </div>
+          </div>
+          {item.createdAt.getTime() != updatedAt.getTime() && (
+            <div>
+              <span>edited {relativeUpdateTime}</span>
             </div>
           )}
+
+          <div className='flex flex-row items-center gap-4'>
+            <div className='flex items-center gap-1 text-sm'>
+              <CheckCheck className='h-4 w-4' />
+              <span>{item.reads}</span>
+            </div>
+            {likesCount > 0 ? (
+              <div className='flex items-center gap-1 text-sm'>
+                <HeartIcon className='h-4 w-4' />
+                <span>{likesCount}</span>
+              </div>
+            ) : (
+              <div className='flex items-center gap-1 text-sm'>
+                <HeartIcon className='h-4 w-4' />
+                <span>{likesCount}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
 
-    <div
-      dangerouslySetInnerHTML={{ __html: processedContent }}
-      className='prose prose-lg mt-4 max-w-none'
-    />
-  </>
-);
+      {shouldCollapse ? (
+        <details className='group'>
+          <summary className='cursor-pointer list-none [&::-webkit-details-marker]:hidden'>
+            <div
+              dangerouslySetInnerHTML={{ __html: previewContent }}
+              className='prose prose-lg mt-4 max-w-none'
+            />
+            <div className='relative my-4 flex items-center justify-center group-open:hidden'>
+              <div className='absolute w-full border-t border-neutral-300 dark:border-neutral-700' />
+              <span
+                className='relative bg-neutral-50 px-4 text-sm text-neutral-500 hover:text-neutral-800
+                  dark:bg-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
+              >
+                Read More
+              </span>
+            </div>
+          </summary>
+          <div>
+            <div
+              dangerouslySetInnerHTML={{ __html: processedContent }}
+              className='prose prose-lg mt-4 max-w-none'
+            />
+          </div>
+        </details>
+      ) : (
+        <div
+          dangerouslySetInnerHTML={{ __html: processedContent }}
+          className='prose prose-lg mt-4 max-w-none'
+        />
+      )}
+    </>
+  );
+};
 
 type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
 

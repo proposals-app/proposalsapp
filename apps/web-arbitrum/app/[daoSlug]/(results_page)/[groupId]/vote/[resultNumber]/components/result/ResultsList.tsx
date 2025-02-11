@@ -126,9 +126,9 @@ function ChoiceBar({ choice, votingPower, color, percentage }: ChoiceBarProps) {
         <span className='max-w-[50%] truncate text-sm font-bold'>{choice}</span>
 
         {/* Right side - Percentage and voting power */}
-        <span className='text-xs font-light'>
+        <span className='flex gap-2 font-mono text-xs font-light'>
           {percentage === null ? '???%' : `${percentage.toFixed(1)}%`}{' '}
-          <span className='font-bold'>
+          <span className='flex min-w-10 justify-end font-bold'>
             {formatNumberWithSuffix(votingPower)}
           </span>
         </span>
