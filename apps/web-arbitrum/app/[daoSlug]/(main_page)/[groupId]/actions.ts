@@ -95,19 +95,21 @@ async function getGroup(daoSlug: string, groupId: string) {
   });
 }
 
-export type Body = {
+export type BodyType = {
   title: string;
   content: string;
   author_name: string;
   author_picture: string;
   createdAt: Date;
-  type: 'proposal' | 'topic';
+  type: VersionType;
 };
+
+export type VersionType = 'topic' | 'onchain' | 'offchain';
 
 async function getBodies(groupID: string) {
   'use server';
   return otel('get-bodies-', async () => {
-    const bodies: Body[] = [];
+    const bodies: BodyType[] = [];
 
     const group = await db
       .selectFrom('proposalGroup')
@@ -152,7 +154,7 @@ async function getBodies(groupID: string) {
         author_name: proposal.author ?? 'Unknown',
         author_picture: `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author}`,
         createdAt: proposal.createdAt,
-        type: 'proposal',
+        type: proposal.blockCreated ? 'onchain' : 'offchain',
       })
     );
 

@@ -7,6 +7,7 @@ import { FullViewBar } from './FullViewBar';
 import * as Select from '@radix-ui/react-select';
 import CheckSvg from '@/public/assets/web/check.svg';
 import React from 'react';
+import { VersionType } from '../../actions';
 
 export const SharedSelectItem = React.forwardRef<
   HTMLDivElement,
@@ -53,7 +54,17 @@ export const voteFilters = [
   },
 ];
 
-export const MenuBar = ({ totalVersions }: { totalVersions: number }) => {
+interface MenuBarProps {
+  totalVersions: number;
+  versionTypes: VersionType[];
+  currentVersion: number;
+}
+
+export const MenuBar = ({
+  totalVersions,
+  versionTypes,
+  currentVersion,
+}: MenuBarProps) => {
   const [view] = useQueryState(
     'view',
     parseAsStringEnum<ViewEnum>(Object.values(ViewEnum)).withDefault(
@@ -64,7 +75,13 @@ export const MenuBar = ({ totalVersions }: { totalVersions: number }) => {
   return (
     <div className='font-condensed flex w-full justify-center'>
       <FullViewBar />
-      {view == ViewEnum.BODY && <BodyViewBar totalVersions={totalVersions} />}
+      {view == ViewEnum.BODY && (
+        <BodyViewBar
+          totalVersions={totalVersions}
+          versionTypes={versionTypes}
+          currentVersion={currentVersion}
+        />
+      )}
       {view == ViewEnum.COMMENTS && <CommentsViewBar />}
     </div>
   );

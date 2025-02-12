@@ -9,7 +9,7 @@ import { JSDOM } from 'jsdom';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toHast } from 'mdast-util-to-hast';
 import { notFound } from 'next/navigation';
-import { getBodies_cached, GroupReturnType } from '../../actions';
+import { BodyType, GroupReturnType } from '../../actions';
 import { BodyContent } from './BodyContent';
 import { PostedTime } from './PostedTime';
 import {
@@ -24,21 +24,22 @@ export default async function Body({
   group,
   version,
   diff,
+  bodies,
 }: {
   group: GroupReturnType;
   version: number;
   diff: boolean;
+  bodies: BodyType[];
 }) {
   if (!group) {
     notFound();
   }
-  const bodies = await getBodies_cached(group.group.id);
 
   if (!bodies || bodies.length === 0) {
     return <div className='w-full p-4'>No bodies found.</div>;
   }
 
-  // Find the initial and latest bodies based on createdAt
+  // Replace the getBodies_cached call with the passed bodies
   const initialBody = bodies[0];
   const latestBody = bodies[bodies.length - 1];
 
@@ -50,10 +51,7 @@ export default async function Body({
 
   const processedContent =
     diff && currentVersion > 0
-      ? processDiff(
-          visibleBody.content,
-          bodies.map((b) => b.content)[currentVersion - 1]
-        )
+      ? processDiff(visibleBody.content, bodies[currentVersion - 1].content)
       : markdownToHtml(visibleBody.content);
 
   return (

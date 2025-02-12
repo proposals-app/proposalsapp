@@ -12,8 +12,19 @@ import FirstSvg from '@/public/assets/web/first.svg';
 import LastSvg from '@/public/assets/web/last.svg';
 import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
+import { VersionType } from '../../actions';
 
-export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
+interface BodyViewBarProps {
+  totalVersions: number;
+  versionTypes: VersionType[];
+  currentVersion: number;
+}
+
+export const BodyViewBar = ({
+  totalVersions,
+  versionTypes,
+  currentVersion,
+}: BodyViewBarProps) => {
   const [view, setView] = useQueryState(
     'view',
     parseAsStringEnum<ViewEnum>(Object.values(ViewEnum))
@@ -31,14 +42,20 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
     parseAsBoolean.withDefault(false).withOptions({ shallow: false })
   );
 
-  const [version, setVersion] = useQueryState(
+  const [, setVersion] = useQueryState(
     'version',
     parseAsInteger
       .withDefault(totalVersions - 1)
       .withOptions({ shallow: false })
   );
 
-  const currentVersion = version ?? 0;
+  const currentType = versionTypes[currentVersion];
+  const versionTypeText =
+    currentType === 'topic'
+      ? 'Discourse Topic Version'
+      : currentType === 'onchain'
+        ? 'Onchain Proposal Version'
+        : 'Offchain Proposal Version';
 
   return (
     <div
@@ -111,8 +128,8 @@ export const BodyViewBar = ({ totalVersions }: { totalVersions: number }) => {
                 height={24}
               />
             </button>
-            <div className='flex h-8 w-32 items-center justify-center gap-2 text-sm'>
-              Version {currentVersion + 1} of {totalVersions}
+            <div className='flex h-8 w-full items-center justify-center gap-2 text-sm'>
+              {versionTypeText} {currentVersion + 1} of {totalVersions}
             </div>
 
             <button

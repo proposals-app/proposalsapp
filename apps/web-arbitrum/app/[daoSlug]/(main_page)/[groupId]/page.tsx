@@ -1,7 +1,12 @@
 import { searchParamsCache } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { getGroup_cached, getTotalVersions_cached } from './actions';
+import {
+  getGroup_cached,
+  getTotalVersions_cached,
+  getBodies_cached,
+  VersionType,
+} from './actions';
 import Body, { BodyLoading } from './components/body/Body';
 import Feed, { FeedLoading } from './components/feed/Feed';
 import { MenuBar } from './components/menubar/MenuBar';
@@ -16,12 +21,13 @@ export default async function GroupPage({
 }) {
   const { daoSlug, groupId } = await params;
 
-  const [group, totalVersions] = await Promise.all([
+  const [group, totalVersions, bodies] = await Promise.all([
     getGroup_cached(daoSlug, groupId),
     getTotalVersions_cached(groupId),
+    getBodies_cached(groupId),
   ]);
 
-  if (!group || !totalVersions) {
+  if (!group || !totalVersions || !bodies) {
     notFound();
   }
 
@@ -31,14 +37,26 @@ export default async function GroupPage({
   // Always use the latest version if no version is specified
   const currentVersion = version ?? totalVersions - 1;
 
+  // Extract just the version types
+  const versionTypes: VersionType[] = bodies.map((body) => body.type);
+
   return (
     <div className='flex w-full flex-col items-center pt-10'>
       <div className='flex max-w-3xl flex-col overflow-visible'>
         <Suspense fallback={<BodyLoading />}>
-          <Body group={group} version={currentVersion} diff={diff} />
+          <Body
+            group={group}
+            version={currentVersion}
+            diff={diff}
+            bodies={bodies}
+          />
         </Suspense>
 
-        <MenuBar totalVersions={totalVersions} />
+        <MenuBar
+          totalVersions={totalVersions}
+          versionTypes={versionTypes}
+          currentVersion={currentVersion}
+        />
 
         <Suspense fallback={<FeedLoading />}>
           <Feed
