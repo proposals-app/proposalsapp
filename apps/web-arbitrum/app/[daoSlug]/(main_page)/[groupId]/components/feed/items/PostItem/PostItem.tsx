@@ -84,22 +84,32 @@ export async function PostItem({
       {item.id.includes('placeholder') ? (
         // Show just the "deleted post" summary
         <div className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500'>
-          <div className='grow border-t border-neutral-400'></div>
-          <span className='mx-4'>deleted post</span>
-          <div className='grow border-t border-neutral-400'></div>
+          <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
+          <span
+            className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
+              dark:text-neutral-400'
+          >
+            Deleted Post
+          </span>
+          <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
         </div>
       ) : isPostDeleted ? (
         // Show the full details/summary UI for deleted posts
         <details className='w-full'>
           <summary
-            className='flex h-12 cursor-pointer list-none items-center justify-center
+            className='flex h-12 cursor-default list-none items-center justify-center
               border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'
           >
-            <div className='grow border-t border-neutral-400'></div>
-            <span className='mx-4'>deleted post</span>
-            <div className='grow border-t border-neutral-400'></div>
+            <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
+            <span
+              className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
+                dark:text-neutral-400'
+            >
+              Deleted Post
+            </span>
+            <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
           </summary>
-          <div className='p-4'>
+          {/* <div className='p-4'>
             {item.id != 'placeholder' && (
               <PostContent
                 author={author}
@@ -112,7 +122,7 @@ export async function PostItem({
                 item={item}
               />
             )}
-          </div>
+          </div> */}
         </details>
       ) : (
         <div className='p-4'>
