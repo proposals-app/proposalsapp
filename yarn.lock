@@ -3425,7 +3425,7 @@ __metadata:
     kysely: "npm:0.27.5"
     kysely-codegen: "npm:0.17.0"
     kysely-ctl: "npm:0.11.0"
-    pg: "npm:8.13.1"
+    pg: "npm:8.13.2"
     typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
@@ -3564,7 +3564,7 @@ __metadata:
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
     echarts: "npm:^5.6.0"
-    eslint: "npm:^9.20.0"
+    eslint: "npm:^9.20.1"
     eslint-config-next: "npm:^15.1.7"
     eslint-config-prettier: "npm:^10.0.1"
     eslint-plugin-prettier: "npm:^5.2.3"
@@ -3579,7 +3579,7 @@ __metadata:
     next-themes: "npm:^0.4.4"
     nuqs: "npm:^2.3.2"
     postcss: "npm:^8.5.2"
-    posthog-js: "npm:^1.216.1"
+    posthog-js: "npm:^1.217.2"
     prettier: "npm:^3.5.0"
     prettier-plugin-classnames: "npm:^0.7.6"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -3667,10 +3667,10 @@ __metadata:
     next: "npm:^15.1.7"
     next-themes: "npm:^0.4.4"
     oslo: "npm:1.2.1"
-    pg: "npm:8.13.1"
+    pg: "npm:8.13.2"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:^8.5.2"
-    posthog-js: "npm:1.216.1"
+    posthog-js: "npm:1.217.2"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.5.0"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
@@ -3690,9 +3690,9 @@ __metadata:
     typescript: "npm:^5.7.3"
     uuid: "npm:^11.0.5"
     vaul: "npm:^1.1.2"
-    viem: "npm:2.23.1"
+    viem: "npm:2.23.2"
     web-push: "npm:^3.6.7"
-    zod: "npm:^3.24.1"
+    zod: "npm:^3.24.2"
   languageName: unknown
   linkType: soft
 
@@ -9922,9 +9922,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.20.0":
-  version: 9.20.0
-  resolution: "eslint@npm:9.20.0"
+"eslint@npm:^9.20.1":
+  version: 9.20.1
+  resolution: "eslint@npm:9.20.1"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.2.0"
     "@eslint-community/regexpp": "npm:^4.12.1"
@@ -9967,7 +9967,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/5eb2d9b5ed85a0b022871d19719417d110afb07a4abfedd856ad03d9a821def5f6bc31d7c407ca27f56e5e66e39375300fd2b877017245eb99c44060d6c983bd
+  checksum: 10c0/056789dd5a00897730376f8c0a191e22840e97b7276916068ec096341cb2ec3a918c8bd474bf94ccd7b457ad9fbc16e5c521a993c7cc6ebcf241933e2fd378b0
   languageName: node
   linkType: hard
 
@@ -14769,10 +14769,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pg-pool@npm:^3.7.1":
+  version: 3.7.1
+  resolution: "pg-pool@npm:3.7.1"
+  peerDependencies:
+    pg: ">=8.0"
+  checksum: 10c0/65bff013102684774f4cfdffbfe0a2b0614252234561d391608f7fd915477e44f5fd0e1968ecc2f42032dcf8bac241d2f724c4f3df90384567d22df37dd3b6ba
+  languageName: node
+  linkType: hard
+
 "pg-protocol@npm:*, pg-protocol@npm:^1.7.0":
   version: 1.7.0
   resolution: "pg-protocol@npm:1.7.0"
   checksum: 10c0/c4af854d9b843c808231c0040fed89f2b9101006157df8da2bb2f62a7dde702de748d852228dc22df41cc7ffddfb526af3bcb34b278b581e9f76a060789186c1
+  languageName: node
+  linkType: hard
+
+"pg-protocol@npm:^1.7.1":
+  version: 1.7.1
+  resolution: "pg-protocol@npm:1.7.1"
+  checksum: 10c0/3168d407ddc4c0fa2403eb9b49205399d4bc53dadbafdfcc5d25fa61b860a31c25df25704cf14c8140c80f0a41061d586e5fd5ce9bf800dfb91e9ce810bc2c37
   languageName: node
   linkType: hard
 
@@ -14804,7 +14820,29 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg@npm:8.13.1, pg@npm:^8.8.0":
+"pg@npm:8.13.2":
+  version: 8.13.2
+  resolution: "pg@npm:8.13.2"
+  dependencies:
+    pg-cloudflare: "npm:^1.1.1"
+    pg-connection-string: "npm:^2.7.0"
+    pg-pool: "npm:^3.7.1"
+    pg-protocol: "npm:^1.7.1"
+    pg-types: "npm:^2.1.0"
+    pgpass: "npm:1.x"
+  peerDependencies:
+    pg-native: ">=3.0.1"
+  dependenciesMeta:
+    pg-cloudflare:
+      optional: true
+  peerDependenciesMeta:
+    pg-native:
+      optional: true
+  checksum: 10c0/955615fc6db2849e047472b3a314ce6b70ecdef2de1ecdbb663ac2cd39f6e9ae25da5de4727baceb0b6e439075e6ad0ac8548fd150e38d9cda6514c43c840a31
+  languageName: node
+  linkType: hard
+
+"pg@npm:^8.8.0":
   version: 8.13.1
   resolution: "pg@npm:8.13.1"
   dependencies:
@@ -15198,15 +15236,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.216.1, posthog-js@npm:^1.216.1":
-  version: 1.216.1
-  resolution: "posthog-js@npm:1.216.1"
+"posthog-js@npm:1.217.2, posthog-js@npm:^1.217.2":
+  version: 1.217.2
+  resolution: "posthog-js@npm:1.217.2"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.2.0"
-  checksum: 10c0/de03bcd4ecb88bd79e6ab32378583668835151f8ccf5ff80ecfe47a87b49ff677bf5228dec95d0de806351928a078e0a6fe0e7770c62953b43015df4d6c2e771
+  checksum: 10c0/9ca512d250bd22ceaadac198b82e5b82007bb925b255feef5b3a06e83ade700798af63f2b12a7f4070f4206bd1c25786160aaae19c7cbc16fdd027d31fe2990a
   languageName: node
   linkType: hard
 
@@ -18188,9 +18226,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.23.1":
-  version: 2.23.1
-  resolution: "viem@npm:2.23.1"
+"viem@npm:2.23.2":
+  version: 2.23.2
+  resolution: "viem@npm:2.23.2"
   dependencies:
     "@noble/curves": "npm:1.8.1"
     "@noble/hashes": "npm:1.7.1"
@@ -18205,7 +18243,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/549a5e071c346f9b7ae5d0251c8a3ec05b34c6930976eedce927a69b71a96394a8d8dfa32436f99f725340eb25173ceeadb317baeea59047f98616f7db4c6207
+  checksum: 10c0/39332d008d2ab0700aa57f541bb199350daecdfb722ae1b262404b02944e11205368fcc696cc0ab8327b9f90bf7172014687ae3e5d9091978e9d174885ccff2d
   languageName: node
   linkType: hard
 
@@ -18761,10 +18799,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.24.1":
-  version: 3.24.1
-  resolution: "zod@npm:3.24.1"
-  checksum: 10c0/0223d21dbaa15d8928fe0da3b54696391d8e3e1e2d0283a1a070b5980a1dbba945ce631c2d1eccc088fdbad0f2dfa40155590bf83732d3ac4fcca2cc9237591b
+"zod@npm:^3.24.2":
+  version: 3.24.2
+  resolution: "zod@npm:3.24.2"
+  checksum: 10c0/c638c7220150847f13ad90635b3e7d0321b36cce36f3fc6050ed960689594c949c326dfe2c6fa87c14b126ee5d370ccdebd6efb304f41ef5557a4aaca2824565
   languageName: node
   linkType: hard
 

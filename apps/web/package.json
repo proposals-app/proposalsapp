@@ -56,8 +56,8 @@
     "next": "^15.1.7",
     "next-themes": "^0.4.4",
     "oslo": "1.2.1",
-    "pg": "8.13.1",
-    "posthog-js": "1.216.1",
+    "pg": "8.13.2",
+    "posthog-js": "1.217.2",
     "postmark": "^4.0.5",
     "react": "19.0.0",
     "react-day-picker": "9.5.1",
@@ -72,9 +72,9 @@
     "tailwindcss-animate": "1.0.7",
     "uuid": "^11.0.5",
     "vaul": "^1.1.2",
-    "viem": "2.23.1",
+    "viem": "2.23.2",
     "web-push": "^3.6.7",
-    "zod": "^3.24.1"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.6",
