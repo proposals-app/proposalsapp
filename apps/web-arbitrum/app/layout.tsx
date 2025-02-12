@@ -4,6 +4,7 @@ import '@/styles/globals.css';
 import Head from 'next/head';
 import { PostHogProvider } from './components/posthog-provider';
 import SuspendedPostHogPageView from './components/PostHogPageView';
+import { WebVitals } from './web-vitals';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -57,6 +58,7 @@ export default async function RootLayout({
       <PostHogProvider>
         <NuqsAdapter>
           <SuspendedPostHogPageView />
+          <WebVitals />
           <Head>
             <link rel='icon' href='/favicon.ico' />
           </Head>
