@@ -60,7 +60,7 @@ export const BodyViewBar = ({
   return (
     <div
       className={`fixed bottom-0 z-50 mt-4 min-w-4xl self-center px-4 pb-4 transition-opacity
-        duration-300 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
+        duration-100 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
         className='dark:border-neutral-450 flex w-full items-center justify-between gap-2

@@ -38,7 +38,7 @@ export const CommentsViewBar = () => {
   return (
     <div
       className={`fixed top-0 z-50 mt-24 min-w-4xl self-center px-4 pb-4 transition-opacity
-        duration-300 ${view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'}`}
+        duration-100 ${view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
         className='dark:border-neutral-450 flex w-full items-center justify-between gap-2

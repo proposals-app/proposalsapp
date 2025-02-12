@@ -171,12 +171,13 @@ const PostContent = ({
 
   // First check if content length exceeds threshold
   const contentLength = processedContent.length;
-  const shouldCollapse = contentLength > CONTENT_THRESHOLD;
 
   // Only find break point if we need to collapse
-  const slicePoint = shouldCollapse
-    ? findNextParagraphBreak(processedContent)
-    : contentLength;
+  const slicePoint = findNextParagraphBreak(processedContent);
+
+  const shouldCollapse =
+    contentLength > CONTENT_THRESHOLD &&
+    processedContent.length > processedContent.slice(0, slicePoint).length;
 
   return (
     <>
