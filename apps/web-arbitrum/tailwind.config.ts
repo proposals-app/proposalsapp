@@ -3,6 +3,10 @@ const config = {
   content: ['./app/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Fira Sans', 'sans-serif'],
+        mono: ['Fira Mono', 'monospace'],
+      },
       colors: {
         for: {
           400: 'var(--for-400)',

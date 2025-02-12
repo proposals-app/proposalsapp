@@ -151,34 +151,32 @@ const PostContent = ({
   item: PostFeedItem;
   votingPower?: number;
 }) => {
-  const CONTENT_THRESHOLD = 600;
+  const CONTENT_THRESHOLD = 400;
 
   // Helper function to find the next paragraph break
-  const findNextParagraphBreak = (
-    content: string,
-    minLength: number
-  ): number => {
-    if (content.length <= minLength) return content.length;
-
-    // Look for the next paragraph break after the threshold
-    // Common paragraph breaks in HTML: </p>, <br>, \n\n
+  const findNextParagraphBreak = (content: string): number => {
     const breakPatterns = ['</p>', '<br>', '\n\n'];
-    let nextBreak = content.length;
 
+    // Find the first break point after the threshold
     for (const pattern of breakPatterns) {
-      const index = content.indexOf(pattern, minLength);
-      if (index !== -1 && index < nextBreak) {
-        nextBreak = index + pattern.length;
+      const index = content.indexOf(pattern, CONTENT_THRESHOLD);
+      if (index !== -1) {
+        return index + pattern.length;
       }
     }
 
-    return nextBreak;
+    // If no break point is found, return the entire content length
+    return content.length;
   };
 
-  const shouldCollapse = processedContent.length > CONTENT_THRESHOLD;
+  // First check if content length exceeds threshold
+  const contentLength = processedContent.length;
+  const shouldCollapse = contentLength > CONTENT_THRESHOLD;
+
+  // Only find break point if we need to collapse
   const slicePoint = shouldCollapse
-    ? findNextParagraphBreak(processedContent, CONTENT_THRESHOLD)
-    : processedContent.length;
+    ? findNextParagraphBreak(processedContent)
+    : contentLength;
 
   return (
     <>
@@ -201,9 +199,9 @@ const PostContent = ({
               </div>
               <div className='flex flex-col'>
                 <div className='font-bold text-neutral-800 dark:text-neutral-200'>
-                  {author.name && author.name.length
-                    ? author.name
-                    : author.username}
+                  {author.username && author.username.length
+                    ? author.username
+                    : author.name}
                 </div>
                 {votingPower && <VotingPowerTag vp={votingPower} />}
               </div>
@@ -246,7 +244,7 @@ const PostContent = ({
       </div>
 
       {shouldCollapse ? (
-        <details className='group mt-4'>
+        <details className='group mt-6'>
           <summary className='cursor-pointer list-none [&::-webkit-details-marker]:hidden'>
             <div className='prose prose-lg max-w-none'>
               <div
