@@ -360,7 +360,8 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       grid: {
         left: '0%',
         right: '0%',
-        bottom: '15%',
+        bottom: '0%',
+        top: 8,
         containLabel: true,
       },
     };

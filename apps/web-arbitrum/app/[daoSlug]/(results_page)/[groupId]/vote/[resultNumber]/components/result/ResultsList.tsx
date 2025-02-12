@@ -54,12 +54,14 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
 
   return (
     <div className='ml-6 flex w-72 flex-col gap-4 text-neutral-700 dark:text-neutral-200'>
-      <StatusMessage
-        endTime={toZonedTime(results.proposal.endAt, 'UTC')}
-        hasQuorum={hasQuorum}
-        isOnchain={onchain}
-        hasMajoritySupport={hasMajoritySupport}
-      />
+      <div className='flex h-28 items-center'>
+        <StatusMessage
+          endTime={toZonedTime(results.proposal.endAt, 'UTC')}
+          hasQuorum={hasQuorum}
+          isOnchain={onchain}
+          hasMajoritySupport={hasMajoritySupport}
+        />
+      </div>
       <ChoiceList choices={sortedChoices} totalVotingPower={totalVotingPower} />
       {results.quorum !== null && totalDelegatedVp && (
         <div className='flex flex-col gap-2'>

@@ -37,7 +37,7 @@ export function ResultsTitle({
   governor,
 }: ResultsTitleProps) {
   return (
-    <div className='flex flex-col gap-2'>
+    <div className='flex h-28 flex-col gap-2'>
       <div className='text-2xl font-bold'>{processedResults.proposal.name}</div>
       <div className='flex items-center gap-2 text-xs'>
         <div>
