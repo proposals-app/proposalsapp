@@ -286,11 +286,17 @@ export function ResultsTable({
       >
         Date
         <span className='transform'>
-          {sortColumn === 'timestamp' && (
+          {sortColumn === 'timestamp' ? (
             <ArrowSvg
               width={24}
               height={24}
               className={`transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
+            />
+          ) : (
+            <ArrowSvg
+              width={24}
+              height={24}
+              className={'rotate-180 fill-neutral-400 transition-transform'}
             />
           )}
         </span>
@@ -301,11 +307,17 @@ export function ResultsTable({
       >
         Voting Power
         <span className='transform'>
-          {sortColumn === 'votingPower' && (
+          {sortColumn === 'votingPower' ? (
             <ArrowSvg
               width={24}
               height={24}
               className={`transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
+            />
+          ) : (
+            <ArrowSvg
+              width={24}
+              height={24}
+              className={'rotate-180 fill-neutral-400 transition-transform'}
             />
           )}
         </span>
