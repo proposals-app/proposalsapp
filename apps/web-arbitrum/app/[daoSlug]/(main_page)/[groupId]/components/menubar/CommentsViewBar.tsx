@@ -48,14 +48,14 @@ export const CommentsViewBar = () => {
       >
         <div className='flex w-full justify-between'>
           <button
-            className='flex cursor-pointer items-center gap-4 hover:underline'
+            className='flex cursor-pointer items-center gap-4'
             onClick={() => {
               setView(ViewEnum.BODY);
               setExpanded(true);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           >
-            <ArrowSvg className='rotate-180' width={24} height={24} />
+            <ArrowSvg width={24} height={24} />
             <div>Read Full Proposal</div>
           </button>
 

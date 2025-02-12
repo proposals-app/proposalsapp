@@ -6,6 +6,7 @@ const config = {
       fontFamily: {
         sans: ['Fira Sans', 'sans-serif'],
         mono: ['Fira Mono', 'monospace'],
+        condensed: ['Fira Sans Condensed', 'sans-serif'],
       },
       colors: {
         for: {

@@ -10,35 +10,25 @@ import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import * as Select from '@radix-ui/react-select';
 
-const useIntersectionObserver = (
-  callback: (entry: IntersectionObserverEntry) => void,
-  options: IntersectionObserverInit = {}
-) => {
-  const targetRef = useRef<HTMLDivElement | null>(null);
+const useDebouncedScroll = (callback: () => void, delay: number) => {
+  const timeoutId = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const target = targetRef.current;
-    if (!target) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(callback);
-      },
-      {
-        threshold: [0, 0.5, 1],
-        rootMargin: '-80px 0px 0px 0px',
-        ...options,
+    const handleScroll = () => {
+      if (timeoutId.current) {
+        clearTimeout(timeoutId.current);
       }
-    );
-
-    observer.observe(target);
-
-    return () => {
-      observer.disconnect();
+      timeoutId.current = setTimeout(callback, delay);
     };
-  }, [callback, options]);
 
-  return targetRef;
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      if (timeoutId.current) {
+        clearTimeout(timeoutId.current);
+      }
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [callback, delay]);
 };
 
 export const FullViewBar = () => {
@@ -66,24 +56,25 @@ export const FullViewBar = () => {
     parseAsBoolean.withDefault(false).withOptions({ shallow: false })
   );
 
-  const handleIntersection = (entry: IntersectionObserverEntry) => {
-    const { intersectionRatio, boundingClientRect } = entry;
+  const fullViewBarRef = useRef<HTMLDivElement | null>(null);
 
-    // Element is mostly visible in the viewport
-    if (intersectionRatio > 0.5) {
-      setView(ViewEnum.FULL);
-    }
-    // Element is above the viewport
-    else if (boundingClientRect.top < 0) {
+  useDebouncedScroll(() => {
+    if (!fullViewBarRef.current) return;
+
+    const rect = fullViewBarRef.current.getBoundingClientRect();
+
+    if (rect.top < 80 && view !== ViewEnum.COMMENTS) {
       setView(ViewEnum.COMMENTS);
-    }
-    // Element is below the viewport
-    else if (boundingClientRect.top > window.innerHeight) {
+    } else if (
+      rect.top >= 80 &&
+      rect.bottom <= window.innerHeight &&
+      view !== ViewEnum.FULL
+    ) {
+      setView(ViewEnum.FULL);
+    } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
       setView(ViewEnum.BODY);
     }
-  };
-
-  const fullViewBarRef = useIntersectionObserver(handleIntersection);
+  }, 10);
 
   return (
     <div

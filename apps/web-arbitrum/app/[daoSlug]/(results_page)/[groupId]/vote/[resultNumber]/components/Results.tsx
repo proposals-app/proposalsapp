@@ -12,11 +12,7 @@ import { LoadingChart, ResultsChart } from './result/ResultsChart';
 import { LoadingList, ResultsList } from './result/ResultsList';
 import { LoadingTable, ResultsTable } from './result/ResultsTable';
 import { processResultsAction } from '@/lib/results_processing';
-import Link from 'next/link';
-import ExternalLinkIcon from '@/public/assets/web/arrow_external_link.svg';
-import OnchainIcon from '@/public/assets/web/onchain.svg';
-import OffchainIcon from '@/public/assets/web/offchain.svg';
-import { format } from 'date-fns';
+import { ResultsTitle } from './result/ResultsTitle';
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
@@ -77,66 +73,24 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   const onChain = !governor?.indexerVariant.includes('SNAPSHOT');
 
   return (
-    <div className='flex w-full flex-col'>
-      <div className='flex w-full'>
-        <div className='flex w-full flex-col'>
-          <div className='flex flex-col gap-2'>
-            <div className='text-2xl font-bold'>
-              {processedResults.proposal.name}
-            </div>
-            <div className='flex items-center gap-2 text-xs'>
-              <div>
-                Published {onChain ? 'onchain' : 'offchain'} by{' '}
-                <span className='font-bold'>
-                  {publisher?.ens ?? publisher?.address}
-                </span>{' '}
-                at{' '}
-                <span className='font-bold'>
-                  {format(processedResults.proposal.createdAt, 'MMM d, yyyy')}
-                </span>
-              </div>
-              <Link
-                className='flex items-center gap-1 rounded-xs bg-neutral-100 px-1 dark:bg-neutral-800'
-                href={processedResults.proposal.url}
-                target='_blank'
-              >
-                {onChain ? (
-                  <OnchainIcon
-                    width={24}
-                    height={24}
-                    alt={'Go to governor'}
-                    className='fill-neutral-800 dark:fill-neutral-200'
-                  />
-                ) : (
-                  <OffchainIcon
-                    width={24}
-                    height={24}
-                    alt={'Go to governor'}
-                    className='fill-neutral-800 dark:fill-neutral-200'
-                  />
-                )}
-                <div className='font-bold text-neutral-800 dark:text-neutral-200'>
-                  {governor?.name}
-                </div>
-                <ExternalLinkIcon
-                  width={24}
-                  height={24}
-                  alt={'Go to governor'}
-                  className='fill-neutral-400'
-                />
-              </Link>
-            </div>
-          </div>
+    <div className='flex w-full gap-2'>
+      <div className='flex w-full flex-col gap-2'>
+        <ResultsTitle
+          processedResults={processedResults}
+          onChain={onChain}
+          publisher={publisher}
+          governor={governor}
+        />
+        <ResultsChart results={processedResults} delegateMap={delegateMap} />
 
-          <ResultsChart results={processedResults} delegateMap={delegateMap} />
-          <ResultsTable
-            results={processedResults}
-            delegateMap={delegateMap}
-            votingPowerMap={votingPowerMap}
-          />
-        </div>
-        <ResultsList results={processedResults} onchain={onChain} />
+        <ResultsTable
+          results={processedResults}
+          delegateMap={delegateMap}
+          votingPowerMap={votingPowerMap}
+        />
       </div>
+
+      <ResultsList results={processedResults} onchain={onChain} />
     </div>
   );
 }
@@ -169,6 +123,7 @@ export function ResultsLoading() {
         <LoadingChart />
         <LoadingTable />
       </div>
+
       <LoadingList />
     </div>
   );
