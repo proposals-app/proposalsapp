@@ -1,7 +1,6 @@
 'use client';
 
 import { formatNumberWithSuffix } from '@/lib/utils';
-import * as Tooltip from '@radix-ui/react-tooltip';
 import { DelegateVotingPower } from '../actions';
 
 interface VotingPowerTagProps {
