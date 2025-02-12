@@ -18,6 +18,10 @@ const nextConfig = {
     return [
       // PostHog rewrites need to come first to ensure they're not caught by the catch-all subdomain rewrite
       {
+        source: '/ingest/ingest/static/:path*',
+        destination: 'https://eu-assets.i.posthog.com/static/:path*',
+      },
+      {
         source: '/ingest/static/:path*',
         destination: 'https://eu-assets.i.posthog.com/static/:path*',
       },
