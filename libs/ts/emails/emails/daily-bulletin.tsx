@@ -184,7 +184,7 @@ const EndingSoon = (props: { data: EndingSoonProposal[] }) => {
             <Column className="h-[48px] w-[48px]">
               <Img
                 className="rounded-xl"
-                src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
+                src={`${baseUrl}/${proposal.daoLogoUrl.replace("assets/", "assets/old/")}_medium.png`}
                 width={48}
                 height={48}
               />
@@ -273,7 +273,7 @@ const New = (props: { data: NewProposal[] }) => {
             <Column className="h-[48px] w-[48px]">
               <Img
                 className="rounded-xl"
-                src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
+                src={`${baseUrl}/${proposal.daoLogoUrl.replace("assets/", "assets/old/")}_medium.png`}
                 width={48}
                 height={48}
               />
@@ -362,7 +362,7 @@ const Ended = (props: { data: EndedProposal[] }) => {
             <Column className="h-[48px] w-[48px]">
               <Img
                 className="rounded-xl"
-                src={`${baseUrl}/${proposal.daoLogoUrl}_medium.png`}
+                src={`${baseUrl}/${proposal.daoLogoUrl.replace("assets/", "assets/old/")}_medium.png`}
                 width={48}
                 height={48}
               />
