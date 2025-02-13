@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg';
-import { TimelineEventType } from './actions';
+import { TimelineEventType } from '@/app/[daoSlug]/(main_page)/[groupId]/components/timeline/actions';
 
 interface ResultEventProps {
   eventType: TimelineEventType;
@@ -62,7 +62,7 @@ export function ResultEvent({
       >
         {isLive ? (
           <TimelineEventActiveIcon
-            className='dark:fill-neutral-350 absolute top-3 left-2 fill-neutral-800'
+            className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}

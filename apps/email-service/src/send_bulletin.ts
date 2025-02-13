@@ -131,8 +131,8 @@ async function getEndingSoon(userId: string): Promise<EndingSoonProposal[]> {
       timeEnd: p.endAt.getTime() / 1000,
       hasVoters: voters.length > 0,
       voteIconUrl: voted
-        ? "assets/email/voted.png"
-        : "assets/email/not-voted-yet.png",
+        ? "assets/old/email/voted.png"
+        : "assets/old/email/not-voted-yet.png",
       voteStatus: voted ? "Voted" : "Not voted yet",
     };
   });
@@ -203,8 +203,8 @@ async function getNew(userId: string): Promise<NewProposal[]> {
       timeEnd: p.endAt.getTime() / 1000,
       hasVoters: voters.length > 0,
       voteIconUrl: voted
-        ? "assets/email/voted.png"
-        : "assets/email/not-voted-yet.png",
+        ? "assets/old/email/voted.png"
+        : "assets/old/email/not-voted-yet.png",
       voteStatus: voted ? "Voted" : "Not voted yet",
     };
   });
@@ -323,8 +323,8 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
       timeEnd: p.endAt.getTime() / 1000,
       hasVoters: voters.length > 0,
       voteIconUrl: voted
-        ? "assets/email/voted.png"
-        : "assets/email/did-not-vote.png",
+        ? "assets/old/email/voted.png"
+        : "assets/old/email/did-not-vote.png",
       voteStatus: voted ? "Voted" : "Did not vote",
       quorumReached: p.scoresQuorum >= p.quorum,
       hiddenResult: p.proposalState === ProposalState.HIDDEN,
@@ -336,15 +336,16 @@ async function getEnded(userId: string): Promise<EndedProposal[]> {
 
 function getChainLogoUrl(handlerType: string): string {
   if (handlerType.includes("SNAPSHOT"))
-    return "assets/email/chains/snapshot.png";
+    return "assets/old/email/chains/snapshot.png";
   if (handlerType.includes("MAINNET"))
-    return "assets/email/chains/ethereum.png";
+    return "assets/old/email/chains/ethereum.png";
   if (handlerType.includes("ARBITRUM"))
-    return "assets/email/chains/arbitrum.png";
+    return "assets/old/email/chains/arbitrum.png";
   if (handlerType.includes("OPTIMISM"))
-    return "assets/email/chains/optimism.png";
+    return "assets/old/email/chains/optimism.png";
   if (handlerType.includes("AVALANCHE"))
-    return "assets/email/chains/avalanche.png";
-  if (handlerType.includes("POLYGON")) return "assets/email/chains/polygon.png";
+    return "assets/old/email/chains/avalanche.png";
+  if (handlerType.includes("POLYGON"))
+    return "assets/old/email/chains/polygon.png";
   return "";
 }

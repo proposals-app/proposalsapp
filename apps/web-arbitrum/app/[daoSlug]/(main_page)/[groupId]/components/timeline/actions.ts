@@ -1,5 +1,11 @@
 import { otel } from '@/lib/otel';
-import { db, IndexerVariant, sql } from '@proposalsapp/db';
+import {
+  db,
+  IndexerVariant,
+  Proposal,
+  Selectable,
+  sql,
+} from '@proposalsapp/db';
 import { format, formatDistanceToNow } from 'date-fns';
 import { GroupReturnType } from '../../actions';
 import { ProposalMetadata } from '@/app/types';
@@ -7,6 +13,7 @@ import {
   ProcessedResults,
   processResultsAction,
 } from '@/lib/results_processing';
+import { superjson_cache } from '@/lib/utils';
 
 export enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -64,6 +71,7 @@ interface ResultEvent extends BaseEvent {
     | TimelineEventType.ResultEndedBasicVote
     | TimelineEventType.ResultEndedOtherVotes;
   content: string;
+  proposal: Selectable<Proposal>;
   result: ProcessedResults;
 }
 
@@ -217,7 +225,7 @@ function addSummaryEvent(
 }
 
 // Main function to extract events
-export async function getEvents(group: GroupReturnType): Promise<Event[]> {
+async function getEvents(group: GroupReturnType): Promise<Event[]> {
   return otel('get-events', async () => {
     if (!group) return [];
 
@@ -300,6 +308,7 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
                   : TimelineEventType.ResultEndedOtherVotes,
               timestamp: endedAt,
               result: processedResults,
+              proposal,
             });
           } else {
             events.push({
@@ -313,6 +322,7 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
                   : TimelineEventType.ResultOngoingOtherVotes,
               timestamp: endedAt,
               result: processedResults,
+              proposal,
             });
           }
 
@@ -471,3 +481,11 @@ export async function getEvents(group: GroupReturnType): Promise<Event[]> {
     return eventsWithGaps;
   });
 }
+
+export const getEvents_cached = superjson_cache(
+  async (group: GroupReturnType) => {
+    return await getEvents(group);
+  },
+  ['get-events'],
+  { revalidate: 60 * 5, tags: ['get-events'] }
+);

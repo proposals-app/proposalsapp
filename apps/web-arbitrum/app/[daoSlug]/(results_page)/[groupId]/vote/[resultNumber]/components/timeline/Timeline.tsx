@@ -1,6 +1,4 @@
-import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
-import { extractEvents, TimelineEventType } from './actions';
 import {
   BasicEvent,
   CommentsVolumeEvent,
@@ -10,15 +8,10 @@ import {
 import { ResultEvent } from './ResultEvent';
 import { GroupReturnType } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
-
-// Cache the extractEvents function
-const getCachedEvents = unstable_cache(
-  async (group: GroupReturnType) => {
-    return await extractEvents(group);
-  },
-  ['extract-events'],
-  { revalidate: 60 * 5, tags: ['extract-events'] }
-);
+import {
+  getEvents_cached,
+  TimelineEventType,
+} from '@/app/[daoSlug]/(main_page)/[groupId]/components/timeline/actions';
 
 export async function Timeline({
   group,
@@ -32,7 +25,7 @@ export async function Timeline({
   }
 
   // Use the cached version of extractEvents
-  const events = await getCachedEvents(group);
+  const events = await getEvents_cached(group);
 
   // Map proposals to their chronological order
   const proposalOrderMap = new Map<string, number>();
@@ -44,7 +37,7 @@ export async function Timeline({
   const currentTime = new Date();
 
   // Check if the proposal end time is older than the current time
-  const isProposalEnded = group.proposals.some(
+  const isProposalEnded = group.proposals.every(
     (proposal) => new Date(proposal.endAt) < currentTime
   );
 

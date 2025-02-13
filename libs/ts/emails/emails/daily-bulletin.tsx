@@ -382,20 +382,20 @@ const Ended = (props: { data: EndedProposal[] }) => {
             <Column className="hidden w-[100px] py-1 text-center font-bold lg:table-cell lg:w-[200px]">
               {proposal.hiddenResult && (
                 <>
-                  <Row className="min-w-[80px] max-w-[180px] pb-2">
+                  <Row className="max-w-[180px] min-w-[80px] pb-2">
                     <div className="flex items-start justify-start gap-2">
                       <Img
                         className="bg-[#EDEDED]"
                         width={24}
                         height={24}
-                        src={`${baseUrl}/assets/email/hidden.png`}
+                        src={`${baseUrl}/assets/old/email/hidden.png`}
                       />
-                      <Text className="m-0 w-[120px] min-w-[120px] max-w-[120px] overflow-hidden text-ellipsis text-start font-bold">
+                      <Text className="m-0 w-[120px] max-w-[120px] min-w-[120px] overflow-hidden text-start font-bold text-ellipsis">
                         Hidden Result
                       </Text>
                     </div>
                   </Row>
-                  <Row className="m-0 min-w-[80px] max-w-[180px] pb-2">
+                  <Row className="m-0 max-w-[180px] min-w-[80px] pb-2">
                     <Column>
                       <div className="relative h-[10px] w-full bg-gray-200">
                         <div className="h-full w-full bg-black">
@@ -413,15 +413,15 @@ const Ended = (props: { data: EndedProposal[] }) => {
               }
               {!proposal.quorumReached && (
                 <>
-                  <Row className="min-w-[80px] max-w-[180px] pb-1">
+                  <Row className="max-w-[180px] min-w-[80px] pb-1">
                     <div className="flex items-start justify-start gap-2">
                       <Img
                         className="bg-[#EDEDED]"
                         width={24}
                         height={24}
-                        src={`${baseUrl}/assets/email/cross.png`}
+                        src={`${baseUrl}/assets/old/email/cross.png`}
                       />
-                      <Text className="m-0 w-[120px] min-w-[120px] max-w-[120px] overflow-hidden text-ellipsis text-start font-bold">
+                      <Text className="m-0 w-[120px] max-w-[120px] min-w-[120px] overflow-hidden text-start font-bold text-ellipsis">
                         No Quorum
                       </Text>
                     </div>
@@ -436,20 +436,20 @@ const Ended = (props: { data: EndedProposal[] }) => {
                 proposal.result?.choiceName &&
                 proposal.result.choicePercentage && (
                   <>
-                    <Row className="min-w-[80px] max-w-[180px] pb-1">
+                    <Row className="max-w-[180px] min-w-[80px] pb-1">
                       <div className="flex items-start justify-start gap-2">
                         <Img
                           className="bg-[#EDEDED]"
                           width={24}
                           height={24}
-                          src={`${baseUrl}/assets/email/check.png`}
+                          src={`${baseUrl}/assets/old/email/check.png`}
                         />
-                        <Text className="m-0 w-[120px] min-w-[120px] max-w-[120px] overflow-hidden text-ellipsis text-start font-bold">
+                        <Text className="m-0 w-[120px] max-w-[120px] min-w-[120px] overflow-hidden text-start font-bold text-ellipsis">
                           {proposal.result?.choiceName}
                         </Text>
                       </div>
                     </Row>
-                    <Row className="m-0 min-w-[80px] max-w-[180px] pb-1">
+                    <Row className="m-0 max-w-[180px] min-w-[80px] pb-1">
                       <Column>
                         <div className="relative m-0 h-[10px] w-full bg-gray-200">
                           <div
@@ -472,21 +472,21 @@ const Ended = (props: { data: EndedProposal[] }) => {
                 proposal.makerResult?.choiceName &&
                 proposal.makerResult?.mkrSupporting && (
                   <>
-                    <Row className="min-w-[80px] max-w-[180px] pb-1">
+                    <Row className="max-w-[180px] min-w-[80px] pb-1">
                       <div className="flex items-start justify-start gap-2">
                         <Img
                           className="bg-[#EDEDED]"
                           width={24}
                           height={24}
-                          src={`${baseUrl}/assets/email/check.png`}
+                          src={`${baseUrl}/assets/old/email/check.png`}
                         />
-                        <Text className="m-0 w-[120px] min-w-[120px] max-w-[120px] overflow-hidden text-ellipsis text-start font-bold">
+                        <Text className="m-0 w-[120px] max-w-[120px] min-w-[120px] overflow-hidden text-start font-bold text-ellipsis">
                           {proposal.makerResult?.choiceName}
                         </Text>
                       </div>
                     </Row>
 
-                    <Row className="min-w-[80px] max-w-[180px] pb-1">
+                    <Row className="max-w-[180px] min-w-[80px] pb-1">
                       <div className="flex justify-start gap-2">
                         <Text className="m-0 font-bold">
                           with {proposal.makerResult?.mkrSupporting} MKR
@@ -536,9 +536,9 @@ const Ended = (props: { data: EndedProposal[] }) => {
                         className="bg-[#EDEDED]"
                         width={24}
                         height={24}
-                        src={`${baseUrl}/assets/email/hidden.png`}
+                        src={`${baseUrl}/assets/old/email/hidden.png`}
                       />
-                      <Text className="m-0 w-[120px] min-w-[120px] max-w-[120px] overflow-hidden text-ellipsis text-start font-bold">
+                      <Text className="m-0 w-[120px] max-w-[120px] min-w-[120px] overflow-hidden text-start font-bold text-ellipsis">
                         Hidden Result
                       </Text>
                     </div>
@@ -567,9 +567,9 @@ const Ended = (props: { data: EndedProposal[] }) => {
                         className="bg-[#EDEDED]"
                         width={24}
                         height={24}
-                        src={`${baseUrl}/assets/email/cross.png`}
+                        src={`${baseUrl}/assets/old/email/cross.png`}
                       />
-                      <Text className="m-0 w-[120px] min-w-[120px] max-w-[120px] overflow-hidden text-ellipsis text-start font-bold">
+                      <Text className="m-0 w-[120px] max-w-[120px] min-w-[120px] overflow-hidden text-start font-bold text-ellipsis">
                         No Quorum
                       </Text>
                     </div>
@@ -590,9 +590,9 @@ const Ended = (props: { data: EndedProposal[] }) => {
                           className="bg-[#EDEDED]"
                           width={24}
                           height={24}
-                          src={`${baseUrl}/assets/email/check.png`}
+                          src={`${baseUrl}/assets/old/email/check.png`}
                         />
-                        <Text className="m-0 max-w-[240px] overflow-hidden text-ellipsis text-start font-bold">
+                        <Text className="m-0 max-w-[240px] overflow-hidden text-start font-bold text-ellipsis">
                           {proposal.result?.choiceName}
                         </Text>
                       </div>
@@ -620,15 +620,15 @@ const Ended = (props: { data: EndedProposal[] }) => {
                 proposal.makerResult?.choiceName &&
                 proposal.makerResult?.mkrSupporting && (
                   <>
-                    <Row className="min-w-[80px] max-w-[180px] pb-1">
+                    <Row className="max-w-[180px] min-w-[80px] pb-1">
                       <div className="flex items-start justify-start gap-2">
                         <Img
                           className="bg-[#EDEDED]"
                           width={24}
                           height={24}
-                          src={`${baseUrl}/assets/email/check.png`}
+                          src={`${baseUrl}/assets/old/email/check.png`}
                         />
-                        <Text className="m-0 max-w-[240px] overflow-hidden text-ellipsis text-start font-bold">
+                        <Text className="m-0 max-w-[240px] overflow-hidden text-start font-bold text-ellipsis">
                           {proposal.makerResult?.choiceName}
                         </Text>
                       </div>

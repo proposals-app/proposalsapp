@@ -6,7 +6,7 @@ const Header = () => (
   <Section className="w-full py-4">
     <Section className="hidden w-fit rounded-lg lg:block" align="left">
       <Img
-        src={`${baseUrl}/assets/email/logo-lettering.png`}
+        src={`${baseUrl}/assets/old/email/logo-lettering.png`}
         width="250"
         alt="proposals.app"
       />
@@ -14,7 +14,7 @@ const Header = () => (
 
     <Section className="block w-fit rounded-lg lg:hidden" align="center">
       <Img
-        src={`${baseUrl}/assets/email/logo-lettering.png`}
+        src={`${baseUrl}/assets/old/email/logo-lettering.png`}
         width="250"
         alt="proposals.app"
       />

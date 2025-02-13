@@ -1,7 +1,7 @@
 import { VotesFilterEnum } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { GroupReturnType } from '../../actions';
-import { getEvents, TimelineEventType } from './actions';
+import { getEvents_cached, TimelineEventType } from './actions';
 import { BasicEvent } from './BasicEvent';
 import { CommentsVolumeEvent } from './CommentsVolumeEvent';
 import { GapEvent } from './GapEvent';
@@ -22,7 +22,7 @@ export async function Timeline({
     notFound();
   }
 
-  const events = await getEvents(group);
+  const events = await getEvents_cached(group);
 
   // Map proposals to their chronological order
   const proposalOrderMap = new Map<string, number>();
