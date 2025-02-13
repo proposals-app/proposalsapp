@@ -87,6 +87,22 @@ static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
 static SNAPSHOT_MAX_QUEUE: usize = 100;
 static SNAPSHOT_TIMEOUT: Duration = Duration::from_secs(60);
 
+lazy_static::lazy_static! {
+    static ref SNAPSHOT_TX: mpsc::Sender<(dao_indexer::Model, dao::Model)> = {
+        let (tx, _) = mpsc::channel(MAX_JOBS);
+        tx
+    };
+    static ref OTHER_TX: mpsc::Sender<(dao_indexer::Model, dao::Model)> = {
+        let (tx, _) = mpsc::channel(MAX_JOBS);
+        tx
+    };
+}
+
+lazy_static::lazy_static! {
+    static ref SNAPSHOT_QUEUED_INDEXERS: Arc<Mutex<HashSet<Uuid>>> = Arc::new(Mutex::new(HashSet::new()));
+    static ref OTHER_QUEUED_INDEXERS: Arc<Mutex<HashSet<Uuid>>> = Arc::new(Mutex::new(HashSet::new()));
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
@@ -118,6 +134,20 @@ async fn main() -> Result<()> {
     // Create shared sets to keep track of indexers in the queues
     let snapshot_queued_indexers = Arc::new(Mutex::new(HashSet::new()));
     let other_queued_indexers = Arc::new(Mutex::new(HashSet::new()));
+
+    // Task 2: Process Snapshot jobs from the queue
+    let snapshot_job_consumer = create_job_consumer(
+        snapshot_rx,
+        snapshot_queued_indexers.clone(),
+        CONCURRENT_JOBS_SNAPSHOT,
+    );
+
+    // Task 3: Process other jobs from the queue
+    let other_job_consumer = create_job_consumer(
+        other_rx,
+        other_queued_indexers.clone(),
+        CONCURRENT_JOBS_ONCHAIN,
+    );
 
     // Task 1: Add jobs to the queues
     let job_producer = tokio::spawn({
@@ -192,20 +222,6 @@ async fn main() -> Result<()> {
             }
         }
     });
-
-    // Task 2: Process Snapshot jobs from the queue
-    let snapshot_job_consumer = create_job_consumer(
-        snapshot_rx,
-        snapshot_queued_indexers.clone(),
-        CONCURRENT_JOBS_SNAPSHOT,
-    );
-
-    // Task 3: Process other jobs from the queue
-    let other_job_consumer = create_job_consumer(
-        other_rx,
-        other_queued_indexers.clone(),
-        CONCURRENT_JOBS_ONCHAIN,
-    );
 
     // Set up the health check server
     let app = Router::new().route("/", get(|| async { "OK" }));

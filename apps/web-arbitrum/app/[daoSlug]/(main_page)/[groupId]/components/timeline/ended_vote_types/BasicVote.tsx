@@ -2,7 +2,8 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import React, { useMemo } from 'react';
 import { HiddenVote } from './HiddenVote';
 import { ProcessedResults } from '@/lib/results_processing';
-import { Check } from 'lucide-react';
+import PassedSmallIcon from '@/public/assets/web/passed-small.svg';
+import FailedSmallIcon from '@/public/assets/web/failed-small.svg';
 
 interface BasicVoteProps {
   result: ProcessedResults;
@@ -146,7 +147,14 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
 
   const totalDelegatedVp = result.totalDelegatedVp || 0;
   const participationPercentage = (totalVotingPower / totalDelegatedVp) * 100;
-  const quorumReached = scoresQuorum >= quorum;
+
+  const quorumChoices = result.quorumChoices || [];
+
+  const quorumVotingPower = Object.entries(finalResults)
+    .filter(([choiceIndex]) => quorumChoices.includes(parseInt(choiceIndex)))
+    .reduce((sum, [, votingPower]) => sum + votingPower, 0);
+
+  const hasQuorum = quorumVotingPower > (quorum || 0);
   const isBasicVote = ['For', 'Against', 'Abstain'].includes(choices[0]);
 
   return (
@@ -188,7 +196,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
           <>
             <div className='flex items-center gap-1'>
               {winningChoice.choiceIndex === choices.indexOf('For') && (
-                <Check size={14} />
+                <PassedSmallIcon />
               )}
               <span className='font-bold'>For </span>
               <span>
@@ -199,7 +207,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
             </div>
             <div className='flex items-center gap-1'>
               {winningChoice.choiceIndex === choices.indexOf('Against') && (
-                <Check size={14} />
+                <PassedSmallIcon />
               )}
               <span>
                 {formatNumberWithSuffix(
@@ -212,7 +220,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
         ) : (
           // Show only winning choice for non-basic votes
           <div className='flex items-center gap-1'>
-            <Check size={14} />
+            <PassedSmallIcon />
             <span className='font-bold'>
               {choices[winningChoice.choiceIndex]}{' '}
             </span>
@@ -232,14 +240,15 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
             />
           </div>
 
-          <div className='flex items-start justify-between text-[11px]'>
+          <div className='flex items-start justify-between py-1 text-xs'>
             <div className='flex items-center gap-1'>
-              {quorumReached && <Check size={12} />}
+              {hasQuorum ? <PassedSmallIcon /> : <FailedSmallIcon />}
+
               <span className='font-bold'>
-                {formatNumberWithSuffix(scoresQuorum)}
+                {formatNumberWithSuffix(quorumVotingPower)}
               </span>
               <span>of</span>
-              <span>{formatNumberWithSuffix(quorum)} needed</span>
+              <span>{formatNumberWithSuffix(quorum)} for Quorum</span>
             </div>
 
             <div>
