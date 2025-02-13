@@ -1,9 +1,9 @@
-import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getGroupAuthor_cached } from '../actions';
 import { HeaderClient } from './HeaderClient';
 import { Suspense } from 'react';
+import ArrowSvg from '@/public/assets/web/arrow.svg';
 
 interface HeaderProps {
   groupId: string;
@@ -40,7 +40,7 @@ export async function Header({ groupId, withBack, withHide }: HeaderProps) {
             className='flex items-center gap-2 rounded-full px-3 py-2'
             prefetch={true}
           >
-            <ArrowLeft size={20} />
+            <ArrowSvg className='-rotate-90' width={24} height={24} />
             <span className='text-sm font-medium'>Back</span>
           </Link>
         )}
