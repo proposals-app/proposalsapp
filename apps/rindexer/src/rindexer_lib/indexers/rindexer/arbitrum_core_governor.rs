@@ -376,11 +376,11 @@ pub async fn arbitrum_core_governor_handlers(
     manifest_path: &PathBuf,
     registry: &mut EventCallbackRegistry,
 ) {
-    initialized_handler(manifest_path, registry).await;
+    // initialized_handler(manifest_path, registry).await;
 
-    late_quorum_vote_extension_set_handler(manifest_path, registry).await;
+    // late_quorum_vote_extension_set_handler(manifest_path, registry).await;
 
-    ownership_transferred_handler(manifest_path, registry).await;
+    // ownership_transferred_handler(manifest_path, registry).await;
 
     proposal_canceled_handler(manifest_path, registry).await;
 
@@ -392,17 +392,17 @@ pub async fn arbitrum_core_governor_handlers(
 
     proposal_queued_handler(manifest_path, registry).await;
 
-    proposal_threshold_set_handler(manifest_path, registry).await;
+    // proposal_threshold_set_handler(manifest_path, registry).await;
 
-    quorum_numerator_updated_handler(manifest_path, registry).await;
+    // quorum_numerator_updated_handler(manifest_path, registry).await;
 
-    timelock_change_handler(manifest_path, registry).await;
+    // timelock_change_handler(manifest_path, registry).await;
 
     vote_cast_handler(manifest_path, registry).await;
 
     vote_cast_with_params_handler(manifest_path, registry).await;
 
-    voting_delay_set_handler(manifest_path, registry).await;
+    // voting_delay_set_handler(manifest_path, registry).await;
 
-    voting_period_set_handler(manifest_path, registry).await;
+    // voting_period_set_handler(manifest_path, registry).await;
 }
