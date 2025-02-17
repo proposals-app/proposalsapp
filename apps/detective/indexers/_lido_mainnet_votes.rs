@@ -7,8 +7,8 @@ use ethers::{
     providers::{Http, Middleware, Provider},
     utils::to_checksum,
 };
-use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_indexer, proposal, vote};
+use proposalsapp_db::models::{dao, dao_indexer, proposal, vote};
+use proposalsapp_db::models::{ActiveValue::NotSet, Set};
 use std::sync::Arc;
 use tracing::info;
 

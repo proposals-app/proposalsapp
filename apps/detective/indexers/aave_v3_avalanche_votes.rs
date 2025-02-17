@@ -13,9 +13,9 @@ use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
+use proposalsapp_db::models::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use std::{sync::Arc, time::Duration};
 use tracing::{info, instrument};
 

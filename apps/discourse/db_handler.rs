@@ -5,11 +5,14 @@ use crate::{
 use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::OnceCell;
+use proposalsapp_db::models::{
+    discourse_category, discourse_post, discourse_post_like, discourse_post_revision,
+    discourse_topic, discourse_user, job_queue,
+};
 use sea_orm::{
     prelude::Uuid, sea_query::OnConflict, ActiveValue::NotSet, ColumnTrait, Condition,
-    DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set,
+    ConnectOptions, Database, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set,
 };
-use seaorm::{discourse_post_like, discourse_post_revision, discourse_user};
 use std::time::Duration;
 use tracing::{info, instrument};
 use utils::types::{DiscussionJobData, JobData};
@@ -20,7 +23,7 @@ pub async fn initialize_db() -> Result<()> {
     let database_url =
         std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
-    let mut opt = sea_orm::ConnectOptions::new(database_url);
+    let mut opt = ConnectOptions::new(database_url);
     opt.max_connections(100)
         .min_connections(5)
         .connect_timeout(Duration::from_secs(8))
@@ -29,7 +32,7 @@ pub async fn initialize_db() -> Result<()> {
         .max_lifetime(Duration::from_secs(8))
         .sqlx_logging(false);
 
-    let db = sea_orm::Database::connect(opt)
+    let db = Database::connect(opt)
         .await
         .context("Failed to connect to the database")?;
 
@@ -112,7 +115,7 @@ pub async fn upsert_user(user: &User, dao_discourse_id: Uuid) -> Result<()> {
 #[instrument(skip( category), fields(category_id = category.id, category_name = %category.name, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_category(category: &Category, dao_discourse_id: Uuid) -> Result<()> {
     // Create an active model for the category
-    let category_model = seaorm::discourse_category::ActiveModel {
+    let category_model = discourse_category::ActiveModel {
         external_id: Set(category.id),
         name: Set(category.name.clone()),
         color: Set(category.color.clone()),
@@ -132,26 +135,26 @@ pub async fn upsert_category(category: &Category, dao_discourse_id: Uuid) -> Res
     };
 
     // Perform the upsert operation
-    seaorm::discourse_category::Entity::insert(category_model)
+    discourse_category::Entity::insert(category_model)
         .on_conflict(
             OnConflict::columns([
-                seaorm::discourse_category::Column::ExternalId,
-                seaorm::discourse_category::Column::DaoDiscourseId,
+                discourse_category::Column::ExternalId,
+                discourse_category::Column::DaoDiscourseId,
             ])
             .update_columns([
-                seaorm::discourse_category::Column::Name,
-                seaorm::discourse_category::Column::Color,
-                seaorm::discourse_category::Column::TextColor,
-                seaorm::discourse_category::Column::Slug,
-                seaorm::discourse_category::Column::TopicCount,
-                seaorm::discourse_category::Column::PostCount,
-                seaorm::discourse_category::Column::Description,
-                seaorm::discourse_category::Column::DescriptionText,
-                seaorm::discourse_category::Column::TopicsDay,
-                seaorm::discourse_category::Column::TopicsWeek,
-                seaorm::discourse_category::Column::TopicsMonth,
-                seaorm::discourse_category::Column::TopicsYear,
-                seaorm::discourse_category::Column::TopicsAllTime,
+                discourse_category::Column::Name,
+                discourse_category::Column::Color,
+                discourse_category::Column::TextColor,
+                discourse_category::Column::Slug,
+                discourse_category::Column::TopicCount,
+                discourse_category::Column::PostCount,
+                discourse_category::Column::Description,
+                discourse_category::Column::DescriptionText,
+                discourse_category::Column::TopicsDay,
+                discourse_category::Column::TopicsWeek,
+                discourse_category::Column::TopicsMonth,
+                discourse_category::Column::TopicsYear,
+                discourse_category::Column::TopicsAllTime,
             ])
             .to_owned(),
         )
@@ -165,7 +168,7 @@ pub async fn upsert_category(category: &Category, dao_discourse_id: Uuid) -> Res
 #[instrument(skip( topic), fields(topic_id = topic.id, topic_title = %topic.title, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
     // Create an active model for the topic
-    let topic_model = seaorm::discourse_topic::ActiveModel {
+    let topic_model = discourse_topic::ActiveModel {
         external_id: Set(topic.id),
         title: Set(topic.title.clone()),
         fancy_title: Set(topic.fancy_title.clone()),
@@ -188,29 +191,29 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
     };
 
     // Perform the upsert operation
-    let stored_topic = seaorm::discourse_topic::Entity::insert(topic_model)
+    let stored_topic = discourse_topic::Entity::insert(topic_model)
         .on_conflict(
             OnConflict::columns([
-                seaorm::discourse_topic::Column::ExternalId,
-                seaorm::discourse_topic::Column::DaoDiscourseId,
+                discourse_topic::Column::ExternalId,
+                discourse_topic::Column::DaoDiscourseId,
             ])
             .update_columns([
-                seaorm::discourse_topic::Column::Title,
-                seaorm::discourse_topic::Column::FancyTitle,
-                seaorm::discourse_topic::Column::Slug,
-                seaorm::discourse_topic::Column::PostsCount,
-                seaorm::discourse_topic::Column::ReplyCount,
-                seaorm::discourse_topic::Column::CreatedAt,
-                seaorm::discourse_topic::Column::LastPostedAt,
-                seaorm::discourse_topic::Column::BumpedAt,
-                seaorm::discourse_topic::Column::Pinned,
-                seaorm::discourse_topic::Column::Visible,
-                seaorm::discourse_topic::Column::Closed,
-                seaorm::discourse_topic::Column::Archived,
-                seaorm::discourse_topic::Column::Views,
-                seaorm::discourse_topic::Column::LikeCount,
-                seaorm::discourse_topic::Column::CategoryId,
-                seaorm::discourse_topic::Column::PinnedGlobally,
+                discourse_topic::Column::Title,
+                discourse_topic::Column::FancyTitle,
+                discourse_topic::Column::Slug,
+                discourse_topic::Column::PostsCount,
+                discourse_topic::Column::ReplyCount,
+                discourse_topic::Column::CreatedAt,
+                discourse_topic::Column::LastPostedAt,
+                discourse_topic::Column::BumpedAt,
+                discourse_topic::Column::Pinned,
+                discourse_topic::Column::Visible,
+                discourse_topic::Column::Closed,
+                discourse_topic::Column::Archived,
+                discourse_topic::Column::Views,
+                discourse_topic::Column::LikeCount,
+                discourse_topic::Column::CategoryId,
+                discourse_topic::Column::PinnedGlobally,
             ])
             .to_owned(),
         )
@@ -223,7 +226,7 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
                 discourse_topic_id: stored_topic.last_insert_id,
             };
 
-            seaorm::job_queue::Entity::insert(seaorm::job_queue::ActiveModel {
+            job_queue::Entity::insert(job_queue::ActiveModel {
                 id: NotSet,
                 r#type: Set(DiscussionJobData::job_type().to_string()),
                 data: Set(serde_json::to_value(job_data)?),
@@ -242,7 +245,7 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
 #[instrument(skip( post), fields(post_id = post.id, post_username = %post.username, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
     // Create an active model for the post
-    let post_model = seaorm::discourse_post::ActiveModel {
+    let post_model = discourse_post::ActiveModel {
         external_id: Set(post.id),
         name: Set(post.name.clone()),
         username: Set(post.username.clone()),
@@ -282,39 +285,39 @@ pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
     };
 
     // Perform the upsert operation
-    seaorm::discourse_post::Entity::insert(post_model)
+    discourse_post::Entity::insert(post_model)
         .on_conflict(
             OnConflict::columns([
-                seaorm::discourse_post::Column::ExternalId,
-                seaorm::discourse_post::Column::DaoDiscourseId,
+                discourse_post::Column::ExternalId,
+                discourse_post::Column::DaoDiscourseId,
             ])
             .update_columns([
-                seaorm::discourse_post::Column::Name,
-                seaorm::discourse_post::Column::Username,
-                seaorm::discourse_post::Column::CreatedAt,
-                seaorm::discourse_post::Column::Cooked,
-                seaorm::discourse_post::Column::PostNumber,
-                seaorm::discourse_post::Column::PostType,
-                seaorm::discourse_post::Column::UpdatedAt,
-                seaorm::discourse_post::Column::ReplyCount,
-                seaorm::discourse_post::Column::ReplyToPostNumber,
-                seaorm::discourse_post::Column::QuoteCount,
-                seaorm::discourse_post::Column::IncomingLinkCount,
-                seaorm::discourse_post::Column::Reads,
-                seaorm::discourse_post::Column::ReadersCount,
-                seaorm::discourse_post::Column::Score,
-                seaorm::discourse_post::Column::TopicId,
-                seaorm::discourse_post::Column::TopicSlug,
-                seaorm::discourse_post::Column::DisplayUsername,
-                seaorm::discourse_post::Column::PrimaryGroupName,
-                seaorm::discourse_post::Column::FlairName,
-                seaorm::discourse_post::Column::FlairUrl,
-                seaorm::discourse_post::Column::FlairBgColor,
-                seaorm::discourse_post::Column::FlairColor,
-                seaorm::discourse_post::Column::Version,
-                seaorm::discourse_post::Column::UserId,
-                seaorm::discourse_post::Column::CanViewEditHistory,
-                seaorm::discourse_post::Column::Deleted,
+                discourse_post::Column::Name,
+                discourse_post::Column::Username,
+                discourse_post::Column::CreatedAt,
+                discourse_post::Column::Cooked,
+                discourse_post::Column::PostNumber,
+                discourse_post::Column::PostType,
+                discourse_post::Column::UpdatedAt,
+                discourse_post::Column::ReplyCount,
+                discourse_post::Column::ReplyToPostNumber,
+                discourse_post::Column::QuoteCount,
+                discourse_post::Column::IncomingLinkCount,
+                discourse_post::Column::Reads,
+                discourse_post::Column::ReadersCount,
+                discourse_post::Column::Score,
+                discourse_post::Column::TopicId,
+                discourse_post::Column::TopicSlug,
+                discourse_post::Column::DisplayUsername,
+                discourse_post::Column::PrimaryGroupName,
+                discourse_post::Column::FlairName,
+                discourse_post::Column::FlairUrl,
+                discourse_post::Column::FlairBgColor,
+                discourse_post::Column::FlairColor,
+                discourse_post::Column::Version,
+                discourse_post::Column::UserId,
+                discourse_post::Column::CanViewEditHistory,
+                discourse_post::Column::Deleted,
             ])
             .to_owned(),
         )
@@ -405,7 +408,7 @@ pub async fn upsert_post_likes_batch(
     // Find existing likes for the given post and users
     let existing_likes = discourse_post_like::Entity::find()
         .filter(
-            sea_orm::Condition::all()
+            Condition::all()
                 .add(discourse_post_like::Column::ExternalDiscoursePostId.eq(post_id))
                 .add(discourse_post_like::Column::ExternalUserId.is_in(user_ids.clone()))
                 .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id)),

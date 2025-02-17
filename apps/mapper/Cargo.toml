@@ -14,6 +14,7 @@ futures = { workspace = true }
 lazy_static = { workspace = true }
 once_cell = { workspace = true }
 opentelemetry = { workspace = true }
+proposalsapp-db = { path = "../../libs/rust/db" }
 rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
@@ -26,7 +27,6 @@ sea-orm = { workspace = true, features = [
     "with-bigdecimal",
     "with-uuid",
 ] }
-seaorm = { path = "../../libs/rust/seaorm" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }

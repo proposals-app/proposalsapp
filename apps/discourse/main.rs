@@ -10,9 +10,9 @@ use indexers::{
     categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer,
     users::UserIndexer,
 };
+use proposalsapp_db::models::dao_discourse;
 use reqwest::Client;
 use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
-use seaorm::dao_discourse;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::time::{interval_at, Instant};
 use tracing::{error, info, warn};
@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
     });
     info!(port = 3000, address = %addr, "Health check server initialized and listening");
 
-    let dao_discourses = seaorm::dao_discourse::Entity::find()
+    let dao_discourses = dao_discourse::Entity::find()
         .filter(dao_discourse::Column::Enabled.eq(true))
         .all(DB.get().unwrap())
         .await?;

@@ -7,11 +7,13 @@ use ethers::{
     contract::LogMeta,
     providers::{Http, Middleware, Provider},
 };
-use sea_orm::{
+use proposalsapp_db::models::{
+    dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote,
+};
+use proposalsapp_db::models::{
     ActiveValue::{self, NotSet},
     Set,
 };
-use seaorm::{dao, dao_indexer, proposal, sea_orm_active_enums::ProposalState, vote};
 use serde_json::json;
 use std::sync::Arc;
 use tracing::info;
@@ -185,8 +187,8 @@ async fn data_for_proposal(
 // mod lido_mainnet_proposals {
 //     use super::*;
 //     use dotenv::dotenv;
-//     use sea_orm::prelude::Uuid;
-//     use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+//     use proposalsapp_db::models::prelude::Uuid;
+//     use proposalsapp_db::models::{dao_indexer, sea_orm_active_enums::IndexerVariant};
 //     use serde_json::json;
 //     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
 
@@ -197,7 +199,7 @@ async fn data_for_proposal(
 //         let indexer = dao_indexer::Model {
 //             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
 //             indexer_variant: IndexerVariant::LidoMainnetProposals,
-//             indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+//             indexer_type: proposalsapp_db::models::sea_orm_active_enums::IndexerType::Proposals,
 //             portal_url: Some("placeholder".into()),
 //             enabled: true,
 //             speed: 1,
@@ -254,7 +256,7 @@ async fn data_for_proposal(
 //         let indexer = dao_indexer::Model {
 //             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
 //             indexer_variant: IndexerVariant::LidoMainnetProposals,
-//             indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+//             indexer_type: proposalsapp_db::models::sea_orm_active_enums::IndexerType::Proposals,
 //             portal_url: Some("placeholder".into()),
 //             enabled: true,
 //             speed: 19069831 - 19020628,

@@ -6,9 +6,10 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use futures::stream::{self, StreamExt};
+use proposalsapp_db::models::discourse_post;
 use sea_orm::{
     prelude::{Expr, Uuid},
-    ColumnTrait, EntityTrait, QueryFilter,
+    ColumnTrait, Condition, EntityTrait, QueryFilter,
 };
 use std::{collections::HashSet, sync::Arc};
 use tokio::task;
@@ -33,11 +34,11 @@ impl PostIndexer {
         info!("Starting to update posts for topic");
 
         // Fetch existing posts for the topic from the database
-        let existing_posts = seaorm::discourse_post::Entity::find()
+        let existing_posts = discourse_post::Entity::find()
             .filter(
-                sea_orm::Condition::all()
-                    .add(seaorm::discourse_post::Column::TopicId.eq(topic_id))
-                    .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id)),
+                Condition::all()
+                    .add(discourse_post::Column::TopicId.eq(topic_id))
+                    .add(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
             .all(DB.get().unwrap())
             .await
@@ -148,15 +149,13 @@ impl PostIndexer {
                 "Marking posts as deleted"
             );
 
-            let update_result = seaorm::discourse_post::Entity::update_many()
-                .col_expr(seaorm::discourse_post::Column::Deleted, Expr::value(true))
+            let update_result = discourse_post::Entity::update_many()
+                .col_expr(discourse_post::Column::Deleted, Expr::value(true))
                 .filter(
-                    sea_orm::Condition::all()
-                        .add(
-                            seaorm::discourse_post::Column::ExternalId.is_in(posts_to_mark_deleted),
-                        )
-                        .add(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
-                        .add(seaorm::discourse_post::Column::TopicId.eq(topic_id)),
+                    Condition::all()
+                        .add(discourse_post::Column::ExternalId.is_in(posts_to_mark_deleted))
+                        .add(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
+                        .add(discourse_post::Column::TopicId.eq(topic_id)),
                 )
                 .exec(DB.get().unwrap())
                 .await?;

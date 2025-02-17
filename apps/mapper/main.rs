@@ -6,7 +6,7 @@ use dotenv::dotenv;
 use metrics::Metrics;
 use once_cell::sync::OnceCell;
 use reqwest::Client;
-use sea_orm::DatabaseConnection;
+use sea_orm::{ConnectOptions, DatabaseConnection};
 use tokio::time::Duration;
 use tracing::{error, info, warn};
 use utils::tracing::setup_otel;
@@ -21,7 +21,7 @@ pub async fn initialize_db() -> Result<()> {
     let database_url =
         std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
-    let mut opt = sea_orm::ConnectOptions::new(database_url);
+    let mut opt = ConnectOptions::new(database_url);
     opt.max_connections(100)
         .min_connections(5)
         .connect_timeout(Duration::from_secs(8))

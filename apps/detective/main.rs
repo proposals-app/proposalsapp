@@ -53,12 +53,12 @@ use indexers::{
     uniswap_mainnet_proposals::UniswapMainnetProposalsIndexer,
     uniswap_mainnet_votes::UniswapMainnetVotesIndexer,
 };
-use reqwest::Client;
-use sea_orm::prelude::Uuid;
-use seaorm::{
+use proposalsapp_db::models::{
     dao, dao_indexer,
     sea_orm_active_enums::{IndexerType, IndexerVariant},
 };
+use reqwest::Client;
+use sea_orm::prelude::Uuid;
 use snapshot_api::initialize_snapshot_api;
 use std::{
     collections::{HashMap, HashSet},

@@ -20,13 +20,13 @@ use crate::indexers::{
 };
 use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
+use proposalsapp_db::models::{
+    dao, dao_indexer, delegation, job_queue, proposal, sea_orm_active_enums::IndexerVariant, vote,
+    voter, voting_power,
+};
 use sea_orm::{
     prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection,
     DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
-};
-use seaorm::{
-    dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote, voter,
-    voting_power,
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -100,7 +100,7 @@ pub async fn store_proposals(
                     proposal_id: result.last_insert_id,
                 };
 
-                seaorm::job_queue::Entity::insert(seaorm::job_queue::ActiveModel {
+                job_queue::Entity::insert(job_queue::ActiveModel {
                     id: NotSet,
                     r#type: Set(ProposalJobData::job_type().to_string()),
                     data: Set(serde_json::to_value(job_data)?),
@@ -395,7 +395,7 @@ pub async fn update_indexer_updated_at(indexer: &dao_indexer::Model) -> Result<(
 
 pub async fn fetch_dao_indexers() -> Result<Vec<(dao_indexer::Model, dao::Model)>> {
     Ok(dao_indexer::Entity::find()
-        .find_also_related(seaorm::dao::Entity)
+        .find_also_related(dao::Entity)
         .filter(dao_indexer::Column::Enabled.eq(true))
         .all(DB.get().unwrap())
         .await

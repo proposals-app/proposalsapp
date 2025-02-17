@@ -5,8 +5,8 @@ use crate::{
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::DateTime;
+use proposalsapp_db::models::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, vote};
 use serde::Deserialize;
 use serde_json::Value;
 use std::time::Duration;
@@ -188,8 +188,9 @@ async fn parse_votes(
 mod snapshot_votes_tests {
     use super::*;
     use dotenv::dotenv;
+    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
+    use proposalsapp_db::models::{dao_indexer, sea_orm_active_enums::IndexerVariant};
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
     use serde_json::json;
     use utils::test_utils::{assert_vote, parse_datetime, ExpectedVote};
 
@@ -201,7 +202,7 @@ mod snapshot_votes_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("08b12b74-33fa-43a7-963e-2ca5f54b1a45").unwrap(),
             indexer_variant: IndexerVariant::SnapshotProposals,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            indexer_type: IndexerType::Proposals,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,

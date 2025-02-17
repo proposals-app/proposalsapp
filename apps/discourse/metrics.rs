@@ -70,6 +70,6 @@ impl Metrics {
     }
 
     pub fn init() -> &'static Self {
-        METRICS.get_or_init(|| Metrics::new())
+        METRICS.get_or_init(Metrics::new)
     }
 }

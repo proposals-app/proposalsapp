@@ -14,16 +14,16 @@ use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
+use proposalsapp_db::models::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerVariant, ProposalState},
+};
 use regex::Regex;
 use reqwest::Client;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{
     ActiveValue::{self, NotSet},
     Set,
-};
-use seaorm::{
-    dao, dao_indexer, proposal,
-    sea_orm_active_enums::{IndexerVariant, ProposalState},
 };
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
@@ -601,8 +601,8 @@ mod aave_v2_content {
 mod aave_v2_proposals {
     use super::*;
     use dotenv::dotenv;
+    use proposalsapp_db::models::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use sea_orm::prelude::Uuid;
-    use seaorm::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
 

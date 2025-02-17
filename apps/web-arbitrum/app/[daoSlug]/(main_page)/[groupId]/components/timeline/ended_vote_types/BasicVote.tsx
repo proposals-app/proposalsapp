@@ -46,34 +46,26 @@ const VoteSegment = ({
 );
 
 export const BasicVote = ({ result }: BasicVoteProps) => {
-  const {
-    finalResults,
-    totalVotingPower,
-    choiceColors,
-    choices,
-    quorum,
-    scoresQuorum,
-  } = useMemo(() => {
-    if (result.hiddenVote && result.scoresState !== 'final') {
+  const { finalResults, totalVotingPower, choiceColors, choices, quorum } =
+    useMemo(() => {
+      if (result.hiddenVote && result.scoresState !== 'final') {
+        return {
+          finalResults: {},
+          totalVotingPower: 0,
+          choiceColors: result.choiceColors || [],
+          choices: result.choices || [],
+          quorum: result.quorum || 0,
+        };
+      }
+
       return {
-        finalResults: {},
-        totalVotingPower: 0,
+        finalResults: result.finalResults || {},
+        totalVotingPower: result.totalVotingPower,
         choiceColors: result.choiceColors || [],
         choices: result.choices || [],
         quorum: result.quorum || 0,
-        scoresQuorum: result.proposal.scoresQuorum || 0,
       };
-    }
-
-    return {
-      finalResults: result.finalResults || {},
-      totalVotingPower: result.totalVotingPower,
-      choiceColors: result.choiceColors || [],
-      choices: result.choices || [],
-      quorum: result.quorum || 0,
-      scoresQuorum: result.proposal.scoresQuorum || 0,
-    };
-  }, [result]);
+    }, [result]);
 
   if (result.hiddenVote && result.scoresState !== 'final') {
     return <HiddenVote result={result} />;

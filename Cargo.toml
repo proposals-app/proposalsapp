@@ -4,7 +4,7 @@ members = [
     "apps/discourse",
     "apps/mapper",
     "apps/rindexer",
-    "libs/rust/seaorm",
+    "libs/rust/db",
     "libs/rust/utils",
 ]
 

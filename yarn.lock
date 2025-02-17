@@ -2115,12 +2115,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "@hookform/resolvers@npm:4.0.0"
+"@hookform/resolvers@npm:^4.1.0":
+  version: 4.1.0
+  resolution: "@hookform/resolvers@npm:4.1.0"
+  dependencies:
+    caniuse-lite: "npm:^1.0.30001698"
   peerDependencies:
     react-hook-form: ^7.0.0
-  checksum: 10c0/4839b4cf869e5fe5e271a8d827e3c5ce803a956675f8d66b010f6784caffa2d507ffd4c2065e209470735ebd6fa3d942d74bce1b6223761d48a94b6fd7216e33
+  checksum: 10c0/aeb5c0037c49a9bf0b2026e9c28769ba33a9a8d73223319dd576b35e2e5906f062f17b358ea2d0193482805ccd8918e4f97f3924fc94a1fdfe09de3e255a8c39
   languageName: node
   linkType: hard
 
@@ -3424,7 +3426,7 @@ __metadata:
     dotenv: "npm:^16.4.7"
     kysely: "npm:0.27.5"
     kysely-codegen: "npm:0.17.0"
-    kysely-ctl: "npm:0.11.0"
+    kysely-ctl: "npm:0.11.1"
     pg: "npm:8.13.3"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -3457,7 +3459,7 @@ __metadata:
     "@react-email/components": "npm:0.0.33"
     "@react-email/render": "npm:1.0.5"
     "@tsconfig/recommended": "npm:^1.0.8"
-    "@types/react": "npm:^19.0.8"
+    "@types/react": "npm:^19.0.10"
     dotenv: "npm:^16.4.7"
     moment: "npm:2.30.1"
     postmark: "npm:^4.0.5"
@@ -3552,8 +3554,8 @@ __metadata:
     "@types/node": "npm:22.13.4"
     "@types/postcss-load-config": "npm:^3.0.1"
     "@types/prettier": "npm:^3.0.0"
-    "@types/react": "npm:^19.0.8"
-    "@types/react-dom": "npm:^19.0.3"
+    "@types/react": "npm:^19.0.10"
+    "@types/react-dom": "npm:^19.0.4"
     "@types/react-virtualized": "npm:^9"
     "@types/uuid": "npm:^10"
     "@typescript-eslint/eslint-plugin": "npm:^8.24.0"
@@ -3579,7 +3581,7 @@ __metadata:
     next-themes: "npm:^0.4.4"
     nuqs: "npm:^2.3.2"
     postcss: "npm:^8.5.2"
-    posthog-js: "npm:^1.217.6"
+    posthog-js: "npm:^1.219.0"
     prettier: "npm:^3.5.1"
     prettier-plugin-classnames: "npm:^0.7.6"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -3606,7 +3608,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/web@workspace:apps/web"
   dependencies:
-    "@hookform/resolvers": "npm:^4.0.0"
+    "@hookform/resolvers": "npm:^4.1.0"
     "@lucia-auth/adapter-postgresql": "npm:3.1.2"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/api-logs": "npm:^0.57.2"
@@ -3648,9 +3650,9 @@ __metadata:
     "@serwist/next": "npm:9.0.11"
     "@tailwindcss/postcss": "npm:^4.0.6"
     "@types/node": "npm:22.13.4"
-    "@types/react": "npm:^19.0.8"
+    "@types/react": "npm:^19.0.10"
     "@types/react-day-picker": "npm:5.3.0"
-    "@types/react-dom": "npm:^19.0.3"
+    "@types/react-dom": "npm:^19.0.4"
     "@types/uuid": "npm:^10"
     "@types/web-push": "npm:3.6.4"
     "@vercel/otel": "npm:^1.10.1"
@@ -3670,7 +3672,7 @@ __metadata:
     pg: "npm:8.13.3"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:^8.5.2"
-    posthog-js: "npm:1.217.6"
+    posthog-js: "npm:1.219.0"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.5.1"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
@@ -6285,12 +6287,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:^19.0.3":
-  version: 19.0.3
-  resolution: "@types/react-dom@npm:19.0.3"
+"@types/react-dom@npm:^19.0.4":
+  version: 19.0.4
+  resolution: "@types/react-dom@npm:19.0.4"
   peerDependencies:
     "@types/react": ^19.0.0
-  checksum: 10c0/3867427b333cbe8cbba496d7cc20ec9676d32c25ae44f4d1263a4129d42e57cf4adf0039ad263432f1215b88075c27d326e7eb4ed646128235d01a76e661d48f
+  checksum: 10c0/4e71853919b94df9e746a4bd73f8180e9ae13016333ce9c543dcba9f4f4c8fe6e28b038ca6ee61c24e291af8e03ca3bc5ded17c46dee938fcb32d71186fda7a3
   languageName: node
   linkType: hard
 
@@ -6313,12 +6315,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:^19.0.8":
-  version: 19.0.8
-  resolution: "@types/react@npm:19.0.8"
+"@types/react@npm:^19.0.10":
+  version: 19.0.10
+  resolution: "@types/react@npm:19.0.10"
   dependencies:
     csstype: "npm:^3.0.2"
-  checksum: 10c0/5fa7236356b1476de03519c66ef65d4fd904826956105619e2ad60cb0b55ae7b251dd5fff02234076225b5e15333d0d936bf9dbe1d461406f8a2ba01c197ddcd
+  checksum: 10c0/41884cca21850c8b2d6578b172ca0ca4fff6021251a68532b19f2031ac23dc5a9222470208065f8d9985d367376047df2f49ece8d927f7d04cdc94922b1eb34b
   languageName: node
   linkType: hard
 
@@ -7806,6 +7808,13 @@ __metadata:
   version: 1.0.30001690
   resolution: "caniuse-lite@npm:1.0.30001690"
   checksum: 10c0/646bd469032afa90400a84dec30a2b00a6eda62c03ead358117e3f884cda8aacec02ec058a6dbee5eaf9714f83e483b9b0eb4fb42febb8076569f5ca40f1d347
+  languageName: node
+  linkType: hard
+
+"caniuse-lite@npm:^1.0.30001698":
+  version: 1.0.30001699
+  resolution: "caniuse-lite@npm:1.0.30001699"
+  checksum: 10c0/e87b3a0602c3124131f6a21f1eb262378e17a2ee3089e3c472ac8b9caa85cf7d6a219655379302c29c6f10a74051f2a712639d7f98ee0444c73fefcbaf25d519
   languageName: node
   linkType: hard
 
@@ -12698,9 +12707,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely-ctl@npm:0.11.0":
-  version: 0.11.0
-  resolution: "kysely-ctl@npm:0.11.0"
+"kysely-ctl@npm:0.11.1":
+  version: 0.11.1
+  resolution: "kysely-ctl@npm:0.11.1"
   dependencies:
     c12: "npm:^2.0.1"
     citty: "npm:^0.1.6"
@@ -12719,7 +12728,7 @@ __metadata:
       optional: true
   bin:
     kysely: dist/bin.js
-  checksum: 10c0/d31f5e1d8a6b898347cfd20b1a215743550144e48ba48f8dca8c79cf419a95d52df281a512a8e3d2c872809b0d8dd3e367c0f51b06dfb6a69eee6d807c9af6d6
+  checksum: 10c0/3d4faf7e6cb661145ac4606b90ac55a90edc1f3a92d2388d656678d89ed1465aa7a18f3698a8ed758e7d756bfc5e86e894de2387738c4e50cddc6d7a99f161a7
   languageName: node
   linkType: hard
 
@@ -15236,15 +15245,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.217.6, posthog-js@npm:^1.217.6":
-  version: 1.217.6
-  resolution: "posthog-js@npm:1.217.6"
+"posthog-js@npm:1.219.0, posthog-js@npm:^1.219.0":
+  version: 1.219.0
+  resolution: "posthog-js@npm:1.219.0"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
     preact: "npm:^10.19.3"
     web-vitals: "npm:^4.2.0"
-  checksum: 10c0/3bd22423d121a6eaf9c621fb7e229a990ef4703b0ee5847f6bc84c9db2623f18138997a639e148b97f6c928736055a04fec6c398f798c1bbb554e7d4155fb098
+  checksum: 10c0/554ba59278e83f9bf8ff915c30692e0eb9af705c308053376a8261e6458ccc2491a071214c5e7511f17cefe13e1a9f1627586fbb44ec91a642b21219a692bda7
   languageName: node
   linkType: hard
 

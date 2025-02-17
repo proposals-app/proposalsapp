@@ -15,15 +15,15 @@ use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
+use proposalsapp_db::models::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerVariant, ProposalState},
+    vote,
+};
 use rust_decimal::{prelude::*, Decimal};
 use sea_orm::{
     ActiveValue::{self, NotSet},
     ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
-};
-use seaorm::{
-    dao, dao_indexer, proposal,
-    sea_orm_active_enums::{IndexerVariant, ProposalState},
-    vote,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -1013,8 +1013,9 @@ async fn data_for_proposal_four(
 mod optimism_proposals_tests {
     use super::*;
     use dotenv::dotenv;
+    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
+    use proposalsapp_db::models::{dao_indexer, sea_orm_active_enums::IndexerVariant};
     use sea_orm::prelude::Uuid;
-    use seaorm::{dao_indexer, sea_orm_active_enums::IndexerVariant};
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
 
@@ -1026,7 +1027,7 @@ mod optimism_proposals_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::OpOptimismProposals,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            indexer_type: IndexerType::Proposals,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,
@@ -1089,7 +1090,7 @@ mod optimism_proposals_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::OpOptimismProposals,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            indexer_type: IndexerType::Proposals,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,
@@ -1152,7 +1153,7 @@ mod optimism_proposals_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::OpOptimismProposals,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            indexer_type: IndexerType::Proposals,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,
@@ -1215,7 +1216,7 @@ mod optimism_proposals_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::OpOptimismProposals,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            indexer_type: IndexerType::Proposals,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,
@@ -1278,7 +1279,7 @@ mod optimism_proposals_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::OpOptimismProposals,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            indexer_type: IndexerType::Proposals,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,
@@ -1341,7 +1342,7 @@ mod optimism_proposals_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::OpOptimismProposals,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            indexer_type: IndexerType::Proposals,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,
@@ -1404,7 +1405,7 @@ mod optimism_proposals_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::OpOptimismProposals,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            indexer_type: IndexerType::Proposals,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,
@@ -1467,7 +1468,7 @@ mod optimism_proposals_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::OpOptimismProposals,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::Proposals,
+            indexer_type: IndexerType::Proposals,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,

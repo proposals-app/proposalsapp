@@ -17,6 +17,7 @@ itertools = { workspace = true }
 lazy_static = { workspace = true }
 num-bigint = { workspace = true }
 once_cell = { workspace = true }
+proposalsapp-db = { path = "../../libs/rust/db" }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware = { workspace = true }
@@ -31,7 +32,6 @@ sea-orm = { workspace = true, features = [
     "with-bigdecimal",
     "with-uuid",
 ] }
-seaorm = { path = "../../libs/rust/seaorm" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }

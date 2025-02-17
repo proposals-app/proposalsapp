@@ -30,6 +30,7 @@ opentelemetry_sdk = { workspace = true, features = [
     "metrics",
     "trace",
 ] }
+proposalsapp-db = { path = "../db" }
 pyroscope = { workspace = true }
 pyroscope_pprofrs = { workspace = true }
 reqwest = { workspace = true }
@@ -42,7 +43,6 @@ sea-orm = { workspace = true, features = [
     "with-bigdecimal",
     "with-uuid",
 ] }
-seaorm = { path = "../seaorm" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

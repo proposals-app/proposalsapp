@@ -5,8 +5,8 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
+use proposalsapp_db::models::{discourse_post, discourse_post_revision};
 use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
-use seaorm::{discourse_post, discourse_post_revision};
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::{error, info, instrument, warn};
@@ -140,22 +140,22 @@ impl RevisionIndexer {
     async fn fetch_recent_posts_with_revisions(
         &self,
         dao_discourse_id: Uuid,
-    ) -> Result<Vec<seaorm::discourse_post::Model>> {
+    ) -> Result<Vec<discourse_post::Model>> {
         info!("Fetching recent posts with revisions");
 
         let six_hours_ago = Utc::now() - Duration::hours(6);
-        let posts = seaorm::discourse_post::Entity::find()
+        let posts = discourse_post::Entity::find()
             .filter(discourse_post::Column::Version.gt(1))
             .filter(discourse_post::Column::CanViewEditHistory.eq(true))
             .filter(discourse_post::Column::Deleted.eq(false))
             .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
-            .filter(seaorm::discourse_post::Column::UpdatedAt.gte(six_hours_ago.naive_utc()))
+            .filter(discourse_post::Column::UpdatedAt.gte(six_hours_ago.naive_utc()))
             .find_with_related(discourse_post_revision::Entity)
             .all(DB.get().unwrap())
             .await
             .context("Failed to fetch recent posts with revisions")?;
 
-        let filtered_posts: Vec<seaorm::discourse_post::Model> = posts
+        let filtered_posts: Vec<discourse_post::Model> = posts
             .into_iter()
             .filter(|(post, revisions)| {
                 let revision_count = revisions.len();
@@ -182,9 +182,9 @@ async fn update_revisions_for_post(
 ) -> Result<()> {
     info!("Updating revisions for post");
 
-    let discourse_post = seaorm::discourse_post::Entity::find()
-        .filter(seaorm::discourse_post::Column::ExternalId.eq(post_id))
-        .filter(seaorm::discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
+    let discourse_post = discourse_post::Entity::find()
+        .filter(discourse_post::Column::ExternalId.eq(post_id))
+        .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
         .one(DB.get().unwrap())
         .await
         .context("Failed to fetch discourse post")?;

@@ -1,15 +1,15 @@
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
+use proposalsapp_db::models::{
+    dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user,
+    voter,
+};
 use reqwest::Client;
 use sea_orm::{
     prelude::{Expr, Uuid},
     ActiveValue::NotSet,
     ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait,
-};
-use seaorm::{
-    dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user,
-    voter,
 };
 use serde::Deserialize;
 use std::collections::HashMap;

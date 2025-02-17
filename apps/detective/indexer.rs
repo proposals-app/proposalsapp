@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use seaorm::{
+use proposalsapp_db::models::{
     dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote,
     voting_power,
 };

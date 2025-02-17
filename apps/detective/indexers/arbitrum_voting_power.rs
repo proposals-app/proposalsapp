@@ -13,9 +13,11 @@ use anyhow::{Context, Result};
 use arb_token::DelegateVotesChanged;
 use async_trait::async_trait;
 use chrono::DateTime;
+use proposalsapp_db::models::{
+    dao, dao_indexer, sea_orm_active_enums::IndexerVariant, voting_power,
+};
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
-use seaorm::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, voting_power};
 use std::{sync::Arc, time::Duration};
 use tracing::{info, instrument};
 
@@ -144,8 +146,9 @@ async fn get_voting_power(
 mod arbitrum_voting_power_tests {
     use super::*;
     use dotenv::dotenv;
+    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
+    use proposalsapp_db::models::sea_orm_active_enums::IndexerVariant;
     use sea_orm::prelude::Uuid;
-    use seaorm::sea_orm_active_enums::IndexerVariant;
     use utils::test_utils::{assert_voting_power, parse_datetime, ExpectedVotingPower};
 
     #[tokio::test]
@@ -155,7 +158,7 @@ mod arbitrum_voting_power_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::ArbArbitrumVotingPower,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::VotingPower,
+            indexer_type: IndexerType::VotingPower,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,

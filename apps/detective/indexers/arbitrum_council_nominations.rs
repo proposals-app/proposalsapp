@@ -16,15 +16,15 @@ use anyhow::{bail, Context, Result};
 use arbitrum_security_council_nomination::VoteCastForContender;
 use async_trait::async_trait;
 use chrono::DateTime;
+use proposalsapp_db::models::{
+    dao, dao_indexer, proposal,
+    sea_orm_active_enums::{IndexerVariant, ProposalState},
+    vote,
+};
 use regex::Regex;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, IntoActiveModel, QueryFilter, Set,
-};
-use seaorm::{
-    dao, dao_indexer, proposal,
-    sea_orm_active_enums::{IndexerVariant, ProposalState},
-    vote,
 };
 use serde_json::json;
 use std::{collections::HashMap, sync::Arc, time::Duration};
@@ -697,8 +697,9 @@ async fn get_executed_proposals(
 mod arbitrum_council_nominations_tests {
     use super::*;
     use dotenv::dotenv;
+    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
+    use proposalsapp_db::models::sea_orm_active_enums::IndexerVariant;
     use sea_orm::prelude::Uuid;
-    use seaorm::sea_orm_active_enums::IndexerVariant;
     use serde_json::json;
     use utils::test_utils::{
         assert_proposal, assert_vote, parse_datetime, ExpectedProposal, ExpectedVote,
@@ -711,7 +712,7 @@ mod arbitrum_council_nominations_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::ArbitrumCouncilNominations,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::ProposalsAndVotes,
+            indexer_type: IndexerType::ProposalsAndVotes,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 1,
@@ -773,7 +774,7 @@ mod arbitrum_council_nominations_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::ArbitrumCouncilNominations,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::ProposalsAndVotes,
+            indexer_type: IndexerType::ProposalsAndVotes,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 20550,
@@ -835,7 +836,7 @@ mod arbitrum_council_nominations_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::ArbitrumCouncilNominations,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::ProposalsAndVotes,
+            indexer_type: IndexerType::ProposalsAndVotes,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 41392,
@@ -897,7 +898,7 @@ mod arbitrum_council_nominations_tests {
         let indexer = dao_indexer::Model {
             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
             indexer_variant: IndexerVariant::ArbitrumCouncilNominations,
-            indexer_type: seaorm::sea_orm_active_enums::IndexerType::ProposalsAndVotes,
+            indexer_type: IndexerType::ProposalsAndVotes,
             portal_url: Some("placeholder".into()),
             enabled: true,
             speed: 43903,

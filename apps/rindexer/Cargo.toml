@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = { workspace = true }
 dotenv = { workspace = true }
 ethers = { workspace = true, features = ["rustls", "openssl"] }
+once_cell = { workspace = true }
+proposalsapp-db = { path = "../../libs/rust/db" }
 rindexer = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
@@ -16,6 +19,9 @@ sea-orm = { workspace = true, features = [
     "with-bigdecimal",
     "with-uuid",
 ] }
-seaorm = { path = "../../libs/rust/seaorm" }
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
+
+[[bin]]
+name = "rindexer"
+path = "src/main.rs"

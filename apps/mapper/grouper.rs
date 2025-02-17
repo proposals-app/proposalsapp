@@ -1,12 +1,14 @@
 use anyhow::{Context, Result};
 use chrono::Duration;
+use proposalsapp_db::models::{
+    dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group,
+};
 use sea_orm::{
     prelude::{Expr, Uuid},
     sea_query::Alias,
     ActiveValue::NotSet,
     ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set,
 };
-use seaorm::{dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group};
 use std::time::Duration as StdDuration;
 use tokio::time::{sleep, Instant};
 use tracing::{error, info, instrument, warn, Span};
