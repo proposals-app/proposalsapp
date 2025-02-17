@@ -264,28 +264,31 @@ async fn get_proposals(
 //     use proposalsapp_db::models::prelude::Uuid;
 //     use proposalsapp_db::models::sea_orm_active_enums::IndexerVariant;
 //     use serde_json::json;
-//     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
+//     use utils::test_utils::{assert_proposal, parse_datetime,
+// ExpectedProposal};
 
 //     #[tokio::test]
 //     async fn arbitrum_council_elections_1() {
 //         let _ = dotenv().ok();
 
 //         let indexer = dao_indexer::Model {
-//             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-//             indexer_variant: IndexerVariant::ArbitrumCouncilNominations,
-//             indexer_type: proposalsapp_db::models::sea_orm_active_enums::IndexerType::ProposalsAndVotes,
+//             id:
+// Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+// indexer_variant: IndexerVariant::ArbitrumCouncilNominations,
+// indexer_type:
+// proposalsapp_db::models::sea_orm_active_enums::IndexerType::ProposalsAndVotes,
 //             portal_url: Some("placeholder".into()),
 //             enabled: true,
 //             speed: 1,
 //             index: 131335636,
-//             dao_id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-//             updated_at: chrono::Utc::now().naive_utc(),
-//         };
+//             dao_id:
+// Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+// updated_at: chrono::Utc::now().naive_utc(),         };
 
 //         let dao = dao::Model {
-//             id: Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
-//             name: "placeholder".into(),
-//             slug: "placeholder".into(),
+//             id:
+// Uuid::parse_str("30a57869-933c-4d24-aadb-249557cd126a").unwrap(),
+// name: "placeholder".into(),             slug: "placeholder".into(),
 //             hot: true,
 //             picture: "placeholder".into(),
 //             background_color: "placeholder".into(),
@@ -300,28 +303,28 @@ async fn get_proposals(
 //                 assert!(!proposals.is_empty(), "No proposals were fetched");
 //                 let expected_proposals = [ExpectedProposal {
 //                     index_created: 0,          // Adjust based on actual data
-//                     external_id: "1234567890", // Replace with the actual proposal ID
-//                     name: "Nomination Proposal for Example",
-//                     body_contains: Some(vec!["Description of the nomination proposal."]), // Add actual description if available
-//                     url: "",              // Add actual URL if available
-//                     discussion_url: None, // Add actual discussion URL if available
-//                     choices: json!([]),   // Adjust based on actual data
-//                     scores: json!([]),    // Adjust based on actual data
-//                     scores_total: 0.0,    // Adjust based on actual data
-//                     scores_quorum: 0.0,   // Adjust based on actual data
-//                     quorum: 1.0,          // Default value in the code is 1.0
-//                     proposal_state: ProposalState::Active,
-//                     marked_spam: Some(false),
-//                     time_created: parse_datetime("2023-10-01 00:00:00"),
-//                     time_start: parse_datetime("2023-10-01 00:00:00"),
-//                     time_end: parse_datetime("2023-09-22 15:35:11"),
-//                     block_created: Some(131335636),
+//                     external_id: "1234567890", // Replace with the actual
+// proposal ID                     name: "Nomination Proposal for Example",
+//                     body_contains: Some(vec!["Description of the nomination
+// proposal."]), // Add actual description if available                     url:
+// "",              // Add actual URL if available
+// discussion_url: None, // Add actual discussion URL if available
+// choices: json!([]),   // Adjust based on actual data
+// scores: json!([]),    // Adjust based on actual data
+// scores_total: 0.0,    // Adjust based on actual data
+// scores_quorum: 0.0,   // Adjust based on actual data
+// quorum: 1.0,          // Default value in the code is 1.0
+// proposal_state: ProposalState::Active,                     marked_spam:
+// Some(false),                     time_created: parse_datetime("2023-10-01
+// 00:00:00"),                     time_start: parse_datetime("2023-10-01
+// 00:00:00"),                     time_end: parse_datetime("2023-09-22
+// 15:35:11"),                     block_created: Some(131335636),
 //                     txid: Some(""), // Add actual transaction ID if available
 //                     metadata: None,
 //                 }];
-//                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
-//                     assert_proposal(proposal, expected);
-//                 }
+//                 for (proposal, expected) in
+// proposals.iter().zip(expected_proposals.iter()) {
+// assert_proposal(proposal, expected);                 }
 //             }
 //             _ => panic!("Failed to index"),
 //         }

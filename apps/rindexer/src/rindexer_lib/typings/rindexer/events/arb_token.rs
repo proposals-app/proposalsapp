@@ -21,10 +21,7 @@ use ethers::{
 use rindexer::{
     async_trait,
     event::{
-        callback_registry::{
-            EventCallbackRegistry, EventCallbackRegistryInformation, EventCallbackResult,
-            EventResult, TxInformation,
-        },
+        callback_registry::{EventCallbackRegistry, EventCallbackRegistryInformation, EventCallbackResult, EventResult, TxInformation},
         contract_setup::{ContractInformation, NetworkContract},
     },
     generate_random_id,
@@ -35,11 +32,14 @@ use rindexer::{
     provider::JsonRpcCachedProvider,
     FutureExt,
 };
-use std::error::Error;
-use std::future::Future;
-use std::path::{Path, PathBuf};
-use std::pin::Pin;
-use std::{any::Any, sync::Arc};
+use std::{
+    any::Any,
+    error::Error,
+    future::Future,
+    path::{Path, PathBuf},
+    pin::Pin,
+    sync::Arc,
+};
 
 pub type ApprovalData = rindexer_arb_token_gen::ApprovalFilter;
 
@@ -110,16 +110,10 @@ pub fn no_extensions() -> NoExtensions {
     NoExtensions {}
 }
 
-pub fn approval_handler<TExtensions, F, Fut>(
-    custom_logic: F,
-) -> ApprovalEventCallbackType<TExtensions>
+pub fn approval_handler<TExtensions, F, Fut>(custom_logic: F) -> ApprovalEventCallbackType<TExtensions>
 where
     ApprovalResult: Clone + 'static,
-    F: for<'a> Fn(Vec<ApprovalResult>, Arc<EventContext<TExtensions>>) -> Fut
-        + Send
-        + Sync
-        + 'static
-        + Clone,
+    F: for<'a> Fn(Vec<ApprovalResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
     Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     TExtensions: Send + Sync + 'static,
 {
@@ -131,14 +125,8 @@ where
     })
 }
 
-type ApprovalEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(
-            &'a Vec<ApprovalResult>,
-            Arc<EventContext<TExtensions>>,
-        ) -> BoxFuture<'a, EventCallbackResult<()>>
-        + Send
-        + Sync,
->;
+type ApprovalEventCallbackType<TExtensions> =
+    Arc<dyn for<'a> Fn(&'a Vec<ApprovalResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct ApprovalEvent<TExtensions>
 where
@@ -155,11 +143,7 @@ where
     pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
     where
         ApprovalResult: Clone + 'static,
-        F: for<'a> Fn(Vec<ApprovalResult>, Arc<EventContext<TExtensions>>) -> Fut
-            + Send
-            + Sync
-            + 'static
-            + Clone,
+        F: for<'a> Fn(Vec<ApprovalResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
         Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     {
         Self {
@@ -187,13 +171,10 @@ where
         let result: Vec<ApprovalResult> = events
             .into_iter()
             .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<ApprovalData>()
-                    .ok()
-                    .map(|arc| ApprovalResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
+                item.decoded_data.downcast::<ApprovalData>().ok().map(|arc| ApprovalResult {
+                    event_data: (*arc).clone(),
+                    tx_information: item.tx_information,
+                })
             })
             .collect();
 
@@ -205,16 +186,10 @@ where
     }
 }
 
-pub fn delegatechanged_handler<TExtensions, F, Fut>(
-    custom_logic: F,
-) -> DelegateChangedEventCallbackType<TExtensions>
+pub fn delegatechanged_handler<TExtensions, F, Fut>(custom_logic: F) -> DelegateChangedEventCallbackType<TExtensions>
 where
     DelegateChangedResult: Clone + 'static,
-    F: for<'a> Fn(Vec<DelegateChangedResult>, Arc<EventContext<TExtensions>>) -> Fut
-        + Send
-        + Sync
-        + 'static
-        + Clone,
+    F: for<'a> Fn(Vec<DelegateChangedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
     Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     TExtensions: Send + Sync + 'static,
 {
@@ -227,12 +202,7 @@ where
 }
 
 type DelegateChangedEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(
-            &'a Vec<DelegateChangedResult>,
-            Arc<EventContext<TExtensions>>,
-        ) -> BoxFuture<'a, EventCallbackResult<()>>
-        + Send
-        + Sync,
+    dyn for<'a> Fn(&'a Vec<DelegateChangedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync,
 >;
 
 pub struct DelegateChangedEvent<TExtensions>
@@ -250,11 +220,7 @@ where
     pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
     where
         DelegateChangedResult: Clone + 'static,
-        F: for<'a> Fn(Vec<DelegateChangedResult>, Arc<EventContext<TExtensions>>) -> Fut
-            + Send
-            + Sync
-            + 'static
-            + Clone,
+        F: for<'a> Fn(Vec<DelegateChangedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
         Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     {
         Self {
@@ -300,16 +266,10 @@ where
     }
 }
 
-pub fn delegatevoteschanged_handler<TExtensions, F, Fut>(
-    custom_logic: F,
-) -> DelegateVotesChangedEventCallbackType<TExtensions>
+pub fn delegatevoteschanged_handler<TExtensions, F, Fut>(custom_logic: F) -> DelegateVotesChangedEventCallbackType<TExtensions>
 where
     DelegateVotesChangedResult: Clone + 'static,
-    F: for<'a> Fn(Vec<DelegateVotesChangedResult>, Arc<EventContext<TExtensions>>) -> Fut
-        + Send
-        + Sync
-        + 'static
-        + Clone,
+    F: for<'a> Fn(Vec<DelegateVotesChangedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
     Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     TExtensions: Send + Sync + 'static,
 {
@@ -322,10 +282,7 @@ where
 }
 
 type DelegateVotesChangedEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(
-            &'a Vec<DelegateVotesChangedResult>,
-            Arc<EventContext<TExtensions>>,
-        ) -> BoxFuture<'a, EventCallbackResult<()>>
+    dyn for<'a> Fn(&'a Vec<DelegateVotesChangedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>>
         + Send
         + Sync,
 >;
@@ -345,11 +302,7 @@ where
     pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
     where
         DelegateVotesChangedResult: Clone + 'static,
-        F: for<'a> Fn(Vec<DelegateVotesChangedResult>, Arc<EventContext<TExtensions>>) -> Fut
-            + Send
-            + Sync
-            + 'static
-            + Clone,
+        F: for<'a> Fn(Vec<DelegateVotesChangedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
         Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     {
         Self {
@@ -390,21 +343,18 @@ where
         if result.len() == events_len {
             (self.callback)(&result, Arc::clone(&self.context)).await
         } else {
-            panic!("DelegateVotesChangedEvent: Unexpected data type - expected: DelegateVotesChangedData")
+            panic!(
+                "DelegateVotesChangedEvent: Unexpected data type - expected: \
+                 DelegateVotesChangedData"
+            )
         }
     }
 }
 
-pub fn initialized_handler<TExtensions, F, Fut>(
-    custom_logic: F,
-) -> InitializedEventCallbackType<TExtensions>
+pub fn initialized_handler<TExtensions, F, Fut>(custom_logic: F) -> InitializedEventCallbackType<TExtensions>
 where
     InitializedResult: Clone + 'static,
-    F: for<'a> Fn(Vec<InitializedResult>, Arc<EventContext<TExtensions>>) -> Fut
-        + Send
-        + Sync
-        + 'static
-        + Clone,
+    F: for<'a> Fn(Vec<InitializedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
     Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     TExtensions: Send + Sync + 'static,
 {
@@ -416,14 +366,8 @@ where
     })
 }
 
-type InitializedEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(
-            &'a Vec<InitializedResult>,
-            Arc<EventContext<TExtensions>>,
-        ) -> BoxFuture<'a, EventCallbackResult<()>>
-        + Send
-        + Sync,
->;
+type InitializedEventCallbackType<TExtensions> =
+    Arc<dyn for<'a> Fn(&'a Vec<InitializedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct InitializedEvent<TExtensions>
 where
@@ -440,11 +384,7 @@ where
     pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
     where
         InitializedResult: Clone + 'static,
-        F: for<'a> Fn(Vec<InitializedResult>, Arc<EventContext<TExtensions>>) -> Fut
-            + Send
-            + Sync
-            + 'static
-            + Clone,
+        F: for<'a> Fn(Vec<InitializedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
         Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     {
         Self {
@@ -472,13 +412,10 @@ where
         let result: Vec<InitializedResult> = events
             .into_iter()
             .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<InitializedData>()
-                    .ok()
-                    .map(|arc| InitializedResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
+                item.decoded_data.downcast::<InitializedData>().ok().map(|arc| InitializedResult {
+                    event_data: (*arc).clone(),
+                    tx_information: item.tx_information,
+                })
             })
             .collect();
 
@@ -490,16 +427,10 @@ where
     }
 }
 
-pub fn ownershiptransferred_handler<TExtensions, F, Fut>(
-    custom_logic: F,
-) -> OwnershipTransferredEventCallbackType<TExtensions>
+pub fn ownershiptransferred_handler<TExtensions, F, Fut>(custom_logic: F) -> OwnershipTransferredEventCallbackType<TExtensions>
 where
     OwnershipTransferredResult: Clone + 'static,
-    F: for<'a> Fn(Vec<OwnershipTransferredResult>, Arc<EventContext<TExtensions>>) -> Fut
-        + Send
-        + Sync
-        + 'static
-        + Clone,
+    F: for<'a> Fn(Vec<OwnershipTransferredResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
     Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     TExtensions: Send + Sync + 'static,
 {
@@ -512,10 +443,7 @@ where
 }
 
 type OwnershipTransferredEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(
-            &'a Vec<OwnershipTransferredResult>,
-            Arc<EventContext<TExtensions>>,
-        ) -> BoxFuture<'a, EventCallbackResult<()>>
+    dyn for<'a> Fn(&'a Vec<OwnershipTransferredResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>>
         + Send
         + Sync,
 >;
@@ -535,11 +463,7 @@ where
     pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
     where
         OwnershipTransferredResult: Clone + 'static,
-        F: for<'a> Fn(Vec<OwnershipTransferredResult>, Arc<EventContext<TExtensions>>) -> Fut
-            + Send
-            + Sync
-            + 'static
-            + Clone,
+        F: for<'a> Fn(Vec<OwnershipTransferredResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
         Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     {
         Self {
@@ -580,21 +504,18 @@ where
         if result.len() == events_len {
             (self.callback)(&result, Arc::clone(&self.context)).await
         } else {
-            panic!("OwnershipTransferredEvent: Unexpected data type - expected: OwnershipTransferredData")
+            panic!(
+                "OwnershipTransferredEvent: Unexpected data type - expected: \
+                 OwnershipTransferredData"
+            )
         }
     }
 }
 
-pub fn transfer_handler<TExtensions, F, Fut>(
-    custom_logic: F,
-) -> TransferEventCallbackType<TExtensions>
+pub fn transfer_handler<TExtensions, F, Fut>(custom_logic: F) -> TransferEventCallbackType<TExtensions>
 where
     TransferResult: Clone + 'static,
-    F: for<'a> Fn(Vec<TransferResult>, Arc<EventContext<TExtensions>>) -> Fut
-        + Send
-        + Sync
-        + 'static
-        + Clone,
+    F: for<'a> Fn(Vec<TransferResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
     Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     TExtensions: Send + Sync + 'static,
 {
@@ -606,14 +527,8 @@ where
     })
 }
 
-type TransferEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(
-            &'a Vec<TransferResult>,
-            Arc<EventContext<TExtensions>>,
-        ) -> BoxFuture<'a, EventCallbackResult<()>>
-        + Send
-        + Sync,
->;
+type TransferEventCallbackType<TExtensions> =
+    Arc<dyn for<'a> Fn(&'a Vec<TransferResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct TransferEvent<TExtensions>
 where
@@ -630,11 +545,7 @@ where
     pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
     where
         TransferResult: Clone + 'static,
-        F: for<'a> Fn(Vec<TransferResult>, Arc<EventContext<TExtensions>>) -> Fut
-            + Send
-            + Sync
-            + 'static
-            + Clone,
+        F: for<'a> Fn(Vec<TransferResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
         Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
     {
         Self {
@@ -662,13 +573,10 @@ where
         let result: Vec<TransferResult> = events
             .into_iter()
             .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<TransferData>()
-                    .ok()
-                    .map(|arc| TransferResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
+                item.decoded_data.downcast::<TransferData>().ok().map(|arc| TransferResult {
+                    event_data: (*arc).clone(),
+                    tx_information: item.tx_information,
+                })
             })
             .collect();
 
@@ -693,13 +601,8 @@ where
 }
 
 pub fn arb_token_contract(network: &str) -> RindexerARBTokenGen<Arc<Provider<RetryClient<Http>>>> {
-    let address: Address = "0x912ce59144191c1204e64559fe8253a0e49e6548"
-        .parse()
-        .expect("Invalid address");
-    RindexerARBTokenGen::new(
-        address,
-        Arc::new(get_provider_cache_for_network(network).get_inner_provider()),
-    )
+    let address: Address = "0x912ce59144191c1204e64559fe8253a0e49e6548".parse().expect("Invalid address");
+    RindexerARBTokenGen::new(address, Arc::new(get_provider_cache_for_network(network).get_inner_provider()))
 }
 
 pub fn decoder_contract(network: &str) -> RindexerARBTokenGen<Arc<Provider<RetryClient<Http>>>> {
@@ -720,24 +623,12 @@ where
 {
     pub fn topic_id(&self) -> &'static str {
         match self {
-            ARBTokenEventType::Approval(_) => {
-                "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925"
-            }
-            ARBTokenEventType::DelegateChanged(_) => {
-                "0x3134e8a2e6d97e929a7e54011ea5485d7d196dd5f0ba4d4ef95803e8e3fc257f"
-            }
-            ARBTokenEventType::DelegateVotesChanged(_) => {
-                "0xdec2bacdd2f05b59de34da9b523dff8be42e5e38e818c82fdb0bae774387a724"
-            }
-            ARBTokenEventType::Initialized(_) => {
-                "0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498"
-            }
-            ARBTokenEventType::OwnershipTransferred(_) => {
-                "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
-            }
-            ARBTokenEventType::Transfer(_) => {
-                "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-            }
+            ARBTokenEventType::Approval(_) => "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
+            ARBTokenEventType::DelegateChanged(_) => "0x3134e8a2e6d97e929a7e54011ea5485d7d196dd5f0ba4d4ef95803e8e3fc257f",
+            ARBTokenEventType::DelegateVotesChanged(_) => "0xdec2bacdd2f05b59de34da9b523dff8be42e5e38e818c82fdb0bae774387a724",
+            ARBTokenEventType::Initialized(_) => "0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498",
+            ARBTokenEventType::OwnershipTransferred(_) => "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+            ARBTokenEventType::Transfer(_) => "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
         }
     }
 
@@ -760,10 +651,7 @@ where
         get_provider_cache_for_network(network)
     }
 
-    fn decoder(
-        &self,
-        network: &str,
-    ) -> Arc<dyn Fn(Vec<H256>, Bytes) -> Arc<dyn Any + Send + Sync> + Send + Sync> {
+    fn decoder(&self, network: &str) -> Arc<dyn Fn(Vec<H256>, Bytes) -> Arc<dyn Any + Send + Sync> + Send + Sync> {
         let decoder_contract = decoder_contract(network);
 
         match self {
@@ -780,35 +668,33 @@ where
                 }
             }),
 
-            ARBTokenEventType::DelegateChanged(_) => Arc::new(
-                move |topics: Vec<H256>, data: Bytes| match DelegateChangedData::decode_log(
-                    &ethers::core::abi::RawLog {
-                        topics,
-                        data: data.to_vec(),
-                    },
-                ) {
-                    Ok(event) => {
-                        let result: DelegateChangedData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                },
-            ),
-
-            ARBTokenEventType::DelegateVotesChanged(_) => {
+            ARBTokenEventType::DelegateChanged(_) => {
                 Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                    match DelegateVotesChangedData::decode_log(&ethers::core::abi::RawLog {
+                    match DelegateChangedData::decode_log(&ethers::core::abi::RawLog {
                         topics,
                         data: data.to_vec(),
                     }) {
                         Ok(event) => {
-                            let result: DelegateVotesChangedData = event;
+                            let result: DelegateChangedData = event;
                             Arc::new(result) as Arc<dyn Any + Send + Sync>
                         }
                         Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
                     }
                 })
             }
+
+            ARBTokenEventType::DelegateVotesChanged(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
+                match DelegateVotesChangedData::decode_log(&ethers::core::abi::RawLog {
+                    topics,
+                    data: data.to_vec(),
+                }) {
+                    Ok(event) => {
+                        let result: DelegateVotesChangedData = event;
+                        Arc::new(result) as Arc<dyn Any + Send + Sync>
+                    }
+                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
+                }
+            }),
 
             ARBTokenEventType::Initialized(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
                 match InitializedData::decode_log(&ethers::core::abi::RawLog {
@@ -823,20 +709,18 @@ where
                 }
             }),
 
-            ARBTokenEventType::OwnershipTransferred(_) => {
-                Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                    match OwnershipTransferredData::decode_log(&ethers::core::abi::RawLog {
-                        topics,
-                        data: data.to_vec(),
-                    }) {
-                        Ok(event) => {
-                            let result: OwnershipTransferredData = event;
-                            Arc::new(result) as Arc<dyn Any + Send + Sync>
-                        }
-                        Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
+            ARBTokenEventType::OwnershipTransferred(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
+                match OwnershipTransferredData::decode_log(&ethers::core::abi::RawLog {
+                    topics,
+                    data: data.to_vec(),
+                }) {
+                    Ok(event) => {
+                        let result: OwnershipTransferredData = event;
+                        Arc::new(result) as Arc<dyn Any + Send + Sync>
                     }
-                })
-            }
+                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
+                }
+            }),
 
             ARBTokenEventType::Transfer(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
                 match TransferData::decode_log(&ethers::core::abi::RawLog {
@@ -874,12 +758,10 @@ where
         let index_event_in_order = contract_details
             .index_event_in_order
             .as_ref()
-            .map_or(false, |vec| vec.contains(&event_name.to_string()));
+            .is_some_and(|vec| vec.contains(&event_name.to_string()));
 
         let contract = ContractInformation {
-            name: contract_details
-                .before_modify_name_if_filter_readonly()
-                .into_owned(),
+            name: contract_details.before_modify_name_if_filter_readonly().into_owned(),
             details: contract_details
                 .details
                 .iter()
@@ -895,16 +777,14 @@ where
                         .networks
                         .iter()
                         .find(|n| n.name == c.network)
-                        .map_or(false, |n| n.disable_logs_bloom_checks.unwrap_or_default()),
+                        .is_some_and(|n| n.disable_logs_bloom_checks.unwrap_or_default()),
                 })
                 .collect(),
             abi: contract_details.abi,
             reorg_safe_distance: contract_details.reorg_safe_distance.unwrap_or_default(),
         };
 
-        let callback: Arc<
-            dyn Fn(Vec<EventResult>) -> BoxFuture<'static, EventCallbackResult<()>> + Send + Sync,
-        > = match self {
+        let callback: Arc<dyn Fn(Vec<EventResult>) -> BoxFuture<'static, EventCallbackResult<()>> + Send + Sync> = match self {
             ARBTokenEventType::Approval(event) => {
                 let event = Arc::new(event);
                 Arc::new(move |result| {

@@ -424,8 +424,10 @@ async fn get_body(hexhash: String) -> Result<String> {
 mod aave_v3_proposals {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use proposalsapp_db::models::{
+        dao_indexer,
+        sea_orm_active_enums::{IndexerType, IndexerVariant},
+    };
     use sea_orm::prelude::Uuid;
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
@@ -614,9 +616,17 @@ mod aave_v3_proposals {
                     index_created: 19412601,
                     external_id: "47",
                     name: "Activation of A-C Prime Foundation",
-                    body_contains: Some(vec!["giving mandate to Centrifuge to create a Association to represent the Aave DAO off-chain, this AIP proposes the activation of the A-C Prime Foundation.","References"]),
+                    body_contains: Some(vec![
+                        "giving mandate to Centrifuge to create a Association to represent the \
+                         Aave DAO off-chain, this AIP proposes the activation of the A-C Prime \
+                         Foundation.",
+                        "References",
+                    ]),
                     url: "https://app.aave.com/governance/v3/proposal/?proposalId=47",
-                    discussion_url: Some("https://governance.aave.com/t/arfc-aave-treasury-rwa-allocation/14790".into()),
+                    discussion_url: Some(
+                        "https://governance.aave.com/t/arfc-aave-treasury-rwa-allocation/14790"
+                            .into(),
+                    ),
                     choices: json!(["For", "Against"]),
                     scores: json!([69575.82853768951, 425389.02729258186]),
                     scores_total: 494964.8558302714,
@@ -628,7 +638,9 @@ mod aave_v3_proposals {
                     time_start: parse_datetime("2024-03-12 17:34:59"),
                     time_end: parse_datetime("2024-03-15 17:34:59"),
                     block_created: Some(19412601),
-                    txid: Some("0xfa2a20615e1ff91d9fcb4cd4f5dd5488f41ec6b762d0e9ebbc9b04038db1bb37"),
+                    txid: Some(
+                        "0xfa2a20615e1ff91d9fcb4cd4f5dd5488f41ec6b762d0e9ebbc9b04038db1bb37",
+                    ),
                     metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {

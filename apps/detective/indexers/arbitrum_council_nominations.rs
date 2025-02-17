@@ -283,7 +283,8 @@ async fn get_votes(
             None => bail!("Choices is not an array for proposal: {}", event.proposalId),
         };
 
-        // Ensure scores array has the same length as choices array, initializing missing scores to 0.0
+        // Ensure scores array has the same length as choices array, initializing
+        // missing scores to 0.0
         if let Some(index) = contender_index {
             while scores.as_array().unwrap().len() <= index {
                 scores.as_array_mut().unwrap().push(serde_json::json!(0.0));
@@ -697,8 +698,7 @@ async fn get_executed_proposals(
 mod arbitrum_council_nominations_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerVariant;
+    use proposalsapp_db::models::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use sea_orm::prelude::Uuid;
     use serde_json::json;
     use utils::test_utils::{

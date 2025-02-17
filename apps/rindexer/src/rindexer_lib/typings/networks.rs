@@ -20,10 +20,7 @@ fn create_shadow_client(
     let mut header = HeaderMap::new();
     header.insert(
         "X-SHADOW-API-KEY",
-        public_read_env_value("RINDEXER_PHANTOM_API_KEY")
-            .unwrap()
-            .parse()
-            .unwrap(),
+        public_read_env_value("RINDEXER_PHANTOM_API_KEY").unwrap().parse().unwrap(),
     );
     create_client(rpc_url, compute_units_per_second, max_block_range, header)
 }

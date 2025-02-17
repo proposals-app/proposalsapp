@@ -198,7 +198,8 @@ impl UserIndexer {
             }
         } else if response.status().is_success() {
             info!(url = %full_url, "Avatar URL fetched successfully");
-            Ok(full_url) // Return the original URL if no redirect and the request was successful
+            Ok(full_url) // Return the original URL if no redirect and the
+                         // request was successful
         } else {
             error!(url = %full_url, status = %response.status(), "Failed to fetch avatar URL");
             Ok(full_url) // Return the original URL if the request failed

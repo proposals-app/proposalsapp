@@ -482,7 +482,8 @@ fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
         .filter(|&part| !part.is_empty())
         .collect();
 
-    // Check if the URL contains the "t" segment, which is typical for Discourse topic URLs
+    // Check if the URL contains the "t" segment, which is typical for Discourse
+    // topic URLs
     if let Some(index) = parts.iter().position(|&part| part == "t") {
         // Try to extract the ID from the next segment
         let id = parts

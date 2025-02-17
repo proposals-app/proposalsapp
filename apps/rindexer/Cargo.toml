@@ -1,6 +1,6 @@
 [package]
-name = "rindexer"
-version = "0.1.0"
+name = "proposalsapp-rindexer"
+version = "1.0.0"
 edition = "2021"
 
 [dependencies]
@@ -11,6 +11,9 @@ ethers = { workspace = true, features = ["rustls", "openssl"] }
 lazy_static = { workspace = true }
 once_cell = { workspace = true }
 proposalsapp-db = { path = "../../libs/rust/db" }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+reqwest-middleware = { workspace = true }
+reqwest-retry = { workspace = true }
 rindexer = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
@@ -27,5 +30,5 @@ tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
 
 [[bin]]
-name = "rindexer"
+name = "proposalsapp-rindexer"
 path = "src/main.rs"

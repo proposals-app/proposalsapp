@@ -164,7 +164,8 @@ mod markdown_changes_tests {
 
     #[test]
     fn test_markdown_extraction_1() {
-        // Test case 1: Basic extraction of before and after content with deletions and insertions.
+        // Test case 1: Basic extraction of before and after content with deletions and
+        // insertions.
         let content = r#"<table class="markdown"><tr><td class="diff-del">This is <del>a simple </del>paragraph.</td><td class="diff-ins">This is <ins>an inline addition what to this </ins>paragraph.</td></tr></table>"#;
 
         // Extracting "before" content, which should not include the deleted part.
@@ -192,7 +193,8 @@ mod markdown_changes_tests {
 
     #[test]
     fn test_markdown_extraction_3() {
-        // Test case 3: Extraction with a more complex example including special HTML entities and additional insertion.
+        // Test case 3: Extraction with a more complex example including special HTML
+        // entities and additional insertion.
         let content = r#"<table class="markdown"><tr><td class="diff-del">I would love to take on the project as a whole. I just don&#39;t have the ability to put up any sort of funds to get it started. Maybe it would be better if the DAO purchased at bulk, then the purchaser could just send whatever amount and details through a simple terminal be placed in a queue generate a slip, pack and pick up from FedEx.</td><td class="diff-ins">I would love to take on the project as a whole. I just don&#39;t have the ability to put up any sort of funds to get it started. Maybe it would be better if the DAO purchased at bulk, then the purchaser could just send whatever amount and details through a simple terminal be placed in a queue generate a slip, pack and pick up from FedEx.<ins> I do have a taxable business account in the State of California.</ins></td></tr></table>"#;
 
         // Extracting "before" content, which should not include the inserted part.
@@ -219,7 +221,8 @@ mod markdown_changes_tests {
 ---
 </td></tr></table>"#;
 
-        // Extracting "before" content, which should be the same as the original content.
+        // Extracting "before" content, which should be the same as the original
+        // content.
         let before = extract_before_content_markdown(content).unwrap();
         assert_eq!(
             before,
@@ -238,7 +241,8 @@ mod markdown_changes_tests {
 
     #[test]
     fn test_markdown_extraction_5() {
-        // Test case 5: Extraction with a mix of identical content and deletions/insertions.
+        // Test case 5: Extraction with a mix of identical content and
+        // deletions/insertions.
         let content = r#"<table class="markdown"><tr><td># [[Non-constitutional] Proposal to fund Plurality Labs Milestone 1B(ridge)]((https://snapshot.org/#/arbitrumfoundation.eth/proposal/0x24344ab10eb905a4d7fa5885c6f681290e765a08a5f558ff6cfc5fedab42afb6))
 ---
 </td><td># [[Non-constitutional] Proposal to fund Plurality Labs Milestone 1B(ridge)]((https://snapshot.org/#/arbitrumfoundation.eth/proposal/0x24344ab10eb905a4d7fa5885c6f681290e765a08a5f558ff6cfc5fedab42afb6))
@@ -274,7 +278,8 @@ We support the improvement of their team of experts."#
 
     #[test]
     fn test_markdown_extraction_6() {
-        // Test case 6: Extraction with deletion and insertion in a more complex scenario.
+        // Test case 6: Extraction with deletion and insertion in a more complex
+        // scenario.
         let content = r#"<table class="markdown"><tr><td>thanks for the detailed response. This clarity will def helps us navigate future rounds better.
 I think most grants acting in good faith have a legit story behind what appears as a sybil attack but at the same time i get that its really not feasible for Gitcoin to look into each to understand the context.
 The current doc on whats considered a sybil attack by Gitcoin is quite broad which is where potential confusion can arise, esp for newer grants. Maybe a forum post where this can be hashed out betn the team and grants once the dust settles on this round would be nice to prevent this next time.

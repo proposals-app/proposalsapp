@@ -204,7 +204,8 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
                     let scores_state_matches = if metadata.hidden_vote {
                         metadata.scores_state == "final"
                     } else {
-                        true // If hidden_vote is false, we don't care about scores_state
+                        true // If hidden_vote is false, we don't care about
+                             // scores_state
                     };
 
                     state_matches && scores_state_matches
@@ -570,8 +571,10 @@ async fn sanitize(
 mod snapshot_proposals_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use proposalsapp_db::models::{
+        dao_indexer,
+        sea_orm_active_enums::{IndexerType, IndexerVariant},
+    };
     use sea_orm::prelude::Uuid;
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};

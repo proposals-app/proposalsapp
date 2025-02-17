@@ -1,17 +1,14 @@
 #![allow(non_snake_case)]
 use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::{
-    no_extensions, ArbitrumTreasuryGovernorEventType, InitializedEvent,
-    LateQuorumVoteExtensionSetEvent, OwnershipTransferredEvent, ProposalCanceledEvent,
-    ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent,
-    ProposalThresholdSetEvent, QuorumNumeratorUpdatedEvent, TimelockChangeEvent, VoteCastEvent,
-    VoteCastWithParamsEvent, VotingDelaySetEvent, VotingPeriodSetEvent,
+    no_extensions, ArbitrumTreasuryGovernorEventType, InitializedEvent, LateQuorumVoteExtensionSetEvent, OwnershipTransferredEvent,
+    ProposalCanceledEvent, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent,
+    ProposalThresholdSetEvent, QuorumNumeratorUpdatedEvent, TimelockChangeEvent, VoteCastEvent, VoteCastWithParamsEvent,
+    VotingDelaySetEvent, VotingPeriodSetEvent,
 };
 use rindexer::{
-    event::callback_registry::EventCallbackRegistry, rindexer_error, rindexer_info,
-    EthereumSqlTypeWrapper, PgType, RindexerColorize,
+    event::callback_registry::EventCallbackRegistry, rindexer_error, rindexer_info, EthereumSqlTypeWrapper, PgType, RindexerColorize,
 };
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 async fn initialized_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumTreasuryGovernorEventType::Initialized(
@@ -36,10 +33,7 @@ async fn initialized_handler(manifest_path: &PathBuf, registry: &mut EventCallba
     .register(manifest_path, registry);
 }
 
-async fn late_quorum_vote_extension_set_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn late_quorum_vote_extension_set_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumTreasuryGovernorEventType::LateQuorumVoteExtensionSet(
         LateQuorumVoteExtensionSetEvent::handler(
             |results, context| async move {
@@ -62,10 +56,7 @@ async fn late_quorum_vote_extension_set_handler(
     .register(manifest_path, registry);
 }
 
-async fn ownership_transferred_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn ownership_transferred_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumTreasuryGovernorEventType::OwnershipTransferred(
         OwnershipTransferredEvent::handler(
             |results, context| async move {
@@ -203,10 +194,7 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
     .register(manifest_path, registry);
 }
 
-async fn proposal_threshold_set_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn proposal_threshold_set_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumTreasuryGovernorEventType::ProposalThresholdSet(
         ProposalThresholdSetEvent::handler(
             |results, context| async move {
@@ -229,10 +217,7 @@ async fn proposal_threshold_set_handler(
     .register(manifest_path, registry);
 }
 
-async fn quorum_numerator_updated_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn quorum_numerator_updated_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumTreasuryGovernorEventType::QuorumNumeratorUpdated(
         QuorumNumeratorUpdatedEvent::handler(
             |results, context| async move {
@@ -301,10 +286,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
     .register(manifest_path, registry);
 }
 
-async fn vote_cast_with_params_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumTreasuryGovernorEventType::VoteCastWithParams(
         VoteCastWithParamsEvent::handler(
             |results, context| async move {
@@ -372,10 +354,7 @@ async fn voting_period_set_handler(manifest_path: &PathBuf, registry: &mut Event
     )
     .register(manifest_path, registry);
 }
-pub async fn arbitrum_treasury_governor_handlers(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+pub async fn arbitrum_treasury_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     // initialized_handler(manifest_path, registry).await;
 
     // late_quorum_vote_extension_set_handler(manifest_path, registry).await;

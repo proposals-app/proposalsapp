@@ -1,6 +1,7 @@
-use super::rindexer::arb_token::arb_token_handlers;
-use super::rindexer::arbitrum_core_governor::arbitrum_core_governor_handlers;
-use super::rindexer::arbitrum_treasury_governor::arbitrum_treasury_governor_handlers;
+use super::rindexer::{
+    arb_token::arb_token_handlers, arbitrum_core_governor::arbitrum_core_governor_handlers,
+    arbitrum_treasury_governor::arbitrum_treasury_governor_handlers,
+};
 use crate::extensions::db_extension::initialize_db;
 use rindexer::event::callback_registry::EventCallbackRegistry;
 use std::path::PathBuf;

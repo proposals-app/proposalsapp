@@ -145,8 +145,7 @@ async fn get_delegations(
 mod arbitrum_delegations_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerVariant;
+    use proposalsapp_db::models::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use sea_orm::prelude::Uuid;
     use utils::test_utils::{assert_delegation, parse_datetime, ExpectedDelegation};
 

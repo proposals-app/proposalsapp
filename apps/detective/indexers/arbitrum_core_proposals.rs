@@ -381,8 +381,7 @@ async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
 mod arbitrum_core_proposals_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerVariant;
+    use proposalsapp_db::models::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use sea_orm::prelude::Uuid;
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};

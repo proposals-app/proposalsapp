@@ -146,8 +146,7 @@ async fn get_voting_power(
 mod arbitrum_voting_power_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerVariant;
+    use proposalsapp_db::models::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use sea_orm::prelude::Uuid;
     use utils::test_utils::{assert_voting_power, parse_datetime, ExpectedVotingPower};
 

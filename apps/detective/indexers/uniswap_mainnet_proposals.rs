@@ -295,8 +295,10 @@ async fn data_for_proposal(
 mod uniswap_mainnet_proposals_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use proposalsapp_db::models::{
+        dao_indexer,
+        sea_orm_active_enums::{IndexerType, IndexerVariant},
+    };
     use sea_orm::prelude::Uuid;
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
@@ -338,7 +340,10 @@ mod uniswap_mainnet_proposals_tests {
                     index_created: 20529031,
                     external_id: "67",
                     name: "Deploy Uniswap v3 on X Layer",
-                    body_contains: Some(vec!["This proposal proposes deploying Uniswap v3 on X Layer. GFX Labs is sponsoring this proposal on behalf of X Layer."]),
+                    body_contains: Some(vec![
+                        "This proposal proposes deploying Uniswap v3 on X Layer. GFX Labs is \
+                         sponsoring this proposal on behalf of X Layer.",
+                    ]),
                     url: "https://app.uniswap.org/#/vote/67",
                     discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),
@@ -352,7 +357,9 @@ mod uniswap_mainnet_proposals_tests {
                     time_start: parse_datetime("2024-08-16 15:44:47"),
                     time_end: parse_datetime("2024-08-22 06:55:11"),
                     block_created: Some(20529031),
-                    txid: Some("0x23ea669518d73d54f7cdb9320cd9b7408e086a84de2852652078ac813739c319"),
+                    txid: Some(
+                        "0x23ea669518d73d54f7cdb9320cd9b7408e086a84de2852652078ac813739c319",
+                    ),
                     metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {

@@ -232,8 +232,7 @@ async fn get_votes_with_params(
 mod frax_alpha_mainnet_votes_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerVariant;
+    use proposalsapp_db::models::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use sea_orm::prelude::Uuid;
     use serde_json::json;
     use utils::test_utils::{assert_vote, parse_datetime, ExpectedVote};

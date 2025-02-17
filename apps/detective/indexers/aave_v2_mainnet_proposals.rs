@@ -773,9 +773,14 @@ mod aave_v2_proposals {
                     index_created: 18790604,
                     external_id: "412",
                     name: "Transfer all CRV positions from Ethereum Mainnet Collector to GLC Safe",
-                    body_contains: Some(vec!["Transfer all available CRV from Aave Mainnet Treasury to GHO Liquidity Committee (GLC) SAFE where it will be deployed to sdCRV."]),
+                    body_contains: Some(vec![
+                        "Transfer all available CRV from Aave Mainnet Treasury to GHO Liquidity \
+                         Committee (GLC) SAFE where it will be deployed to sdCRV.",
+                    ]),
                     url: "https://app.aave.com/governance/proposal/?proposalId=412",
-                    discussion_url: Some("https://governance.aave.com/t/arfc-deploy-acrv-crv-to-vecrv/11628".into()),
+                    discussion_url: Some(
+                        "https://governance.aave.com/t/arfc-deploy-acrv-crv-to-vecrv/11628".into(),
+                    ),
                     choices: json!(["For", "Against"]),
                     scores: json!([536551.6296395722, 0.0]),
                     scores_total: 536551.6296395722,
@@ -787,7 +792,9 @@ mod aave_v2_proposals {
                     time_start: parse_datetime("2023-12-16 09:42:23"),
                     time_end: parse_datetime("2023-12-19 02:20:59"),
                     block_created: Some(18790604),
-                    txid: Some("0xe80efe71357574155c123b43f08d32bc32191a3d7a8593787749c5b491f7c3ae"),
+                    txid: Some(
+                        "0xe80efe71357574155c123b43f08d32bc32191a3d7a8593787749c5b491f7c3ae",
+                    ),
                     metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {

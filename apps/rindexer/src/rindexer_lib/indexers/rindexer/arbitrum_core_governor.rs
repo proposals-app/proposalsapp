@@ -1,31 +1,41 @@
 #![allow(non_snake_case)]
 use super::super::super::typings::rindexer::events::arbitrum_core_governor::{
-    no_extensions, ArbitrumCoreGovernorEventType, InitializedEvent,
-    LateQuorumVoteExtensionSetEvent, OwnershipTransferredEvent, ProposalCanceledEvent,
-    ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent,
-    ProposalThresholdSetEvent, QuorumNumeratorUpdatedEvent, TimelockChangeEvent, VoteCastEvent,
-    VoteCastWithParamsEvent, VotingDelaySetEvent, VotingPeriodSetEvent,
+    no_extensions, ArbitrumCoreGovernorEventType, InitializedEvent, LateQuorumVoteExtensionSetEvent, OwnershipTransferredEvent,
+    ProposalCanceledEvent, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent,
+    ProposalThresholdSetEvent, QuorumNumeratorUpdatedEvent, TimelockChangeEvent, VoteCastEvent, VoteCastWithParamsEvent,
+    VotingDelaySetEvent, VotingPeriodSetEvent,
 };
-use crate::extensions::db_extension::{store_proposals, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP};
-use crate::rindexer_lib::typings::networks::get_arbitrum_provider;
-use crate::rindexer_lib::typings::rindexer::events::arbitrum_core_governor::arbitrum_core_governor_contract;
-use anyhow::Context;
-use chrono::DateTime;
-use ethers::providers::Middleware;
-use ethers::types::U256;
-use ethers::utils::hex;
-use proposalsapp_db::models::proposal;
-use proposalsapp_db::models::sea_orm_active_enums::{IndexerVariant, ProposalState};
+use crate::{
+    extensions::{
+        block_time::estimate_timestamp,
+        db_extension::{store_proposals, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP, DB},
+    },
+    rindexer_lib::typings::{
+        networks::{get_arbitrum_provider, get_ethereum_provider},
+        rindexer::events::arbitrum_core_governor::arbitrum_core_governor_contract,
+    },
+};
+use anyhow::{Context, Result};
+use chrono::{DateTime, NaiveDateTime};
+use ethers::{
+    providers::Middleware,
+    types::{BlockId, U256},
+    utils::hex,
+};
+use proposalsapp_db::models::{
+    proposal,
+    sea_orm_active_enums::{IndexerVariant, ProposalState},
+};
 use rindexer::{
-    event::callback_registry::EventCallbackRegistry, rindexer_error, rindexer_info,
-    EthereumSqlTypeWrapper, PgType, RindexerColorize,
+    event::callback_registry::EventCallbackRegistry, rindexer_error, rindexer_info, EthereumSqlTypeWrapper, PgType, RindexerColorize,
 };
-use sea_orm::prelude::Uuid;
-use sea_orm::ActiveValue::{self, NotSet};
-use sea_orm::Set;
+use sea_orm::{
+    prelude::Uuid,
+    ActiveValue::{self, NotSet},
+    ConnectionTrait, Set,
+};
 use serde_json::json;
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 fn get_dao_indexer_id() -> ActiveValue<Uuid> {
     DAO_INDEXER_ID_MAP
@@ -72,10 +82,7 @@ async fn initialized_handler(manifest_path: &PathBuf, registry: &mut EventCallba
     .register(manifest_path, registry);
 }
 
-async fn late_quorum_vote_extension_set_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn late_quorum_vote_extension_set_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::LateQuorumVoteExtensionSet(
         LateQuorumVoteExtensionSetEvent::handler(
             |results, context| async move {
@@ -98,10 +105,7 @@ async fn late_quorum_vote_extension_set_handler(
     .register(manifest_path, registry);
 }
 
-async fn ownership_transferred_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn ownership_transferred_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::OwnershipTransferred(
         OwnershipTransferredEvent::handler(
             |results, context| async move {
@@ -203,26 +207,21 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 for result in results.clone() {
                     let arbitrum_core_governor = arbitrum_core_governor_contract("ethereum");
 
-                    let created_block_timestamp = get_arbitrum_provider()
-                        .get_block(result.tx_information.block_number)
+                    let created_at = estimate_timestamp("ethereum", result.tx_information.block_number.as_u64())
                         .await
-                        .context("Failed to fetch block")
-                        .unwrap()
-                        .unwrap()
-                        .timestamp;
+                        .expect("Failed to estimate created timestamp");
 
-                    let created_block_datetime =
-                        DateTime::from_timestamp(created_block_timestamp.as_u64() as i64, 0)
-                            .context("Failed to convert timestamp to datetime")
-                            .unwrap()
-                            .naive_utc();
+                    let start_at = estimate_timestamp("ethereum", result.event_data.start_block.as_u64())
+                        .await
+                        .expect("Failed to estimate start timestamp");
+
+                    let end_at = estimate_timestamp("ethereum", result.event_data.end_block.as_u64())
+                        .await
+                        .expect("Failed to estimate end timestamp");
 
                     let title = extract_title(&result.event_data.description);
 
-                    let proposal_url = format!(
-                        "https://www.tally.xyz/gov/arbitrum/proposal/{}",
-                        result.event_data.proposal_id.to_string()
-                    );
+                    let proposal_url = format!("https://www.tally.xyz/gov/arbitrum/proposal/{}", result.event_data.proposal_id);
 
                     let choices = vec!["For", "Against", "Abstain"];
 
@@ -238,11 +237,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         .await
                         .expect("Failed to fetch proposal snapshot block");
 
-                    let quorum = match arbitrum_core_governor
-                        .quorum(proposal_snapshot_block)
-                        .call()
-                        .await
-                    {
+                    let quorum = match arbitrum_core_governor.quorum(proposal_snapshot_block).call().await {
                         Ok(r) => r.as_u128() as f64 / (10.0f64.powi(18)),
                         Err(_) => U256::from(0).as_u128() as f64 / (10.0f64.powi(18)),
                     };
@@ -259,6 +254,10 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         _ => ProposalState::Unknown,
                     };
 
+                    let total_delegated_vp = calculate_total_delegated_vp(created_at)
+                        .await
+                        .expect("Failed to calculate total delegated voting power");
+
                     proposals.push(proposal::ActiveModel {
                         id: NotSet,
                         index_created: Set(result.tx_information.block_number.as_u64() as i32),
@@ -274,16 +273,12 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         scores_quorum: NotSet,
                         proposal_state: Set(state),
                         marked_spam: NotSet,
-                        created_at: Set(created_block_datetime),
-                        start_at: NotSet,
-                        end_at: NotSet,
-                        block_created: Set(
-                            Some(result.tx_information.block_number.as_u64() as i32),
-                        ),
-                        metadata: NotSet,
-                        txid: Set(Some(hex::encode(
-                            result.tx_information.transaction_hash.to_string(),
-                        ))),
+                        created_at: Set(created_at),
+                        start_at: Set(start_at),
+                        end_at: Set(end_at),
+                        block_created: Set(Some(result.tx_information.block_number.as_u64() as i32)),
+                        metadata: Set(json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": total_delegated_vp}).into()),
+                        txid: Set(Some(hex::encode(result.tx_information.transaction_hash.to_string()))),
                         dao_indexer_id: get_dao_indexer_id(),
                         dao_id: get_dao_id(),
                         author: NotSet,
@@ -387,10 +382,7 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
     .register(manifest_path, registry);
 }
 
-async fn proposal_threshold_set_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn proposal_threshold_set_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::ProposalThresholdSet(
         ProposalThresholdSetEvent::handler(
             |results, context| async move {
@@ -413,10 +405,7 @@ async fn proposal_threshold_set_handler(
     .register(manifest_path, registry);
 }
 
-async fn quorum_numerator_updated_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn quorum_numerator_updated_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::QuorumNumeratorUpdated(
         QuorumNumeratorUpdatedEvent::handler(
             |results, context| async move {
@@ -470,11 +459,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     return Ok(());
                 }
 
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::VoteCast - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
+                rindexer_info!("ArbitrumCoreGovernor::VoteCast - {} - {} events", "INDEXED".green(), results.len(),);
 
                 Ok(())
             },
@@ -485,10 +470,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
     .register(manifest_path, registry);
 }
 
-async fn vote_cast_with_params_handler(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::VoteCastWithParams(
         VoteCastWithParamsEvent::handler(
             |results, context| async move {
@@ -556,10 +538,7 @@ async fn voting_period_set_handler(manifest_path: &PathBuf, registry: &mut Event
     )
     .register(manifest_path, registry);
 }
-pub async fn arbitrum_core_governor_handlers(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+pub async fn arbitrum_core_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     // initialized_handler(manifest_path, registry).await;
 
     // late_quorum_vote_extension_set_handler(manifest_path, registry).await;
@@ -592,9 +571,7 @@ pub async fn arbitrum_core_governor_handlers(
 }
 
 fn extract_title(description: &str) -> String {
-    let mut lines = description
-        .split('\n')
-        .filter(|line| !line.trim().is_empty());
+    let mut lines = description.split('\n').filter(|line| !line.trim().is_empty());
 
     // Try to find the first non-empty line that isn't just "#" markers
     let title = lines
@@ -613,4 +590,45 @@ fn extract_title(description: &str) -> String {
     } else {
         title
     }
+}
+
+async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
+    use sea_orm::{DbBackend, Statement};
+
+    let db = DB.get().unwrap();
+
+    // Construct the raw SQL query
+    let sql = r#"
+        WITH latest_voting_power AS (
+            SELECT
+                voter,
+                voting_power,
+                ROW_NUMBER() OVER (
+                    PARTITION BY voter
+                    ORDER BY timestamp DESC, block DESC
+                ) AS rn
+            FROM voting_power
+            WHERE
+                voter != '0x00000000000000000000000000000000000A4B86'
+                AND timestamp <= $1
+        )
+        SELECT COALESCE(SUM(voting_power), 0.0) as total_voting_power
+        FROM latest_voting_power
+        WHERE rn = 1
+    "#;
+
+    // Execute the raw SQL query
+    let result = db
+        .query_one(Statement::from_sql_and_values(DbBackend::Postgres, sql, vec![timestamp.into()]))
+        .await
+        .context("Failed to execute SQL query")?;
+
+    // Extract the total voting power from the result
+    let total_vp: f64 = result
+        .map(|qr| qr.try_get::<f64>("", "total_voting_power"))
+        .transpose()
+        .context("Failed to get total_voting_power from query result")?
+        .unwrap_or(0.0);
+
+    Ok(total_vp)
 }

@@ -21,7 +21,8 @@ fn cleanup_html(content: &str) -> String {
     // Trim leading/trailing whitespace
     let mut result = result.trim().to_string();
 
-    // Remove outer container <div> if it has no classes and only contains text or inline elements
+    // Remove outer container <div> if it has no classes and only contains text or
+    // inline elements
     let re_wrapper_div = Regex::new(r#"^<div>(.*?)</div>$"#).unwrap();
     if let Ok(Some(mat)) = re_wrapper_div.find(&result) {
         let inner_content = mat
@@ -47,7 +48,8 @@ fn cleanup_html(content: &str) -> String {
 pub fn extract_before_content_inline(content: &str) -> Result<String> {
     let mut result = content.to_string();
 
-    // Rule 1 & 2: Remove outer inline-diff div if both opening and closing tags exist
+    // Rule 1 & 2: Remove outer inline-diff div if both opening and closing tags
+    // exist
     let re_wrapper_div = Regex::new(r#"<div class="inline-diff">([\s\S]*?)</div>"#)?;
     if re_wrapper_div.is_match(&result)? {
         result = re_wrapper_div.replace_all(content, "$1").to_string();
@@ -68,7 +70,8 @@ pub fn extract_before_content_inline(content: &str) -> Result<String> {
         .replace_all(&result, "<$1>$2</$1>")
         .to_string();
 
-    // Remove diff-ins elements completely including their content (with multiple classes)
+    // Remove diff-ins elements completely including their content (with multiple
+    // classes)
     let diff_ins_pattern =
         Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-ins[^"]*">[\s\S]*?</\1>"#)?;
     result = diff_ins_pattern.replace_all(&result, "").to_string();
@@ -88,7 +91,8 @@ pub fn extract_before_content_inline(content: &str) -> Result<String> {
 pub fn extract_after_content_inline(content: &str) -> Result<String> {
     let mut result = content.to_string();
 
-    // Rule 1 & 2: Remove outer inline-diff div if both opening and closing tags exist
+    // Rule 1 & 2: Remove outer inline-diff div if both opening and closing tags
+    // exist
     let re_wrapper_div = Regex::new(r#"<div class="inline-diff">([\s\S]*?)</div>"#)?;
     if re_wrapper_div.is_match(&result)? {
         result = re_wrapper_div.replace_all(content, "$1").to_string();
@@ -100,7 +104,8 @@ pub fn extract_after_content_inline(content: &str) -> Result<String> {
     )?;
     result = both_diff_del.replace_all(&result, "$2").to_string();
 
-    // Remove diff-del elements completely including their content (with multiple classes)
+    // Remove diff-del elements completely including their content (with multiple
+    // classes)
     let diff_del_pattern =
         Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">[\s\S]*?</\1>"#)?;
     result = diff_del_pattern.replace_all(&result, "").to_string();

@@ -1,8 +1,7 @@
-use std::env;
-
 use self::rindexer_lib::indexers::all_handlers::register_all_handlers;
 use dotenv::dotenv;
 use rindexer::{start_rindexer, GraphqlOverrideSettings, IndexingDetails, StartDetails};
+use std::env;
 mod extensions;
 mod rindexer_lib;
 

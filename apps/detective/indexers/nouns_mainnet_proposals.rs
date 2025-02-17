@@ -293,8 +293,10 @@ async fn data_for_proposal(
 mod nouns_mainnet_proposals_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use proposalsapp_db::models::{
+        dao_indexer,
+        sea_orm_active_enums::{IndexerType, IndexerVariant},
+    };
     use sea_orm::prelude::Uuid;
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
@@ -336,7 +338,12 @@ mod nouns_mainnet_proposals_tests {
                     index_created: 20822329,
                     external_id: "645",
                     name: "Explore Nouns via Nouns.world",
-                    body_contains: Some(vec!["Nouns.world — A one-stop shop for learning about Nouns, a place to find active resources, by category, and a completed project explorer made up of rich blog posts that let people dive into all the amazing work Nouns has funded in one place."]),
+                    body_contains: Some(vec![
+                        "Nouns.world — A one-stop shop for learning about Nouns, a place to find \
+                         active resources, by category, and a completed project explorer made up \
+                         of rich blog posts that let people dive into all the amazing work Nouns \
+                         has funded in one place.",
+                    ]),
                     url: "https://nouns.wtf/vote/645",
                     discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),

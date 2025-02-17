@@ -13,9 +13,7 @@ pub mod rindexer_arb_token_gen {
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
-            constructor: ::core::option::Option::Some(::ethers::core::abi::ethabi::Constructor {
-                inputs: ::std::vec![],
-            }),
+            constructor: ::core::option::Option::Some(::ethers::core::abi::ethabi::Constructor { inputs: ::std::vec![] }),
             functions: ::core::convert::From::from([
                 (
                     ::std::borrow::ToOwned::to_owned("DOMAIN_SEPARATOR"),
@@ -25,9 +23,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::FixedBytes(32usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("bytes32"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bytes32"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -41,9 +37,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -57,9 +51,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -73,9 +65,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -89,24 +79,18 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("owner"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("spender"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                         ],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -120,24 +104,18 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("spender"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("amount"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                         ],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Bool,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("bool"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bool"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
@@ -150,16 +128,12 @@ pub mod rindexer_arb_token_gen {
                         inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("account"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -172,9 +146,7 @@ pub mod rindexer_arb_token_gen {
                         inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("amount"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         outputs: ::std::vec![],
                         constant: ::core::option::Option::None,
@@ -189,16 +161,12 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("account"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("amount"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                         ],
                         outputs: ::std::vec![],
@@ -214,16 +182,12 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("account"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("pos"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(32usize),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint32"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint32"),),
                             },
                         ],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
@@ -232,11 +196,9 @@ pub mod rindexer_arb_token_gen {
                                 ::ethers::core::abi::ethabi::ParamType::Uint(32usize),
                                 ::ethers::core::abi::ethabi::ParamType::Uint(224usize),
                             ],),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned(
-                                    "struct ERC20VotesUpgradeable.Checkpoint",
-                                ),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned(
+                                "struct ERC20VotesUpgradeable.Checkpoint",
+                            ),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -250,9 +212,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(8usize),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint8"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint8"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -266,24 +226,18 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("spender"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("subtractedValue"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                         ],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Bool,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("bool"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bool"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
@@ -296,9 +250,7 @@ pub mod rindexer_arb_token_gen {
                         inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("delegatee"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         outputs: ::std::vec![],
                         constant: ::core::option::Option::None,
@@ -313,44 +265,32 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("delegatee"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("nonce"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("expiry"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("v"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(8usize),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint8"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint8"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("r"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::FixedBytes(32usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("bytes32"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bytes32"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("s"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::FixedBytes(32usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("bytes32"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bytes32"),),
                             },
                         ],
                         outputs: ::std::vec![],
@@ -365,16 +305,12 @@ pub mod rindexer_arb_token_gen {
                         inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("account"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -387,16 +323,12 @@ pub mod rindexer_arb_token_gen {
                         inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("blockNumber"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -410,24 +342,18 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("account"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("blockNumber"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                         ],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -440,16 +366,12 @@ pub mod rindexer_arb_token_gen {
                         inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("account"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -463,24 +385,18 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("spender"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("addedValue"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                         ],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Bool,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("bool"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bool"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
@@ -494,23 +410,17 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("_l1TokenAddress"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("_initialSupply"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("_owner"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                         ],
                         outputs: ::std::vec![],
@@ -526,9 +436,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -542,16 +450,12 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("recipient"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("amount"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                         ],
                         outputs: ::std::vec![],
@@ -567,9 +471,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::String,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("string"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("string"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -583,9 +485,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -598,16 +498,12 @@ pub mod rindexer_arb_token_gen {
                         inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("owner"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -620,16 +516,12 @@ pub mod rindexer_arb_token_gen {
                         inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("account"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(32usize),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint32"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint32"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -643,9 +535,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -659,51 +549,37 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("owner"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("spender"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("value"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("deadline"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("v"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(8usize),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint8"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint8"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("r"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::FixedBytes(32usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("bytes32"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bytes32"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("s"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::FixedBytes(32usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("bytes32"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bytes32"),),
                             },
                         ],
                         outputs: ::std::vec![],
@@ -729,9 +605,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::String,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("string"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("string"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -745,9 +619,7 @@ pub mod rindexer_arb_token_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -761,24 +633,18 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("to"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("amount"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                         ],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Bool,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("bool"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bool"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
@@ -792,31 +658,23 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("_to"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("_value"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("_data"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("bytes"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bytes"),),
                             },
                         ],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("success"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Bool,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("bool"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bool"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
@@ -830,31 +688,23 @@ pub mod rindexer_arb_token_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("from"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("to"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("address"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("amount"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("uint256"),),
                             },
                         ],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Bool,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("bool"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("bool"),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
@@ -867,9 +717,7 @@ pub mod rindexer_arb_token_gen {
                         inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::borrow::ToOwned::to_owned("newOwner"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("address"),
-                            ),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("address"),),
                         },],
                         outputs: ::std::vec![],
                         constant: ::core::option::Option::None,
@@ -1012,8 +860,7 @@ pub mod rindexer_arb_token_gen {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static RINDEXERARBTOKENGEN_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
-        ::ethers::contract::Lazy::new(__abi);
+    pub static RINDEXERARBTOKENGEN_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(__abi);
     pub struct RindexerARBTokenGen<M>(::ethers::contract::Contract<M>);
     impl<M> ::core::clone::Clone for RindexerARBTokenGen<M> {
         fn clone(&self) -> Self {
@@ -1039,12 +886,10 @@ pub mod rindexer_arb_token_gen {
         }
     }
     impl<M: ::ethers::providers::Middleware> RindexerARBTokenGen<M> {
-        /// Creates a new contract instance with the specified `ethers` client at
-        /// `address`. The contract derefs to a `ethers::Contract` object.
-        pub fn new<T: Into<::ethers::core::types::Address>>(
-            address: T,
-            client: ::std::sync::Arc<M>,
-        ) -> Self {
+        /// Creates a new contract instance with the specified `ethers` client
+        /// at `address`. The contract derefs to a `ethers::Contract`
+        /// object.
+        pub fn new<T: Into<::ethers::core::types::Address>>(address: T, client: ::std::sync::Arc<M>) -> Self {
             Self(::ethers::contract::Contract::new(
                 address.into(),
                 RINDEXERARBTOKENGEN_ABI.clone(),
@@ -1058,25 +903,19 @@ pub mod rindexer_arb_token_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `MINT_CAP_DENOMINATOR` (0x89110e5d) function
-        pub fn mint_cap_denominator(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn mint_cap_denominator(&self) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([137, 17, 14, 93], ())
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `MINT_CAP_NUMERATOR` (0xe6be4876) function
-        pub fn mint_cap_numerator(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn mint_cap_numerator(&self) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([230, 190, 72, 118], ())
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `MIN_MINT_INTERVAL` (0xa9f8ad04) function
-        pub fn min_mint_interval(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn min_mint_interval(&self) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([169, 248, 173, 4], ())
                 .expect("method not found (this should never happen)")
@@ -1111,10 +950,7 @@ pub mod rindexer_arb_token_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `burn` (0x42966c68) function
-        pub fn burn(
-            &self,
-            amount: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+        pub fn burn(&self, amount: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([66, 150, 108, 104], amount)
                 .expect("method not found (this should never happen)")
@@ -1156,10 +992,7 @@ pub mod rindexer_arb_token_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `delegate` (0x5c19a95c) function
-        pub fn delegate(
-            &self,
-            delegatee: ::ethers::core::types::Address,
-        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+        pub fn delegate(&self, delegatee: ::ethers::core::types::Address) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([92, 25, 169, 92], delegatee)
                 .expect("method not found (this should never happen)")
@@ -1233,16 +1066,11 @@ pub mod rindexer_arb_token_gen {
             owner: ::ethers::core::types::Address,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash(
-                    [195, 80, 161, 181],
-                    (l_1_token_address, initial_supply, owner),
-                )
+                .method_hash([195, 80, 161, 181], (l_1_token_address, initial_supply, owner))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `l1Address` (0xc2eeeebd) function
-        pub fn l_1_address(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
+        pub fn l_1_address(&self) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
             self.0
                 .method_hash([194, 238, 238, 189], ())
                 .expect("method not found (this should never happen)")
@@ -1264,9 +1092,7 @@ pub mod rindexer_arb_token_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `nextMint` (0xcf665443) function
-        pub fn next_mint(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn next_mint(&self) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([207, 102, 84, 67], ())
                 .expect("method not found (this should never happen)")
@@ -1281,18 +1107,13 @@ pub mod rindexer_arb_token_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `numCheckpoints` (0x6fcfff45) function
-        pub fn num_checkpoints(
-            &self,
-            account: ::ethers::core::types::Address,
-        ) -> ::ethers::contract::builders::ContractCall<M, u32> {
+        pub fn num_checkpoints(&self, account: ::ethers::core::types::Address) -> ::ethers::contract::builders::ContractCall<M, u32> {
             self.0
                 .method_hash([111, 207, 255, 69], account)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `owner` (0x8da5cb5b) function
-        pub fn owner(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
+        pub fn owner(&self) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
             self.0
                 .method_hash([141, 165, 203, 91], ())
                 .expect("method not found (this should never happen)")
@@ -1309,10 +1130,7 @@ pub mod rindexer_arb_token_gen {
             s: [u8; 32],
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash(
-                    [213, 5, 172, 207],
-                    (owner, spender, value, deadline, v, r, s),
-                )
+                .method_hash([213, 5, 172, 207], (owner, spender, value, deadline, v, r, s))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `renounceOwnership` (0x715018a6) function
@@ -1322,17 +1140,13 @@ pub mod rindexer_arb_token_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `symbol` (0x95d89b41) function
-        pub fn symbol(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::std::string::String> {
+        pub fn symbol(&self) -> ::ethers::contract::builders::ContractCall<M, ::std::string::String> {
             self.0
                 .method_hash([149, 216, 155, 65], ())
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `totalSupply` (0x18160ddd) function
-        pub fn total_supply(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn total_supply(&self) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([24, 22, 13, 221], ())
                 .expect("method not found (this should never happen)")
@@ -1370,80 +1184,50 @@ pub mod rindexer_arb_token_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `transferOwnership` (0xf2fde38b) function
-        pub fn transfer_ownership(
-            &self,
-            new_owner: ::ethers::core::types::Address,
-        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+        pub fn transfer_ownership(&self, new_owner: ::ethers::core::types::Address) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([242, 253, 227, 139], new_owner)
                 .expect("method not found (this should never happen)")
         }
         ///Gets the contract's `Approval` event
-        pub fn approval_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, ApprovalFilter> {
+        pub fn approval_filter(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, ApprovalFilter> {
             self.0.event()
         }
         ///Gets the contract's `DelegateChanged` event
-        pub fn delegate_changed_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, DelegateChangedFilter>
-        {
+        pub fn delegate_changed_filter(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, DelegateChangedFilter> {
             self.0.event()
         }
         ///Gets the contract's `DelegateVotesChanged` event
         pub fn delegate_votes_changed_filter(
             &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, DelegateVotesChangedFilter>
-        {
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, DelegateVotesChangedFilter> {
             self.0.event()
         }
         ///Gets the contract's `Initialized` event
-        pub fn initialized_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, InitializedFilter>
-        {
+        pub fn initialized_filter(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, InitializedFilter> {
             self.0.event()
         }
         ///Gets the contract's `OwnershipTransferred` event
         pub fn ownership_transferred_filter(
             &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, OwnershipTransferredFilter>
-        {
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, OwnershipTransferredFilter> {
             self.0.event()
         }
         ///Gets the contract's `Transfer` event
-        pub fn transfer_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, TransferFilter> {
+        pub fn transfer_filter(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, TransferFilter> {
             self.0.event()
         }
         /// Returns an `Event` builder for all the events of this contract.
-        pub fn events(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, RindexerARBTokenGenEvents>
-        {
-            self.0
-                .event_with_filter(::core::default::Default::default())
+        pub fn events(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, RindexerARBTokenGenEvents> {
+            self.0.event_with_filter(::core::default::Default::default())
         }
     }
-    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-        for RindexerARBTokenGen<M>
-    {
+    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>> for RindexerARBTokenGen<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
     }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethevent(name = "Approval", abi = "Approval(address,address,uint256)")]
     pub struct ApprovalFilter {
         #[ethevent(indexed)]
@@ -1452,20 +1236,8 @@ pub mod rindexer_arb_token_gen {
         pub spender: ::ethers::core::types::Address,
         pub value: ::ethers::core::types::U256,
     }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    #[ethevent(
-        name = "DelegateChanged",
-        abi = "DelegateChanged(address,address,address)"
-    )]
+    #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
+    #[ethevent(name = "DelegateChanged", abi = "DelegateChanged(address,address,address)")]
     pub struct DelegateChangedFilter {
         #[ethevent(indexed)]
         pub delegator: ::ethers::core::types::Address,
@@ -1474,70 +1246,28 @@ pub mod rindexer_arb_token_gen {
         #[ethevent(indexed)]
         pub to_delegate: ::ethers::core::types::Address,
     }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    #[ethevent(
-        name = "DelegateVotesChanged",
-        abi = "DelegateVotesChanged(address,uint256,uint256)"
-    )]
+    #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
+    #[ethevent(name = "DelegateVotesChanged", abi = "DelegateVotesChanged(address,uint256,uint256)")]
     pub struct DelegateVotesChangedFilter {
         #[ethevent(indexed)]
         pub delegate: ::ethers::core::types::Address,
         pub previous_balance: ::ethers::core::types::U256,
         pub new_balance: ::ethers::core::types::U256,
     }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethevent(name = "Initialized", abi = "Initialized(uint8)")]
     pub struct InitializedFilter {
         pub version: u8,
     }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    #[ethevent(
-        name = "OwnershipTransferred",
-        abi = "OwnershipTransferred(address,address)"
-    )]
+    #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
+    #[ethevent(name = "OwnershipTransferred", abi = "OwnershipTransferred(address,address)")]
     pub struct OwnershipTransferredFilter {
         #[ethevent(indexed)]
         pub previous_owner: ::ethers::core::types::Address,
         #[ethevent(indexed)]
         pub new_owner: ::ethers::core::types::Address,
     }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethevent(name = "Transfer", abi = "Transfer(address,address,uint256)")]
     pub struct TransferFilter {
         #[ethevent(indexed)]
@@ -1557,9 +1287,7 @@ pub mod rindexer_arb_token_gen {
         TransferFilter(TransferFilter),
     }
     impl ::ethers::contract::EthLogDecode for RindexerARBTokenGenEvents {
-        fn decode_log(
-            log: &::ethers::core::abi::RawLog,
-        ) -> ::core::result::Result<Self, ::ethers::core::abi::Error> {
+        fn decode_log(log: &::ethers::core::abi::RawLog) -> ::core::result::Result<Self, ::ethers::core::abi::Error> {
             if let Ok(decoded) = ApprovalFilter::decode_log(log) {
                 return Ok(RindexerARBTokenGenEvents::ApprovalFilter(decoded));
             }
@@ -1567,17 +1295,13 @@ pub mod rindexer_arb_token_gen {
                 return Ok(RindexerARBTokenGenEvents::DelegateChangedFilter(decoded));
             }
             if let Ok(decoded) = DelegateVotesChangedFilter::decode_log(log) {
-                return Ok(RindexerARBTokenGenEvents::DelegateVotesChangedFilter(
-                    decoded,
-                ));
+                return Ok(RindexerARBTokenGenEvents::DelegateVotesChangedFilter(decoded));
             }
             if let Ok(decoded) = InitializedFilter::decode_log(log) {
                 return Ok(RindexerARBTokenGenEvents::InitializedFilter(decoded));
             }
             if let Ok(decoded) = OwnershipTransferredFilter::decode_log(log) {
-                return Ok(RindexerARBTokenGenEvents::OwnershipTransferredFilter(
-                    decoded,
-                ));
+                return Ok(RindexerARBTokenGenEvents::OwnershipTransferredFilter(decoded));
             }
             if let Ok(decoded) = TransferFilter::decode_log(log) {
                 return Ok(RindexerARBTokenGenEvents::TransferFilter(decoded));
@@ -1627,211 +1351,100 @@ pub mod rindexer_arb_token_gen {
             Self::TransferFilter(value)
         }
     }
-    ///Container type for all input parameters for the `DOMAIN_SEPARATOR` function with signature `DOMAIN_SEPARATOR()` and selector `0x3644e515`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `DOMAIN_SEPARATOR`
+    /// function with signature `DOMAIN_SEPARATOR()` and selector `0x3644e515`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "DOMAIN_SEPARATOR", abi = "DOMAIN_SEPARATOR()")]
     pub struct DomainSeparatorCall;
-    ///Container type for all input parameters for the `MINT_CAP_DENOMINATOR` function with signature `MINT_CAP_DENOMINATOR()` and selector `0x89110e5d`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `MINT_CAP_DENOMINATOR`
+    /// function with signature `MINT_CAP_DENOMINATOR()` and selector
+    /// `0x89110e5d`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "MINT_CAP_DENOMINATOR", abi = "MINT_CAP_DENOMINATOR()")]
     pub struct MintCapDenominatorCall;
-    ///Container type for all input parameters for the `MINT_CAP_NUMERATOR` function with signature `MINT_CAP_NUMERATOR()` and selector `0xe6be4876`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `MINT_CAP_NUMERATOR`
+    /// function with signature `MINT_CAP_NUMERATOR()` and selector `0xe6be4876`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "MINT_CAP_NUMERATOR", abi = "MINT_CAP_NUMERATOR()")]
     pub struct MintCapNumeratorCall;
-    ///Container type for all input parameters for the `MIN_MINT_INTERVAL` function with signature `MIN_MINT_INTERVAL()` and selector `0xa9f8ad04`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `MIN_MINT_INTERVAL`
+    /// function with signature `MIN_MINT_INTERVAL()` and selector `0xa9f8ad04`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "MIN_MINT_INTERVAL", abi = "MIN_MINT_INTERVAL()")]
     pub struct MinMintIntervalCall;
-    ///Container type for all input parameters for the `allowance` function with signature `allowance(address,address)` and selector `0xdd62ed3e`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `allowance` function
+    /// with signature `allowance(address,address)` and selector `0xdd62ed3e`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "allowance", abi = "allowance(address,address)")]
     pub struct AllowanceCall {
         pub owner: ::ethers::core::types::Address,
         pub spender: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `approve` function with signature `approve(address,uint256)` and selector `0x095ea7b3`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `approve` function with
+    /// signature `approve(address,uint256)` and selector `0x095ea7b3`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "approve", abi = "approve(address,uint256)")]
     pub struct ApproveCall {
         pub spender: ::ethers::core::types::Address,
         pub amount: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `balanceOf` function with signature `balanceOf(address)` and selector `0x70a08231`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `balanceOf` function
+    /// with signature `balanceOf(address)` and selector `0x70a08231`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "balanceOf", abi = "balanceOf(address)")]
     pub struct BalanceOfCall {
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `burn` function with signature `burn(uint256)` and selector `0x42966c68`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `burn` function with
+    /// signature `burn(uint256)` and selector `0x42966c68`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "burn", abi = "burn(uint256)")]
     pub struct BurnCall {
         pub amount: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `burnFrom` function with signature `burnFrom(address,uint256)` and selector `0x79cc6790`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `burnFrom` function with
+    /// signature `burnFrom(address,uint256)` and selector `0x79cc6790`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "burnFrom", abi = "burnFrom(address,uint256)")]
     pub struct BurnFromCall {
         pub account: ::ethers::core::types::Address,
         pub amount: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `checkpoints` function with signature `checkpoints(address,uint32)` and selector `0xf1127ed8`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `checkpoints` function
+    /// with signature `checkpoints(address,uint32)` and selector `0xf1127ed8`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "checkpoints", abi = "checkpoints(address,uint32)")]
     pub struct CheckpointsCall {
         pub account: ::ethers::core::types::Address,
         pub pos: u32,
     }
-    ///Container type for all input parameters for the `decimals` function with signature `decimals()` and selector `0x313ce567`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `decimals` function with
+    /// signature `decimals()` and selector `0x313ce567`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "decimals", abi = "decimals()")]
     pub struct DecimalsCall;
-    ///Container type for all input parameters for the `decreaseAllowance` function with signature `decreaseAllowance(address,uint256)` and selector `0xa457c2d7`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `decreaseAllowance`
+    /// function with signature `decreaseAllowance(address,uint256)` and
+    /// selector `0xa457c2d7`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "decreaseAllowance", abi = "decreaseAllowance(address,uint256)")]
     pub struct DecreaseAllowanceCall {
         pub spender: ::ethers::core::types::Address,
         pub subtracted_value: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `delegate` function with signature `delegate(address)` and selector `0x5c19a95c`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `delegate` function with
+    /// signature `delegate(address)` and selector `0x5c19a95c`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "delegate", abi = "delegate(address)")]
     pub struct DelegateCall {
         pub delegatee: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `delegateBySig` function with signature `delegateBySig(address,uint256,uint256,uint8,bytes32,bytes32)` and selector `0xc3cda520`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    #[ethcall(
-        name = "delegateBySig",
-        abi = "delegateBySig(address,uint256,uint256,uint8,bytes32,bytes32)"
-    )]
+    ///Container type for all input parameters for the `delegateBySig` function
+    /// with signature
+    /// `delegateBySig(address,uint256,uint256,uint8,bytes32,bytes32)` and
+    /// selector `0xc3cda520`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
+    #[ethcall(name = "delegateBySig", abi = "delegateBySig(address,uint256,uint256,uint8,bytes32,bytes32)")]
     pub struct DelegateBySigCall {
         pub delegatee: ::ethers::core::types::Address,
         pub nonce: ::ethers::core::types::U256,
@@ -1840,213 +1453,103 @@ pub mod rindexer_arb_token_gen {
         pub r: [u8; 32],
         pub s: [u8; 32],
     }
-    ///Container type for all input parameters for the `delegates` function with signature `delegates(address)` and selector `0x587cde1e`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `delegates` function
+    /// with signature `delegates(address)` and selector `0x587cde1e`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "delegates", abi = "delegates(address)")]
     pub struct DelegatesCall {
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `getPastTotalSupply` function with signature `getPastTotalSupply(uint256)` and selector `0x8e539e8c`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `getPastTotalSupply`
+    /// function with signature `getPastTotalSupply(uint256)` and selector
+    /// `0x8e539e8c`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "getPastTotalSupply", abi = "getPastTotalSupply(uint256)")]
     pub struct GetPastTotalSupplyCall {
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `getPastVotes` function with signature `getPastVotes(address,uint256)` and selector `0x3a46b1a8`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `getPastVotes` function
+    /// with signature `getPastVotes(address,uint256)` and selector `0x3a46b1a8`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "getPastVotes", abi = "getPastVotes(address,uint256)")]
     pub struct GetPastVotesCall {
         pub account: ::ethers::core::types::Address,
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `getVotes` function with signature `getVotes(address)` and selector `0x9ab24eb0`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `getVotes` function with
+    /// signature `getVotes(address)` and selector `0x9ab24eb0`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "getVotes", abi = "getVotes(address)")]
     pub struct GetVotesCall {
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `increaseAllowance` function with signature `increaseAllowance(address,uint256)` and selector `0x39509351`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `increaseAllowance`
+    /// function with signature `increaseAllowance(address,uint256)` and
+    /// selector `0x39509351`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "increaseAllowance", abi = "increaseAllowance(address,uint256)")]
     pub struct IncreaseAllowanceCall {
         pub spender: ::ethers::core::types::Address,
         pub added_value: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `initialize` function with signature `initialize(address,uint256,address)` and selector `0xc350a1b5`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `initialize` function
+    /// with signature `initialize(address,uint256,address)` and selector
+    /// `0xc350a1b5`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "initialize", abi = "initialize(address,uint256,address)")]
     pub struct InitializeCall {
         pub l_1_token_address: ::ethers::core::types::Address,
         pub initial_supply: ::ethers::core::types::U256,
         pub owner: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `l1Address` function with signature `l1Address()` and selector `0xc2eeeebd`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `l1Address` function
+    /// with signature `l1Address()` and selector `0xc2eeeebd`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "l1Address", abi = "l1Address()")]
     pub struct L1AddressCall;
-    ///Container type for all input parameters for the `mint` function with signature `mint(address,uint256)` and selector `0x40c10f19`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `mint` function with
+    /// signature `mint(address,uint256)` and selector `0x40c10f19`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "mint", abi = "mint(address,uint256)")]
     pub struct MintCall {
         pub recipient: ::ethers::core::types::Address,
         pub amount: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `name` function with signature `name()` and selector `0x06fdde03`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `name` function with
+    /// signature `name()` and selector `0x06fdde03`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "name", abi = "name()")]
     pub struct NameCall;
-    ///Container type for all input parameters for the `nextMint` function with signature `nextMint()` and selector `0xcf665443`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `nextMint` function with
+    /// signature `nextMint()` and selector `0xcf665443`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "nextMint", abi = "nextMint()")]
     pub struct NextMintCall;
-    ///Container type for all input parameters for the `nonces` function with signature `nonces(address)` and selector `0x7ecebe00`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `nonces` function with
+    /// signature `nonces(address)` and selector `0x7ecebe00`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "nonces", abi = "nonces(address)")]
     pub struct NoncesCall {
         pub owner: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `numCheckpoints` function with signature `numCheckpoints(address)` and selector `0x6fcfff45`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `numCheckpoints`
+    /// function with signature `numCheckpoints(address)` and selector
+    /// `0x6fcfff45`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "numCheckpoints", abi = "numCheckpoints(address)")]
     pub struct NumCheckpointsCall {
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `owner` function with signature `owner()` and selector `0x8da5cb5b`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `owner` function with
+    /// signature `owner()` and selector `0x8da5cb5b`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "owner", abi = "owner()")]
     pub struct OwnerCall;
-    ///Container type for all input parameters for the `permit` function with signature `permit(address,address,uint256,uint256,uint8,bytes32,bytes32)` and selector `0xd505accf`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    #[ethcall(
-        name = "permit",
-        abi = "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"
-    )]
+    ///Container type for all input parameters for the `permit` function with
+    /// signature `permit(address,address,uint256,uint256,uint8,bytes32,
+    /// bytes32)` and selector `0xd505accf`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
+    #[ethcall(name = "permit", abi = "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)")]
     pub struct PermitCall {
         pub owner: ::ethers::core::types::Address,
         pub spender: ::ethers::core::types::Address,
@@ -2056,109 +1559,53 @@ pub mod rindexer_arb_token_gen {
         pub r: [u8; 32],
         pub s: [u8; 32],
     }
-    ///Container type for all input parameters for the `renounceOwnership` function with signature `renounceOwnership()` and selector `0x715018a6`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `renounceOwnership`
+    /// function with signature `renounceOwnership()` and selector `0x715018a6`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "renounceOwnership", abi = "renounceOwnership()")]
     pub struct RenounceOwnershipCall;
-    ///Container type for all input parameters for the `symbol` function with signature `symbol()` and selector `0x95d89b41`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `symbol` function with
+    /// signature `symbol()` and selector `0x95d89b41`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "symbol", abi = "symbol()")]
     pub struct SymbolCall;
-    ///Container type for all input parameters for the `totalSupply` function with signature `totalSupply()` and selector `0x18160ddd`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `totalSupply` function
+    /// with signature `totalSupply()` and selector `0x18160ddd`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "totalSupply", abi = "totalSupply()")]
     pub struct TotalSupplyCall;
-    ///Container type for all input parameters for the `transfer` function with signature `transfer(address,uint256)` and selector `0xa9059cbb`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `transfer` function with
+    /// signature `transfer(address,uint256)` and selector `0xa9059cbb`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "transfer", abi = "transfer(address,uint256)")]
     pub struct TransferCall {
         pub to: ::ethers::core::types::Address,
         pub amount: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `transferAndCall` function with signature `transferAndCall(address,uint256,bytes)` and selector `0x4000aea0`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    #[ethcall(
-        name = "transferAndCall",
-        abi = "transferAndCall(address,uint256,bytes)"
-    )]
+    ///Container type for all input parameters for the `transferAndCall`
+    /// function with signature `transferAndCall(address,uint256,bytes)` and
+    /// selector `0x4000aea0`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
+    #[ethcall(name = "transferAndCall", abi = "transferAndCall(address,uint256,bytes)")]
     pub struct TransferAndCallCall {
         pub to: ::ethers::core::types::Address,
         pub value: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `transferFrom` function with signature `transferFrom(address,address,uint256)` and selector `0x23b872dd`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `transferFrom` function
+    /// with signature `transferFrom(address,address,uint256)` and selector
+    /// `0x23b872dd`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "transferFrom", abi = "transferFrom(address,address,uint256)")]
     pub struct TransferFromCall {
         pub from: ::ethers::core::types::Address,
         pub to: ::ethers::core::types::Address,
         pub amount: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `transferOwnership` function with signature `transferOwnership(address)` and selector `0xf2fde38b`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all input parameters for the `transferOwnership`
+    /// function with signature `transferOwnership(address)` and selector
+    /// `0xf2fde38b`
+    #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "transferOwnership", abi = "transferOwnership(address)")]
     pub struct TransferOwnershipCall {
         pub new_owner: ::ethers::core::types::Address,
@@ -2203,28 +1650,18 @@ pub mod rindexer_arb_token_gen {
         TransferOwnership(TransferOwnershipCall),
     }
     impl ::ethers::core::abi::AbiDecode for RindexerARBTokenGenCalls {
-        fn decode(
-            data: impl AsRef<[u8]>,
-        ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
+        fn decode(data: impl AsRef<[u8]>) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
             let data = data.as_ref();
-            if let Ok(decoded) =
-                <DomainSeparatorCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <DomainSeparatorCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::DomainSeparator(decoded));
             }
-            if let Ok(decoded) =
-                <MintCapDenominatorCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <MintCapDenominatorCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::MintCapDenominator(decoded));
             }
-            if let Ok(decoded) =
-                <MintCapNumeratorCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <MintCapNumeratorCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::MintCapNumerator(decoded));
             }
-            if let Ok(decoded) =
-                <MinMintIntervalCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <MinMintIntervalCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::MinMintInterval(decoded));
             }
             if let Ok(decoded) = <AllowanceCall as ::ethers::core::abi::AbiDecode>::decode(data) {
@@ -2248,36 +1685,28 @@ pub mod rindexer_arb_token_gen {
             if let Ok(decoded) = <DecimalsCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Decimals(decoded));
             }
-            if let Ok(decoded) =
-                <DecreaseAllowanceCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <DecreaseAllowanceCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::DecreaseAllowance(decoded));
             }
             if let Ok(decoded) = <DelegateCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Delegate(decoded));
             }
-            if let Ok(decoded) = <DelegateBySigCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <DelegateBySigCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::DelegateBySig(decoded));
             }
             if let Ok(decoded) = <DelegatesCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Delegates(decoded));
             }
-            if let Ok(decoded) =
-                <GetPastTotalSupplyCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <GetPastTotalSupplyCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::GetPastTotalSupply(decoded));
             }
-            if let Ok(decoded) = <GetPastVotesCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <GetPastVotesCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::GetPastVotes(decoded));
             }
             if let Ok(decoded) = <GetVotesCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::GetVotes(decoded));
             }
-            if let Ok(decoded) =
-                <IncreaseAllowanceCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <IncreaseAllowanceCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::IncreaseAllowance(decoded));
             }
             if let Ok(decoded) = <InitializeCall as ::ethers::core::abi::AbiDecode>::decode(data) {
@@ -2298,9 +1727,7 @@ pub mod rindexer_arb_token_gen {
             if let Ok(decoded) = <NoncesCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Nonces(decoded));
             }
-            if let Ok(decoded) =
-                <NumCheckpointsCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <NumCheckpointsCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::NumCheckpoints(decoded));
             }
             if let Ok(decoded) = <OwnerCall as ::ethers::core::abi::AbiDecode>::decode(data) {
@@ -2309,9 +1736,7 @@ pub mod rindexer_arb_token_gen {
             if let Ok(decoded) = <PermitCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Permit(decoded));
             }
-            if let Ok(decoded) =
-                <RenounceOwnershipCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <RenounceOwnershipCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::RenounceOwnership(decoded));
             }
             if let Ok(decoded) = <SymbolCall as ::ethers::core::abi::AbiDecode>::decode(data) {
@@ -2323,18 +1748,13 @@ pub mod rindexer_arb_token_gen {
             if let Ok(decoded) = <TransferCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Transfer(decoded));
             }
-            if let Ok(decoded) =
-                <TransferAndCallCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <TransferAndCallCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::TransferAndCall(decoded));
             }
-            if let Ok(decoded) = <TransferFromCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <TransferFromCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::TransferFrom(decoded));
             }
-            if let Ok(decoded) =
-                <TransferOwnershipCall as ::ethers::core::abi::AbiDecode>::decode(data)
-            {
+            if let Ok(decoded) = <TransferOwnershipCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::TransferOwnership(decoded));
             }
             Err(::ethers::core::abi::Error::InvalidData.into())
@@ -2344,9 +1764,7 @@ pub mod rindexer_arb_token_gen {
         fn encode(self) -> Vec<u8> {
             match self {
                 Self::DomainSeparator(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::MintCapDenominator(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
+                Self::MintCapDenominator(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::MintCapNumerator(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::MinMintInterval(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Allowance(element) => ::ethers::core::abi::AbiEncode::encode(element),
@@ -2360,9 +1778,7 @@ pub mod rindexer_arb_token_gen {
                 Self::Delegate(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::DelegateBySig(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Delegates(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::GetPastTotalSupply(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
+                Self::GetPastTotalSupply(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::GetPastVotes(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::GetVotes(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::IncreaseAllowance(element) => ::ethers::core::abi::AbiEncode::encode(element),
@@ -2601,331 +2017,120 @@ pub mod rindexer_arb_token_gen {
             Self::TransferOwnership(value)
         }
     }
-    ///Container type for all return fields from the `DOMAIN_SEPARATOR` function with signature `DOMAIN_SEPARATOR()` and selector `0x3644e515`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `DOMAIN_SEPARATOR`
+    /// function with signature `DOMAIN_SEPARATOR()` and selector `0x3644e515`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct DomainSeparatorReturn(pub [u8; 32]);
-    ///Container type for all return fields from the `MINT_CAP_DENOMINATOR` function with signature `MINT_CAP_DENOMINATOR()` and selector `0x89110e5d`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `MINT_CAP_DENOMINATOR`
+    /// function with signature `MINT_CAP_DENOMINATOR()` and selector
+    /// `0x89110e5d`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct MintCapDenominatorReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `MINT_CAP_NUMERATOR` function with signature `MINT_CAP_NUMERATOR()` and selector `0xe6be4876`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `MINT_CAP_NUMERATOR`
+    /// function with signature `MINT_CAP_NUMERATOR()` and selector `0xe6be4876`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct MintCapNumeratorReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `MIN_MINT_INTERVAL` function with signature `MIN_MINT_INTERVAL()` and selector `0xa9f8ad04`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `MIN_MINT_INTERVAL`
+    /// function with signature `MIN_MINT_INTERVAL()` and selector `0xa9f8ad04`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct MinMintIntervalReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `allowance` function with signature `allowance(address,address)` and selector `0xdd62ed3e`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `allowance` function with
+    /// signature `allowance(address,address)` and selector `0xdd62ed3e`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct AllowanceReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `approve` function with signature `approve(address,uint256)` and selector `0x095ea7b3`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `approve` function with
+    /// signature `approve(address,uint256)` and selector `0x095ea7b3`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ApproveReturn(pub bool);
-    ///Container type for all return fields from the `balanceOf` function with signature `balanceOf(address)` and selector `0x70a08231`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `balanceOf` function with
+    /// signature `balanceOf(address)` and selector `0x70a08231`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct BalanceOfReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `checkpoints` function with signature `checkpoints(address,uint32)` and selector `0xf1127ed8`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `checkpoints` function
+    /// with signature `checkpoints(address,uint32)` and selector `0xf1127ed8`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CheckpointsReturn(pub Checkpoint);
-    ///Container type for all return fields from the `decimals` function with signature `decimals()` and selector `0x313ce567`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `decimals` function with
+    /// signature `decimals()` and selector `0x313ce567`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct DecimalsReturn(pub u8);
-    ///Container type for all return fields from the `decreaseAllowance` function with signature `decreaseAllowance(address,uint256)` and selector `0xa457c2d7`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `decreaseAllowance`
+    /// function with signature `decreaseAllowance(address,uint256)` and
+    /// selector `0xa457c2d7`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct DecreaseAllowanceReturn(pub bool);
-    ///Container type for all return fields from the `delegates` function with signature `delegates(address)` and selector `0x587cde1e`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `delegates` function with
+    /// signature `delegates(address)` and selector `0x587cde1e`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct DelegatesReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `getPastTotalSupply` function with signature `getPastTotalSupply(uint256)` and selector `0x8e539e8c`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `getPastTotalSupply`
+    /// function with signature `getPastTotalSupply(uint256)` and selector
+    /// `0x8e539e8c`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetPastTotalSupplyReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `getPastVotes` function with signature `getPastVotes(address,uint256)` and selector `0x3a46b1a8`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `getPastVotes` function
+    /// with signature `getPastVotes(address,uint256)` and selector `0x3a46b1a8`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetPastVotesReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `getVotes` function with signature `getVotes(address)` and selector `0x9ab24eb0`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `getVotes` function with
+    /// signature `getVotes(address)` and selector `0x9ab24eb0`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetVotesReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `increaseAllowance` function with signature `increaseAllowance(address,uint256)` and selector `0x39509351`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `increaseAllowance`
+    /// function with signature `increaseAllowance(address,uint256)` and
+    /// selector `0x39509351`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct IncreaseAllowanceReturn(pub bool);
-    ///Container type for all return fields from the `l1Address` function with signature `l1Address()` and selector `0xc2eeeebd`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `l1Address` function with
+    /// signature `l1Address()` and selector `0xc2eeeebd`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct L1AddressReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `name` function with signature `name()` and selector `0x06fdde03`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `name` function with
+    /// signature `name()` and selector `0x06fdde03`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NameReturn(pub ::std::string::String);
-    ///Container type for all return fields from the `nextMint` function with signature `nextMint()` and selector `0xcf665443`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `nextMint` function with
+    /// signature `nextMint()` and selector `0xcf665443`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NextMintReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `nonces` function with signature `nonces(address)` and selector `0x7ecebe00`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `nonces` function with
+    /// signature `nonces(address)` and selector `0x7ecebe00`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NoncesReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `numCheckpoints` function with signature `numCheckpoints(address)` and selector `0x6fcfff45`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `numCheckpoints` function
+    /// with signature `numCheckpoints(address)` and selector `0x6fcfff45`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NumCheckpointsReturn(pub u32);
-    ///Container type for all return fields from the `owner` function with signature `owner()` and selector `0x8da5cb5b`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `owner` function with
+    /// signature `owner()` and selector `0x8da5cb5b`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OwnerReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `symbol` function with signature `symbol()` and selector `0x95d89b41`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `symbol` function with
+    /// signature `symbol()` and selector `0x95d89b41`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct SymbolReturn(pub ::std::string::String);
-    ///Container type for all return fields from the `totalSupply` function with signature `totalSupply()` and selector `0x18160ddd`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `totalSupply` function
+    /// with signature `totalSupply()` and selector `0x18160ddd`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct TotalSupplyReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `transfer` function with signature `transfer(address,uint256)` and selector `0xa9059cbb`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `transfer` function with
+    /// signature `transfer(address,uint256)` and selector `0xa9059cbb`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct TransferReturn(pub bool);
-    ///Container type for all return fields from the `transferAndCall` function with signature `transferAndCall(address,uint256,bytes)` and selector `0x4000aea0`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `transferAndCall` function
+    /// with signature `transferAndCall(address,uint256,bytes)` and selector
+    /// `0x4000aea0`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct TransferAndCallReturn {
         pub success: bool,
     }
-    ///Container type for all return fields from the `transferFrom` function with signature `transferFrom(address,address,uint256)` and selector `0x23b872dd`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    ///Container type for all return fields from the `transferFrom` function
+    /// with signature `transferFrom(address,address,uint256)` and selector
+    /// `0x23b872dd`
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct TransferFromReturn(pub bool);
     ///`Checkpoint(uint32,uint224)`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
+    #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct Checkpoint {
         pub from_block: u32,
         pub votes: ::ethers::core::types::U256,

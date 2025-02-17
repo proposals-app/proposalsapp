@@ -159,9 +159,14 @@ impl SnapshotApiHandler {
         loop {
             Self::wait_for_rate_limit(&rate_limiter).await;
 
-            let request_builder = client.get(url)
+            let request_builder = client
+                .get(url)
                 .json(&serde_json::json!({"query": query}))
-                .header(reqwest::header::USER_AGENT, "proposals.app Detective/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12")
+                .header(
+                    reqwest::header::USER_AGENT,
+                    "proposals.app Detective/1.0 (https://proposals.app; contact@proposals.app) \
+                     reqwest/0.12",
+                )
                 .header("Referer", "https://proposals.app");
 
             let timeout_fut = timeout(config.request_timeout, request_builder.send());

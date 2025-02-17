@@ -332,8 +332,10 @@ async fn get_title(url: String) -> Result<String> {
 mod maker_poll_mainnet_proposals_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::{dao_indexer, sea_orm_active_enums::IndexerVariant};
+    use proposalsapp_db::models::{
+        dao_indexer,
+        sea_orm_active_enums::{IndexerType, IndexerVariant},
+    };
     use sea_orm::prelude::Uuid;
     use serde_json::json;
     use utils::test_utils::{assert_proposal, parse_datetime, ExpectedProposal};
@@ -374,7 +376,8 @@ mod maker_poll_mainnet_proposals_tests {
                 let expected_proposals = [ExpectedProposal {
                     index_created: 20814312,
                     external_id: "1143",
-                    name: "LITE-PSM-USDC-A Phase 3 (Final Migration) Parameter Proposal - September 23, 2024",
+                    name: "LITE-PSM-USDC-A Phase 3 (Final Migration) Parameter Proposal - \
+                           September 23, 2024",
                     body_contains: Some(vec![""]),
                     url: "https://vote.makerdao.com/polling/QmRjrFYG",
                     discussion_url: None,
@@ -392,7 +395,8 @@ mod maker_poll_mainnet_proposals_tests {
                     txid: Some(
                         "0x7ee3d65211b36ea87a3f10672018ed6e1a1e6fb1f4cf95076a8bb610d6b27b4a",
                     ),
-                    metadata: json!({"vote_type": "single-choice", "quorum_choices":[0,1,2]}).into(),
+                    metadata: json!({"vote_type": "single-choice", "quorum_choices":[0,1,2]})
+                        .into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

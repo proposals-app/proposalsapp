@@ -9,15 +9,14 @@ use reqwest::{
 };
 use serde::de::DeserializeOwned;
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, HashSet, VecDeque},
+    sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use std::{
-    collections::{HashMap, HashSet},
-    sync::{Arc, Mutex},
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::sleep,
 };
-use tokio::sync::mpsc;
-use tokio::{sync::oneshot, time::sleep};
 use tracing::{error, info, instrument, warn};
 
 const DEFAULT_QUEUE_SIZE: usize = 100_000;
@@ -26,11 +25,15 @@ const DEFAULT_INITIAL_BACKOFF: Duration = Duration::from_secs(2);
 const NORMAL_JOBS_BATCH_SIZE: usize = 10;
 
 const USER_AGENTS: [&str; 5] = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) \
+     Chrome/91.0.4472.124 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) \
+     Version/14.1.1 Safari/605.1.15",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-    "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) \
+     Chrome/91.0.4472.120 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like \
+     Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
 ];
 
 #[derive(Clone)]
@@ -110,7 +113,13 @@ impl DiscourseApi {
                 HeaderValue::from_static(Self::get_random_user_agent()),
             );
         } else {
-            headers.insert(USER_AGENT, HeaderValue::from_static("proposals.app Discourse Indexer/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12"));
+            headers.insert(
+                USER_AGENT,
+                HeaderValue::from_static(
+                    "proposals.app Discourse Indexer/1.0 (https://proposals.app; \
+                     contact@proposals.app) reqwest/0.12",
+                ),
+            );
         }
 
         headers.insert("Referer", HeaderValue::from_static("https://proposals.app"));

@@ -343,7 +343,8 @@ async fn update_delegate(
             });
     }
 
-    // If no delegate found via voter, check for existing delegate via discourse user with period_end > now
+    // If no delegate found via voter, check for existing delegate via discourse
+    // user with period_end > now
     if delegate.is_none() {
         if let Some(discourse_user) = &discourse_user {
             delegate = delegate_to_discourse_user::Entity::find()
@@ -393,7 +394,13 @@ async fn update_delegate(
         .filter(delegate_to_voter::Column::VoterId.eq(voter_id))
         .one(DB.get().unwrap())
         .await
-        .with_context(|| format!("Failed to find existing delegate_to_voter mapping for delegate_id: {} and voter_id: {}", delegate.id, voter_id))?;
+        .with_context(|| {
+            format!(
+                "Failed to find existing delegate_to_voter mapping for delegate_id: {} and \
+                 voter_id: {}",
+                delegate.id, voter_id
+            )
+        })?;
 
     if let Some(dtv) = existing_dtv {
         // Update existing delegate_to_voter mapping
@@ -402,7 +409,13 @@ async fn update_delegate(
         delegate_to_voter::Entity::update(active_dtv)
             .exec(DB.get().unwrap())
             .await
-            .with_context(|| format!("Failed to update delegate_to_voter mapping for delegate_id: {} and voter_id: {}", delegate.id, voter_id))?;
+            .with_context(|| {
+                format!(
+                    "Failed to update delegate_to_voter mapping for delegate_id: {} and voter_id: \
+                     {}",
+                    delegate.id, voter_id
+                )
+            })?;
         info!(
             delegate_id = delegate.id.to_string(),
             voter_id = voter_id.to_string(),
@@ -424,7 +437,13 @@ async fn update_delegate(
         delegate_to_voter::Entity::insert(new_dtv)
             .exec(DB.get().unwrap())
             .await
-            .with_context(|| format!("Failed to insert new delegate_to_voter mapping for delegate_id: {} and voter_id: {}", delegate.id, voter_id))?;
+            .with_context(|| {
+                format!(
+                    "Failed to insert new delegate_to_voter mapping for delegate_id: {} and \
+                     voter_id: {}",
+                    delegate.id, voter_id
+                )
+            })?;
         info!(
             delegate_id = delegate.id.to_string(),
             voter_id = voter_id.to_string(),
@@ -439,7 +458,13 @@ async fn update_delegate(
         .filter(delegate_to_discourse_user::Column::DiscourseUserId.eq(discourse_user_id))
         .one(DB.get().unwrap())
         .await
-        .with_context(|| format!("Failed to find existing delegate_to_discourse_user mapping for delegate_id: {} and discourse_user_id: {}", delegate.id, discourse_user_id))?;
+        .with_context(|| {
+            format!(
+                "Failed to find existing delegate_to_discourse_user mapping for delegate_id: {} \
+                 and discourse_user_id: {}",
+                delegate.id, discourse_user_id
+            )
+        })?;
 
     if let Some(dtdu) = existing_dtdu {
         // Update existing delegate_to_discourse_user mapping
@@ -449,7 +474,13 @@ async fn update_delegate(
         delegate_to_discourse_user::Entity::update(active_dtdu)
             .exec(DB.get().unwrap())
             .await
-            .with_context(|| format!("Failed to update delegate_to_discourse_user mapping for delegate_id: {} and discourse_user_id: {}", delegate.id, discourse_user_id))?;
+            .with_context(|| {
+                format!(
+                    "Failed to update delegate_to_discourse_user mapping for delegate_id: {} and \
+                     discourse_user_id: {}",
+                    delegate.id, discourse_user_id
+                )
+            })?;
         info!(
             delegate_id = delegate.id.to_string(),
             discourse_user_id = discourse_user_id.to_string(),
@@ -471,7 +502,13 @@ async fn update_delegate(
         delegate_to_discourse_user::Entity::insert(new_dtdu)
             .exec(DB.get().unwrap())
             .await
-            .with_context(|| format!("Failed to insert new delegate_to_discourse_user mapping for delegate_id: {} and discourse_user_id: {}", delegate.id, discourse_user_id))?;
+            .with_context(|| {
+                format!(
+                    "Failed to insert new delegate_to_discourse_user mapping for delegate_id: {} \
+                     and discourse_user_id: {}",
+                    delegate.id, discourse_user_id
+                )
+            })?;
         info!(
             delegate_id = delegate.id.to_string(),
             discourse_user_id = discourse_user_id.to_string(),

@@ -77,7 +77,8 @@ fn init_log_provider() -> LoggerProvider {
         .build()
 }
 
-// Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
+// Initialize tracing-subscriber and return OtelGuard for opentelemetry-related
+// termination processing
 fn init_otel() -> OtelGuard {
     let tracer_provider = init_tracer_provider();
     let meter_provider = init_meter_provider();

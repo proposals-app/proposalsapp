@@ -161,8 +161,7 @@ async fn get_votes(
 mod nouns_mainnet_votes_tests {
     use super::*;
     use dotenv::dotenv;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerType;
-    use proposalsapp_db::models::sea_orm_active_enums::IndexerVariant;
+    use proposalsapp_db::models::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use sea_orm::prelude::Uuid;
     use serde_json::json;
     use utils::test_utils::{assert_vote, parse_datetime, ExpectedVote};
@@ -202,7 +201,17 @@ mod nouns_mainnet_votes_tests {
                     voter_address: "0xaE65E700f3f8904ac1007d47a5309dD26f8146c0",
                     choice: json!(0),
                     voting_power: 22.0,
-                    reason: Some("\n\n\n\n+1\n\n> I generally agree with peters view here but also feel ok backing tagawa regardless. If this doesnt pass, i would consider taking peters advice to heart more directly in order to find a path forward where the dao can continue to fund your wonderful output. Thank you!\n> \n> +1\n> \n> > i don't understand why this prop and others before it include trips to the United States. I'd prefer you define success and pursue it within your local communities at a decreased cost.\n> > \n> > reduce workshop logistic costs, remove farcaster interactive digital gallery, reduce marketing & distribution, reduce travel & accomodation."),
+                    reason: Some(
+                        "\n\n\n\n+1\n\n> I generally agree with peters view here but also feel ok \
+                         backing tagawa regardless. If this doesnt pass, i would consider taking \
+                         peters advice to heart more directly in order to find a path forward \
+                         where the dao can continue to fund your wonderful output. Thank you!\n> \
+                         \n> +1\n> \n> > i don't understand why this prop and others before it \
+                         include trips to the United States. I'd prefer you define success and \
+                         pursue it within your local communities at a decreased cost.\n> > \n> > \
+                         reduce workshop logistic costs, remove farcaster interactive digital \
+                         gallery, reduce marketing & distribution, reduce travel & accomodation.",
+                    ),
                     proposal_external_id: "656",
                     time_created: Some(parse_datetime("2024-10-14 07:41:23")),
                     block_created: Some(20962386),
