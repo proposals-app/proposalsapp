@@ -17,7 +17,7 @@ pub enum IndexerType {
     #[sea_orm(string_value = "PROPOSALS_AND_VOTES")]
     ProposalsAndVotes,
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Hash)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "indexer_variant")]
 pub enum IndexerVariant {
     #[sea_orm(string_value = "AAVE_V2_MAINNET_PROPOSALS")]

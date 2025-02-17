@@ -1,10 +1,14 @@
 use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
-use proposalsapp_db::models::{proposal, vote};
-use sea_orm::{DatabaseConnection, EntityTrait, TransactionTrait};
-use std::time::Duration;
+use proposalsapp_db::models::{
+    dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote,
+};
+use sea_orm::{prelude::Uuid, DatabaseConnection, EntityTrait, TransactionTrait};
+use std::{collections::HashMap, sync::Mutex, time::Duration};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
+pub static DAO_INDEXER_ID_MAP: OnceCell<Mutex<HashMap<IndexerVariant, Uuid>>> = OnceCell::new();
+pub static DAO_ID_SLUG_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
 
 pub async fn initialize_db() -> Result<()> {
     let database_url =
@@ -24,7 +28,35 @@ pub async fn initialize_db() -> Result<()> {
         .context("Failed to connect to the database")?;
 
     DB.set(db)
-        .map_err(|_| anyhow::anyhow!("Failed to set database connection"))
+        .map_err(|_| anyhow::anyhow!("Failed to set database connection"))?;
+
+    // Initialize and populate DAO_INDEXER_ID_MAP
+    let dao_indexer_map = Mutex::new(HashMap::new());
+    let indexers = dao_indexer::Entity::find().all(DB.get().unwrap()).await?;
+    for indexer in indexers {
+        dao_indexer_map
+            .lock()
+            .unwrap()
+            .insert(indexer.indexer_variant, indexer.id);
+    }
+    DAO_INDEXER_ID_MAP
+        .set(dao_indexer_map)
+        .map_err(|_| anyhow::anyhow!("Failed to set DAO_INDEXER_ID_MAP"))?;
+
+    // Initialize and populate DAO_ID_SLUG_MAP
+    let dao_slug_map = Mutex::new(HashMap::new());
+    let daos = dao::Entity::find().all(DB.get().unwrap()).await?;
+    for dao_model in daos {
+        dao_slug_map
+            .lock()
+            .unwrap()
+            .insert(dao_model.slug, dao_model.id);
+    }
+    DAO_ID_SLUG_MAP
+        .set(dao_slug_map)
+        .map_err(|_| anyhow::anyhow!("Failed to set DAO_ID_SLUG_MAP"))?;
+
+    Ok(())
 }
 
 pub async fn store_proposals(proposals: Vec<proposal::ActiveModel>) -> Result<()> {
