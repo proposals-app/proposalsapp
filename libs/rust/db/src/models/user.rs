@@ -70,9 +70,7 @@ impl RelationTrait for Relation {
         match self {
             Self::EmailVerification => Entity::has_one(super::email_verification::Entity).into(),
             Self::Subscription => Entity::has_many(super::subscription::Entity).into(),
-            Self::UserPushNotificationSubscription => {
-                Entity::has_many(super::user_push_notification_subscription::Entity).into()
-            }
+            Self::UserPushNotificationSubscription => Entity::has_many(super::user_push_notification_subscription::Entity).into(),
             Self::UserSession => Entity::has_many(super::user_session::Entity).into(),
             Self::UserSettings => Entity::has_one(super::user_settings::Entity).into(),
             Self::UserToVoter => Entity::has_many(super::user_to_voter::Entity).into(),

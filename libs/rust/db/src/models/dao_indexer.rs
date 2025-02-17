@@ -57,6 +57,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 pub enum Relation {
     Dao,
     Proposal,
+    ProposalNew,
     Vote,
 }
 
@@ -86,6 +87,7 @@ impl RelationTrait for Relation {
                 .to(super::dao::Column::Id)
                 .into(),
             Self::Proposal => Entity::has_many(super::proposal::Entity).into(),
+            Self::ProposalNew => Entity::has_many(super::proposal_new::Entity).into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
         }
     }
@@ -100,6 +102,12 @@ impl Related<super::dao::Entity> for Entity {
 impl Related<super::proposal::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Proposal.def()
+    }
+}
+
+impl Related<super::proposal_new::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ProposalNew.def()
     }
 }
 

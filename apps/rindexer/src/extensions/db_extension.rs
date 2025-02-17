@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
-use proposalsapp_db::models::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
+use proposalsapp_db::models::{dao, dao_indexer, proposal_new, sea_orm_active_enums::IndexerVariant, vote};
 use sea_orm::{prelude::Uuid, DatabaseConnection, EntityTrait, TransactionTrait};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
 
@@ -47,7 +47,7 @@ pub async fn initialize_db() -> Result<()> {
     Ok(())
 }
 
-pub async fn store_proposals(proposals: Vec<proposal::ActiveModel>) -> Result<()> {
+pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
     println!("Storing {} proposals", proposals.len());
 
@@ -56,25 +56,23 @@ pub async fn store_proposals(proposals: Vec<proposal::ActiveModel>) -> Result<()
     let proposal_chunks = proposals.chunks(BATCH_SIZE);
 
     for chunk in proposal_chunks {
-        let result = proposal::Entity::insert_many(chunk.to_vec())
+        let result = proposal_new::Entity::insert_many(chunk.to_vec())
             .on_conflict(
-                sea_orm::sea_query::OnConflict::columns([proposal::Column::ExternalId, proposal::Column::DaoIndexerId])
+                sea_orm::sea_query::OnConflict::columns([proposal_new::Column::ExternalId, proposal_new::Column::DaoIndexerId])
                     .update_columns([
-                        proposal::Column::Name,
-                        proposal::Column::Body,
-                        proposal::Column::Url,
-                        proposal::Column::DiscussionUrl,
-                        proposal::Column::Choices,
-                        proposal::Column::Scores,
-                        proposal::Column::ScoresTotal,
-                        proposal::Column::Quorum,
-                        proposal::Column::ProposalState,
-                        proposal::Column::MarkedSpam,
-                        proposal::Column::CreatedAt,
-                        proposal::Column::StartAt,
-                        proposal::Column::EndAt,
-                        proposal::Column::Metadata,
-                        proposal::Column::Author,
+                        proposal_new::Column::Name,
+                        proposal_new::Column::Body,
+                        proposal_new::Column::Url,
+                        proposal_new::Column::DiscussionUrl,
+                        proposal_new::Column::Choices,
+                        proposal_new::Column::Quorum,
+                        proposal_new::Column::ProposalState,
+                        proposal_new::Column::MarkedSpam,
+                        proposal_new::Column::CreatedAt,
+                        proposal_new::Column::StartAt,
+                        proposal_new::Column::EndAt,
+                        proposal_new::Column::Metadata,
+                        proposal_new::Column::Author,
                     ])
                     .to_owned(),
             )

@@ -23,7 +23,7 @@ use ethers::{
     utils::hex,
 };
 use proposalsapp_db::models::{
-    proposal,
+    proposal, proposal_new,
     sea_orm_active_enums::{IndexerVariant, ProposalState},
 };
 use rindexer::{
@@ -136,28 +136,25 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
                     return Ok(());
                 }
 
-                let mut proposals: Vec<proposal::ActiveModel> = Vec::new();
+                let mut proposals: Vec<proposal_new::ActiveModel> = Vec::new();
 
                 for result in results.clone() {
-                    proposals.push(proposal::ActiveModel {
+                    proposals.push(proposal_new::ActiveModel {
                         id: NotSet,
-                        index_created: NotSet,
+
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: NotSet,
                         body: NotSet,
                         url: NotSet,
                         discussion_url: NotSet,
                         choices: NotSet,
-                        scores: NotSet,
-                        scores_total: NotSet,
                         quorum: NotSet,
-                        scores_quorum: NotSet,
                         proposal_state: Set(ProposalState::Canceled),
                         marked_spam: NotSet,
                         created_at: NotSet,
                         start_at: NotSet,
                         end_at: NotSet,
-                        block_created: NotSet,
+                        block_created_at: NotSet,
                         txid: NotSet,
                         metadata: NotSet,
                         dao_indexer_id: get_dao_indexer_id(),
@@ -202,12 +199,12 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     return Ok(());
                 }
 
-                let mut proposals: Vec<proposal::ActiveModel> = Vec::new();
+                let mut proposals: Vec<proposal_new::ActiveModel> = Vec::new();
 
                 for result in results.clone() {
-                    let arbitrum_core_governor = arbitrum_core_governor_contract("ethereum");
+                    let arbitrum_core_governor = arbitrum_core_governor_contract("arbitrum");
 
-                    let created_at = estimate_timestamp("ethereum", result.tx_information.block_number.as_u64())
+                    let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
                         .await
                         .expect("Failed to estimate created timestamp");
 
@@ -258,25 +255,21 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         .await
                         .expect("Failed to calculate total delegated voting power");
 
-                    proposals.push(proposal::ActiveModel {
+                    proposals.push(proposal_new::ActiveModel {
                         id: NotSet,
-                        index_created: Set(result.tx_information.block_number.as_u64() as i32),
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: Set(title),
                         body: Set(result.event_data.description),
                         url: Set(proposal_url),
                         discussion_url: NotSet,
                         choices: Set(json!(choices)),
-                        scores: NotSet,
-                        scores_total: NotSet,
                         quorum: Set(quorum),
-                        scores_quorum: NotSet,
                         proposal_state: Set(state),
                         marked_spam: NotSet,
                         created_at: Set(created_at),
                         start_at: Set(start_at),
                         end_at: Set(end_at),
-                        block_created: Set(Some(result.tx_information.block_number.as_u64() as i32)),
+                        block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
                         metadata: Set(json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": total_delegated_vp}).into()),
                         txid: Set(Some(hex::encode(result.tx_information.transaction_hash.to_string()))),
                         dao_indexer_id: get_dao_indexer_id(),
@@ -549,11 +542,11 @@ pub async fn arbitrum_core_governor_handlers(manifest_path: &PathBuf, registry: 
 
     proposal_created_handler(manifest_path, registry).await;
 
-    proposal_executed_handler(manifest_path, registry).await;
+    // proposal_executed_handler(manifest_path, registry).await;
 
-    proposal_extended_handler(manifest_path, registry).await;
+    // proposal_extended_handler(manifest_path, registry).await;
 
-    proposal_queued_handler(manifest_path, registry).await;
+    // proposal_queued_handler(manifest_path, registry).await;
 
     // proposal_threshold_set_handler(manifest_path, registry).await;
 
@@ -561,9 +554,9 @@ pub async fn arbitrum_core_governor_handlers(manifest_path: &PathBuf, registry: 
 
     // timelock_change_handler(manifest_path, registry).await;
 
-    vote_cast_handler(manifest_path, registry).await;
+    // vote_cast_handler(manifest_path, registry).await;
 
-    vote_cast_with_params_handler(manifest_path, registry).await;
+    // vote_cast_with_params_handler(manifest_path, registry).await;
 
     // voting_delay_set_handler(manifest_path, registry).await;
 

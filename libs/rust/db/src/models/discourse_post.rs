@@ -142,9 +142,7 @@ impl RelationTrait for Relation {
                 .from(Column::DaoDiscourseId)
                 .to(super::dao_discourse::Column::Id)
                 .into(),
-            Self::DiscoursePostRevision => {
-                Entity::has_many(super::discourse_post_revision::Entity).into()
-            }
+            Self::DiscoursePostRevision => Entity::has_many(super::discourse_post_revision::Entity).into(),
             Self::DiscourseTopic => Entity::belongs_to(super::discourse_topic::Entity)
                 .from((Column::TopicId, Column::DaoDiscourseId))
                 .to((

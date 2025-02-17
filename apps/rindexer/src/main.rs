@@ -1,5 +1,6 @@
 use self::rindexer_lib::indexers::all_handlers::register_all_handlers;
 use dotenv::dotenv;
+use extensions::db_extension::initialize_db;
 use rindexer::{start_rindexer, GraphqlOverrideSettings, IndexingDetails, StartDetails};
 use std::env;
 mod extensions;
@@ -8,6 +9,9 @@ mod rindexer_lib;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+
+    let _ = initialize_db().await;
+
     let args: Vec<String> = env::args().collect();
 
     let mut enable_graphql = false;

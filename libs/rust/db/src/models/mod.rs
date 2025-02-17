@@ -21,6 +21,7 @@ pub mod kysely_migration;
 pub mod kysely_migration_lock;
 pub mod proposal;
 pub mod proposal_group;
+pub mod proposal_new;
 pub mod sea_orm_active_enums;
 pub mod subscription;
 pub mod user;

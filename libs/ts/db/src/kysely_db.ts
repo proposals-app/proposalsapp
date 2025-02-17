@@ -326,6 +326,28 @@ export interface ProposalGroup {
   name: string;
 }
 
+export interface ProposalNew {
+  author: string | null;
+  blockCreatedAt: number | null;
+  body: string;
+  choices: Generated<Json>;
+  createdAt: Timestamp;
+  daoId: string;
+  daoIndexerId: string;
+  discussionUrl: string | null;
+  endAt: Timestamp;
+  externalId: string;
+  id: Generated<string>;
+  markedSpam: Generated<boolean>;
+  metadata: Json | null;
+  name: string;
+  proposalState: ProposalState;
+  quorum: number;
+  startAt: Timestamp;
+  txid: string | null;
+  url: string;
+}
+
 export interface Subscription {
   createdAt: Generated<Timestamp>;
   daoId: string;
@@ -422,6 +444,7 @@ export interface DB {
   jobQueue: JobQueue;
   proposal: Proposal;
   proposalGroup: ProposalGroup;
+  proposalNew: ProposalNew;
   subscription: Subscription;
   user: User;
   userPushNotificationSubscription: UserPushNotificationSubscription;
