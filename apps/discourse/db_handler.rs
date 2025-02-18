@@ -5,14 +5,8 @@ use crate::{
 use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::OnceCell;
-use proposalsapp_db::models::{
-    discourse_category, discourse_post, discourse_post_like, discourse_post_revision,
-    discourse_topic, discourse_user, job_queue,
-};
-use sea_orm::{
-    prelude::Uuid, sea_query::OnConflict, ActiveValue::NotSet, ColumnTrait, Condition,
-    ConnectOptions, Database, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set,
-};
+use proposalsapp_db::models::{discourse_category, discourse_post, discourse_post_like, discourse_post_revision, discourse_topic, discourse_user, job_queue};
+use sea_orm::{prelude::Uuid, sea_query::OnConflict, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set};
 use std::time::Duration;
 use tracing::{info, instrument};
 use utils::types::{DiscussionJobData, JobData};
@@ -20,8 +14,7 @@ use utils::types::{DiscussionJobData, JobData};
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
 pub async fn initialize_db() -> Result<()> {
-    let database_url =
-        std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
+    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
     let mut opt = ConnectOptions::new(database_url);
     opt.max_connections(100)
@@ -329,11 +322,7 @@ pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
 }
 
 #[instrument(skip( revision), fields(revision_version = revision.current_version, post_id = revision.post_id, dao_discourse_id = %dao_discourse_id))]
-pub async fn upsert_revision(
-    revision: &Revision,
-    dao_discourse_id: Uuid,
-    discourse_post_id: Uuid,
-) -> Result<()> {
+pub async fn upsert_revision(revision: &Revision, dao_discourse_id: Uuid, discourse_post_id: Uuid) -> Result<()> {
     let cooked_body_before = Some(revision.get_cooked_markdown_before());
     let cooked_body_after = Some(revision.get_cooked_markdown_after());
 
@@ -396,11 +385,7 @@ pub async fn upsert_revision(
 }
 
 #[instrument( fields(user_ids = ?user_ids, dao_discourse_id, post_id))]
-pub async fn upsert_post_likes_batch(
-    post_id: i32,
-    user_ids: Vec<i32>,
-    dao_discourse_id: Uuid,
-) -> Result<()> {
+pub async fn upsert_post_likes_batch(post_id: i32, user_ids: Vec<i32>, dao_discourse_id: Uuid) -> Result<()> {
     if user_ids.is_empty() {
         return Ok(());
     }

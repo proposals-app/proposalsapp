@@ -64,15 +64,9 @@ impl DiffNode {
 
 pub fn parse_markdown_diff(content: &str) -> Result<DiffNode> {
     let html = Html::parse_fragment(content);
-    let table_selector = Selector::parse("table.markdown").map_err(|e| {
-        MarkdownDiffError::SelectorError(format!("Failed to create table selector: {}", e))
-    })?;
-    let tr_selector = Selector::parse("tr").map_err(|e| {
-        MarkdownDiffError::SelectorError(format!("Failed to create tr selector: {}", e))
-    })?;
-    let td_selector = Selector::parse("td").map_err(|e| {
-        MarkdownDiffError::SelectorError(format!("Failed to create td selector: {}", e))
-    })?;
+    let table_selector = Selector::parse("table.markdown").map_err(|e| MarkdownDiffError::SelectorError(format!("Failed to create table selector: {}", e)))?;
+    let tr_selector = Selector::parse("tr").map_err(|e| MarkdownDiffError::SelectorError(format!("Failed to create tr selector: {}", e)))?;
+    let td_selector = Selector::parse("td").map_err(|e| MarkdownDiffError::SelectorError(format!("Failed to create td selector: {}", e)))?;
 
     let mut root = DiffNode::new(String::new(), DiffType::Unchanged);
 
@@ -108,10 +102,7 @@ pub fn parse_markdown_diff(content: &str) -> Result<DiffNode> {
                         if !is_first_row {
                             left_content_with_newline.insert(0, '\n');
                         }
-                        root.add_child(DiffNode::new(
-                            left_content_with_newline,
-                            DiffType::Deletion,
-                        ));
+                        root.add_child(DiffNode::new(left_content_with_newline, DiffType::Deletion));
                     }
                     if is_right_diff {
                         let mut right_content_with_newline = right_content;

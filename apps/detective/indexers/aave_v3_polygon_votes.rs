@@ -58,11 +58,7 @@ impl Indexer for AaveV3PolygonVotesIndexer {
 #[async_trait]
 impl VotesIndexer for AaveV3PolygonVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Aave V3 Mainnet Votes");
 
         let poly_rpc = chain_data::get_chain_config(NamedChain::Polygon)?
@@ -103,11 +99,7 @@ impl VotesIndexer for AaveV3PolygonVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(VoteEmitted, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(VoteEmitted, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteEmitted, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -125,10 +117,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -207,9 +198,7 @@ mod aave_v3_polygon_votes_tests {
                     proposal_external_id: "180",
                     time_created: Some(parse_datetime("2024-10-09 05:35:29")),
                     block_created: Some(62813230),
-                    txid: Some(
-                        "0xd7d947a5e95663fb84f8e0ce265a560b0fc2c81b20b45861f778b18942b1ad87",
-                    ),
+                    txid: Some("0xd7d947a5e95663fb84f8e0ce265a560b0fc2c81b20b45861f778b18942b1ad87"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);

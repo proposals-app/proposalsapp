@@ -30,5 +30,6 @@ pub mod user_session;
 pub mod user_settings;
 pub mod user_to_voter;
 pub mod vote;
+pub mod vote_new;
 pub mod voter;
 pub mod voting_power;

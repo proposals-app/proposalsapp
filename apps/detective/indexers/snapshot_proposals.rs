@@ -87,11 +87,7 @@ impl Indexer for SnapshotProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for SnapshotProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Snapshot Proposals");
 
         let snapshot_space = match dao.slug.as_str() {
@@ -193,12 +189,11 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
                     );
 
                     // Parse the metadata JSON into ProposalMetadata
-                    let metadata: ProposalMetadata =
-                        if let ActiveValue::Set(Some(metadata_value)) = &p.metadata {
-                            serde_json::from_value(metadata_value.clone()).unwrap_or_default()
-                        } else {
-                            ProposalMetadata::default()
-                        };
+                    let metadata: ProposalMetadata = if let ActiveValue::Set(Some(metadata_value)) = &p.metadata {
+                        serde_json::from_value(metadata_value.clone()).unwrap_or_default()
+                    } else {
+                        ProposalMetadata::default()
+                    };
 
                     // Check if hidden_vote is true and scores_state is "final"
                     let scores_state_matches = if metadata.hidden_vote {
@@ -232,10 +227,7 @@ impl ProposalsIndexer for SnapshotProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn parse_proposals(
-    graphql_proposals: Vec<GraphQLProposal>,
-    indexer: &dao_indexer::Model,
-) -> Result<Vec<proposal::ActiveModel>> {
+async fn parse_proposals(graphql_proposals: Vec<GraphQLProposal>, indexer: &dao_indexer::Model) -> Result<Vec<proposal::ActiveModel>> {
     let mut proposals = vec![];
 
     for p in graphql_proposals {
@@ -468,12 +460,7 @@ async fn refresh_shutter_votes(indexer: dao_indexer::Model, proposal_id: String)
 }
 
 #[instrument(skip_all)]
-async fn sanitize(
-    indexer: &dao_indexer::Model,
-    space: &str,
-    sanitize_from: chrono::NaiveDateTime,
-    sanitize_to: chrono::NaiveDateTime,
-) -> Result<()> {
+async fn sanitize(indexer: &dao_indexer::Model, space: &str, sanitize_from: chrono::NaiveDateTime, sanitize_to: chrono::NaiveDateTime) -> Result<()> {
     #[derive(Debug, Deserialize)]
     struct GraphQLResponseSanitize {
         data: GraphQLResponseInnerSanitize,
@@ -617,7 +604,9 @@ mod snapshot_proposals_tests {
                     index_created: 1725263866,
                     external_id: "0xf87cf0761b27becf6c8d18bbb457c9e6bf6b7aa436cdb0d197ad2d93a495ed04",
                     name: "[TEMP CHECK] Onboard cbBTC to Aave v3 on Base",
-                    body_contains: Some(vec!["The proposal aims to onboard Coinbase’s cbBTC, to the Aave v3 protocol on Base."]),
+                    body_contains: Some(vec![
+                        "The proposal aims to onboard Coinbase’s cbBTC, to the Aave v3 protocol on Base.",
+                    ]),
                     url: "https://snapshot.box/#/s:aave.eth/proposal/0xf87cf0761b27becf6c8d18bbb457c9e6bf6b7aa436cdb0d197ad2d93a495ed04",
                     discussion_url: Some("https://governance.aave.com/t/temp-check-onboard-cbbtc-to-aave-v3-on-base/18805/1".into()),
                     choices: json!(["YAE", "NAY", "Abstain"]),

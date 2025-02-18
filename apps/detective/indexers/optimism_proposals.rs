@@ -90,11 +90,7 @@ impl Indexer for OptimismProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for OptimismProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Optimism Proposals");
 
         let op_rpc = chain_data::get_chain_config(NamedChain::Optimism)?
@@ -213,15 +209,7 @@ impl ProposalsIndexer for OptimismProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal_one(
-    p: (optimism_gov_v_6::ProposalCreated_0, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal_one(p: (optimism_gov_v_6::ProposalCreated_0, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log) = p;
 
     let created_block_number = log.block_number.unwrap();
@@ -248,28 +236,19 @@ async fn data_for_proposal_one(
         ._0
         .to::<u64>();
 
-    let voting_starts_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await
-        {
-            Ok(r) => r,
-            Err(_) => DateTime::from_timestamp_millis(
-                (created_block_timestamp * 1000)
-                    + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
-            )
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await {
+        Ok(r) => r,
+        Err(_) => DateTime::from_timestamp_millis((created_block_timestamp * 1000) + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000)
             .context("bad timestamp")?
             .naive_utc(),
-        };
+    };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => DateTime::from_timestamp_millis(
-                created_block_timestamp * 1000
-                    + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
-            )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => DateTime::from_timestamp_millis(created_block_timestamp * 1000 + (voting_end_block_number - created_block_number) as i64 * 2 * 1000)
             .context("bad timestamp")?
             .naive_utc(),
-        };
+    };
 
     let mut title = format!(
         "{:.120}",
@@ -369,23 +348,12 @@ async fn data_for_proposal_one(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
         ))),
-        metadata: Set(
-            json!({"proposal_type":1 , "voting_module":"", "vote_type":"unknown"}).into(),
-        ),
+        metadata: Set(json!({"proposal_type":1 , "voting_module":"", "vote_type":"unknown"}).into()),
     })
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal_two(
-    p: (optimism_gov_v_6::ProposalCreated_1, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-    op_token: optimism_token::optimism_tokenInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal_two(p: (optimism_gov_v_6::ProposalCreated_1, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<Http<reqwest::Client>, Arc<ReqwestProvider>>, op_token: optimism_token::optimism_tokenInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let db = DB.get().unwrap();
     let (event, log) = p;
 
@@ -400,28 +368,19 @@ async fn data_for_proposal_two(
     let voting_start_block_number = event.startBlock.to::<u64>();
     let voting_end_block_number = event.endBlock.to::<u64>();
 
-    let voting_starts_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await
-        {
-            Ok(r) => r,
-            Err(_) => DateTime::from_timestamp_millis(
-                (created_block_timestamp * 1000)
-                    + (voting_start_block_number as i64 - created_block_number as i64) * 12 * 1000,
-            )
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await {
+        Ok(r) => r,
+        Err(_) => DateTime::from_timestamp_millis((created_block_timestamp * 1000) + (voting_start_block_number as i64 - created_block_number as i64) * 12 * 1000)
             .context("bad timestamp")?
             .naive_utc(),
-        };
+    };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => DateTime::from_timestamp_millis(
-                created_block_timestamp * 1000
-                    + (voting_end_block_number - created_block_number) as i64 * 12 * 1000,
-            )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => DateTime::from_timestamp_millis(created_block_timestamp * 1000 + (voting_end_block_number - created_block_number) as i64 * 12 * 1000)
             .context("bad timestamp")?
             .naive_utc(),
-        };
+    };
 
     let mut title = format!(
         "{:.120}",
@@ -632,22 +591,12 @@ async fn data_for_proposal_two(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
         ))),
-        metadata: Set(
-            json!({"proposal_type":proposal_type, "voting_module" : voting_module, "vote_type":"unknown"}).into(),
-        ),
+        metadata: Set(json!({"proposal_type":proposal_type, "voting_module" : voting_module, "vote_type":"unknown"}).into()),
     })
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal_three(
-    p: (optimism_gov_v_6::ProposalCreated_2, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal_three(p: (optimism_gov_v_6::ProposalCreated_2, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log) = p;
 
     let created_block_number = log.block_number.unwrap();
@@ -674,28 +623,19 @@ async fn data_for_proposal_three(
         ._0
         .to::<u64>();
 
-    let voting_starts_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await
-        {
-            Ok(r) => r,
-            Err(_) => DateTime::from_timestamp_millis(
-                (created_block_timestamp * 1000)
-                    + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
-            )
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await {
+        Ok(r) => r,
+        Err(_) => DateTime::from_timestamp_millis((created_block_timestamp * 1000) + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000)
             .context("bad timestamp")?
             .naive_utc(),
-        };
+    };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => DateTime::from_timestamp_millis(
-                created_block_timestamp * 1000
-                    + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
-            )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => DateTime::from_timestamp_millis(created_block_timestamp * 1000 + (voting_end_block_number - created_block_number) as i64 * 2 * 1000)
             .context("bad timestamp")?
             .naive_utc(),
-        };
+    };
 
     let mut title = format!(
         "{:.120}",
@@ -748,17 +688,14 @@ async fn data_for_proposal_three(
     let mut scores_total: f64 = 0.0;
 
     if voting_module == address!("54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5") {
-        let voting_module = optimism_votemodule_0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5::new(
-            event.votingModule,
-            rpc.clone(),
-        );
+        let voting_module = optimism_votemodule_0x54A8fCBBf05ac14bEf782a2060A8C752C7CC13a5::new(event.votingModule, rpc.clone());
 
         let proposal_data_type = DynSolType::Tuple(vec![
             DynSolType::Array(Box::new(DynSolType::Tuple(vec![
-                DynSolType::Array(Box::new(DynSolType::Address)), // targets
+                DynSolType::Array(Box::new(DynSolType::Address)),   // targets
                 DynSolType::Array(Box::new(DynSolType::Uint(256))), // values
-                DynSolType::Array(Box::new(DynSolType::Bytes)),   // calldatas
-                DynSolType::String,                               // description (choices)
+                DynSolType::Array(Box::new(DynSolType::Bytes)),     // calldatas
+                DynSolType::String,                                 // description (choices)
             ]))),
             DynSolType::Tuple(vec![
                 DynSolType::Uint(8),   // maxApprovals
@@ -841,23 +778,12 @@ async fn data_for_proposal_three(
             "0x{}",
             hex::encode(log.transaction_hash.unwrap())
         ))),
-        metadata: Set(
-            json!({"proposal_type":3, "voting_module" : voting_module, "vote_type":"unknown"})
-                .into(),
-        ),
+        metadata: Set(json!({"proposal_type":3, "voting_module" : voting_module, "vote_type":"unknown"}).into()),
     })
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal_four(
-    p: (optimism_gov_v_6::ProposalCreated_3, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal_four(p: (optimism_gov_v_6::ProposalCreated_3, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: optimism_gov_v_6::optimism_gov_v_6Instance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log) = p;
 
     let created_block_number = log.block_number.unwrap();
@@ -884,28 +810,19 @@ async fn data_for_proposal_four(
         ._0
         .to::<u64>();
 
-    let voting_starts_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await
-        {
-            Ok(r) => r,
-            Err(_) => DateTime::from_timestamp_millis(
-                (created_block_timestamp * 1000)
-                    + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000,
-            )
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Optimism, voting_start_block_number).await {
+        Ok(r) => r,
+        Err(_) => DateTime::from_timestamp_millis((created_block_timestamp * 1000) + (voting_start_block_number as i64 - created_block_number as i64) * 2 * 1000)
             .context("bad timestamp")?
             .naive_utc(),
-        };
+    };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => DateTime::from_timestamp_millis(
-                created_block_timestamp * 1000
-                    + (voting_end_block_number - created_block_number) as i64 * 2 * 1000,
-            )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Optimism, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => DateTime::from_timestamp_millis(created_block_timestamp * 1000 + (voting_end_block_number - created_block_number) as i64 * 2 * 1000)
             .context("bad timestamp")?
             .naive_utc(),
-        };
+    };
 
     let mut title = format!(
         "{:.120}",
@@ -1059,7 +976,9 @@ mod optimism_proposals_tests {
                     index_created: 72973366,
                     external_id: "103606400798595803012644966342403441743733355496979747669804254618774477345292",
                     name: "Test Vote 3: All Together Now -- Come try out the new vote.optimism.io!",
-                    body_contains: Some(vec!["Test Vote 3: All Together Now -- Come try out the new vote.optimism.io!"]),
+                    body_contains: Some(vec![
+                        "Test Vote 3: All Together Now -- Come try out the new vote.optimism.io!",
+                    ]),
                     url: "https://vote.optimism.io/proposals/103606400798595803012644966342403441743733355496979747669804254618774477345292",
                     discussion_url: None,
                     choices: json!(["Against", "For", "Abstain"]),
@@ -1122,7 +1041,9 @@ mod optimism_proposals_tests {
                     index_created: 110769479,
                     external_id: "25353629475948605098820168047140307200589226219380649297323431722674892706917",
                     name: " Code of Conduct Violation: Carlos Melgar",
-                    body_contains: Some(vec!["All active delegates, badgeholders, Citizens, and grant recipients"]),
+                    body_contains: Some(vec![
+                        "All active delegates, badgeholders, Citizens, and grant recipients",
+                    ]),
                     url: "https://vote.optimism.io/proposals/25353629475948605098820168047140307200589226219380649297323431722674892706917",
                     discussion_url: None,
                     choices: json!(["Against", "For", "Abstain"]),
@@ -1185,11 +1106,23 @@ mod optimism_proposals_tests {
                     index_created: 99601892,
                     external_id: "2808108363564117434228597137832979672586627356483314020876637262618986508713",
                     name: "Council Reviewer Elections: Builders Grants",
-                    body_contains: Some(vec!["Following the approval of the Grants Council Intent Budget, the Token House will elect 3 Reviewers to the Builders sub-committee."]),
+                    body_contains: Some(vec![
+                        "Following the approval of the Grants Council Intent Budget, the Token House will elect 3 Reviewers to the Builders sub-committee.",
+                    ]),
                     url: "https://vote.optimism.io/proposals/2808108363564117434228597137832979672586627356483314020876637262618986508713",
                     discussion_url: None,
-                    choices: json!(["Gonna.eth", "Jack Anorak", "Krzysztof Urbanski (kaereste or krst)", "Oxytocin"]),
-                    scores: json!([11142667.865487626, 16494041.841187937, 17058726.359085575, 3335841.0624760245]),
+                    choices: json!([
+                        "Gonna.eth",
+                        "Jack Anorak",
+                        "Krzysztof Urbanski (kaereste or krst)",
+                        "Oxytocin"
+                    ]),
+                    scores: json!([
+                        11142667.865487626,
+                        16494041.841187937,
+                        17058726.359085575,
+                        3335841.0624760245
+                    ]),
                     scores_total: 19550751.716870543,
                     scores_quorum: 19550751.716870543,
                     quorum: 1288490188.8,
@@ -1248,11 +1181,31 @@ mod optimism_proposals_tests {
                     index_created: 111677431,
                     external_id: "47209512763162691916934752283791420767969951049918368296503715012448877295335",
                     name: "Elect Token House Code of Conduct Council Members",
-                    body_contains: Some(vec!["Season 5 will further decentralize the Foundation's role in processing violations of the Code of Conduct and remove enforcement responsibility from Token House delegates by electing a Code of Conduct Council."]),
+                    body_contains: Some(vec![
+                        "Season 5 will further decentralize the Foundation's role in processing violations of the Code of Conduct and remove enforcement responsibility from Token House delegates by electing a Code of Conduct Council.",
+                    ]),
                     url: "https://vote.optimism.io/proposals/47209512763162691916934752283791420767969951049918368296503715012448877295335",
                     discussion_url: None,
-                    choices: json!(["Juankbell", "Teresacd", "Oxytocin", "Axel_T", "Gene", "Juanbug_PGov", "Bubli.eth", "Ayohtunde"]),
-                    scores: json!([42170.51198003142, 42170.51198003142, 0.0, 0.0, 0.0, 44259.10599675262, 0.0, 0.0]),
+                    choices: json!([
+                        "Juankbell",
+                        "Teresacd",
+                        "Oxytocin",
+                        "Axel_T",
+                        "Gene",
+                        "Juanbug_PGov",
+                        "Bubli.eth",
+                        "Ayohtunde"
+                    ]),
+                    scores: json!([
+                        42170.51198003142,
+                        42170.51198003142,
+                        0.0,
+                        0.0,
+                        0.0,
+                        44259.10599675262,
+                        0.0,
+                        0.0
+                    ]),
                     scores_total: 44259.10599675262,
                     scores_quorum: 44259.10599675262,
                     quorum: 1288490188.799956,
@@ -1311,7 +1264,9 @@ mod optimism_proposals_tests {
                     index_created: 115004187,
                     external_id: "114318499951173425640219752344574142419220609526557632733105006940618608635406",
                     name: "Summary of Code of Conduct enforcement decisions",
-                    body_contains: Some(vec!["The elected Token House Code of Conduct Council’s decisions are subject to optimistic approval by the Token House."]),
+                    body_contains: Some(vec![
+                        "The elected Token House Code of Conduct Council’s decisions are subject to optimistic approval by the Token House.",
+                    ]),
                     url: "https://vote.optimism.io/proposals/114318499951173425640219752344574142419220609526557632733105006940618608635406",
                     discussion_url: None,
                     choices: json!(["Against", "For"]),
@@ -1374,7 +1329,9 @@ mod optimism_proposals_tests {
                     index_created: 115004502,
                     external_id: "85201803452801064488010899743776233282327928046183497710694797613625563092117",
                     name: "Summary of Code of Conduct enforcement decisions",
-                    body_contains: Some(vec!["The elected Token House Code of Conduct Council’s decisions are subject to optimistic approval by the Token House."]),
+                    body_contains: Some(vec![
+                        "The elected Token House Code of Conduct Council’s decisions are subject to optimistic approval by the Token House.",
+                    ]),
                     url: "https://vote.optimism.io/proposals/85201803452801064488010899743776233282327928046183497710694797613625563092117",
                     discussion_url: None,
                     choices: json!(["Against", "For"]),
@@ -1437,10 +1394,19 @@ mod optimism_proposals_tests {
                     index_created: 115911400,
                     external_id: "110421945337145674755337791449307926523882947474955336225598126770999669868176",
                     name: "Mission Requests: Intent #1 1.33M OP",
-                    body_contains: Some(vec!["In Season 5, the Token House will approval rank Mission Requests that work towards our Collective Intents. "]),
+                    body_contains: Some(vec![
+                        "In Season 5, the Token House will approval rank Mission Requests that work towards our Collective Intents. ",
+                    ]),
                     url: "https://vote.optimism.io/proposals/110421945337145674755337791449307926523882947474955336225598126770999669868176",
                     discussion_url: None,
-                    choices: json!(["Request 1A: Alternative CL/EL client Mission Request", "Request 1B: Decentralized rollup-as-a-service", "Request 1C: Fraud Proof CTF Mission Request", "Request 1D: Implement a prototype of an OP stack chain with mempool encryption", "Request 1E: OP Stack Research and Implementation", "Request 1F: Open Source OP Stack Developer Tooling"]),
+                    choices: json!([
+                        "Request 1A: Alternative CL/EL client Mission Request",
+                        "Request 1B: Decentralized rollup-as-a-service",
+                        "Request 1C: Fraud Proof CTF Mission Request",
+                        "Request 1D: Implement a prototype of an OP stack chain with mempool encryption",
+                        "Request 1E: OP Stack Research and Implementation",
+                        "Request 1F: Open Source OP Stack Developer Tooling"
+                    ]),
                     scores: json!([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
                     scores_total: 0.0,
                     scores_quorum: 0.0,
@@ -1500,11 +1466,47 @@ mod optimism_proposals_tests {
                     index_created: 121357490,
                     external_id: "14140470239376219798070786387548096572382469675815006174305459677010858217673",
                     name: "Developer Advisory Board Elections",
-                    body_contains: Some(vec!["Following the approval of the Developer Advisory Board Operating Budget, the Token House will elect 5 Developer Advisory Board members,"]),
+                    body_contains: Some(vec![
+                        "Following the approval of the Developer Advisory Board Operating Budget, the Token House will elect 5 Developer Advisory Board members,",
+                    ]),
                     url: "https://vote.optimism.io/proposals/14140470239376219798070786387548096572382469675815006174305459677010858217673",
                     discussion_url: None,
-                    choices: json!(["devtooligan", "wildmolasses", "wbnns", "bytes032", "Jepsen", "blockdev", "anika", "merklefruit", "gmhacker", "jtriley.eth", "shekhirin", "philogy", "noah.eth", "chom", "0xleastwood", "alextnetto.eth"]),
-                    scores: json!([36155472.21699658, 37768955.76294833, 21597099.60182954, 1419736.9182661003, 6783434.125136958, 31310623.187509544, 19660002.048630036, 6144795.035171971, 1254269.9047496044, 8428675.963217337, 2553125.3378252042, 10421644.106879342, 23506901.941835452, 1251657.9060459752, 156661.76426312412, 18239800.25168079]),
+                    choices: json!([
+                        "devtooligan",
+                        "wildmolasses",
+                        "wbnns",
+                        "bytes032",
+                        "Jepsen",
+                        "blockdev",
+                        "anika",
+                        "merklefruit",
+                        "gmhacker",
+                        "jtriley.eth",
+                        "shekhirin",
+                        "philogy",
+                        "noah.eth",
+                        "chom",
+                        "0xleastwood",
+                        "alextnetto.eth"
+                    ]),
+                    scores: json!([
+                        36155472.21699658,
+                        37768955.76294833,
+                        21597099.60182954,
+                        1419736.9182661003,
+                        6783434.125136958,
+                        31310623.187509544,
+                        19660002.048630036,
+                        6144795.035171971,
+                        1254269.9047496044,
+                        8428675.963217337,
+                        2553125.3378252042,
+                        10421644.106879342,
+                        23506901.941835452,
+                        1251657.9060459752,
+                        156661.76426312412,
+                        18239800.25168079
+                    ]),
                     scores_total: 226652856.0729859,
                     scores_quorum: 0.0,
                     quorum: 26226000.0,

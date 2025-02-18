@@ -13,9 +13,7 @@ use anyhow::{Context, Result};
 use arb_token::DelegateVotesChanged;
 use async_trait::async_trait;
 use chrono::DateTime;
-use proposalsapp_db::models::{
-    dao, dao_indexer, sea_orm_active_enums::IndexerVariant, voting_power,
-};
+use proposalsapp_db::models::{dao, dao_indexer, sea_orm_active_enums::IndexerVariant, voting_power};
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{ActiveValue::NotSet, Set};
 use std::{sync::Arc, time::Duration};
@@ -53,11 +51,7 @@ impl Indexer for ArbitrumVotingPowerIndexer {
 #[async_trait]
 impl VotingPowerIndexer for ArbitrumVotingPowerIndexer {
     #[instrument(skip_all)]
-    async fn process_voting_powers(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_voting_powers(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Arbitrum Voting Power");
 
         let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
@@ -98,11 +92,7 @@ impl VotingPowerIndexer for ArbitrumVotingPowerIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_voting_power(
-    logs: Vec<(DelegateVotesChanged, Log)>,
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-) -> Result<Vec<voting_power::ActiveModel>> {
+async fn get_voting_power(logs: Vec<(DelegateVotesChanged, Log)>, rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model) -> Result<Vec<voting_power::ActiveModel>> {
     let voting_power_logs: Vec<(DelegateVotesChanged, Log)> = logs.into_iter().collect();
 
     let mut voting_powers: Vec<voting_power::ActiveModel> = vec![];
@@ -120,10 +110,9 @@ async fn get_voting_power(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         voting_powers.push(voting_power::ActiveModel {
             id: NotSet,
@@ -189,9 +178,7 @@ mod arbitrum_voting_power_tests {
                     voting_power: 52335.847297893175,
                     block: 258594511,
                     timestamp: parse_datetime("2024-09-29 13:40:08"),
-                    txid: Some(
-                        "0x698c71a6655879e7f57799d828fd0bb4b339d827109a2de1f2688b4be76d60b5",
-                    ),
+                    txid: Some("0x698c71a6655879e7f57799d828fd0bb4b339d827109a2de1f2688b4be76d60b5"),
                 };
 
                 assert_voting_power(&voting_powers[1], &expected);

@@ -18,8 +18,7 @@ mod metrics;
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
 pub async fn initialize_db() -> Result<()> {
-    let database_url =
-        std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
+    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
     let mut opt = ConnectOptions::new(database_url);
     opt.max_connections(100)
@@ -85,8 +84,7 @@ async fn main() -> Result<()> {
 
     // Wait for Ctrl+C or SIGTERM
     let ctrl_c = tokio::signal::ctrl_c();
-    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-        .expect("Failed to set up SIGTERM handler");
+    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).expect("Failed to set up SIGTERM handler");
 
     tokio::select! {
         _ = ctrl_c => {

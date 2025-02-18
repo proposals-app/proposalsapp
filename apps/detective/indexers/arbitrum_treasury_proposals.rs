@@ -59,11 +59,7 @@ impl Indexer for ArbitrumTreasuryProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for ArbitrumTreasuryProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Arbitrum Treasury Proposals");
 
         let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
@@ -124,15 +120,7 @@ impl ProposalsIndexer for ArbitrumTreasuryProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (arbitrum_treasury_gov::ProposalCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: arbitrum_treasury_gov::arbitrum_treasury_govInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (arbitrum_treasury_gov::ProposalCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: arbitrum_treasury_gov::arbitrum_treasury_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (arbitrum_treasury_gov::ProposalCreated, Log) = p.clone();
 
     let created_block_timestamp = rpc
@@ -166,21 +154,12 @@ async fn data_for_proposal(
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match chain_data::estimate_timestamp(
-        NamedChain::Mainnet,
-        voting_start_block_number,
-    )
-    .await
-    {
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_start_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_start_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                .context("bad timestamp")?
+                .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_start_block_number
@@ -190,25 +169,20 @@ async fn data_for_proposal(
         }
     };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_end_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_end_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
                 .context("bad timestamp")?
                 .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_end_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
 
     let title = extract_title(&event.description);
 
@@ -235,8 +209,7 @@ async fn data_for_proposal(
 
     let scores_total = scores.iter().sum();
 
-    let scores_quorum = onchain_proposal.forVotes.to::<u128>() as f64 / (10.0f64.powi(18))
-        + onchain_proposal.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18));
+    let scores_quorum = onchain_proposal.forVotes.to::<u128>() as f64 / (10.0f64.powi(18)) + onchain_proposal.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18));
 
     let proposal_snapshot_block = gov_contract
         .proposalSnapshot(event.proposalId)
@@ -436,7 +409,9 @@ mod arbitrum_treasury_proposals_tests {
                     index_created: 98423914,
                     external_id: "79904733039853333959339953965823982558487956291458141923259498272549038367575",
                     name: "AIP-1.1 - Lockup, Budget, Transparency",
-                    body_contains: Some(vec!["The Administrative Budget Wallet will be used for covering ongoing administrative and operational costs of The Arbitrum Foundation, payment of service providers, and for the purpose of fostering the growth and development of the Arbitrum ecosystem. In respect to the 7.5% that has been distributed to the Administrative Budget Wallet, a transparency report regarding the 0.5% that has already been transferred is available here 163."]),
+                    body_contains: Some(vec![
+                        "The Administrative Budget Wallet will be used for covering ongoing administrative and operational costs of The Arbitrum Foundation, payment of service providers, and for the purpose of fostering the growth and development of the Arbitrum ecosystem. In respect to the 7.5% that has been distributed to the Administrative Budget Wallet, a transparency report regarding the 0.5% that has already been transferred is available here 163.",
+                    ]),
                     url: "https://www.tally.xyz/gov/arbitrum/proposal/79904733039853333959339953965823982558487956291458141923259498272549038367575",
                     discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),
@@ -500,7 +475,9 @@ mod arbitrum_treasury_proposals_tests {
                         index_created: 188757729,
                         external_id: "21881347407562908848280051025758535553780110598432331587570488445729767071232",
                         name: "[Non-constitutional] Proposal to fund Plurality Labs Milestone 1B(ridge)",
-                        body_contains: Some(vec!["Back in August, Arbitrum DAO passed our AIP-3 to build a pluralistic grants framework that decentralizes grants decision-making, avoids capture and scales valuable grants allocations, and grows the Arbitrum ecosystem overall."]),
+                        body_contains: Some(vec![
+                            "Back in August, Arbitrum DAO passed our AIP-3 to build a pluralistic grants framework that decentralizes grants decision-making, avoids capture and scales valuable grants allocations, and grows the Arbitrum ecosystem overall.",
+                        ]),
                         url: "https://www.tally.xyz/gov/arbitrum/proposal/21881347407562908848280051025758535553780110598432331587570488445729767071232",
                         discussion_url: None,
                         choices: json!(["For", "Against", "Abstain"]),
@@ -521,7 +498,9 @@ mod arbitrum_treasury_proposals_tests {
                         index_created: 192337153,
                         external_id: "38070839538623347085766954167338451189998347523518753197890888828931691912919",
                         name: "Arbitrum Stable Treasury Endowment Program",
-                        body_contains: Some(vec!["This proposal is a trial run for a larger investment policy of the ArbitrumDAO treasury, both in"]),
+                        body_contains: Some(vec![
+                            "This proposal is a trial run for a larger investment policy of the ArbitrumDAO treasury, both in",
+                        ]),
                         url: "https://www.tally.xyz/gov/arbitrum/proposal/38070839538623347085766954167338451189998347523518753197890888828931691912919",
                         discussion_url: None,
                         choices: json!(["For", "Against", "Abstain"]),
@@ -537,7 +516,7 @@ mod arbitrum_treasury_proposals_tests {
                         block_created: Some(192337153),
                         txid: Some("0x8086f869ce5cc30ccffc03c044e18f17f6a8acffd697dfa18aba62d32cbfae15"),
                         metadata: json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": 328016228.025146}).into(),
-                    }
+                    },
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -585,7 +564,9 @@ mod arbitrum_treasury_proposals_tests {
                     index_created: 219487184,
                     external_id: "79183200449169085571205208154003416944507585311666453826890708127615057369177",
                     name: "Kwenta x Perennial: Arbitrum Onboarding Incentives",
-                    body_contains: Some(vec!["Kwenta, a prominent DeFi application in the Optimism ecosystem, is set to expand to Arbitrum, utilizing Perennial V2, an Arbitrum-native protocol. This joint proposal requests 1.9 million ARB to fund targeted onboarding incentives, aiming to bring Kwenta users to Arbitrum."]),
+                    body_contains: Some(vec![
+                        "Kwenta, a prominent DeFi application in the Optimism ecosystem, is set to expand to Arbitrum, utilizing Perennial V2, an Arbitrum-native protocol. This joint proposal requests 1.9 million ARB to fund targeted onboarding incentives, aiming to bring Kwenta users to Arbitrum.",
+                    ]),
                     url: "https://www.tally.xyz/gov/arbitrum/proposal/79183200449169085571205208154003416944507585311666453826890708127615057369177",
                     discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),

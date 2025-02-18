@@ -58,11 +58,7 @@ impl Indexer for FraxAlphaMainnetProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for FraxAlphaMainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Frax Alpha Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -123,15 +119,7 @@ impl ProposalsIndexer for FraxAlphaMainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (frax_alpha_gov::ProposalCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: frax_alpha_gov::frax_alpha_govInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (frax_alpha_gov::ProposalCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: frax_alpha_gov::frax_alpha_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (frax_alpha_gov::ProposalCreated, Log) = p.clone();
 
     let created_block = rpc
@@ -144,10 +132,9 @@ async fn data_for_proposal(
         .unwrap();
     let created_block_timestamp = created_block.header.timestamp as i64;
 
-    let voting_starts_timestamp =
-        DateTime::from_timestamp_millis(event.voteStart.to::<i64>() * 1000)
-            .unwrap()
-            .naive_utc();
+    let voting_starts_timestamp = DateTime::from_timestamp_millis(event.voteStart.to::<i64>() * 1000)
+        .unwrap()
+        .naive_utc();
 
     let voting_ends_timestamp = DateTime::from_timestamp_millis(event.voteEnd.to::<i64>() * 1000)
         .unwrap()
@@ -205,8 +192,7 @@ async fn data_for_proposal(
         .to::<u128>() as f64
         / (10.0f64.powi(18));
 
-    let scores_quorum =
-        (votes.forVotes + votes.abstainVotes).to::<u128>() as f64 / (10.0f64.powi(18));
+    let scores_quorum = (votes.forVotes + votes.abstainVotes).to::<u128>() as f64 / (10.0f64.powi(18));
 
     let proposal_state = gov_contract
         .state(event.proposalId)

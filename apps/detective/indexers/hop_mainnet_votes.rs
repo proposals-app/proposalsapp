@@ -57,11 +57,7 @@ impl Indexer for HopMainnetVotesIndexer {
 #[async_trait]
 impl VotesIndexer for HopMainnetVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Hop Protocol Votes");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -102,11 +98,7 @@ impl VotesIndexer for HopMainnetVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(VoteCast, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(VoteCast, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCast, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -124,10 +116,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -205,9 +196,7 @@ mod hop_mainnet_votes_tests {
                     proposal_external_id: "51305966013437649942436285826738882927850963257079969027071347095796508382089",
                     time_created: Some(parse_datetime("2024-06-25 18:08:35")),
                     block_created: Some(20170389),
-                    txid: Some(
-                        "0x1343c7fdef133f943d253b3ecfa77664b73c253ed5aa4671f12f98bf195e4f60",
-                    ),
+                    txid: Some("0x1343c7fdef133f943d253b3ecfa77664b73c253ed5aa4671f12f98bf195e4f60"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);

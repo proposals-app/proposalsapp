@@ -12,9 +12,7 @@ use tokio::{
 };
 use tracing::{error, info, instrument, warn};
 
-use crate::{
-    SNAPSHOT_MAX_CONCURRENT_REQUESTS, SNAPSHOT_MAX_QUEUE, SNAPSHOT_MAX_RETRIES, SNAPSHOT_TIMEOUT,
-};
+use crate::{SNAPSHOT_MAX_CONCURRENT_REQUESTS, SNAPSHOT_MAX_QUEUE, SNAPSHOT_MAX_RETRIES, SNAPSHOT_TIMEOUT};
 
 struct RateLimiter {
     remaining: std::sync::atomic::AtomicU32,
@@ -134,9 +132,7 @@ impl SnapshotApiHandler {
             let rate_limiter = self.rate_limiter.clone();
 
             tokio::spawn(async move {
-                let result =
-                    Self::execute_request(&client, &job.url, &job.query, &config, rate_limiter)
-                        .await;
+                let result = Self::execute_request(&client, &job.url, &job.query, &config, rate_limiter).await;
                 if let Err(e) = job.response_sender.send(result) {
                     error!(error = ?e, "Failed to send response");
                 }
@@ -146,13 +142,7 @@ impl SnapshotApiHandler {
     }
 
     #[instrument(skip(client, rate_limiter))]
-    async fn execute_request(
-        client: &Client,
-        url: &str,
-        query: &str,
-        config: &SnapshotApiConfig,
-        rate_limiter: Arc<RateLimiter>,
-    ) -> Result<String> {
+    async fn execute_request(client: &Client, url: &str, query: &str, config: &SnapshotApiConfig, rate_limiter: Arc<RateLimiter>) -> Result<String> {
         let mut attempt = 0;
         let mut delay = Duration::from_secs(1);
 

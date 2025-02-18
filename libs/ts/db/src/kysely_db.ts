@@ -410,6 +410,21 @@ export interface Vote {
   votingPower: number;
 }
 
+export interface VoteNew {
+  blockCreatedAt: number | null;
+  choice: Generated<Json>;
+  createdAt: Generated<Timestamp>;
+  daoId: string;
+  id: Generated<string>;
+  indexerId: string;
+  proposalExternalId: string;
+  proposalId: string;
+  reason: string | null;
+  txid: string | null;
+  voterAddress: string;
+  votingPower: number;
+}
+
 export interface Voter {
   address: string;
   ens: string | null;
@@ -452,6 +467,7 @@ export interface DB {
   userSettings: UserSettings;
   userToVoter: UserToVoter;
   vote: Vote;
+  voteNew: VoteNew;
   voter: Voter;
   votingPower: VotingPower;
 }

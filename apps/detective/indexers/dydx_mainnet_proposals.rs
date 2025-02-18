@@ -73,11 +73,7 @@ impl Indexer for DydxMainnetProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for DydxMainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Dydx Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -138,12 +134,7 @@ impl ProposalsIndexer for DydxMainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (dydx_gov::ProposalCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: dydx_gov::dydx_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (dydx_gov::ProposalCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: dydx_gov::dydx_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (dydx_gov::ProposalCreated, Log) = p.clone();
 
     let created_block = rpc
@@ -154,31 +145,21 @@ async fn data_for_proposal(
         .await
         .context("get_block_by_number")?
         .unwrap();
-    let created_block_timestamp =
-        DateTime::from_timestamp(created_block.header.timestamp as i64, 0)
-            .context("bad timestamp")?
-            .naive_utc();
+    let created_block_timestamp = DateTime::from_timestamp(created_block.header.timestamp as i64, 0)
+        .context("bad timestamp")?
+        .naive_utc();
 
     let voting_start_block_number = event.startBlock.to::<u64>();
     let voting_end_block_number = event.endBlock.to::<u64>();
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match chain_data::estimate_timestamp(
-        NamedChain::Mainnet,
-        voting_start_block_number,
-    )
-    .await
-    {
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_start_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_start_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                .context("bad timestamp")?
+                .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_start_block_number
@@ -188,25 +169,20 @@ async fn data_for_proposal(
         }
     };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_end_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_end_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
                 .context("bad timestamp")?
                 .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_end_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
 
     let proposal_url = format!("https://dydx.community/dashboard/proposal/{}", event.id);
 
@@ -238,9 +214,7 @@ async fn data_for_proposal(
         .context("executor_contract.ONE_HUNDRED_WITH_PRECISION")?
         ._0;
 
-    let quorum = ((total_voting_power * min_quorum) / one_hunded_with_precision).to::<u128>()
-        as f64
-        / (10.0f64.powi(18));
+    let quorum = ((total_voting_power * min_quorum) / one_hunded_with_precision).to::<u128>() as f64 / (10.0f64.powi(18));
 
     let onchain_proposal = gov_contract
         .getProposalById(event.id)
@@ -557,7 +531,9 @@ mod dydx_mainnet_proposals_tests {
                     index_created: 13628320,
                     external_id: "4",
                     name: "Upgrade the StarkProxy smart contract",
-                    body_contains: Some(vec!["Upgrade StarkProxy smart contracts to support deposit cancellation and recovery."]),
+                    body_contains: Some(vec![
+                        "Upgrade StarkProxy smart contracts to support deposit cancellation and recovery.",
+                    ]),
                     url: "https://dydx.community/dashboard/proposal/4",
                     discussion_url: Some("https://forums.dydx.community/proposal/discussion/2437-drc-smart-contract-upgrade-for-market-maker-borrowers-from-liquidity-staking-pool/".into()),
                     choices: json!(["For", "Against"]),
@@ -620,7 +596,9 @@ mod dydx_mainnet_proposals_tests {
                         index_created: 17076736,
                         external_id: "12",
                         name: "Increase Maximum Funding Rates (8h) to 4% and Fix Data Bug in the V3 Perp Contract",
-                        body_contains: Some(vec!["Increase the maximum 8h funding rate from 0.75% to 4% across all markets, and deploy a fix to the relevant dYdX V3 perpetual smart contracts to fix a data availability issue. Due to efficiencies on testing and deployment with recommendation from the Starkware team, the changes from these 2 separate proposals are bundled into one single on-chain DIP for implementation."]),
+                        body_contains: Some(vec![
+                            "Increase the maximum 8h funding rate from 0.75% to 4% across all markets, and deploy a fix to the relevant dYdX V3 perpetual smart contracts to fix a data availability issue. Due to efficiencies on testing and deployment with recommendation from the Starkware team, the changes from these 2 separate proposals are bundled into one single on-chain DIP for implementation.",
+                        ]),
                         url: "https://dydx.community/dashboard/proposal/12",
                         discussion_url: Some("https://commonwealth.im/dydx/discussion/10234-drc-increase-the-maximum-funding-rate & https://commonwealth.im/dydx/discussion/10634-v3-starkware-contract-data-availability-bug".into()),
                         choices: json!(["For", "Against"]),
@@ -641,7 +619,9 @@ mod dydx_mainnet_proposals_tests {
                         index_created: 17477983,
                         external_id: "13",
                         name: "Launch the dYdX Operations subDAO V2",
-                        body_contains: Some(vec!["Important Notice: This proposal is being sponsored by Wintermute Governance’s DYDX proposal/voting power on behalf of the dYdX Operations Trust."]),
+                        body_contains: Some(vec![
+                            "Important Notice: This proposal is being sponsored by Wintermute Governance’s DYDX proposal/voting power on behalf of the dYdX Operations Trust.",
+                        ]),
                         url: "https://dydx.community/dashboard/proposal/13",
                         discussion_url: Some("https://dydx.forum/t/dydx-operations-subdao-v2/274".into()),
                         choices: json!(["For", "Against"]),
@@ -657,7 +637,7 @@ mod dydx_mainnet_proposals_tests {
                         block_created: Some(17477983),
                         txid: Some("0xdde79a41786a5331830cba25c50c3e8eef166c4913e72939c8d7116702db9bcf"),
                         metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
-                    }
+                    },
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

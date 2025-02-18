@@ -37,12 +37,7 @@ impl UserIndexer {
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_users(
-        &self,
-        dao_discourse_id: Uuid,
-        period: &str,
-        priority: bool,
-    ) -> Result<()> {
+    pub async fn update_users(&self, dao_discourse_id: Uuid, period: &str, priority: bool) -> Result<()> {
         info!("Starting to update users");
 
         let mut page = 0;
@@ -103,9 +98,7 @@ impl UserIndexer {
             }
 
             if let Some(prev) = &previous_response {
-                if serde_json::to_string(&prev.directory_items)?
-                    == serde_json::to_string(&response.directory_items)?
-                {
+                if serde_json::to_string(&prev.directory_items)? == serde_json::to_string(&response.directory_items)? {
                     info!("Detected identical response. Stopping fetch.");
                     previous_repeat += 1;
                     if previous_repeat == 2 {
@@ -123,12 +116,7 @@ impl UserIndexer {
     }
 
     #[instrument(skip(self), fields(username = %username, dao_discourse_id = %dao_discourse_id))]
-    pub async fn fetch_user_by_username(
-        &self,
-        username: &str,
-        dao_discourse_id: Uuid,
-        priority: bool,
-    ) -> Result<()> {
+    pub async fn fetch_user_by_username(&self, username: &str, dao_discourse_id: Uuid, priority: bool) -> Result<()> {
         info!("Fetching user by username");
 
         let url = format!("/u/{}.json", username);

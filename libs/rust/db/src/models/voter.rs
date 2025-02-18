@@ -43,6 +43,7 @@ pub enum Relation {
     DelegateToVoter,
     UserToVoter,
     Vote,
+    VoteNew,
 }
 
 impl ColumnTrait for Column {
@@ -62,6 +63,7 @@ impl RelationTrait for Relation {
             Self::DelegateToVoter => Entity::has_many(super::delegate_to_voter::Entity).into(),
             Self::UserToVoter => Entity::has_many(super::user_to_voter::Entity).into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
+            Self::VoteNew => Entity::has_many(super::vote_new::Entity).into(),
         }
     }
 }
@@ -81,6 +83,12 @@ impl Related<super::user_to_voter::Entity> for Entity {
 impl Related<super::vote::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Vote.def()
+    }
+}
+
+impl Related<super::vote_new::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::VoteNew.def()
     }
 }
 

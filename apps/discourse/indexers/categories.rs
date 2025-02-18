@@ -63,9 +63,7 @@ impl CategoryIndexer {
             }
 
             if let Some(prev) = &previous_response {
-                if serde_json::to_string(&prev.category_list.categories)?
-                    == serde_json::to_string(&response.category_list.categories)?
-                {
+                if serde_json::to_string(&prev.category_list.categories)? == serde_json::to_string(&response.category_list.categories)? {
                     info!("Detected identical response. Stopping fetch.");
                     break;
                 }

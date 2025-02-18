@@ -59,6 +59,7 @@ pub enum Relation {
     Proposal,
     ProposalNew,
     Vote,
+    VoteNew,
 }
 
 impl ColumnTrait for Column {
@@ -89,6 +90,7 @@ impl RelationTrait for Relation {
             Self::Proposal => Entity::has_many(super::proposal::Entity).into(),
             Self::ProposalNew => Entity::has_many(super::proposal_new::Entity).into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
+            Self::VoteNew => Entity::has_many(super::vote_new::Entity).into(),
         }
     }
 }
@@ -114,6 +116,12 @@ impl Related<super::proposal_new::Entity> for Entity {
 impl Related<super::vote::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Vote.def()
+    }
+}
+
+impl Related<super::vote_new::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::VoteNew.def()
     }
 }
 

@@ -3,56 +3,10 @@
 
 use anyhow::{bail, Result};
 use axum::{routing::get, Router};
-use database::{
-    fetch_dao_indexers, initialize_db, store_delegations, store_proposals, store_votes,
-    store_voting_powers, update_indexer_speed, update_indexer_speed_and_index,
-    update_indexer_updated_at,
-};
+use database::{fetch_dao_indexers, initialize_db, store_delegations, store_proposals, store_votes, store_voting_powers, update_indexer_speed, update_indexer_speed_and_index, update_indexer_updated_at};
 use dotenv::dotenv;
-use indexer::{
-    DelegationIndexer, ProcessResult, ProposalsIndexer, VotesIndexer, VotingPowerIndexer,
-};
-use indexers::{
-    aave_v2_mainnet_proposals::AaveV2MainnetProposalsIndexer,
-    aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer,
-    aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer,
-    aave_v3_mainnet_proposals::AaveV3MainnetProposalsIndexer,
-    aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer,
-    aave_v3_polygon_votes::AaveV3PolygonVotesIndexer,
-    arbitrum_core_proposals::ArbitrumCoreProposalsIndexer,
-    arbitrum_core_votes::ArbitrumCoreVotesIndexer,
-    arbitrum_council_elections::ArbitrumCouncilElectionsProposalsAndVotesIndexer,
-    arbitrum_council_nominations::ArbitrumCouncilNominationsProposalsAndVotesIndexer,
-    arbitrum_delegations::ArbitrumDelegationsIndexer,
-    arbitrum_treasury_proposals::ArbitrumTreasuryProposalsIndexer,
-    arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer,
-    arbitrum_voting_power::ArbitrumVotingPowerIndexer,
-    compound_mainnet_proposals::CompoundMainnetProposalsIndexer,
-    compound_mainnet_votes::CompoundMainnetVotesIndexer,
-    dydx_mainnet_proposals::DydxMainnetProposalsIndexer,
-    dydx_mainnet_votes::DydxMainnetVotesIndexer,
-    ens_mainnnet_proposals::EnsMainnetProposalsIndexer, ens_vote_indexer::EnsMainnetVotesIndexer,
-    frax_alpha_mainnet_proposals::FraxAlphaMainnetProposalsIndexer,
-    frax_alpha_mainnet_votes::FraxAlphaMainnetVotesIndexer,
-    frax_omega_mainnet_proposals::FraxOmegaMainnetProposalsIndexer,
-    frax_omega_mainnet_votes::FraxOmegaMainnetVotesIndexer,
-    gitcoin_v1_mainnet_proposals::GitcoinV1MainnetProposalsIndexer,
-    gitcoin_v1_mainnet_votes::GitcoinV1MainnetVotesIndexer,
-    gitcoin_v2_mainnet_proposals::GitcoinV2MainnetProposalsIndexer,
-    gitcoin_v2_mainnet_votes::GitcoinV2MainnetVotesIndexer,
-    hop_mainnet_proposals::HopMainnetProposalsIndexer, hop_mainnet_votes::HopMainnetVotesIndexer,
-    maker_executive_mainnet_proposals::MakerExecutiveMainnetProposalsIndexer,
-    maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer,
-    maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer,
-    maker_poll_mainnet_proposals::MakerPollMainnetProposalsIndexer,
-    maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer,
-    nouns_mainnet_proposals::NounsMainnetProposalsIndexer,
-    nouns_mainnet_votes::NounsMainnetVotesIndexer, optimism_proposals::OptimismProposalsIndexer,
-    optimism_votes::OptimismVotesIndexer, snapshot_proposals::SnapshotProposalsIndexer,
-    snapshot_votes::SnapshotVotesIndexer,
-    uniswap_mainnet_proposals::UniswapMainnetProposalsIndexer,
-    uniswap_mainnet_votes::UniswapMainnetVotesIndexer,
-};
+use indexer::{DelegationIndexer, ProcessResult, ProposalsIndexer, VotesIndexer, VotingPowerIndexer};
+use indexers::{aave_v2_mainnet_proposals::AaveV2MainnetProposalsIndexer, aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer, aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer, aave_v3_mainnet_proposals::AaveV3MainnetProposalsIndexer, aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer, aave_v3_polygon_votes::AaveV3PolygonVotesIndexer, arbitrum_core_proposals::ArbitrumCoreProposalsIndexer, arbitrum_core_votes::ArbitrumCoreVotesIndexer, arbitrum_council_elections::ArbitrumCouncilElectionsProposalsAndVotesIndexer, arbitrum_council_nominations::ArbitrumCouncilNominationsProposalsAndVotesIndexer, arbitrum_delegations::ArbitrumDelegationsIndexer, arbitrum_treasury_proposals::ArbitrumTreasuryProposalsIndexer, arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer, arbitrum_voting_power::ArbitrumVotingPowerIndexer, compound_mainnet_proposals::CompoundMainnetProposalsIndexer, compound_mainnet_votes::CompoundMainnetVotesIndexer, dydx_mainnet_proposals::DydxMainnetProposalsIndexer, dydx_mainnet_votes::DydxMainnetVotesIndexer, ens_mainnnet_proposals::EnsMainnetProposalsIndexer, ens_vote_indexer::EnsMainnetVotesIndexer, frax_alpha_mainnet_proposals::FraxAlphaMainnetProposalsIndexer, frax_alpha_mainnet_votes::FraxAlphaMainnetVotesIndexer, frax_omega_mainnet_proposals::FraxOmegaMainnetProposalsIndexer, frax_omega_mainnet_votes::FraxOmegaMainnetVotesIndexer, gitcoin_v1_mainnet_proposals::GitcoinV1MainnetProposalsIndexer, gitcoin_v1_mainnet_votes::GitcoinV1MainnetVotesIndexer, gitcoin_v2_mainnet_proposals::GitcoinV2MainnetProposalsIndexer, gitcoin_v2_mainnet_votes::GitcoinV2MainnetVotesIndexer, hop_mainnet_proposals::HopMainnetProposalsIndexer, hop_mainnet_votes::HopMainnetVotesIndexer, maker_executive_mainnet_proposals::MakerExecutiveMainnetProposalsIndexer, maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer, maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer, maker_poll_mainnet_proposals::MakerPollMainnetProposalsIndexer, maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer, nouns_mainnet_proposals::NounsMainnetProposalsIndexer, nouns_mainnet_votes::NounsMainnetVotesIndexer, optimism_proposals::OptimismProposalsIndexer, optimism_votes::OptimismVotesIndexer, snapshot_proposals::SnapshotProposalsIndexer, snapshot_votes::SnapshotVotesIndexer, uniswap_mainnet_proposals::UniswapMainnetProposalsIndexer, uniswap_mainnet_votes::UniswapMainnetVotesIndexer};
 use proposalsapp_db::models::{
     dao, dao_indexer,
     sea_orm_active_enums::{IndexerType, IndexerVariant},
@@ -182,10 +136,7 @@ async fn main() -> Result<()> {
                         continue;
                     }
 
-                    let (tx, queued_indexers) = if indexer_variant
-                        == IndexerVariant::SnapshotProposals
-                        || indexer_variant == IndexerVariant::SnapshotVotes
-                    {
+                    let (tx, queued_indexers) = if indexer_variant == IndexerVariant::SnapshotProposals || indexer_variant == IndexerVariant::SnapshotVotes {
                         (&snapshot_tx, &snapshot_queued_indexers)
                     } else {
                         (&other_tx, &other_queued_indexers)
@@ -233,8 +184,7 @@ async fn main() -> Result<()> {
 
     // Wait for Ctrl+C or SIGTERM
     let ctrl_c = tokio::signal::ctrl_c();
-    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-        .expect("Failed to set up SIGTERM handler");
+    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).expect("Failed to set up SIGTERM handler");
 
     tokio::select! {
         _ = ctrl_c => {
@@ -256,11 +206,7 @@ async fn main() -> Result<()> {
 }
 
 #[instrument(skip(rx, queued_indexers))]
-fn create_job_consumer(
-    mut rx: mpsc::Receiver<(dao_indexer::Model, dao::Model)>,
-    queued_indexers: Arc<Mutex<HashSet<Uuid>>>,
-    concurrent_jobs: usize,
-) -> tokio::task::JoinHandle<()> {
+fn create_job_consumer(mut rx: mpsc::Receiver<(dao_indexer::Model, dao::Model)>, queued_indexers: Arc<Mutex<HashSet<Uuid>>>, concurrent_jobs: usize) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(concurrent_jobs));
 
@@ -301,13 +247,10 @@ fn create_job_consumer(
                             store_success = false;
                         }
 
-                        let new_speed =
-                            indexer_implementation.adjust_speed(indexer.speed, store_success);
+                        let new_speed = indexer_implementation.adjust_speed(indexer.speed, store_success);
 
                         if store_success {
-                            if let Err(e) =
-                                update_indexer_speed_and_index(&indexer, new_speed, new_index).await
-                            {
+                            if let Err(e) = update_indexer_speed_and_index(&indexer, new_speed, new_index).await {
                                 error!(error = %e, "Failed to update indexer speed and index");
                             }
                         } else if let Err(e) = update_indexer_speed(&indexer, new_speed).await {
@@ -381,9 +324,7 @@ async fn process_job(indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<P
             }
         }
         IndexerType::ProposalsAndVotes => {
-            if let Some(proposals_and_votes_indexer) =
-                get_proposals_and_votes_indexer(&indexer.indexer_variant)
-            {
+            if let Some(proposals_and_votes_indexer) = get_proposals_and_votes_indexer(&indexer.indexer_variant) {
                 proposals_and_votes_indexer
                     .process_proposals_and_votes(indexer, dao)
                     .await
@@ -433,32 +374,18 @@ fn get_proposals_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn Pro
         IndexerVariant::CompoundMainnetProposals => Some(Box::new(CompoundMainnetProposalsIndexer)),
         IndexerVariant::DydxMainnetProposals => Some(Box::new(DydxMainnetProposalsIndexer)),
         IndexerVariant::EnsMainnetProposals => Some(Box::new(EnsMainnetProposalsIndexer)),
-        IndexerVariant::FraxAlphaMainnetProposals => {
-            Some(Box::new(FraxAlphaMainnetProposalsIndexer))
-        }
-        IndexerVariant::FraxOmegaMainnetProposals => {
-            Some(Box::new(FraxOmegaMainnetProposalsIndexer))
-        }
+        IndexerVariant::FraxAlphaMainnetProposals => Some(Box::new(FraxAlphaMainnetProposalsIndexer)),
+        IndexerVariant::FraxOmegaMainnetProposals => Some(Box::new(FraxOmegaMainnetProposalsIndexer)),
         IndexerVariant::GitcoinMainnetProposals => Some(Box::new(GitcoinV1MainnetProposalsIndexer)),
-        IndexerVariant::GitcoinV2MainnetProposals => {
-            Some(Box::new(GitcoinV2MainnetProposalsIndexer))
-        }
+        IndexerVariant::GitcoinV2MainnetProposals => Some(Box::new(GitcoinV2MainnetProposalsIndexer)),
         IndexerVariant::HopMainnetProposals => Some(Box::new(HopMainnetProposalsIndexer)),
-        IndexerVariant::MakerExecutiveMainnetProposals => {
-            Some(Box::new(MakerExecutiveMainnetProposalsIndexer))
-        }
-        IndexerVariant::MakerPollMainnetProposals => {
-            Some(Box::new(MakerPollMainnetProposalsIndexer))
-        }
-        IndexerVariant::NounsProposalsMainnetProposals => {
-            Some(Box::new(NounsMainnetProposalsIndexer))
-        }
+        IndexerVariant::MakerExecutiveMainnetProposals => Some(Box::new(MakerExecutiveMainnetProposalsIndexer)),
+        IndexerVariant::MakerPollMainnetProposals => Some(Box::new(MakerPollMainnetProposalsIndexer)),
+        IndexerVariant::NounsProposalsMainnetProposals => Some(Box::new(NounsMainnetProposalsIndexer)),
         IndexerVariant::OpOptimismProposals => Some(Box::new(OptimismProposalsIndexer)),
         IndexerVariant::UniswapMainnetProposals => Some(Box::new(UniswapMainnetProposalsIndexer)),
         IndexerVariant::ArbCoreArbitrumProposals => Some(Box::new(ArbitrumCoreProposalsIndexer)),
-        IndexerVariant::ArbTreasuryArbitrumProposals => {
-            Some(Box::new(ArbitrumTreasuryProposalsIndexer))
-        }
+        IndexerVariant::ArbTreasuryArbitrumProposals => Some(Box::new(ArbitrumTreasuryProposalsIndexer)),
         _ => None,
     }
 }
@@ -479,9 +406,7 @@ fn get_votes_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn VotesIn
         IndexerVariant::GitcoinMainnetVotes => Some(Box::new(GitcoinV1MainnetVotesIndexer)),
         IndexerVariant::GitcoinV2MainnetVotes => Some(Box::new(GitcoinV2MainnetVotesIndexer)),
         IndexerVariant::HopMainnetVotes => Some(Box::new(HopMainnetVotesIndexer)),
-        IndexerVariant::MakerExecutiveMainnetVotes => {
-            Some(Box::new(MakerExecutiveMainnetVotesIndexer))
-        }
+        IndexerVariant::MakerExecutiveMainnetVotes => Some(Box::new(MakerExecutiveMainnetVotesIndexer)),
         IndexerVariant::MakerPollMainnetVotes => Some(Box::new(MakerPollMainnetVotesIndexer)),
         IndexerVariant::MakerPollArbitrumVotes => Some(Box::new(MakerPollArbitrumVotesIndexer)),
         IndexerVariant::NounsProposalsMainnetVotes => Some(Box::new(NounsMainnetVotesIndexer)),
@@ -494,24 +419,16 @@ fn get_votes_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn VotesIn
 }
 
 #[instrument]
-fn get_proposals_and_votes_indexer(
-    indexer_variant: &IndexerVariant,
-) -> Option<Box<dyn indexer::ProposalsAndVotesIndexer>> {
+fn get_proposals_and_votes_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn indexer::ProposalsAndVotesIndexer>> {
     match indexer_variant {
-        IndexerVariant::ArbitrumCouncilNominations => {
-            Some(Box::new(ArbitrumCouncilNominationsProposalsAndVotesIndexer))
-        }
-        IndexerVariant::ArbitrumCouncilElections => {
-            Some(Box::new(ArbitrumCouncilElectionsProposalsAndVotesIndexer))
-        }
+        IndexerVariant::ArbitrumCouncilNominations => Some(Box::new(ArbitrumCouncilNominationsProposalsAndVotesIndexer)),
+        IndexerVariant::ArbitrumCouncilElections => Some(Box::new(ArbitrumCouncilElectionsProposalsAndVotesIndexer)),
         _ => None,
     }
 }
 
 #[instrument]
-fn get_voting_power_indexer(
-    indexer_variant: &IndexerVariant,
-) -> Option<Box<dyn VotingPowerIndexer>> {
+fn get_voting_power_indexer(indexer_variant: &IndexerVariant) -> Option<Box<dyn VotingPowerIndexer>> {
     match indexer_variant {
         IndexerVariant::ArbArbitrumVotingPower => Some(Box::new(ArbitrumVotingPowerIndexer)),
         _ => None,
@@ -553,9 +470,7 @@ fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn indexer::Indexer> {
         IndexerVariant::GitcoinV2MainnetVotes => Box::new(GitcoinV2MainnetVotesIndexer),
         IndexerVariant::HopMainnetProposals => Box::new(HopMainnetProposalsIndexer),
         IndexerVariant::HopMainnetVotes => Box::new(HopMainnetVotesIndexer),
-        IndexerVariant::MakerExecutiveMainnetProposals => {
-            Box::new(MakerExecutiveMainnetProposalsIndexer)
-        }
+        IndexerVariant::MakerExecutiveMainnetProposals => Box::new(MakerExecutiveMainnetProposalsIndexer),
         IndexerVariant::MakerExecutiveMainnetVotes => Box::new(MakerExecutiveMainnetVotesIndexer),
         IndexerVariant::MakerPollMainnetProposals => Box::new(MakerPollMainnetProposalsIndexer),
         IndexerVariant::MakerPollMainnetVotes => Box::new(MakerPollMainnetVotesIndexer),
@@ -572,9 +487,7 @@ fn get_indexer(indexer_variant: &IndexerVariant) -> Box<dyn indexer::Indexer> {
         IndexerVariant::ArbTreasuryArbitrumVotes => Box::new(ArbitrumTreasuryVotesIndexer),
         IndexerVariant::ArbArbitrumVotingPower => Box::new(ArbitrumVotingPowerIndexer),
         IndexerVariant::ArbArbitrumDelegation => Box::new(ArbitrumDelegationsIndexer),
-        IndexerVariant::ArbitrumCouncilNominations => {
-            Box::new(ArbitrumCouncilNominationsProposalsAndVotesIndexer)
-        }
+        IndexerVariant::ArbitrumCouncilNominations => Box::new(ArbitrumCouncilNominationsProposalsAndVotesIndexer),
         IndexerVariant::ArbitrumCouncilElections => todo!(),
     }
 }

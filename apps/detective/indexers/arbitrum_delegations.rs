@@ -52,11 +52,7 @@ impl Indexer for ArbitrumDelegationsIndexer {
 #[async_trait]
 impl DelegationIndexer for ArbitrumDelegationsIndexer {
     #[instrument(skip_all)]
-    async fn process_delegations(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_delegations(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Arbitrum Delegations");
 
         let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
@@ -97,11 +93,7 @@ impl DelegationIndexer for ArbitrumDelegationsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_delegations(
-    logs: Vec<(DelegateChanged, Log)>,
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-) -> Result<Vec<delegation::ActiveModel>> {
+async fn get_delegations(logs: Vec<(DelegateChanged, Log)>, rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model) -> Result<Vec<delegation::ActiveModel>> {
     let delegation_logs: Vec<(DelegateChanged, Log)> = logs.into_iter().collect();
 
     let mut delegations: Vec<delegation::ActiveModel> = vec![];
@@ -119,10 +111,9 @@ async fn get_delegations(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         delegations.push(delegation::ActiveModel {
             id: NotSet,
@@ -188,9 +179,7 @@ mod arbitrum_delegations_tests {
                     delegate: "0xE594469fDe6AE29943a64f81d95c20F5F8eB2e04",
                     block: 258594511,
                     timestamp: parse_datetime("2024-09-29 13:40:08"),
-                    txid: Some(
-                        "0x698c71a6655879e7f57799d828fd0bb4b339d827109a2de1f2688b4be76d60b5",
-                    ),
+                    txid: Some("0x698c71a6655879e7f57799d828fd0bb4b339d827109a2de1f2688b4be76d60b5"),
                 };
 
                 assert_delegation(&delegations[0], &expected);

@@ -182,252 +182,6 @@ pub fn no_extensions() -> NoExtensions {
     NoExtensions {}
 }
 
-pub fn initialized_handler<TExtensions, F, Fut>(custom_logic: F) -> InitializedEventCallbackType<TExtensions>
-where
-    InitializedResult: Clone + 'static,
-    F: for<'a> Fn(Vec<InitializedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type InitializedEventCallbackType<TExtensions> =
-    Arc<dyn for<'a> Fn(&'a Vec<InitializedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
-
-pub struct InitializedEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: InitializedEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> InitializedEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        InitializedResult: Clone + 'static,
-        F: for<'a> Fn(Vec<InitializedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: initialized_handler(closure),
-            context: Arc::new(EventContext {
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for InitializedEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<InitializedResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data.downcast::<InitializedData>().ok().map(|arc| InitializedResult {
-                    event_data: (*arc).clone(),
-                    tx_information: item.tx_information,
-                })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!("InitializedEvent: Unexpected data type - expected: InitializedData")
-        }
-    }
-}
-
-pub fn latequorumvoteextensionset_handler<TExtensions, F, Fut>(custom_logic: F) -> LateQuorumVoteExtensionSetEventCallbackType<TExtensions>
-where
-    LateQuorumVoteExtensionSetResult: Clone + 'static,
-    F: for<'a> Fn(Vec<LateQuorumVoteExtensionSetResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type LateQuorumVoteExtensionSetEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<LateQuorumVoteExtensionSetResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>>
-        + Send
-        + Sync,
->;
-
-pub struct LateQuorumVoteExtensionSetEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: LateQuorumVoteExtensionSetEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> LateQuorumVoteExtensionSetEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        LateQuorumVoteExtensionSetResult: Clone + 'static,
-        F: for<'a> Fn(Vec<LateQuorumVoteExtensionSetResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: latequorumvoteextensionset_handler(closure),
-            context: Arc::new(EventContext {
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for LateQuorumVoteExtensionSetEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<LateQuorumVoteExtensionSetResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<LateQuorumVoteExtensionSetData>()
-                    .ok()
-                    .map(|arc| LateQuorumVoteExtensionSetResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!(
-                "LateQuorumVoteExtensionSetEvent: Unexpected data type - expected: \
-                 LateQuorumVoteExtensionSetData"
-            )
-        }
-    }
-}
-
-pub fn ownershiptransferred_handler<TExtensions, F, Fut>(custom_logic: F) -> OwnershipTransferredEventCallbackType<TExtensions>
-where
-    OwnershipTransferredResult: Clone + 'static,
-    F: for<'a> Fn(Vec<OwnershipTransferredResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type OwnershipTransferredEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<OwnershipTransferredResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>>
-        + Send
-        + Sync,
->;
-
-pub struct OwnershipTransferredEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: OwnershipTransferredEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> OwnershipTransferredEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        OwnershipTransferredResult: Clone + 'static,
-        F: for<'a> Fn(Vec<OwnershipTransferredResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: ownershiptransferred_handler(closure),
-            context: Arc::new(EventContext {
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for OwnershipTransferredEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<OwnershipTransferredResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<OwnershipTransferredData>()
-                    .ok()
-                    .map(|arc| OwnershipTransferredResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!(
-                "OwnershipTransferredEvent: Unexpected data type - expected: \
-                 OwnershipTransferredData"
-            )
-        }
-    }
-}
-
 pub fn proposalcanceled_handler<TExtensions, F, Fut>(custom_logic: F) -> ProposalCanceledEventCallbackType<TExtensions>
 where
     ProposalCanceledResult: Clone + 'static,
@@ -443,9 +197,7 @@ where
     })
 }
 
-type ProposalCanceledEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<ProposalCanceledResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync,
->;
+type ProposalCanceledEventCallbackType<TExtensions> = Arc<dyn for<'a> Fn(&'a Vec<ProposalCanceledResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct ProposalCanceledEvent<TExtensions>
 where
@@ -523,9 +275,7 @@ where
     })
 }
 
-type ProposalCreatedEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<ProposalCreatedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync,
->;
+type ProposalCreatedEventCallbackType<TExtensions> = Arc<dyn for<'a> Fn(&'a Vec<ProposalCreatedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct ProposalCreatedEvent<TExtensions>
 where
@@ -603,9 +353,7 @@ where
     })
 }
 
-type ProposalExecutedEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<ProposalExecutedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync,
->;
+type ProposalExecutedEventCallbackType<TExtensions> = Arc<dyn for<'a> Fn(&'a Vec<ProposalExecutedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct ProposalExecutedEvent<TExtensions>
 where
@@ -683,9 +431,7 @@ where
     })
 }
 
-type ProposalExtendedEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<ProposalExtendedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync,
->;
+type ProposalExtendedEventCallbackType<TExtensions> = Arc<dyn for<'a> Fn(&'a Vec<ProposalExtendedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct ProposalExtendedEvent<TExtensions>
 where
@@ -763,9 +509,7 @@ where
     })
 }
 
-type ProposalQueuedEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<ProposalQueuedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync,
->;
+type ProposalQueuedEventCallbackType<TExtensions> = Arc<dyn for<'a> Fn(&'a Vec<ProposalQueuedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct ProposalQueuedEvent<TExtensions>
 where
@@ -828,256 +572,6 @@ where
     }
 }
 
-pub fn proposalthresholdset_handler<TExtensions, F, Fut>(custom_logic: F) -> ProposalThresholdSetEventCallbackType<TExtensions>
-where
-    ProposalThresholdSetResult: Clone + 'static,
-    F: for<'a> Fn(Vec<ProposalThresholdSetResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type ProposalThresholdSetEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<ProposalThresholdSetResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>>
-        + Send
-        + Sync,
->;
-
-pub struct ProposalThresholdSetEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: ProposalThresholdSetEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> ProposalThresholdSetEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        ProposalThresholdSetResult: Clone + 'static,
-        F: for<'a> Fn(Vec<ProposalThresholdSetResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: proposalthresholdset_handler(closure),
-            context: Arc::new(EventContext {
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for ProposalThresholdSetEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<ProposalThresholdSetResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<ProposalThresholdSetData>()
-                    .ok()
-                    .map(|arc| ProposalThresholdSetResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!(
-                "ProposalThresholdSetEvent: Unexpected data type - expected: \
-                 ProposalThresholdSetData"
-            )
-        }
-    }
-}
-
-pub fn quorumnumeratorupdated_handler<TExtensions, F, Fut>(custom_logic: F) -> QuorumNumeratorUpdatedEventCallbackType<TExtensions>
-where
-    QuorumNumeratorUpdatedResult: Clone + 'static,
-    F: for<'a> Fn(Vec<QuorumNumeratorUpdatedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type QuorumNumeratorUpdatedEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<QuorumNumeratorUpdatedResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>>
-        + Send
-        + Sync,
->;
-
-pub struct QuorumNumeratorUpdatedEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: QuorumNumeratorUpdatedEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> QuorumNumeratorUpdatedEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        QuorumNumeratorUpdatedResult: Clone + 'static,
-        F: for<'a> Fn(Vec<QuorumNumeratorUpdatedResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: quorumnumeratorupdated_handler(closure),
-            context: Arc::new(EventContext {
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for QuorumNumeratorUpdatedEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<QuorumNumeratorUpdatedResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<QuorumNumeratorUpdatedData>()
-                    .ok()
-                    .map(|arc| QuorumNumeratorUpdatedResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!(
-                "QuorumNumeratorUpdatedEvent: Unexpected data type - expected: \
-                 QuorumNumeratorUpdatedData"
-            )
-        }
-    }
-}
-
-pub fn timelockchange_handler<TExtensions, F, Fut>(custom_logic: F) -> TimelockChangeEventCallbackType<TExtensions>
-where
-    TimelockChangeResult: Clone + 'static,
-    F: for<'a> Fn(Vec<TimelockChangeResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type TimelockChangeEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<TimelockChangeResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync,
->;
-
-pub struct TimelockChangeEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: TimelockChangeEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> TimelockChangeEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        TimelockChangeResult: Clone + 'static,
-        F: for<'a> Fn(Vec<TimelockChangeResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: timelockchange_handler(closure),
-            context: Arc::new(EventContext {
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for TimelockChangeEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<TimelockChangeResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<TimelockChangeData>()
-                    .ok()
-                    .map(|arc| TimelockChangeResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!("TimelockChangeEvent: Unexpected data type - expected: TimelockChangeData")
-        }
-    }
-}
-
 pub fn votecast_handler<TExtensions, F, Fut>(custom_logic: F) -> VoteCastEventCallbackType<TExtensions>
 where
     VoteCastResult: Clone + 'static,
@@ -1093,8 +587,7 @@ where
     })
 }
 
-type VoteCastEventCallbackType<TExtensions> =
-    Arc<dyn for<'a> Fn(&'a Vec<VoteCastResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
+type VoteCastEventCallbackType<TExtensions> = Arc<dyn for<'a> Fn(&'a Vec<VoteCastResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct VoteCastEvent<TExtensions>
 where
@@ -1139,10 +632,13 @@ where
         let result: Vec<VoteCastResult> = events
             .into_iter()
             .filter_map(|item| {
-                item.decoded_data.downcast::<VoteCastData>().ok().map(|arc| VoteCastResult {
-                    event_data: (*arc).clone(),
-                    tx_information: item.tx_information,
-                })
+                item.decoded_data
+                    .downcast::<VoteCastData>()
+                    .ok()
+                    .map(|arc| VoteCastResult {
+                        event_data: (*arc).clone(),
+                        tx_information: item.tx_information,
+                    })
             })
             .collect();
 
@@ -1169,11 +665,7 @@ where
     })
 }
 
-type VoteCastWithParamsEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<VoteCastWithParamsResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>>
-        + Send
-        + Sync,
->;
+type VoteCastWithParamsEventCallbackType<TExtensions> = Arc<dyn for<'a> Fn(&'a Vec<VoteCastWithParamsResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
 
 pub struct VoteCastWithParamsEvent<TExtensions>
 where
@@ -1236,190 +728,27 @@ where
     }
 }
 
-pub fn votingdelayset_handler<TExtensions, F, Fut>(custom_logic: F) -> VotingDelaySetEventCallbackType<TExtensions>
-where
-    VotingDelaySetResult: Clone + 'static,
-    F: for<'a> Fn(Vec<VotingDelaySetResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type VotingDelaySetEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<VotingDelaySetResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync,
->;
-
-pub struct VotingDelaySetEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: VotingDelaySetEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> VotingDelaySetEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        VotingDelaySetResult: Clone + 'static,
-        F: for<'a> Fn(Vec<VotingDelaySetResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: votingdelayset_handler(closure),
-            context: Arc::new(EventContext {
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for VotingDelaySetEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<VotingDelaySetResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<VotingDelaySetData>()
-                    .ok()
-                    .map(|arc| VotingDelaySetResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!("VotingDelaySetEvent: Unexpected data type - expected: VotingDelaySetData")
-        }
-    }
-}
-
-pub fn votingperiodset_handler<TExtensions, F, Fut>(custom_logic: F) -> VotingPeriodSetEventCallbackType<TExtensions>
-where
-    VotingPeriodSetResult: Clone + 'static,
-    F: for<'a> Fn(Vec<VotingPeriodSetResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type VotingPeriodSetEventCallbackType<TExtensions> = Arc<
-    dyn for<'a> Fn(&'a Vec<VotingPeriodSetResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync,
->;
-
-pub struct VotingPeriodSetEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: VotingPeriodSetEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> VotingPeriodSetEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        VotingPeriodSetResult: Clone + 'static,
-        F: for<'a> Fn(Vec<VotingPeriodSetResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: votingperiodset_handler(closure),
-            context: Arc::new(EventContext {
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for VotingPeriodSetEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<VotingPeriodSetResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<VotingPeriodSetData>()
-                    .ok()
-                    .map(|arc| VotingPeriodSetResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!("VotingPeriodSetEvent: Unexpected data type - expected: VotingPeriodSetData")
-        }
-    }
-}
-
 pub enum ArbitrumTreasuryGovernorEventType<TExtensions>
 where
     TExtensions: 'static + Send + Sync,
 {
-    Initialized(InitializedEvent<TExtensions>),
-    LateQuorumVoteExtensionSet(LateQuorumVoteExtensionSetEvent<TExtensions>),
-    OwnershipTransferred(OwnershipTransferredEvent<TExtensions>),
     ProposalCanceled(ProposalCanceledEvent<TExtensions>),
     ProposalCreated(ProposalCreatedEvent<TExtensions>),
     ProposalExecuted(ProposalExecutedEvent<TExtensions>),
     ProposalExtended(ProposalExtendedEvent<TExtensions>),
     ProposalQueued(ProposalQueuedEvent<TExtensions>),
-    ProposalThresholdSet(ProposalThresholdSetEvent<TExtensions>),
-    QuorumNumeratorUpdated(QuorumNumeratorUpdatedEvent<TExtensions>),
-    TimelockChange(TimelockChangeEvent<TExtensions>),
     VoteCast(VoteCastEvent<TExtensions>),
     VoteCastWithParams(VoteCastWithParamsEvent<TExtensions>),
-    VotingDelaySet(VotingDelaySetEvent<TExtensions>),
-    VotingPeriodSet(VotingPeriodSetEvent<TExtensions>),
 }
 
 pub fn arbitrum_treasury_governor_contract(network: &str) -> RindexerArbitrumTreasuryGovernorGen<Arc<Provider<RetryClient<Http>>>> {
-    let address: Address = "0x789fc99093b09ad01c34dc7251d0c89ce743e5a4".parse().expect("Invalid address");
-    RindexerArbitrumTreasuryGovernorGen::new(address, Arc::new(get_provider_cache_for_network(network).get_inner_provider()))
+    let address: Address = "0x789fc99093b09ad01c34dc7251d0c89ce743e5a4"
+        .parse()
+        .expect("Invalid address");
+    RindexerArbitrumTreasuryGovernorGen::new(
+        address,
+        Arc::new(get_provider_cache_for_network(network).get_inner_provider()),
+    )
 }
 
 pub fn decoder_contract(network: &str) -> RindexerArbitrumTreasuryGovernorGen<Arc<Provider<RetryClient<Http>>>> {
@@ -1440,51 +769,25 @@ where
 {
     pub fn topic_id(&self) -> &'static str {
         match self {
-            ArbitrumTreasuryGovernorEventType::Initialized(_) => "0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498",
-            ArbitrumTreasuryGovernorEventType::LateQuorumVoteExtensionSet(_) => {
-                "0x7ca4ac117ed3cdce75c1161d8207c440389b1a15d69d096831664657c07dafc2"
-            }
-            ArbitrumTreasuryGovernorEventType::OwnershipTransferred(_) => {
-                "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
-            }
             ArbitrumTreasuryGovernorEventType::ProposalCanceled(_) => "0x789cf55be980739dad1d0699b93b58e806b51c9d96619bfa8fe0a28abaa7b30c",
             ArbitrumTreasuryGovernorEventType::ProposalCreated(_) => "0x7d84a6263ae0d98d3329bd7b46bb4e8d6f98cd35a7adb45c274c8b7fd5ebd5e0",
             ArbitrumTreasuryGovernorEventType::ProposalExecuted(_) => "0x712ae1383f79ac853f8d882153778e0260ef8f03b504e2866e0593e04d2b291f",
             ArbitrumTreasuryGovernorEventType::ProposalExtended(_) => "0x541f725fb9f7c98a30cc9c0ff32fbb14358cd7159c847a3aa20a2bdc442ba511",
             ArbitrumTreasuryGovernorEventType::ProposalQueued(_) => "0x9a2e42fd6722813d69113e7d0079d3d940171428df7373df9c7f7617cfda2892",
-            ArbitrumTreasuryGovernorEventType::ProposalThresholdSet(_) => {
-                "0xccb45da8d5717e6c4544694297c4ba5cf151d455c9bb0ed4fc7a38411bc05461"
-            }
-            ArbitrumTreasuryGovernorEventType::QuorumNumeratorUpdated(_) => {
-                "0x0553476bf02ef2726e8ce5ced78d63e26e602e4a2257b1f559418e24b4633997"
-            }
-            ArbitrumTreasuryGovernorEventType::TimelockChange(_) => "0x08f74ea46ef7894f65eabfb5e6e695de773a000b47c529ab559178069b226401",
             ArbitrumTreasuryGovernorEventType::VoteCast(_) => "0xb8e138887d0aa13bab447e82de9d5c1777041ecd21ca36ba824ff1e6c07ddda4",
-            ArbitrumTreasuryGovernorEventType::VoteCastWithParams(_) => {
-                "0xe2babfbac5889a709b63bb7f598b324e08bc5a4fb9ec647fb3cbc9ec07eb8712"
-            }
-            ArbitrumTreasuryGovernorEventType::VotingDelaySet(_) => "0xc565b045403dc03c2eea82b81a0465edad9e2e7fc4d97e11421c209da93d7a93",
-            ArbitrumTreasuryGovernorEventType::VotingPeriodSet(_) => "0x7e3f7f0708a84de9203036abaa450dccc85ad5ff52f78c170f3edb55cf5e8828",
+            ArbitrumTreasuryGovernorEventType::VoteCastWithParams(_) => "0xe2babfbac5889a709b63bb7f598b324e08bc5a4fb9ec647fb3cbc9ec07eb8712",
         }
     }
 
     pub fn event_name(&self) -> &'static str {
         match self {
-            ArbitrumTreasuryGovernorEventType::Initialized(_) => "Initialized",
-            ArbitrumTreasuryGovernorEventType::LateQuorumVoteExtensionSet(_) => "LateQuorumVoteExtensionSet",
-            ArbitrumTreasuryGovernorEventType::OwnershipTransferred(_) => "OwnershipTransferred",
             ArbitrumTreasuryGovernorEventType::ProposalCanceled(_) => "ProposalCanceled",
             ArbitrumTreasuryGovernorEventType::ProposalCreated(_) => "ProposalCreated",
             ArbitrumTreasuryGovernorEventType::ProposalExecuted(_) => "ProposalExecuted",
             ArbitrumTreasuryGovernorEventType::ProposalExtended(_) => "ProposalExtended",
             ArbitrumTreasuryGovernorEventType::ProposalQueued(_) => "ProposalQueued",
-            ArbitrumTreasuryGovernorEventType::ProposalThresholdSet(_) => "ProposalThresholdSet",
-            ArbitrumTreasuryGovernorEventType::QuorumNumeratorUpdated(_) => "QuorumNumeratorUpdated",
-            ArbitrumTreasuryGovernorEventType::TimelockChange(_) => "TimelockChange",
             ArbitrumTreasuryGovernorEventType::VoteCast(_) => "VoteCast",
             ArbitrumTreasuryGovernorEventType::VoteCastWithParams(_) => "VoteCastWithParams",
-            ArbitrumTreasuryGovernorEventType::VotingDelaySet(_) => "VotingDelaySet",
-            ArbitrumTreasuryGovernorEventType::VotingPeriodSet(_) => "VotingPeriodSet",
         }
     }
 
@@ -1500,45 +803,6 @@ where
         let decoder_contract = decoder_contract(network);
 
         match self {
-            ArbitrumTreasuryGovernorEventType::Initialized(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match InitializedData::decode_log(&ethers::core::abi::RawLog {
-                    topics,
-                    data: data.to_vec(),
-                }) {
-                    Ok(event) => {
-                        let result: InitializedData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                }
-            }),
-
-            ArbitrumTreasuryGovernorEventType::LateQuorumVoteExtensionSet(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match LateQuorumVoteExtensionSetData::decode_log(&ethers::core::abi::RawLog {
-                    topics,
-                    data: data.to_vec(),
-                }) {
-                    Ok(event) => {
-                        let result: LateQuorumVoteExtensionSetData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                }
-            }),
-
-            ArbitrumTreasuryGovernorEventType::OwnershipTransferred(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match OwnershipTransferredData::decode_log(&ethers::core::abi::RawLog {
-                    topics,
-                    data: data.to_vec(),
-                }) {
-                    Ok(event) => {
-                        let result: OwnershipTransferredData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                }
-            }),
-
             ArbitrumTreasuryGovernorEventType::ProposalCanceled(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
                 match ProposalCanceledData::decode_log(&ethers::core::abi::RawLog {
                     topics,
@@ -1604,59 +868,18 @@ where
                 }
             }),
 
-            ArbitrumTreasuryGovernorEventType::ProposalThresholdSet(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match ProposalThresholdSetData::decode_log(&ethers::core::abi::RawLog {
+            ArbitrumTreasuryGovernorEventType::VoteCast(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
+                match VoteCastData::decode_log(&ethers::core::abi::RawLog {
                     topics,
                     data: data.to_vec(),
                 }) {
                     Ok(event) => {
-                        let result: ProposalThresholdSetData = event;
+                        let result: VoteCastData = event;
                         Arc::new(result) as Arc<dyn Any + Send + Sync>
                     }
                     Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
                 }
             }),
-
-            ArbitrumTreasuryGovernorEventType::QuorumNumeratorUpdated(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match QuorumNumeratorUpdatedData::decode_log(&ethers::core::abi::RawLog {
-                    topics,
-                    data: data.to_vec(),
-                }) {
-                    Ok(event) => {
-                        let result: QuorumNumeratorUpdatedData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                }
-            }),
-
-            ArbitrumTreasuryGovernorEventType::TimelockChange(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match TimelockChangeData::decode_log(&ethers::core::abi::RawLog {
-                    topics,
-                    data: data.to_vec(),
-                }) {
-                    Ok(event) => {
-                        let result: TimelockChangeData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                }
-            }),
-
-            ArbitrumTreasuryGovernorEventType::VoteCast(_) => {
-                Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                    match VoteCastData::decode_log(&ethers::core::abi::RawLog {
-                        topics,
-                        data: data.to_vec(),
-                    }) {
-                        Ok(event) => {
-                            let result: VoteCastData = event;
-                            Arc::new(result) as Arc<dyn Any + Send + Sync>
-                        }
-                        Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                    }
-                })
-            }
 
             ArbitrumTreasuryGovernorEventType::VoteCastWithParams(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
                 match VoteCastWithParamsData::decode_log(&ethers::core::abi::RawLog {
@@ -1665,32 +888,6 @@ where
                 }) {
                     Ok(event) => {
                         let result: VoteCastWithParamsData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                }
-            }),
-
-            ArbitrumTreasuryGovernorEventType::VotingDelaySet(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match VotingDelaySetData::decode_log(&ethers::core::abi::RawLog {
-                    topics,
-                    data: data.to_vec(),
-                }) {
-                    Ok(event) => {
-                        let result: VotingDelaySetData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                }
-            }),
-
-            ArbitrumTreasuryGovernorEventType::VotingPeriodSet(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match VotingPeriodSetData::decode_log(&ethers::core::abi::RawLog {
-                    topics,
-                    data: data.to_vec(),
-                }) {
-                    Ok(event) => {
-                        let result: VotingPeriodSetData = event;
                         Arc::new(result) as Arc<dyn Any + Send + Sync>
                     }
                     Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
@@ -1723,7 +920,9 @@ where
             .is_some_and(|vec| vec.contains(&event_name.to_string()));
 
         let contract = ContractInformation {
-            name: contract_details.before_modify_name_if_filter_readonly().into_owned(),
+            name: contract_details
+                .before_modify_name_if_filter_readonly()
+                .into_owned(),
             details: contract_details
                 .details
                 .iter()
@@ -1747,30 +946,6 @@ where
         };
 
         let callback: Arc<dyn Fn(Vec<EventResult>) -> BoxFuture<'static, EventCallbackResult<()>> + Send + Sync> = match self {
-            ArbitrumTreasuryGovernorEventType::Initialized(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
-            ArbitrumTreasuryGovernorEventType::LateQuorumVoteExtensionSet(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
-            ArbitrumTreasuryGovernorEventType::OwnershipTransferred(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
             ArbitrumTreasuryGovernorEventType::ProposalCanceled(event) => {
                 let event = Arc::new(event);
                 Arc::new(move |result| {
@@ -1811,30 +986,6 @@ where
                 })
             }
 
-            ArbitrumTreasuryGovernorEventType::ProposalThresholdSet(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
-            ArbitrumTreasuryGovernorEventType::QuorumNumeratorUpdated(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
-            ArbitrumTreasuryGovernorEventType::TimelockChange(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
             ArbitrumTreasuryGovernorEventType::VoteCast(event) => {
                 let event = Arc::new(event);
                 Arc::new(move |result| {
@@ -1844,22 +995,6 @@ where
             }
 
             ArbitrumTreasuryGovernorEventType::VoteCastWithParams(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
-            ArbitrumTreasuryGovernorEventType::VotingDelaySet(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
-            ArbitrumTreasuryGovernorEventType::VotingPeriodSet(event) => {
                 let event = Arc::new(event);
                 Arc::new(move |result| {
                     let event = Arc::clone(&event);

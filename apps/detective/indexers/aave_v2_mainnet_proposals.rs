@@ -75,11 +75,7 @@ impl Indexer for AaveV2MainnetProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for AaveV2MainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Aave V2 Mainnet Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -140,12 +136,7 @@ impl ProposalsIndexer for AaveV2MainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (ProposalCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: aave_v2_govInstance<Http<Client>, Arc<ReqwestProvider>>,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (ProposalCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: aave_v2_govInstance<Http<Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (ProposalCreated, Log) = p.clone();
 
     let voting_start_block_number = event.startBlock.to::<u64>();
@@ -162,28 +153,18 @@ async fn data_for_proposal(
         .header
         .timestamp;
 
-    let created_block_timestamp =
-        DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-            .unwrap()
-            .naive_utc();
+    let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+        .unwrap()
+        .naive_utc();
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match chain_data::estimate_timestamp(
-        NamedChain::Mainnet,
-        voting_start_block_number,
-    )
-    .await
-    {
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_start_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_start_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                .context("bad timestamp")?
+                .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_start_block_number
@@ -193,25 +174,20 @@ async fn data_for_proposal(
         }
     };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_end_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_end_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
                 .context("bad timestamp")?
                 .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_end_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
 
     let proposal_url = format!(
         "https://app.aave.com/governance/proposal/?proposalId={}",
@@ -245,9 +221,7 @@ async fn data_for_proposal(
         .context("ONE_HUNDRED_WITH_PRECISION")?
         ._0;
 
-    let quorum = ((total_voting_power * min_quorum) / one_hundred_with_precision).to::<u128>()
-        as f64
-        / (10.0f64.powi(18));
+    let quorum = ((total_voting_power * min_quorum) / one_hundred_with_precision).to::<u128>() as f64 / (10.0f64.powi(18));
 
     let onchain_proposal = gov_contract
         .getProposalById(event.id)
@@ -538,21 +512,12 @@ mod aave_v2_content {
     #[tokio::test]
     async fn get_markdown_discussionurl() {
         assert_eq!(
-            get_discussion(
-                "f76d79693a81a1c0acd23c6ee151369752142b0d832daeaef9a4dd9f8c4bc7ce".into()
-            )
-            .await,
-            Some(
-                "https://governance.aave.com/t/arfc-polygon-v3-supply-cap-update-2023-05-21/13161"
-                    .to_string()
-            )
+            get_discussion("f76d79693a81a1c0acd23c6ee151369752142b0d832daeaef9a4dd9f8c4bc7ce".into()).await,
+            Some("https://governance.aave.com/t/arfc-polygon-v3-supply-cap-update-2023-05-21/13161".to_string())
         );
 
         assert_eq!(
-            get_discussion(
-                "e7e93497d3847536f07fe8dba53485cf68a275c7b07ca38b53d2cc2d43fab3b0".into()
-            )
-            .await,
+            get_discussion("e7e93497d3847536f07fe8dba53485cf68a275c7b07ca38b53d2cc2d43fab3b0".into()).await,
             None
         );
 
@@ -562,10 +527,7 @@ mod aave_v2_content {
     #[tokio::test]
     async fn get_json_discussionurl() {
         assert_eq!(
-            get_discussion(
-                "8d4f6f42043d8db567d5e733762bb84a6f507997a779a66b2d17fdf9de403c13".into()
-            )
-            .await,
+            get_discussion("8d4f6f42043d8db567d5e733762bb84a6f507997a779a66b2d17fdf9de403c13".into()).await,
             Some("https://governance.aave.com/t/arfc-add-reth-to-aave-v3-arbitrum-liquidity-pool/12810".to_string())
         );
 
@@ -659,9 +621,7 @@ mod aave_v2_proposals {
                     time_start: parse_datetime("2020-12-23 21:45:20"),
                     time_end: parse_datetime("2020-12-26 20:38:38"),
                     block_created: Some(11512328),
-                    txid: Some(
-                        "0x26b2272e31c44dd009487e66eecf1319422476967ebac7a05b39f86d1ce9fd21",
-                    ),
+                    txid: Some("0x26b2272e31c44dd009487e66eecf1319422476967ebac7a05b39f86d1ce9fd21"),
                     metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -705,29 +665,29 @@ mod aave_v2_proposals {
         {
             Ok(ProcessResult::Proposals(proposals, _)) => {
                 assert!(!proposals.is_empty(), "No proposals were fetched");
-                let expected_proposals = [
-                    ExpectedProposal {
-                        index_created: 18686736,
-                        external_id: "389",
-                        name: "Reserve Factor Updates - Polygon Aave v2",
-                        body_contains: Some(vec!["This AIP is a continuation of [AIP 284](https://app.aave.com/governance/proposal/284/) and increases the Reserve Factor (RF) for assets on Polygon v2 by 5%, up to a maximum of 99.99%."]),
-                        url: "https://app.aave.com/governance/proposal/?proposalId=389",
-                        discussion_url: Some("https://governance.aave.com/t/arfc-reserve-factor-updates-polygon-aave-v2/13937/5".into()),
-                        choices: json!(["For", "Against"]),
-                        scores: json!([42312.786398795535, 0.0]),
-                        scores_total: 42312.786398795535,
-                        quorum: 0.0,
-                        scores_quorum: 42312.786398795535,
-                        proposal_state: ProposalState::Canceled,
-                        marked_spam: None,
-                        time_created: parse_datetime("2023-11-30 20:15:47"),
-                        time_start: parse_datetime("2023-12-01 20:26:23"),
-                        time_end: parse_datetime("2023-12-04 12:55:47"),
-                        block_created: Some(18686736),
-                        txid: Some("0xff7553c76f8df8086e4d594b3468f25f21c729e6b7cc29887ad8299d5498298f"),
-                        metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
-                    }
-                ];
+                let expected_proposals = [ExpectedProposal {
+                    index_created: 18686736,
+                    external_id: "389",
+                    name: "Reserve Factor Updates - Polygon Aave v2",
+                    body_contains: Some(vec![
+                        "This AIP is a continuation of [AIP 284](https://app.aave.com/governance/proposal/284/) and increases the Reserve Factor (RF) for assets on Polygon v2 by 5%, up to a maximum of 99.99%.",
+                    ]),
+                    url: "https://app.aave.com/governance/proposal/?proposalId=389",
+                    discussion_url: Some("https://governance.aave.com/t/arfc-reserve-factor-updates-polygon-aave-v2/13937/5".into()),
+                    choices: json!(["For", "Against"]),
+                    scores: json!([42312.786398795535, 0.0]),
+                    scores_total: 42312.786398795535,
+                    quorum: 0.0,
+                    scores_quorum: 42312.786398795535,
+                    proposal_state: ProposalState::Canceled,
+                    marked_spam: None,
+                    time_created: parse_datetime("2023-11-30 20:15:47"),
+                    time_start: parse_datetime("2023-12-01 20:26:23"),
+                    time_end: parse_datetime("2023-12-04 12:55:47"),
+                    block_created: Some(18686736),
+                    txid: Some("0xff7553c76f8df8086e4d594b3468f25f21c729e6b7cc29887ad8299d5498298f"),
+                    metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
+                }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
                 }
@@ -778,9 +738,7 @@ mod aave_v2_proposals {
                          Committee (GLC) SAFE where it will be deployed to sdCRV.",
                     ]),
                     url: "https://app.aave.com/governance/proposal/?proposalId=412",
-                    discussion_url: Some(
-                        "https://governance.aave.com/t/arfc-deploy-acrv-crv-to-vecrv/11628".into(),
-                    ),
+                    discussion_url: Some("https://governance.aave.com/t/arfc-deploy-acrv-crv-to-vecrv/11628".into()),
                     choices: json!(["For", "Against"]),
                     scores: json!([536551.6296395722, 0.0]),
                     scores_total: 536551.6296395722,
@@ -792,9 +750,7 @@ mod aave_v2_proposals {
                     time_start: parse_datetime("2023-12-16 09:42:23"),
                     time_end: parse_datetime("2023-12-19 02:20:59"),
                     block_created: Some(18790604),
-                    txid: Some(
-                        "0xe80efe71357574155c123b43f08d32bc32191a3d7a8593787749c5b491f7c3ae",
-                    ),
+                    txid: Some("0xe80efe71357574155c123b43f08d32bc32191a3d7a8593787749c5b491f7c3ae"),
                     metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {

@@ -57,6 +57,7 @@ pub enum Relation {
     ProposalNew,
     Subscription,
     Vote,
+    VoteNew,
     VotingPower,
 }
 
@@ -87,6 +88,7 @@ impl RelationTrait for Relation {
             Self::ProposalNew => Entity::has_many(super::proposal_new::Entity).into(),
             Self::Subscription => Entity::has_many(super::subscription::Entity).into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
+            Self::VoteNew => Entity::has_many(super::vote_new::Entity).into(),
             Self::VotingPower => Entity::has_many(super::voting_power::Entity).into(),
         }
     }
@@ -143,6 +145,12 @@ impl Related<super::subscription::Entity> for Entity {
 impl Related<super::vote::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Vote.def()
+    }
+}
+
+impl Related<super::vote_new::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::VoteNew.def()
     }
 }
 

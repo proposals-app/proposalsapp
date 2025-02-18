@@ -57,11 +57,7 @@ impl Indexer for ArbitrumCoreVotesIndexer {
 #[async_trait]
 impl VotesIndexer for ArbitrumCoreVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Arbitrum Core Votes");
 
         let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
@@ -106,10 +102,9 @@ impl VotesIndexer for ArbitrumCoreVotesIndexer {
             .await
             .context("bad votes")?;
 
-        let votes_with_params =
-            get_votes_with_params(logs_with_params.clone(), indexer, &arb_rpc.clone())
-                .await
-                .context("bad votes")?;
+        let votes_with_params = get_votes_with_params(logs_with_params.clone(), indexer, &arb_rpc.clone())
+            .await
+            .context("bad votes")?;
 
         let all_votes = [votes, votes_with_params].concat();
 
@@ -118,11 +113,7 @@ impl VotesIndexer for ArbitrumCoreVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(VoteCast, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(VoteCast, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCast, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -140,10 +131,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -174,11 +164,7 @@ async fn get_votes(
 }
 
 #[instrument(skip_all)]
-async fn get_votes_with_params(
-    logs: Vec<(VoteCastWithParams, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes_with_params(logs: Vec<(VoteCastWithParams, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCastWithParams, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -196,10 +182,9 @@ async fn get_votes_with_params(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,

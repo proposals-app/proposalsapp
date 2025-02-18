@@ -58,11 +58,7 @@ impl Indexer for CompoundMainnetProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for CompoundMainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Compound Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -123,12 +119,7 @@ impl ProposalsIndexer for CompoundMainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (compound_gov::ProposalCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: compound_gov::compound_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (compound_gov::ProposalCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: compound_gov::compound_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (compound_gov::ProposalCreated, Log) = p.clone();
 
     let created_block = rpc
@@ -139,31 +130,21 @@ async fn data_for_proposal(
         .await
         .context("get_block_by_number")?
         .unwrap();
-    let created_block_timestamp =
-        DateTime::from_timestamp(created_block.header.timestamp as i64, 0)
-            .context("bad timestamp")?
-            .naive_utc();
+    let created_block_timestamp = DateTime::from_timestamp(created_block.header.timestamp as i64, 0)
+        .context("bad timestamp")?
+        .naive_utc();
 
     let voting_start_block_number = event.startBlock.to::<u64>();
     let voting_end_block_number = event.endBlock.to::<u64>();
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match chain_data::estimate_timestamp(
-        NamedChain::Mainnet,
-        voting_start_block_number,
-    )
-    .await
-    {
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_start_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_start_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                .context("bad timestamp")?
+                .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_start_block_number
@@ -173,25 +154,20 @@ async fn data_for_proposal(
         }
     };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_end_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_end_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
                 .context("bad timestamp")?
                 .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_end_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
 
     let proposal_url = format!("https://compound.finance/governance/proposals/{}", event.id);
 
@@ -361,9 +337,7 @@ mod compound_mainnet_proposals_tests {
                     time_start: parse_datetime("2021-04-14 03:00:23"),
                     time_end: parse_datetime("2021-04-16 19:13:09"),
                     block_created: Some(12235671),
-                    txid: Some(
-                        "0xe34419e8d64845b5fb920ce265d23c14def48de2bc09e4159fce5e09a819a56e",
-                    ),
+                    txid: Some("0xe34419e8d64845b5fb920ce265d23c14def48de2bc09e4159fce5e09a819a56e"),
                     metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -432,9 +406,7 @@ mod compound_mainnet_proposals_tests {
                         time_start: parse_datetime("2024-07-03 17:15:35"),
                         time_end: parse_datetime("2024-07-06 11:18:59"),
                         block_created: Some(20214270),
-                        txid: Some(
-                            "0x486fa2537df83e619f600d4da86955c571715f4816199573b1add1e101a9ee7d",
-                        ),
+                        txid: Some("0x486fa2537df83e619f600d4da86955c571715f4816199573b1add1e101a9ee7d"),
                         metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                     },
                     ExpectedProposal {
@@ -460,9 +432,7 @@ mod compound_mainnet_proposals_tests {
                         time_start: parse_datetime("2024-07-03 20:31:59"),
                         time_end: parse_datetime("2024-07-06 14:35:47"),
                         block_created: Some(20215251),
-                        txid: Some(
-                            "0x17bab3c0096c127192d4da5af370b216d5cb3fe5c700c7d409421ea26f50b890",
-                        ),
+                        txid: Some("0x17bab3c0096c127192d4da5af370b216d5cb3fe5c700c7d409421ea26f50b890"),
                         metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                     },
                 ];
@@ -528,9 +498,7 @@ mod compound_mainnet_proposals_tests {
                     time_start: parse_datetime("2024-07-23 11:38:35"),
                     time_end: parse_datetime("2024-07-26 05:40:47"),
                     block_created: Some(20355844),
-                    txid: Some(
-                        "0xdbf9ea5cd4404d9e47f5aa1f61701f6f83af7f6e619efcc578ac7340aedeac3e",
-                    ),
+                    txid: Some("0xdbf9ea5cd4404d9e47f5aa1f61701f6f83af7f6e619efcc578ac7340aedeac3e"),
                     metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {

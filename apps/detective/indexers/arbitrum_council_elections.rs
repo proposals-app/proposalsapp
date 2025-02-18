@@ -55,11 +55,7 @@ impl Indexer for ArbitrumCouncilElectionsProposalsAndVotesIndexer {
 #[async_trait]
 impl ProposalsAndVotesIndexer for ArbitrumCouncilElectionsProposalsAndVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals_and_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals_and_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Arbitrum Council Elections and Votes");
 
         let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
@@ -135,15 +131,7 @@ impl ProposalsAndVotesIndexer for ArbitrumCouncilElectionsProposalsAndVotesIndex
 }
 
 #[instrument(skip_all)]
-async fn get_proposals(
-    logs: Vec<(arbitrum_security_council_election::ProposalCreated, Log)>,
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    contract: arbitrum_security_council_election::arbitrum_security_council_electionInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<Vec<proposal::ActiveModel>> {
+async fn get_proposals(logs: Vec<(arbitrum_security_council_election::ProposalCreated, Log)>, rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, contract: arbitrum_security_council_election::arbitrum_security_council_electionInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<Vec<proposal::ActiveModel>> {
     let mut proposals: Vec<proposal::ActiveModel> = vec![];
 
     for (event, log) in logs {
@@ -178,43 +166,27 @@ async fn get_proposals(
 
         let average_block_time_millis = 12_200;
 
-        let voting_starts_timestamp =
-            match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number)
-                .await
-            {
-                Ok(r) => r,
-                Err(_) => {
-                    let fallback = DateTime::from_timestamp_millis(
-                        (log.block_timestamp.unwrap()
-                            + (voting_start_block_number - log.block_number.unwrap())
-                                * average_block_time_millis) as i64,
-                    )
-                    .context("bad timestamp")?
-                    .naive_utc();
-                    warn!(
-                        "Could not estimate timestamp for {:?}",
-                        voting_start_block_number
-                    );
-                    info!("Fallback to {:?}", fallback);
-                    fallback
-                }
-            };
-
-        let voting_ends_timestamp = match chain_data::estimate_timestamp(
-            NamedChain::Mainnet,
-            voting_end_block_number,
-        )
-        .await
-        {
+        let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
             Ok(r) => r,
             Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_end_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
-                .context("bad timestamp")?
-                .naive_utc();
+                let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_start_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                    .context("bad timestamp")?
+                    .naive_utc();
+                warn!(
+                    "Could not estimate timestamp for {:?}",
+                    voting_start_block_number
+                );
+                info!("Fallback to {:?}", fallback);
+                fallback
+            }
+        };
+
+        let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+            Ok(r) => r,
+            Err(_) => {
+                let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_end_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                    .context("bad timestamp")?
+                    .naive_utc();
                 warn!(
                     "Could not estimate timestamp for {:?}",
                     voting_end_block_number

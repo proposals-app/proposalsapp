@@ -57,11 +57,7 @@ impl Indexer for DydxMainnetVotesIndexer {
 #[async_trait]
 impl VotesIndexer for DydxMainnetVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Dydx Votes");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -102,11 +98,7 @@ impl VotesIndexer for DydxMainnetVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(VoteEmitted, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(VoteEmitted, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteEmitted, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -124,10 +116,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -203,9 +194,7 @@ mod dydx_mainnet_votes_tests {
                     proposal_external_id: "16",
                     time_created: Some(parse_datetime("2023-11-17 15:01:23")),
                     block_created: Some(18592356),
-                    txid: Some(
-                        "0x85549413d18cd40a4308a28cea6ae13196c30c3cb98c4e821d4724d08681d93e",
-                    ),
+                    txid: Some("0x85549413d18cd40a4308a28cea6ae13196c30c3cb98c4e821d4724d08681d93e"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);

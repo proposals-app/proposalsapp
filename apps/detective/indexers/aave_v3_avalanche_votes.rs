@@ -57,11 +57,7 @@ impl Indexer for AaveV3AvalancheVotesIndexer {
 #[async_trait::async_trait]
 impl VotesIndexer for AaveV3AvalancheVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Aave V3 Avalanche Votes");
 
         let ava_rpc = chain_data::get_chain_config(NamedChain::Avalanche)?
@@ -102,11 +98,7 @@ impl VotesIndexer for AaveV3AvalancheVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(VoteEmitted, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(VoteEmitted, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteEmitted, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -124,10 +116,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,

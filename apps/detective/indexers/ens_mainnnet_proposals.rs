@@ -58,11 +58,7 @@ impl Indexer for EnsMainnetProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for EnsMainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing ENS Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -123,12 +119,7 @@ impl ProposalsIndexer for EnsMainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (ens_gov::ProposalCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: ens_gov::ens_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (ens_gov::ProposalCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: ens_gov::ens_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (ens_gov::ProposalCreated, Log) = p.clone();
 
     let created_block = rpc
@@ -139,31 +130,21 @@ async fn data_for_proposal(
         .await
         .context("get_block_by_number")?
         .unwrap();
-    let created_block_timestamp =
-        DateTime::from_timestamp(created_block.header.timestamp as i64, 0)
-            .context("bad timestamp")?
-            .naive_utc();
+    let created_block_timestamp = DateTime::from_timestamp(created_block.header.timestamp as i64, 0)
+        .context("bad timestamp")?
+        .naive_utc();
 
     let voting_start_block_number = event.startBlock.to::<u64>();
     let voting_end_block_number = event.endBlock.to::<u64>();
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match chain_data::estimate_timestamp(
-        NamedChain::Mainnet,
-        voting_start_block_number,
-    )
-    .await
-    {
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_start_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_start_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                .context("bad timestamp")?
+                .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_start_block_number
@@ -173,25 +154,20 @@ async fn data_for_proposal(
         }
     };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_end_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_end_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
                 .context("bad timestamp")?
                 .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_end_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
 
     let proposal_url = format!(
         "https://www.tally.xyz/gov/ens/proposal/{}",
@@ -236,8 +212,7 @@ async fn data_for_proposal(
 
     let scores_total = scores.iter().sum();
 
-    let scores_quorum = proposal_votes.forVotes.to::<u128>() as f64 / (10.0f64.powi(18))
-        + proposal_votes.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18));
+    let scores_quorum = proposal_votes.forVotes.to::<u128>() as f64 / (10.0f64.powi(18)) + proposal_votes.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18));
 
     let quorum = gov_contract
         .quorum(U256::from(log.block_number.unwrap()))
@@ -347,7 +322,9 @@ mod ens_mainnet_proposals {
                     index_created: 19583608,
                     external_id: "48839151689001950442481252711111182244814765601408465024742109276815020082612",
                     name: "[EP 5.5] Funding Request: ENS Public Goods Working Group Term 5 (Q1/Q2)",
-                    body_contains: Some(vec!["The Public Goods working group funds projects and builders improving the Web3 ecosystems."]),
+                    body_contains: Some(vec![
+                        "The Public Goods working group funds projects and builders improving the Web3 ecosystems.",
+                    ]),
                     url: "https://www.tally.xyz/gov/ens/proposal/48839151689001950442481252711111182244814765601408465024742109276815020082612",
                     discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),

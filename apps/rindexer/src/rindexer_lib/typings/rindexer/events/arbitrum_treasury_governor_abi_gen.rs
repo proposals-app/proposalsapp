@@ -13,7 +13,9 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
-            constructor: ::core::option::Option::Some(::ethers::core::abi::ethabi::Constructor { inputs: ::std::vec![] }),
+            constructor: ::core::option::Option::Some(::ethers::core::abi::ethabi::Constructor {
+                inputs: ::std::vec![],
+            }),
             functions: ::core::convert::From::from([
                 (
                     ::std::borrow::ToOwned::to_owned("BALLOT_TYPEHASH"),
@@ -439,9 +441,9 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("_token"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("contract IVotesUpgradeable",),
-                                ),
+                                internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned(
+                                    "contract IVotesUpgradeable",
+                                ),),
                             },
                             ::ethers::core::abi::ethabi::Param {
                                 name: ::std::borrow::ToOwned::to_owned("_timelock"),
@@ -1042,7 +1044,9 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
                             kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned("contract IVotesUpgradeable",),),
+                            internal_type: ::core::option::Option::Some(::std::borrow::ToOwned::to_owned(
+                                "contract IVotesUpgradeable",
+                            ),),
                         },],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
@@ -1491,8 +1495,7 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static RINDEXERARBITRUMTREASURYGOVERNORGEN_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
-        ::ethers::contract::Lazy::new(__abi);
+    pub static RINDEXERARBITRUMTREASURYGOVERNORGEN_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(__abi);
     pub struct RindexerArbitrumTreasuryGovernorGen<M>(::ethers::contract::Contract<M>);
     impl<M> ::core::clone::Clone for RindexerArbitrumTreasuryGovernorGen<M> {
         fn clone(&self) -> Self {
@@ -1518,9 +1521,8 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         }
     }
     impl<M: ::ethers::providers::Middleware> RindexerArbitrumTreasuryGovernorGen<M> {
-        /// Creates a new contract instance with the specified `ethers` client
-        /// at `address`. The contract derefs to a `ethers::Contract`
-        /// object.
+        /// Creates a new contract instance with the specified `ethers` client at
+        /// `address`. The contract derefs to a `ethers::Contract` object.
         pub fn new<T: Into<::ethers::core::types::Address>>(address: T, client: ::std::sync::Arc<M>) -> Self {
             Self(::ethers::contract::Contract::new(
                 address.into(),
@@ -1546,153 +1548,89 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 .method_hash([94, 18, 235, 189], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `EXTENDED_BALLOT_TYPEHASH` (0x2fe3e261)
-        /// function
+        ///Calls the contract's `EXTENDED_BALLOT_TYPEHASH` (0x2fe3e261) function
         pub fn extended_ballot_typehash(&self) -> ::ethers::contract::builders::ContractCall<M, [u8; 32]> {
             self.0
                 .method_hash([47, 227, 226, 97], ())
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `castVote` (0x56781388) function
-        pub fn cast_vote(
-            &self,
-            proposal_id: ::ethers::core::types::U256,
-            support: u8,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn cast_vote(&self, proposal_id: ::ethers::core::types::U256, support: u8) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([86, 120, 19, 136], (proposal_id, support))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `castVoteBySig` (0x3bccf4fd) function
-        pub fn cast_vote_by_sig(
-            &self,
-            proposal_id: ::ethers::core::types::U256,
-            support: u8,
-            v: u8,
-            r: [u8; 32],
-            s: [u8; 32],
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn cast_vote_by_sig(&self, proposal_id: ::ethers::core::types::U256, support: u8, v: u8, r: [u8; 32], s: [u8; 32]) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([59, 204, 244, 253], (proposal_id, support, v, r, s))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `castVoteWithReason` (0x7b3c71d3) function
-        pub fn cast_vote_with_reason(
-            &self,
-            proposal_id: ::ethers::core::types::U256,
-            support: u8,
-            reason: ::std::string::String,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn cast_vote_with_reason(&self, proposal_id: ::ethers::core::types::U256, support: u8, reason: ::std::string::String) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([123, 60, 113, 211], (proposal_id, support, reason))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `castVoteWithReasonAndParams` (0x5f398a14)
-        /// function
-        pub fn cast_vote_with_reason_and_params(
-            &self,
-            proposal_id: ::ethers::core::types::U256,
-            support: u8,
-            reason: ::std::string::String,
-            params: ::ethers::core::types::Bytes,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        ///Calls the contract's `castVoteWithReasonAndParams` (0x5f398a14) function
+        pub fn cast_vote_with_reason_and_params(&self, proposal_id: ::ethers::core::types::U256, support: u8, reason: ::std::string::String, params: ::ethers::core::types::Bytes) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([95, 57, 138, 20], (proposal_id, support, reason, params))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `castVoteWithReasonAndParamsBySig` (0x03420181)
-        /// function
-        pub fn cast_vote_with_reason_and_params_by_sig(
-            &self,
-            proposal_id: ::ethers::core::types::U256,
-            support: u8,
-            reason: ::std::string::String,
-            params: ::ethers::core::types::Bytes,
-            v: u8,
-            r: [u8; 32],
-            s: [u8; 32],
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        ///Calls the contract's `castVoteWithReasonAndParamsBySig` (0x03420181) function
+        pub fn cast_vote_with_reason_and_params_by_sig(&self, proposal_id: ::ethers::core::types::U256, support: u8, reason: ::std::string::String, params: ::ethers::core::types::Bytes, v: u8, r: [u8; 32], s: [u8; 32]) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([3, 66, 1, 129], (proposal_id, support, reason, params, v, r, s))
+                .method_hash(
+                    [3, 66, 1, 129],
+                    (proposal_id, support, reason, params, v, r, s),
+                )
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `execute` (0x2656227d) function
-        pub fn execute(
-            &self,
-            targets: ::std::vec::Vec<::ethers::core::types::Address>,
-            values: ::std::vec::Vec<::ethers::core::types::U256>,
-            calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
-            description_hash: [u8; 32],
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn execute(&self, targets: ::std::vec::Vec<::ethers::core::types::Address>, values: ::std::vec::Vec<::ethers::core::types::U256>, calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>, description_hash: [u8; 32]) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([38, 86, 34, 125], (targets, values, calldatas, description_hash))
+                .method_hash(
+                    [38, 86, 34, 125],
+                    (targets, values, calldatas, description_hash),
+                )
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `getPastCirculatingSupply` (0x6e462680)
-        /// function
-        pub fn get_past_circulating_supply(
-            &self,
-            block_number: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        ///Calls the contract's `getPastCirculatingSupply` (0x6e462680) function
+        pub fn get_past_circulating_supply(&self, block_number: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([110, 70, 38, 128], block_number)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `getVotes` (0xeb9019d4) function
-        pub fn get_votes(
-            &self,
-            account: ::ethers::core::types::Address,
-            block_number: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn get_votes(&self, account: ::ethers::core::types::Address, block_number: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([235, 144, 25, 212], (account, block_number))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `getVotesWithParams` (0x9a802a6d) function
-        pub fn get_votes_with_params(
-            &self,
-            account: ::ethers::core::types::Address,
-            block_number: ::ethers::core::types::U256,
-            params: ::ethers::core::types::Bytes,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn get_votes_with_params(&self, account: ::ethers::core::types::Address, block_number: ::ethers::core::types::U256, params: ::ethers::core::types::Bytes) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([154, 128, 42, 109], (account, block_number, params))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `hasVoted` (0x43859632) function
-        pub fn has_voted(
-            &self,
-            proposal_id: ::ethers::core::types::U256,
-            account: ::ethers::core::types::Address,
-        ) -> ::ethers::contract::builders::ContractCall<M, bool> {
+        pub fn has_voted(&self, proposal_id: ::ethers::core::types::U256, account: ::ethers::core::types::Address) -> ::ethers::contract::builders::ContractCall<M, bool> {
             self.0
                 .method_hash([67, 133, 150, 50], (proposal_id, account))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `hashProposal` (0xc59057e4) function
-        pub fn hash_proposal(
-            &self,
-            targets: ::std::vec::Vec<::ethers::core::types::Address>,
-            values: ::std::vec::Vec<::ethers::core::types::U256>,
-            calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
-            description_hash: [u8; 32],
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn hash_proposal(&self, targets: ::std::vec::Vec<::ethers::core::types::Address>, values: ::std::vec::Vec<::ethers::core::types::U256>, calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>, description_hash: [u8; 32]) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([197, 144, 87, 228], (targets, values, calldatas, description_hash))
+                .method_hash(
+                    [197, 144, 87, 228],
+                    (targets, values, calldatas, description_hash),
+                )
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `initialize` (0x5b447a57) function
-        pub fn initialize(
-            &self,
-            token: ::ethers::core::types::Address,
-            timelock: ::ethers::core::types::Address,
-            owner: ::ethers::core::types::Address,
-            voting_delay: ::ethers::core::types::U256,
-            voting_period: ::ethers::core::types::U256,
-            quorum_numerator: ::ethers::core::types::U256,
-            proposal_threshold: ::ethers::core::types::U256,
-            min_period_after_quorum: u64,
-        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+        pub fn initialize(&self, token: ::ethers::core::types::Address, timelock: ::ethers::core::types::Address, owner: ::ethers::core::types::Address, voting_delay: ::ethers::core::types::U256, voting_period: ::ethers::core::types::U256, quorum_numerator: ::ethers::core::types::U256, proposal_threshold: ::ethers::core::types::U256, min_period_after_quorum: u64) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash(
                     [91, 68, 122, 87],
@@ -1722,39 +1660,19 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `onERC1155BatchReceived` (0xbc197c81) function
-        pub fn on_erc1155_batch_received(
-            &self,
-            p0: ::ethers::core::types::Address,
-            p1: ::ethers::core::types::Address,
-            p2: ::std::vec::Vec<::ethers::core::types::U256>,
-            p3: ::std::vec::Vec<::ethers::core::types::U256>,
-            p4: ::ethers::core::types::Bytes,
-        ) -> ::ethers::contract::builders::ContractCall<M, [u8; 4]> {
+        pub fn on_erc1155_batch_received(&self, p0: ::ethers::core::types::Address, p1: ::ethers::core::types::Address, p2: ::std::vec::Vec<::ethers::core::types::U256>, p3: ::std::vec::Vec<::ethers::core::types::U256>, p4: ::ethers::core::types::Bytes) -> ::ethers::contract::builders::ContractCall<M, [u8; 4]> {
             self.0
                 .method_hash([188, 25, 124, 129], (p0, p1, p2, p3, p4))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `onERC1155Received` (0xf23a6e61) function
-        pub fn on_erc1155_received(
-            &self,
-            p0: ::ethers::core::types::Address,
-            p1: ::ethers::core::types::Address,
-            p2: ::ethers::core::types::U256,
-            p3: ::ethers::core::types::U256,
-            p4: ::ethers::core::types::Bytes,
-        ) -> ::ethers::contract::builders::ContractCall<M, [u8; 4]> {
+        pub fn on_erc1155_received(&self, p0: ::ethers::core::types::Address, p1: ::ethers::core::types::Address, p2: ::ethers::core::types::U256, p3: ::ethers::core::types::U256, p4: ::ethers::core::types::Bytes) -> ::ethers::contract::builders::ContractCall<M, [u8; 4]> {
             self.0
                 .method_hash([242, 58, 110, 97], (p0, p1, p2, p3, p4))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `onERC721Received` (0x150b7a02) function
-        pub fn on_erc721_received(
-            &self,
-            p0: ::ethers::core::types::Address,
-            p1: ::ethers::core::types::Address,
-            p2: ::ethers::core::types::U256,
-            p3: ::ethers::core::types::Bytes,
-        ) -> ::ethers::contract::builders::ContractCall<M, [u8; 4]> {
+        pub fn on_erc721_received(&self, p0: ::ethers::core::types::Address, p1: ::ethers::core::types::Address, p2: ::ethers::core::types::U256, p3: ::ethers::core::types::Bytes) -> ::ethers::contract::builders::ContractCall<M, [u8; 4]> {
             self.0
                 .method_hash([21, 11, 122, 2], (p0, p1, p2, p3))
                 .expect("method not found (this should never happen)")
@@ -1766,28 +1684,19 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `proposalDeadline` (0xc01f9e37) function
-        pub fn proposal_deadline(
-            &self,
-            proposal_id: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn proposal_deadline(&self, proposal_id: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([192, 31, 158, 55], proposal_id)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `proposalEta` (0xab58fb8e) function
-        pub fn proposal_eta(
-            &self,
-            proposal_id: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn proposal_eta(&self, proposal_id: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([171, 88, 251, 142], proposal_id)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `proposalSnapshot` (0x2d63f693) function
-        pub fn proposal_snapshot(
-            &self,
-            proposal_id: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn proposal_snapshot(&self, proposal_id: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([45, 99, 246, 147], proposal_id)
                 .expect("method not found (this should never happen)")
@@ -1815,34 +1724,25 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `propose` (0x7d5e81e2) function
-        pub fn propose(
-            &self,
-            targets: ::std::vec::Vec<::ethers::core::types::Address>,
-            values: ::std::vec::Vec<::ethers::core::types::U256>,
-            calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
-            description: ::std::string::String,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn propose(&self, targets: ::std::vec::Vec<::ethers::core::types::Address>, values: ::std::vec::Vec<::ethers::core::types::U256>, calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>, description: ::std::string::String) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([125, 94, 129, 226], (targets, values, calldatas, description))
+                .method_hash(
+                    [125, 94, 129, 226],
+                    (targets, values, calldatas, description),
+                )
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `queue` (0x160cbed7) function
-        pub fn queue(
-            &self,
-            targets: ::std::vec::Vec<::ethers::core::types::Address>,
-            values: ::std::vec::Vec<::ethers::core::types::U256>,
-            calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
-            description_hash: [u8; 32],
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn queue(&self, targets: ::std::vec::Vec<::ethers::core::types::Address>, values: ::std::vec::Vec<::ethers::core::types::U256>, calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>, description_hash: [u8; 32]) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([22, 12, 190, 215], (targets, values, calldatas, description_hash))
+                .method_hash(
+                    [22, 12, 190, 215],
+                    (targets, values, calldatas, description_hash),
+                )
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `quorum` (0xf8ce560a) function
-        pub fn quorum(
-            &self,
-            block_number: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn quorum(&self, block_number: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([248, 206, 86, 10], block_number)
                 .expect("method not found (this should never happen)")
@@ -1854,10 +1754,7 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `quorumNumerator` (0x60c4247f) function
-        pub fn quorum_numerator_with_block_number(
-            &self,
-            block_number: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+        pub fn quorum_numerator_with_block_number(&self, block_number: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([96, 196, 36, 127], block_number)
                 .expect("method not found (this should never happen)")
@@ -1869,12 +1766,7 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `relay` (0xc28bc2fa) function
-        pub fn relay(
-            &self,
-            target: ::ethers::core::types::Address,
-            value: ::ethers::core::types::U256,
-            data: ::ethers::core::types::Bytes,
-        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+        pub fn relay(&self, target: ::ethers::core::types::Address, value: ::ethers::core::types::U256, data: ::ethers::core::types::Bytes) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([194, 139, 194, 250], (target, value, data))
                 .expect("method not found (this should never happen)")
@@ -1885,18 +1777,14 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 .method_hash([113, 80, 24, 166], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `setLateQuorumVoteExtension` (0xd07f91e9)
-        /// function
+        ///Calls the contract's `setLateQuorumVoteExtension` (0xd07f91e9) function
         pub fn set_late_quorum_vote_extension(&self, new_vote_extension: u64) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([208, 127, 145, 233], new_vote_extension)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `setProposalThreshold` (0xece40cc1) function
-        pub fn set_proposal_threshold(
-            &self,
-            new_proposal_threshold: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+        pub fn set_proposal_threshold(&self, new_proposal_threshold: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([236, 228, 12, 193], new_proposal_threshold)
                 .expect("method not found (this should never happen)")
@@ -1908,10 +1796,7 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `setVotingPeriod` (0xea0217cf) function
-        pub fn set_voting_period(
-            &self,
-            new_voting_period: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+        pub fn set_voting_period(&self, new_voting_period: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([234, 2, 23, 207], new_voting_period)
                 .expect("method not found (this should never happen)")
@@ -1947,10 +1832,7 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `updateQuorumNumerator` (0x06f3f9e6) function
-        pub fn update_quorum_numerator(
-            &self,
-            new_quorum_numerator: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+        pub fn update_quorum_numerator(&self, new_quorum_numerator: ::ethers::core::types::U256) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([6, 243, 249, 230], new_quorum_numerator)
                 .expect("method not found (this should never happen)")
@@ -1984,15 +1866,11 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
             self.0.event()
         }
         ///Gets the contract's `LateQuorumVoteExtensionSet` event
-        pub fn late_quorum_vote_extension_set_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, LateQuorumVoteExtensionSetFilter> {
+        pub fn late_quorum_vote_extension_set_filter(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, LateQuorumVoteExtensionSetFilter> {
             self.0.event()
         }
         ///Gets the contract's `OwnershipTransferred` event
-        pub fn ownership_transferred_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, OwnershipTransferredFilter> {
+        pub fn ownership_transferred_filter(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, OwnershipTransferredFilter> {
             self.0.event()
         }
         ///Gets the contract's `ProposalCanceled` event
@@ -2016,15 +1894,11 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
             self.0.event()
         }
         ///Gets the contract's `ProposalThresholdSet` event
-        pub fn proposal_threshold_set_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, ProposalThresholdSetFilter> {
+        pub fn proposal_threshold_set_filter(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, ProposalThresholdSetFilter> {
             self.0.event()
         }
         ///Gets the contract's `QuorumNumeratorUpdated` event
-        pub fn quorum_numerator_updated_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, QuorumNumeratorUpdatedFilter> {
+        pub fn quorum_numerator_updated_filter(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, QuorumNumeratorUpdatedFilter> {
             self.0.event()
         }
         ///Gets the contract's `TimelockChange` event
@@ -2036,9 +1910,7 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
             self.0.event()
         }
         ///Gets the contract's `VoteCastWithParams` event
-        pub fn vote_cast_with_params_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, VoteCastWithParamsFilter> {
+        pub fn vote_cast_with_params_filter(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, VoteCastWithParamsFilter> {
             self.0.event()
         }
         ///Gets the contract's `VotingDelaySet` event
@@ -2051,7 +1923,8 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         }
         /// Returns an `Event` builder for all the events of this contract.
         pub fn events(&self) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, RindexerArbitrumTreasuryGovernorGenEvents> {
-            self.0.event_with_filter(::core::default::Default::default())
+            self.0
+                .event_with_filter(::core::default::Default::default())
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>> for RindexerArbitrumTreasuryGovernorGen<M> {
@@ -2059,8 +1932,7 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
             Self::new(contract.address(), contract.client())
         }
     }
-    ///Custom Error type `Empty` with signature `Empty()` and selector
-    /// `0x3db2a12a`
+    ///Custom Error type `Empty` with signature `Empty()` and selector `0x3db2a12a`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "Empty", abi = "Empty()")]
     pub struct Empty;
@@ -2070,13 +1942,19 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub version: u8,
     }
     #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethevent(name = "LateQuorumVoteExtensionSet", abi = "LateQuorumVoteExtensionSet(uint64,uint64)")]
+    #[ethevent(
+        name = "LateQuorumVoteExtensionSet",
+        abi = "LateQuorumVoteExtensionSet(uint64,uint64)"
+    )]
     pub struct LateQuorumVoteExtensionSetFilter {
         pub old_vote_extension: u64,
         pub new_vote_extension: u64,
     }
     #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethevent(name = "OwnershipTransferred", abi = "OwnershipTransferred(address,address)")]
+    #[ethevent(
+        name = "OwnershipTransferred",
+        abi = "OwnershipTransferred(address,address)"
+    )]
     pub struct OwnershipTransferredFilter {
         #[ethevent(indexed)]
         pub previous_owner: ::ethers::core::types::Address,
@@ -2091,8 +1969,7 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
     #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethevent(
         name = "ProposalCreated",
-        abi = "ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,\
-               uint256,string)"
+        abi = "ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)"
     )]
     pub struct ProposalCreatedFilter {
         pub proposal_id: ::ethers::core::types::U256,
@@ -2124,13 +2001,19 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub eta: ::ethers::core::types::U256,
     }
     #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethevent(name = "ProposalThresholdSet", abi = "ProposalThresholdSet(uint256,uint256)")]
+    #[ethevent(
+        name = "ProposalThresholdSet",
+        abi = "ProposalThresholdSet(uint256,uint256)"
+    )]
     pub struct ProposalThresholdSetFilter {
         pub old_proposal_threshold: ::ethers::core::types::U256,
         pub new_proposal_threshold: ::ethers::core::types::U256,
     }
     #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethevent(name = "QuorumNumeratorUpdated", abi = "QuorumNumeratorUpdated(uint256,uint256)")]
+    #[ethevent(
+        name = "QuorumNumeratorUpdated",
+        abi = "QuorumNumeratorUpdated(uint256,uint256)"
+    )]
     pub struct QuorumNumeratorUpdatedFilter {
         pub old_quorum_numerator: ::ethers::core::types::U256,
         pub new_quorum_numerator: ::ethers::core::types::U256,
@@ -2142,7 +2025,10 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub new_timelock: ::ethers::core::types::Address,
     }
     #[derive(Clone, ::ethers::contract::EthEvent, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethevent(name = "VoteCast", abi = "VoteCast(address,uint256,uint8,uint256,string)")]
+    #[ethevent(
+        name = "VoteCast",
+        abi = "VoteCast(address,uint256,uint8,uint256,string)"
+    )]
     pub struct VoteCastFilter {
         #[ethevent(indexed)]
         pub voter: ::ethers::core::types::Address,
@@ -2232,7 +2118,9 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
                 return Ok(RindexerArbitrumTreasuryGovernorGenEvents::TimelockChangeFilter(decoded));
             }
             if let Ok(decoded) = VoteCastFilter::decode_log(log) {
-                return Ok(RindexerArbitrumTreasuryGovernorGenEvents::VoteCastFilter(decoded));
+                return Ok(RindexerArbitrumTreasuryGovernorGenEvents::VoteCastFilter(
+                    decoded,
+                ));
             }
             if let Ok(decoded) = VoteCastWithParamsFilter::decode_log(log) {
                 return Ok(RindexerArbitrumTreasuryGovernorGenEvents::VoteCastWithParamsFilter(decoded));
@@ -2342,40 +2230,41 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
             Self::VotingPeriodSetFilter(value)
         }
     }
-    ///Container type for all input parameters for the `BALLOT_TYPEHASH`
-    /// function with signature `BALLOT_TYPEHASH()` and selector `0xdeaaa7cc`
+    ///Container type for all input parameters for the `BALLOT_TYPEHASH` function with signature
+    /// `BALLOT_TYPEHASH()` and selector `0xdeaaa7cc`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "BALLOT_TYPEHASH", abi = "BALLOT_TYPEHASH()")]
     pub struct BallotTypehashCall;
-    ///Container type for all input parameters for the `COUNTING_MODE` function
-    /// with signature `COUNTING_MODE()` and selector `0xdd4e2ba5`
+    ///Container type for all input parameters for the `COUNTING_MODE` function with signature
+    /// `COUNTING_MODE()` and selector `0xdd4e2ba5`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "COUNTING_MODE", abi = "COUNTING_MODE()")]
     pub struct CountingModeCall;
-    ///Container type for all input parameters for the `EXCLUDE_ADDRESS`
-    /// function with signature `EXCLUDE_ADDRESS()` and selector `0x5e12ebbd`
+    ///Container type for all input parameters for the `EXCLUDE_ADDRESS` function with signature
+    /// `EXCLUDE_ADDRESS()` and selector `0x5e12ebbd`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "EXCLUDE_ADDRESS", abi = "EXCLUDE_ADDRESS()")]
     pub struct ExcludeAddressCall;
-    ///Container type for all input parameters for the
-    /// `EXTENDED_BALLOT_TYPEHASH` function with signature
-    /// `EXTENDED_BALLOT_TYPEHASH()` and selector `0x2fe3e261`
+    ///Container type for all input parameters for the `EXTENDED_BALLOT_TYPEHASH` function with
+    /// signature `EXTENDED_BALLOT_TYPEHASH()` and selector `0x2fe3e261`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "EXTENDED_BALLOT_TYPEHASH", abi = "EXTENDED_BALLOT_TYPEHASH()")]
     pub struct ExtendedBallotTypehashCall;
-    ///Container type for all input parameters for the `castVote` function with
-    /// signature `castVote(uint256,uint8)` and selector `0x56781388`
+    ///Container type for all input parameters for the `castVote` function with signature
+    /// `castVote(uint256,uint8)` and selector `0x56781388`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "castVote", abi = "castVote(uint256,uint8)")]
     pub struct CastVoteCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub support: u8,
     }
-    ///Container type for all input parameters for the `castVoteBySig` function
-    /// with signature `castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)` and
-    /// selector `0x3bccf4fd`
+    ///Container type for all input parameters for the `castVoteBySig` function with signature
+    /// `castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)` and selector `0x3bccf4fd`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethcall(name = "castVoteBySig", abi = "castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)")]
+    #[ethcall(
+        name = "castVoteBySig",
+        abi = "castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)"
+    )]
     pub struct CastVoteBySigCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub support: u8,
@@ -2383,19 +2272,20 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub r: [u8; 32],
         pub s: [u8; 32],
     }
-    ///Container type for all input parameters for the `castVoteWithReason`
-    /// function with signature `castVoteWithReason(uint256,uint8,string)` and
-    /// selector `0x7b3c71d3`
+    ///Container type for all input parameters for the `castVoteWithReason` function with signature
+    /// `castVoteWithReason(uint256,uint8,string)` and selector `0x7b3c71d3`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethcall(name = "castVoteWithReason", abi = "castVoteWithReason(uint256,uint8,string)")]
+    #[ethcall(
+        name = "castVoteWithReason",
+        abi = "castVoteWithReason(uint256,uint8,string)"
+    )]
     pub struct CastVoteWithReasonCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub support: u8,
         pub reason: ::std::string::String,
     }
-    ///Container type for all input parameters for the
-    /// `castVoteWithReasonAndParams` function with signature
-    /// `castVoteWithReasonAndParams(uint256,uint8,string,bytes)` and selector
+    ///Container type for all input parameters for the `castVoteWithReasonAndParams` function with
+    /// signature `castVoteWithReasonAndParams(uint256,uint8,string,bytes)` and selector
     /// `0x5f398a14`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
@@ -2408,10 +2298,10 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub reason: ::std::string::String,
         pub params: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the
-    /// `castVoteWithReasonAndParamsBySig` function with signature
-    /// `castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,
-    /// bytes32,bytes32)` and selector `0x03420181`
+    ///Container type for all input parameters for the `castVoteWithReasonAndParamsBySig` function
+    /// with signature
+    /// `castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32)` and
+    /// selector `0x03420181`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "castVoteWithReasonAndParamsBySig",
@@ -2426,9 +2316,8 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub r: [u8; 32],
         pub s: [u8; 32],
     }
-    ///Container type for all input parameters for the `execute` function with
-    /// signature `execute(address[],uint256[],bytes[],bytes32)` and selector
-    /// `0x2656227d`
+    ///Container type for all input parameters for the `execute` function with signature
+    /// `execute(address[],uint256[],bytes[],bytes32)` and selector `0x2656227d`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "execute", abi = "execute(address[],uint256[],bytes[],bytes32)")]
     pub struct ExecuteCall {
@@ -2437,55 +2326,60 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
         pub description_hash: [u8; 32],
     }
-    ///Container type for all input parameters for the
-    /// `getPastCirculatingSupply` function with signature
-    /// `getPastCirculatingSupply(uint256)` and selector `0x6e462680`
+    ///Container type for all input parameters for the `getPastCirculatingSupply` function with
+    /// signature `getPastCirculatingSupply(uint256)` and selector `0x6e462680`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethcall(name = "getPastCirculatingSupply", abi = "getPastCirculatingSupply(uint256)")]
+    #[ethcall(
+        name = "getPastCirculatingSupply",
+        abi = "getPastCirculatingSupply(uint256)"
+    )]
     pub struct GetPastCirculatingSupplyCall {
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `getVotes` function with
-    /// signature `getVotes(address,uint256)` and selector `0xeb9019d4`
+    ///Container type for all input parameters for the `getVotes` function with signature
+    /// `getVotes(address,uint256)` and selector `0xeb9019d4`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "getVotes", abi = "getVotes(address,uint256)")]
     pub struct GetVotesCall {
         pub account: ::ethers::core::types::Address,
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `getVotesWithParams`
-    /// function with signature `getVotesWithParams(address,uint256,bytes)` and
-    /// selector `0x9a802a6d`
+    ///Container type for all input parameters for the `getVotesWithParams` function with signature
+    /// `getVotesWithParams(address,uint256,bytes)` and selector `0x9a802a6d`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethcall(name = "getVotesWithParams", abi = "getVotesWithParams(address,uint256,bytes)")]
+    #[ethcall(
+        name = "getVotesWithParams",
+        abi = "getVotesWithParams(address,uint256,bytes)"
+    )]
     pub struct GetVotesWithParamsCall {
         pub account: ::ethers::core::types::Address,
         pub block_number: ::ethers::core::types::U256,
         pub params: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `hasVoted` function with
-    /// signature `hasVoted(uint256,address)` and selector `0x43859632`
+    ///Container type for all input parameters for the `hasVoted` function with signature
+    /// `hasVoted(uint256,address)` and selector `0x43859632`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "hasVoted", abi = "hasVoted(uint256,address)")]
     pub struct HasVotedCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `hashProposal` function
-    /// with signature `hashProposal(address[],uint256[],bytes[],bytes32)` and
-    /// selector `0xc59057e4`
+    ///Container type for all input parameters for the `hashProposal` function with signature
+    /// `hashProposal(address[],uint256[],bytes[],bytes32)` and selector `0xc59057e4`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethcall(name = "hashProposal", abi = "hashProposal(address[],uint256[],bytes[],bytes32)")]
+    #[ethcall(
+        name = "hashProposal",
+        abi = "hashProposal(address[],uint256[],bytes[],bytes32)"
+    )]
     pub struct HashProposalCall {
         pub targets: ::std::vec::Vec<::ethers::core::types::Address>,
         pub values: ::std::vec::Vec<::ethers::core::types::U256>,
         pub calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
         pub description_hash: [u8; 32],
     }
-    ///Container type for all input parameters for the `initialize` function
-    /// with signature
-    /// `initialize(address,address,address,uint256,uint256,uint256,uint256,
-    /// uint64)` and selector `0x5b447a57`
+    ///Container type for all input parameters for the `initialize` function with signature
+    /// `initialize(address,address,address,uint256,uint256,uint256,uint256,uint64)` and selector
+    /// `0x5b447a57`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "initialize",
@@ -2501,21 +2395,19 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub proposal_threshold: ::ethers::core::types::U256,
         pub min_period_after_quorum: u64,
     }
-    ///Container type for all input parameters for the
-    /// `lateQuorumVoteExtension` function with signature
-    /// `lateQuorumVoteExtension()` and selector `0x32b8113e`
+    ///Container type for all input parameters for the `lateQuorumVoteExtension` function with
+    /// signature `lateQuorumVoteExtension()` and selector `0x32b8113e`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "lateQuorumVoteExtension", abi = "lateQuorumVoteExtension()")]
     pub struct LateQuorumVoteExtensionCall;
-    ///Container type for all input parameters for the `name` function with
-    /// signature `name()` and selector `0x06fdde03`
+    ///Container type for all input parameters for the `name` function with signature `name()` and
+    /// selector `0x06fdde03`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "name", abi = "name()")]
     pub struct NameCall;
-    ///Container type for all input parameters for the `onERC1155BatchReceived`
-    /// function with signature
-    /// `onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)` and
-    /// selector `0xbc197c81`
+    ///Container type for all input parameters for the `onERC1155BatchReceived` function with
+    /// signature `onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)` and selector
+    /// `0xbc197c81`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "onERC1155BatchReceived",
@@ -2528,12 +2420,13 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub ::std::vec::Vec<::ethers::core::types::U256>,
         pub ::ethers::core::types::Bytes,
     );
-    ///Container type for all input parameters for the `onERC1155Received`
-    /// function with signature
-    /// `onERC1155Received(address,address,uint256,uint256,bytes)` and selector
-    /// `0xf23a6e61`
+    ///Container type for all input parameters for the `onERC1155Received` function with signature
+    /// `onERC1155Received(address,address,uint256,uint256,bytes)` and selector `0xf23a6e61`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethcall(name = "onERC1155Received", abi = "onERC1155Received(address,address,uint256,uint256,bytes)")]
+    #[ethcall(
+        name = "onERC1155Received",
+        abi = "onERC1155Received(address,address,uint256,uint256,bytes)"
+    )]
     pub struct OnERC1155ReceivedCall(
         pub ::ethers::core::types::Address,
         pub ::ethers::core::types::Address,
@@ -2541,61 +2434,59 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::Bytes,
     );
-    ///Container type for all input parameters for the `onERC721Received`
-    /// function with signature
-    /// `onERC721Received(address,address,uint256,bytes)` and selector
-    /// `0x150b7a02`
+    ///Container type for all input parameters for the `onERC721Received` function with signature
+    /// `onERC721Received(address,address,uint256,bytes)` and selector `0x150b7a02`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethcall(name = "onERC721Received", abi = "onERC721Received(address,address,uint256,bytes)")]
+    #[ethcall(
+        name = "onERC721Received",
+        abi = "onERC721Received(address,address,uint256,bytes)"
+    )]
     pub struct OnERC721ReceivedCall(
         pub ::ethers::core::types::Address,
         pub ::ethers::core::types::Address,
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::Bytes,
     );
-    ///Container type for all input parameters for the `owner` function with
-    /// signature `owner()` and selector `0x8da5cb5b`
+    ///Container type for all input parameters for the `owner` function with signature `owner()`
+    /// and selector `0x8da5cb5b`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "owner", abi = "owner()")]
     pub struct OwnerCall;
-    ///Container type for all input parameters for the `proposalDeadline`
-    /// function with signature `proposalDeadline(uint256)` and selector
-    /// `0xc01f9e37`
+    ///Container type for all input parameters for the `proposalDeadline` function with signature
+    /// `proposalDeadline(uint256)` and selector `0xc01f9e37`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "proposalDeadline", abi = "proposalDeadline(uint256)")]
     pub struct ProposalDeadlineCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `proposalEta` function
-    /// with signature `proposalEta(uint256)` and selector `0xab58fb8e`
+    ///Container type for all input parameters for the `proposalEta` function with signature
+    /// `proposalEta(uint256)` and selector `0xab58fb8e`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "proposalEta", abi = "proposalEta(uint256)")]
     pub struct ProposalEtaCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `proposalSnapshot`
-    /// function with signature `proposalSnapshot(uint256)` and selector
-    /// `0x2d63f693`
+    ///Container type for all input parameters for the `proposalSnapshot` function with signature
+    /// `proposalSnapshot(uint256)` and selector `0x2d63f693`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "proposalSnapshot", abi = "proposalSnapshot(uint256)")]
     pub struct ProposalSnapshotCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `proposalThreshold`
-    /// function with signature `proposalThreshold()` and selector `0xb58131b0`
+    ///Container type for all input parameters for the `proposalThreshold` function with signature
+    /// `proposalThreshold()` and selector `0xb58131b0`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "proposalThreshold", abi = "proposalThreshold()")]
     pub struct ProposalThresholdCall;
-    ///Container type for all input parameters for the `proposalVotes` function
-    /// with signature `proposalVotes(uint256)` and selector `0x544ffc9c`
+    ///Container type for all input parameters for the `proposalVotes` function with signature
+    /// `proposalVotes(uint256)` and selector `0x544ffc9c`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "proposalVotes", abi = "proposalVotes(uint256)")]
     pub struct ProposalVotesCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `propose` function with
-    /// signature `propose(address[],uint256[],bytes[],string)` and selector
-    /// `0x7d5e81e2`
+    ///Container type for all input parameters for the `propose` function with signature
+    /// `propose(address[],uint256[],bytes[],string)` and selector `0x7d5e81e2`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "propose", abi = "propose(address[],uint256[],bytes[],string)")]
     pub struct ProposeCall {
@@ -2604,9 +2495,8 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
         pub description: ::std::string::String,
     }
-    ///Container type for all input parameters for the `queue` function with
-    /// signature `queue(address[],uint256[],bytes[],bytes32)` and selector
-    /// `0x160cbed7`
+    ///Container type for all input parameters for the `queue` function with signature
+    /// `queue(address[],uint256[],bytes[],bytes32)` and selector `0x160cbed7`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "queue", abi = "queue(address[],uint256[],bytes[],bytes32)")]
     pub struct QueueCall {
@@ -2615,33 +2505,32 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
         pub description_hash: [u8; 32],
     }
-    ///Container type for all input parameters for the `quorum` function with
-    /// signature `quorum(uint256)` and selector `0xf8ce560a`
+    ///Container type for all input parameters for the `quorum` function with signature
+    /// `quorum(uint256)` and selector `0xf8ce560a`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "quorum", abi = "quorum(uint256)")]
     pub struct QuorumCall {
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `quorumDenominator`
-    /// function with signature `quorumDenominator()` and selector `0x97c3d334`
+    ///Container type for all input parameters for the `quorumDenominator` function with signature
+    /// `quorumDenominator()` and selector `0x97c3d334`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "quorumDenominator", abi = "quorumDenominator()")]
     pub struct QuorumDenominatorCall;
-    ///Container type for all input parameters for the `quorumNumerator`
-    /// function with signature `quorumNumerator(uint256)` and selector
-    /// `0x60c4247f`
+    ///Container type for all input parameters for the `quorumNumerator` function with signature
+    /// `quorumNumerator(uint256)` and selector `0x60c4247f`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "quorumNumerator", abi = "quorumNumerator(uint256)")]
     pub struct QuorumNumeratorWithBlockNumberCall {
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `quorumNumerator`
-    /// function with signature `quorumNumerator()` and selector `0xa7713a70`
+    ///Container type for all input parameters for the `quorumNumerator` function with signature
+    /// `quorumNumerator()` and selector `0xa7713a70`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "quorumNumerator", abi = "quorumNumerator()")]
     pub struct QuorumNumeratorCall;
-    ///Container type for all input parameters for the `relay` function with
-    /// signature `relay(address,uint256,bytes)` and selector `0xc28bc2fa`
+    ///Container type for all input parameters for the `relay` function with signature
+    /// `relay(address,uint256,bytes)` and selector `0xc28bc2fa`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "relay", abi = "relay(address,uint256,bytes)")]
     pub struct RelayCall {
@@ -2649,104 +2538,99 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
         pub value: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `renounceOwnership`
-    /// function with signature `renounceOwnership()` and selector `0x715018a6`
+    ///Container type for all input parameters for the `renounceOwnership` function with signature
+    /// `renounceOwnership()` and selector `0x715018a6`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "renounceOwnership", abi = "renounceOwnership()")]
     pub struct RenounceOwnershipCall;
-    ///Container type for all input parameters for the
-    /// `setLateQuorumVoteExtension` function with signature
-    /// `setLateQuorumVoteExtension(uint64)` and selector `0xd07f91e9`
+    ///Container type for all input parameters for the `setLateQuorumVoteExtension` function with
+    /// signature `setLateQuorumVoteExtension(uint64)` and selector `0xd07f91e9`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
-    #[ethcall(name = "setLateQuorumVoteExtension", abi = "setLateQuorumVoteExtension(uint64)")]
+    #[ethcall(
+        name = "setLateQuorumVoteExtension",
+        abi = "setLateQuorumVoteExtension(uint64)"
+    )]
     pub struct SetLateQuorumVoteExtensionCall {
         pub new_vote_extension: u64,
     }
-    ///Container type for all input parameters for the `setProposalThreshold`
-    /// function with signature `setProposalThreshold(uint256)` and selector
-    /// `0xece40cc1`
+    ///Container type for all input parameters for the `setProposalThreshold` function with
+    /// signature `setProposalThreshold(uint256)` and selector `0xece40cc1`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "setProposalThreshold", abi = "setProposalThreshold(uint256)")]
     pub struct SetProposalThresholdCall {
         pub new_proposal_threshold: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `setVotingDelay`
-    /// function with signature `setVotingDelay(uint256)` and selector
-    /// `0x70b0f660`
+    ///Container type for all input parameters for the `setVotingDelay` function with signature
+    /// `setVotingDelay(uint256)` and selector `0x70b0f660`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "setVotingDelay", abi = "setVotingDelay(uint256)")]
     pub struct SetVotingDelayCall {
         pub new_voting_delay: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `setVotingPeriod`
-    /// function with signature `setVotingPeriod(uint256)` and selector
-    /// `0xea0217cf`
+    ///Container type for all input parameters for the `setVotingPeriod` function with signature
+    /// `setVotingPeriod(uint256)` and selector `0xea0217cf`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "setVotingPeriod", abi = "setVotingPeriod(uint256)")]
     pub struct SetVotingPeriodCall {
         pub new_voting_period: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `state` function with
-    /// signature `state(uint256)` and selector `0x3e4f49e6`
+    ///Container type for all input parameters for the `state` function with signature
+    /// `state(uint256)` and selector `0x3e4f49e6`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "state", abi = "state(uint256)")]
     pub struct StateCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `supportsInterface`
-    /// function with signature `supportsInterface(bytes4)` and selector
-    /// `0x01ffc9a7`
+    ///Container type for all input parameters for the `supportsInterface` function with signature
+    /// `supportsInterface(bytes4)` and selector `0x01ffc9a7`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "supportsInterface", abi = "supportsInterface(bytes4)")]
     pub struct SupportsInterfaceCall {
         pub interface_id: [u8; 4],
     }
-    ///Container type for all input parameters for the `timelock` function with
-    /// signature `timelock()` and selector `0xd33219b4`
+    ///Container type for all input parameters for the `timelock` function with signature
+    /// `timelock()` and selector `0xd33219b4`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "timelock", abi = "timelock()")]
     pub struct TimelockCall;
-    ///Container type for all input parameters for the `token` function with
-    /// signature `token()` and selector `0xfc0c546a`
+    ///Container type for all input parameters for the `token` function with signature `token()`
+    /// and selector `0xfc0c546a`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "token", abi = "token()")]
     pub struct TokenCall;
-    ///Container type for all input parameters for the `transferOwnership`
-    /// function with signature `transferOwnership(address)` and selector
-    /// `0xf2fde38b`
+    ///Container type for all input parameters for the `transferOwnership` function with signature
+    /// `transferOwnership(address)` and selector `0xf2fde38b`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "transferOwnership", abi = "transferOwnership(address)")]
     pub struct TransferOwnershipCall {
         pub new_owner: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `updateQuorumNumerator`
-    /// function with signature `updateQuorumNumerator(uint256)` and selector
-    /// `0x06f3f9e6`
+    ///Container type for all input parameters for the `updateQuorumNumerator` function with
+    /// signature `updateQuorumNumerator(uint256)` and selector `0x06f3f9e6`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "updateQuorumNumerator", abi = "updateQuorumNumerator(uint256)")]
     pub struct UpdateQuorumNumeratorCall {
         pub new_quorum_numerator: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `updateTimelock`
-    /// function with signature `updateTimelock(address)` and selector
-    /// `0xa890c910`
+    ///Container type for all input parameters for the `updateTimelock` function with signature
+    /// `updateTimelock(address)` and selector `0xa890c910`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "updateTimelock", abi = "updateTimelock(address)")]
     pub struct UpdateTimelockCall {
         pub new_timelock: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `version` function with
-    /// signature `version()` and selector `0x54fd4d50`
+    ///Container type for all input parameters for the `version` function with signature
+    /// `version()` and selector `0x54fd4d50`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "version", abi = "version()")]
     pub struct VersionCall;
-    ///Container type for all input parameters for the `votingDelay` function
-    /// with signature `votingDelay()` and selector `0x3932abb1`
+    ///Container type for all input parameters for the `votingDelay` function with signature
+    /// `votingDelay()` and selector `0x3932abb1`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "votingDelay", abi = "votingDelay()")]
     pub struct VotingDelayCall;
-    ///Container type for all input parameters for the `votingPeriod` function
-    /// with signature `votingPeriod()` and selector `0x02a251a3`
+    ///Container type for all input parameters for the `votingPeriod` function with signature
+    /// `votingPeriod()` and selector `0x02a251a3`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "votingPeriod", abi = "votingPeriod()")]
     pub struct VotingPeriodCall;
@@ -3311,187 +3195,168 @@ pub mod rindexer_arbitrum_treasury_governor_gen {
             Self::VotingPeriod(value)
         }
     }
-    ///Container type for all return fields from the `BALLOT_TYPEHASH` function
-    /// with signature `BALLOT_TYPEHASH()` and selector `0xdeaaa7cc`
+    ///Container type for all return fields from the `BALLOT_TYPEHASH` function with signature
+    /// `BALLOT_TYPEHASH()` and selector `0xdeaaa7cc`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct BallotTypehashReturn(pub [u8; 32]);
-    ///Container type for all return fields from the `COUNTING_MODE` function
-    /// with signature `COUNTING_MODE()` and selector `0xdd4e2ba5`
+    ///Container type for all return fields from the `COUNTING_MODE` function with signature
+    /// `COUNTING_MODE()` and selector `0xdd4e2ba5`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CountingModeReturn(pub ::std::string::String);
-    ///Container type for all return fields from the `EXCLUDE_ADDRESS` function
-    /// with signature `EXCLUDE_ADDRESS()` and selector `0x5e12ebbd`
+    ///Container type for all return fields from the `EXCLUDE_ADDRESS` function with signature
+    /// `EXCLUDE_ADDRESS()` and selector `0x5e12ebbd`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ExcludeAddressReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `EXTENDED_BALLOT_TYPEHASH`
-    /// function with signature `EXTENDED_BALLOT_TYPEHASH()` and selector
-    /// `0x2fe3e261`
+    ///Container type for all return fields from the `EXTENDED_BALLOT_TYPEHASH` function with
+    /// signature `EXTENDED_BALLOT_TYPEHASH()` and selector `0x2fe3e261`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ExtendedBallotTypehashReturn(pub [u8; 32]);
-    ///Container type for all return fields from the `castVote` function with
-    /// signature `castVote(uint256,uint8)` and selector `0x56781388`
+    ///Container type for all return fields from the `castVote` function with signature
+    /// `castVote(uint256,uint8)` and selector `0x56781388`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `castVoteBySig` function
-    /// with signature `castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)` and
-    /// selector `0x3bccf4fd`
+    ///Container type for all return fields from the `castVoteBySig` function with signature
+    /// `castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)` and selector `0x3bccf4fd`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteBySigReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `castVoteWithReason`
-    /// function with signature `castVoteWithReason(uint256,uint8,string)` and
-    /// selector `0x7b3c71d3`
+    ///Container type for all return fields from the `castVoteWithReason` function with signature
+    /// `castVoteWithReason(uint256,uint8,string)` and selector `0x7b3c71d3`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteWithReasonReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the
-    /// `castVoteWithReasonAndParams` function with signature
-    /// `castVoteWithReasonAndParams(uint256,uint8,string,bytes)` and selector
+    ///Container type for all return fields from the `castVoteWithReasonAndParams` function with
+    /// signature `castVoteWithReasonAndParams(uint256,uint8,string,bytes)` and selector
     /// `0x5f398a14`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteWithReasonAndParamsReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the
-    /// `castVoteWithReasonAndParamsBySig` function with signature
-    /// `castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,
-    /// bytes32,bytes32)` and selector `0x03420181`
+    ///Container type for all return fields from the `castVoteWithReasonAndParamsBySig` function
+    /// with signature
+    /// `castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32)` and
+    /// selector `0x03420181`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteWithReasonAndParamsBySigReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `execute` function with
-    /// signature `execute(address[],uint256[],bytes[],bytes32)` and selector
-    /// `0x2656227d`
+    ///Container type for all return fields from the `execute` function with signature
+    /// `execute(address[],uint256[],bytes[],bytes32)` and selector `0x2656227d`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ExecuteReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `getPastCirculatingSupply`
-    /// function with signature `getPastCirculatingSupply(uint256)` and selector
-    /// `0x6e462680`
+    ///Container type for all return fields from the `getPastCirculatingSupply` function with
+    /// signature `getPastCirculatingSupply(uint256)` and selector `0x6e462680`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetPastCirculatingSupplyReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `getVotes` function with
-    /// signature `getVotes(address,uint256)` and selector `0xeb9019d4`
+    ///Container type for all return fields from the `getVotes` function with signature
+    /// `getVotes(address,uint256)` and selector `0xeb9019d4`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetVotesReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `getVotesWithParams`
-    /// function with signature `getVotesWithParams(address,uint256,bytes)` and
-    /// selector `0x9a802a6d`
+    ///Container type for all return fields from the `getVotesWithParams` function with signature
+    /// `getVotesWithParams(address,uint256,bytes)` and selector `0x9a802a6d`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetVotesWithParamsReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `hasVoted` function with
-    /// signature `hasVoted(uint256,address)` and selector `0x43859632`
+    ///Container type for all return fields from the `hasVoted` function with signature
+    /// `hasVoted(uint256,address)` and selector `0x43859632`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct HasVotedReturn(pub bool);
-    ///Container type for all return fields from the `hashProposal` function
-    /// with signature `hashProposal(address[],uint256[],bytes[],bytes32)` and
-    /// selector `0xc59057e4`
+    ///Container type for all return fields from the `hashProposal` function with signature
+    /// `hashProposal(address[],uint256[],bytes[],bytes32)` and selector `0xc59057e4`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct HashProposalReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `lateQuorumVoteExtension`
-    /// function with signature `lateQuorumVoteExtension()` and selector
-    /// `0x32b8113e`
+    ///Container type for all return fields from the `lateQuorumVoteExtension` function with
+    /// signature `lateQuorumVoteExtension()` and selector `0x32b8113e`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct LateQuorumVoteExtensionReturn(pub u64);
-    ///Container type for all return fields from the `name` function with
-    /// signature `name()` and selector `0x06fdde03`
+    ///Container type for all return fields from the `name` function with signature `name()` and
+    /// selector `0x06fdde03`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NameReturn(pub ::std::string::String);
-    ///Container type for all return fields from the `onERC1155BatchReceived`
-    /// function with signature
-    /// `onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)` and
-    /// selector `0xbc197c81`
+    ///Container type for all return fields from the `onERC1155BatchReceived` function with
+    /// signature `onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)` and selector
+    /// `0xbc197c81`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OnERC1155BatchReceivedReturn(pub [u8; 4]);
-    ///Container type for all return fields from the `onERC1155Received`
-    /// function with signature
-    /// `onERC1155Received(address,address,uint256,uint256,bytes)` and selector
-    /// `0xf23a6e61`
+    ///Container type for all return fields from the `onERC1155Received` function with signature
+    /// `onERC1155Received(address,address,uint256,uint256,bytes)` and selector `0xf23a6e61`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OnERC1155ReceivedReturn(pub [u8; 4]);
-    ///Container type for all return fields from the `onERC721Received`
-    /// function with signature
-    /// `onERC721Received(address,address,uint256,bytes)` and selector
-    /// `0x150b7a02`
+    ///Container type for all return fields from the `onERC721Received` function with signature
+    /// `onERC721Received(address,address,uint256,bytes)` and selector `0x150b7a02`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OnERC721ReceivedReturn(pub [u8; 4]);
-    ///Container type for all return fields from the `owner` function with
-    /// signature `owner()` and selector `0x8da5cb5b`
+    ///Container type for all return fields from the `owner` function with signature `owner()` and
+    /// selector `0x8da5cb5b`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OwnerReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `proposalDeadline`
-    /// function with signature `proposalDeadline(uint256)` and selector
-    /// `0xc01f9e37`
+    ///Container type for all return fields from the `proposalDeadline` function with signature
+    /// `proposalDeadline(uint256)` and selector `0xc01f9e37`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposalDeadlineReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `proposalEta` function
-    /// with signature `proposalEta(uint256)` and selector `0xab58fb8e`
+    ///Container type for all return fields from the `proposalEta` function with signature
+    /// `proposalEta(uint256)` and selector `0xab58fb8e`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposalEtaReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `proposalSnapshot`
-    /// function with signature `proposalSnapshot(uint256)` and selector
-    /// `0x2d63f693`
+    ///Container type for all return fields from the `proposalSnapshot` function with signature
+    /// `proposalSnapshot(uint256)` and selector `0x2d63f693`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposalSnapshotReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `proposalThreshold`
-    /// function with signature `proposalThreshold()` and selector `0xb58131b0`
+    ///Container type for all return fields from the `proposalThreshold` function with signature
+    /// `proposalThreshold()` and selector `0xb58131b0`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposalThresholdReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `proposalVotes` function
-    /// with signature `proposalVotes(uint256)` and selector `0x544ffc9c`
+    ///Container type for all return fields from the `proposalVotes` function with signature
+    /// `proposalVotes(uint256)` and selector `0x544ffc9c`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposalVotesReturn {
         pub against_votes: ::ethers::core::types::U256,
         pub for_votes: ::ethers::core::types::U256,
         pub abstain_votes: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `propose` function with
-    /// signature `propose(address[],uint256[],bytes[],string)` and selector
-    /// `0x7d5e81e2`
+    ///Container type for all return fields from the `propose` function with signature
+    /// `propose(address[],uint256[],bytes[],string)` and selector `0x7d5e81e2`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposeReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `queue` function with
-    /// signature `queue(address[],uint256[],bytes[],bytes32)` and selector
-    /// `0x160cbed7`
+    ///Container type for all return fields from the `queue` function with signature
+    /// `queue(address[],uint256[],bytes[],bytes32)` and selector `0x160cbed7`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct QueueReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `quorum` function with
-    /// signature `quorum(uint256)` and selector `0xf8ce560a`
+    ///Container type for all return fields from the `quorum` function with signature
+    /// `quorum(uint256)` and selector `0xf8ce560a`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct QuorumReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `quorumDenominator`
-    /// function with signature `quorumDenominator()` and selector `0x97c3d334`
+    ///Container type for all return fields from the `quorumDenominator` function with signature
+    /// `quorumDenominator()` and selector `0x97c3d334`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct QuorumDenominatorReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `quorumNumerator` function
-    /// with signature `quorumNumerator(uint256)` and selector `0x60c4247f`
+    ///Container type for all return fields from the `quorumNumerator` function with signature
+    /// `quorumNumerator(uint256)` and selector `0x60c4247f`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct QuorumNumeratorWithBlockNumberReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `quorumNumerator` function
-    /// with signature `quorumNumerator()` and selector `0xa7713a70`
+    ///Container type for all return fields from the `quorumNumerator` function with signature
+    /// `quorumNumerator()` and selector `0xa7713a70`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct QuorumNumeratorReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `state` function with
-    /// signature `state(uint256)` and selector `0x3e4f49e6`
+    ///Container type for all return fields from the `state` function with signature
+    /// `state(uint256)` and selector `0x3e4f49e6`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct StateReturn(pub u8);
-    ///Container type for all return fields from the `supportsInterface`
-    /// function with signature `supportsInterface(bytes4)` and selector
-    /// `0x01ffc9a7`
+    ///Container type for all return fields from the `supportsInterface` function with signature
+    /// `supportsInterface(bytes4)` and selector `0x01ffc9a7`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct SupportsInterfaceReturn(pub bool);
-    ///Container type for all return fields from the `timelock` function with
-    /// signature `timelock()` and selector `0xd33219b4`
+    ///Container type for all return fields from the `timelock` function with signature
+    /// `timelock()` and selector `0xd33219b4`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct TimelockReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `token` function with
-    /// signature `token()` and selector `0xfc0c546a`
+    ///Container type for all return fields from the `token` function with signature `token()` and
+    /// selector `0xfc0c546a`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct TokenReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `version` function with
-    /// signature `version()` and selector `0x54fd4d50`
+    ///Container type for all return fields from the `version` function with signature `version()`
+    /// and selector `0x54fd4d50`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct VersionReturn(pub ::std::string::String);
-    ///Container type for all return fields from the `votingDelay` function
-    /// with signature `votingDelay()` and selector `0x3932abb1`
+    ///Container type for all return fields from the `votingDelay` function with signature
+    /// `votingDelay()` and selector `0x3932abb1`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct VotingDelayReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `votingPeriod` function
-    /// with signature `votingPeriod()` and selector `0x02a251a3`
+    ///Container type for all return fields from the `votingPeriod` function with signature
+    /// `votingPeriod()` and selector `0x02a251a3`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct VotingPeriodReturn(pub ::ethers::core::types::U256);
 }

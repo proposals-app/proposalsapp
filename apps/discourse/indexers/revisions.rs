@@ -103,11 +103,7 @@ impl RevisionIndexer {
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
-    async fn fetch_posts_with_revisions(
-        &self,
-
-        dao_discourse_id: Uuid,
-    ) -> Result<Vec<discourse_post::Model>> {
+    async fn fetch_posts_with_revisions(&self, dao_discourse_id: Uuid) -> Result<Vec<discourse_post::Model>> {
         info!("Fetching posts with revisions");
 
         let posts = discourse_post::Entity::find()
@@ -137,10 +133,7 @@ impl RevisionIndexer {
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
-    async fn fetch_recent_posts_with_revisions(
-        &self,
-        dao_discourse_id: Uuid,
-    ) -> Result<Vec<discourse_post::Model>> {
+    async fn fetch_recent_posts_with_revisions(&self, dao_discourse_id: Uuid) -> Result<Vec<discourse_post::Model>> {
         info!("Fetching recent posts with revisions");
 
         let six_hours_ago = Utc::now() - Duration::hours(6);
@@ -173,13 +166,7 @@ impl RevisionIndexer {
 }
 
 #[instrument(skip(discourse_api), fields(post_id = %post_id, dao_discourse_id = %dao_discourse_id))]
-async fn update_revisions_for_post(
-    discourse_api: &DiscourseApi,
-    dao_discourse_id: Uuid,
-    post_id: i32,
-    version: i32,
-    priority: bool,
-) -> Result<()> {
+async fn update_revisions_for_post(discourse_api: &DiscourseApi, dao_discourse_id: Uuid, post_id: i32, version: i32, priority: bool) -> Result<()> {
     info!("Updating revisions for post");
 
     let discourse_post = discourse_post::Entity::find()

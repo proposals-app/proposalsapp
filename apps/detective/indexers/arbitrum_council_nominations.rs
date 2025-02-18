@@ -23,9 +23,7 @@ use proposalsapp_db::models::{
 };
 use regex::Regex;
 use rust_decimal::prelude::ToPrimitive;
-use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, IntoActiveModel, QueryFilter, Set,
-};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, IntoActiveModel, QueryFilter, Set};
 use serde_json::json;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tracing::{info, instrument, warn};
@@ -62,11 +60,7 @@ impl Indexer for ArbitrumCouncilNominationsProposalsAndVotesIndexer {
 #[async_trait]
 impl ProposalsAndVotesIndexer for ArbitrumCouncilNominationsProposalsAndVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals_and_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals_and_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Arbitrum Council Nominations and Votes");
 
         let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
@@ -162,8 +156,7 @@ impl ProposalsAndVotesIndexer for ArbitrumCouncilNominationsProposalsAndVotesInd
         .await?;
 
         // Merge with NewNominee logs
-        let mut merged_proposals =
-            merge_with_nominees(proposals, nominee_logs, &arb_rpc, indexer).await?;
+        let mut merged_proposals = merge_with_nominees(proposals, nominee_logs, &arb_rpc, indexer).await?;
 
         // Get votes from VoteCastForContender logs and update proposals scores
         let (votes, updated_proposals) = get_votes(
@@ -189,16 +182,7 @@ impl ProposalsAndVotesIndexer for ArbitrumCouncilNominationsProposalsAndVotesInd
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    proposals: Vec<proposal::ActiveModel>,
-    logs: Vec<(VoteCastForContender, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-    _contract: arbitrum_security_council_nomination::arbitrum_security_council_nominationInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<(Vec<vote::ActiveModel>, Vec<proposal::ActiveModel>)> {
+async fn get_votes(proposals: Vec<proposal::ActiveModel>, logs: Vec<(VoteCastForContender, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>, _contract: arbitrum_security_council_nomination::arbitrum_security_council_nominationInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<(Vec<vote::ActiveModel>, Vec<proposal::ActiveModel>)> {
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
     // Convert proposals to a HashMap for easier lookup
@@ -208,8 +192,7 @@ async fn get_votes(
         .collect();
 
     // Fetch proposals from the database only once if not found in proposals_map
-    let mut db_proposals_fetched: std::collections::HashMap<String, proposal::ActiveModel> =
-        HashMap::new();
+    let mut db_proposals_fetched: std::collections::HashMap<String, proposal::ActiveModel> = HashMap::new();
 
     for (event, log) in logs {
         let created_block_number = log.block_number.unwrap();
@@ -224,18 +207,15 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         // First, try to find the proposal in proposals_map
         if !proposals_map.contains_key(&event.proposalId.to_string()) {
             let db = DB.get().unwrap();
             // If not found in proposals_map, fetch from the database once
-            if let std::collections::hash_map::Entry::Vacant(e) =
-                db_proposals_fetched.entry(event.proposalId.to_string())
-            {
+            if let std::collections::hash_map::Entry::Vacant(e) = db_proposals_fetched.entry(event.proposalId.to_string()) {
                 match proposal::Entity::find()
                     .filter(
                         Condition::all()
@@ -354,12 +334,7 @@ async fn get_votes(
 }
 
 #[instrument(skip_all)]
-async fn merge_with_nominees(
-    proposals: Vec<proposal::ActiveModel>,
-    nominee_logs: Vec<(arbitrum_security_council_nomination::ContenderAdded, Log)>,
-    _rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-) -> Result<Vec<proposal::ActiveModel>> {
+async fn merge_with_nominees(proposals: Vec<proposal::ActiveModel>, nominee_logs: Vec<(arbitrum_security_council_nomination::ContenderAdded, Log)>, _rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model) -> Result<Vec<proposal::ActiveModel>> {
     // Convert proposals to a HashMap for easier lookup
     let mut proposals_map: std::collections::HashMap<String, proposal::ActiveModel> = proposals
         .into_iter()
@@ -367,8 +342,7 @@ async fn merge_with_nominees(
         .collect();
 
     // Fetch proposals from the database only once if not found in proposals_map
-    let mut db_proposals_fetched: std::collections::HashMap<String, proposal::ActiveModel> =
-        HashMap::new();
+    let mut db_proposals_fetched: std::collections::HashMap<String, proposal::ActiveModel> = HashMap::new();
 
     for (event, _log) in nominee_logs {
         let proposal_id_str = event.proposalId.to_string();
@@ -388,8 +362,7 @@ async fn merge_with_nominees(
                     .one(db)
                     .await?
                 {
-                    Some(proposal) => db_proposals_fetched
-                        .insert(event.proposalId.to_string(), proposal.into_active_model()),
+                    Some(proposal) => db_proposals_fetched.insert(event.proposalId.to_string(), proposal.into_active_model()),
                     None => bail!("Proposal not found for external ID: {}", event.proposalId),
                 };
             }
@@ -427,15 +400,7 @@ async fn merge_with_nominees(
 }
 
 #[instrument(skip_all)]
-async fn get_created_proposals(
-    logs: Vec<(arbitrum_security_council_nomination::ProposalCreated, Log)>,
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    contract: arbitrum_security_council_nomination::arbitrum_security_council_nominationInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<Vec<proposal::ActiveModel>> {
+async fn get_created_proposals(logs: Vec<(arbitrum_security_council_nomination::ProposalCreated, Log)>, rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, contract: arbitrum_security_council_nomination::arbitrum_security_council_nominationInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<Vec<proposal::ActiveModel>> {
     let mut proposals: Vec<proposal::ActiveModel> = vec![];
 
     let url_regex = Regex::new(r"Security Council Election #(\d+)").unwrap();
@@ -472,43 +437,27 @@ async fn get_created_proposals(
 
         let average_block_time_millis = 12_200;
 
-        let voting_starts_timestamp =
-            match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number)
-                .await
-            {
-                Ok(r) => r,
-                Err(_) => {
-                    let fallback = DateTime::from_timestamp_millis(
-                        (log.block_timestamp.unwrap()
-                            + (voting_start_block_number - log.block_number.unwrap())
-                                * average_block_time_millis) as i64,
-                    )
-                    .context("bad timestamp")?
-                    .naive_utc();
-                    warn!(
-                        "Could not estimate timestamp for {:?}",
-                        voting_start_block_number
-                    );
-                    info!("Fallback to {:?}", fallback);
-                    fallback
-                }
-            };
-
-        let voting_ends_timestamp = match chain_data::estimate_timestamp(
-            NamedChain::Mainnet,
-            voting_end_block_number,
-        )
-        .await
-        {
+        let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
             Ok(r) => r,
             Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_end_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
-                .context("bad timestamp")?
-                .naive_utc();
+                let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_start_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                    .context("bad timestamp")?
+                    .naive_utc();
+                warn!(
+                    "Could not estimate timestamp for {:?}",
+                    voting_start_block_number
+                );
+                info!("Fallback to {:?}", fallback);
+                fallback
+            }
+        };
+
+        let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+            Ok(r) => r,
+            Err(_) => {
+                let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_end_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                    .context("bad timestamp")?
+                    .naive_utc();
                 warn!(
                     "Could not estimate timestamp for {:?}",
                     voting_end_block_number
@@ -518,11 +467,15 @@ async fn get_created_proposals(
             }
         };
 
-        let url = url_regex.captures(&event.description)
-                    .and_then(|caps| caps.get(1).map(|m| m.as_str()))
-                    .map_or_else(String::new, |election_number| {
-                        format!("https://www.tally.xyz/gov/arbitrum/council/security-council/election/{}/round-1", election_number)
-                    });
+        let url = url_regex
+            .captures(&event.description)
+            .and_then(|caps| caps.get(1).map(|m| m.as_str()))
+            .map_or_else(String::new, |election_number| {
+                format!(
+                    "https://www.tally.xyz/gov/arbitrum/council/security-council/election/{}/round-1",
+                    election_number
+                )
+            });
 
         let proposal_snapshot = contract.proposalSnapshot(event.proposalId).call().await?._0;
         let quorum = contract
@@ -581,15 +534,7 @@ async fn get_created_proposals(
 }
 
 #[instrument(skip_all)]
-async fn get_canceled_proposals(
-    logs: Vec<(arbitrum_security_council_nomination::ProposalCanceled, Log)>,
-    _rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    contract: arbitrum_security_council_nomination::arbitrum_security_council_nominationInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<Vec<proposal::ActiveModel>> {
+async fn get_canceled_proposals(logs: Vec<(arbitrum_security_council_nomination::ProposalCanceled, Log)>, _rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, contract: arbitrum_security_council_nomination::arbitrum_security_council_nominationInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<Vec<proposal::ActiveModel>> {
     let mut proposals: Vec<proposal::ActiveModel> = vec![];
 
     for (event, _log) in logs {
@@ -638,15 +583,7 @@ async fn get_canceled_proposals(
 }
 
 #[instrument(skip_all)]
-async fn get_executed_proposals(
-    logs: Vec<(arbitrum_security_council_nomination::ProposalExecuted, Log)>,
-    _rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    contract: arbitrum_security_council_nomination::arbitrum_security_council_nominationInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<Vec<proposal::ActiveModel>> {
+async fn get_executed_proposals(logs: Vec<(arbitrum_security_council_nomination::ProposalExecuted, Log)>, _rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, contract: arbitrum_security_council_nomination::arbitrum_security_council_nominationInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<Vec<proposal::ActiveModel>> {
     let mut proposals: Vec<proposal::ActiveModel> = vec![];
 
     for (event, _log) in logs {
@@ -701,9 +638,7 @@ mod arbitrum_council_nominations_tests {
     use proposalsapp_db::models::sea_orm_active_enums::{IndexerType, IndexerVariant};
     use sea_orm::prelude::Uuid;
     use serde_json::json;
-    use utils::test_utils::{
-        assert_proposal, assert_vote, parse_datetime, ExpectedProposal, ExpectedVote,
-    };
+    use utils::test_utils::{assert_proposal, assert_vote, parse_datetime, ExpectedProposal, ExpectedVote};
 
     #[tokio::test]
     async fn arbitrum_council_nominations_1() {
@@ -869,7 +804,10 @@ mod arbitrum_council_nominations_tests {
                     body_contains: Some(vec!["Security Council Election #0"]),
                     url: "https://www.tally.xyz/gov/arbitrum/council/security-council/election/0/round-1",
                     discussion_url: None,
-                    choices: json!(["0x22AB891922f566F17B9827d016C2003Da69abAb9","0x3191e06b0EA9512D43c9fD9Fa7219e69C4806E5d"]),
+                    choices: json!([
+                        "0x22AB891922f566F17B9827d016C2003Da69abAb9",
+                        "0x3191e06b0EA9512D43c9fD9Fa7219e69C4806E5d"
+                    ]),
                     scores: json!([0.0]),
                     scores_total: 0.0,
                     scores_quorum: 0.0,
@@ -934,8 +872,11 @@ mod arbitrum_council_nominations_tests {
                     body_contains: Some(vec!["Security Council Election #0"]),
                     url: "https://www.tally.xyz/gov/arbitrum/council/security-council/election/0/round-1",
                     discussion_url: None,
-                    choices: json!(["0x22AB891922f566F17B9827d016C2003Da69abAb9","0x3191e06b0EA9512D43c9fD9Fa7219e69C4806E5d"]),
-                    scores: json!([89.03914779357004,196.33156333403127]),
+                    choices: json!([
+                        "0x22AB891922f566F17B9827d016C2003Da69abAb9",
+                        "0x3191e06b0EA9512D43c9fD9Fa7219e69C4806E5d"
+                    ]),
+                    scores: json!([89.03914779357004, 196.33156333403127]),
                     scores_total: 285.37071112760134,
                     scores_quorum: 196.33156333403127,
                     quorum: 4717209.293083988,
@@ -950,9 +891,9 @@ mod arbitrum_council_nominations_tests {
                 };
 
                 // Find the expected proposal
-                let proposal = proposals.iter().find(|p| {
-                    p.external_id.clone().take().unwrap() == expected_proposal.external_id
-                });
+                let proposal = proposals
+                    .iter()
+                    .find(|p| p.external_id.clone().take().unwrap() == expected_proposal.external_id);
                 assert!(proposal.is_some(), "Expected proposal not found");
                 assert_proposal(proposal.unwrap(), &expected_proposal);
 
@@ -967,9 +908,7 @@ mod arbitrum_council_nominations_tests {
                         proposal_external_id: expected_proposal.external_id,
                         time_created: Some(parse_datetime("2023-09-15 15:00:51")),
                         block_created: Some(131357204),
-                        txid: Some(
-                            "0xbd1942d6759233db62f926a6eb880afad3216e1be23ab98f9464ddf09f32c2ad",
-                        ),
+                        txid: Some("0xbd1942d6759233db62f926a6eb880afad3216e1be23ab98f9464ddf09f32c2ad"),
                     },
                     ExpectedVote {
                         index_created: 131377377,
@@ -980,9 +919,7 @@ mod arbitrum_council_nominations_tests {
                         proposal_external_id: expected_proposal.external_id,
                         time_created: Some(parse_datetime("2023-09-15 16:31:12")),
                         block_created: Some(131377377),
-                        txid: Some(
-                            "0x3b9a63fe6d9098d62cba059b00b16b10f299a35d8063cc80606bbd125374c0af",
-                        ),
+                        txid: Some("0x3b9a63fe6d9098d62cba059b00b16b10f299a35d8063cc80606bbd125374c0af"),
                     },
                     ExpectedVote {
                         index_created: 131379140,
@@ -993,9 +930,7 @@ mod arbitrum_council_nominations_tests {
                         proposal_external_id: expected_proposal.external_id,
                         time_created: Some(parse_datetime("2023-09-15 16:39:31")),
                         block_created: Some(131379140),
-                        txid: Some(
-                            "0x4c4f79329cf85cd80b6081ac48831efd853bb4ac420168c8e4087d42aa0e2594",
-                        ),
+                        txid: Some("0x4c4f79329cf85cd80b6081ac48831efd853bb4ac420168c8e4087d42aa0e2594"),
                     },
                     ExpectedVote {
                         index_created: 131379539,
@@ -1006,9 +941,7 @@ mod arbitrum_council_nominations_tests {
                         proposal_external_id: expected_proposal.external_id,
                         time_created: Some(parse_datetime("2023-09-15 16:41:24")),
                         block_created: Some(131379539),
-                        txid: Some(
-                            "0xeb03231e8511e371e6c295c21b8bad05b30cfb55851a051d56aeb92ae033ba33",
-                        ),
+                        txid: Some("0xeb03231e8511e371e6c295c21b8bad05b30cfb55851a051d56aeb92ae033ba33"),
                     },
                 ];
 

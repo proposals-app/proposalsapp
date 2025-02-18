@@ -58,11 +58,7 @@ impl Indexer for MakerExecutiveMainnetProposalsIndexer {
 #[async_trait::async_trait]
 impl ProposalsIndexer for MakerExecutiveMainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Maker Executive Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -82,10 +78,8 @@ impl ProposalsIndexer for MakerExecutiveMainnetProposalsIndexer {
         };
 
         let address = address!("0a3f6849f78076aefaDf113F5BED87720274dDC0");
-        let vote_single_action_topic =
-            b256!("a69beaba00000000000000000000000000000000000000000000000000000000");
-        let vote_multiple_actions_topic =
-            b256!("ed08132900000000000000000000000000000000000000000000000000000000");
+        let vote_single_action_topic = b256!("a69beaba00000000000000000000000000000000000000000000000000000000");
+        let vote_multiple_actions_topic = b256!("ed08132900000000000000000000000000000000000000000000000000000000");
 
         let gov_contract = maker_executive_gov::new(address, eth_rpc.clone());
 
@@ -156,10 +150,7 @@ impl ProposalsIndexer for MakerExecutiveMainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    spell_address: &String,
-    indexer: &dao_indexer::Model,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(spell_address: &String, indexer: &dao_indexer::Model) -> Result<proposal::ActiveModel> {
     let proposal_data = get_proposal_data(spell_address.clone())
         .await
         .context("get_proposal_data")?;
@@ -173,10 +164,9 @@ async fn data_for_proposal(
 
     let voting_starts_timestamp = created_timestamp;
 
-    let mut voting_ends_timestamp =
-        DateTime::parse_from_rfc3339(proposal_data.clone().spellData.expiration.as_str())?
-            .with_timezone(&Utc)
-            .naive_utc();
+    let mut voting_ends_timestamp = DateTime::parse_from_rfc3339(proposal_data.clone().spellData.expiration.as_str())?
+        .with_timezone(&Utc)
+        .naive_utc();
 
     let scores = proposal_data
         .spellData
@@ -202,10 +192,7 @@ async fn data_for_proposal(
         ProposalState::Active
     } else if proposal_data.spellData.hasBeenScheduled {
         ProposalState::Queued
-    } else if DateTime::parse_from_rfc3339(proposal_data.clone().spellData.expiration.as_str())?
-        .with_timezone(&Utc)
-        < Utc::now()
-    {
+    } else if DateTime::parse_from_rfc3339(proposal_data.clone().spellData.expiration.as_str())?.with_timezone(&Utc) < Utc::now() {
         ProposalState::Expired
     } else {
         ProposalState::Unknown
@@ -344,13 +331,7 @@ fn extract_desired_bytes(bytes: &[u8]) -> Vec<[u8; 32]> {
 }
 
 #[instrument(skip_all)]
-pub async fn get_single_spell_addresses(
-    logs: Vec<(maker_executive_gov::LogNote, Log)>,
-    gov_contract: maker_executive_gov::maker_executive_govInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<Vec<String>> {
+pub async fn get_single_spell_addresses(logs: Vec<(maker_executive_gov::LogNote, Log)>, gov_contract: maker_executive_gov::maker_executive_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<Vec<String>> {
     let mut spell_addresses = HashSet::new();
 
     for log in logs {
@@ -381,9 +362,7 @@ pub async fn get_single_spell_addresses(
 }
 
 #[instrument(skip_all)]
-pub async fn get_multi_spell_addresses(
-    logs: Vec<(maker_executive_gov::LogNote, Log)>,
-) -> Result<Vec<String>> {
+pub async fn get_multi_spell_addresses(logs: Vec<(maker_executive_gov::LogNote, Log)>) -> Result<Vec<String>> {
     let mut spell_addresses = HashSet::new();
 
     for log in logs {
@@ -455,7 +434,9 @@ mod maker_executive_mainnet_proposals_tests {
                     index_created: 0,
                     external_id: "0xdB2C426173e5a9c10af3CD834B87DEAad40525Ff",
                     name: "Stability Fee Changes, Spark Protocol D3M Parameter Changes, Housekeeping Actions, Spark Proxy Spell - February 22, 2024",
-                    body_contains: Some(vec!["The Governance Facilitators, Sidestream, and Dewiz have placed an executive proposal into the voting system. MKR Holders should vote for this proposal if they support the following alterations to the Maker Protocol."]),
+                    body_contains: Some(vec![
+                        "The Governance Facilitators, Sidestream, and Dewiz have placed an executive proposal into the voting system. MKR Holders should vote for this proposal if they support the following alterations to the Maker Protocol.",
+                    ]),
                     url: "https://vote.makerdao.com/executive/template-executive-vote-stability-fee-changes-spark-protocol-d3m-parameter-changes-housekeeping-actions-spark-proxy-spell-february-22-2024",
                     discussion_url: None,
                     choices: json!(["Yes"]),

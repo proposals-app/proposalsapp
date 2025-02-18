@@ -6,10 +6,7 @@ use axum::{routing::get, Router};
 use db_handler::{initialize_db, DB};
 use discourse_api::DiscourseApi;
 use dotenv::dotenv;
-use indexers::{
-    categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer,
-    users::UserIndexer,
-};
+use indexers::{categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer, users::UserIndexer};
 use proposalsapp_db::models::dao_discourse;
 use reqwest::Client;
 use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
@@ -311,8 +308,7 @@ async fn main() -> Result<()> {
 
     // Wait for Ctrl+C or SIGTERM
     let ctrl_c = tokio::signal::ctrl_c();
-    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-        .expect("Failed to set up SIGTERM handler");
+    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).expect("Failed to set up SIGTERM handler");
 
     tokio::select! {
         _ = ctrl_c => {

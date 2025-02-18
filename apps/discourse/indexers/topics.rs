@@ -1,7 +1,4 @@
-use crate::{
-    db_handler::upsert_topic, discourse_api::DiscourseApi, indexers::posts::PostIndexer,
-    models::topics::TopicResponse,
-};
+use crate::{db_handler::upsert_topic, discourse_api::DiscourseApi, indexers::posts::PostIndexer, models::topics::TopicResponse};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use sea_orm::prelude::Uuid;
@@ -35,13 +32,7 @@ impl TopicIndexer {
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_topics(
-        self,
-        dao_discourse_id: Uuid,
-        ascending: bool,
-        recent: bool,
-        priority: bool,
-    ) -> Result<()> {
+    pub async fn update_topics(self, dao_discourse_id: Uuid, ascending: bool, recent: bool, priority: bool) -> Result<()> {
         info!("Starting to update topics");
 
         let mut total_topics = 0;

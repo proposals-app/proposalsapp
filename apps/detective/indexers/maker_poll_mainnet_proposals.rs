@@ -61,11 +61,7 @@ impl Indexer for MakerPollMainnetProposalsIndexer {
 #[async_trait::async_trait]
 impl ProposalsIndexer for MakerPollMainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Maker Poll Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -126,11 +122,7 @@ impl ProposalsIndexer for MakerPollMainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (maker_poll_create::PollCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (maker_poll_create::PollCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model) -> Result<proposal::ActiveModel> {
     let (log, meta): (maker_poll_create::PollCreated, Log) = p.clone();
 
     let created_block_number = meta.block_number.unwrap();
@@ -141,15 +133,13 @@ async fn data_for_proposal(
         .unwrap();
     let created_block_timestamp = created_block.header.timestamp as i64;
 
-    let mut voting_starts_timestamp =
-        DateTime::from_timestamp_millis((log.startDate.to::<u64>() * 1000) as i64)
-            .context("voting_starts_timestamp")?
-            .naive_utc();
+    let mut voting_starts_timestamp = DateTime::from_timestamp_millis((log.startDate.to::<u64>() * 1000) as i64)
+        .context("voting_starts_timestamp")?
+        .naive_utc();
 
-    let mut voting_ends_timestamp =
-        DateTime::from_timestamp_millis((log.endDate.to::<u64>() * 1000) as i64)
-            .context("voting_ends_timestamp")?
-            .naive_utc();
+    let mut voting_ends_timestamp = DateTime::from_timestamp_millis((log.endDate.to::<u64>() * 1000) as i64)
+        .context("voting_ends_timestamp")?
+        .naive_utc();
 
     if voting_starts_timestamp.year() > 2100 {
         voting_starts_timestamp = voting_starts_timestamp.with_year(2000).unwrap();
@@ -392,11 +382,8 @@ mod maker_poll_mainnet_proposals_tests {
                     time_start: parse_datetime("2024-09-23 16:00:00"),
                     time_end: parse_datetime("2024-09-26 16:00:00"),
                     block_created: Some(20814312),
-                    txid: Some(
-                        "0x7ee3d65211b36ea87a3f10672018ed6e1a1e6fb1f4cf95076a8bb610d6b27b4a",
-                    ),
-                    metadata: json!({"vote_type": "single-choice", "quorum_choices":[0,1,2]})
-                        .into(),
+                    txid: Some("0x7ee3d65211b36ea87a3f10672018ed6e1a1e6fb1f4cf95076a8bb610d6b27b4a"),
+                    metadata: json!({"vote_type": "single-choice", "quorum_choices":[0,1,2]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);

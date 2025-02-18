@@ -69,11 +69,7 @@ impl Indexer for SnapshotVotesIndexer {
 #[async_trait]
 impl VotesIndexer for SnapshotVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Snapshot Votes");
 
         let snapshot_space = match dao.slug.as_str() {
@@ -148,10 +144,7 @@ impl VotesIndexer for SnapshotVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn parse_votes(
-    graphql_votes: Vec<GraphQLVote>,
-    indexer: &dao_indexer::Model,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn parse_votes(graphql_votes: Vec<GraphQLVote>, indexer: &dao_indexer::Model) -> Result<Vec<vote::ActiveModel>> {
     graphql_votes
         .into_iter()
         .map(|v| {
@@ -233,8 +226,7 @@ mod snapshot_votes_tests {
                     choice: json!(0),
                     voting_power: 39804.49649036,
                     reason: Some(""),
-                    proposal_external_id:
-                        "0xb74537a0528f484e9cc76d8c7931eedef7b6290e7d2dc725b2c98e623a214f95",
+                    proposal_external_id: "0xb74537a0528f484e9cc76d8c7931eedef7b6290e7d2dc725b2c98e623a214f95",
                     time_created: Some(parse_datetime("2024-06-19 18:22:16")),
                     block_created: None,
                     txid: Some("bafkreibcyk5ej57kvosdepk3yd5skuul7hzd5yiwhrqyzx4zeybiwn2axy"),

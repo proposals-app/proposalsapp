@@ -1,33 +1,8 @@
-use crate::indexers::{
-    aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer,
-    aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer,
-    aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer,
-    aave_v3_polygon_votes::AaveV3PolygonVotesIndexer,
-    arbitrum_core_votes::ArbitrumCoreVotesIndexer,
-    arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer,
-    compound_mainnet_votes::CompoundMainnetVotesIndexer,
-    dydx_mainnet_votes::DydxMainnetVotesIndexer, ens_vote_indexer::EnsMainnetVotesIndexer,
-    frax_alpha_mainnet_votes::FraxAlphaMainnetVotesIndexer,
-    frax_omega_mainnet_votes::FraxOmegaMainnetVotesIndexer,
-    gitcoin_v1_mainnet_votes::GitcoinV1MainnetVotesIndexer,
-    gitcoin_v2_mainnet_votes::GitcoinV2MainnetVotesIndexer,
-    hop_mainnet_votes::HopMainnetVotesIndexer,
-    maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer,
-    maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer,
-    maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer,
-    nouns_mainnet_votes::NounsMainnetVotesIndexer, optimism_votes::OptimismVotesIndexer,
-    snapshot_votes::SnapshotVotesIndexer, uniswap_mainnet_votes::UniswapMainnetVotesIndexer,
-};
+use crate::indexers::{aave_v2_mainnet_votes::AaveV2MainnetVotesIndexer, aave_v3_avalanche_votes::AaveV3AvalancheVotesIndexer, aave_v3_mainnet_votes::AaveV3MainnetVotesIndexer, aave_v3_polygon_votes::AaveV3PolygonVotesIndexer, arbitrum_core_votes::ArbitrumCoreVotesIndexer, arbitrum_treasury_votes::ArbitrumTreasuryVotesIndexer, compound_mainnet_votes::CompoundMainnetVotesIndexer, dydx_mainnet_votes::DydxMainnetVotesIndexer, ens_vote_indexer::EnsMainnetVotesIndexer, frax_alpha_mainnet_votes::FraxAlphaMainnetVotesIndexer, frax_omega_mainnet_votes::FraxOmegaMainnetVotesIndexer, gitcoin_v1_mainnet_votes::GitcoinV1MainnetVotesIndexer, gitcoin_v2_mainnet_votes::GitcoinV2MainnetVotesIndexer, hop_mainnet_votes::HopMainnetVotesIndexer, maker_executive_mainnet_votes::MakerExecutiveMainnetVotesIndexer, maker_poll_arbitrum_votes::MakerPollArbitrumVotesIndexer, maker_poll_mainnet_votes::MakerPollMainnetVotesIndexer, nouns_mainnet_votes::NounsMainnetVotesIndexer, optimism_votes::OptimismVotesIndexer, snapshot_votes::SnapshotVotesIndexer, uniswap_mainnet_votes::UniswapMainnetVotesIndexer};
 use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
-use proposalsapp_db::models::{
-    dao, dao_indexer, delegation, job_queue, proposal, sea_orm_active_enums::IndexerVariant, vote,
-    voter, voting_power,
-};
-use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection,
-    DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait,
-};
+use proposalsapp_db::models::{dao, dao_indexer, delegation, job_queue, proposal, sea_orm_active_enums::IndexerVariant, vote, voter, voting_power};
+use sea_orm::{prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait};
 use std::{
     collections::{HashMap, HashSet},
     time::Duration,
@@ -38,8 +13,7 @@ use utils::types::{JobData, ProposalJobData};
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
 pub async fn initialize_db() -> Result<()> {
-    let database_url =
-        std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
+    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
     let mut opt = sea_orm::ConnectOptions::new(database_url);
     opt.max_connections(100)
@@ -59,10 +33,7 @@ pub async fn initialize_db() -> Result<()> {
 }
 
 #[instrument]
-pub async fn store_proposals(
-    indexer: &dao_indexer::Model,
-    proposals: Vec<proposal::ActiveModel>,
-) -> Result<()> {
+pub async fn store_proposals(indexer: &dao_indexer::Model, proposals: Vec<proposal::ActiveModel>) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
     let external_ids: Vec<String> = proposals
@@ -93,9 +64,7 @@ pub async fn store_proposals(
                 .exec(&txn)
                 .await?;
 
-            if indexer.indexer_variant == IndexerVariant::SnapshotProposals
-                && proposal.discussion_url.is_set()
-            {
+            if indexer.indexer_variant == IndexerVariant::SnapshotProposals && proposal.discussion_url.is_set() {
                 let job_data = ProposalJobData {
                     proposal_id: result.last_insert_id,
                 };
@@ -127,10 +96,7 @@ pub async fn store_proposals(
 }
 
 #[instrument]
-pub async fn store_votes(
-    indexer: &dao_indexer::Model,
-    votes: Vec<vote::ActiveModel>,
-) -> Result<()> {
+pub async fn store_votes(indexer: &dao_indexer::Model, votes: Vec<vote::ActiveModel>) -> Result<()> {
     if votes.is_empty() {
         return Ok(());
     }
@@ -147,49 +113,23 @@ pub async fn store_votes(
         IndexerVariant::AaveV2MainnetVotes => AaveV2MainnetVotesIndexer::proposal_indexer_variant(),
         IndexerVariant::AaveV3MainnetVotes => AaveV3MainnetVotesIndexer::proposal_indexer_variant(),
         IndexerVariant::AaveV3PolygonVotes => AaveV3PolygonVotesIndexer::proposal_indexer_variant(),
-        IndexerVariant::AaveV3AvalancheVotes => {
-            AaveV3AvalancheVotesIndexer::proposal_indexer_variant()
-        }
-        IndexerVariant::ArbCoreArbitrumVotes => {
-            ArbitrumCoreVotesIndexer::proposal_indexer_variant()
-        }
-        IndexerVariant::ArbTreasuryArbitrumVotes => {
-            ArbitrumTreasuryVotesIndexer::proposal_indexer_variant()
-        }
-        IndexerVariant::CompoundMainnetVotes => {
-            CompoundMainnetVotesIndexer::proposal_indexer_variant()
-        }
+        IndexerVariant::AaveV3AvalancheVotes => AaveV3AvalancheVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::ArbCoreArbitrumVotes => ArbitrumCoreVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::ArbTreasuryArbitrumVotes => ArbitrumTreasuryVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::CompoundMainnetVotes => CompoundMainnetVotesIndexer::proposal_indexer_variant(),
         IndexerVariant::DydxMainnetVotes => DydxMainnetVotesIndexer::proposal_indexer_variant(),
         IndexerVariant::EnsMainnetVotes => EnsMainnetVotesIndexer::proposal_indexer_variant(),
-        IndexerVariant::FraxAlphaMainnetVotes => {
-            FraxAlphaMainnetVotesIndexer::proposal_indexer_variant()
-        }
-        IndexerVariant::FraxOmegaMainnetVotes => {
-            FraxOmegaMainnetVotesIndexer::proposal_indexer_variant()
-        }
-        IndexerVariant::GitcoinMainnetVotes => {
-            GitcoinV1MainnetVotesIndexer::proposal_indexer_variant()
-        }
-        IndexerVariant::GitcoinV2MainnetVotes => {
-            GitcoinV2MainnetVotesIndexer::proposal_indexer_variant()
-        }
+        IndexerVariant::FraxAlphaMainnetVotes => FraxAlphaMainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::FraxOmegaMainnetVotes => FraxOmegaMainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::GitcoinMainnetVotes => GitcoinV1MainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::GitcoinV2MainnetVotes => GitcoinV2MainnetVotesIndexer::proposal_indexer_variant(),
         IndexerVariant::HopMainnetVotes => HopMainnetVotesIndexer::proposal_indexer_variant(),
-        IndexerVariant::MakerExecutiveMainnetVotes => {
-            MakerExecutiveMainnetVotesIndexer::proposal_indexer_variant()
-        }
-        IndexerVariant::MakerPollMainnetVotes => {
-            MakerPollMainnetVotesIndexer::proposal_indexer_variant()
-        }
-        IndexerVariant::MakerPollArbitrumVotes => {
-            MakerPollArbitrumVotesIndexer::proposal_indexer_variant()
-        }
-        IndexerVariant::NounsProposalsMainnetVotes => {
-            NounsMainnetVotesIndexer::proposal_indexer_variant()
-        }
+        IndexerVariant::MakerExecutiveMainnetVotes => MakerExecutiveMainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::MakerPollMainnetVotes => MakerPollMainnetVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::MakerPollArbitrumVotes => MakerPollArbitrumVotesIndexer::proposal_indexer_variant(),
+        IndexerVariant::NounsProposalsMainnetVotes => NounsMainnetVotesIndexer::proposal_indexer_variant(),
         IndexerVariant::OpOptimismVotes => OptimismVotesIndexer::proposal_indexer_variant(),
-        IndexerVariant::UniswapMainnetVotes => {
-            UniswapMainnetVotesIndexer::proposal_indexer_variant()
-        }
+        IndexerVariant::UniswapMainnetVotes => UniswapMainnetVotesIndexer::proposal_indexer_variant(),
 
         IndexerVariant::SnapshotVotes => SnapshotVotesIndexer::proposal_indexer_variant(),
         IndexerVariant::ArbitrumCouncilNominations => IndexerVariant::ArbitrumCouncilNominations,
@@ -218,8 +158,7 @@ pub async fn store_votes(
     let mut voter_addresses: HashSet<String> = HashSet::new();
 
     for vote in votes {
-        if let Some(&proposal_id) = proposal_id_map.get(&vote.proposal_external_id.clone().unwrap())
-        {
+        if let Some(&proposal_id) = proposal_id_map.get(&vote.proposal_external_id.clone().unwrap()) {
             let key = (proposal_id, vote.voter_address.clone().unwrap());
             votes_to_insert.entry(key).or_insert_with(|| {
                 let mut v = vote.clone();
@@ -250,19 +189,16 @@ pub async fn store_votes(
     {
         vote::Entity::insert_many(chunk.to_vec())
             .on_conflict(
-                sea_orm::sea_query::OnConflict::columns([
-                    vote::Column::ProposalId,
-                    vote::Column::VoterAddress,
-                ])
-                .update_columns([
-                    vote::Column::Choice,
-                    vote::Column::VotingPower,
-                    vote::Column::Reason,
-                    vote::Column::CreatedAt,
-                    vote::Column::BlockCreated,
-                    vote::Column::Txid,
-                ])
-                .to_owned(),
+                sea_orm::sea_query::OnConflict::columns([vote::Column::ProposalId, vote::Column::VoterAddress])
+                    .update_columns([
+                        vote::Column::Choice,
+                        vote::Column::VotingPower,
+                        vote::Column::Reason,
+                        vote::Column::CreatedAt,
+                        vote::Column::BlockCreated,
+                        vote::Column::Txid,
+                    ])
+                    .to_owned(),
             )
             .exec(&txn)
             .await?;
@@ -274,10 +210,7 @@ pub async fn store_votes(
 }
 
 #[instrument(skip(txn, voter_addresses))]
-async fn ensure_voters_exist(
-    txn: &DatabaseTransaction,
-    voter_addresses: HashSet<String>,
-) -> Result<()> {
+async fn ensure_voters_exist(txn: &DatabaseTransaction, voter_addresses: HashSet<String>) -> Result<()> {
     const BATCH_SIZE: usize = 1000; // Adjust based on database performance
 
     for addresses_chunk in voter_addresses
@@ -352,11 +285,7 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
 }
 
 #[instrument]
-pub async fn update_indexer_speed_and_index(
-    indexer: &dao_indexer::Model,
-    new_speed: i32,
-    new_index: i32,
-) -> Result<()> {
+pub async fn update_indexer_speed_and_index(indexer: &dao_indexer::Model, new_speed: i32, new_index: i32) -> Result<()> {
     dao_indexer::Entity::update(dao_indexer::ActiveModel {
         id: Set(indexer.id),
         speed: Set(new_speed),

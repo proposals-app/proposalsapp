@@ -25,12 +25,7 @@ impl PostIndexer {
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id, topic_id = topic_id))]
-    pub async fn update_posts_for_topic(
-        &self,
-        dao_discourse_id: Uuid,
-        topic_id: i32,
-        priority: bool,
-    ) -> Result<()> {
+    pub async fn update_posts_for_topic(&self, dao_discourse_id: Uuid, topic_id: i32, priority: bool) -> Result<()> {
         info!("Starting to update posts for topic");
 
         // Fetch existing posts for the topic from the database
@@ -44,8 +39,7 @@ impl PostIndexer {
             .await
             .context("Failed to fetch existing posts")?;
 
-        let existing_post_ids: HashSet<i32> =
-            existing_posts.iter().map(|post| post.external_id).collect();
+        let existing_post_ids: HashSet<i32> = existing_posts.iter().map(|post| post.external_id).collect();
 
         let mut page = 0;
         let mut total_posts_count: i32 = 0;
@@ -81,15 +75,7 @@ impl PostIndexer {
                         stream::iter(posts)
                             .map(|post| {
                                 let api_handler = Arc::clone(&self.discourse_api);
-                                task::spawn(async move {
-                                    Self::process_post(
-                                        post,
-                                        dao_discourse_id,
-                                        api_handler,
-                                        priority,
-                                    )
-                                    .await
-                                })
+                                task::spawn(async move { Self::process_post(post, dao_discourse_id, api_handler, priority).await })
                             })
                             .buffer_unordered(10)
                             .for_each(|_| async {})
@@ -175,16 +161,10 @@ impl PostIndexer {
     }
 
     #[instrument(skip( discourse_api), fields(post_id = %post.id, username = %post.username))]
-    async fn process_post(
-        post: Post,
-        dao_discourse_id: Uuid,
-        discourse_api: Arc<DiscourseApi>,
-        priority: bool,
-    ) {
+    async fn process_post(post: Post, dao_discourse_id: Uuid, discourse_api: Arc<DiscourseApi>, priority: bool) {
         match upsert_post(&post, dao_discourse_id).await {
             Ok(_) => {
-                let current_likes_count = match get_post_like_count(post.id, dao_discourse_id).await
-                {
+                let current_likes_count = match get_post_like_count(post.id, dao_discourse_id).await {
                     Ok(count) => count,
                     Err(e) => {
                         error!(
@@ -196,9 +176,7 @@ impl PostIndexer {
                     }
                 };
 
-                if let Some(actions_summary_item) =
-                    post.actions_summary.iter().find(|item| item.id == 2)
-                {
+                if let Some(actions_summary_item) = post.actions_summary.iter().find(|item| item.id == 2) {
                     if actions_summary_item.count > current_likes_count {
                         info!(
                             post_id = post.id,
@@ -266,9 +244,7 @@ impl PostIndexer {
                                     unknown_post.username = unknown_user.username.clone();
 
                                     // Upsert the post with the unknown user
-                                    if let Err(e) =
-                                        upsert_post(&unknown_post, dao_discourse_id).await
-                                    {
+                                    if let Err(e) = upsert_post(&unknown_post, dao_discourse_id).await {
                                         error!(
                                             error = ?e,
                                             post_id = post.id,

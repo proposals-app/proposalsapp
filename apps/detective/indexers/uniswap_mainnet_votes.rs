@@ -57,11 +57,7 @@ impl Indexer for UniswapMainnetVotesIndexer {
 #[async_trait]
 impl VotesIndexer for UniswapMainnetVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Uniswap Mainnet Votes");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -102,11 +98,7 @@ impl VotesIndexer for UniswapMainnetVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(VoteCast, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(VoteCast, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCast, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -124,10 +116,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -208,9 +199,7 @@ mod uniswap_mainnet_votes_tests {
                     proposal_external_id: "71",
                     time_created: Some(parse_datetime("2024-10-01 13:22:47")),
                     block_created: Some(20870916),
-                    txid: Some(
-                        "0x1d815991709f116d0af5888e59397997203ac6d75203740337e4094d01555e4e",
-                    ),
+                    txid: Some("0x1d815991709f116d0af5888e59397997203ac6d75203740337e4094d01555e4e"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
@@ -262,9 +251,7 @@ mod uniswap_mainnet_votes_tests {
                     proposal_external_id: "9",
                     time_created: Some(parse_datetime("2021-11-04 23:30:38")),
                     block_created: Some(13553145),
-                    txid: Some(
-                        "0xd1963da94947c2cd4f10867207fb5b12b08b242f120d8aadbdb73e26109eece6",
-                    ),
+                    txid: Some("0xd1963da94947c2cd4f10867207fb5b12b08b242f120d8aadbdb73e26109eece6"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);

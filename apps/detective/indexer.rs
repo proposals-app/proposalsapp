@@ -1,9 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use proposalsapp_db::models::{
-    dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote,
-    voting_power,
-};
+use proposalsapp_db::models::{dao, dao_indexer, delegation, proposal, sea_orm_active_enums::IndexerVariant, vote, voting_power};
 use std::time::Duration;
 
 #[async_trait]
@@ -77,47 +74,27 @@ pub trait Indexer: Send + Sync {
 
 #[async_trait]
 pub trait ProposalsIndexer: Indexer {
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        dao: &dao::Model,
-    ) -> Result<ProcessResult>;
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult>;
 }
 
 #[async_trait]
 pub trait VotesIndexer: Indexer {
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        dao: &dao::Model,
-    ) -> Result<ProcessResult>;
+    async fn process_votes(&self, indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult>;
 }
 
 #[async_trait]
 pub trait ProposalsAndVotesIndexer: Indexer {
-    async fn process_proposals_and_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        dao: &dao::Model,
-    ) -> Result<ProcessResult>;
+    async fn process_proposals_and_votes(&self, indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult>;
 }
 
 #[async_trait]
 pub trait VotingPowerIndexer: Indexer {
-    async fn process_voting_powers(
-        &self,
-        indexer: &dao_indexer::Model,
-        dao: &dao::Model,
-    ) -> Result<ProcessResult>;
+    async fn process_voting_powers(&self, indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult>;
 }
 
 #[async_trait]
 pub trait DelegationIndexer: Indexer {
-    async fn process_delegations(
-        &self,
-        indexer: &dao_indexer::Model,
-        dao: &dao::Model,
-    ) -> Result<ProcessResult>;
+    async fn process_delegations(&self, indexer: &dao_indexer::Model, dao: &dao::Model) -> Result<ProcessResult>;
 }
 
 pub enum ProcessResult {

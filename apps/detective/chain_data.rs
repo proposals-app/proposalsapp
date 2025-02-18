@@ -135,8 +135,7 @@ pub async fn estimate_timestamp(network: NamedChain, block_number: u64) -> Resul
     )
     .await?;
 
-    let estimated_time =
-        Utc::now().timestamp() + response.result.estimate_time_in_sec.parse::<f64>()? as i64;
+    let estimated_time = Utc::now().timestamp() + response.result.estimate_time_in_sec.parse::<f64>()? as i64;
 
     Ok(DateTime::from_timestamp(estimated_time, 0)
         .expect("Invalid timestamp")
@@ -164,11 +163,7 @@ pub async fn estimate_block(network: NamedChain, timestamp: u64) -> Result<u64> 
 }
 
 #[instrument]
-async fn retry_request_estimate_block(
-    api_url: &str,
-    api_key: &str,
-    param: u64,
-) -> Result<EstimateBlock> {
+async fn retry_request_estimate_block(api_url: &str, api_key: &str, param: u64) -> Result<EstimateBlock> {
     let client = ClientBuilder::new(reqwest::Client::new())
         .with(RetryTransientMiddleware::new_with_policy(
             ExponentialBackoff::builder().build_with_max_retries(5),
@@ -188,8 +183,7 @@ async fn retry_request_estimate_block(
         match response {
             Ok(res) => {
                 let contents = res.text().await?;
-                return serde_json::from_str(&contents)
-                    .context("Failed to deserialize scanner response");
+                return serde_json::from_str(&contents).context("Failed to deserialize scanner response");
             }
             Err(_) if attempt < 5 => {
                 event!(
@@ -232,8 +226,7 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Estim
         match response {
             Ok(res) => {
                 let contents = res.text().await?;
-                return serde_json::from_str(&contents)
-                    .context("Failed to deserialize scanner response");
+                return serde_json::from_str(&contents).context("Failed to deserialize scanner response");
             }
             Err(_) if attempt < 5 => {
                 event!(

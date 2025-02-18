@@ -14,13 +14,9 @@ use alloy_chains::NamedChain;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use chrono::DateTime;
-use proposalsapp_db::models::{
-    dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote,
-};
+use proposalsapp_db::models::{dao, dao_indexer, proposal, sea_orm_active_enums::IndexerVariant, vote};
 use rust_decimal::prelude::*;
-use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
-};
+use sea_orm::{prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set};
 use serde::Deserialize;
 use serde_json::Value;
 use std::{sync::Arc, time::Duration};
@@ -64,11 +60,7 @@ impl Indexer for OptimismVotesIndexer {
 #[async_trait]
 impl VotesIndexer for OptimismVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Optimism Votes");
 
         let op_rpc = chain_data::get_chain_config(NamedChain::Optimism)?
@@ -124,11 +116,7 @@ impl VotesIndexer for OptimismVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(optimism_gov_v_6::VoteCast, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(optimism_gov_v_6::VoteCast, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(optimism_gov_v_6::VoteCast, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -146,10 +134,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -175,11 +162,7 @@ async fn get_votes(
 }
 
 #[instrument(skip_all)]
-async fn get_votes_with_params(
-    logs: Vec<(optimism_gov_v_6::VoteCastWithParams, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes_with_params(logs: Vec<(optimism_gov_v_6::VoteCastWithParams, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let db = DB.get().unwrap();
 
     let voter_logs: Vec<(optimism_gov_v_6::VoteCastWithParams, Log)> = logs.into_iter().collect();
@@ -199,17 +182,14 @@ async fn get_votes_with_params(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         let mut choice = vec![event.support.into()];
 
         let proposal_handler_id: Vec<Uuid> = dao_indexer::Entity::find()
-            .filter(
-                dao_indexer::Column::IndexerVariant.is_in([IndexerVariant::OpOptimismProposals]),
-            )
+            .filter(dao_indexer::Column::IndexerVariant.is_in([IndexerVariant::OpOptimismProposals]))
             .all(db)
             .await?
             .into_iter()
@@ -231,8 +211,7 @@ async fn get_votes_with_params(
             voting_module: Value,
         }
 
-        let proposal_metadata: ProposalMetadata =
-            serde_json::from_value(proposal.metadata.expect("bad proposal metadata"))?;
+        let proposal_metadata: ProposalMetadata = serde_json::from_value(proposal.metadata.expect("bad proposal metadata"))?;
 
         if !event.params.is_empty() {
             if proposal_metadata.voting_module == "0xdd0229D72a414DC821DEc66f3Cc4eF6dB2C7b7df" {
@@ -243,8 +222,7 @@ async fn get_votes_with_params(
                     .map_err(|e| anyhow::anyhow!("Failed to decode params: {:?}", e))?;
 
                 if let DynSolValue::Array(options) = decoded {
-                    let mut current_scores: Vec<Decimal> =
-                        serde_json::from_value(proposal.scores.clone())?;
+                    let mut current_scores: Vec<Decimal> = serde_json::from_value(proposal.scores.clone())?;
                     let voting_power = Decimal::from_str(&event.weight.to_string())?
                         .checked_div(Decimal::from(10u64.pow(18)))
                         .unwrap_or(Decimal::ZERO);
@@ -363,9 +341,7 @@ mod optimism_votes_tests {
                     proposal_external_id: "103606400798595803012644966342403441743733355496979747669804254618774477345292",
                     time_created: Some(parse_datetime("2023-02-13 14:05:10")),
                     block_created: Some(74101902),
-                    txid: Some(
-                        "0x41b0886d6785fa6854a144827fc4723f3e66c80d0a5bf6ef8b0ef0d2041ddccb",
-                    ),
+                    txid: Some("0x41b0886d6785fa6854a144827fc4723f3e66c80d0a5bf6ef8b0ef0d2041ddccb"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
@@ -415,9 +391,7 @@ mod optimism_votes_tests {
                     proposal_external_id: "103606400798595803012644966342403441743733355496979747669804254618774477345292",
                     time_created: Some(parse_datetime("2023-02-14 21:07:54")),
                     block_created: Some(74369711),
-                    txid: Some(
-                        "0xb5e06484e8c1fcb5858b6737d915ed02c863565a50caf335bf984fc034220c57",
-                    ),
+                    txid: Some("0xb5e06484e8c1fcb5858b6737d915ed02c863565a50caf335bf984fc034220c57"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
@@ -459,7 +433,7 @@ mod optimism_votes_tests {
             Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
-                    index_created:  111313937,
+                    index_created: 111313937,
                     voter_address: "0x3D2d722B443A5cAE8E41877BB7cD649f3650937C",
                     choice: json!(1),
                     voting_power: 1189039.363744706,
@@ -467,9 +441,7 @@ mod optimism_votes_tests {
                     proposal_external_id: "25353629475948605098820168047140307200589226219380649297323431722674892706917",
                     time_created: Some(parse_datetime("2023-10-25 09:37:31")),
                     block_created: Some(111313937),
-                    txid: Some(
-                        "0x4a1b157007d594ba4aa54b5fbcc23bbb73a4d89c5f7d3bae200890a459718912",
-                    ),
+                    txid: Some("0x4a1b157007d594ba4aa54b5fbcc23bbb73a4d89c5f7d3bae200890a459718912"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
@@ -511,7 +483,7 @@ mod optimism_votes_tests {
             Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
-                    index_created:  110940693,
+                    index_created: 110940693,
                     voter_address: "0x75536CF4f01c2bFa528F5c74DdC1232Db3aF3Ee5",
                     choice: json!(2),
                     voting_power: 1495424.76453001,
@@ -519,9 +491,7 @@ mod optimism_votes_tests {
                     proposal_external_id: "25353629475948605098820168047140307200589226219380649297323431722674892706917",
                     time_created: Some(parse_datetime("2023-10-16 18:16:03")),
                     block_created: Some(110940693),
-                    txid: Some(
-                        "0xf8a3d8dc54e455980c9b3be77df4749c19b4d8157d53d6c28292b54abe4202db",
-                    ),
+                    txid: Some("0xf8a3d8dc54e455980c9b3be77df4749c19b4d8157d53d6c28292b54abe4202db"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
@@ -563,7 +533,7 @@ mod optimism_votes_tests {
             Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
-                    index_created:  110770895,
+                    index_created: 110770895,
                     voter_address: "0x4f41877773e44F2275dA1942FEe898556821bf66",
                     choice: json!(0),
                     voting_power: 1826137.2164138977,
@@ -571,9 +541,7 @@ mod optimism_votes_tests {
                     proposal_external_id: "25353629475948605098820168047140307200589226219380649297323431722674892706917",
                     time_created: Some(parse_datetime("2023-10-12 19:56:07")),
                     block_created: Some(110770895),
-                    txid: Some(
-                        "0x7b31fc1b1c8b400314736986d66e8e766d6637547aa2c29dd9a240aef1f69f34",
-                    ),
+                    txid: Some("0x7b31fc1b1c8b400314736986d66e8e766d6637547aa2c29dd9a240aef1f69f34"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
@@ -615,17 +583,15 @@ mod optimism_votes_tests {
             Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
-                    index_created:  101471217,
+                    index_created: 101471217,
                     voter_address: "0xa6e8772af29b29B9202a073f8E36f447689BEef6",
-                    choice: json!([0,1,2]),
+                    choice: json!([0, 1, 2]),
                     voting_power: 1487917.604365689,
                     reason: Some("These three delegates served on the Builders Subcommittee the previous season and did a good job. While we suspect Oxytocin would do a fine job based on their past involvement in Optimism governance, we don’t feel the Grants Council should lose momentum."),
                     proposal_external_id: "25353629475948605098820168047140307200589226219380649297323431722674892706917",
                     time_created: Some(parse_datetime("2023-10-12 19:56:07")),
                     block_created: Some(101471217),
-                    txid: Some(
-                        "0x7b31fc1b1c8b400314736986d66e8e766d6637547aa2c29dd9a240aef1f69f34",
-                    ),
+                    txid: Some("0x7b31fc1b1c8b400314736986d66e8e766d6637547aa2c29dd9a240aef1f69f34"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
@@ -667,17 +633,15 @@ mod optimism_votes_tests {
             Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
-                    index_created:  111684633,
+                    index_created: 111684633,
                     voter_address: "0xE6156d93fbA1F2387fCe5f50f1BB45eF51ed5f2b",
-                    choice: json!([0,1,5]),
+                    choice: json!([0, 1, 5]),
                     voting_power: 42170.51198003142,
                     reason: Some(""),
                     proposal_external_id: "47209512763162691916934752283791420767969951049918368296503715012448877295335",
                     time_created: Some(parse_datetime("2023-10-12 19:56:07")),
                     block_created: Some(111684633),
-                    txid: Some(
-                        "0x7b31fc1b1c8b400314736986d66e8e766d6637547aa2c29dd9a240aef1f69f34",
-                    ),
+                    txid: Some("0x7b31fc1b1c8b400314736986d66e8e766d6637547aa2c29dd9a240aef1f69f34"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
@@ -719,7 +683,7 @@ mod optimism_votes_tests {
             Ok(ProcessResult::Votes(votes, _)) => {
                 assert!(!votes.is_empty(), "No votes were fetched");
                 let expected_votes = [ExpectedVote {
-                    index_created:  115261441,
+                    index_created: 115261441,
                     voter_address: "0x049e37b4276B58dB622Ab5db2ff2AfFCb40DC11C",
                     choice: json!(0),
                     voting_power: 56351.64083348377,
@@ -727,9 +691,7 @@ mod optimism_votes_tests {
                     proposal_external_id: "114318499951173425640219752344574142419220609526557632733105006940618608635406",
                     time_created: Some(parse_datetime("2024-01-24T18:40:59")),
                     block_created: Some(115261441),
-                    txid: Some(
-                        "0x7b31fc1b1c8b400314736986d66e8e766d6637547aa2c29dd9a240aef1f69f34",
-                    ),
+                    txid: Some("0x7b31fc1b1c8b400314736986d66e8e766d6637547aa2c29dd9a240aef1f69f34"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);

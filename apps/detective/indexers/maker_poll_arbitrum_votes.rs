@@ -58,11 +58,7 @@ impl Indexer for MakerPollArbitrumVotesIndexer {
 #[async_trait::async_trait]
 impl VotesIndexer for MakerPollArbitrumVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Maker Poll Arbitrum Votes");
 
         let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
@@ -103,11 +99,7 @@ impl VotesIndexer for MakerPollArbitrumVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(Voted, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(Voted, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(Voted, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -125,10 +117,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
         let options = get_options(event.optionId.to_string()).await?;
 
         votes.push(vote::ActiveModel {
@@ -247,9 +238,7 @@ mod maker_poll_arbitrum_votes_tests {
                     proposal_external_id: "1145",
                     time_created: Some(parse_datetime("2024-10-08 16:53:28")),
                     block_created: Some(261725221),
-                    txid: Some(
-                        "0x4857296a7c805034e239a61b982692a1fc7134a73ff241e8aa80301cf3add990",
-                    ),
+                    txid: Some("0x4857296a7c805034e239a61b982692a1fc7134a73ff241e8aa80301cf3add990"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);

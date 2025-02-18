@@ -1,10 +1,7 @@
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use proposalsapp_db::models::{
-    dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user,
-    voter,
-};
+use proposalsapp_db::models::{dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user, voter};
 use reqwest::Client;
 use sea_orm::{
     prelude::{Expr, Uuid},
@@ -52,8 +49,7 @@ lazy_static::lazy_static! {
 
 pub async fn run_karma_task() -> Result<()> {
     let interval = Duration::minutes(30);
-    let mut next_tick =
-        Instant::now() + std::time::Duration::from_secs(interval.num_seconds() as u64);
+    let mut next_tick = Instant::now() + std::time::Duration::from_secs(interval.num_seconds() as u64);
 
     loop {
         let start_time = Instant::now();
@@ -195,10 +191,7 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
                     ));
                 }
             }
-            Err(e) => {
-                return Err(e)
-                    .with_context(|| format!("Failed to fetch JSON data for DAO: {}", dao_slug))
-            }
+            Err(e) => return Err(e).with_context(|| format!("Failed to fetch JSON data for DAO: {}", dao_slug)),
         };
 
         let status = response.status();
@@ -240,18 +233,13 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
 }
 
 fn parse_json_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
-    let response: KarmaApiResponse = serde_json::from_str(body)
-        .with_context(|| format!("Failed to parse JSON for DAO: {}", dao_slug))?;
+    let response: KarmaApiResponse = serde_json::from_str(body).with_context(|| format!("Failed to parse JSON for DAO: {}", dao_slug))?;
 
     Ok(response.data.delegates)
 }
 
 #[instrument(skip( dao, delegate_data), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
-async fn update_delegate(
-    dao: &dao::Model,
-    delegate_data: &KarmaDelegate,
-    dao_discourse_id: Uuid,
-) -> Result<()> {
+async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_discourse_id: Uuid) -> Result<()> {
     let start_time = Instant::now();
 
     // Early return if forum_handle is None

@@ -6,4 +6,12 @@ wrap_comments = true
 error_on_unformatted = true
 error_on_line_overflow = true
 
-max_width = 140
+max_width = 5000
+fn_call_width = 60
+attr_fn_like_width = 70
+struct_lit_width = 18
+struct_variant_width = 35
+array_width = 60
+chain_width = 60
+single_line_if_else_max_width = 50
+single_line_let_else_max_width = 50

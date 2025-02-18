@@ -58,11 +58,7 @@ impl Indexer for GitcoinV2MainnetProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for GitcoinV2MainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Gitcoin V2 Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -123,15 +119,7 @@ impl ProposalsIndexer for GitcoinV2MainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (gitcoin_v2_gov::ProposalCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: gitcoin_v2_gov::gitcoin_v2_govInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (gitcoin_v2_gov::ProposalCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: gitcoin_v2_gov::gitcoin_v2_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (gitcoin_v2_gov::ProposalCreated, Log) = p.clone();
 
     let created_block = rpc
@@ -149,21 +137,12 @@ async fn data_for_proposal(
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match chain_data::estimate_timestamp(
-        NamedChain::Mainnet,
-        voting_start_block_number,
-    )
-    .await
-    {
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_start_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_start_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                .context("bad timestamp")?
+                .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_start_block_number
@@ -173,25 +152,20 @@ async fn data_for_proposal(
         }
     };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_end_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_end_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
                 .context("bad timestamp")?
                 .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_end_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
 
     let mut title = format!(
         "{:.120}",
@@ -236,8 +210,7 @@ async fn data_for_proposal(
 
     let scores_total = scores.iter().sum();
 
-    let scores_quorum = proposal_votes.forVotes.to::<u128>() as f64 / (10.0f64.powi(18))
-        + proposal_votes.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18));
+    let scores_quorum = proposal_votes.forVotes.to::<u128>() as f64 / (10.0f64.powi(18)) + proposal_votes.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18));
 
     let quorum = gov_contract
         .quorum(event.proposalId)
@@ -362,9 +335,7 @@ mod gitcoin_2_mainnet_proposals {
                     time_start: parse_datetime("2023-10-08 04:26:47"),
                     time_end: parse_datetime("2023-10-13 19:54:59"),
                     block_created: Some(18290231),
-                    txid: Some(
-                        "0x12d10cc283b53d9602fc77352518d922762566093a2ed40a2eb92fbdc9e906e7",
-                    ),
+                    txid: Some("0x12d10cc283b53d9602fc77352518d922762566093a2ed40a2eb92fbdc9e906e7"),
                     metadata: json!({"vote_type": "basic","quorum_choices":[0,2]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {

@@ -61,11 +61,7 @@ impl Indexer for AaveV3MainnetProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for AaveV3MainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Aave V3 Mainnet Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -126,11 +122,7 @@ impl ProposalsIndexer for AaveV3MainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (aave_v3_gov::ProposalCreated, Log),
-    indexer: &dao_indexer::Model,
-    gov_contract: aave_v3_gov::aave_v3_govInstance<Http<Client>, Arc<ReqwestProvider>>,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (aave_v3_gov::ProposalCreated, Log), indexer: &dao_indexer::Model, gov_contract: aave_v3_gov::aave_v3_govInstance<Http<Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (aave_v3_gov::ProposalCreated, Log) = p.clone();
 
     let onchain_proposal = gov_contract
@@ -157,9 +149,7 @@ async fn data_for_proposal(
     .naive_utc();
 
     let voting_ends_timestamp = DateTime::from_timestamp_millis(
-        ((onchain_proposal.votingActivationTime.to::<u64>()
-            + onchain_proposal.votingDuration.to::<u64>())
-            * 1000)
+        ((onchain_proposal.votingActivationTime.to::<u64>() + onchain_proposal.votingDuration.to::<u64>()) * 1000)
             .try_into()
             .unwrap(),
     )
@@ -469,7 +459,10 @@ mod aave_v3_proposals {
                     index_created: 18959200,
                     external_id: "1",
                     name: "Polygon V2 Reserve Factor Updates",
-                    body_contains: Some(vec!["This AIP is a continuation of AIP-284 and increases the Reserve Factor (RF) for assets on Polygon v2 by 5.00%, up to a maximum of 99.99%.","TokenLogic and karpatkey receive no compensation beyond Aave protocol for the creation of this proposal. TokenLogic and karpatkey are both delegates within the Aave ecosystem."]),
+                    body_contains: Some(vec![
+                        "This AIP is a continuation of AIP-284 and increases the Reserve Factor (RF) for assets on Polygon v2 by 5.00%, up to a maximum of 99.99%.",
+                        "TokenLogic and karpatkey receive no compensation beyond Aave protocol for the creation of this proposal. TokenLogic and karpatkey are both delegates within the Aave ecosystem.",
+                    ]),
                     url: "https://app.aave.com/governance/v3/proposal/?proposalId=1",
                     discussion_url: Some("https://governance.aave.com/t/arfc-reserve-factor-updates-polygon-aave-v2/13937".into()),
                     choices: json!(["For", "Against"]),
@@ -532,7 +525,10 @@ mod aave_v3_proposals {
                         index_created: 19812127,
                         external_id: "100",
                         name: "Generalized LT/LTV Reductions on Aave V3 Step 2",
-                        body_contains: Some(vec!["Reduce stablecoin LTs and LTVs across all markets.","adjust DAI and sDAI risk parameters, it has been excluded from this proposal."]),
+                        body_contains: Some(vec![
+                            "Reduce stablecoin LTs and LTVs across all markets.",
+                            "adjust DAI and sDAI risk parameters, it has been excluded from this proposal.",
+                        ]),
                         url: "https://app.aave.com/governance/v3/proposal/?proposalId=100",
                         discussion_url: Some("https://governance.aave.com/t/arfc-generalized-lt-ltv-reductions-on-aave-v3-step-2-04-23-2024/17455".into()),
                         choices: json!(["For", "Against"]),
@@ -553,7 +549,9 @@ mod aave_v3_proposals {
                         index_created: 19819808,
                         external_id: "101",
                         name: "weETH Onbaording",
-                        body_contains: Some(vec!["The intention behind this initiative is to enhance the diversity of assets on Aave and bolster liquidity within the ecosystem."]),
+                        body_contains: Some(vec![
+                            "The intention behind this initiative is to enhance the diversity of assets on Aave and bolster liquidity within the ecosystem.",
+                        ]),
                         url: "https://app.aave.com/governance/v3/proposal/?proposalId=101",
                         discussion_url: Some("https://governance.aave.com/t/arfc-onboard-weeth-to-aave-v3-on-ethereum/16758".into()),
                         choices: json!(["For", "Against"]),
@@ -569,7 +567,7 @@ mod aave_v3_proposals {
                         block_created: Some(19819808),
                         txid: Some("0x9ec89471c1272a72e14db68ee2813f81eeb403a384c24ad79d3efe18d2f105b6"),
                         metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
-                    }
+                    },
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -623,10 +621,7 @@ mod aave_v3_proposals {
                         "References",
                     ]),
                     url: "https://app.aave.com/governance/v3/proposal/?proposalId=47",
-                    discussion_url: Some(
-                        "https://governance.aave.com/t/arfc-aave-treasury-rwa-allocation/14790"
-                            .into(),
-                    ),
+                    discussion_url: Some("https://governance.aave.com/t/arfc-aave-treasury-rwa-allocation/14790".into()),
                     choices: json!(["For", "Against"]),
                     scores: json!([69575.82853768951, 425389.02729258186]),
                     scores_total: 494964.8558302714,
@@ -638,9 +633,7 @@ mod aave_v3_proposals {
                     time_start: parse_datetime("2024-03-12 17:34:59"),
                     time_end: parse_datetime("2024-03-15 17:34:59"),
                     block_created: Some(19412601),
-                    txid: Some(
-                        "0xfa2a20615e1ff91d9fcb4cd4f5dd5488f41ec6b762d0e9ebbc9b04038db1bb37",
-                    ),
+                    txid: Some("0xfa2a20615e1ff91d9fcb4cd4f5dd5488f41ec6b762d0e9ebbc9b04038db1bb37"),
                     metadata: json!({"vote_type": "single-choice","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {

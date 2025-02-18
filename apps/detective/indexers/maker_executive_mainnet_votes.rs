@@ -58,11 +58,7 @@ impl Indexer for MakerExecutiveMainnetVotesIndexer {
 #[async_trait]
 impl VotesIndexer for MakerExecutiveMainnetVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Maker Executive Votes");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -85,10 +81,8 @@ impl VotesIndexer for MakerExecutiveMainnetVotesIndexer {
 
         let gov_contract = maker_executive_gov::new(address, eth_rpc);
 
-        let vote_single_action_topic =
-            b256!("a69beaba00000000000000000000000000000000000000000000000000000000");
-        let vote_multiple_actions_topic =
-            b256!("ed08132900000000000000000000000000000000000000000000000000000000");
+        let vote_single_action_topic = b256!("a69beaba00000000000000000000000000000000000000000000000000000000");
+        let vote_multiple_actions_topic = b256!("ed08132900000000000000000000000000000000000000000000000000000000");
 
         let single_spell_events = gov_contract
             .LogNote_filter()
@@ -110,10 +104,9 @@ impl VotesIndexer for MakerExecutiveMainnetVotesIndexer {
             .await
             .context("bad query")?;
 
-        let single_spell_casts =
-            get_single_spell_addresses(single_spell_events, gov_contract.clone())
-                .await
-                .context("bad spells")?;
+        let single_spell_casts = get_single_spell_addresses(single_spell_events, gov_contract.clone())
+            .await
+            .context("bad spells")?;
         let multi_spell_casts = get_multi_spell_addresses(multi_spell_events)
             .await
             .context("bad spell")?;
@@ -142,10 +135,7 @@ impl VotesIndexer for MakerExecutiveMainnetVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    spell_casts: Vec<SpellCast>,
-    indexer: &dao_indexer::Model,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(spell_casts: Vec<SpellCast>, indexer: &dao_indexer::Model) -> Result<Vec<vote::ActiveModel>> {
     let mut votes: Vec<vote::ActiveModel> = vec![];
 
     for spell_cast in spell_casts {
@@ -200,13 +190,7 @@ pub struct SpellCast {
 }
 
 #[instrument(skip_all)]
-pub async fn get_single_spell_addresses(
-    logs: Vec<(LogNote, Log)>,
-    gov_contract: maker_executive_gov::maker_executive_govInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<Vec<SpellCast>> {
+pub async fn get_single_spell_addresses(logs: Vec<(LogNote, Log)>, gov_contract: maker_executive_gov::maker_executive_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<Vec<SpellCast>> {
     let mut spells: Vec<SpellCast> = vec![];
 
     for log in logs.clone() {

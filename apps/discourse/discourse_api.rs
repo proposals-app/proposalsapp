@@ -125,9 +125,7 @@ impl DiscourseApi {
         headers.insert("Referer", HeaderValue::from_static("https://proposals.app"));
         headers.insert(
             "Accept",
-            HeaderValue::from_static(
-                "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            ),
+            HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"),
         );
         headers.insert(
             "Accept-Language",
@@ -397,10 +395,7 @@ impl DiscourseApi {
                             attempt += 1;
                             if attempt > self.max_retries {
                                 error!(url, status = %status, attempt, max_retries = self.max_retries, "Max retries reached. Server error");
-                                return Err(anyhow!(
-                                    "Max retries reached. Last error: HTTP {}",
-                                    status
-                                ));
+                                return Err(anyhow!("Max retries reached. Last error: HTTP {}", status));
                             }
 
                             warn!(url, status = %status, attempt, delay = ?delay, "Server error, retrying");

@@ -1,7 +1,4 @@
-use crate::rindexer_lib::typings::networks::{
-    get_arbitrum_provider_cache, get_avalanche_provider_cache, get_ethereum_provider_cache, get_optimism_provider_cache,
-    get_polygon_provider_cache,
-};
+use crate::rindexer_lib::typings::networks::{get_arbitrum_provider_cache, get_avalanche_provider_cache, get_ethereum_provider_cache, get_optimism_provider_cache, get_polygon_provider_cache};
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use ethers::{providers::Middleware, types::BlockId};
@@ -114,14 +111,19 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
             .await?
             .ok_or_else(|| anyhow::anyhow!("Block not found"))?;
 
-        return Ok(DateTime::<Utc>::from_timestamp(block.timestamp.as_u64() as i64, 0)
-            .expect("Failed to create DateTime")
-            .naive_utc());
+        return Ok(
+            DateTime::<Utc>::from_timestamp(block.timestamp.as_u64() as i64, 0)
+                .expect("Failed to create DateTime")
+                .naive_utc(),
+        );
     }
 
     // Attempt to get estimated timestamp from block explorer API.
     match retry_request(
-        config.scan_api_url.as_ref().context("Scan API URL is missing")?,
+        config
+            .scan_api_url
+            .as_ref()
+            .context("Scan API URL is missing")?,
         &config.scan_api_key.context("Scan API key is missing")?,
         block_number,
     )
@@ -156,7 +158,12 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
             Ok(estimated_naive_datetime)
         }
         Ok(None) => {
-            event!(Level::WARN, network = network, block_number = block_number, "Failed to estimate timestamp from API after retries, returning epoch 0");
+            event!(
+                Level::WARN,
+                network = network,
+                block_number = block_number,
+                "Failed to estimate timestamp from API after retries, returning epoch 0"
+            );
             // Return epoch 0 timestamp if API request fails after retries.
             Ok(NaiveDateTime::UNIX_EPOCH)
         }
@@ -202,7 +209,8 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
                                 sleep(Duration::from_millis(2u64.pow(attempt))).await;
                                 continue; // Retry if status is not success.
                             } else {
-                                return Ok(Some(parsed_response)); // Return last response with non-success status
+                                return Ok(Some(parsed_response)); // Return last response with
+                                                                  // non-success status
                             }
                         }
                         return Ok(Some(parsed_response));
@@ -213,7 +221,11 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
                             sleep(Duration::from_millis(2u64.pow(attempt))).await;
                             continue; // Retry if deserialization fails.
                         } else {
-                            return Err(anyhow::anyhow!("Failed to deserialize scanner response after retries: {}\nContent: {}", e, contents));
+                            return Err(anyhow::anyhow!(
+                                "Failed to deserialize scanner response after retries: {}\nContent: {}",
+                                e,
+                                contents
+                            ));
                         }
                     }
                 }
@@ -239,49 +251,86 @@ mod tests {
 
     #[tokio::test]
     async fn test_estimate_timestamp_ethereum_future_block() -> Result<()> {
-        let current_block = get_ethereum_provider_cache().get_block_number().await?.as_u64();
+        let current_block = get_ethereum_provider_cache()
+            .get_block_number()
+            .await?
+            .as_u64();
         let future_block_number = current_block + 100;
         let estimated_time = estimate_timestamp("ethereum", future_block_number).await?;
 
-        // Check if the estimated time is not epoch and is in the future (within a reasonable bound, e.g., a few hours from now).
+        // Check if the estimated time is not epoch and is in the future (within a reasonable bound, e.g., a
+        // few hours from now).
         let now = Utc::now().naive_utc();
-        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time should not be epoch");
-        assert!(estimated_time > now - Duration::hours(1), "Estimated time should be in the future or very recent"); // Relaxed bound
-        assert!(estimated_time < now + Duration::hours(24), "Estimated time should not be too far in the future"); // Set an upper bound to avoid test failures if blocks are very delayed.
+        assert!(
+            estimated_time > NaiveDateTime::UNIX_EPOCH,
+            "Estimated time should not be epoch"
+        );
+        assert!(
+            estimated_time > now - Duration::hours(1),
+            "Estimated time should be in the future or very recent"
+        ); // Relaxed bound
+        assert!(
+            estimated_time < now + Duration::hours(24),
+            "Estimated time should not be too far in the future"
+        ); // Set an upper bound to avoid test failures if blocks are very delayed.
 
-        println!("Estimated time for ethereum block {}: {:?}", future_block_number, estimated_time);
+        println!(
+            "Estimated time for ethereum block {}: {:?}",
+            future_block_number, estimated_time
+        );
         Ok(())
     }
 
     #[tokio::test]
     async fn test_estimate_timestamp_ethereum_past_block() -> Result<()> {
         // Choose a block number in the past, but not too old to ensure it's still available on providers.
-        let current_block = get_ethereum_provider_cache().get_block_number().await?.as_u64();
+        let current_block = get_ethereum_provider_cache()
+            .get_block_number()
+            .await?
+            .as_u64();
         let past_block_number = current_block - 1000; // Example past block, 1000 blocks behind
         let estimated_time = estimate_timestamp("ethereum", past_block_number).await?;
 
         // For past blocks, we expect a valid timestamp fetched directly from the provider, not epoch.
-        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time for past block should not be epoch");
+        assert!(
+            estimated_time > NaiveDateTime::UNIX_EPOCH,
+            "Estimated time for past block should not be epoch"
+        );
 
         // Optionally, we can further assert if the timestamp is indeed in the past.
         let now = Utc::now().naive_utc();
-        assert!(estimated_time < now, "Estimated time for past block should be in the past");
+        assert!(
+            estimated_time < now,
+            "Estimated time for past block should be in the past"
+        );
 
-        println!("Estimated time for ethereum block {}: {:?}", past_block_number, estimated_time);
+        println!(
+            "Estimated time for ethereum block {}: {:?}",
+            past_block_number, estimated_time
+        );
         Ok(())
     }
 
     #[tokio::test]
     async fn test_estimate_timestamp_polygon_past_block() -> Result<()> {
         // Polygon doesn't use API key in config, so this tests provider fallback for past blocks.
-        let current_block = get_polygon_provider_cache().get_block_number().await?.as_u64();
+        let current_block = get_polygon_provider_cache()
+            .get_block_number()
+            .await?
+            .as_u64();
         let past_block_number = current_block - 1000; // Example past block for polygon
         let estimated_time = estimate_timestamp("polygon", past_block_number).await?;
 
         // Should fetch from provider, so expect valid timestamp, not epoch.
-        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time for polygon past block should not be epoch");
+        assert!(
+            estimated_time > NaiveDateTime::UNIX_EPOCH,
+            "Estimated time for polygon past block should not be epoch"
+        );
 
-        println!("Estimated time for polygon block {}: {:?}", past_block_number, estimated_time);
+        println!(
+            "Estimated time for polygon block {}: {:?}",
+            past_block_number, estimated_time
+        );
         Ok(())
     }
 
@@ -289,41 +338,74 @@ mod tests {
     async fn test_estimate_timestamp_unsupported_network() -> Result<()> {
         let result = estimate_timestamp("unsupported_network", 1000000).await;
         assert!(result.is_err(), "Expected error for unsupported network");
-        assert_eq!(result.unwrap_err().to_string(), "Unsupported network: unsupported_network");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Unsupported network: unsupported_network"
+        );
         Ok(())
     }
 
     #[tokio::test]
     async fn test_estimate_timestamp_arbitrum_future_block() -> Result<()> {
         // Requires ARBISCAN_API_KEY env variable.
-        let current_block = get_arbitrum_provider_cache().get_block_number().await?.as_u64();
+        let current_block = get_arbitrum_provider_cache()
+            .get_block_number()
+            .await?
+            .as_u64();
         let future_block_number = current_block + 100; // Example future block for arbitrum
         let estimated_time = estimate_timestamp("arbitrum", future_block_number).await?;
 
         // Check if the estimated time is not epoch and is in the future.
         let now = Utc::now().naive_utc();
-        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time should not be epoch");
-        assert!(estimated_time > now - Duration::hours(1), "Estimated time should be in the future or very recent");
-        assert!(estimated_time < now + Duration::hours(24), "Estimated time should not be too far in the future");
+        assert!(
+            estimated_time > NaiveDateTime::UNIX_EPOCH,
+            "Estimated time should not be epoch"
+        );
+        assert!(
+            estimated_time > now - Duration::hours(1),
+            "Estimated time should be in the future or very recent"
+        );
+        assert!(
+            estimated_time < now + Duration::hours(24),
+            "Estimated time should not be too far in the future"
+        );
 
-        println!("Estimated time for arbitrum block {}: {:?}", future_block_number, estimated_time);
+        println!(
+            "Estimated time for arbitrum block {}: {:?}",
+            future_block_number, estimated_time
+        );
         Ok(())
     }
 
     #[tokio::test]
     async fn test_estimate_timestamp_optimism_future_block() -> Result<()> {
         // Requires OPTIMISTIC_SCAN_API_KEY env variable.
-        let current_block = get_optimism_provider_cache().get_block_number().await?.as_u64();
+        let current_block = get_optimism_provider_cache()
+            .get_block_number()
+            .await?
+            .as_u64();
         let future_block_number = current_block + 100; // Example future block for optimism
         let estimated_time = estimate_timestamp("optimism", future_block_number).await?;
 
         // Check if the estimated time is not epoch and is in the future.
         let now = Utc::now().naive_utc();
-        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time should not be epoch");
-        assert!(estimated_time > now - Duration::hours(1), "Estimated time should be in the future or very recent");
-        assert!(estimated_time < now + Duration::hours(24), "Estimated time should not be too far in the future");
+        assert!(
+            estimated_time > NaiveDateTime::UNIX_EPOCH,
+            "Estimated time should not be epoch"
+        );
+        assert!(
+            estimated_time > now - Duration::hours(1),
+            "Estimated time should be in the future or very recent"
+        );
+        assert!(
+            estimated_time < now + Duration::hours(24),
+            "Estimated time should not be too far in the future"
+        );
 
-        println!("Estimated time for optimism block {}: {:?}", future_block_number, estimated_time);
+        println!(
+            "Estimated time for optimism block {}: {:?}",
+            future_block_number, estimated_time
+        );
         Ok(())
     }
 }

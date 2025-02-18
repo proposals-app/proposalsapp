@@ -57,11 +57,7 @@ impl Indexer for FraxAlphaMainnetVotesIndexer {
 #[async_trait::async_trait]
 impl VotesIndexer for FraxAlphaMainnetVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Frax Alpha Votes");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -117,11 +113,7 @@ impl VotesIndexer for FraxAlphaMainnetVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(VoteCast, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(VoteCast, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCast, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -139,10 +131,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -173,11 +164,7 @@ async fn get_votes(
 }
 
 #[instrument(skip_all)]
-async fn get_votes_with_params(
-    logs: Vec<(VoteCastWithParams, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes_with_params(logs: Vec<(VoteCastWithParams, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCastWithParams, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -195,10 +182,9 @@ async fn get_votes_with_params(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -279,9 +265,7 @@ mod frax_alpha_mainnet_votes_tests {
                     proposal_external_id: "5909113345317497261671190909945870222582022045673283684419546965696493954659",
                     time_created: Some(parse_datetime("2023-10-27 20:39:23")),
                     block_created: Some(18443982),
-                    txid: Some(
-                        "0x6798f025217e4551c326f2fc1e76a9966ffb3f483a5c1f78ef6cf29c973708ce",
-                    ),
+                    txid: Some("0x6798f025217e4551c326f2fc1e76a9966ffb3f483a5c1f78ef6cf29c973708ce"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);

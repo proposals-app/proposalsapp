@@ -60,11 +60,7 @@ impl Indexer for ArbitrumCoreProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for ArbitrumCoreProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Arbitrum Core Proposals");
 
         let arb_rpc = chain_data::get_chain_config(NamedChain::Arbitrum)?
@@ -125,15 +121,7 @@ impl ProposalsIndexer for ArbitrumCoreProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (arbitrum_core_gov::ProposalCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: arbitrum_core_gov::arbitrum_core_govInstance<
-        Http<reqwest::Client>,
-        Arc<ReqwestProvider>,
-    >,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (arbitrum_core_gov::ProposalCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: arbitrum_core_gov::arbitrum_core_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (arbitrum_core_gov::ProposalCreated, Log) = p.clone();
 
     let created_block_timestamp = rpc
@@ -167,21 +155,12 @@ async fn data_for_proposal(
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match chain_data::estimate_timestamp(
-        NamedChain::Mainnet,
-        voting_start_block_number,
-    )
-    .await
-    {
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (log.block_timestamp.unwrap()
-                    + (voting_start_block_number - log.block_number.unwrap())
-                        * average_block_time_millis) as i64,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_start_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
+                .context("bad timestamp")?
+                .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_start_block_number
@@ -191,25 +170,20 @@ async fn data_for_proposal(
         }
     };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    (log.block_timestamp.unwrap()
-                        + (voting_end_block_number - log.block_number.unwrap())
-                            * average_block_time_millis) as i64,
-                )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis((log.block_timestamp.unwrap() + (voting_end_block_number - log.block_number.unwrap()) * average_block_time_millis) as i64)
                 .context("bad timestamp")?
                 .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_end_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
 
     let proposal_url = format!(
         "https://www.tally.xyz/gov/arbitrum/proposal/{}",
@@ -238,8 +212,7 @@ async fn data_for_proposal(
 
     let scores_total = scores.iter().sum();
 
-    let scores_quorum = onchain_proposal.forVotes.to::<u128>() as f64 / (10.0f64.powi(18))
-        + onchain_proposal.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18));
+    let scores_quorum = onchain_proposal.forVotes.to::<u128>() as f64 / (10.0f64.powi(18)) + onchain_proposal.abstainVotes.to::<u128>() as f64 / (10.0f64.powi(18));
 
     let proposal_snapshot_block = gov_contract
         .proposalSnapshot(event.proposalId)
@@ -436,7 +409,9 @@ mod arbitrum_core_proposals_tests {
                     index_created: 98424027,
                     external_id: "77049969659962393408182308518930939247285848107346513112985531885924337078488",
                     name: "AIP-1.2 - Foundation and DAO Governance",
-                    body_contains: Some(vec!["proposes amendments to the Constitution, and The Arbitrum Foundation Amended & Restated Memorandum & Articles of Association "]),
+                    body_contains: Some(vec![
+                        "proposes amendments to the Constitution, and The Arbitrum Foundation Amended & Restated Memorandum & Articles of Association ",
+                    ]),
                     url: "https://www.tally.xyz/gov/arbitrum/proposal/77049969659962393408182308518930939247285848107346513112985531885924337078488",
                     discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),
@@ -500,7 +475,9 @@ mod arbitrum_core_proposals_tests {
                         index_created: 162413941,
                         external_id: "77069694702187027448745871790562515795432836429094222862498991082283032976814",
                         name: "AIP: ArbOS Version 11",
-                        body_contains: Some(vec!["This AIP introduces a number of improvements to Arbitrum chains, including support for the EVM Shanghai upgrade and the PUSH0 opcode, along with miscellaneous bug fixes."]),
+                        body_contains: Some(vec![
+                            "This AIP introduces a number of improvements to Arbitrum chains, including support for the EVM Shanghai upgrade and the PUSH0 opcode, along with miscellaneous bug fixes.",
+                        ]),
                         url: "https://www.tally.xyz/gov/arbitrum/proposal/77069694702187027448745871790562515795432836429094222862498991082283032976814",
                         discussion_url: None,
                         choices: json!(["For", "Against", "Abstain"]),
@@ -521,7 +498,9 @@ mod arbitrum_core_proposals_tests {
                         index_created: 166717878,
                         external_id: "13830398746784164287014809687499019395362322167304875665797507515532859950760",
                         name: "Proposal to Establish the Arbitrum Research & Development Collective",
-                        body_contains: Some(vec!["This proposal aims to fund the Arbitrum Research & Development Collective to aid in turning Arbitrum DAO members’ ideas into reality for a term of 6 months."]),
+                        body_contains: Some(vec![
+                            "This proposal aims to fund the Arbitrum Research & Development Collective to aid in turning Arbitrum DAO members’ ideas into reality for a term of 6 months.",
+                        ]),
                         url: "https://www.tally.xyz/gov/arbitrum/proposal/13830398746784164287014809687499019395362322167304875665797507515532859950760",
                         discussion_url: None,
                         choices: json!(["For", "Against", "Abstain"]),
@@ -537,7 +516,7 @@ mod arbitrum_core_proposals_tests {
                         block_created: Some(166717878),
                         txid: Some("0x2e267411550d7b284f81ee77f4b210adbe21f73b34a04ff3c7cebe61225abd64"),
                         metadata: json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": 352877174.3468493}).into(),
-                    }
+                    },
                 ];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
                     assert_proposal(proposal, expected);
@@ -585,7 +564,9 @@ mod arbitrum_core_proposals_tests {
                     index_created: 214219081,
                     external_id: "108365944612843449282647711225577270624871742641825297712833904029381791489297",
                     name: "Constitutional AIP - Security Council Improvement Proposal",
-                    body_contains: Some(vec!["This AIP seeks to propose changes to the structure of the security council so Arbitrum can maintain the"]),
+                    body_contains: Some(vec![
+                        "This AIP seeks to propose changes to the structure of the security council so Arbitrum can maintain the",
+                    ]),
                     url: "https://www.tally.xyz/gov/arbitrum/proposal/108365944612843449282647711225577270624871742641825297712833904029381791489297",
                     discussion_url: None,
                     choices: json!(["For", "Against", "Abstain"]),

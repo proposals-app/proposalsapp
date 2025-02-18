@@ -58,11 +58,7 @@ impl Indexer for UniswapMainnetProposalsIndexer {
 #[async_trait]
 impl ProposalsIndexer for UniswapMainnetProposalsIndexer {
     #[instrument(skip_all)]
-    async fn process_proposals(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_proposals(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Uniswap Mainnet Proposals");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -123,12 +119,7 @@ impl ProposalsIndexer for UniswapMainnetProposalsIndexer {
 }
 
 #[instrument(skip_all)]
-async fn data_for_proposal(
-    p: (uniswap_gov::ProposalCreated, Log),
-    rpc: &Arc<ReqwestProvider>,
-    indexer: &dao_indexer::Model,
-    gov_contract: uniswap_gov::uniswap_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>,
-) -> Result<proposal::ActiveModel> {
+async fn data_for_proposal(p: (uniswap_gov::ProposalCreated, Log), rpc: &Arc<ReqwestProvider>, indexer: &dao_indexer::Model, gov_contract: uniswap_gov::uniswap_govInstance<Http<reqwest::Client>, Arc<ReqwestProvider>>) -> Result<proposal::ActiveModel> {
     let (event, log): (uniswap_gov::ProposalCreated, Log) = p.clone();
 
     let created_block_number = log.block_number.unwrap();
@@ -144,21 +135,12 @@ async fn data_for_proposal(
 
     let average_block_time_millis = 12_200;
 
-    let voting_starts_timestamp = match chain_data::estimate_timestamp(
-        NamedChain::Mainnet,
-        voting_start_block_number,
-    )
-    .await
-    {
+    let voting_starts_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_start_block_number).await {
         Ok(r) => r,
         Err(_) => {
-            let fallback = DateTime::from_timestamp_millis(
-                (created_block_timestamp * 1000)
-                    + (voting_start_block_number as i64 - created_block_number as i64)
-                        * average_block_time_millis,
-            )
-            .context("bad timestamp")?
-            .naive_utc();
+            let fallback = DateTime::from_timestamp_millis((created_block_timestamp * 1000) + (voting_start_block_number as i64 - created_block_number as i64) * average_block_time_millis)
+                .context("bad timestamp")?
+                .naive_utc();
             warn!(
                 "Could not estimate timestamp for {:?}",
                 voting_start_block_number
@@ -168,25 +150,20 @@ async fn data_for_proposal(
         }
     };
 
-    let voting_ends_timestamp =
-        match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
-            Ok(r) => r,
-            Err(_) => {
-                let fallback = DateTime::from_timestamp_millis(
-                    created_block_timestamp * 1000
-                        + (voting_end_block_number - created_block_number) as i64
-                            * average_block_time_millis,
-                )
+    let voting_ends_timestamp = match chain_data::estimate_timestamp(NamedChain::Mainnet, voting_end_block_number).await {
+        Ok(r) => r,
+        Err(_) => {
+            let fallback = DateTime::from_timestamp_millis(created_block_timestamp * 1000 + (voting_end_block_number - created_block_number) as i64 * average_block_time_millis)
                 .context("bad timestamp")?
                 .naive_utc();
-                warn!(
-                    "Could not estimate timestamp for {:?}",
-                    voting_end_block_number
-                );
-                info!("Fallback to {:?}", fallback);
-                fallback
-            }
-        };
+            warn!(
+                "Could not estimate timestamp for {:?}",
+                voting_end_block_number
+            );
+            info!("Fallback to {:?}", fallback);
+            fallback
+        }
+    };
 
     let proposal_url = format!("https://app.uniswap.org/#/vote/{}", event.id);
 
@@ -357,9 +334,7 @@ mod uniswap_mainnet_proposals_tests {
                     time_start: parse_datetime("2024-08-16 15:44:47"),
                     time_end: parse_datetime("2024-08-22 06:55:11"),
                     block_created: Some(20529031),
-                    txid: Some(
-                        "0x23ea669518d73d54f7cdb9320cd9b7408e086a84de2852652078ac813739c319",
-                    ),
+                    txid: Some("0x23ea669518d73d54f7cdb9320cd9b7408e086a84de2852652078ac813739c319"),
                     metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {
@@ -421,9 +396,7 @@ mod uniswap_mainnet_proposals_tests {
                     time_start: parse_datetime("2021-09-01 23:09:37"),
                     time_end: parse_datetime("2021-09-08 04:43:51"),
                     block_created: Some(13129516),
-                    txid: Some(
-                        "0x52371bf3cc7dc7169203e70e2e914c31408021d38c6b44d8c8652099e2fa5c12",
-                    ),
+                    txid: Some("0x52371bf3cc7dc7169203e70e2e914c31408021d38c6b44d8c8652099e2fa5c12"),
                     metadata: json!({"vote_type": "basic","quorum_choices":[0]}).into(),
                 }];
                 for (proposal, expected) in proposals.iter().zip(expected_proposals.iter()) {

@@ -84,6 +84,7 @@ pub enum Relation {
     Dao,
     DaoIndexer,
     Vote,
+    VoteNew,
 }
 
 impl ColumnTrait for Column {
@@ -129,6 +130,7 @@ impl RelationTrait for Relation {
                 .to(super::dao_indexer::Column::Id)
                 .into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
+            Self::VoteNew => Entity::has_many(super::vote_new::Entity).into(),
         }
     }
 }
@@ -148,6 +150,12 @@ impl Related<super::dao_indexer::Entity> for Entity {
 impl Related<super::vote::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Vote.def()
+    }
+}
+
+impl Related<super::vote_new::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::VoteNew.def()
     }
 }
 

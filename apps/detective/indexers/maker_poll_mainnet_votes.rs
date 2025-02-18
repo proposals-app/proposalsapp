@@ -58,11 +58,7 @@ impl Indexer for MakerPollMainnetVotesIndexer {
 #[async_trait]
 impl VotesIndexer for MakerPollMainnetVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Maker Poll Votes");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -103,11 +99,7 @@ impl VotesIndexer for MakerPollMainnetVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(Voted, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(Voted, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(Voted, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -125,10 +117,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
         let options = get_options(event.optionId.to_string()).await?;
 
         votes.push(vote::ActiveModel {
@@ -247,9 +238,7 @@ mod maker_poll_mainnet_votes_tests {
                     proposal_external_id: "1124",
                     time_created: Some(parse_datetime("2024-07-16 22:40:11")),
                     block_created: Some(20322121),
-                    txid: Some(
-                        "0x13b3facd9af85b508d060550ca15b62ec9507096369b1fd290837d0f43afcd7b",
-                    ),
+                    txid: Some("0x13b3facd9af85b508d060550ca15b62ec9507096369b1fd290837d0f43afcd7b"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);

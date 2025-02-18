@@ -1,8 +1,6 @@
 use anyhow::{Context, Result};
 use chrono::Duration;
-use proposalsapp_db::models::{
-    dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group,
-};
+use proposalsapp_db::models::{dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group};
 use sea_orm::{
     prelude::{Expr, Uuid},
     sea_query::Alias,
@@ -66,13 +64,11 @@ async fn process_jobs() -> Result<()> {
 
         let job_result = match job_type {
             JobType::MapperNewProposalDiscussion => {
-                let data: DiscussionJobData = serde_json::from_value(job.data.clone())
-                    .context("Failed to deserialize discussion job data")?;
+                let data: DiscussionJobData = serde_json::from_value(job.data.clone()).context("Failed to deserialize discussion job data")?;
                 process_new_discussion_job(job.id, data.discourse_topic_id).await
             }
             JobType::MapperNewSnapshotProposal => {
-                let data: ProposalJobData = serde_json::from_value(job.data.clone())
-                    .context("Failed to deserialize proposal job data")?;
+                let data: ProposalJobData = serde_json::from_value(job.data.clone()).context("Failed to deserialize proposal job data")?;
                 process_snapshot_proposal_job(job.id, data.proposal_id).await
             }
         };
@@ -157,10 +153,7 @@ async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Re
     );
 
     let topic_already_mapped = !proposal_group::Entity::find()
-        .filter(
-            Expr::expr(Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text")))
-                .like(format!("%{}%", discourse_topic_id)),
-        )
+        .filter(Expr::expr(Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text"))).like(format!("%{}%", discourse_topic_id)))
         .all(DB.get().unwrap())
         .await
         .context("Failed to check if topic is already mapped")?
@@ -362,12 +355,7 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
 
             // Find the proposal group containing this topic directly
             let group = proposal_group::Entity::find()
-                .filter(
-                    Expr::expr(
-                        Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text")),
-                    )
-                    .like(format!("%{}%", topic.id)),
-                )
+                .filter(Expr::expr(Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text"))).like(format!("%{}%", topic.id)))
                 .one(DB.get().unwrap())
                 .await
                 .context("Failed to find proposal group")?;
@@ -380,13 +368,12 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
                     "Found proposal group containing the discourse topic"
                 );
 
-                if let Ok(mut items) =
-                    serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
-                {
+                if let Ok(mut items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
                     // Check if proposal is not already in the group
-                    if !items.iter().any(|item| {
-                        item.id == proposal.id.to_string() && item.type_field == "proposal"
-                    }) {
+                    if !items
+                        .iter()
+                        .any(|item| item.id == proposal.id.to_string() && item.type_field == "proposal")
+                    {
                         info!(
                             job_id = job_id,
                             proposal_id = %proposal_id,
@@ -409,8 +396,7 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
 
                         // Update the group
                         let mut group: proposal_group::ActiveModel = group.into();
-                        group.items = Set(serde_json::to_value(items)
-                            .context("Failed to serialize proposal group items")?);
+                        group.items = Set(serde_json::to_value(items).context("Failed to serialize proposal group items")?);
                         proposal_group::Entity::update(group)
                             .exec(DB.get().unwrap())
                             .await
@@ -574,6 +560,12 @@ mod tests {
     #[test]
     fn test_extract_discourse_10() {
         let url = "https://forum.arbitrum.foundation/t/non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead/";
-        assert_eq!(extract_discourse_id_or_slug(url), (None, Some("non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead".to_string())));
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (
+                None,
+                Some("non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead".to_string())
+            )
+        );
     }
 }

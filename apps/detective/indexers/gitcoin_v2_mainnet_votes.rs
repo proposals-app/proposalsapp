@@ -57,11 +57,7 @@ impl Indexer for GitcoinV2MainnetVotesIndexer {
 #[async_trait]
 impl VotesIndexer for GitcoinV2MainnetVotesIndexer {
     #[instrument(skip_all)]
-    async fn process_votes(
-        &self,
-        indexer: &dao_indexer::Model,
-        _dao: &dao::Model,
-    ) -> Result<ProcessResult> {
+    async fn process_votes(&self, indexer: &dao_indexer::Model, _dao: &dao::Model) -> Result<ProcessResult> {
         info!("Processing Gitcoin V2 Votes");
 
         let eth_rpc = chain_data::get_chain_config(NamedChain::Mainnet)?
@@ -106,10 +102,9 @@ impl VotesIndexer for GitcoinV2MainnetVotesIndexer {
             .await
             .context("bad votes")?;
 
-        let votes_with_params =
-            get_votes_with_params(logs_with_params.clone(), indexer, &eth_rpc.clone())
-                .await
-                .context("bad votes")?;
+        let votes_with_params = get_votes_with_params(logs_with_params.clone(), indexer, &eth_rpc.clone())
+            .await
+            .context("bad votes")?;
 
         let all_votes = [votes, votes_with_params].concat();
 
@@ -118,11 +113,7 @@ impl VotesIndexer for GitcoinV2MainnetVotesIndexer {
 }
 
 #[instrument(skip_all)]
-async fn get_votes(
-    logs: Vec<(VoteCast, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes(logs: Vec<(VoteCast, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCast, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -140,10 +131,9 @@ async fn get_votes(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -174,11 +164,7 @@ async fn get_votes(
 }
 
 #[instrument(skip_all)]
-async fn get_votes_with_params(
-    logs: Vec<(VoteCastWithParams, Log)>,
-    indexer: &dao_indexer::Model,
-    rpc: &Arc<ReqwestProvider>,
-) -> Result<Vec<vote::ActiveModel>> {
+async fn get_votes_with_params(logs: Vec<(VoteCastWithParams, Log)>, indexer: &dao_indexer::Model, rpc: &Arc<ReqwestProvider>) -> Result<Vec<vote::ActiveModel>> {
     let voter_logs: Vec<(VoteCastWithParams, Log)> = logs.into_iter().collect();
 
     let mut votes: Vec<vote::ActiveModel> = vec![];
@@ -196,10 +182,9 @@ async fn get_votes_with_params(
             .header
             .timestamp;
 
-        let created_block_timestamp =
-            DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
-                .unwrap()
-                .naive_utc();
+        let created_block_timestamp = DateTime::from_timestamp_millis(created_block_timestamp as i64 * 1000)
+            .unwrap()
+            .naive_utc();
 
         votes.push(vote::ActiveModel {
             id: NotSet,
@@ -280,9 +265,7 @@ mod gitcoin_v2_mainnet_votes_tests {
                     proposal_external_id: "91206216187624661213440609842845871701519838219118270345394850357083328797074",
                     time_created: Some(parse_datetime("2024-09-25 22:27:35")),
                     block_created: Some(20830599),
-                    txid: Some(
-                        "0xfdb65b9f1598f1d4881fb206a5807e6d9e08c3cf89e40f7ed253b013ec2ac2e2",
-                    ),
+                    txid: Some("0xfdb65b9f1598f1d4881fb206a5807e6d9e08c3cf89e40f7ed253b013ec2ac2e2"),
                 }];
                 for (vote, expected) in votes.iter().zip(expected_votes.iter()) {
                     assert_vote(vote, expected);
