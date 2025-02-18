@@ -3,21 +3,23 @@ logLevel: warn
 database:
   evmJsonRpcCache:
     connectors:
-      - id: postgres-cache
-        driver: postgresql
-        postgresql:
-          connectionUri: ${DATABASE_URL}
-          table: rpc_cache
-          initTimeout: 5s
+      - id: redis-cache
+        driver: redis
+        redis:
+          addr: ${ERPC_REDIS_URL}
+          password: "${ERPC_REIDS_PASSWORD}"
+          db: 0
+          connPoolSize: 512
+          initTimeout: 10s
           getTimeout: 5s
-          setTimeout: 30s
+          setTimeout: 5s
     policies:
       - network: "*"
         method: "*"
         finality: finalized
-        connector: postgres-cache
+        connector: redis-cache
 
 projects:
   - id: main
     upstreams:
-      - endpoint: alchemy://${ALCHEMY_KEY}
+      - endpoint: alchemy://${ERPC_ALCHEMY_KEY}

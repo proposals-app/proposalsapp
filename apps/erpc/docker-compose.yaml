@@ -6,3 +6,7 @@ services:
     volumes:
       - ./erpc.yaml:/root/erpc.yaml
     restart: unless-stopped
+    environment:
+      ERPC_ALCHEMY_KEY: ${ERPC_ALCHEMY_KEY}
+      ERPC_REDIS_URL: ${ERPC_REDIS_URL}
+      ERPC_REIDS_PASSWORD: ${ERPC_REIDS_PASSWORD}
