@@ -10,8 +10,12 @@ use crate::{
 use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use ethers::{
+    abi::AbiEncode,
     types::U256,
-    utils::hex::{self, ToHex},
+    utils::{
+        hex::{self, ToHex},
+        to_checksum,
+    },
 };
 use proposalsapp_db::models::{
     proposal_new,
@@ -179,9 +183,10 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                             "ArbitrumTreasuryGovernor::ProposalCreated - {}",
                             "STORED".blue(),
                         ),
-                        Err(_) => rindexer_info!(
-                            "ArbitrumTreasuryGovernor::ProposalCreated - {}",
+                        Err(e) => rindexer_info!(
+                            "ArbitrumTreasuryGovernor::ProposalCreated - {} - {}",
                             "NOT STORED".red(),
+                            e.to_string()
                         ),
                     }
                 }
@@ -278,42 +283,48 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     return Ok(());
                 }
 
-                let mut votes: Vec<vote_new::ActiveModel> = Vec::new();
+                rindexer_info!(
+                    "ArbitrumTreasuryGovernor::VoteCast - {} - {} events",
+                    "INDEXED".green(),
+                    results.len()
+                );
 
-                for result in results.clone() {
-                    let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
-                        .await
-                        .expect("Failed to estimate created timestamp");
+                for chunk in results.chunks(10) {
+                    let mut votes: Vec<vote_new::ActiveModel> = Vec::new();
+                    for result in chunk.iter().cloned() {
+                        let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
+                            .await
+                            .expect("Failed to estimate created timestamp");
 
-                    votes.push(vote_new::ActiveModel {
-                        id: NotSet,
-                        voter_address: Set(result.event_data.voter.encode_hex()),
-                        choice: Set(match result.event_data.support {
-                            0 => 1.into(),
-                            1 => 0.into(),
-                            2 => 2.into(),
-                            _ => 2.into(),
-                        }),
-                        voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
-                        reason: Set(Some(result.event_data.reason)),
-                        created_at: Set(created_at),
-                        block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
-                        txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
-                        proposal_external_id: Set(result.event_data.proposal_id.to_string()),
-                        proposal_id: NotSet,
-                        dao_id: get_dao_id(),
-                        indexer_id: get_votes_dao_indexer_id(),
-                    });
-                }
+                        votes.push(vote_new::ActiveModel {
+                            id: NotSet,
+                            voter_address: Set(to_checksum(&result.event_data.voter, None)),
+                            choice: Set(match result.event_data.support {
+                                0 => 1.into(),
+                                1 => 0.into(),
+                                2 => 2.into(),
+                                _ => 2.into(),
+                            }),
+                            voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
+                            reason: Set(Some(result.event_data.reason)),
+                            created_at: Set(created_at),
+                            block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
+                            txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
+                            proposal_external_id: Set(result.event_data.proposal_id.to_string()),
+                            proposal_id: NotSet,
+                            dao_id: get_dao_id(),
+                            indexer_id: get_votes_dao_indexer_id(),
+                        });
+                    }
 
-                rindexer_info!("ArbitrumTreasuryGovernor::VoteCast - {}", "INDEXED".green(),);
-
-                match store_votes(votes).await {
-                    Ok(_) => rindexer_info!("ArbitrumTreasuryGovernor::VoteCast - {}", "STORED".blue(),),
-                    Err(_) => rindexer_info!(
-                        "ArbitrumTreasuryGovernor::VoteCast - {}",
-                        "NOT STORED".red(),
-                    ),
+                    match store_votes(votes, get_proposals_dao_indexer_id().take().unwrap()).await {
+                        Ok(_) => rindexer_info!("ArbitrumTreasuryGovernor::VoteCast - {}", "STORED".blue(),),
+                        Err(e) => rindexer_info!(
+                            "ArbitrumTreasuryGovernor::VoteCast - {} - {}",
+                            "NOT STORED".red(),
+                            e.to_string()
+                        ),
+                    }
                 }
 
                 Ok(())
@@ -332,49 +343,51 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                 if results.is_empty() {
                     return Ok(());
                 }
-
-                let mut votes: Vec<vote_new::ActiveModel> = Vec::new();
-
-                for result in results.clone() {
-                    let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
-                        .await
-                        .expect("Failed to estimate created timestamp");
-
-                    votes.push(vote_new::ActiveModel {
-                        id: NotSet,
-                        voter_address: Set(result.event_data.voter.encode_hex()),
-                        choice: Set(match result.event_data.support {
-                            0 => 1.into(),
-                            1 => 0.into(),
-                            2 => 2.into(),
-                            _ => 2.into(),
-                        }),
-                        voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
-                        reason: Set(Some(result.event_data.reason)),
-                        created_at: Set(created_at),
-                        block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
-                        txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
-                        proposal_external_id: Set(result.event_data.proposal_id.to_string()),
-                        proposal_id: NotSet,
-                        dao_id: get_dao_id(),
-                        indexer_id: get_votes_dao_indexer_id(),
-                    });
-                }
-
                 rindexer_info!(
-                    "ArbitrumTreasuryGovernor::VoteCastWithParams - {}",
+                    "ArbitrumTreasuryGovernor::VoteCastWithParams - {} - {} events",
                     "INDEXED".green(),
+                    results.len()
                 );
 
-                match store_votes(votes).await {
-                    Ok(_) => rindexer_info!(
-                        "ArbitrumTreasuryGovernor::VoteCastWithParams - {}",
-                        "STORED".blue(),
-                    ),
-                    Err(_) => rindexer_info!(
-                        "ArbitrumTreasuryGovernor::VoteCastWithParams - {}",
-                        "NOT STORED".red(),
-                    ),
+                for chunk in results.chunks(10) {
+                    let mut votes: Vec<vote_new::ActiveModel> = Vec::new();
+                    for result in chunk.iter().cloned() {
+                        let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
+                            .await
+                            .expect("Failed to estimate created timestamp");
+
+                        votes.push(vote_new::ActiveModel {
+                            id: NotSet,
+                            voter_address: Set(to_checksum(&result.event_data.voter, None)),
+                            choice: Set(match result.event_data.support {
+                                0 => 1.into(),
+                                1 => 0.into(),
+                                2 => 2.into(),
+                                _ => 2.into(),
+                            }),
+                            voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
+                            reason: Set(Some(result.event_data.reason)),
+                            created_at: Set(created_at),
+                            block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
+                            txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
+                            proposal_external_id: Set(result.event_data.proposal_id.to_string()),
+                            proposal_id: NotSet,
+                            dao_id: get_dao_id(),
+                            indexer_id: get_votes_dao_indexer_id(),
+                        });
+                    }
+
+                    match store_votes(votes, get_proposals_dao_indexer_id().take().unwrap()).await {
+                        Ok(_) => rindexer_info!(
+                            "ArbitrumTreasuryGovernor::VoteCastWithParams - {}",
+                            "STORED".blue(),
+                        ),
+                        Err(e) => rindexer_info!(
+                            "ArbitrumTreasuryGovernor::VoteCastWithParams - {} - {}",
+                            "NOT STORED".red(),
+                            e.to_string()
+                        ),
+                    }
                 }
 
                 Ok(())
@@ -385,6 +398,7 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
     )
     .register(manifest_path, registry);
 }
+
 pub async fn arbitrum_treasury_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     // proposal_canceled_handler(manifest_path, registry).await;
 

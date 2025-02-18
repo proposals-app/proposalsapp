@@ -7,7 +7,11 @@ use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use rindexer::provider::JsonRpcCachedProvider;
 use serde::Deserialize;
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
 use tokio::time::sleep;
 use tracing::{event, Level};
 
@@ -98,13 +102,55 @@ struct EstimateBlock {
     result: String,
 }
 
+#[derive(Clone)]
+struct BlockNumberCache {
+    block_number: u64,
+    timestamp: Instant,
+}
+
+lazy_static! {
+    static ref BLOCK_NUMBER_CACHE: Mutex<HashMap<&'static str, BlockNumberCache>> = Mutex::new(HashMap::new());
+}
+
+async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCachedProvider) -> Result<u64> {
+    const CACHE_DURATION: Duration = Duration::from_secs(1);
+
+    // Try to get cached value first
+    let should_fetch = {
+        let cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
+        match cache.get(network) {
+            Some(cached) => cached.timestamp.elapsed() >= CACHE_DURATION,
+            None => true,
+        }
+    };
+
+    if should_fetch {
+        // Fetch new value
+        let current_block = provider.get_block_number().await?.as_u64();
+
+        // Update cache
+        let mut cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
+        cache.insert(
+            network,
+            BlockNumberCache {
+                block_number: current_block,
+                timestamp: Instant::now(),
+            },
+        );
+        Ok(current_block)
+    } else {
+        // Return cached value
+        let cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
+        Ok(cache.get(network).unwrap().block_number)
+    }
+}
+
 pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Result<NaiveDateTime> {
     let config = get_chain_config(network)?;
     let provider = config.provider.get_inner_provider();
 
-    let current_block = provider.get_block_number().await?.as_u64();
+    let current_block = get_cached_block_number(network, &config.provider).await?;
 
-    // If the requested block is already in the past, fetch the block timestamp directly.
     if block_number < current_block {
         let block = provider
             .get_block(BlockId::Number(block_number.into()))
@@ -194,54 +240,94 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
 
         match response {
             Ok(res) => {
-                let contents = res.text().await?;
-                match serde_json::from_str::<EstimateTimestamp>(&contents) {
+                let status = res.status();
+
+                // Check if status code indicates an error
+                if !status.is_success() {
+                    event!(
+                        Level::WARN,
+                        status = %status,
+                        "Received error status code from API, retrying..."
+                    );
+                    if attempt < 5 {
+                        sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
+                        continue;
+                    }
+                    return Ok(None);
+                }
+
+                // Check content type
+                let content_type = res
+                    .headers()
+                    .get(reqwest::header::CONTENT_TYPE)
+                    .and_then(|h| h.to_str().ok())
+                    .unwrap_or("");
+
+                if !content_type.contains("application/json") {
+                    event!(
+                        Level::WARN,
+                        content_type = %content_type,
+                        "Unexpected content type from API, expected application/json, retrying..."
+                    );
+                    if attempt < 5 {
+                        sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
+                        continue;
+                    }
+                    return Ok(None);
+                }
+
+                // Try to parse the JSON response
+                match res.json::<EstimateTimestamp>().await {
                     Ok(parsed_response) => {
                         if parsed_response.status != "1" {
                             event!(
                                 Level::WARN,
                                 status = parsed_response.status,
                                 message = parsed_response.message,
-                                content = %contents,
                                 "Scanner API returned status != 1, retrying..."
                             );
                             if attempt < 5 {
-                                sleep(Duration::from_millis(2u64.pow(attempt))).await;
-                                continue; // Retry if status is not success.
-                            } else {
-                                return Ok(Some(parsed_response)); // Return last response with
-                                                                  // non-success status
+                                sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
+                                continue;
                             }
                         }
                         return Ok(Some(parsed_response));
                     }
                     Err(e) => {
-                        event!(Level::WARN, error = %e, content = %contents, "Failed to deserialize scanner response, retrying...");
+                        event!(
+                            Level::WARN,
+                            error = %e,
+                            "Failed to deserialize scanner response, retrying..."
+                        );
                         if attempt < 5 {
-                            sleep(Duration::from_millis(2u64.pow(attempt))).await;
-                            continue; // Retry if deserialization fails.
-                        } else {
-                            return Err(anyhow::anyhow!(
-                                "Failed to deserialize scanner response after retries: {}\nContent: {}",
-                                e,
-                                contents
-                            ));
+                            sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
+                            continue;
                         }
+                        return Ok(None);
                     }
                 }
             }
             Err(e) if attempt < 5 => {
-                event!(Level::WARN, error = %e, "Request failed, retrying... Attempt: {}", attempt);
-                sleep(Duration::from_millis(2u64.pow(attempt))).await;
+                event!(
+                    Level::WARN,
+                    error = %e,
+                    "Request failed, retrying... Attempt: {}",
+                    attempt
+                );
+                sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
             }
             Err(e) => {
-                event!(Level::ERROR, error = %e, "Request failed after retries");
-                return Ok(None); // Return Ok(None) to indicate failure after retries.
+                event!(
+                    Level::ERROR,
+                    error = %e,
+                    "Request failed after all retries"
+                );
+                return Ok(None);
             }
         }
     }
 
-    Ok(None) // Indicate failure if loop completes without returning inside.
+    Ok(None)
 }
 
 #[cfg(test)]

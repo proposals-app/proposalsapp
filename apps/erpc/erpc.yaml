@@ -1,0 +1,23 @@
+logLevel: warn
+
+database:
+  evmJsonRpcCache:
+    connectors:
+      - id: postgres-cache
+        driver: postgresql
+        postgresql:
+          connectionUri: ${DATABASE_URL}
+          table: rpc_cache
+          initTimeout: 5s
+          getTimeout: 5s
+          setTimeout: 30s
+    policies:
+      - network: "*"
+        method: "*"
+        finality: finalized
+        connector: postgres-cache
+
+projects:
+  - id: main
+    upstreams:
+      - endpoint: alchemy://${ALCHEMY_KEY}

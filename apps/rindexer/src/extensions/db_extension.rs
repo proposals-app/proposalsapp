@@ -2,11 +2,7 @@ use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
 use proposalsapp_db::models::{dao, dao_indexer, proposal_new, sea_orm_active_enums::IndexerVariant, vote_new};
 use sea_orm::{prelude::Uuid, ActiveValue::NotSet, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait};
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Mutex,
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Mutex, time::Duration};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static DAO_INDEXER_ID_MAP: OnceCell<Mutex<HashMap<IndexerVariant, Uuid>>> = OnceCell::new();
@@ -112,26 +108,12 @@ pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Resul
     Ok(())
 }
 
-pub async fn store_votes(votes: Vec<vote_new::ActiveModel>) -> Result<()> {
+pub async fn store_votes(votes: Vec<vote_new::ActiveModel>, proposals_indexer_id: Uuid) -> Result<()> {
     if votes.is_empty() {
         return Ok(());
     }
 
     let txn = DB.get().unwrap().begin().await?;
-
-    let indexer_ids: HashSet<Uuid> = votes
-        .iter()
-        .filter_map(|v| v.indexer_id.clone().take())
-        .collect();
-
-    if indexer_ids.len() != 1 {
-        txn.rollback().await?;
-        return Err(anyhow::anyhow!(
-            "Votes must belong to a single dao_indexer, found indexer IDs: {:?}",
-            indexer_ids
-        ));
-    }
-    let indexer_id = indexer_ids.iter().next().unwrap();
 
     let proposal_external_ids: Vec<String> = votes
         .iter()
@@ -140,7 +122,7 @@ pub async fn store_votes(votes: Vec<vote_new::ActiveModel>) -> Result<()> {
 
     let proposals: HashMap<String, proposal_new::Model> = proposal_new::Entity::find()
         .filter(proposal_new::Column::ExternalId.is_in(proposal_external_ids.clone()))
-        .filter(proposal_new::Column::DaoIndexerId.eq(*indexer_id))
+        .filter(proposal_new::Column::DaoIndexerId.eq(proposals_indexer_id))
         .all(&txn)
         .await?
         .into_iter()
@@ -161,7 +143,7 @@ pub async fn store_votes(votes: Vec<vote_new::ActiveModel>) -> Result<()> {
                 txid: vote_model.txid.clone(),
                 proposal_external_id: vote_model.proposal_external_id.clone(),
                 dao_id: vote_model.dao_id.clone(),
-                indexer_id: Set(*indexer_id),
+                indexer_id: vote_model.indexer_id.clone(),
                 proposal_id: Set(proposal.id),
                 id: NotSet,
             };

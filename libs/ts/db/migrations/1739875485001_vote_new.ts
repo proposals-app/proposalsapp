@@ -30,7 +30,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_vote_new_proposal_id",
       ["proposal_id"],
-      "proposal",
+      "proposal_new",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
