@@ -49,7 +49,6 @@ pub async fn initialize_db() -> Result<()> {
 
 pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
-    println!("Storing {} proposals", proposals.len());
 
     const BATCH_SIZE: usize = 100;
 
@@ -73,6 +72,7 @@ pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Resul
                         proposal_new::Column::EndAt,
                         proposal_new::Column::Metadata,
                         proposal_new::Column::Author,
+                        proposal_new::Column::Txid,
                     ])
                     .to_owned(),
             )
@@ -94,7 +94,7 @@ pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Resul
 
 pub async fn store_votes(votes: Vec<vote::ActiveModel>) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
-    println!("Storing {} votes", votes.len());
+
     txn.commit().await?;
     Ok(())
 }

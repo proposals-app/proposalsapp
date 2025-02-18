@@ -107,6 +107,7 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
 
     let current_block = provider.get_block_number().await?.as_u64();
 
+    // If the requested block is already in the past, fetch the block timestamp directly.
     if block_number < current_block {
         let block = provider
             .get_block(BlockId::Number(block_number.into()))
@@ -118,23 +119,36 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
             .naive_utc());
     }
 
-    let response = retry_request(
+    // Attempt to get estimated timestamp from block explorer API.
+    match retry_request(
         config.scan_api_url.as_ref().context("Scan API URL is missing")?,
         &config.scan_api_key.context("Scan API key is missing")?,
         block_number,
     )
-    .await?;
-
-    let estimated_time_in_sec: i64 = response.result.estimate_time_in_sec.parse()?;
-    let estimated_naive_datetime = Utc::now()
-        .checked_add_signed(chrono::Duration::seconds(estimated_time_in_sec))
-        .context("Failed to add duration to current time")?
-        .naive_utc();
-
-    Ok(estimated_naive_datetime)
+    .await
+    {
+        Ok(Some(response)) => {
+            let estimated_time_in_sec: i64 = response.result.estimate_time_in_sec.parse()?;
+            let estimated_naive_datetime = Utc::now()
+                .checked_add_signed(chrono::Duration::seconds(estimated_time_in_sec))
+                .context("Failed to add duration to current time")?
+                .naive_utc();
+            Ok(estimated_naive_datetime)
+        }
+        Ok(None) => {
+            event!(Level::WARN, network = network, block_number = block_number, "Failed to estimate timestamp from API after retries, returning epoch 0");
+            // Return epoch 0 timestamp if API request fails after retries.
+            Ok(NaiveDateTime::UNIX_EPOCH)
+        }
+        Err(e) => {
+            event!(Level::ERROR, network = network, block_number = block_number, error = %e, "Error estimating timestamp, returning epoch 0");
+            // Return epoch 0 timestamp if there's an error during the API request.
+            Ok(NaiveDateTime::UNIX_EPOCH)
+        }
+    }
 }
 
-async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<EstimateTimestamp> {
+async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Option<EstimateTimestamp>> {
     let client = ClientBuilder::new(reqwest::Client::new())
         .with(RetryTransientMiddleware::new_with_policy(
             ExponentialBackoff::builder().build_with_max_retries(5),
@@ -154,18 +168,29 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Estim
         match response {
             Ok(res) => {
                 let contents = res.text().await?;
-                return serde_json::from_str(&contents).context("Failed to deserialize scanner response");
+                match serde_json::from_str::<EstimateTimestamp>(&contents) {
+                    Ok(parsed_response) => return Ok(Some(parsed_response)),
+                    Err(e) => {
+                        event!(Level::WARN, error = %e, content = %contents, "Failed to deserialize scanner response, retrying...");
+                        if attempt < 5 {
+                            sleep(Duration::from_millis(2u64.pow(attempt))).await;
+                            continue; // Retry if deserialization fails.
+                        } else {
+                            return Err(anyhow::anyhow!("Failed to deserialize scanner response after retries: {}", e));
+                        }
+                    }
+                }
             }
-            Err(_) if attempt < 5 => {
-                event!(Level::WARN, "Request failed, retrying... Attempt: {}", attempt);
+            Err(e) if attempt < 5 => {
+                event!(Level::WARN, error = %e, "Request failed, retrying... Attempt: {}", attempt);
                 sleep(Duration::from_millis(2u64.pow(attempt))).await;
             }
             Err(e) => {
                 event!(Level::ERROR, error = %e, "Request failed after retries");
-                return Err(anyhow::anyhow!("Failed to estimate timestamp after retries"));
+                return Ok(None); // Return Ok(None) to indicate failure after retries.
             }
         }
     }
 
-    unreachable!() // We should never reach here due to the loop structure
+    Ok(None) // Indicate failure if loop completes without returning inside.
 }

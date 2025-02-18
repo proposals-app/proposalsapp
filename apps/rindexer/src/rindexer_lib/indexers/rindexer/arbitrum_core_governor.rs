@@ -1,29 +1,23 @@
 #![allow(non_snake_case)]
 use super::super::super::typings::rindexer::events::arbitrum_core_governor::{
-    no_extensions, ArbitrumCoreGovernorEventType, InitializedEvent, LateQuorumVoteExtensionSetEvent, OwnershipTransferredEvent,
-    ProposalCanceledEvent, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent,
-    ProposalThresholdSetEvent, QuorumNumeratorUpdatedEvent, TimelockChangeEvent, VoteCastEvent, VoteCastWithParamsEvent,
-    VotingDelaySetEvent, VotingPeriodSetEvent,
+    no_extensions, ArbitrumCoreGovernorEventType, ProposalCanceledEvent, ProposalCreatedEvent, ProposalExecutedEvent,
+    ProposalExtendedEvent, ProposalQueuedEvent, VoteCastEvent, VoteCastWithParamsEvent,
 };
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
         db_extension::{store_proposals, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP, DB},
     },
-    rindexer_lib::typings::{
-        networks::{get_arbitrum_provider, get_ethereum_provider},
-        rindexer::events::arbitrum_core_governor::arbitrum_core_governor_contract,
-    },
+    rindexer_lib::typings::rindexer::events::arbitrum_core_governor::arbitrum_core_governor_contract,
 };
 use anyhow::{Context, Result};
-use chrono::{DateTime, NaiveDateTime};
+use chrono::NaiveDateTime;
 use ethers::{
-    providers::Middleware,
-    types::{BlockId, U256},
-    utils::hex,
+    types::U256,
+    utils::hex::{self, ToHex},
 };
 use proposalsapp_db::models::{
-    proposal, proposal_new,
+    proposal_new,
     sea_orm_active_enums::{IndexerVariant, ProposalState},
 };
 use rindexer::{
@@ -59,75 +53,6 @@ fn get_dao_id() -> ActiveValue<Uuid> {
         .unwrap_or(NotSet)
 }
 
-async fn initialized_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::Initialized(
-        InitializedEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::Initialized - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
-async fn late_quorum_vote_extension_set_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::LateQuorumVoteExtensionSet(
-        LateQuorumVoteExtensionSetEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::LateQuorumVoteExtensionSet - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
-async fn ownership_transferred_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::OwnershipTransferred(
-        OwnershipTransferredEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::OwnershipTransferred - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
 async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::ProposalCanceled(
         ProposalCanceledEvent::handler(
@@ -141,7 +66,6 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
                 for result in results.clone() {
                     proposals.push(proposal_new::ActiveModel {
                         id: NotSet,
-
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: NotSet,
                         body: NotSet,
@@ -172,7 +96,7 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
                 match store_proposals(proposals).await {
                     Ok(_) => rindexer_info!(
                         "ArbitrumCoreGovernor::ProposalCanceled - {} - {} events",
-                        "STORED".green(),
+                        "STORED".blue(),
                         results.len(),
                     ),
                     Err(_) => rindexer_info!(
@@ -195,12 +119,6 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
     ArbitrumCoreGovernorEventType::ProposalCreated(
         ProposalCreatedEvent::handler(
             |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                let mut proposals: Vec<proposal_new::ActiveModel> = Vec::new();
-
                 for result in results.clone() {
                     let arbitrum_core_governor = arbitrum_core_governor_contract("arbitrum");
 
@@ -255,7 +173,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         .await
                         .expect("Failed to calculate total delegated voting power");
 
-                    proposals.push(proposal_new::ActiveModel {
+                    let proposal = proposal_new::ActiveModel {
                         id: NotSet,
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: Set(title),
@@ -271,31 +189,23 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         end_at: Set(end_at),
                         block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
                         metadata: Set(json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": total_delegated_vp}).into()),
-                        txid: Set(Some(hex::encode(result.tx_information.transaction_hash.to_string()))),
+                        txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
                         dao_indexer_id: get_dao_indexer_id(),
                         dao_id: get_dao_id(),
                         author: NotSet,
-                    });
+                    };
+
+                    match store_proposals(vec![proposal]).await {
+                        Ok(_) => rindexer_info!("ArbitrumCoreGovernor::ProposalCreated - {}", "STORED".blue(),),
+                        Err(_) => rindexer_info!("ArbitrumCoreGovernor::ProposalCreated - {}", "NOT STORED".red(),),
+                    }
                 }
 
                 rindexer_info!(
-                    "ArbitrumCoreGovernor::ProposalCanceled - {} - {} events",
+                    "ArbitrumCoreGovernor::ProposalCreated - {} - {} events",
                     "INDEXED".green(),
                     results.len(),
                 );
-
-                match store_proposals(proposals).await {
-                    Ok(_) => rindexer_info!(
-                        "ArbitrumCoreGovernor::ProposalCanceled - {} - {} events",
-                        "STORED".green(),
-                        results.len(),
-                    ),
-                    Err(_) => rindexer_info!(
-                        "ArbitrumCoreGovernor::ProposalCanceled - {} - {} events",
-                        "NOT STORED".red(),
-                        results.len(),
-                    ),
-                }
 
                 Ok(())
             },
@@ -375,75 +285,6 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
     .register(manifest_path, registry);
 }
 
-async fn proposal_threshold_set_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::ProposalThresholdSet(
-        ProposalThresholdSetEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::ProposalThresholdSet - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
-async fn quorum_numerator_updated_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::QuorumNumeratorUpdated(
-        QuorumNumeratorUpdatedEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::QuorumNumeratorUpdated - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
-async fn timelock_change_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::TimelockChange(
-        TimelockChangeEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::TimelockChange - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
 async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::VoteCast(
         VoteCastEvent::handler(
@@ -485,60 +326,8 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
     )
     .register(manifest_path, registry);
 }
-
-async fn voting_delay_set_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::VotingDelaySet(
-        VotingDelaySetEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::VotingDelaySet - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
-async fn voting_period_set_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::VotingPeriodSet(
-        VotingPeriodSetEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::VotingPeriodSet - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
 pub async fn arbitrum_core_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    // initialized_handler(manifest_path, registry).await;
-
-    // late_quorum_vote_extension_set_handler(manifest_path, registry).await;
-
-    // ownership_transferred_handler(manifest_path, registry).await;
-
-    proposal_canceled_handler(manifest_path, registry).await;
+    // proposal_canceled_handler(manifest_path, registry).await;
 
     proposal_created_handler(manifest_path, registry).await;
 
@@ -548,19 +337,9 @@ pub async fn arbitrum_core_governor_handlers(manifest_path: &PathBuf, registry: 
 
     // proposal_queued_handler(manifest_path, registry).await;
 
-    // proposal_threshold_set_handler(manifest_path, registry).await;
-
-    // quorum_numerator_updated_handler(manifest_path, registry).await;
-
-    // timelock_change_handler(manifest_path, registry).await;
-
     // vote_cast_handler(manifest_path, registry).await;
 
     // vote_cast_with_params_handler(manifest_path, registry).await;
-
-    // voting_delay_set_handler(manifest_path, registry).await;
-
-    // voting_period_set_handler(manifest_path, registry).await;
 }
 
 fn extract_title(description: &str) -> String {
