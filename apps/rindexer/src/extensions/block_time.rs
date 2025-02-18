@@ -91,7 +91,7 @@ struct EstimateTimestampResult {
 struct EstimateTimestamp {
     status: String,
     message: String,
-    result: EstimateTimestampResult,
+    result: Option<EstimateTimestampResult>, // result can be None if status is not "1"
 }
 
 #[derive(Deserialize, PartialEq, Debug)]
@@ -128,7 +128,27 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
     .await
     {
         Ok(Some(response)) => {
-            let estimated_time_in_sec: i64 = response.result.estimate_time_in_sec.parse()?;
+            if response.status != "1" {
+                event!(
+                    Level::WARN,
+                    network = network,
+                    block_number = block_number,
+                    message = response.message,
+                    "Scanner API returned status != 1"
+                );
+                return Ok(NaiveDateTime::UNIX_EPOCH); // Return epoch if API status is not success
+            }
+
+            let result = response.result.context("API result is missing")?; // Check if result exists
+            let estimated_time_in_sec_str = &result.estimate_time_in_sec;
+            event!(Level::DEBUG, network = network, block_number = block_number, estimate_time_in_sec = %estimated_time_in_sec_str, "Parsing estimate_time_in_sec");
+
+            let estimated_time_in_sec_f64: f64 = estimated_time_in_sec_str.parse().context(format!(
+                "Failed to parse estimate_time_in_sec to f64: '{}'",
+                estimated_time_in_sec_str
+            ))?;
+            let estimated_time_in_sec = estimated_time_in_sec_f64 as i64; // Truncate to integer
+
             let estimated_naive_datetime = Utc::now()
                 .checked_add_signed(chrono::Duration::seconds(estimated_time_in_sec))
                 .context("Failed to add duration to current time")?
@@ -169,14 +189,31 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
             Ok(res) => {
                 let contents = res.text().await?;
                 match serde_json::from_str::<EstimateTimestamp>(&contents) {
-                    Ok(parsed_response) => return Ok(Some(parsed_response)),
+                    Ok(parsed_response) => {
+                        if parsed_response.status != "1" {
+                            event!(
+                                Level::WARN,
+                                status = parsed_response.status,
+                                message = parsed_response.message,
+                                content = %contents,
+                                "Scanner API returned status != 1, retrying..."
+                            );
+                            if attempt < 5 {
+                                sleep(Duration::from_millis(2u64.pow(attempt))).await;
+                                continue; // Retry if status is not success.
+                            } else {
+                                return Ok(Some(parsed_response)); // Return last response with non-success status
+                            }
+                        }
+                        return Ok(Some(parsed_response));
+                    }
                     Err(e) => {
                         event!(Level::WARN, error = %e, content = %contents, "Failed to deserialize scanner response, retrying...");
                         if attempt < 5 {
                             sleep(Duration::from_millis(2u64.pow(attempt))).await;
                             continue; // Retry if deserialization fails.
                         } else {
-                            return Err(anyhow::anyhow!("Failed to deserialize scanner response after retries: {}", e));
+                            return Err(anyhow::anyhow!("Failed to deserialize scanner response after retries: {}\nContent: {}", e, contents));
                         }
                     }
                 }
@@ -193,4 +230,100 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
     }
 
     Ok(None) // Indicate failure if loop completes without returning inside.
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+
+    #[tokio::test]
+    async fn test_estimate_timestamp_ethereum_future_block() -> Result<()> {
+        let current_block = get_ethereum_provider_cache().get_block_number().await?.as_u64();
+        let future_block_number = current_block + 100;
+        let estimated_time = estimate_timestamp("ethereum", future_block_number).await?;
+
+        // Check if the estimated time is not epoch and is in the future (within a reasonable bound, e.g., a few hours from now).
+        let now = Utc::now().naive_utc();
+        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time should not be epoch");
+        assert!(estimated_time > now - Duration::hours(1), "Estimated time should be in the future or very recent"); // Relaxed bound
+        assert!(estimated_time < now + Duration::hours(24), "Estimated time should not be too far in the future"); // Set an upper bound to avoid test failures if blocks are very delayed.
+
+        println!("Estimated time for ethereum block {}: {:?}", future_block_number, estimated_time);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_estimate_timestamp_ethereum_past_block() -> Result<()> {
+        // Choose a block number in the past, but not too old to ensure it's still available on providers.
+        let current_block = get_ethereum_provider_cache().get_block_number().await?.as_u64();
+        let past_block_number = current_block - 1000; // Example past block, 1000 blocks behind
+        let estimated_time = estimate_timestamp("ethereum", past_block_number).await?;
+
+        // For past blocks, we expect a valid timestamp fetched directly from the provider, not epoch.
+        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time for past block should not be epoch");
+
+        // Optionally, we can further assert if the timestamp is indeed in the past.
+        let now = Utc::now().naive_utc();
+        assert!(estimated_time < now, "Estimated time for past block should be in the past");
+
+        println!("Estimated time for ethereum block {}: {:?}", past_block_number, estimated_time);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_estimate_timestamp_polygon_past_block() -> Result<()> {
+        // Polygon doesn't use API key in config, so this tests provider fallback for past blocks.
+        let current_block = get_polygon_provider_cache().get_block_number().await?.as_u64();
+        let past_block_number = current_block - 1000; // Example past block for polygon
+        let estimated_time = estimate_timestamp("polygon", past_block_number).await?;
+
+        // Should fetch from provider, so expect valid timestamp, not epoch.
+        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time for polygon past block should not be epoch");
+
+        println!("Estimated time for polygon block {}: {:?}", past_block_number, estimated_time);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_estimate_timestamp_unsupported_network() -> Result<()> {
+        let result = estimate_timestamp("unsupported_network", 1000000).await;
+        assert!(result.is_err(), "Expected error for unsupported network");
+        assert_eq!(result.unwrap_err().to_string(), "Unsupported network: unsupported_network");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_estimate_timestamp_arbitrum_future_block() -> Result<()> {
+        // Requires ARBISCAN_API_KEY env variable.
+        let current_block = get_arbitrum_provider_cache().get_block_number().await?.as_u64();
+        let future_block_number = current_block + 100; // Example future block for arbitrum
+        let estimated_time = estimate_timestamp("arbitrum", future_block_number).await?;
+
+        // Check if the estimated time is not epoch and is in the future.
+        let now = Utc::now().naive_utc();
+        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time should not be epoch");
+        assert!(estimated_time > now - Duration::hours(1), "Estimated time should be in the future or very recent");
+        assert!(estimated_time < now + Duration::hours(24), "Estimated time should not be too far in the future");
+
+        println!("Estimated time for arbitrum block {}: {:?}", future_block_number, estimated_time);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_estimate_timestamp_optimism_future_block() -> Result<()> {
+        // Requires OPTIMISTIC_SCAN_API_KEY env variable.
+        let current_block = get_optimism_provider_cache().get_block_number().await?.as_u64();
+        let future_block_number = current_block + 100; // Example future block for optimism
+        let estimated_time = estimate_timestamp("optimism", future_block_number).await?;
+
+        // Check if the estimated time is not epoch and is in the future.
+        let now = Utc::now().naive_utc();
+        assert!(estimated_time > NaiveDateTime::UNIX_EPOCH, "Estimated time should not be epoch");
+        assert!(estimated_time > now - Duration::hours(1), "Estimated time should be in the future or very recent");
+        assert!(estimated_time < now + Duration::hours(24), "Estimated time should not be too far in the future");
+
+        println!("Estimated time for optimism block {}: {:?}", future_block_number, estimated_time);
+        Ok(())
+    }
 }

@@ -1,5 +1,10 @@
 name: rindexer
 project_type: rust
+
+storage:
+  csv:
+    enabled: true
+
 networks:
   - name: ethereum
     chain_id: 1
