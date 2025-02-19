@@ -18,7 +18,7 @@ services:
       - redis
 
   redis:
-    image: redis:7.4-alpine
+    image: redis:7-alpine
     ports:
       - "6379:6379"
     environment:
@@ -29,24 +29,15 @@ services:
       --maxmemory 0
       --maxmemory-policy noeviction
       --io-threads 4
-      --io-threads-do-reads true
-      --active-defrag yes
-      --active-defrag-threshold-lower 10
-      --active-defrag-threshold-upper 100
-      --active-defrag-cycle-min 25
-      --active-defrag-cycle-max 75
-      --maxclients 100000
-      --tcp-backlog 511
-      --tcp-keepalive 300
-      --save ""
+      --maxclients 20000
     deploy:
       resources:
         limits:
           cpus: "4"
           memory: 10G
         reservations:
-          cpus: "2"
-          memory: 4G
+          cpus: "4"
+          memory: 8G
     volumes:
       - redis_data:/data
     networks:
