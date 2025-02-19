@@ -18,7 +18,7 @@ database:
           addr: redis:6379
           password: "${ERPC_REDIS_PASSWORD}"
           db: 0
-          connPoolSize: 4
+          connPoolSize: 128
           initTimeout: 10s
           getTimeout: 5s
           setTimeout: 5s
