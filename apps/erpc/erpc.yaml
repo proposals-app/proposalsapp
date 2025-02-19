@@ -40,9 +40,6 @@ projects:
   - id: main
     rateLimitBudget: main-limit
     upstreams:
-      - endpoint: https://arbitrum-one.blastapi.io/${ERPC_BLAST_KEY}
-      - endpoint: https://eth-mainnet.blastapi.io/${ERPC_BLAST_KEY}
-      - endpoint: alchemy://${ERPC_ALCHEMY_KEY}
       - endpoint: drpc://${ERPC_DRPC_KEY}
       - endpoint: envio://rpc.hypersync.xyz
 
