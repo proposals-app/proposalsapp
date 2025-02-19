@@ -3,10 +3,58 @@ services:
     image: ghcr.io/erpc/erpc:latest
     ports:
       - "4000:4000"
+      - "4001:4001"
     volumes:
       - ./erpc.yaml:/root/erpc.yaml
     restart: unless-stopped
     environment:
-      ERPC_ALCHEMY_KEY: ${ERPC_ALCHEMY_KEY}
-      ERPC_REDIS_URL: ${ERPC_REDIS_URL}
       ERPC_REDIS_PASSWORD: ${ERPC_REDIS_PASSWORD}
+      ERPC_ALCHEMY_KEY: ${ERPC_ALCHEMY_KEY}
+      ERPC_BLAST_KEY: ${ERPC_BLAST_KEY}
+      ERPC_DRPC_KEY: ${ERPC_DRPC_KEY}
+    networks:
+      - erpc_network
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    environment:
+      ERPC_REDIS_PASSWORD: ${ERPC_REDIS_PASSWORD}
+    command: redis-server --requirepass ${ERPC_REDIS_PASSWORD:-defaultpassword}
+    volumes:
+      - redis_data:/data
+    networks:
+      - erpc_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  monitoring:
+    build: ./monitoring
+    ports:
+      - "3000:3000" # Grafana
+      - "9090:9090" # Prometheus
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - ./monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
+      - prometheus_data:/prometheus
+      - grafana_data:/var/lib/grafana
+    networks:
+      - erpc_network
+    depends_on:
+      - erpc
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  redis_data:
+
+networks:
+  erpc_network:
+    driver: bridge

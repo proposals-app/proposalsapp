@@ -1,25 +1,55 @@
 logLevel: warn
 
+server:
+  httpHostV4: 0.0.0.0
+  httpPort: 4000
+  maxTimeout: 50s
+metrics:
+  enabled: true
+  hostV4: 0.0.0.0
+  port: 4001
+
 database:
   evmJsonRpcCache:
     connectors:
       - id: redis-cache
         driver: redis
         redis:
-          addr: ${ERPC_REDIS_URL}
-          password: "${ERPC_REIDS_PASSWORD}"
+          addr: redis:6379
+          password: "${ERPC_REDIS_PASSWORD}"
           db: 0
           connPoolSize: 512
-          initTimeout: 10s
-          getTimeout: 5s
-          setTimeout: 5s
+          initTimeout: 5s
+          getTimeout: 1s
+          setTimeout: 2s
     policies:
       - network: "*"
         method: "*"
+        empty: allow
         finality: finalized
         connector: redis-cache
+        ttl: 0
+      - network: "*"
+        method: "*"
+        finality: realtime
+        empty: allow
+        connector: redis-cache
+        ttl: 1s
 
 projects:
   - id: main
+    rateLimitBudget: main-limit
     upstreams:
+      - endpoint: https://arbitrum-one.blastapi.io/${ERPC_BLAST_KEY}
+      - endpoint: https://eth-mainnet.blastapi.io/${ERPC_BLAST_KEY}
       - endpoint: alchemy://${ERPC_ALCHEMY_KEY}
+      - endpoint: drpc://${ERPC_DRPC_KEY}
+      - endpoint: envio://rpc.hypersync.xyz
+
+rateLimiters:
+  budgets:
+    - id: main-limit
+      rules:
+        - method: "*"
+          maxCount: 100
+          period: 1s
