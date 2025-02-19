@@ -60,6 +60,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
+COPY --from=builder /app/abis /app/abis
+COPY --from=builder /app/rindexer.yaml /app/rindexer.yaml
 
 # Set the default command
 CMD ["proposalsapp-rindexer", "--indexer"]
