@@ -19,9 +19,9 @@ database:
           password: "${ERPC_REDIS_PASSWORD}"
           db: 0
           connPoolSize: 512
-          initTimeout: 5s
-          getTimeout: 1s
-          setTimeout: 2s
+          initTimeout: 10s
+          getTimeout: 5s
+          setTimeout: 5s
     policies:
       - network: "*"
         method: "*"
