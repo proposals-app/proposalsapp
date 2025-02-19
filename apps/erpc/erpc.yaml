@@ -12,6 +12,10 @@ metrics:
 database:
   evmJsonRpcCache:
     connectors:
+      - id: memory-cache
+        driver: memory
+        memory:
+          maxItems: 100000
       - id: redis-cache
         driver: redis
         redis:
@@ -33,7 +37,7 @@ database:
         method: "*"
         finality: realtime
         empty: allow
-        connector: redis-cache
+        connector: memory-cache
         ttl: 1s
 
 projects:
