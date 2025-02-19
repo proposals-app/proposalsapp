@@ -23,7 +23,13 @@ services:
       - "6379:6379"
     environment:
       ERPC_REDIS_PASSWORD: ${ERPC_REDIS_PASSWORD}
-    command: redis-server --requirepass ${ERPC_REDIS_PASSWORD:-defaultpassword}
+      command: >
+        redis-server
+        --requirepass ${ERPC_REDIS_PASSWORD:-defaultpassword}
+        --maxmemory 0
+        --maxmemory-policy noeviction
+        --io-threads 4
+        --io-threads-do-reads true
     volumes:
       - redis_data:/data
     networks:
