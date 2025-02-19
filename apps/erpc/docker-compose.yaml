@@ -28,7 +28,7 @@ services:
       --requirepass ${ERPC_REDIS_PASSWORD:-defaultpassword}
       --maxmemory 6g
       --maxmemory-policy allkeys-lru
-      --io-threads 8
+      --io-threads 4
       --io-threads-do-reads yes
       --maxclients 20000
       --save 900 1
