@@ -38,7 +38,7 @@ database:
 
 projects:
   - id: main
-    rateLimitBudget: main-limit
+    # rateLimitBudget: main-limit
     upstreams:
       - endpoint: drpc://${ERPC_DRPC_KEY}
       - endpoint: envio://rpc.hypersync.xyz
