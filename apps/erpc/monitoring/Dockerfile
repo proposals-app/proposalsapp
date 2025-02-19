@@ -9,7 +9,6 @@ RUN apt-get update && apt-get install -y curl
 COPY --from=prometheus /bin/prometheus /bin/prometheus
 COPY --from=prometheus /bin/promtool /bin/promtool
 COPY prometheus/prometheus.yml /etc/prometheus/prometheus.yml
-COPY prometheus/alert.rules /etc/prometheus/alert.rules
 
 # Copy Grafana files
 COPY --from=grafana /usr/share/grafana /usr/share/grafana
