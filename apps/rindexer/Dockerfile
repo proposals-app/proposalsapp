@@ -19,7 +19,8 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
-    libmysqlclient-dev \
+    python3 \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -37,7 +38,8 @@ COPY . .
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
-    libmysqlclient-dev \
+    libunwind-dev \
+    libdw-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Build the project
@@ -52,7 +54,8 @@ ARG APP_NAME
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
-    libmysqlclient21 \
+    libunwind-dev \
+    libdw-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
