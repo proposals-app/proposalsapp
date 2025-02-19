@@ -28,15 +28,15 @@ services:
       --requirepass ${ERPC_REDIS_PASSWORD:-defaultpassword}
       --maxmemory 0
       --maxmemory-policy noeviction
-      --io-threads 4
+      --io-threads 8
       --maxclients 20000
     deploy:
       resources:
         limits:
-          cpus: "4"
+          cpus: "8"
           memory: 10G
         reservations:
-          cpus: "4"
+          cpus: "8"
           memory: 8G
     volumes:
       - redis_data:/data

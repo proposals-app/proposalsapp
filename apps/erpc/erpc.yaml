@@ -18,7 +18,7 @@ database:
           addr: redis:6379
           password: "${ERPC_REDIS_PASSWORD}"
           db: 0
-          connPoolSize: 512
+          connPoolSize: 4
           initTimeout: 10s
           getTimeout: 5s
           setTimeout: 5s
@@ -38,14 +38,6 @@ database:
 
 projects:
   - id: main
-    # rateLimitBudget: main-limit
     upstreams:
       - endpoint: drpc://${ERPC_DRPC_KEY}
       - endpoint: envio://rpc.hypersync.xyz
-# rateLimiters:
-#   budgets:
-#     - id: main-limit
-#       rules:
-#         - method: "*"
-#           maxCount: 100
-#           period: 1s
