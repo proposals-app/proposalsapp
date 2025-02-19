@@ -42,11 +42,10 @@ projects:
     upstreams:
       - endpoint: drpc://${ERPC_DRPC_KEY}
       - endpoint: envio://rpc.hypersync.xyz
-
-rateLimiters:
-  budgets:
-    - id: main-limit
-      rules:
-        - method: "*"
-          maxCount: 100
-          period: 1s
+# rateLimiters:
+#   budgets:
+#     - id: main-limit
+#       rules:
+#         - method: "*"
+#           maxCount: 100
+#           period: 1s
