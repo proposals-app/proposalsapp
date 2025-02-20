@@ -7,23 +7,23 @@ database:
         driver: memory
         memory:
           maxItems: 100000
-      - id: redis-cache
-        driver: redis
-        redis:
-          addr: redis:6379
-          password: "${ERPC_REDIS_PASSWORD}"
-          db: 0
-          connPoolSize: 128
-          initTimeout: 5s
-          getTimeout: 1s
-          setTimeout: 2s
+      # - id: redis-cache
+      #   driver: redis
+      #   redis:
+      #     addr: redis:6379
+      #     password: "${ERPC_REDIS_PASSWORD}"
+      #     db: 0
+      #     connPoolSize: 128
+      #     initTimeout: 5s
+      #     getTimeout: 1s
+      #     setTimeout: 2s
     policies:
-      - network: "*"
-        method: "*"
-        empty: allow
-        finality: finalized
-        connector: redis-cache
-        ttl: 0
+      # - network: "*"
+      #   method: "*"
+      #   empty: allow
+      #   finality: finalized
+      #   connector: redis-cache
+      #   ttl: 0
       - network: "*"
         method: "*"
         finality: realtime
