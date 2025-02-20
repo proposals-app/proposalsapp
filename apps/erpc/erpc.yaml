@@ -50,4 +50,4 @@ projects:
       - id: hyperdx
         endpoint: envio://rpc.hypersync.xyz
         evm:
-          getLogsMaxBlockRange: 100000
+          getLogsMaxBlockRange: 1000000
