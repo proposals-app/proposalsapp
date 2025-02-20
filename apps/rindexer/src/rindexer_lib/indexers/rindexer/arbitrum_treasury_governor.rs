@@ -68,6 +68,23 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
     ArbitrumTreasuryGovernorEventType::ProposalCanceled(
         ProposalCanceledEvent::handler(
             |results, context| async move {
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_treasury_governor", "proposal_canceled"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
+
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -127,6 +144,23 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
     ArbitrumTreasuryGovernorEventType::ProposalCreated(
         ProposalCreatedEvent::handler(
             |results, context| async move {
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_treasury_governor", "proposal_created"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
+
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -246,6 +280,23 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
     ArbitrumTreasuryGovernorEventType::ProposalExecuted(
         ProposalExecutedEvent::handler(
             |results, context| async move {
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_treasury_governor", "proposal_executed"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
+
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -305,6 +356,23 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
     ArbitrumTreasuryGovernorEventType::ProposalExtended(
         ProposalExtendedEvent::handler(
             |results, context| async move {
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_treasury_governor", "proposal_extended"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
+
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -368,6 +436,23 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
     ArbitrumTreasuryGovernorEventType::ProposalQueued(
         ProposalQueuedEvent::handler(
             |results, context| async move {
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_treasury_governor", "proposal_queued"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
+
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -427,6 +512,23 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
     ArbitrumTreasuryGovernorEventType::VoteCast(
         VoteCastEvent::handler(
             |results, context| async move {
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_treasury_governor", "vote_cast"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
+
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -485,6 +587,23 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
     ArbitrumTreasuryGovernorEventType::VoteCastWithParams(
         VoteCastWithParamsEvent::handler(
             |results, context| async move {
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_treasury_governor", "vote_cast_with_params"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
+
                 if results.is_empty() {
                     return Ok(());
                 }
