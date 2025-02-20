@@ -117,7 +117,7 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
                             "ArbitrumCoreGovernor::ProposalCanceled - {}",
                             "STORED".blue(),
                         ),
-                        Err(e) => rindexer_info!(
+                        Err(e) => rindexer_error!(
                             "ArbitrumCoreGovernor::ProposalCanceled - {} - {}",
                             "NOT STORED".red(),
                             e.to_string(),
@@ -253,7 +253,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                             "ArbitrumCoreGovernor::ProposalCreated - {}",
                             "STORED".blue(),
                         ),
-                        Err(e) => rindexer_info!(
+                        Err(e) => rindexer_error!(
                             "ArbitrumCoreGovernor::ProposalCreated - {} - {}",
                             "NOT STORED".red(),
                             e.to_string(),
@@ -329,7 +329,7 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                             "ArbitrumCoreGovernor::ProposalExecuted - {}",
                             "STORED".blue(),
                         ),
-                        Err(e) => rindexer_info!(
+                        Err(e) => rindexer_error!(
                             "ArbitrumCoreGovernor::ProposalExecuted - {} - {}",
                             "NOT STORED".red(),
                             e.to_string(),
@@ -409,7 +409,7 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                             "ArbitrumCoreGovernor::ProposalExtended - {}",
                             "STORED".blue(),
                         ),
-                        Err(e) => rindexer_info!(
+                        Err(e) => rindexer_error!(
                             "ArbitrumCoreGovernor::ProposalExtended - {} - {}",
                             "NOT STORED".red(),
                             e.to_string(),
@@ -482,7 +482,7 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
 
                     match store_proposals(vec![proposal]).await {
                         Ok(_) => rindexer_info!("ArbitrumCoreGovernor::ProposalQueued - {}", "STORED".blue(),),
-                        Err(e) => rindexer_info!(
+                        Err(e) => rindexer_error!(
                             "ArbitrumCoreGovernor::ProposalQueued - {} - {}",
                             "NOT STORED".red(),
                             e.to_string(),
@@ -557,7 +557,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 
                     match store_votes(vec![vote], get_proposals_dao_indexer_id().take().unwrap()).await {
                         Ok(_) => rindexer_info!("ArbitrumCoreGovernor::VoteCast - {}", "STORED".blue(),),
-                        Err(e) => rindexer_info!(
+                        Err(e) => rindexer_error!(
                             "ArbitrumCoreGovernor::VoteCast - {} - {}",
                             "NOT STORED".red(),
                             e.to_string()
@@ -635,7 +635,7 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                             "ArbitrumCoreGovernor::VoteCastWithParams - {}",
                             "STORED".blue(),
                         ),
-                        Err(e) => rindexer_info!(
+                        Err(e) => rindexer_error!(
                             "ArbitrumCoreGovernor::VoteCastWithParams - {} - {}",
                             "NOT STORED".red(),
                             e.to_string()

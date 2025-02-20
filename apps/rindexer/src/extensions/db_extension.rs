@@ -62,7 +62,7 @@ pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Resul
     // Extract the indexer ID from the first proposal, assuming all proposals have the same indexer ID
     let indexer_id = proposals
         .first()
-        .and_then(|p| Some(p.dao_indexer_id.clone().unwrap()))
+        .map(|p| p.dao_indexer_id.clone().unwrap())
         .ok_or_else(|| anyhow::anyhow!("No proposals provided or missing dao_indexer_id"))?;
 
     let external_ids: Vec<String> = proposals
