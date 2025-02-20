@@ -42,6 +42,7 @@ database:
 
 projects:
   - id: main
+    rateLimitBudget: rate-limit
     upstreams:
       - id: alchemy
         endpoint: alchemy://${ERPC_ALCHEMY_KEY}
@@ -49,3 +50,11 @@ projects:
         endpoint: drpc://${ERPC_DRPC_KEY}
       - id: hyperdx
         endpoint: envio://rpc.hypersync.xyz
+
+rateLimiters:
+  budgets:
+    - id: rate-limit
+      rules:
+        - method: "*"
+          maxCount: 10
+          period: 1s
