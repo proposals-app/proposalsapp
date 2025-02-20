@@ -1,12 +1,12 @@
 services:
   erpc:
     image: ghcr.io/erpc/erpc:latest
+    restart: unless-stopped
     ports:
       - "4000:4000"
       - "4001:4001"
     volumes:
       - ./erpc.yaml:/root/erpc.yaml
-    restart: unless-stopped
     environment:
       ERPC_REDIS_PASSWORD: ${ERPC_REDIS_PASSWORD}
       ERPC_ALCHEMY_KEY: ${ERPC_ALCHEMY_KEY}
@@ -19,6 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
     environment:
@@ -56,6 +57,7 @@ services:
 
   monitoring:
     build: ./monitoring
+    restart: unless-stopped
     ports:
       - "3000:3000" # Grafana
       - "9090:9090" # Prometheus
