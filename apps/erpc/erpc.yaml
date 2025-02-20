@@ -46,8 +46,8 @@ projects:
       - id: drpc
         endpoint: drpc://${ERPC_DRPC_KEY}
         evm:
-          getLogsMaxBlockRange: 10000
+          getLogsMaxBlockRange: 1000000
       - id: hyperdx
         endpoint: envio://rpc.hypersync.xyz
         evm:
-          getLogsMaxBlockRange: 10000
+          getLogsMaxBlockRange: 100000
