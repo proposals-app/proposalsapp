@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use rindexer::provider::JsonRpcCachedProvider;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -76,7 +76,7 @@ fn get_chain_config(network: &'static str) -> Result<ChainConfig> {
         .context(format!("Unsupported network: {}", network))
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct EstimateTimestampResult {
     #[serde(rename = "CurrentBlock")]
     current_block: String,
@@ -88,11 +88,11 @@ struct EstimateTimestampResult {
     estimate_time_in_sec: String,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct EstimateTimestamp {
     status: String,
     message: String,
-    result: Option<EstimateTimestampResult>, // result can be None if status is not "1"
+    result: Option<EstimateTimestampResult>,
 }
 
 #[derive(Deserialize, PartialEq, Debug)]
@@ -164,61 +164,45 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
         );
     }
 
-    // Attempt to get estimated timestamp from block explorer API.
-    match retry_request(
-        config
-            .scan_api_url
-            .as_ref()
-            .context("Scan API URL is missing")?,
-        &config.scan_api_key.context("Scan API key is missing")?,
-        block_number,
-    )
-    .await
-    {
-        Ok(Some(response)) => {
-            if response.status != "1" {
-                event!(
-                    Level::WARN,
-                    network = network,
-                    block_number = block_number,
-                    message = response.message,
-                    "Scanner API returned status != 1"
-                );
-                return Ok(NaiveDateTime::UNIX_EPOCH); // Return epoch if API status is not success
+    // Attempt to get estimated timestamp from block explorer API
+    if let Some(scan_api_url) = &config.scan_api_url {
+        if let Some(scan_api_key) = &config.scan_api_key {
+            match retry_request(scan_api_url, scan_api_key, block_number).await? {
+                Some(response) => {
+                    if response.status == "1" {
+                        if let Some(result) = response.result {
+                            let estimate_time_in_sec: f64 = result
+                                .estimate_time_in_sec
+                                .parse()
+                                .context("Failed to parse EstimateTimeInSec")?;
+
+                            return Ok(Utc::now()
+                                .checked_add_signed(chrono::Duration::seconds(estimate_time_in_sec as i64))
+                                .context("Failed to add duration to current time")?
+                                .naive_utc());
+                        }
+                    }
+                }
+                None => {
+                    event!(
+                        Level::WARN,
+                        network = network,
+                        block_number = block_number,
+                        "Failed to get estimate from API"
+                    );
+                }
             }
-
-            let result = response.result.context("API result is missing")?; // Check if result exists
-            let estimated_time_in_sec_str = &result.estimate_time_in_sec;
-            event!(Level::DEBUG, network = network, block_number = block_number, estimate_time_in_sec = %estimated_time_in_sec_str, "Parsing estimate_time_in_sec");
-
-            let estimated_time_in_sec_f64: f64 = estimated_time_in_sec_str.parse().context(format!(
-                "Failed to parse estimate_time_in_sec to f64: '{}'",
-                estimated_time_in_sec_str
-            ))?;
-            let estimated_time_in_sec = estimated_time_in_sec_f64 as i64; // Truncate to integer
-
-            let estimated_naive_datetime = Utc::now()
-                .checked_add_signed(chrono::Duration::seconds(estimated_time_in_sec))
-                .context("Failed to add duration to current time")?
-                .naive_utc();
-            Ok(estimated_naive_datetime)
-        }
-        Ok(None) => {
-            event!(
-                Level::WARN,
-                network = network,
-                block_number = block_number,
-                "Failed to estimate timestamp from API after retries, returning epoch 0"
-            );
-            // Return epoch 0 timestamp if API request fails after retries.
-            Ok(NaiveDateTime::UNIX_EPOCH)
-        }
-        Err(e) => {
-            event!(Level::ERROR, network = network, block_number = block_number, error = %e, "Error estimating timestamp, returning epoch 0");
-            // Return epoch 0 timestamp if there's an error during the API request.
-            Ok(NaiveDateTime::UNIX_EPOCH)
         }
     }
+
+    // Fallback: Use simple estimation based on average block time
+    let blocks_in_future = block_number.saturating_sub(current_block);
+    let estimated_seconds = blocks_in_future * 12; // Assuming average block time of 12 seconds
+
+    Ok(Utc::now()
+        .checked_add_signed(chrono::Duration::seconds(estimated_seconds as i64))
+        .context("Failed to add duration to current time")?
+        .naive_utc())
 }
 
 async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Option<EstimateTimestamp>> {
@@ -229,99 +213,68 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
         .build();
 
     for attempt in 1..=5 {
-        let response = client
-            .get(format!(
-                "{}?module=block&action=getblockcountdown&blockno={}&apikey={}",
-                api_url, param, api_key
-            ))
+        let url = format!(
+            "{}?module=block&action=getblockcountdown&blockno={}&apikey={}",
+            api_url, param, api_key
+        );
+
+        event!(Level::DEBUG, url = %url, "Making API request");
+
+        let response = match client
+            .get(&url)
             .timeout(Duration::from_secs(5))
             .send()
-            .await;
-
-        match response {
-            Ok(res) => {
-                let status = res.status();
-
-                // Check if status code indicates an error
-                if !status.is_success() {
-                    event!(
-                        Level::WARN,
-                        status = %status,
-                        "Received error status code from API, retrying..."
-                    );
-                    if attempt < 5 {
-                        sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
-                        continue;
-                    }
-                    return Ok(None);
-                }
-
-                // Check content type
-                let content_type = res
-                    .headers()
-                    .get(reqwest::header::CONTENT_TYPE)
-                    .and_then(|h| h.to_str().ok())
-                    .unwrap_or("");
-
-                if !content_type.contains("application/json") {
-                    event!(
-                        Level::WARN,
-                        content_type = %content_type,
-                        "Unexpected content type from API, expected application/json, retrying..."
-                    );
-                    if attempt < 5 {
-                        sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
-                        continue;
-                    }
-                    return Ok(None);
-                }
-
-                // Try to parse the JSON response
-                match res.json::<EstimateTimestamp>().await {
-                    Ok(parsed_response) => {
-                        if parsed_response.status != "1" {
-                            event!(
-                                Level::WARN,
-                                status = parsed_response.status,
-                                message = parsed_response.message,
-                                "Scanner API returned status != 1, retrying..."
-                            );
-                            if attempt < 5 {
-                                sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
-                                continue;
-                            }
-                        }
-                        return Ok(Some(parsed_response));
-                    }
-                    Err(e) => {
-                        event!(
-                            Level::WARN,
-                            error = %e,
-                            "Failed to deserialize scanner response, retrying..."
-                        );
-                        if attempt < 5 {
-                            sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
-                            continue;
-                        }
-                        return Ok(None);
-                    }
-                }
-            }
-            Err(e) if attempt < 5 => {
+            .await
+        {
+            Ok(resp) => resp,
+            Err(e) => {
                 event!(
                     Level::WARN,
                     error = %e,
-                    "Request failed, retrying... Attempt: {}",
-                    attempt
+                    attempt = attempt,
+                    "Request failed, retrying..."
                 );
+                if attempt < 5 {
+                    sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
+                    continue;
+                }
+                return Ok(None);
+            }
+        };
+
+        let status = response.status();
+        if !status.is_success() {
+            event!(
+                Level::WARN,
+                status = %status,
+                "Received error status code from API"
+            );
+            if attempt < 5 {
                 sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
+                continue;
+            }
+            return Ok(None);
+        }
+
+        // Log the raw response for debugging
+        let response_text = response.text().await?;
+        event!(Level::DEBUG, response = %response_text, "Received API response");
+
+        match serde_json::from_str::<EstimateTimestamp>(&response_text) {
+            Ok(parsed_response) => {
+                return Ok(Some(parsed_response));
             }
             Err(e) => {
                 event!(
-                    Level::ERROR,
+                    Level::WARN,
                     error = %e,
-                    "Request failed after all retries"
+                    response = %response_text,
+                    "Failed to parse API response"
                 );
+                if attempt < 5 {
+                    sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
+                    continue;
+                }
                 return Ok(None);
             }
         }

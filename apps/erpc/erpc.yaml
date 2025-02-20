@@ -1,14 +1,5 @@
 logLevel: warn
 
-server:
-  httpHostV4: 0.0.0.0
-  httpPort: 4000
-  maxTimeout: 30s
-metrics:
-  enabled: true
-  hostV4: 0.0.0.0
-  port: 4001
-
 database:
   evmJsonRpcCache:
     connectors:
@@ -50,6 +41,16 @@ projects:
         endpoint: drpc://${ERPC_DRPC_KEY}
       - id: hyperdx
         endpoint: envio://rpc.hypersync.xyz
+      - id: drpc-eth-public
+        endpoint: https://eth.drpc.org
+      - id: drpc-arb-public
+        endpoint: https://arbitrum.drpc.org
+      - id: drpc-op-public
+        endpoint: https://optimism.drpc.org
+      - id: drpc-poly-public
+        endpoint: https://polygon.drpc.org
+      - id: drpc-ava-public
+        endpoint: https://avalanche.drpc.org
 
 rateLimiters:
   budgets:
