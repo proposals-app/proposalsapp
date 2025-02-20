@@ -38,7 +38,7 @@ contracts:
     details:
       - network: arbitrum
         address: "0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9"
-        start_block: 0
+        start_block: 70398215
     include_events:
       - ProposalCreated
       - ProposalCanceled
@@ -61,7 +61,7 @@ contracts:
     details:
       - network: arbitrum
         address: "0x789fC99093B09aD01C34DC7251D0C89ce743e5a4"
-        start_block: 0
+        start_block: 70398215
     include_events:
       - ProposalCreated
       - ProposalCanceled
@@ -84,7 +84,7 @@ contracts:
     details:
       - network: arbitrum
         address: "0x912CE59144191C1204E64559FE8253a0e49E6548"
-        start_block: 0
+        start_block: 70398215
     include_events:
       - DelegateVotesChanged
       - DelegateChanged
