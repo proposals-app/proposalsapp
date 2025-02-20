@@ -35,22 +35,14 @@ projects:
   - id: main
     rateLimitBudget: rate-limit
     upstreams:
-      - id: alchemy
-        endpoint: alchemy://${ERPC_ALCHEMY_KEY}
-      - id: drpc
-        endpoint: drpc://${ERPC_DRPC_KEY}
-      - id: hyperdx
-        endpoint: envio://rpc.hypersync.xyz
-      - id: drpc-eth-public
-        endpoint: https://eth.drpc.org
-      - id: drpc-arb-public
-        endpoint: https://arbitrum.drpc.org
-      - id: drpc-op-public
-        endpoint: https://optimism.drpc.org
-      - id: drpc-poly-public
-        endpoint: https://polygon.drpc.org
-      - id: drpc-ava-public
-        endpoint: https://avalanche.drpc.org
+      - endpoint: alchemy://${ERPC_ALCHEMY_KEY}
+      - endpoint: drpc://${ERPC_DRPC_KEY}
+      - endpoint: envio://rpc.hypersync.xyz
+      - endpoint: https://eth.drpc.org
+      - endpoint: https://arbitrum.drpc.org
+      - endpoint: https://optimism.drpc.org
+      - endpoint: https://polygon.drpc.org
+      - endpoint: https://avalanche.drpc.org
 
 rateLimiters:
   budgets:
