@@ -4,6 +4,7 @@ project_type: rust
 storage:
   postgres:
     enabled: true
+    disable_create_tables: true
 
 networks:
   - name: ethereum
@@ -41,16 +42,16 @@ contracts:
     include_events:
       - ProposalCreated
       - ProposalCanceled
-      - ProposalExecuted
       - ProposalExtended
+      - ProposalExecuted
       - ProposalQueued
       - VoteCast
       - VoteCastWithParams
     index_event_in_order:
       - ProposalCreated
       - ProposalCanceled
-      - ProposalExecuted
       - ProposalExtended
+      - ProposalExecuted
       - ProposalQueued
       - VoteCast
       - VoteCastWithParams
@@ -64,16 +65,16 @@ contracts:
     include_events:
       - ProposalCreated
       - ProposalCanceled
-      - ProposalExecuted
       - ProposalExtended
+      - ProposalExecuted
       - ProposalQueued
       - VoteCast
       - VoteCastWithParams
     index_event_in_order:
       - ProposalCreated
       - ProposalCanceled
-      - ProposalExecuted
       - ProposalExtended
+      - ProposalExecuted
       - ProposalQueued
       - VoteCast
       - VoteCastWithParams
