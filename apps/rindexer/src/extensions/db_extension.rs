@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
 use proposalsapp_db::models::{dao, dao_indexer, proposal_new, sea_orm_active_enums::IndexerVariant, vote_new};
-use sea_orm::{prelude::Uuid, ActiveValue::NotSet, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait};
+use sea_orm::{prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
@@ -57,51 +57,49 @@ pub async fn initialize_db() -> Result<()> {
 }
 
 pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Result<()> {
-    if proposals.is_empty() {
-        return Ok(());
-    }
-
     let txn = DB.get().unwrap().begin().await?;
 
-    const BATCH_SIZE: usize = 100;
+    // Extract the indexer ID from the first proposal, assuming all proposals have the same indexer ID
+    let indexer_id = proposals
+        .first()
+        .and_then(|p| Some(p.dao_indexer_id.clone().unwrap()))
+        .ok_or_else(|| anyhow::anyhow!("No proposals provided or missing dao_indexer_id"))?;
 
-    let proposal_chunks = proposals.chunks(BATCH_SIZE);
+    let external_ids: Vec<String> = proposals
+        .iter()
+        .map(|p| p.external_id.clone().unwrap())
+        .collect();
 
-    for chunk in proposal_chunks {
-        let result = proposal_new::Entity::insert_many(chunk.to_vec())
-            .on_conflict(
-                sea_orm::sea_query::OnConflict::columns([
-                    proposal_new::Column::ExternalId,
-                    proposal_new::Column::DaoIndexerId,
-                ])
-                .update_columns([
-                    proposal_new::Column::Name,
-                    proposal_new::Column::Body,
-                    proposal_new::Column::Url,
-                    proposal_new::Column::DiscussionUrl,
-                    proposal_new::Column::Choices,
-                    proposal_new::Column::Quorum,
-                    proposal_new::Column::ProposalState,
-                    proposal_new::Column::MarkedSpam,
-                    proposal_new::Column::CreatedAt,
-                    proposal_new::Column::StartAt,
-                    proposal_new::Column::EndAt,
-                    proposal_new::Column::Metadata,
-                    proposal_new::Column::Author,
-                    proposal_new::Column::Txid,
-                ])
-                .to_owned(),
-            )
+    let existing_proposals: HashMap<String, proposal_new::Model> = proposal_new::Entity::find()
+        .filter(
+            Condition::all()
+                .add(proposal_new::Column::ExternalId.is_in(external_ids.clone()))
+                .add(proposal_new::Column::DaoIndexerId.eq(indexer_id)),
+        )
+        .all(&txn)
+        .await?
+        .into_iter()
+        .map(|p| (p.external_id.clone(), p))
+        .collect();
+
+    let (to_insert, to_update): (Vec<_>, Vec<_>) = proposals
+        .into_iter()
+        .partition(|p| !existing_proposals.contains_key(&p.external_id.clone().unwrap()));
+
+    // Batch insert new proposals
+    if !to_insert.is_empty() {
+        proposal_new::Entity::insert_many(to_insert)
             .exec(&txn)
-            .await;
+            .await?;
+    }
 
-        if let Err(err) = result {
-            eprintln!("Error inserting proposals chunk: {:?}", err);
-            // Decide how to handle errors during chunk insertion.
-            // For example, you might want to rollback the transaction and return an error.
-            txn.rollback().await?;
-            return Err(err.into()); // Or handle the error as needed.
-        }
+    // Batch update existing proposals
+    for mut p in to_update {
+        let existing = existing_proposals
+            .get(&p.external_id.clone().unwrap())
+            .unwrap();
+        p.id = Set(existing.id);
+        proposal_new::Entity::update(p).exec(&txn).await?;
     }
 
     txn.commit().await?;
