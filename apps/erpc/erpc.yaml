@@ -43,5 +43,11 @@ database:
 projects:
   - id: main
     upstreams:
-      - endpoint: drpc://${ERPC_DRPC_KEY}
-      - endpoint: envio://rpc.hypersync.xyz
+      - id: drpc
+        endpoint: drpc://${ERPC_DRPC_KEY}
+        evm:
+          getLogsMaxBlockRange: 10000
+      - id: hyperdx
+        endpoint: envio://rpc.hypersync.xyz
+        evm:
+          getLogsMaxBlockRange: 10000
