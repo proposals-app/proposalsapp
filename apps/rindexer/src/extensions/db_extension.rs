@@ -98,63 +98,36 @@ pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Resul
         let external_id = p.external_id.clone().unwrap();
         let existing = existing_proposals.get(&external_id).unwrap();
 
-        let mut active_model = proposal_new::ActiveModel {
+        let active_model = proposal_new::ActiveModel {
             id: Set(existing.id),
-            ..Default::default()
+            external_id: Set(p.external_id.take().unwrap_or(existing.external_id.clone())),
+            name: Set(p.name.take().unwrap_or(existing.name.clone())),
+            body: Set(p.body.take().unwrap_or(existing.body.clone())),
+            url: Set(p.url.take().unwrap_or(existing.url.clone())),
+            discussion_url: Set(p
+                .discussion_url
+                .take()
+                .unwrap_or(existing.discussion_url.clone())),
+            choices: Set(p.choices.take().unwrap_or(existing.choices.clone())),
+            quorum: Set(p.quorum.take().unwrap_or(existing.quorum)),
+            proposal_state: Set(p
+                .proposal_state
+                .take()
+                .unwrap_or(existing.proposal_state.clone())),
+            marked_spam: Set(p.marked_spam.take().unwrap_or(existing.marked_spam)),
+            created_at: Set(p.created_at.take().unwrap_or(existing.created_at)),
+            start_at: Set(p.start_at.take().unwrap_or(existing.start_at)),
+            end_at: Set(p.end_at.take().unwrap_or(existing.end_at)),
+            block_created_at: Set(p
+                .block_created_at
+                .take()
+                .unwrap_or(existing.block_created_at)),
+            txid: Set(p.txid.take().unwrap_or(existing.txid.clone())),
+            metadata: Set(p.metadata.take().unwrap_or(existing.metadata.clone())),
+            dao_id: Set(p.dao_id.take().unwrap_or(existing.dao_id)),
+            author: Set(p.author.take().unwrap_or(existing.author.clone())),
+            dao_indexer_id: Set(p.dao_indexer_id.take().unwrap_or(existing.dao_indexer_id)),
         };
-
-        // Conditionally set fields if they are Some
-        if let Some(external_id) = p.external_id.take() {
-            active_model.external_id = Set(external_id);
-        }
-        if let Some(name) = p.name.take() {
-            active_model.name = Set(name);
-        }
-        if let Some(body) = p.body.take() {
-            active_model.body = Set(body);
-        }
-        if let Some(url) = p.url.take() {
-            active_model.url = Set(url);
-        }
-        if let Some(discussion_url) = p.discussion_url.take() {
-            active_model.discussion_url = Set(discussion_url);
-        }
-        if let Some(choices) = p.choices.take() {
-            active_model.choices = Set(choices);
-        }
-        if let Some(quorum) = p.quorum.take() {
-            active_model.quorum = Set(quorum);
-        }
-        if let Some(proposal_state) = p.proposal_state.take() {
-            active_model.proposal_state = Set(proposal_state);
-        }
-        if let Some(marked_spam) = p.marked_spam.take() {
-            active_model.marked_spam = Set(marked_spam);
-        }
-        if let Some(created_at) = p.created_at.take() {
-            active_model.created_at = Set(created_at);
-        }
-        if let Some(start_at) = p.start_at.take() {
-            active_model.start_at = Set(start_at);
-        }
-        if let Some(end_at) = p.end_at.take() {
-            active_model.end_at = Set(end_at);
-        }
-        if let Some(block_created_at) = p.block_created_at.take() {
-            active_model.block_created_at = Set(block_created_at);
-        }
-        if let Some(txid) = p.txid.take() {
-            active_model.txid = Set(txid);
-        }
-        if let Some(metadata) = p.metadata.take() {
-            active_model.metadata = Set(metadata);
-        }
-        if let Some(dao_id) = p.dao_id.take() {
-            active_model.dao_id = Set(dao_id);
-        }
-        if let Some(author) = p.author.take() {
-            active_model.author = Set(author);
-        }
 
         proposal_new::Entity::update(active_model)
             .exec(&txn)
