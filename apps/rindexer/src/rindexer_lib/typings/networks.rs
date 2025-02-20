@@ -28,14 +28,14 @@ lazy_static! {
     static ref ETHEREUM_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("ETHEREUM_NODE_URL").unwrap_or("ETHEREUM_NODE_URL".to_string()),
         None,
-        None,
+        Some(U64::from(1000000)),
         HeaderMap::new()
     )
     .expect("Error creating provider");
     static ref ARBITRUM_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("ARBITRUM_NODE_URL").unwrap_or("ARBITRUM_NODE_URL".to_string()),
         None,
-        None,
+        Some(U64::from(1000000)),
         HeaderMap::new()
     )
     .expect("Error creating provider");
