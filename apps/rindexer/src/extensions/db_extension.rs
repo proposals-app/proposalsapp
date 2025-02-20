@@ -95,11 +95,70 @@ pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Resul
 
     // Batch update existing proposals
     for mut p in to_update {
-        let existing = existing_proposals
-            .get(&p.external_id.clone().unwrap())
-            .unwrap();
-        p.id = Set(existing.id);
-        proposal_new::Entity::update(p).exec(&txn).await?;
+        let external_id = p.external_id.clone().unwrap();
+        let existing = existing_proposals.get(&external_id).unwrap();
+
+        let mut active_model = proposal_new::ActiveModel {
+            id: Set(existing.id),
+            ..Default::default()
+        };
+
+        // Conditionally set fields if they are Some
+        if let Some(external_id) = p.external_id.take() {
+            active_model.external_id = Set(external_id);
+        }
+        if let Some(name) = p.name.take() {
+            active_model.name = Set(name);
+        }
+        if let Some(body) = p.body.take() {
+            active_model.body = Set(body);
+        }
+        if let Some(url) = p.url.take() {
+            active_model.url = Set(url);
+        }
+        if let Some(discussion_url) = p.discussion_url.take() {
+            active_model.discussion_url = Set(discussion_url);
+        }
+        if let Some(choices) = p.choices.take() {
+            active_model.choices = Set(choices);
+        }
+        if let Some(quorum) = p.quorum.take() {
+            active_model.quorum = Set(quorum);
+        }
+        if let Some(proposal_state) = p.proposal_state.take() {
+            active_model.proposal_state = Set(proposal_state);
+        }
+        if let Some(marked_spam) = p.marked_spam.take() {
+            active_model.marked_spam = Set(marked_spam);
+        }
+        if let Some(created_at) = p.created_at.take() {
+            active_model.created_at = Set(created_at);
+        }
+        if let Some(start_at) = p.start_at.take() {
+            active_model.start_at = Set(start_at);
+        }
+        if let Some(end_at) = p.end_at.take() {
+            active_model.end_at = Set(end_at);
+        }
+        if let Some(block_created_at) = p.block_created_at.take() {
+            active_model.block_created_at = Set(block_created_at);
+        }
+        if let Some(txid) = p.txid.take() {
+            active_model.txid = Set(txid);
+        }
+        if let Some(metadata) = p.metadata.take() {
+            active_model.metadata = Set(metadata);
+        }
+        if let Some(dao_id) = p.dao_id.take() {
+            active_model.dao_id = Set(dao_id);
+        }
+        if let Some(author) = p.author.take() {
+            active_model.author = Set(author);
+        }
+
+        proposal_new::Entity::update(active_model)
+            .exec(&txn)
+            .await?;
     }
 
     txn.commit().await?;
