@@ -64,23 +64,6 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
     ArbitrumCoreGovernorEventType::ProposalCanceled(
         ProposalCanceledEvent::handler(
             |results, context| async move {
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_core_governor", "proposal_canceled"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
-
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -111,24 +94,30 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
                     });
                 }
 
-                match store_proposals(proposals.clone()).await {
-                    Ok(_) => rindexer_info!(
-                        "ArbitrumCoreGovernor::ProposalCanceled - {} - {}",
-                        "STORED".blue(),
-                        proposals.len(),
-                    ),
-                    Err(e) => rindexer_error!(
-                        "ArbitrumCoreGovernor::ProposalCanceled - {} - {}",
-                        "NOT STORED".red(),
-                        e.to_string(),
-                    ),
-                }
+                store_proposals(proposals.clone()).await;
 
                 rindexer_info!(
                     "ArbitrumCoreGovernor::ProposalCanceled - {} - {} events",
                     "INDEXED".green(),
                     results.len(),
                 );
+
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_core_governor", "proposal_canceled"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
 
                 Ok(())
             },
@@ -143,23 +132,6 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
     ArbitrumCoreGovernorEventType::ProposalCreated(
         ProposalCreatedEvent::handler(
             |results, context| async move {
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_core_governor", "proposal_created"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
-
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -250,24 +222,30 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     });
                 }
 
-                match store_proposals(proposals.clone()).await {
-                    Ok(_) => rindexer_info!(
-                        "ArbitrumCoreGovernor::ProposalCreated - {} - {}",
-                        "STORED".blue(),
-                        proposals.len(),
-                    ),
-                    Err(e) => rindexer_error!(
-                        "ArbitrumCoreGovernor::ProposalCreated - {} - {}",
-                        "NOT STORED".red(),
-                        e.to_string(),
-                    ),
-                }
+                store_proposals(proposals.clone()).await;
 
                 rindexer_info!(
                     "ArbitrumCoreGovernor::ProposalCreated - {} - {} events",
                     "INDEXED".green(),
                     results.len(),
                 );
+
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_core_governor", "proposal_created"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
 
                 Ok(())
             },
@@ -282,23 +260,6 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
     ArbitrumCoreGovernorEventType::ProposalExecuted(
         ProposalExecutedEvent::handler(
             |results, context| async move {
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_core_governor", "proposal_executed"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
-
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -331,24 +292,30 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                     proposals.push(proposal);
                 }
 
-                match store_proposals(proposals.clone()).await {
-                    Ok(_) => rindexer_info!(
-                        "ArbitrumCoreGovernor::ProposalExecuted - {} - {}",
-                        "STORED".blue(),
-                        proposals.len(),
-                    ),
-                    Err(e) => rindexer_error!(
-                        "ArbitrumCoreGovernor::ProposalExecuted - {} - {}",
-                        "NOT STORED".red(),
-                        e.to_string(),
-                    ),
-                }
+                store_proposals(proposals.clone()).await;
 
                 rindexer_info!(
                     "ArbitrumCoreGovernor::ProposalExecuted - {} - {} events",
                     "INDEXED".green(),
                     results.len(),
                 );
+
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_core_governor", "proposal_executed"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
 
                 Ok(())
             },
@@ -363,23 +330,6 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
     ArbitrumCoreGovernorEventType::ProposalExtended(
         ProposalExtendedEvent::handler(
             |results, context| async move {
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_core_governor", "proposal_extended"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
-
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -416,24 +366,30 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                     proposals.push(proposal);
                 }
 
-                match store_proposals(proposals.clone()).await {
-                    Ok(_) => rindexer_info!(
-                        "ArbitrumCoreGovernor::ProposalExtended - {} - {}",
-                        "STORED".blue(),
-                        proposals.len(),
-                    ),
-                    Err(e) => rindexer_error!(
-                        "ArbitrumCoreGovernor::ProposalExtended - {} - {}",
-                        "NOT STORED".red(),
-                        e.to_string(),
-                    ),
-                }
+                store_proposals(proposals.clone()).await;
 
                 rindexer_info!(
                     "ArbitrumCoreGovernor::ProposalExtended - {} - {} events",
                     "INDEXED".green(),
                     results.len(),
                 );
+
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_core_governor", "proposal_extended"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
 
                 Ok(())
             },
@@ -448,23 +404,6 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
     ArbitrumCoreGovernorEventType::ProposalQueued(
         ProposalQueuedEvent::handler(
             |results, context| async move {
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_core_governor", "proposal_queued"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
-
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -497,24 +436,30 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                     proposals.push(proposal);
                 }
 
-                match store_proposals(proposals.clone()).await {
-                    Ok(_) => rindexer_info!(
-                        "ArbitrumCoreGovernor::ProposalQueued - {} - {}",
-                        "STORED".blue(),
-                        proposals.len()
-                    ),
-                    Err(e) => rindexer_error!(
-                        "ArbitrumCoreGovernor::ProposalQueued - {} - {}",
-                        "NOT STORED".red(),
-                        e.to_string(),
-                    ),
-                }
+                store_proposals(proposals.clone()).await;
 
                 rindexer_info!(
                     "ArbitrumCoreGovernor::ProposalQueued - {} - {} events",
                     "INDEXED".green(),
                     results.len(),
                 );
+
+                let to_block = results
+                    .iter()
+                    .map(|r| r.tx_information.block_number)
+                    .max()
+                    .unwrap();
+
+                context
+                    .database
+                    .execute(
+                        &format!(
+                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
+                            "rindexer", "arbitrum_core_governor", "proposal_queued"
+                        ),
+                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
+                    )
+                    .await;
 
                 Ok(())
             },
@@ -529,6 +474,52 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
     ArbitrumCoreGovernorEventType::VoteCast(
         VoteCastEvent::handler(
             |results, context| async move {
+                if results.is_empty() {
+                    return Ok(());
+                }
+
+                let mut votes = vec![];
+
+                for result in results.clone() {
+                    let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
+                        .await
+                        .expect("Failed to estimate created timestamp");
+
+                    let vote = vote_new::ActiveModel {
+                        id: NotSet,
+                        voter_address: Set(to_checksum(&result.event_data.voter, None)),
+                        choice: Set(match result.event_data.support {
+                            0 => 1.into(),
+                            1 => 0.into(),
+                            2 => 2.into(),
+                            _ => 2.into(),
+                        }),
+                        voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
+                        reason: Set(Some(result.event_data.reason)),
+                        created_at: Set(created_at),
+                        block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
+                        txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
+                        proposal_external_id: Set(result.event_data.proposal_id.to_string()),
+                        proposal_id: NotSet,
+                        dao_id: get_dao_id(),
+                        indexer_id: get_votes_dao_indexer_id(),
+                    };
+
+                    votes.push(vote);
+                }
+
+                store_votes(
+                    votes.clone(),
+                    get_proposals_dao_indexer_id().take().unwrap(),
+                )
+                .await;
+
+                rindexer_info!(
+                    "ArbitrumCoreGovernor::VoteCast - {} - {} events",
+                    "INDEXED".green(),
+                    results.len(),
+                );
+
                 let to_block = results
                     .iter()
                     .map(|r| r.tx_information.block_number)
@@ -546,6 +537,19 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     )
                     .await;
 
+                Ok(())
+            },
+            no_extensions(),
+        )
+        .await,
+    )
+    .register(manifest_path, registry);
+}
+
+async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
+    ArbitrumCoreGovernorEventType::VoteCastWithParams(
+        VoteCastWithParamsEvent::handler(
+            |results, context| async move {
                 if results.is_empty() {
                     return Ok(());
                 }
@@ -580,43 +584,18 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     votes.push(vote);
                 }
 
-                match store_votes(
+                store_votes(
                     votes.clone(),
                     get_proposals_dao_indexer_id().take().unwrap(),
                 )
-                .await
-                {
-                    Ok(_) => rindexer_info!(
-                        "ArbitrumCoreGovernor::VoteCast - {} - {}",
-                        "STORED".blue(),
-                        votes.len()
-                    ),
-                    Err(e) => rindexer_error!(
-                        "ArbitrumCoreGovernor::VoteCast - {} - {}",
-                        "NOT STORED".red(),
-                        e.to_string()
-                    ),
-                }
+                .await;
 
                 rindexer_info!(
-                    "ArbitrumCoreGovernor::VoteCast - {} - {} events",
+                    "ArbitrumCoreGovernor::VoteCastWithParams - {} - {} events",
                     "INDEXED".green(),
                     results.len(),
                 );
 
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
-async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::VoteCastWithParams(
-        VoteCastWithParamsEvent::handler(
-            |results, context| async move {
                 let to_block = results
                     .iter()
                     .map(|r| r.tx_information.block_number)
@@ -633,64 +612,6 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                         &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
                     )
                     .await;
-
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                let mut votes = vec![];
-
-                for result in results.clone() {
-                    let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
-                        .await
-                        .expect("Failed to estimate created timestamp");
-
-                    let vote = vote_new::ActiveModel {
-                        id: NotSet,
-                        voter_address: Set(to_checksum(&result.event_data.voter, None)),
-                        choice: Set(match result.event_data.support {
-                            0 => 1.into(),
-                            1 => 0.into(),
-                            2 => 2.into(),
-                            _ => 2.into(),
-                        }),
-                        voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
-                        reason: Set(Some(result.event_data.reason)),
-                        created_at: Set(created_at),
-                        block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
-                        txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
-                        proposal_external_id: Set(result.event_data.proposal_id.to_string()),
-                        proposal_id: NotSet,
-                        dao_id: get_dao_id(),
-                        indexer_id: get_votes_dao_indexer_id(),
-                    };
-
-                    votes.push(vote);
-                }
-
-                match store_votes(
-                    votes.clone(),
-                    get_proposals_dao_indexer_id().take().unwrap(),
-                )
-                .await
-                {
-                    Ok(_) => rindexer_info!(
-                        "ArbitrumCoreGovernor::VoteCastWithParams - {} - {}",
-                        "STORED".blue(),
-                        votes.len(),
-                    ),
-                    Err(e) => rindexer_error!(
-                        "ArbitrumCoreGovernor::VoteCastWithParams - {} - {}",
-                        "NOT STORED".red(),
-                        e.to_string()
-                    ),
-                }
-
-                rindexer_info!(
-                    "ArbitrumCoreGovernor::VoteCastWithParams - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
-                );
 
                 Ok(())
             },
