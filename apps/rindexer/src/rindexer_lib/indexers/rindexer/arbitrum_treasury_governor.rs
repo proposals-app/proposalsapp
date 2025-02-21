@@ -245,7 +245,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
                         dao_indexer_id: get_proposals_dao_indexer_id(),
                         dao_id: get_dao_id(),
-                        author: NotSet,
+                        author: Set(Some(result.event_data.proposer.to_string())),
                     };
 
                     match store_proposals(vec![proposal]).await {

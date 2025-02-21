@@ -41,20 +41,20 @@ contracts:
         start_block: 70398215
     include_events:
       - ProposalCreated
+      - VoteCast
+      - VoteCastWithParams
       - ProposalCanceled
       - ProposalExtended
       - ProposalExecuted
       - ProposalQueued
-      - VoteCast
-      - VoteCastWithParams
     index_event_in_order:
       - ProposalCreated
+      - VoteCast
+      - VoteCastWithParams
       - ProposalCanceled
       - ProposalExtended
       - ProposalExecuted
       - ProposalQueued
-      - VoteCast
-      - VoteCastWithParams
 
   - name: ArbitrumTreasuryGovernor
     abi: ./abis/ArbitrumTreasuryGovernor.abi.json
@@ -64,20 +64,20 @@ contracts:
         start_block: 70398215
     include_events:
       - ProposalCreated
+      - VoteCast
+      - VoteCastWithParams
       - ProposalCanceled
       - ProposalExtended
       - ProposalExecuted
       - ProposalQueued
-      - VoteCast
-      - VoteCastWithParams
     index_event_in_order:
       - ProposalCreated
+      - VoteCast
+      - VoteCastWithParams
       - ProposalCanceled
       - ProposalExtended
       - ProposalExecuted
       - ProposalQueued
-      - VoteCast
-      - VoteCastWithParams
 
   - name: ARBToken
     abi: ./abis/ARBToken.abi.json
