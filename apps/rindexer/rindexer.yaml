@@ -34,22 +34,32 @@ contracts:
       - network: arbitrum
         address: "0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9"
         start_block: 70398215
+    reorg_safe_distance: true
     include_events:
       - ProposalCreated
+      - ProposalCanceled
       - VoteCast
       - VoteCastWithParams
-      - ProposalCanceled
       - ProposalExtended
-      - ProposalExecuted
       - ProposalQueued
-    index_event_in_order:
-      - ProposalCreated
-      - VoteCast
-      - VoteCastWithParams
-      - ProposalCanceled
-      - ProposalExtended
       - ProposalExecuted
-      - ProposalQueued
+    dependency_events:
+      events:
+        - ProposalCreated
+      then:
+        events:
+          - ProposalCanceled
+          - ProposalExtended
+        then:
+          events:
+            - VoteCast
+            - VoteCastWithParams
+          then:
+            events:
+              - ProposalQueued
+            then:
+              events:
+                - ProposalExecuted
 
   - name: ArbitrumTreasuryGovernor
     abi: ./abis/ArbitrumTreasuryGovernor.abi.json
@@ -57,22 +67,32 @@ contracts:
       - network: arbitrum
         address: "0x789fC99093B09aD01C34DC7251D0C89ce743e5a4"
         start_block: 70398215
+    reorg_safe_distance: true
     include_events:
       - ProposalCreated
+      - ProposalCanceled
       - VoteCast
       - VoteCastWithParams
-      - ProposalCanceled
       - ProposalExtended
-      - ProposalExecuted
       - ProposalQueued
-    index_event_in_order:
-      - ProposalCreated
-      - VoteCast
-      - VoteCastWithParams
-      - ProposalCanceled
-      - ProposalExtended
       - ProposalExecuted
-      - ProposalQueued
+    dependency_events:
+      events:
+        - ProposalCreated
+      then:
+        events:
+          - ProposalCanceled
+          - ProposalExtended
+        then:
+          events:
+            - VoteCast
+            - VoteCastWithParams
+          then:
+            events:
+              - ProposalQueued
+            then:
+              events:
+                - ProposalExecuted
 
   - name: ARBToken
     abi: ./abis/ARBToken.abi.json
@@ -80,9 +100,7 @@ contracts:
       - network: arbitrum
         address: "0x912CE59144191C1204E64559FE8253a0e49E6548"
         start_block: 70398215
+    reorg_safe_distance: true
     include_events:
-      - DelegateVotesChanged
-      - DelegateChanged
-    index_event_in_order:
       - DelegateVotesChanged
       - DelegateChanged

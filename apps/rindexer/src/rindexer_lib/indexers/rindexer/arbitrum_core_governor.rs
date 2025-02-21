@@ -10,12 +10,8 @@ use crate::{
 use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use ethers::{
-    abi::AbiEncode,
     types::U256,
-    utils::{
-        hex::{self, ToHex},
-        to_checksum,
-    },
+    utils::{hex::ToHex, to_checksum},
 };
 use proposalsapp_db::models::{
     proposal_new,
@@ -89,8 +85,10 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
                     return Ok(());
                 }
 
+                let mut proposals = vec![];
+
                 for result in results.clone() {
-                    let proposal = proposal_new::ActiveModel {
+                    proposals.push(proposal_new::ActiveModel {
                         id: NotSet,
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: NotSet,
@@ -110,19 +108,20 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
                         dao_indexer_id: get_proposals_dao_indexer_id(),
                         dao_id: get_dao_id(),
                         author: NotSet,
-                    };
+                    });
+                }
 
-                    match store_proposals(vec![proposal]).await {
-                        Ok(_) => rindexer_info!(
-                            "ArbitrumCoreGovernor::ProposalCanceled - {}",
-                            "STORED".blue(),
-                        ),
-                        Err(e) => rindexer_error!(
-                            "ArbitrumCoreGovernor::ProposalCanceled - {} - {}",
-                            "NOT STORED".red(),
-                            e.to_string(),
-                        ),
-                    }
+                match store_proposals(proposals.clone()).await {
+                    Ok(_) => rindexer_info!(
+                        "ArbitrumCoreGovernor::ProposalCanceled - {} - {}",
+                        "STORED".blue(),
+                        proposals.len(),
+                    ),
+                    Err(e) => rindexer_error!(
+                        "ArbitrumCoreGovernor::ProposalCanceled - {} - {}",
+                        "NOT STORED".red(),
+                        e.to_string(),
+                    ),
                 }
 
                 rindexer_info!(
@@ -164,6 +163,8 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 if results.is_empty() {
                     return Ok(());
                 }
+
+                let mut proposals = vec![];
 
                 for result in results.clone() {
                     let arbitrum_core_governor = arbitrum_core_governor_contract("arbitrum");
@@ -226,7 +227,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         .await
                         .expect("Failed to calculate total delegated voting power");
 
-                    let proposal = proposal_new::ActiveModel {
+                    proposals.push(proposal_new::ActiveModel {
                         id: NotSet,
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: Set(title),
@@ -245,20 +246,21 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
                         dao_indexer_id: get_proposals_dao_indexer_id(),
                         dao_id: get_dao_id(),
-                        author: Set(Some(result.event_data.proposer.to_string())),
-                    };
+                        author: Set(Some(to_checksum(&result.event_data.proposer, None))),
+                    });
+                }
 
-                    match store_proposals(vec![proposal]).await {
-                        Ok(_) => rindexer_info!(
-                            "ArbitrumCoreGovernor::ProposalCreated - {}",
-                            "STORED".blue(),
-                        ),
-                        Err(e) => rindexer_error!(
-                            "ArbitrumCoreGovernor::ProposalCreated - {} - {}",
-                            "NOT STORED".red(),
-                            e.to_string(),
-                        ),
-                    }
+                match store_proposals(proposals.clone()).await {
+                    Ok(_) => rindexer_info!(
+                        "ArbitrumCoreGovernor::ProposalCreated - {} - {}",
+                        "STORED".blue(),
+                        proposals.len(),
+                    ),
+                    Err(e) => rindexer_error!(
+                        "ArbitrumCoreGovernor::ProposalCreated - {} - {}",
+                        "NOT STORED".red(),
+                        e.to_string(),
+                    ),
                 }
 
                 rindexer_info!(
@@ -301,6 +303,8 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                     return Ok(());
                 }
 
+                let mut proposals = vec![];
+
                 for result in results.clone() {
                     let proposal = proposal_new::ActiveModel {
                         id: NotSet,
@@ -324,17 +328,20 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                         author: NotSet,
                     };
 
-                    match store_proposals(vec![proposal]).await {
-                        Ok(_) => rindexer_info!(
-                            "ArbitrumCoreGovernor::ProposalExecuted - {}",
-                            "STORED".blue(),
-                        ),
-                        Err(e) => rindexer_error!(
-                            "ArbitrumCoreGovernor::ProposalExecuted - {} - {}",
-                            "NOT STORED".red(),
-                            e.to_string(),
-                        ),
-                    }
+                    proposals.push(proposal);
+                }
+
+                match store_proposals(proposals.clone()).await {
+                    Ok(_) => rindexer_info!(
+                        "ArbitrumCoreGovernor::ProposalExecuted - {} - {}",
+                        "STORED".blue(),
+                        proposals.len(),
+                    ),
+                    Err(e) => rindexer_error!(
+                        "ArbitrumCoreGovernor::ProposalExecuted - {} - {}",
+                        "NOT STORED".red(),
+                        e.to_string(),
+                    ),
                 }
 
                 rindexer_info!(
@@ -377,6 +384,8 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                     return Ok(());
                 }
 
+                let mut proposals = vec![];
+
                 for result in results.clone() {
                     let end_at = estimate_timestamp("ethereum", result.event_data.extended_deadline)
                         .await
@@ -391,7 +400,7 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                         discussion_url: NotSet,
                         choices: NotSet,
                         quorum: NotSet,
-                        proposal_state: Set(ProposalState::Active),
+                        proposal_state: NotSet,
                         marked_spam: NotSet,
                         created_at: NotSet,
                         start_at: NotSet,
@@ -404,17 +413,20 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                         author: NotSet,
                     };
 
-                    match store_proposals(vec![proposal]).await {
-                        Ok(_) => rindexer_info!(
-                            "ArbitrumCoreGovernor::ProposalExtended - {}",
-                            "STORED".blue(),
-                        ),
-                        Err(e) => rindexer_error!(
-                            "ArbitrumCoreGovernor::ProposalExtended - {} - {}",
-                            "NOT STORED".red(),
-                            e.to_string(),
-                        ),
-                    }
+                    proposals.push(proposal);
+                }
+
+                match store_proposals(proposals.clone()).await {
+                    Ok(_) => rindexer_info!(
+                        "ArbitrumCoreGovernor::ProposalExtended - {} - {}",
+                        "STORED".blue(),
+                        proposals.len(),
+                    ),
+                    Err(e) => rindexer_error!(
+                        "ArbitrumCoreGovernor::ProposalExtended - {} - {}",
+                        "NOT STORED".red(),
+                        e.to_string(),
+                    ),
                 }
 
                 rindexer_info!(
@@ -457,6 +469,8 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                     return Ok(());
                 }
 
+                let mut proposals = vec![];
+
                 for result in results.clone() {
                     let proposal = proposal_new::ActiveModel {
                         id: NotSet,
@@ -480,14 +494,20 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                         author: NotSet,
                     };
 
-                    match store_proposals(vec![proposal]).await {
-                        Ok(_) => rindexer_info!("ArbitrumCoreGovernor::ProposalQueued - {}", "STORED".blue(),),
-                        Err(e) => rindexer_error!(
-                            "ArbitrumCoreGovernor::ProposalQueued - {} - {}",
-                            "NOT STORED".red(),
-                            e.to_string(),
-                        ),
-                    }
+                    proposals.push(proposal);
+                }
+
+                match store_proposals(proposals.clone()).await {
+                    Ok(_) => rindexer_info!(
+                        "ArbitrumCoreGovernor::ProposalQueued - {} - {}",
+                        "STORED".blue(),
+                        proposals.len()
+                    ),
+                    Err(e) => rindexer_error!(
+                        "ArbitrumCoreGovernor::ProposalQueued - {} - {}",
+                        "NOT STORED".red(),
+                        e.to_string(),
+                    ),
                 }
 
                 rindexer_info!(
@@ -530,6 +550,8 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     return Ok(());
                 }
 
+                let mut votes = vec![];
+
                 for result in results.clone() {
                     let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
                         .await
@@ -555,20 +577,31 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                         indexer_id: get_votes_dao_indexer_id(),
                     };
 
-                    match store_votes(vec![vote], get_proposals_dao_indexer_id().take().unwrap()).await {
-                        Ok(_) => rindexer_info!("ArbitrumCoreGovernor::VoteCast - {}", "STORED".blue(),),
-                        Err(e) => rindexer_error!(
-                            "ArbitrumCoreGovernor::VoteCast - {} - {}",
-                            "NOT STORED".red(),
-                            e.to_string()
-                        ),
-                    }
+                    votes.push(vote);
+                }
+
+                match store_votes(
+                    votes.clone(),
+                    get_proposals_dao_indexer_id().take().unwrap(),
+                )
+                .await
+                {
+                    Ok(_) => rindexer_info!(
+                        "ArbitrumCoreGovernor::VoteCast - {} - {}",
+                        "STORED".blue(),
+                        votes.len()
+                    ),
+                    Err(e) => rindexer_error!(
+                        "ArbitrumCoreGovernor::VoteCast - {} - {}",
+                        "NOT STORED".red(),
+                        e.to_string()
+                    ),
                 }
 
                 rindexer_info!(
                     "ArbitrumCoreGovernor::VoteCast - {} - {} events",
                     "INDEXED".green(),
-                    results.len()
+                    results.len(),
                 );
 
                 Ok(())
@@ -605,6 +638,8 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                     return Ok(());
                 }
 
+                let mut votes = vec![];
+
                 for result in results.clone() {
                     let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
                         .await
@@ -630,23 +665,31 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                         indexer_id: get_votes_dao_indexer_id(),
                     };
 
-                    match store_votes(vec![vote], get_proposals_dao_indexer_id().take().unwrap()).await {
-                        Ok(_) => rindexer_info!(
-                            "ArbitrumCoreGovernor::VoteCastWithParams - {}",
-                            "STORED".blue(),
-                        ),
-                        Err(e) => rindexer_error!(
-                            "ArbitrumCoreGovernor::VoteCastWithParams - {} - {}",
-                            "NOT STORED".red(),
-                            e.to_string()
-                        ),
-                    }
+                    votes.push(vote);
+                }
+
+                match store_votes(
+                    votes.clone(),
+                    get_proposals_dao_indexer_id().take().unwrap(),
+                )
+                .await
+                {
+                    Ok(_) => rindexer_info!(
+                        "ArbitrumCoreGovernor::VoteCastWithParams - {} - {}",
+                        "STORED".blue(),
+                        votes.len(),
+                    ),
+                    Err(e) => rindexer_error!(
+                        "ArbitrumCoreGovernor::VoteCastWithParams - {} - {}",
+                        "NOT STORED".red(),
+                        e.to_string()
+                    ),
                 }
 
                 rindexer_info!(
                     "ArbitrumCoreGovernor::VoteCastWithParams - {} - {} events",
                     "INDEXED".green(),
-                    results.len()
+                    results.len(),
                 );
 
                 Ok(())
@@ -657,7 +700,6 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
     )
     .register(manifest_path, registry);
 }
-
 pub async fn arbitrum_core_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     proposal_canceled_handler(manifest_path, registry).await;
 
