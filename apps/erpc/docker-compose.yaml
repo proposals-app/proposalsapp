@@ -8,52 +8,11 @@ services:
     volumes:
       - ./erpc.yaml:/root/erpc.yaml
     environment:
-      ERPC_REDIS_PASSWORD: ${ERPC_REDIS_PASSWORD}
       ERPC_ALCHEMY_KEY: ${ERPC_ALCHEMY_KEY}
       ERPC_BLAST_KEY: ${ERPC_BLAST_KEY}
       ERPC_DRPC_KEY: ${ERPC_DRPC_KEY}
     networks:
       - erpc_network
-    depends_on:
-      - redis
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    environment:
-      ERPC_REDIS_PASSWORD: ${ERPC_REDIS_PASSWORD}
-    command: >
-      redis-server
-      --requirepass ${ERPC_REDIS_PASSWORD:-defaultpassword}
-      --maxmemory 6g
-      --maxmemory-policy allkeys-lru
-      --io-threads 4
-      --io-threads-do-reads yes
-      --maxclients 20000
-      --save 900 1
-      --save 300 10
-      --save 60 1000
-      --rdbcompression yes
-      --rdbchecksum yes
-    deploy:
-      resources:
-        limits:
-          cpus: "8"
-          memory: 10G
-        reservations:
-          cpus: "8"
-          memory: 8G
-    volumes:
-      - redis_data:/data
-    networks:
-      - erpc_network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
   monitoring:
     build: ./monitoring
@@ -75,7 +34,6 @@ services:
 volumes:
   prometheus_data:
   grafana_data:
-  redis_data:
 
 networks:
   erpc_network:

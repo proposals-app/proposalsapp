@@ -10,32 +10,25 @@ networks:
   - name: ethereum
     chain_id: 1
     rpc: ${ETHEREUM_NODE_URL}
-    max_block_range: 100000
-    compute_units_per_second: 500
 
   - name: arbitrum
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}
-    max_block_range: 100000
-    compute_units_per_second: 500
 
   - name: optimism
     chain_id: 10
     rpc: ${OPTIMISM_NODE_URL}
     max_block_range: 100000
-    compute_units_per_second: 500
 
   - name: polygon
     chain_id: 137
     rpc: ${POLYGON_NODE_URL}
     max_block_range: 100000
-    compute_units_per_second: 500
 
   - name: avalanche
     chain_id: 43114
     rpc: ${AVALANCHE_NODE_URL}
     max_block_range: 100000
-    compute_units_per_second: 500
 
 contracts:
   - name: ArbitrumCoreGovernor

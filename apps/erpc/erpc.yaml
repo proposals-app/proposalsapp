@@ -1,53 +1,73 @@
-logLevel: warn
-
-database:
-  evmJsonRpcCache:
-    connectors:
-      - id: memory-cache
-        driver: memory
-        memory:
-          maxItems: 100000
-      # - id: redis-cache
-      #   driver: redis
-      #   redis:
-      #     addr: redis:6379
-      #     password: "${ERPC_REDIS_PASSWORD}"
-      #     db: 0
-      #     connPoolSize: 128
-      #     initTimeout: 5s
-      #     getTimeout: 1s
-      #     setTimeout: 2s
-    policies:
-      # - network: "*"
-      #   method: "*"
-      #   empty: allow
-      #   finality: finalized
-      #   connector: redis-cache
-      #   ttl: 0
-      - network: "*"
-        method: "*"
-        finality: realtime
-        empty: allow
-        connector: memory-cache
-        ttl: 1s
+logLevel: info
 
 projects:
   - id: main
     rateLimitBudget: rate-limit
+    networks:
+      - architecture: evm
+        evm:
+          chainId: 1
+        failsafe:
+          retry:
+            maxAttempts: 3
+            delay: 500ms
+            backoffMaxDelay: 10s
+            backoffFactor: 0.3
+            jitter: 500ms
+      - architecture: evm
+        evm:
+          chainId: 42161
+        failsafe:
+          retry:
+            maxAttempts: 3
+            delay: 500ms
+            backoffMaxDelay: 10s
+            backoffFactor: 0.3
+            jitter: 500ms
+      - architecture: evm
+        evm:
+          chainId: 10
+        failsafe:
+          retry:
+            maxAttempts: 3
+            delay: 500ms
+            backoffMaxDelay: 10s
+            backoffFactor: 0.3
+            jitter: 500ms
+      - architecture: evm
+        evm:
+          chainId: 137
+        failsafe:
+          retry:
+            maxAttempts: 3
+            delay: 500ms
+            backoffMaxDelay: 10s
+            backoffFactor: 0.3
+            jitter: 500ms
+      - architecture: evm
+        evm:
+          chainId: 43114
+        failsafe:
+          retry:
+            maxAttempts: 3
+            delay: 500ms
+            backoffMaxDelay: 10s
+            backoffFactor: 0.3
+            jitter: 500ms
     upstreams:
-      - endpoint: alchemy://${ERPC_ALCHEMY_KEY}
-      - endpoint: drpc://${ERPC_DRPC_KEY}
-      - endpoint: envio://rpc.hypersync.xyz
-      - endpoint: https://eth.drpc.org
-      - endpoint: https://arbitrum.drpc.org
-      - endpoint: https://optimism.drpc.org
-      - endpoint: https://polygon.drpc.org
-      - endpoint: https://avalanche.drpc.org
+      - id: hypersync
+        endpoint: envio://rpc.hypersync.xyz
+        ignoreMethods:
+          - "*"
+        allowMethods:
+          - "eth_getLogs"
+      - id: drpc
+        endpoint: drpc://${ERPC_DRPC_KEY}
 
 rateLimiters:
   budgets:
     - id: rate-limit
       rules:
         - method: "*"
-          maxCount: 10
+          maxCount: 100
           period: 1s

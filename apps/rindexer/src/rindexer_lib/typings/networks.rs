@@ -27,35 +27,35 @@ fn create_shadow_client(rpc_url: &str, compute_units_per_second: Option<u64>, ma
 lazy_static! {
     static ref ETHEREUM_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("ETHEREUM_NODE_URL").unwrap_or("ETHEREUM_NODE_URL".to_string()),
-        Some(500),
-        Some(U64::from(100000)),
+        None,
+        None,
         HeaderMap::new()
     )
     .expect("Error creating provider");
     static ref ARBITRUM_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("ARBITRUM_NODE_URL").unwrap_or("ARBITRUM_NODE_URL".to_string()),
-        Some(500),
-        Some(U64::from(100000)),
+        None,
+        None,
         HeaderMap::new()
     )
     .expect("Error creating provider");
     static ref OPTIMISM_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("OPTIMISM_NODE_URL").unwrap_or("OPTIMISM_NODE_URL".to_string()),
-        Some(500),
+        None,
         Some(U64::from(100000)),
         HeaderMap::new()
     )
     .expect("Error creating provider");
     static ref POLYGON_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("POLYGON_NODE_URL").unwrap_or("POLYGON_NODE_URL".to_string()),
-        Some(500),
+        None,
         Some(U64::from(100000)),
         HeaderMap::new()
     )
     .expect("Error creating provider");
     static ref AVALANCHE_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("AVALANCHE_NODE_URL").unwrap_or("AVALANCHE_NODE_URL".to_string()),
-        Some(500),
+        None,
         Some(U64::from(100000)),
         HeaderMap::new()
     )
