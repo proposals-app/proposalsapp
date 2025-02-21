@@ -43,6 +43,14 @@ contracts:
       - ProposalExtended
       - ProposalQueued
       - ProposalExecuted
+    index_event_in_order:
+      - ProposalCreated
+      - ProposalCanceled
+      - VoteCast
+      - VoteCastWithParams
+      - ProposalExtended
+      - ProposalQueued
+      - ProposalExecuted
     dependency_events:
       events:
         - ProposalCreated
@@ -69,6 +77,14 @@ contracts:
         start_block: 70398215
     reorg_safe_distance: true
     include_events:
+      - ProposalCreated
+      - ProposalCanceled
+      - VoteCast
+      - VoteCastWithParams
+      - ProposalExtended
+      - ProposalQueued
+      - ProposalExecuted
+    index_event_in_order:
       - ProposalCreated
       - ProposalCanceled
       - VoteCast
