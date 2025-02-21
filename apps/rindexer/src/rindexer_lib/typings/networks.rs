@@ -42,21 +42,21 @@ lazy_static! {
     static ref OPTIMISM_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("OPTIMISM_NODE_URL").unwrap_or("OPTIMISM_NODE_URL".to_string()),
         None,
-        Some(U64::from(100000)),
+        None,
         HeaderMap::new()
     )
     .expect("Error creating provider");
     static ref POLYGON_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("POLYGON_NODE_URL").unwrap_or("POLYGON_NODE_URL".to_string()),
         None,
-        Some(U64::from(100000)),
+        None,
         HeaderMap::new()
     )
     .expect("Error creating provider");
     static ref AVALANCHE_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("AVALANCHE_NODE_URL").unwrap_or("AVALANCHE_NODE_URL".to_string()),
         None,
-        Some(U64::from(100000)),
+        None,
         HeaderMap::new()
     )
     .expect("Error creating provider");

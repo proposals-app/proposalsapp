@@ -18,17 +18,14 @@ networks:
   - name: optimism
     chain_id: 10
     rpc: ${OPTIMISM_NODE_URL}
-    max_block_range: 100000
 
   - name: polygon
     chain_id: 137
     rpc: ${POLYGON_NODE_URL}
-    max_block_range: 100000
 
   - name: avalanche
     chain_id: 43114
     rpc: ${AVALANCHE_NODE_URL}
-    max_block_range: 100000
 
 contracts:
   - name: ArbitrumCoreGovernor
