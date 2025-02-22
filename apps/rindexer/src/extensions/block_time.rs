@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::time::sleep;
-use tracing::{debug, warn};
+use tracing::{debug, instrument, warn};
 
 #[derive(Clone)]
 struct ChainConfig {
@@ -118,6 +118,7 @@ lazy_static! {
     static ref BLOCK_NUMBER_CACHE: Mutex<HashMap<&'static str, BlockNumberCache>> = Mutex::new(HashMap::new());
 }
 
+#[instrument(skip(provider))]
 async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCachedProvider) -> Result<u64> {
     const CACHE_DURATION: Duration = Duration::from_secs(1);
 
@@ -174,6 +175,7 @@ async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCached
     }
 }
 
+#[instrument]
 pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Result<NaiveDateTime> {
     let config = get_chain_config(network)?;
     let provider = config.provider.get_inner_provider();
@@ -260,6 +262,7 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
         .naive_utc())
 }
 
+#[instrument(skip(api_url, api_key))]
 async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Option<EstimateTimestamp>> {
     let client = ClientBuilder::new(reqwest::Client::new())
         .with(RetryTransientMiddleware::new_with_policy(

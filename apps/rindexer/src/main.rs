@@ -7,7 +7,9 @@ use utils::tracing::setup_otel;
 mod extensions;
 mod rindexer_lib;
 use anyhow::{Context, Result};
+use tracing::instrument;
 
+#[instrument]
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();

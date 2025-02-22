@@ -3,11 +3,13 @@ use once_cell::sync::OnceCell;
 use proposalsapp_db::models::{dao, dao_indexer, proposal_new, sea_orm_active_enums::IndexerVariant, vote_new};
 use sea_orm::{prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
+use tracing::instrument;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static DAO_INDEXER_ID_MAP: OnceCell<Mutex<HashMap<IndexerVariant, Uuid>>> = OnceCell::new();
 pub static DAO_ID_SLUG_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
 
+#[instrument]
 pub async fn initialize_db() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
@@ -56,6 +58,7 @@ pub async fn initialize_db() -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip(proposals))]
 pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
@@ -138,6 +141,7 @@ pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Resul
     Ok(())
 }
 
+#[instrument(skip(votes))]
 pub async fn store_votes(votes: Vec<vote_new::ActiveModel>, proposals_indexer_id: Uuid) -> Result<()> {
     if votes.is_empty() {
         return Ok(());

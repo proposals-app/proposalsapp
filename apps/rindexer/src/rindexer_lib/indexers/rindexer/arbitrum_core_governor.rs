@@ -26,6 +26,7 @@ use sea_orm::{
 };
 use serde_json::json;
 use std::{path::PathBuf, sync::Arc};
+use tracing::instrument;
 
 fn get_proposals_dao_indexer_id() -> ActiveValue<Uuid> {
     DAO_INDEXER_ID_MAP
@@ -60,6 +61,7 @@ fn get_dao_id() -> ActiveValue<Uuid> {
         .unwrap_or(NotSet)
 }
 
+#[instrument(skip(manifest_path, registry))]
 async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::ProposalCanceled(
         ProposalCanceledEvent::handler(
@@ -128,6 +130,7 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
     .register(manifest_path, registry);
 }
 
+#[instrument(skip(manifest_path, registry))]
 async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::ProposalCreated(
         ProposalCreatedEvent::handler(
@@ -256,6 +259,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
     .register(manifest_path, registry);
 }
 
+#[instrument(skip(manifest_path, registry))]
 async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::ProposalExecuted(
         ProposalExecutedEvent::handler(
@@ -326,6 +330,7 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
     .register(manifest_path, registry);
 }
 
+#[instrument(skip(manifest_path, registry))]
 async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::ProposalExtended(
         ProposalExtendedEvent::handler(
@@ -400,6 +405,7 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
     .register(manifest_path, registry);
 }
 
+#[instrument(skip(manifest_path, registry))]
 async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::ProposalQueued(
         ProposalQueuedEvent::handler(
@@ -470,6 +476,7 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
     .register(manifest_path, registry);
 }
 
+#[instrument(skip(manifest_path, registry))]
 async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::VoteCast(
         VoteCastEvent::handler(
@@ -546,6 +553,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
     .register(manifest_path, registry);
 }
 
+#[instrument(skip(manifest_path, registry))]
 async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::VoteCastWithParams(
         VoteCastWithParamsEvent::handler(
@@ -621,6 +629,8 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
     )
     .register(manifest_path, registry);
 }
+
+#[instrument(skip(manifest_path, registry))]
 pub async fn arbitrum_core_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     proposal_canceled_handler(manifest_path, registry).await;
 
@@ -661,6 +671,7 @@ fn extract_title(description: &str) -> String {
     }
 }
 
+#[instrument(skip(timestamp))]
 async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
     use sea_orm::{DbBackend, Statement};
 
