@@ -3,14 +3,22 @@ use dotenv::dotenv;
 use extensions::db_extension::initialize_db;
 use rindexer::{start_rindexer, GraphqlOverrideSettings, IndexingDetails, StartDetails};
 use std::env;
+use utils::tracing::setup_otel;
 mod extensions;
 mod rindexer_lib;
+use anyhow::{Context, Result};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     dotenv().ok();
 
-    let _ = initialize_db().await;
+    let _otel = setup_otel()
+        .await
+        .context("Failed to setup OpenTelemetry")?;
+
+    initialize_db()
+        .await
+        .context("Failed to initialize database")?;
 
     let args: Vec<String> = env::args().collect();
 
@@ -19,61 +27,47 @@ async fn main() {
 
     let mut port: Option<u16> = None;
 
-    let args = args.iter();
-    if args.len() == 0 {
+    let args_iter = args.iter();
+    if args.len() == 1 {
         enable_graphql = true;
         enable_indexer = true;
     }
 
-    for arg in args {
+    for arg in args_iter {
         match arg.as_str() {
             "--graphql" => enable_graphql = true,
             "--indexer" => enable_indexer = true,
             _ if arg.starts_with("--port=") || arg.starts_with("--p") => {
                 if let Some(value) = arg.split('=').nth(1) {
-                    let overridden_port = value.parse::<u16>();
-                    match overridden_port {
-                        Ok(overridden_port) => port = Some(overridden_port),
-                        Err(_) => {
-                            println!("Invalid port number");
-                            return;
-                        }
-                    }
+                    let overridden_port = value
+                        .parse::<u16>()
+                        .context("Invalid port number provided")?;
+                    port = Some(overridden_port);
                 }
             }
             _ => {}
         }
     }
 
-    let path = env::current_dir();
-    match path {
-        Ok(path) => {
-            let manifest_path = path.join("rindexer.yaml");
-            let result = start_rindexer(StartDetails {
-                manifest_path: &manifest_path,
-                indexing_details: if enable_indexer {
-                    Some(IndexingDetails {
-                        registry: register_all_handlers(&manifest_path).await,
-                    })
-                } else {
-                    None
-                },
-                graphql_details: GraphqlOverrideSettings {
-                    enabled: enable_graphql,
-                    override_port: port,
-                },
-            })
-            .await;
+    let path = env::current_dir().context("Failed to get current directory")?;
+    let manifest_path = path.join("rindexer.yaml");
 
-            match result {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Error starting rindexer: {:?}", e);
-                }
-            }
-        }
-        Err(e) => {
-            println!("Error getting current directory: {:?}", e);
-        }
-    }
+    start_rindexer(StartDetails {
+        manifest_path: &manifest_path,
+        indexing_details: if enable_indexer {
+            Some(IndexingDetails {
+                registry: register_all_handlers(&manifest_path).await,
+            })
+        } else {
+            None
+        },
+        graphql_details: GraphqlOverrideSettings {
+            enabled: enable_graphql,
+            override_port: port,
+        },
+    })
+    .await
+    .context("Failed to start rindexer")?;
+
+    Ok(())
 }
