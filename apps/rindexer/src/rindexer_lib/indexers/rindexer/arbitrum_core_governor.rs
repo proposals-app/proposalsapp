@@ -214,7 +214,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         start_at: Set(start_at),
                         end_at: Set(end_at),
                         block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
-                        metadata: Set(json!({"vote_type": "basic","quorum_choices":[0,2],"total_delegated_vp": total_delegated_vp}).into()),
+                        metadata: Set(json!({"vote_type":"basic", "quorum_choices":[0,2],"total_delegated_vp":total_delegated_vp, "targets":result.event_data.targets, "values":result.event_data.values, "calldatas":result.event_data.calldatas, "signatures":result.event_data.signatures}).into()),
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
                         dao_indexer_id: get_proposals_dao_indexer_id(),
                         dao_id: get_dao_id(),
