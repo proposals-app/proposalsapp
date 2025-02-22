@@ -13,13 +13,14 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::time::sleep;
-use tracing::{event, Level};
+use tracing::{debug, warn};
 
 #[derive(Clone)]
 struct ChainConfig {
     provider: Arc<JsonRpcCachedProvider>,
     scan_api_url: Option<String>,
     scan_api_key: Option<String>,
+    average_block_time_ms: u64,
 }
 
 lazy_static! {
@@ -30,6 +31,7 @@ lazy_static! {
                 provider: get_ethereum_provider_cache(),
                 scan_api_url: Some("https://api.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("ETHERSCAN_API_KEY").ok(),
+                average_block_time_ms: 12000,
             }
         ),
         (
@@ -38,6 +40,7 @@ lazy_static! {
                 provider: get_arbitrum_provider_cache(),
                 scan_api_url: Some("https://api.arbiscan.io/api".to_string()),
                 scan_api_key: std::env::var("ARBISCAN_API_KEY").ok(),
+                average_block_time_ms: 250,
             }
         ),
         (
@@ -46,6 +49,7 @@ lazy_static! {
                 provider: get_optimism_provider_cache(),
                 scan_api_url: Some("https://api-optimistic.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("OPTIMISTIC_SCAN_API_KEY").ok(),
+                average_block_time_ms: 2000,
             }
         ),
         (
@@ -54,6 +58,7 @@ lazy_static! {
                 provider: get_polygon_provider_cache(),
                 scan_api_url: None,
                 scan_api_key: None,
+                average_block_time_ms: 2000,
             }
         ),
         (
@@ -62,6 +67,7 @@ lazy_static! {
                 provider: get_avalanche_provider_cache(),
                 scan_api_url: None,
                 scan_api_key: None,
+                average_block_time_ms: 2000,
             }
         ),
     ]
@@ -143,16 +149,14 @@ async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCached
                 Ok(current_block)
             }
             Err(e) => {
-                event!(
-                    Level::WARN,
+                warn!(
                     network = network,
                     error = %e,
                     "Failed to get latest block number from provider, attempting to use cached value"
                 );
                 let cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
                 if let Some(cached_block) = cache.get(network) {
-                    event!(
-                        Level::WARN,
+                    warn!(
                         network = network,
                         cached_block = cached_block.block_number,
                         "Using cached block number"
@@ -176,56 +180,82 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
 
     let current_block = get_cached_block_number(network, &config.provider).await?;
 
-    if block_number < current_block {
-        let block = provider
-            .get_block(BlockId::Number(block_number.into()))
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("Block not found"))?;
+    // First, try to get the timestamp directly from the provider, it's more reliable for past blocks
+    // and a good fallback.
+    let provider_block = provider
+        .get_block(BlockId::Number(block_number.into()))
+        .await;
 
-        return Ok(
-            DateTime::<Utc>::from_timestamp(block.timestamp.as_u64() as i64, 0)
-                .expect("Failed to create DateTime")
-                .naive_utc(),
-        );
+    match provider_block {
+        Ok(Some(block)) => {
+            return Ok(
+                DateTime::<Utc>::from_timestamp(block.timestamp.as_u64() as i64, 0)
+                    .expect("Failed to create DateTime")
+                    .naive_utc(),
+            );
+        }
+        Ok(None) => {
+            warn!(
+                network = network,
+                block_number = block_number,
+                "Block not found on provider, falling back to API/estimation"
+            );
+            // Continue to API or estimation fallback
+        }
+        Err(e) => {
+            warn!(network = network, block_number = block_number, error = %e, "Error fetching block from provider, falling back to API/estimation");
+            // Continue to API or estimation fallback
+        }
     }
 
-    // Attempt to get estimated timestamp from block explorer API
-    if let Some(scan_api_url) = &config.scan_api_url {
-        if let Some(scan_api_key) = &config.scan_api_key {
-            match retry_request(scan_api_url, scan_api_key, block_number).await? {
-                Some(response) => {
-                    if response.status == "1" {
-                        if let Some(result) = response.result {
-                            let estimate_time_in_sec: f64 = result
-                                .estimate_time_in_sec
-                                .parse()
-                                .context("Failed to parse EstimateTimeInSec")?;
+    // Attempt to get estimated timestamp from block explorer API for future blocks primarily
+    if block_number > current_block {
+        if let Some(scan_api_url) = &config.scan_api_url {
+            if let Some(scan_api_key) = &config.scan_api_key {
+                match retry_request(scan_api_url, scan_api_key, block_number).await? {
+                    Some(response) => {
+                        if response.status == "1" {
+                            if let Some(result) = response.result {
+                                let estimate_time_in_sec: f64 = result
+                                    .estimate_time_in_sec
+                                    .parse()
+                                    .context("Failed to parse EstimateTimeInSec")?;
 
-                            return Ok(Utc::now()
-                                .checked_add_signed(chrono::Duration::seconds(estimate_time_in_sec as i64))
-                                .context("Failed to add duration to current time")?
-                                .naive_utc());
+                                return Ok(Utc::now()
+                                    .checked_add_signed(chrono::Duration::seconds(estimate_time_in_sec as i64))
+                                    .context("Failed to add duration to current time")?
+                                    .naive_utc());
+                            }
                         }
                     }
-                }
-                None => {
-                    event!(
-                        Level::WARN,
-                        network = network,
-                        block_number = block_number,
-                        "Failed to get estimate from API"
-                    );
+                    None => {
+                        warn!(
+                            network = network,
+                            block_number = block_number,
+                            "Failed to get estimate from API, falling back to simple estimation"
+                        );
+                    }
                 }
             }
         }
     }
 
-    // Fallback: Use simple estimation based on average block time
+    // Fallback: Use simple estimation based on average block time in milliseconds
     let blocks_in_future = block_number.saturating_sub(current_block);
-    let estimated_seconds = blocks_in_future * 12; // Assuming average block time of 12 seconds
+    let estimated_milliseconds = blocks_in_future * config.average_block_time_ms;
+
+    warn!(
+        network = network,
+        block_number = block_number,
+        method = "simple estimation",
+        average_block_time_ms = config.average_block_time_ms,
+        "Using simple block time estimation as final fallback"
+    );
 
     Ok(Utc::now()
-        .checked_add_signed(chrono::Duration::seconds(estimated_seconds as i64))
+        .checked_add_signed(chrono::Duration::milliseconds(
+            estimated_milliseconds as i64,
+        ))
         .context("Failed to add duration to current time")?
         .naive_utc())
 }
@@ -243,7 +273,7 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
             api_url, param, api_key
         );
 
-        event!(Level::DEBUG, url = %url, "Making API request");
+        debug!(url = %url, "Making API request");
 
         let response = match client
             .get(&url)
@@ -253,8 +283,7 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
         {
             Ok(resp) => resp,
             Err(e) => {
-                event!(
-                    Level::WARN,
+                warn!(
                     error = %e,
                     attempt = attempt,
                     "Request failed, retrying..."
@@ -269,8 +298,7 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
 
         let status = response.status();
         if !status.is_success() {
-            event!(
-                Level::WARN,
+            warn!(
                 status = %status,
                 "Received error status code from API"
             );
@@ -283,15 +311,14 @@ async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Optio
 
         // Log the raw response for debugging
         let response_text = response.text().await?;
-        event!(Level::DEBUG, response = %response_text, "Received API response");
+        debug!(response = %response_text, "Received API response");
 
         match serde_json::from_str::<EstimateTimestamp>(&response_text) {
             Ok(parsed_response) => {
                 return Ok(Some(parsed_response));
             }
             Err(e) => {
-                event!(
-                    Level::WARN,
+                warn!(
                     error = %e,
                     response = %response_text,
                     "Failed to parse API response"
