@@ -126,18 +126,43 @@ async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCached
 
     if should_fetch {
         // Fetch new value
-        let current_block = provider.get_block_number().await?.as_u64();
+        let current_block_result = provider.get_block_number().await;
 
-        // Update cache
-        let mut cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
-        cache.insert(
-            network,
-            BlockNumberCache {
-                block_number: current_block,
-                timestamp: Instant::now(),
-            },
-        );
-        Ok(current_block)
+        match current_block_result {
+            Ok(block_number) => {
+                let current_block = block_number.as_u64();
+                // Update cache
+                let mut cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
+                cache.insert(
+                    network,
+                    BlockNumberCache {
+                        block_number: current_block,
+                        timestamp: Instant::now(),
+                    },
+                );
+                Ok(current_block)
+            }
+            Err(e) => {
+                event!(
+                    Level::WARN,
+                    network = network,
+                    error = %e,
+                    "Failed to get latest block number from provider, attempting to use cached value"
+                );
+                let cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
+                if let Some(cached_block) = cache.get(network) {
+                    event!(
+                        Level::WARN,
+                        network = network,
+                        cached_block = cached_block.block_number,
+                        "Using cached block number"
+                    );
+                    Ok(cached_block.block_number)
+                } else {
+                    Err(e).context("Failed to get block number from provider and no cached value available")
+                }
+            }
+        }
     } else {
         // Return cached value
         let cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");

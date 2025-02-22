@@ -2281,14 +2281,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^4.1.0":
-  version: 4.1.0
-  resolution: "@hookform/resolvers@npm:4.1.0"
+"@hookform/resolvers@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "@hookform/resolvers@npm:4.1.1"
   dependencies:
     caniuse-lite: "npm:^1.0.30001698"
   peerDependencies:
     react-hook-form: ^7.0.0
-  checksum: 10c0/aeb5c0037c49a9bf0b2026e9c28769ba33a9a8d73223319dd576b35e2e5906f062f17b358ea2d0193482805ccd8918e4f97f3924fc94a1fdfe09de3e255a8c39
+  checksum: 10c0/3d0ea8cbe5a8e008361149a1e087124b7e086779534f79de1330fb6bc68cc2df2627152cfa3f0f33a1baa6294430edad6f80fa7eb8887a9d8c52d79c228e0709
   languageName: node
   linkType: hard
 
@@ -3629,7 +3629,7 @@ __metadata:
     dotenv: "npm:^16.4.7"
     moment: "npm:2.30.1"
     postmark: "npm:^4.0.5"
-    prettier: "npm:^3.5.1"
+    prettier: "npm:^3.5.2"
     prettier-plugin-tailwindcss: "npm:0.6.11"
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
@@ -3677,7 +3677,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jsdom: "npm:26.0.0"
     npm-run-all: "npm:^4.1.5"
-    prettier: "npm:^3.5.1"
+    prettier: "npm:^3.5.2"
     rimraf: "npm:^6.0.1"
     style-loader: "npm:^4.0.0"
     ts-jest: "npm:^29.2.5"
@@ -3748,7 +3748,7 @@ __metadata:
     nuqs: "npm:^2.4.0"
     postcss: "npm:^8.5.3"
     posthog-js: "npm:^1.222.0"
-    prettier: "npm:^3.5.1"
+    prettier: "npm:^3.5.2"
     prettier-plugin-classnames: "npm:^0.7.6"
     prettier-plugin-merge: "npm:^0.7.2"
     prettier-plugin-organize-imports: "npm:^4.1.0"
@@ -3774,7 +3774,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/web@workspace:apps/web"
   dependencies:
-    "@hookform/resolvers": "npm:^4.1.0"
+    "@hookform/resolvers": "npm:^4.1.1"
     "@lucia-auth/adapter-postgresql": "npm:3.1.2"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/api-logs": "npm:^0.57.2"
@@ -3840,7 +3840,7 @@ __metadata:
     postcss: "npm:^8.5.3"
     posthog-js: "npm:1.222.0"
     postmark: "npm:^4.0.5"
-    prettier: "npm:^3.5.1"
+    prettier: "npm:^3.5.2"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
     react: "npm:19.0.0"
     react-day-picker: "npm:9.5.1"
@@ -15661,12 +15661,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:^3.5.1":
-  version: 3.5.1
-  resolution: "prettier@npm:3.5.1"
+"prettier@npm:^3.5.2":
+  version: 3.5.2
+  resolution: "prettier@npm:3.5.2"
   bin:
     prettier: bin/prettier.cjs
-  checksum: 10c0/9f6f810eae455d6e4213845151a484a2338f2e0d6a8b84ee8e13a83af8a2421ef6c1e31e61e4b135671fb57b9541f6624648880cc2061ac803e243ac898c0123
+  checksum: 10c0/d7b597ed33f39c32ace675896ad187f06a3e48dc8a1e80051b5c5f0dae3586d53981704b8fda5ac3b080e6c2e0e197d239131b953702674f044351621ca5e1ac
   languageName: node
   linkType: hard
 
