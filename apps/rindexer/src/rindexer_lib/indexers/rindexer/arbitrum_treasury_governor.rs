@@ -18,7 +18,7 @@ use proposalsapp_db::models::{
     sea_orm_active_enums::{IndexerVariant, ProposalState},
     vote_new,
 };
-use rindexer::{event::callback_registry::EventCallbackRegistry, rindexer_error, rindexer_info, EthereumSqlTypeWrapper, PgType, RindexerColorize};
+use rindexer::{event::callback_registry::EventCallbackRegistry, rindexer_error, EthereumSqlTypeWrapper, PgType, RindexerColorize};
 use sea_orm::{
     prelude::Uuid,
     ActiveValue::{self, NotSet},
@@ -26,7 +26,7 @@ use sea_orm::{
 };
 use serde_json::json;
 use std::{path::PathBuf, sync::Arc};
-use tracing::instrument;
+use tracing::{info, instrument};
 
 fn get_proposals_dao_indexer_id() -> ActiveValue<Uuid> {
     DAO_INDEXER_ID_MAP
@@ -100,10 +100,10 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
 
                 store_proposals(proposals.clone()).await;
 
-                rindexer_info!(
-                    "ArbitrumTreasuryGovernor::ProposalCanceled - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
+                info!(
+                    event = "ArbitrumTreasuryGovernor::ProposalCanceled",
+                    status = "INDEXED".green().to_string(),
+                    results = results.len(),
                 );
 
                 let to_block = results
@@ -231,10 +231,10 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 store_proposals(proposals.clone()).await;
 
-                rindexer_info!(
-                    "ArbitrumTreasuryGovernor::ProposalCreated - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
+                info!(
+                    event = "ArbitrumTreasuryGovernor::ProposalCreated",
+                    status = "INDEXED".green().to_string(),
+                    results = results.len(),
                 );
 
                 let to_block = results
@@ -302,10 +302,10 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
 
                 store_proposals(proposals.clone()).await;
 
-                rindexer_info!(
-                    "ArbitrumTreasuryGovernor::ProposalExecuted - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
+                info!(
+                    event = "ArbitrumTreasuryGovernor::ProposalExecuted",
+                    status = "INDEXED".green().to_string(),
+                    results = results.len(),
                 );
 
                 let to_block = results
@@ -377,10 +377,10 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
 
                 store_proposals(proposals.clone()).await;
 
-                rindexer_info!(
-                    "ArbitrumTreasuryGovernor::ProposalExtended - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
+                info!(
+                    event = "ArbitrumTreasuryGovernor::ProposalExtended",
+                    status = "INDEXED".green().to_string(),
+                    results = results.len(),
                 );
 
                 let to_block = results
@@ -448,10 +448,10 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
 
                 store_proposals(proposals.clone()).await;
 
-                rindexer_info!(
-                    "ArbitrumTreasuryGovernor::ProposalQueued - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
+                info!(
+                    event = "ArbitrumTreasuryGovernor::ProposalQueued",
+                    status = "INDEXED".green().to_string(),
+                    results = results.len(),
                 );
 
                 let to_block = results
@@ -525,10 +525,10 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                 )
                 .await;
 
-                rindexer_info!(
-                    "ArbitrumTreasuryGovernor::VoteCast - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
+                info!(
+                    event = "ArbitrumTreasuryGovernor::VoteCast",
+                    status = "INDEXED".green().to_string(),
+                    results = results.len(),
                 );
 
                 let to_block = results
@@ -602,10 +602,10 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                 )
                 .await;
 
-                rindexer_info!(
-                    "ArbitrumTreasuryGovernor::VoteCastWithParams - {} - {} events",
-                    "INDEXED".green(),
-                    results.len(),
+                info!(
+                    event = "ArbitrumTreasuryGovernor::VoteCastWithParams",
+                    status = "INDEXED".green().to_string(),
+                    results = results.len(),
                 );
 
                 let to_block = results
