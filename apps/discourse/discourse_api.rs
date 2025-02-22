@@ -152,20 +152,6 @@ impl DiscourseApi {
         let (response_sender, response_receiver) = oneshot::channel();
         let url = format!("{}{}", self.base_url, endpoint);
 
-        if priority {
-            METRICS
-                .get()
-                .unwrap()
-                .queue_size_priority
-                .add(1, &[KeyValue::new("url", url.clone())]);
-        } else {
-            METRICS
-                .get()
-                .unwrap()
-                .queue_size_normal
-                .add(1, &[KeyValue::new("url", url.clone())]);
-        }
-
         // Check if there's already a pending request for this endpoint
         let should_send_new_request = {
             let mut pending_requests = self.pending_requests.lock().unwrap();
@@ -193,6 +179,20 @@ impl DiscourseApi {
         };
 
         if should_send_new_request {
+            if priority {
+                METRICS
+                    .get()
+                    .unwrap()
+                    .queue_size_priority
+                    .add(1, &[KeyValue::new("url", url.clone())]);
+            } else {
+                METRICS
+                    .get()
+                    .unwrap()
+                    .queue_size_normal
+                    .add(1, &[KeyValue::new("url", url.clone())]);
+            }
+
             let job = Job {
                 url,
                 priority,
