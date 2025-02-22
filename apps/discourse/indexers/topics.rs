@@ -38,7 +38,7 @@ impl TopicIndexer {
         let mut total_topics = 0;
         let mut page = 0;
         let mut join_set = JoinSet::new();
-        let recent_limit = chrono::Duration::hours(6);
+        let recent_limit = chrono::Duration::hours(1);
         let mut has_more = true;
 
         loop {

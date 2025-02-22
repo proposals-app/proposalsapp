@@ -136,13 +136,13 @@ impl RevisionIndexer {
     async fn fetch_recent_posts_with_revisions(&self, dao_discourse_id: Uuid) -> Result<Vec<discourse_post::Model>> {
         info!("Fetching recent posts with revisions");
 
-        let six_hours_ago = Utc::now() - Duration::hours(6);
+        let one_hour_ago = Utc::now() - Duration::hours(1);
         let posts = discourse_post::Entity::find()
             .filter(discourse_post::Column::Version.gt(1))
             .filter(discourse_post::Column::CanViewEditHistory.eq(true))
             .filter(discourse_post::Column::Deleted.eq(false))
             .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
-            .filter(discourse_post::Column::UpdatedAt.gte(six_hours_ago.naive_utc()))
+            .filter(discourse_post::Column::UpdatedAt.gte(one_hour_ago.naive_utc()))
             .find_with_related(discourse_post_revision::Entity)
             .all(DB.get().unwrap())
             .await

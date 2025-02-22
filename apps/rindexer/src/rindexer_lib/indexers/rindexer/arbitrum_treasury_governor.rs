@@ -3,7 +3,7 @@ use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{store_proposals, store_votes, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP, DB},
+        db_extension::{store_proposals, store_votes, update_last_synced_block, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP, DB},
     },
     rindexer_lib::typings::rindexer::events::arbitrum_treasury_governor::arbitrum_treasury_governor_contract,
 };
@@ -112,16 +112,14 @@ async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut Event
                     .max()
                     .unwrap();
 
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_treasury_governor", "proposal_canceled"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
+                update_last_synced_block(
+                    &context.database,
+                    "arbitrum",
+                    "arbitrum_treasury_governor",
+                    "proposal_canceled",
+                    to_block,
+                )
+                .await;
 
                 Ok(())
             },
@@ -243,16 +241,14 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     .max()
                     .unwrap();
 
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_treasury_governor", "proposal_created"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
+                update_last_synced_block(
+                    &context.database,
+                    "arbitrum",
+                    "arbitrum_treasury_governor",
+                    "proposal_created",
+                    to_block,
+                )
+                .await;
 
                 Ok(())
             },
@@ -314,16 +310,14 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                     .max()
                     .unwrap();
 
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_treasury_governor", "proposal_executed"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
+                update_last_synced_block(
+                    &context.database,
+                    "arbitrum",
+                    "arbitrum_treasury_governor",
+                    "proposal_executed",
+                    to_block,
+                )
+                .await;
 
                 Ok(())
             },
@@ -389,16 +383,14 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                     .max()
                     .unwrap();
 
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_treasury_governor", "proposal_extended"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
+                update_last_synced_block(
+                    &context.database,
+                    "arbitrum",
+                    "arbitrum_treasury_governor",
+                    "proposal_extended",
+                    to_block,
+                )
+                .await;
 
                 Ok(())
             },
@@ -460,16 +452,14 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                     .max()
                     .unwrap();
 
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_treasury_governor", "proposal_queued"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
+                update_last_synced_block(
+                    &context.database,
+                    "arbitrum",
+                    "arbitrum_treasury_governor",
+                    "proposal_queued",
+                    to_block,
+                )
+                .await;
 
                 Ok(())
             },
@@ -537,16 +527,14 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     .max()
                     .unwrap();
 
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_treasury_governor", "vote_cast"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
+                update_last_synced_block(
+                    &context.database,
+                    "arbitrum",
+                    "arbitrum_treasury_governor",
+                    "vote_cast",
+                    to_block,
+                )
+                .await;
 
                 Ok(())
             },
@@ -614,16 +602,14 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                     .max()
                     .unwrap();
 
-                context
-                    .database
-                    .execute(
-                        &format!(
-                            "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                            "rindexer", "arbitrum_treasury_governor", "vote_cast_with_params"
-                        ),
-                        &[&EthereumSqlTypeWrapper::U64(to_block), &"arbitrum"],
-                    )
-                    .await;
+                update_last_synced_block(
+                    &context.database,
+                    "arbitrum",
+                    "arbitrum_treasury_governor",
+                    "vote_cast_with_params",
+                    to_block,
+                )
+                .await;
 
                 Ok(())
             },
