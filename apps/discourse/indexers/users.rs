@@ -26,29 +26,31 @@ impl UserIndexer {
     pub async fn update_all_users(&self, dao_discourse_id: Uuid) -> Result<()> {
         info!("Starting to update all users");
 
-        self.update_users(dao_discourse_id, "all", false).await
+        self.update_users(dao_discourse_id, false, false).await
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_recent_users(&self, dao_discourse_id: Uuid) -> Result<()> {
         info!("Starting to update new users");
 
-        self.update_users(dao_discourse_id, "daily", true).await
+        self.update_users(dao_discourse_id, true, true).await
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_users(&self, dao_discourse_id: Uuid, period: &str, priority: bool) -> Result<()> {
+    pub async fn update_users(&self, dao_discourse_id: Uuid, recent: bool, priority: bool) -> Result<()> {
         info!("Starting to update users");
 
         let mut page = 0;
         let mut total_users = 0;
         let mut previous_response: Option<UserResponse> = None;
         let mut previous_repeat = 0;
+        let order = if recent { "desc" } else { "asc" };
+        let page_limit = if recent { 5 } else { -1 }; // -1 indicates no page limit for all users
 
         loop {
             let url = format!(
-                "/directory_items.json?page={}&order=asc&period={}",
-                page, period
+                "/directory_items.json?page={}&order={}&period=all",
+                page, order
             );
             info!(url, "Fetching users");
             let response: UserResponse = self
@@ -109,9 +111,14 @@ impl UserIndexer {
 
             previous_response = Some(response);
             page += 1;
+
+            if recent && page == page_limit {
+                info!("Reached page limit for recent users. Stopping.");
+                break;
+            }
         }
 
-        info!(total_users, "Finished updating all users");
+        info!(total_users, "Finished updating users");
         Ok(())
     }
 
