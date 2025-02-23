@@ -3747,7 +3747,7 @@ __metadata:
     next-themes: "npm:^0.4.4"
     nuqs: "npm:^2.4.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.223.2"
+    posthog-js: "npm:^1.223.3"
     prettier: "npm:^3.5.2"
     prettier-plugin-classnames: "npm:^0.7.6"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -3838,7 +3838,7 @@ __metadata:
     pg: "npm:8.13.3"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:1.223.2"
+    posthog-js: "npm:1.223.3"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.5.2"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
@@ -14370,13 +14370,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"npm-check-updates@npm:^17.1.14":
-  version: 17.1.14
-  resolution: "npm-check-updates@npm:17.1.14"
+"npm-check-updates@npm:^17.1.15":
+  version: 17.1.15
+  resolution: "npm-check-updates@npm:17.1.15"
   bin:
     ncu: build/cli.js
     npm-check-updates: build/cli.js
-  checksum: 10c0/6af4c284e0c8aad4760d1e526a0015e6327f76000580cc2f558c2d143762e52ce4ce7bb806092e763a0008f4ab29b7db210994881aa0f78f4ac3d0ff323b9cb0
+  checksum: 10c0/c570ca9f8f8748e688b053e875d9e5381902c8e94fae8f2fb467f0ea99874ee577e5a4aa46faf31780c05d44c36cb1f8fbd89e7873d810a00411616cdf4a4c93
   languageName: node
   linkType: hard
 
@@ -15507,9 +15507,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.223.2, posthog-js@npm:^1.223.2":
-  version: 1.223.2
-  resolution: "posthog-js@npm:1.223.2"
+"posthog-js@npm:1.223.3, posthog-js@npm:^1.223.3":
+  version: 1.223.3
+  resolution: "posthog-js@npm:1.223.3"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -15517,7 +15517,7 @@ __metadata:
     web-vitals: "npm:^4.2.0"
   peerDependencies:
     "@rrweb/types": 2.0.0-alpha.17
-  checksum: 10c0/75d6815968599db7db193e5f9a3c7455b7192a803fc70fd124cab06f1b6fc97b69afd779ebb1d29cb40e24bb8ca40ea05c00a61a834af098099f92de7886d5ae
+  checksum: 10c0/6b46ec863b5410579e331f9225e15580d65650385d8907dd5e65ce290cc6aae8b609dcde6446551ad2ffcc249dd4af5e71e8c8e97613c8087a74377816be6dee
   languageName: node
   linkType: hard
 
@@ -15779,7 +15779,7 @@ __metadata:
   resolution: "proposalsapp@workspace:."
   dependencies:
     "@tsconfig/recommended": "npm:^1.0.8"
-    npm-check-updates: "npm:^17.1.14"
+    npm-check-updates: "npm:^17.1.15"
   languageName: unknown
   linkType: soft
 
