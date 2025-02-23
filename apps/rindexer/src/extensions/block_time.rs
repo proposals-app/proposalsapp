@@ -12,7 +12,6 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
-use tokio::time::sleep;
 use tracing::{debug, instrument, warn};
 
 #[derive(Clone)]
@@ -108,7 +107,7 @@ struct EstimateBlock {
     result: String,
 }
 
-#[derive(Clone)]
+// Removed Clone derive
 struct BlockNumberCache {
     block_number: u64,
     timestamp: Instant,
@@ -116,18 +115,20 @@ struct BlockNumberCache {
 
 lazy_static! {
     static ref BLOCK_NUMBER_CACHE: Mutex<HashMap<&'static str, BlockNumberCache>> = Mutex::new(HashMap::new());
+    static ref RETRY_POLICY: ExponentialBackoff = ExponentialBackoff::builder().build_with_max_retries(3);
 }
 
 #[instrument(skip(provider))]
-async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCachedProvider) -> Result<u64> {
-    const CACHE_DURATION: Duration = Duration::from_secs(1);
-
+async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCachedProvider, cache_duration: &Duration) -> Result<u64> {
     // Try to get cached value first
-    let should_fetch = {
+    let (should_fetch, cached_block) = {
         let cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
         match cache.get(network) {
-            Some(cached) => cached.timestamp.elapsed() >= CACHE_DURATION,
-            None => true,
+            Some(cached) => (
+                cached.timestamp.elapsed() >= cache_duration.clone(),
+                Some(cached.block_number),
+            ),
+            None => (true, None),
         }
     };
 
@@ -155,14 +156,14 @@ async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCached
                     error = %e,
                     "Failed to get latest block number from provider, attempting to use cached value"
                 );
-                let cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
-                if let Some(cached_block) = cache.get(network) {
+                // Return cached block number or the original error.
+                if let Some(cached_block) = cached_block {
                     warn!(
                         network = network,
-                        cached_block = cached_block.block_number,
+                        cached_block = cached_block,
                         "Using cached block number"
                     );
-                    Ok(cached_block.block_number)
+                    Ok(cached_block)
                 } else {
                     Err(e).context("Failed to get block number from provider and no cached value available")
                 }
@@ -170,8 +171,8 @@ async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCached
         }
     } else {
         // Return cached value
-        let cache = BLOCK_NUMBER_CACHE.lock().expect("Failed to acquire lock");
-        Ok(cache.get(network).unwrap().block_number)
+        // cache is already locked, so unwrapping is safe here.
+        Ok(cached_block.expect("Cached block should exist if should_fetch is false"))
     }
 }
 
@@ -180,15 +181,11 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
     let config = get_chain_config(network)?;
     let provider = config.provider.get_inner_provider();
 
-    let current_block = get_cached_block_number(network, &config.provider).await?;
-
-    // First, try to get the timestamp directly from the provider, it's more reliable for past blocks
-    // and a good fallback.
-    let provider_block = provider
+    // First, try to get the timestamp directly from the provider.
+    match provider
         .get_block(BlockId::Number(block_number.into()))
-        .await;
-
-    match provider_block {
+        .await
+    {
         Ok(Some(block)) => {
             return Ok(
                 DateTime::<Utc>::from_timestamp(block.timestamp.as_u64() as i64, 0)
@@ -206,43 +203,58 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
         }
         Err(e) => {
             warn!(network = network, block_number = block_number, error = %e, "Error fetching block from provider, falling back to API/estimation");
-            // Continue to API or estimation fallback
+            // Continue to API or estimation fallback and chain error
+            // return Err(e.into())  <- this is a better way if you didn't need the warn! above
         }
     }
 
+    let current_block = get_cached_block_number(
+        network,
+        &config.provider,
+        &Duration::from_millis(config.average_block_time_ms),
+    )
+    .await?;
+
     // Attempt to get estimated timestamp from block explorer API for future blocks primarily
     if block_number > current_block {
-        if let Some(scan_api_url) = &config.scan_api_url {
-            if let Some(scan_api_key) = &config.scan_api_key {
-                match retry_request(scan_api_url, scan_api_key, block_number).await? {
-                    Some(response) => {
-                        if response.status == "1" {
-                            if let Some(result) = response.result {
-                                let estimate_time_in_sec: f64 = result
-                                    .estimate_time_in_sec
-                                    .parse()
-                                    .context("Failed to parse EstimateTimeInSec")?;
+        if let (Some(scan_api_url), Some(scan_api_key)) = (&config.scan_api_url, &config.scan_api_key) {
+            match retry_request(scan_api_url, scan_api_key, block_number).await {
+                Ok(Some(response)) => {
+                    if response.status == "1" {
+                        if let Some(result) = response.result {
+                            let estimate_time_in_sec: f64 = result
+                                .estimate_time_in_sec
+                                .parse()
+                                .context("Failed to parse EstimateTimeInSec")?;
 
-                                return Ok(Utc::now()
-                                    .checked_add_signed(chrono::Duration::seconds(estimate_time_in_sec as i64))
-                                    .context("Failed to add duration to current time")?
-                                    .naive_utc());
-                            }
+                            return Ok(Utc::now()
+                                .checked_add_signed(chrono::Duration::seconds(estimate_time_in_sec as i64))
+                                .context("Failed to add duration to current time")?
+                                .naive_utc());
                         }
                     }
-                    None => {
-                        warn!(
-                            network = network,
-                            block_number = block_number,
-                            "Failed to get estimate from API, falling back to simple estimation"
-                        );
-                    }
+                }
+                Ok(None) => {
+                    warn!(
+                        network = network,
+                        block_number = block_number,
+                        "Failed to get estimate from API, falling back to simple estimation"
+                    );
+                }
+                Err(e) => {
+                    // We got an actual error from the retry logic
+                    warn!(
+                        network = network,
+                        block_number = block_number,
+                        error = %e,
+                        "API request failed, falling back to simple estimation"
+                    );
                 }
             }
         }
     }
 
-    // Fallback: Use simple estimation based on average block time in milliseconds
+    // Fallback: Use simple estimation
     let blocks_in_future = block_number.saturating_sub(current_block);
     let estimated_milliseconds = blocks_in_future * config.average_block_time_ms;
 
@@ -266,76 +278,45 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
 async fn retry_request(api_url: &str, api_key: &str, param: u64) -> Result<Option<EstimateTimestamp>> {
     let client = ClientBuilder::new(reqwest::Client::new())
         .with(RetryTransientMiddleware::new_with_policy(
-            ExponentialBackoff::builder().build_with_max_retries(5),
+            RETRY_POLICY.clone(),
         ))
         .build();
 
-    for attempt in 1..=5 {
-        let url = format!(
-            "{}?module=block&action=getblockcountdown&blockno={}&apikey={}",
-            api_url, param, api_key
-        );
+    let url = format!(
+        "{}?module=block&action=getblockcountdown&blockno={}&apikey={}",
+        api_url, param, api_key
+    );
 
-        debug!(url = %url, "Making API request");
+    debug!(url = %url, "Making API request");
 
-        let response = match client
-            .get(&url)
-            .timeout(Duration::from_secs(5))
-            .send()
-            .await
-        {
-            Ok(resp) => resp,
-            Err(e) => {
-                warn!(
-                    error = %e,
-                    attempt = attempt,
-                    "Request failed, retrying..."
-                );
-                if attempt < 5 {
-                    sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
-                    continue;
-                }
-                return Ok(None);
-            }
-        };
+    let response = client
+        .get(&url)
+        .timeout(Duration::from_secs(5))
+        .send()
+        .await;
 
-        let status = response.status();
-        if !status.is_success() {
-            warn!(
-                status = %status,
-                "Received error status code from API"
-            );
-            if attempt < 5 {
-                sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
-                continue;
-            }
-            return Ok(None);
+    let response = match response {
+        Ok(resp) => resp,
+        Err(e) => {
+            return Err(e).context("Request failed");
         }
+    };
 
-        // Log the raw response for debugging
-        let response_text = response.text().await?;
-        debug!(response = %response_text, "Received API response");
-
-        match serde_json::from_str::<EstimateTimestamp>(&response_text) {
-            Ok(parsed_response) => {
-                return Ok(Some(parsed_response));
-            }
-            Err(e) => {
-                warn!(
-                    error = %e,
-                    response = %response_text,
-                    "Failed to parse API response"
-                );
-                if attempt < 5 {
-                    sleep(Duration::from_millis(2u64.pow(attempt) * 1000)).await;
-                    continue;
-                }
-                return Ok(None);
-            }
-        }
+    let status = response.status();
+    if !status.is_success() {
+        return Err(anyhow::anyhow!(
+            "Received error status code from API: {}",
+            status
+        ));
     }
 
-    Ok(None)
+    // Log the raw response for debugging
+    let response_text = response.text().await?;
+    debug!(response = %response_text, "Received API response");
+
+    serde_json::from_str::<EstimateTimestamp>(&response_text)
+        .map(Some)
+        .context("Failed to parse API response")
 }
 
 #[cfg(test)]
