@@ -7,6 +7,7 @@ use crate::{
 use anyhow::{Context, Result};
 use futures::stream::{self, StreamExt};
 use proposalsapp_db::models::discourse_post;
+use reqwest::Client;
 use sea_orm::{
     prelude::{Expr, Uuid},
     ColumnTrait, Condition, EntityTrait, QueryFilter,
@@ -17,11 +18,15 @@ use tracing::{error, info, instrument, warn};
 
 pub struct PostIndexer {
     discourse_api: Arc<DiscourseApi>,
+    http_client: Arc<Client>, // Reused http_client
 }
 
 impl PostIndexer {
-    pub fn new(discourse_api: Arc<DiscourseApi>) -> Self {
-        Self { discourse_api }
+    pub fn new(discourse_api: Arc<DiscourseApi>, http_client: Arc<Client>) -> Self {
+        Self {
+            discourse_api,
+            http_client,
+        }
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id, topic_id = topic_id))]
@@ -75,7 +80,8 @@ impl PostIndexer {
                         stream::iter(posts)
                             .map(|post| {
                                 let api_handler = Arc::clone(&self.discourse_api);
-                                task::spawn(async move { Self::process_post(post, dao_discourse_id, api_handler, priority).await })
+                                let http_client = Arc::clone(&self.http_client); // Clone the Arc
+                                task::spawn(async move { Self::process_post(post, dao_discourse_id, api_handler, http_client, priority).await })
                             })
                             .buffer_unordered(10)
                             .for_each(|_| async {})
@@ -160,10 +166,10 @@ impl PostIndexer {
         Ok(())
     }
 
-    #[instrument(skip( discourse_api), fields(post_id = %post.id, username = %post.username))]
-    async fn process_post(post: Post, dao_discourse_id: Uuid, discourse_api: Arc<DiscourseApi>, priority: bool) {
+    #[instrument(skip( discourse_api, http_client), fields(post_id = %post.id, username = %post.username))]
+    async fn process_post(post: Post, dao_discourse_id: Uuid, discourse_api: Arc<DiscourseApi>, http_client: Arc<Client>, priority: bool) {
         // Before upserting the post, ensure the user exists.
-        let user_fetcher = UserIndexer::new(Arc::clone(&discourse_api));
+        let user_fetcher = UserIndexer::new(Arc::clone(&discourse_api), Arc::clone(&http_client)); // Pass shared http_client
         let user_exists = match user_fetcher
             .fetch_user_by_username(&post.username, dao_discourse_id, priority)
             .await

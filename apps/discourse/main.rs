@@ -62,6 +62,7 @@ async fn main() -> Result<()> {
 
     let mut handles = vec![];
     let mut discourse_apis = HashMap::new();
+    let http_client = Arc::new(Client::new()); // Create http_client here and share it
 
     for dao_discourse in dao_discourses {
         let discourse_api = Arc::new(DiscourseApi::new(
@@ -107,6 +108,7 @@ async fn main() -> Result<()> {
         // Spawn user fetcher thread
         let dao_discourse_users_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
+        let http_client_user = Arc::clone(&http_client); // Clone for user fetcher
         let user_handle = tokio::spawn(async move {
             let start = Instant::now() + Duration::from_secs(10);
             let mut interval = interval_at(start, SLOW_INDEX);
@@ -114,7 +116,7 @@ async fn main() -> Result<()> {
             interval.tick().await;
             loop {
                 interval.tick().await;
-                let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
+                let user_fetcher = UserIndexer::new(Arc::clone(&api_handler), Arc::clone(&http_client_user)); // Pass shared http_client
                 match user_fetcher
                     .update_all_users(dao_discourse_users_clone.id)
                     .await
@@ -140,6 +142,7 @@ async fn main() -> Result<()> {
         // Spawn topic fetcher thread
         let dao_discourse_topic_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
+        let http_client_topic = Arc::clone(&http_client); // Clone for topic fetcher
         let topic_handle = tokio::spawn(async move {
             let start = Instant::now() + Duration::from_secs(10);
             let mut interval = interval_at(start, SLOW_INDEX);
@@ -147,7 +150,7 @@ async fn main() -> Result<()> {
             interval.tick().await;
             loop {
                 interval.tick().await;
-                let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
+                let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler), Arc::clone(&http_client_topic)); // Pass shared http_client
                 match topic_fetcher
                     .update_all_topics(dao_discourse_topic_clone.id)
                     .await
@@ -205,10 +208,17 @@ async fn main() -> Result<()> {
         // Spawn new content fetcher thread
         let dao_discourse_newcontent_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
+        let http_client_newcontent = Arc::clone(&http_client); // Clone for new content fetcher
         let newcontent_handle = tokio::spawn(async move {
             // Create fetcher instances once, outside the loop
-            let user_fetcher = UserIndexer::new(Arc::clone(&api_handler));
-            let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler));
+            let user_fetcher = UserIndexer::new(
+                Arc::clone(&api_handler),
+                Arc::clone(&http_client_newcontent),
+            );
+            let topic_fetcher = TopicIndexer::new(
+                Arc::clone(&api_handler),
+                Arc::clone(&http_client_newcontent),
+            );
             let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
 
             loop {

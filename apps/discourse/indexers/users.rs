@@ -11,14 +11,14 @@ use tracing::{error, info, instrument};
 
 pub struct UserIndexer {
     discourse_api: Arc<DiscourseApi>,
-    http_client: Client,
+    http_client: Arc<Client>, // Make http_client an Arc
 }
 
 impl UserIndexer {
-    pub fn new(discourse_api: Arc<DiscourseApi>) -> Self {
+    pub fn new(discourse_api: Arc<DiscourseApi>, http_client: Arc<Client>) -> Self {
         Self {
             discourse_api,
-            http_client: Client::new(),
+            http_client, // Receive the shared http_client
         }
     }
 
@@ -172,7 +172,7 @@ impl UserIndexer {
         // Attempt to fetch the URL and check for redirects
         info!(url = %full_url, "Fetching avatar URL to check for redirects");
         let response = self
-            .http_client
+            .http_client // Use the shared http_client
             .get(&full_url)
             .send()
             .await

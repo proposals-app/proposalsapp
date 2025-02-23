@@ -1,8 +1,4 @@
-use crate::{
-    db_handler::{upsert_revision, DB},
-    discourse_api::DiscourseApi,
-    models::revisions::Revision,
-};
+use crate::{db_handler::upsert_revision, discourse_api::DiscourseApi, models::revisions::Revision, DB};
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use proposalsapp_db::models::{discourse_post, discourse_post_revision};

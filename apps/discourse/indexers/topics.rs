@@ -1,6 +1,7 @@
 use crate::{db_handler::upsert_topic, discourse_api::DiscourseApi, indexers::posts::PostIndexer, models::topics::TopicResponse};
 use anyhow::{Context, Result};
 use chrono::Utc;
+use reqwest::Client;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tokio::task::JoinSet;
@@ -8,11 +9,15 @@ use tracing::{error, info, instrument};
 
 pub struct TopicIndexer {
     discourse_api: Arc<DiscourseApi>,
+    http_client: Arc<Client>, // Reused http_client for PostIndexer
 }
 
 impl TopicIndexer {
-    pub fn new(discourse_api: Arc<DiscourseApi>) -> Self {
-        Self { discourse_api }
+    pub fn new(discourse_api: Arc<DiscourseApi>, http_client: Arc<Client>) -> Self {
+        Self {
+            discourse_api,
+            http_client,
+        }
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
@@ -79,7 +84,10 @@ impl TopicIndexer {
                             return Err(e).context("Failed to upsert topic")?;
                         }
 
-                        let post_fetcher = PostIndexer::new(Arc::clone(&self.discourse_api));
+                        let post_fetcher = PostIndexer::new(
+                            Arc::clone(&self.discourse_api),
+                            Arc::clone(&self.http_client),
+                        ); // Pass shared http_client
                         let dao_discourse_id_clone = dao_discourse_id;
                         let topic_id = topic.id;
 
