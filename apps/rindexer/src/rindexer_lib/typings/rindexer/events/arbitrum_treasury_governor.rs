@@ -184,86 +184,6 @@ pub fn no_extensions() -> NoExtensions {
     NoExtensions {}
 }
 
-pub fn proposalcanceled_handler<TExtensions, F, Fut>(custom_logic: F) -> ProposalCanceledEventCallbackType<TExtensions>
-where
-    ProposalCanceledResult: Clone + 'static,
-    F: for<'a> Fn(Vec<ProposalCanceledResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type ProposalCanceledEventCallbackType<TExtensions> = Arc<dyn for<'a> Fn(&'a Vec<ProposalCanceledResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
-
-pub struct ProposalCanceledEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: ProposalCanceledEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> ProposalCanceledEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        ProposalCanceledResult: Clone + 'static,
-        F: for<'a> Fn(Vec<ProposalCanceledResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: proposalcanceled_handler(closure),
-            context: Arc::new(EventContext {
-                database: get_or_init_postgres_client().await,
-
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for ProposalCanceledEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<ProposalCanceledResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<ProposalCanceledData>()
-                    .ok()
-                    .map(|arc| ProposalCanceledResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!("ProposalCanceledEvent: Unexpected data type - expected: ProposalCanceledData")
-        }
-    }
-}
-
 pub fn proposalcreated_handler<TExtensions, F, Fut>(custom_logic: F) -> ProposalCreatedEventCallbackType<TExtensions>
 where
     ProposalCreatedResult: Clone + 'static,
@@ -748,7 +668,6 @@ pub enum ArbitrumTreasuryGovernorEventType<TExtensions>
 where
     TExtensions: 'static + Send + Sync,
 {
-    ProposalCanceled(ProposalCanceledEvent<TExtensions>),
     ProposalCreated(ProposalCreatedEvent<TExtensions>),
     ProposalExecuted(ProposalExecutedEvent<TExtensions>),
     ProposalExtended(ProposalExtendedEvent<TExtensions>),
@@ -785,7 +704,6 @@ where
 {
     pub fn topic_id(&self) -> &'static str {
         match self {
-            ArbitrumTreasuryGovernorEventType::ProposalCanceled(_) => "0x789cf55be980739dad1d0699b93b58e806b51c9d96619bfa8fe0a28abaa7b30c",
             ArbitrumTreasuryGovernorEventType::ProposalCreated(_) => "0x7d84a6263ae0d98d3329bd7b46bb4e8d6f98cd35a7adb45c274c8b7fd5ebd5e0",
             ArbitrumTreasuryGovernorEventType::ProposalExecuted(_) => "0x712ae1383f79ac853f8d882153778e0260ef8f03b504e2866e0593e04d2b291f",
             ArbitrumTreasuryGovernorEventType::ProposalExtended(_) => "0x541f725fb9f7c98a30cc9c0ff32fbb14358cd7159c847a3aa20a2bdc442ba511",
@@ -797,7 +715,6 @@ where
 
     pub fn event_name(&self) -> &'static str {
         match self {
-            ArbitrumTreasuryGovernorEventType::ProposalCanceled(_) => "ProposalCanceled",
             ArbitrumTreasuryGovernorEventType::ProposalCreated(_) => "ProposalCreated",
             ArbitrumTreasuryGovernorEventType::ProposalExecuted(_) => "ProposalExecuted",
             ArbitrumTreasuryGovernorEventType::ProposalExtended(_) => "ProposalExtended",
@@ -819,19 +736,6 @@ where
         let decoder_contract = decoder_contract(network);
 
         match self {
-            ArbitrumTreasuryGovernorEventType::ProposalCanceled(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match ProposalCanceledData::decode_log(&ethers::core::abi::RawLog {
-                    topics,
-                    data: data.to_vec(),
-                }) {
-                    Ok(event) => {
-                        let result: ProposalCanceledData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                }
-            }),
-
             ArbitrumTreasuryGovernorEventType::ProposalCreated(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
                 match ProposalCreatedData::decode_log(&ethers::core::abi::RawLog {
                     topics,
@@ -962,14 +866,6 @@ where
         };
 
         let callback: Arc<dyn Fn(Vec<EventResult>) -> BoxFuture<'static, EventCallbackResult<()>> + Send + Sync> = match self {
-            ArbitrumTreasuryGovernorEventType::ProposalCanceled(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
             ArbitrumTreasuryGovernorEventType::ProposalCreated(event) => {
                 let event = Arc::new(event);
                 Arc::new(move |result| {

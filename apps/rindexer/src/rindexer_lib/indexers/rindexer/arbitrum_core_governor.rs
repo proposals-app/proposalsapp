@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use super::super::super::typings::rindexer::events::arbitrum_core_governor::{no_extensions, ArbitrumCoreGovernorEventType, ProposalCanceledEvent, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent, VoteCastEvent, VoteCastWithParamsEvent};
+use super::super::super::typings::rindexer::events::arbitrum_core_governor::{no_extensions, ArbitrumCoreGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent, VoteCastEvent, VoteCastWithParamsEvent};
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
@@ -59,72 +59,6 @@ fn get_dao_id() -> ActiveValue<Uuid> {
         .get("arbitrum")
         .map(|id| Set(*id))
         .unwrap_or(NotSet)
-}
-
-#[instrument(skip(manifest_path, registry))]
-async fn proposal_canceled_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::ProposalCanceled(
-        ProposalCanceledEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                let mut proposals = vec![];
-
-                for result in results.clone() {
-                    proposals.push(proposal_new::ActiveModel {
-                        id: NotSet,
-                        external_id: Set(result.event_data.proposal_id.to_string()),
-                        name: NotSet,
-                        body: NotSet,
-                        url: NotSet,
-                        discussion_url: NotSet,
-                        choices: NotSet,
-                        quorum: NotSet,
-                        proposal_state: Set(ProposalState::Canceled),
-                        marked_spam: NotSet,
-                        created_at: NotSet,
-                        start_at: NotSet,
-                        end_at: NotSet,
-                        block_created_at: NotSet,
-                        metadata: NotSet,
-                        txid: NotSet,
-                        dao_indexer_id: get_proposals_dao_indexer_id(),
-                        dao_id: get_dao_id(),
-                        author: NotSet,
-                    });
-                }
-
-                store_proposals(proposals.clone()).await;
-
-                info!(
-                    event = "ArbitrumCoreGovernor::ProposalCanceled",
-                    results = results.len(),
-                );
-
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                update_last_synced_block(
-                    &context.database,
-                    "arbitrum",
-                    "arbitrum_core_governor",
-                    "proposal_canceled",
-                    to_block,
-                )
-                .await;
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
 }
 
 #[instrument(skip(manifest_path, registry))]
@@ -617,8 +551,6 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
 
 #[instrument(skip(manifest_path, registry))]
 pub async fn arbitrum_core_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    proposal_canceled_handler(manifest_path, registry).await;
-
     proposal_created_handler(manifest_path, registry).await;
 
     proposal_executed_handler(manifest_path, registry).await;
