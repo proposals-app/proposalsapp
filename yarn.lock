@@ -3680,7 +3680,7 @@ __metadata:
     prettier: "npm:^3.5.2"
     rimraf: "npm:^6.0.1"
     style-loader: "npm:^4.0.0"
-    ts-jest: "npm:^29.2.5"
+    ts-jest: "npm:^29.2.6"
     tslint: "npm:^6.1.3"
     tslint-config-prettier: "npm:^1.18.0"
     typescript: "npm:^5.7.3"
@@ -3710,7 +3710,7 @@ __metadata:
     "@radix-ui/react-dropdown-menu": "npm:^2.1.6"
     "@radix-ui/react-select": "npm:^2.1.6"
     "@radix-ui/react-tooltip": "npm:^1.1.8"
-    "@serwist/next": "npm:9.0.11"
+    "@serwist/next": "npm:9.0.12"
     "@svgr/webpack": "npm:^8.1.0"
     "@tailwindcss/postcss": "npm:^4.0.8"
     "@tailwindcss/typography": "npm:^0.5.16"
@@ -3747,7 +3747,7 @@ __metadata:
     next-themes: "npm:^0.4.4"
     nuqs: "npm:^2.4.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.222.0"
+    posthog-js: "npm:^1.223.2"
     prettier: "npm:^3.5.2"
     prettier-plugin-classnames: "npm:^0.7.6"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -3759,7 +3759,7 @@ __metadata:
     react-virtualized: "npm:^9.22.6"
     redis: "npm:^4.7.0"
     rehype-stringify: "npm:^10.0.1"
-    serwist: "npm:9.0.11"
+    serwist: "npm:9.0.12"
     superjson: "npm:^2.2.2"
     tailwindcss: "npm:^4.0.8"
     tailwindcss-animate: "npm:1.0.7"
@@ -3813,7 +3813,7 @@ __metadata:
     "@radix-ui/react-toggle": "npm:^1.1.2"
     "@radix-ui/react-toggle-group": "npm:^1.1.2"
     "@radix-ui/react-tooltip": "npm:^1.1.8"
-    "@serwist/next": "npm:9.0.11"
+    "@serwist/next": "npm:9.0.12"
     "@tailwindcss/postcss": "npm:^4.0.8"
     "@types/node": "npm:22.13.5"
     "@types/react": "npm:^19.0.10"
@@ -3838,7 +3838,7 @@ __metadata:
     pg: "npm:8.13.3"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:1.222.0"
+    posthog-js: "npm:1.223.2"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.5.2"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
@@ -3850,9 +3850,9 @@ __metadata:
     react-intersection-observer: "npm:9.15.1"
     react-resizable-panels: "npm:^2.1.7"
     recharts: "npm:^2.15.1"
-    serwist: "npm:9.0.11"
+    serwist: "npm:9.0.12"
     sonner: "npm:^2.0.1"
-    tailwind-merge: "npm:3.0.1"
+    tailwind-merge: "npm:3.0.2"
     tailwindcss: "npm:^4.0.8"
     tailwindcss-animate: "npm:1.0.7"
     typescript: "npm:^5.7.3"
@@ -5497,52 +5497,52 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@serwist/build@npm:9.0.11":
-  version: 9.0.11
-  resolution: "@serwist/build@npm:9.0.11"
+"@serwist/build@npm:9.0.12":
+  version: 9.0.12
+  resolution: "@serwist/build@npm:9.0.12"
   dependencies:
     common-tags: "npm:1.8.2"
     glob: "npm:10.4.5"
     pretty-bytes: "npm:6.1.1"
     source-map: "npm:0.8.0-beta.0"
-    zod: "npm:3.23.8"
+    zod: "npm:3.24.2"
   peerDependencies:
     typescript: ">=5.0.0"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/5b69ba149bd011d2be44dbe5fc6cd88f4e1efc5861250edbda02bf26bdb1e0fd971558da3c2660c7df57af84d339d5b80883f52ae8b3208f8e7775555d5ded48
+  checksum: 10c0/d0dff1486252387df9aa8a2210e3e7da994c535cb849e14742b74aab588d3c70b2832a5cefb4547b91e7e909762ddd72d2b71c0ab9f7cd88cbbfaf57bbcce30d
   languageName: node
   linkType: hard
 
-"@serwist/next@npm:9.0.11":
-  version: 9.0.11
-  resolution: "@serwist/next@npm:9.0.11"
+"@serwist/next@npm:9.0.12":
+  version: 9.0.12
+  resolution: "@serwist/next@npm:9.0.12"
   dependencies:
-    "@serwist/build": "npm:9.0.11"
-    "@serwist/webpack-plugin": "npm:9.0.11"
-    "@serwist/window": "npm:9.0.11"
-    chalk: "npm:5.3.0"
+    "@serwist/build": "npm:9.0.12"
+    "@serwist/webpack-plugin": "npm:9.0.12"
+    "@serwist/window": "npm:9.0.12"
+    chalk: "npm:5.4.1"
     glob: "npm:10.4.5"
-    serwist: "npm:9.0.11"
-    zod: "npm:3.23.8"
+    serwist: "npm:9.0.12"
+    zod: "npm:3.24.2"
   peerDependencies:
     next: ">=14.0.0"
     typescript: ">=5.0.0"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/6c6267fd679786c6efdfd5e04480579baf6e4183ef426603cb978c29db04376112b050e1f1bfe2ce023bf58b8c6cd0f81bea03cd4f393100cb0f475dc5d87ac7
+  checksum: 10c0/c676a46eff709839bfaa5a45c785e9f79d23eb7720bea16f37820757174f9ba308bacbdf60e000f504289bbaeff3f200de9474ebb624b8a28b3000846bcb30c7
   languageName: node
   linkType: hard
 
-"@serwist/webpack-plugin@npm:9.0.11":
-  version: 9.0.11
-  resolution: "@serwist/webpack-plugin@npm:9.0.11"
+"@serwist/webpack-plugin@npm:9.0.12":
+  version: 9.0.12
+  resolution: "@serwist/webpack-plugin@npm:9.0.12"
   dependencies:
-    "@serwist/build": "npm:9.0.11"
+    "@serwist/build": "npm:9.0.12"
     pretty-bytes: "npm:6.1.1"
-    zod: "npm:3.23.8"
+    zod: "npm:3.24.2"
   peerDependencies:
     typescript: ">=5.0.0"
     webpack: 4.4.0 || ^5.9.0
@@ -5551,22 +5551,22 @@ __metadata:
       optional: true
     webpack:
       optional: true
-  checksum: 10c0/937cc92f11d3114a0156c1a94fd5bfa566aa7a8c2b3fc5458ea58b2e97cf9ca91c44805610d254fabb8d0459118726cb90cae71a642b9743efc9fb990a96a15c
+  checksum: 10c0/b6a537231c4aab33c1359baef8df282a3ca6931f42e87ee215ac771d739db187a839ac8e51e1bb5b27dc88eb12f80119ca244b6273c94670332421a413502bab
   languageName: node
   linkType: hard
 
-"@serwist/window@npm:9.0.11":
-  version: 9.0.11
-  resolution: "@serwist/window@npm:9.0.11"
+"@serwist/window@npm:9.0.12":
+  version: 9.0.12
+  resolution: "@serwist/window@npm:9.0.12"
   dependencies:
     "@types/trusted-types": "npm:2.0.7"
-    serwist: "npm:9.0.11"
+    serwist: "npm:9.0.12"
   peerDependencies:
     typescript: ">=5.0.0"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/5bf6a5a9f0281490648ab48e61103a2d9a793d8496884a8ed6420ff75880889f48c3ba364b0f6e7de9401b633c9e019944775189e8edf0f012611e3f4e7d518c
+  checksum: 10c0/b3b646eb281b61e37834fd7f067ef792abcc5007e0d7275c999318229d7e7067652661703d188d70cf989d415d4bdfc2553bd752435dc58c5ea7670c44ad8d62
   languageName: node
   linkType: hard
 
@@ -8001,10 +8001,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:5.3.0":
-  version: 5.3.0
-  resolution: "chalk@npm:5.3.0"
-  checksum: 10c0/8297d436b2c0f95801103ff2ef67268d362021b8210daf8ddbe349695333eb3610a71122172ff3b0272f1ef2cf7cc2c41fdaa4715f52e49ffe04c56340feed09
+"chalk@npm:5.4.1":
+  version: 5.4.1
+  resolution: "chalk@npm:5.4.1"
+  checksum: 10c0/b23e88132c702f4855ca6d25cb5538b1114343e41472d5263ee8a37cccfccd9c4216d111e1097c6a27830407a1dc81fecdf2a56f2c63033d4dbbd88c10b0dcef
   languageName: node
   linkType: hard
 
@@ -11517,10 +11517,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"idb@npm:8.0.0":
-  version: 8.0.0
-  resolution: "idb@npm:8.0.0"
-  checksum: 10c0/d27547e03939d3d269cea38c3d4528569621ec134c717ebfc1ff816dce18e4f77372dba1d930384a9949ac56dc600e3790f98f1812a4164004e71fec302ee491
+"idb@npm:8.0.2":
+  version: 8.0.2
+  resolution: "idb@npm:8.0.2"
+  checksum: 10c0/ffb0f0c82d36a250801e023eee11a2740b44c58d3506d480a2d9082d0ca8a16c44f4f8201712236ca22488a0c6ae6e93b9b061a291fd238dbe70c1ee16e18e96
   languageName: node
   linkType: hard
 
@@ -15507,9 +15507,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.222.0, posthog-js@npm:^1.222.0":
-  version: 1.222.0
-  resolution: "posthog-js@npm:1.222.0"
+"posthog-js@npm:1.223.2, posthog-js@npm:^1.223.2":
+  version: 1.223.2
+  resolution: "posthog-js@npm:1.223.2"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -15517,7 +15517,7 @@ __metadata:
     web-vitals: "npm:^4.2.0"
   peerDependencies:
     "@rrweb/types": 2.0.0-alpha.17
-  checksum: 10c0/6040790c0c7535ae711dbe1b97557446286b2fab63325799d1ecad441c092017c55a86e183c9c61410d62d54f0dbc427df4694572a87e88c549d9e2d714ce8e5
+  checksum: 10c0/75d6815968599db7db193e5f9a3c7455b7192a803fc70fd124cab06f1b6fc97b69afd779ebb1d29cb40e24bb8ca40ea05c00a61a834af098099f92de7886d5ae
   languageName: node
   linkType: hard
 
@@ -16734,6 +16734,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"semver@npm:^7.7.1":
+  version: 7.7.1
+  resolution: "semver@npm:7.7.1"
+  bin:
+    semver: bin/semver.js
+  checksum: 10c0/fd603a6fb9c399c6054015433051bdbe7b99a940a8fb44b85c2b524c4004b023d7928d47cb22154f8d054ea7ee8597f586605e05b52047f048278e4ac56ae958
+  languageName: node
+  linkType: hard
+
 "send@npm:0.19.0":
   version: 0.19.0
   resolution: "send@npm:0.19.0"
@@ -16791,17 +16800,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"serwist@npm:9.0.11":
-  version: 9.0.11
-  resolution: "serwist@npm:9.0.11"
+"serwist@npm:9.0.12":
+  version: 9.0.12
+  resolution: "serwist@npm:9.0.12"
   dependencies:
-    idb: "npm:8.0.0"
+    idb: "npm:8.0.2"
   peerDependencies:
     typescript: ">=5.0.0"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/6d0aefc0498c8ada61fe461ee7e9b77ce33e82bc134ee178445bad492e84243462fbb8631e50eb568b1b1e8a801afe28664cccc4ae5db43caf013a81e2ae4c96
+  checksum: 10c0/6ffababf29d671bd80e63a5c972b17bb051010e4291d61b64548096a7e17bf544d6c33ba087994a4815eb21875b63c3e60d7e3a09aa50d534a6408e0b2c3e8c0
   languageName: node
   linkType: hard
 
@@ -17687,10 +17696,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwind-merge@npm:3.0.1":
-  version: 3.0.1
-  resolution: "tailwind-merge@npm:3.0.1"
-  checksum: 10c0/973d754687ad82d25cb55bf16958153999d080cd68dd0a6c1c74909bd92d05bcca01c24d9642e9e6ec95b3a207b15cd4b32bca49d586f2e743d311358ecb584b
+"tailwind-merge@npm:3.0.2":
+  version: 3.0.2
+  resolution: "tailwind-merge@npm:3.0.2"
+  checksum: 10c0/73f528345e5130e7690c5c57701155849ae4f0834e0a4bf56bc03e25d4563d45d4905ff9c487a7dce9efdfa18689a223e78365962105ad0e2f2d1226216c66ef
   languageName: node
   linkType: hard
 
@@ -17940,9 +17949,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ts-jest@npm:^29.2.5":
-  version: 29.2.5
-  resolution: "ts-jest@npm:29.2.5"
+"ts-jest@npm:^29.2.6":
+  version: 29.2.6
+  resolution: "ts-jest@npm:29.2.6"
   dependencies:
     bs-logger: "npm:^0.2.6"
     ejs: "npm:^3.1.10"
@@ -17951,7 +17960,7 @@ __metadata:
     json5: "npm:^2.2.3"
     lodash.memoize: "npm:^4.1.2"
     make-error: "npm:^1.3.6"
-    semver: "npm:^7.6.3"
+    semver: "npm:^7.7.1"
     yargs-parser: "npm:^21.1.1"
   peerDependencies:
     "@babel/core": ">=7.0.0-beta.0 <8"
@@ -17973,7 +17982,7 @@ __metadata:
       optional: true
   bin:
     ts-jest: cli.js
-  checksum: 10c0/acb62d168faec073e64b20873b583974ba8acecdb94681164eb346cef82ade8fb481c5b979363e01a97ce4dd1e793baf64d9efd90720bc941ad7fc1c3d6f3f68
+  checksum: 10c0/2a79bdb2631bbd004cd6ec171d62dc3681b86e7d1c20eece7f56e7c3df11a0f5a14f4831960b1ba8d1836787395c8f9dcbd084fd7f59246bbee8048feb93f892
   languageName: node
   linkType: hard
 
@@ -19088,14 +19097,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:3.23.8":
-  version: 3.23.8
-  resolution: "zod@npm:3.23.8"
-  checksum: 10c0/8f14c87d6b1b53c944c25ce7a28616896319d95bc46a9660fe441adc0ed0a81253b02b5abdaeffedbeb23bdd25a0bf1c29d2c12dd919aef6447652dd295e3e69
-  languageName: node
-  linkType: hard
-
-"zod@npm:^3.24.2":
+"zod@npm:3.24.2, zod@npm:^3.24.2":
   version: 3.24.2
   resolution: "zod@npm:3.24.2"
   checksum: 10c0/c638c7220150847f13ad90635b3e7d0321b36cce36f3fc6050ed960689594c949c326dfe2c6fa87c14b126ee5d370ccdebd6efb304f41ef5557a4aaca2824565
