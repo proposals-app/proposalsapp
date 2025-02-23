@@ -24,7 +24,7 @@ impl TopicIndexer {
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_recent_topics(self, dao_discourse_id: Uuid) -> Result<()> {
+    pub async fn update_recent_topics(&self, dao_discourse_id: Uuid) -> Result<()> {
         info!("Starting to update new topics");
 
         self.update_topics(dao_discourse_id, false, true, true)
@@ -32,7 +32,7 @@ impl TopicIndexer {
     }
 
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
-    pub async fn update_topics(self, dao_discourse_id: Uuid, ascending: bool, recent: bool, priority: bool) -> Result<()> {
+    pub async fn update_topics(&self, dao_discourse_id: Uuid, ascending: bool, recent: bool, priority: bool) -> Result<()> {
         info!("Starting to update topics");
 
         let mut total_topics = 0;
