@@ -3,7 +3,7 @@ use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{store_proposals, store_votes, update_last_synced_block, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP, DB},
+        db_extension::{store_proposal, store_vote, update_last_synced_block, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP, DB},
     },
     rindexer_lib::typings::rindexer::events::arbitrum_treasury_governor::arbitrum_treasury_governor_contract,
 };
@@ -69,8 +69,6 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 if results.is_empty() {
                     return Ok(());
                 }
-
-                let mut proposals = vec![];
 
                 for result in results.clone() {
                     let arbitrum_core_governor = arbitrum_treasury_governor_contract("arbitrum");
@@ -155,10 +153,8 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         author: Set(Some(to_checksum(&result.event_data.proposer, None))),
                     };
 
-                    proposals.push(proposal);
+                    store_proposal(proposal).await;
                 }
-
-                store_proposals(proposals.clone()).await;
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::ProposalCreated",
@@ -199,8 +195,6 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                     return Ok(());
                 }
 
-                let mut proposals = vec![];
-
                 for result in results.clone() {
                     let proposal = proposal_new::ActiveModel {
                         id: NotSet,
@@ -224,10 +218,8 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                         author: NotSet,
                     };
 
-                    proposals.push(proposal);
+                    store_proposal(proposal).await;
                 }
-
-                store_proposals(proposals.clone()).await;
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::ProposalExecuted",
@@ -268,8 +260,6 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                     return Ok(());
                 }
 
-                let mut proposals = vec![];
-
                 for result in results.clone() {
                     let end_at = estimate_timestamp("ethereum", result.event_data.extended_deadline)
                         .await
@@ -297,10 +287,8 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                         author: NotSet,
                     };
 
-                    proposals.push(proposal);
+                    store_proposal(proposal).await;
                 }
-
-                store_proposals(proposals.clone()).await;
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::ProposalExtended",
@@ -341,8 +329,6 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                     return Ok(());
                 }
 
-                let mut proposals = vec![];
-
                 for result in results.clone() {
                     let proposal = proposal_new::ActiveModel {
                         id: NotSet,
@@ -366,10 +352,8 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                         author: NotSet,
                     };
 
-                    proposals.push(proposal);
+                    store_proposal(proposal).await;
                 }
-
-                store_proposals(proposals.clone()).await;
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::ProposalQueued",
@@ -410,8 +394,6 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     return Ok(());
                 }
 
-                let mut votes = vec![];
-
                 for result in results.clone() {
                     let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
                         .await
@@ -437,14 +419,8 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                         indexer_id: get_votes_dao_indexer_id(),
                     };
 
-                    votes.push(vote);
+                    store_vote(vote, get_proposals_dao_indexer_id().take().unwrap()).await;
                 }
-
-                store_votes(
-                    votes.clone(),
-                    get_proposals_dao_indexer_id().take().unwrap(),
-                )
-                .await;
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::VoteCast",
@@ -485,8 +461,6 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                     return Ok(());
                 }
 
-                let mut votes = vec![];
-
                 for result in results.clone() {
                     let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
                         .await
@@ -512,14 +486,8 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                         indexer_id: get_votes_dao_indexer_id(),
                     };
 
-                    votes.push(vote);
+                    store_vote(vote, get_proposals_dao_indexer_id().take().unwrap()).await;
                 }
-
-                store_votes(
-                    votes.clone(),
-                    get_proposals_dao_indexer_id().take().unwrap(),
-                )
-                .await;
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::VoteCastWithParams",

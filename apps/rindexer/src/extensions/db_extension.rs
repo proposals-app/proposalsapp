@@ -64,165 +64,147 @@ pub async fn initialize_db() -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip(proposals))]
-pub async fn store_proposals(proposals: Vec<proposal_new::ActiveModel>) -> Result<()> {
+#[instrument(skip(proposal))]
+pub async fn store_proposal(mut proposal: proposal_new::ActiveModel) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
-    // Extract the indexer ID from the first proposal, assuming all proposals have the same indexer ID
-    let indexer_id = proposals
-        .first()
-        .map(|p| p.dao_indexer_id.clone().unwrap())
-        .ok_or_else(|| anyhow::anyhow!("No proposals provided or missing dao_indexer_id"))?;
+    // Extract indexer ID and external ID from the proposal
+    let indexer_id = proposal
+        .dao_indexer_id
+        .clone()
+        .take()
+        .ok_or_else(|| anyhow::anyhow!("Missing dao_indexer_id in proposal"))?;
+    let external_id = proposal
+        .external_id
+        .clone()
+        .take()
+        .ok_or_else(|| anyhow::anyhow!("Missing external_id in proposal"))?;
 
-    let external_ids: Vec<String> = proposals
-        .iter()
-        .map(|p| p.external_id.clone().unwrap())
-        .collect();
-
-    let existing_proposals: HashMap<String, proposal_new::Model> = proposal_new::Entity::find()
+    let existing_proposal = proposal_new::Entity::find()
         .filter(
             Condition::all()
-                .add(proposal_new::Column::ExternalId.is_in(external_ids.clone()))
+                .add(proposal_new::Column::ExternalId.eq(external_id.clone()))
                 .add(proposal_new::Column::DaoIndexerId.eq(indexer_id)),
         )
-        .all(&txn)
-        .await?
-        .into_iter()
-        .map(|p| (p.external_id.clone(), p))
-        .collect();
+        .one(&txn)
+        .await?;
 
-    let (to_insert, to_update): (Vec<_>, Vec<_>) = proposals
-        .into_iter()
-        .partition(|p| !existing_proposals.contains_key(&p.external_id.clone().unwrap()));
-
-    // Batch insert new proposals
-    if !to_insert.is_empty() {
-        proposal_new::Entity::insert_many(to_insert)
-            .exec(&txn)
-            .await?;
-    }
-
-    // Batch update existing proposals
-    for mut p in to_update {
-        let external_id = p.external_id.clone().unwrap();
-        let existing = existing_proposals.get(&external_id).unwrap();
-
+    if let Some(existing) = existing_proposal {
+        // Update existing proposal
         let active_model = proposal_new::ActiveModel {
             id: Set(existing.id),
-            external_id: Set(p.external_id.take().unwrap_or(existing.external_id.clone())),
-            name: Set(p.name.take().unwrap_or(existing.name.clone())),
-            body: Set(p.body.take().unwrap_or(existing.body.clone())),
-            url: Set(p.url.take().unwrap_or(existing.url.clone())),
-            discussion_url: Set(p
+            external_id: Set(proposal
+                .external_id
+                .take()
+                .unwrap_or(existing.external_id.clone())),
+            name: Set(proposal.name.take().unwrap_or(existing.name.clone())),
+            body: Set(proposal.body.take().unwrap_or(existing.body.clone())),
+            url: Set(proposal.url.take().unwrap_or(existing.url.clone())),
+            discussion_url: Set(proposal
                 .discussion_url
                 .take()
                 .unwrap_or(existing.discussion_url.clone())),
-            choices: Set(p.choices.take().unwrap_or(existing.choices.clone())),
-            quorum: Set(p.quorum.take().unwrap_or(existing.quorum)),
-            proposal_state: Set(p
+            choices: Set(proposal.choices.take().unwrap_or(existing.choices.clone())),
+            quorum: Set(proposal.quorum.take().unwrap_or(existing.quorum)),
+            proposal_state: Set(proposal
                 .proposal_state
                 .take()
                 .unwrap_or(existing.proposal_state.clone())),
-            marked_spam: Set(p.marked_spam.take().unwrap_or(existing.marked_spam)),
-            created_at: Set(p.created_at.take().unwrap_or(existing.created_at)),
-            start_at: Set(p.start_at.take().unwrap_or(existing.start_at)),
-            end_at: Set(p.end_at.take().unwrap_or(existing.end_at)),
-            block_created_at: Set(p
+            marked_spam: Set(proposal.marked_spam.take().unwrap_or(existing.marked_spam)),
+            created_at: Set(proposal.created_at.take().unwrap_or(existing.created_at)),
+            start_at: Set(proposal.start_at.take().unwrap_or(existing.start_at)),
+            end_at: Set(proposal.end_at.take().unwrap_or(existing.end_at)),
+            block_created_at: Set(proposal
                 .block_created_at
                 .take()
                 .unwrap_or(existing.block_created_at)),
-            txid: Set(p.txid.take().unwrap_or(existing.txid.clone())),
-            metadata: Set(p.metadata.take().unwrap_or(existing.metadata.clone())),
-            dao_id: Set(p.dao_id.take().unwrap_or(existing.dao_id)),
-            author: Set(p.author.take().unwrap_or(existing.author.clone())),
-            dao_indexer_id: Set(p.dao_indexer_id.take().unwrap_or(existing.dao_indexer_id)),
+            txid: Set(proposal.txid.take().unwrap_or(existing.txid.clone())),
+            metadata: Set(proposal
+                .metadata
+                .take()
+                .unwrap_or(existing.metadata.clone())),
+            dao_id: Set(proposal.dao_id.take().unwrap_or(existing.dao_id)),
+            author: Set(proposal.author.take().unwrap_or(existing.author.clone())),
+            dao_indexer_id: Set(proposal
+                .dao_indexer_id
+                .take()
+                .unwrap_or(existing.dao_indexer_id)),
         };
 
         proposal_new::Entity::update(active_model)
             .exec(&txn)
             .await?;
+    } else {
+        // Insert new proposal
+        proposal_new::Entity::insert(proposal).exec(&txn).await?;
     }
 
     txn.commit().await?;
     Ok(())
 }
 
-#[instrument(skip(votes))]
-pub async fn store_votes(votes: Vec<vote_new::ActiveModel>, proposals_indexer_id: Uuid) -> Result<()> {
-    if votes.is_empty() {
-        return Ok(());
-    }
-
+#[instrument(skip(vote))]
+pub async fn store_vote(vote: vote_new::ActiveModel, proposals_indexer_id: Uuid) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
-    let proposal_external_ids: Vec<String> = votes
-        .iter()
-        .map(|v| v.proposal_external_id.clone().unwrap())
-        .collect();
+    let proposal_external_id = vote
+        .proposal_external_id
+        .clone()
+        .take()
+        .ok_or_else(|| anyhow::anyhow!("Missing proposal_external_id in vote"))?;
 
-    let proposals: HashMap<String, proposal_new::Model> = proposal_new::Entity::find()
-        .filter(proposal_new::Column::ExternalId.is_in(proposal_external_ids.clone()))
+    let proposal: Option<proposal_new::Model> = proposal_new::Entity::find()
+        .filter(proposal_new::Column::ExternalId.eq(proposal_external_id.clone()))
         .filter(proposal_new::Column::DaoIndexerId.eq(proposals_indexer_id))
-        .all(&txn)
-        .await?
-        .into_iter()
-        .map(|p| (p.external_id.clone(), p))
-        .collect();
+        .one(&txn)
+        .await?;
 
-    let mut votes_to_insert: Vec<vote_new::ActiveModel> = Vec::with_capacity(votes.len());
-    for vote_model in votes {
-        let external_id = vote_model.proposal_external_id.clone().unwrap();
-        if let Some(proposal) = proposals.get(&external_id) {
-            let vote_active_model = vote_new::ActiveModel {
-                voter_address: vote_model.voter_address.clone(),
-                choice: vote_model.choice.clone(),
-                voting_power: vote_model.voting_power.clone(),
-                reason: vote_model.reason.clone(),
-                created_at: vote_model.created_at.clone(),
-                block_created_at: vote_model.block_created_at.clone(),
-                txid: vote_model.txid.clone(),
-                proposal_external_id: vote_model.proposal_external_id.clone(),
-                dao_id: vote_model.dao_id.clone(),
-                indexer_id: vote_model.indexer_id.clone(),
-                proposal_id: Set(proposal.id),
-                id: NotSet,
-            };
-            votes_to_insert.push(vote_active_model);
-        } else {
+    let proposal = match proposal {
+        Some(p) => p,
+        None => {
             txn.rollback().await?;
             return Err(anyhow::anyhow!(
                 "No proposal found for external_id: {}",
-                external_id
+                proposal_external_id
             ));
         }
-    }
+    };
 
-    const BATCH_SIZE: usize = 100;
-    let vote_chunks = votes_to_insert.chunks(BATCH_SIZE);
+    let vote_active_model = vote_new::ActiveModel {
+        voter_address: vote.voter_address.clone(),
+        choice: vote.choice.clone(),
+        voting_power: vote.voting_power.clone(),
+        reason: vote.reason.clone(),
+        created_at: vote.created_at.clone(),
+        block_created_at: vote.block_created_at.clone(),
+        txid: vote.txid.clone(),
+        proposal_external_id: vote.proposal_external_id.clone(),
+        dao_id: vote.dao_id.clone(),
+        indexer_id: vote.indexer_id.clone(),
+        proposal_id: Set(proposal.id),
+        id: NotSet,
+    };
 
-    for chunk in vote_chunks {
-        let result = vote_new::Entity::insert_many(chunk.to_vec())
-            .on_conflict(
-                sea_orm::sea_query::OnConflict::columns([vote_new::Column::ProposalId, vote_new::Column::VoterAddress])
-                    .update_columns([
-                        vote_new::Column::Choice,
-                        vote_new::Column::VotingPower,
-                        vote_new::Column::Reason,
-                        vote_new::Column::CreatedAt,
-                        vote_new::Column::BlockCreatedAt,
-                        vote_new::Column::Txid,
-                        vote_new::Column::ProposalId,
-                    ])
-                    .to_owned(),
-            )
-            .exec(&txn)
-            .await;
+    let result = vote_new::Entity::insert(vote_active_model)
+        .on_conflict(
+            sea_orm::sea_query::OnConflict::columns([vote_new::Column::ProposalId, vote_new::Column::VoterAddress])
+                .update_columns([
+                    vote_new::Column::Choice,
+                    vote_new::Column::VotingPower,
+                    vote_new::Column::Reason,
+                    vote_new::Column::CreatedAt,
+                    vote_new::Column::BlockCreatedAt,
+                    vote_new::Column::Txid,
+                    vote_new::Column::ProposalId,
+                ])
+                .to_owned(),
+        )
+        .exec(&txn)
+        .await;
 
-        if let Err(err) = result {
-            eprintln!("Error inserting votes chunk: {:?}", err);
-            txn.rollback().await?;
-            return Err(err.into());
-        }
+    if let Err(err) = result {
+        txn.rollback().await?;
+        return Err(err.into());
     }
 
     txn.commit().await?;
