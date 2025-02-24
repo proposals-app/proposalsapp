@@ -9,9 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::time::{sleep, Instant};
 use tokio_retry::{strategy::ExponentialBackoff, Retry};
-use tracing::{debug, error, instrument, warn};
+use tracing::{info, instrument, warn};
 
-// Configuration for each supported chain.
 #[derive(Clone)]
 struct ChainConfig {
     provider: Arc<JsonRpcCachedProvider>,
@@ -24,7 +23,6 @@ struct ChainConfig {
 
 use std::sync::atomic::Ordering;
 
-// Lazily initialized static map of chain configurations.
 lazy_static! {
     static ref CHAIN_CONFIG_MAP: HashMap<&'static str, ChainConfig> = {
         let mut map = HashMap::new();
@@ -88,7 +86,6 @@ lazy_static! {
     static ref HTTP_CLIENT: Client = create_http_client();
 }
 
-// Creates a reusable HTTP client with connection pooling and timeouts.
 fn create_http_client() -> Client {
     Client::builder()
         .connect_timeout(Duration::from_secs(5))
@@ -99,7 +96,6 @@ fn create_http_client() -> Client {
         .expect("Failed to create HTTP client")
 }
 
-// Retrieves the configuration for a given chain.
 fn get_chain_config(network: &'static str) -> Result<ChainConfig> {
     CHAIN_CONFIG_MAP
         .get(network)
@@ -107,7 +103,6 @@ fn get_chain_config(network: &'static str) -> Result<ChainConfig> {
         .context(format!("Unsupported network: {}", network))
 }
 
-// Structs for deserializing API responses.
 #[derive(Debug, Serialize, Deserialize)]
 struct EstimateTimestampResult {
     #[serde(rename = "CurrentBlock")]
@@ -156,50 +151,24 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
     let mut last_call_mutex = config.last_api_call.lock().await;
     let calls = config.api_calls.load(Ordering::Acquire);
 
-    debug!(
-        network = network,
-        api_calls = calls,
-        last_call = ?*last_call_mutex,
-        "Rate limiting check - start"
-    );
-
     if let Some(last_call_time) = *last_call_mutex {
-        if last_call_time.elapsed() >= Duration::from_secs(1) {
-            // Reset calls count if last call was more than 1 second ago - No longer resetting, let counter
-            // increment
-            debug!(
-                network = network,
-                "Rate limiting - Time elapsed since last call"
-            );
-        }
-
         if calls >= 5 && last_call_time.elapsed() < Duration::from_secs(1) {
-            // Calculate remaining time, ensuring it's at least 0
             let wait_duration = Duration::from_secs(1)
                 .checked_sub(last_call_time.elapsed())
-                .unwrap_or(Duration::from_millis(0)); // Default to 0 if elapsed is greater
+                .unwrap_or(Duration::from_millis(0));
 
-            debug!(network = network, wait_duration = ?wait_duration, "Rate limiting: waiting");
+            let wait_duration_str = wait_duration.as_secs_f64().to_string();
+            info!(
+                network = network,
+                wait_duration = %wait_duration_str,
+                "Rate limiting"
+            );
             sleep(wait_duration).await;
-
-            debug!(network = network, "Rate limiting - Wait completed");
         }
-    } else {
-        // First call
-        debug!(network = network, "Rate limiting - First API call");
     }
 
-    // Update last_api_call and api_calls count - Do this always after rate limiting check
     *last_call_mutex = Some(Instant::now());
     config.api_calls.fetch_add(1, Ordering::Release);
-    let calls_after_inc = config.api_calls.load(Ordering::Acquire);
-
-    debug!(
-        network = network,
-        api_calls = calls_after_inc,
-        last_call = ?*last_call_mutex,
-        "Rate limiting check - end"
-    );
 
     drop(last_call_mutex); // Explicitly drop the lock before proceeding
 
@@ -337,20 +306,15 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
     }
 
     // 4. Fallback: Estimate with average block time.
-    let result = estimate_with_average_block_time(
+    estimate_with_average_block_time(
         network,
         current_block.as_u64(),
         block_number,
         config.average_block_time_ms,
-    );
-
-    result
+    )
 }
 
-// Estimates timestamp using average block time.
 fn estimate_with_average_block_time(network: &'static str, current_block: u64, target_block: u64, average_block_time_ms: u64) -> Result<NaiveDateTime> {
-    error!("");
-
     let now = Utc::now();
 
     // Calculate the block difference, handling both future and past blocks
@@ -370,7 +334,7 @@ fn estimate_with_average_block_time(network: &'static str, current_block: u64, t
         "Using simple block time estimation"
     );
 
-    let result = if is_future {
+    if is_future {
         now.checked_add_signed(chrono::Duration::milliseconds(
             estimated_milliseconds as i64,
         ))
@@ -380,12 +344,9 @@ fn estimate_with_average_block_time(network: &'static str, current_block: u64, t
         ))
     }
     .context("Failed to calculate timestamp")
-    .map(|dt| dt.naive_utc());
-
-    result
+    .map(|dt| dt.naive_utc())
 }
 
-// Makes an API request to the block explorer for getblockcountdown.
 #[instrument(skip(api_url, api_key))]
 async fn retry_api_request(api_url: &str, api_key: &str, block_number: u64) -> Result<Option<EstimateTimestamp>> {
     let url = format!(
@@ -393,7 +354,7 @@ async fn retry_api_request(api_url: &str, api_key: &str, block_number: u64) -> R
         api_url, block_number, api_key
     );
 
-    let result = Retry::spawn(retry_strategy(), || async {
+    Retry::spawn(retry_strategy(), || async {
         let response = HTTP_CLIENT
             .get(&url)
             .send()
@@ -415,18 +376,13 @@ async fn retry_api_request(api_url: &str, api_key: &str, block_number: u64) -> R
 
         let response_text = response.text().await?;
 
-        debug!(response = %response_text, "Received API response");
-
         serde_json::from_str::<EstimateTimestamp>(&response_text)
             .map(Some)
             .context("Failed to parse API response")
     })
-    .await;
-
-    result
+    .await
 }
 
-// Makes an API request to the block explorer for getblockreward.
 #[instrument(skip(api_url, api_key))]
 async fn retry_block_reward_request(api_url: &str, api_key: &str, block_number: u64) -> Result<Option<BlockRewardResponse>> {
     let url = format!(
@@ -434,7 +390,7 @@ async fn retry_block_reward_request(api_url: &str, api_key: &str, block_number: 
         api_url, block_number, api_key
     );
 
-    let result = Retry::spawn(retry_strategy(), || async {
+    Retry::spawn(retry_strategy(), || async {
         let response = HTTP_CLIENT
             .get(&url)
             .send()
@@ -456,15 +412,11 @@ async fn retry_block_reward_request(api_url: &str, api_key: &str, block_number: 
 
         let response_text = response.text().await?;
 
-        debug!(response = %response_text, "Received block reward API response");
-
         serde_json::from_str::<BlockRewardResponse>(&response_text)
             .map(Some)
             .context("Failed to parse block reward API response")
     })
-    .await;
-
-    result
+    .await
 }
 
 // Unit tests.
@@ -497,7 +449,7 @@ mod tests {
         let target_block_number = if block_offset >= 0 {
             current_block.checked_add(block_offset as u64)
         } else {
-            current_block.checked_sub(block_offset.abs() as u64)
+            current_block.checked_sub(block_offset.unsigned_abs())
         }
         .context("Invalid block offset")?;
 
