@@ -185,22 +185,41 @@ async fn get_cached_block_number(network: &'static str, provider: &JsonRpcCached
 #[instrument]
 pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Result<NaiveDateTime> {
     let config = get_chain_config(network)?;
-    let provider = config.provider.get_inner_provider();
+
+    let provider = config.provider.clone();
+    let provider = provider.get_inner_provider();
 
     // 1. Try to get the timestamp directly from the provider (for past blocks).
-    if let Ok(Some(block)) = provider
+    match provider
         .get_block(BlockId::Number(block_number.into()))
         .await
     {
-        println!("Got timestamp directly from provider.");
-        return Ok(
-            DateTime::<Utc>::from_timestamp(block.timestamp.as_u64() as i64, 0)
-                .expect("Failed to create DateTime")
-                .naive_utc(),
-        );
+        Ok(Some(block)) => {
+            return Ok(
+                DateTime::<Utc>::from_timestamp(block.timestamp.as_u64() as i64, 0)
+                    .expect("Failed to create DateTime")
+                    .naive_utc(),
+            );
+        }
+        Ok(None) => {
+            warn!(
+                network = network,
+                block_number = block_number,
+                "Block not found using provider.get_block()"
+            );
+        }
+        Err(e) => {
+            warn!(
+                network = network,
+                block_number = block_number,
+                error = %e,
+                "Failed to get block from provider"
+            );
+        }
     }
 
     // 2. Get the current block number (cached).
+    // Use the cloned provider for caching as well.
     let current_block = get_cached_block_number(
         network,
         &config.provider,
@@ -211,19 +230,36 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
     // 3. If the requested block is in the future, try the block explorer API.
     if block_number > current_block {
         if let (Some(scan_api_url), Some(scan_api_key)) = (&config.scan_api_url, &config.scan_api_key) {
-            if let Ok(Some(response)) = retry_api_request(scan_api_url, scan_api_key, block_number).await {
-                if response.status == "1" {
-                    if let Some(result) = response.result {
-                        let estimate_time_in_sec: f64 = result
-                            .estimate_time_in_sec
-                            .parse()
-                            .context("Failed to parse EstimateTimeInSec")?;
+            match retry_api_request(scan_api_url, scan_api_key, block_number).await {
+                Ok(Some(response)) => {
+                    if response.status == "1" {
+                        if let Some(result) = response.result {
+                            let estimate_time_in_sec: f64 = result
+                                .estimate_time_in_sec
+                                .parse()
+                                .context("Failed to parse EstimateTimeInSec")?;
 
-                        return Ok(Utc::now()
-                            .checked_add_signed(chrono::Duration::seconds(estimate_time_in_sec as i64))
-                            .context("Failed to add duration to current time")?
-                            .naive_utc());
+                            return Ok(Utc::now()
+                                .checked_add_signed(chrono::Duration::seconds(estimate_time_in_sec as i64))
+                                .context("Failed to add duration to current time")?
+                                .naive_utc());
+                        }
                     }
+                }
+                Ok(None) => {
+                    warn!(
+                        network = network,
+                        block_number = block_number,
+                        "Block explorer API returned no result"
+                    );
+                }
+                Err(e) => {
+                    warn!(
+                        network = network,
+                        block_number = block_number,
+                        error = %e,
+                        "Block explorer API request failed"
+                    );
                 }
             }
         }
@@ -325,6 +361,8 @@ async fn retry_api_request(api_url: &str, api_key: &str, block_number: u64) -> R
 mod tests {
     use super::*;
     use chrono::{Duration, NaiveDate, NaiveTime};
+    use rand::prelude::*;
+    use tokio::task::JoinSet;
 
     async fn test_estimate_timestamp_scenario(
         network: &'static str,
@@ -554,6 +592,106 @@ mod tests {
             estimated_time,
             (estimated_time - expected_time).num_seconds()
         );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_concurrency() -> Result<()> {
+        let mut tasks = JoinSet::new();
+        let networks = ["ethereum", "arbitrum", "optimism", "polygon", "avalanche"];
+        let offsets = [-100, 100, -1000, 1000, 0]; // Test past, future, and current blocks
+
+        for &network in &networks {
+            for &offset in &offsets {
+                tasks.spawn(async move { test_estimate_timestamp_scenario(network, offset).await });
+            }
+        }
+
+        while let Some(res) = tasks.join_next().await {
+            res??; // Propagate any errors from the tasks
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_intensive_concurrency_all_networks_sequential() -> Result<()> {
+        let networks = ["ethereum", "arbitrum", "optimism", "polygon", "avalanche"];
+        let num_tasks_per_network = 200; // Reduced tasks per network for sequential testing
+        let mut rng = rand::thread_rng(); // Initialize a thread-local RNG
+
+        for network in networks {
+            println!("Starting intensive test for network: {}", network);
+            let current_block = match network {
+                "ethereum" => get_ethereum_provider_cache().get_block_number().await?,
+                "arbitrum" => get_arbitrum_provider_cache().get_block_number().await?,
+                "optimism" => get_optimism_provider_cache().get_block_number().await?,
+                "polygon" => get_polygon_provider_cache().get_block_number().await?,
+                "avalanche" => get_avalanche_provider_cache().get_block_number().await?,
+                _ => panic!("Unsupported network for testing"),
+            }
+            .as_u64();
+
+            let mut tasks = JoinSet::new();
+            let network_start_time = Instant::now(); // Time for this network
+
+            for i in 0..num_tasks_per_network {
+                let offset: i64 = rng.gen_range(-1_000_000..=1_000_000);
+
+                let target_block_number = if offset >= 0 {
+                    current_block.checked_add(offset as u64)
+                } else {
+                    current_block.checked_sub(offset.checked_abs().context("offset abs overflow")? as u64)
+                }
+                .context("Invalid block offset")?;
+
+                tasks.spawn(async move {
+                    let task_start_time = Instant::now();
+                    let result = estimate_timestamp(network, target_block_number).await;
+                    let task_duration = task_start_time.elapsed();
+
+                    match result {
+                        Ok(estimated_time) => {
+                            assert!(estimated_time > NaiveDateTime::UNIX_EPOCH);
+                            println!(
+                                "Network: {}, Task {}: Estimated time for block {}: {:?}, took {:?}",
+                                network, i, target_block_number, estimated_time, task_duration
+                            );
+                            Ok(())
+                        }
+                        Err(e) => {
+                            println!(
+                                "Network: {}, Task {} (block {}): Error: {}, took {:?}",
+                                network, i, target_block_number, e, task_duration
+                            );
+                            Err(e)
+                        }
+                    }
+                });
+            }
+            let mut error_count = 0;
+            while let Some(res) = tasks.join_next().await {
+                if let Err(e) = res? {
+                    eprintln!("Task failed: {:?}", e);
+                    error_count += 1;
+                }
+            }
+
+            let network_duration = network_start_time.elapsed();
+            println!(
+                "Total duration for {} tasks on network {}: {:?}",
+                num_tasks_per_network, network, network_duration
+            );
+            println!(
+                "Number of failed tasks for network {}: {}",
+                network, error_count
+            );
+            assert_eq!(
+                error_count, 0,
+                "There were failing concurrent tasks for network {}.",
+                network
+            );
+        }
+
         Ok(())
     }
 }
