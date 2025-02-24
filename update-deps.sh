@@ -5,15 +5,9 @@
    cargo upgrade
    cargo sort -w
 
-   # Install npm-check-updates globally if not already installed
-   if ! command -v ncu &> /dev/null; then
-     echo "Installing npm-check-updates globally..."
-     yarn global add npm-check-updates
-   fi
-
    # Update root dependencies using npm-check-updates
    echo "Updating dependencies in the root project..."
-   ncu -u
+   yarn dlx npm-check-updates -u
    yarn install
 
    # Find all projects in the workspace and update their dependencies
@@ -23,5 +17,5 @@
      echo "Updating dependencies in $project_dir..."
 
      # Run npm-check-updates
-     (cd "$project_dir" && ncu -u && yarn install)
+     (cd "$project_dir" && yarn dlx npm-check-updates -u && yarn install)
    done

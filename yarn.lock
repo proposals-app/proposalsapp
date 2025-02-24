@@ -2281,14 +2281,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^4.1.1":
-  version: 4.1.1
-  resolution: "@hookform/resolvers@npm:4.1.1"
+"@hookform/resolvers@npm:^4.1.2":
+  version: 4.1.2
+  resolution: "@hookform/resolvers@npm:4.1.2"
   dependencies:
-    caniuse-lite: "npm:^1.0.30001698"
+    "@standard-schema/utils": "npm:^0.3.0"
   peerDependencies:
     react-hook-form: ^7.0.0
-  checksum: 10c0/3d0ea8cbe5a8e008361149a1e087124b7e086779534f79de1330fb6bc68cc2df2627152cfa3f0f33a1baa6294430edad6f80fa7eb8887a9d8c52d79c228e0709
+  checksum: 10c0/3e74dfac02c9b40d1840f3ede57031a461195eed513d299946d04afc823d92565e74af79aa1c61508d250068105f0ae14409cec35f03eba166bfd1316f1cf3fd
   languageName: node
   linkType: hard
 
@@ -3727,7 +3727,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.24.1"
     "@typescript-eslint/parser": "npm:^8.24.1"
     "@vercel/otel": "npm:^1.10.1"
-    babel-plugin-react-compiler: "npm:19.0.0-beta-714736e-20250131"
+    babel-plugin-react-compiler: "npm:19.0.0-beta-e1e972c-20250221"
     date-fns: "npm:^4.1.0"
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
@@ -3774,7 +3774,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/web@workspace:apps/web"
   dependencies:
-    "@hookform/resolvers": "npm:^4.1.1"
+    "@hookform/resolvers": "npm:^4.1.2"
     "@lucia-auth/adapter-postgresql": "npm:3.1.2"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/api-logs": "npm:^0.57.2"
@@ -5599,6 +5599,13 @@ __metadata:
   version: 3.1.2
   resolution: "@socket.io/component-emitter@npm:3.1.2"
   checksum: 10c0/c4242bad66f67e6f7b712733d25b43cbb9e19a595c8701c3ad99cbeb5901555f78b095e24852f862fffb43e96f1d8552e62def885ca82ae1bb05da3668fd87d7
+  languageName: node
+  linkType: hard
+
+"@standard-schema/utils@npm:^0.3.0":
+  version: 0.3.0
+  resolution: "@standard-schema/utils@npm:0.3.0"
+  checksum: 10c0/6eb74cd13e52d5fc74054df51e37d947ef53f3ab9e02c085665dcca3c38c60ece8d735cebbdf18fbb13c775fbcb9becb3f53109b0e092a63f0f7389ce0993fd0
   languageName: node
   linkType: hard
 
@@ -7565,12 +7572,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-plugin-react-compiler@npm:19.0.0-beta-714736e-20250131":
-  version: 19.0.0-beta-714736e-20250131
-  resolution: "babel-plugin-react-compiler@npm:19.0.0-beta-714736e-20250131"
+"babel-plugin-react-compiler@npm:19.0.0-beta-e1e972c-20250221":
+  version: 19.0.0-beta-e1e972c-20250221
+  resolution: "babel-plugin-react-compiler@npm:19.0.0-beta-e1e972c-20250221"
   dependencies:
     "@babel/types": "npm:^7.19.0"
-  checksum: 10c0/b0e16cadc72792acad1de9821e776ba063dee888d6f77c0a754a78235922404cc59bf384968fbf65085f87ae45c3b38f2074ec6b654662ffef72bd594f781795
+  checksum: 10c0/9a05a92fc27445c81b3d817258edde563e97975b765476178df29eafb99f3d62c9e1674e0e6bbec13fb0709c29bc464d99a83bd971b4b20f37c929e5866ebb5b
   languageName: node
   linkType: hard
 
@@ -7974,13 +7981,6 @@ __metadata:
   version: 1.0.30001690
   resolution: "caniuse-lite@npm:1.0.30001690"
   checksum: 10c0/646bd469032afa90400a84dec30a2b00a6eda62c03ead358117e3f884cda8aacec02ec058a6dbee5eaf9714f83e483b9b0eb4fb42febb8076569f5ca40f1d347
-  languageName: node
-  linkType: hard
-
-"caniuse-lite@npm:^1.0.30001698":
-  version: 1.0.30001699
-  resolution: "caniuse-lite@npm:1.0.30001699"
-  checksum: 10c0/e87b3a0602c3124131f6a21f1eb262378e17a2ee3089e3c472ac8b9caa85cf7d6a219655379302c29c6f10a74051f2a712639d7f98ee0444c73fefcbaf25d519
   languageName: node
   linkType: hard
 

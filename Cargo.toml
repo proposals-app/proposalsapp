@@ -55,6 +55,7 @@ pyroscope_pprofrs = "0.2.8"
 alloy-chains = "0.1.62"
 ethers = "2.0"
 rindexer = { git = "https://github.com/andreivcodes/rindexer", branch = "master", package = "rindexer" }
+tokio-retry = "0.3.0"
 
 [profile.release]
 opt-level = 3

@@ -28,6 +28,7 @@ sea-orm = { workspace = true, features = [
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
+tokio-retry = { workspace = true }
 tracing = { workspace = true }
 utils = { path = "../../libs/rust/utils" }
 

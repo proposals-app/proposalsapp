@@ -17,7 +17,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@serwist/next": "9.0.12",
     "@vercel/otel": "^1.10.1",
-    "babel-plugin-react-compiler": "19.0.0-beta-714736e-20250131",
+    "babel-plugin-react-compiler": "19.0.0-beta-e1e972c-20250221",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "diff-match-patch": "^1.0.5",
