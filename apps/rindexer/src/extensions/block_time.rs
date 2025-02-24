@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::time::{sleep, Instant};
 use tokio_retry::{strategy::ExponentialBackoff, Retry};
-use tracing::{info, instrument, warn};
+use tracing::{instrument, warn};
 
 #[derive(Clone)]
 struct ChainConfig {
@@ -152,21 +152,21 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
     let calls = config.api_calls.load(Ordering::Acquire);
 
     if let Some(last_call_time) = *last_call_mutex {
-        if calls >= 5 && last_call_time.elapsed() < Duration::from_secs(1) {
+        let elapsed = last_call_time.elapsed();
+        if calls >= 5 && elapsed < Duration::from_secs(1) {
             let wait_duration = Duration::from_secs(1)
-                .checked_sub(last_call_time.elapsed())
+                .checked_sub(elapsed)
                 .unwrap_or(Duration::from_millis(0));
-
-            let wait_duration_str = wait_duration.as_secs_f64().to_string();
-            info!(
+            warn!(
                 network = network,
-                wait_duration = %wait_duration_str,
+                wait_duration = ?wait_duration,
                 "Rate limiting"
             );
             sleep(wait_duration).await;
         }
     }
 
+    // Reset the counters if more than 1 second has passed
     *last_call_mutex = Some(Instant::now());
     config.api_calls.fetch_add(1, Ordering::Release);
 
