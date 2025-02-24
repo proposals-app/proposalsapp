@@ -12,7 +12,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::{Mutex, OnceCell};
-use tracing::{error, instrument};
+use tracing::{error, instrument, warn};
 
 #[derive(Clone)]
 struct ChainConfig {
@@ -91,10 +91,6 @@ async fn job_processor() {
             let config = match get_chain_config(job.network) {
                 Ok(config) => config,
                 Err(e) => {
-                    println!(
-                        "Failed to get chain config for network {}: {}",
-                        job.network, e
-                    );
                     error!(
                         "Failed to get chain config for network {}: {}",
                         job.network, e
@@ -107,10 +103,6 @@ async fn job_processor() {
             match process_request_inner(config, job.block_number).await {
                 Ok(result) => {
                     if job.sender.send(Ok(result)).is_err() {
-                        println!(
-                            "Failed to send timestamp estimation result back to sender for block {}",
-                            job.block_number
-                        );
                         error!(
                             "Failed to send timestamp estimation result back to sender for block {}",
                             job.block_number
@@ -118,12 +110,8 @@ async fn job_processor() {
                     }
                 }
                 Err(e) => {
-                    println!(
-                        "Failed to process timestamp estimation for block {}: {}",
-                        job.block_number, e
-                    );
-                    error!(
-                        "Failed to process timestamp estimation for block {}: {}",
+                    warn!(
+                        "Pushing back to queue. Failed to process timestamp estimation for block {}: {}",
                         job.block_number, e
                     );
                     // Re-enqueue the job for retry with backoff
@@ -266,7 +254,7 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
         network,
         block_number,
         sender,
-        retry_count: 0, // Initialize retry counter
+        retry_count: 0,
     };
 
     {
