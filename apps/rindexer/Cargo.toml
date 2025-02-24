@@ -27,6 +27,7 @@ sea-orm = { workspace = true, features = [
 ] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+serial_test = "3.2.0"
 tokio = { workspace = true, features = ["full"] }
 tokio-retry = { workspace = true }
 tracing = { workspace = true }
