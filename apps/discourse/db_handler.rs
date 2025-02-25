@@ -244,7 +244,7 @@ pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
         username: Set(post.username.clone()),
         created_at: Set(post.created_at.naive_utc()),
         cooked: match &post.raw {
-            Some(raw) if raw == "<p>(post deleted by author)</p>" => NotSet,
+            Some(raw) if raw == "(post deleted by author)" || raw == "<p>(post deleted by author)</p>" => NotSet,
             Some(raw) => Set(Some(raw.clone())),
             None => NotSet,
         },

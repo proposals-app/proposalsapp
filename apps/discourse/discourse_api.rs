@@ -2,6 +2,7 @@ use crate::metrics::METRICS;
 use anyhow::{anyhow, Result};
 use opentelemetry::KeyValue;
 use rand::{seq::SliceRandom, thread_rng};
+use regex::Regex;
 use reqwest::{
     cookie::Jar,
     header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT},
@@ -315,7 +316,7 @@ impl DiscourseApi {
                     ],
                 );
 
-                // Record queue errors
+                // // Record queue errors
                 METRICS
                     .get()
                     .unwrap()
@@ -481,4 +482,57 @@ async fn clear_forbidden_urls_cache(forbidden_urls: Arc<Mutex<HashSet<(String, u
         let mut forbidden_urls = forbidden_urls.lock().unwrap();
         forbidden_urls.clear();
     }
+}
+
+#[instrument(skip(discourse_api))]
+pub async fn process_upload_urls(raw_content: &str, discourse_api: Arc<DiscourseApi>) -> Result<String> {
+    let re_upload = Regex::new(r"upload:\/\/([a-zA-Z0-9\-_]+)(?:\.([a-zA-Z0-9]+))?").unwrap();
+    let replaced_content = re_upload.replace_all(raw_content, |caps: &regex::Captures| {
+        let base_url = &discourse_api.base_url;
+        let file_name = &caps[1]; // Capture group 1: filename without extension
+                                  // If there's a file extension (capture group 2), use it; otherwise, don't add a period.
+        if let Some(ext) = caps.get(2) {
+            format!(
+                "{}/uploads/short-url/{}.{}",
+                base_url,
+                file_name,
+                ext.as_str()
+            )
+        } else {
+            format!("{}/uploads/short-url/{}", base_url, file_name)
+        }
+    });
+    Ok(replaced_content.to_string())
+}
+
+#[tokio::test]
+async fn test_process_post_raw_content() {
+    // Create real API client instances
+    let discourse_api = Arc::new(DiscourseApi::new(
+        "https://forum.arbitrum.foundation".to_string(),
+        true,
+    ));
+
+    let raw_content = r#"Yes, both Arbitrum DAO governors count the **Abstain** vote choice towards quorum.
+
+And for example, in the OpCo onchain vote, if **Abstain** wouldn't count towards quorum the proposal would have just very very barely passed, with **122.4M ARB** voting **For** and the 3% Quorum threshold being **121.8M ARB**.
+
+![soon on arbitrum.proposals.app|690x234](upload://dL6cgekakAbqqmWl7b2EWSlhidB.png)
+"#;
+
+    // Process the raw content
+    // Use a placeholder for http_client since it is no longer used in process_post_raw_content.
+    let processed_content = process_upload_urls(raw_content, discourse_api)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        processed_content,
+        r#"Yes, both Arbitrum DAO governors count the **Abstain** vote choice towards quorum.
+
+And for example, in the OpCo onchain vote, if **Abstain** wouldn't count towards quorum the proposal would have just very very barely passed, with **122.4M ARB** voting **For** and the 3% Quorum threshold being **121.8M ARB**.
+
+![soon on arbitrum.proposals.app|690x234](https://forum.arbitrum.foundation/uploads/short-url/dL6cgekakAbqqmWl7b2EWSlhidB.png)
+"#
+    );
 }

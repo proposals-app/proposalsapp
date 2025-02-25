@@ -1,4 +1,9 @@
-use crate::{db_handler::upsert_revision, discourse_api::DiscourseApi, models::revisions::Revision, DB};
+use crate::{
+    db_handler::upsert_revision,
+    discourse_api::{process_upload_urls, DiscourseApi},
+    models::revisions::Revision,
+    DB,
+};
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use proposalsapp_db::models::{discourse_post, discourse_post_revision};
@@ -187,10 +192,31 @@ async fn update_revisions_for_post(discourse_api: &DiscourseApi, dao_discourse_i
     for rev_num in 2..=version {
         let url = format!("/posts/{}/revisions/{}.json", post_id, rev_num);
         info!(url, "Fetching revision");
-        let revision: Revision = discourse_api
+        let mut revision: Revision = discourse_api
             .queue(&url, priority)
             .await
             .with_context(|| format!("Failed to fetch revision for post {}", post_id))?;
+
+        // Process upload URLs in revision body content
+        match process_upload_urls(
+            &revision.body_changes.side_by_side_markdown,
+            discourse_api.clone().into(),
+        )
+        .await
+        {
+            Ok(processed_content) => {
+                revision.body_changes.side_by_side_markdown = processed_content;
+            }
+            Err(e) => {
+                error!(
+                    error = ?e,
+                    post_id = post_id,
+                    revision_version = rev_num,
+                    "Failed to process revision raw content"
+                );
+                // If processing fails, keep the original content.
+            }
+        }
 
         upsert_revision(&revision, dao_discourse_id, discourse_post.id)
             .await
