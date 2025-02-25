@@ -167,7 +167,7 @@ impl PostIndexer {
     }
 
     #[instrument(skip( discourse_api, http_client), fields(post_id = %post.id, username = %post.username))]
-    async fn process_post(mut post: Post, dao_discourse_id: Uuid, discourse_api: Arc<DiscourseApi>, http_client: Arc<Client>, priority: bool) {
+    async fn process_post(post: Post, dao_discourse_id: Uuid, discourse_api: Arc<DiscourseApi>, http_client: Arc<Client>, priority: bool) {
         // Before upserting the post, ensure the user exists.
         let user_fetcher = UserIndexer::new(Arc::clone(&discourse_api), Arc::clone(&http_client)); // Pass shared http_client
         let user_exists = match user_fetcher
@@ -184,7 +184,7 @@ impl PostIndexer {
             }
         };
 
-        let post_to_upsert = if user_exists {
+        let mut post_to_upsert = if user_exists {
             post.clone()
         } else {
             match get_or_create_unknown_user(dao_discourse_id).await {
@@ -209,7 +209,7 @@ impl PostIndexer {
         if let Some(raw_content) = &post_to_upsert.raw {
             match process_upload_urls(raw_content, discourse_api.clone()).await {
                 Ok(processed_content) => {
-                    post.raw = Some(processed_content);
+                    post_to_upsert.raw = Some(processed_content);
                 }
                 Err(e) => {
                     error!(
@@ -218,7 +218,7 @@ impl PostIndexer {
                         "Failed to process post raw content"
                     );
                     // Continue with the original raw content if processing fails.
-                    post.raw = Some(raw_content.clone());
+                    post_to_upsert.raw = Some(raw_content.clone());
                 }
             }
         }
