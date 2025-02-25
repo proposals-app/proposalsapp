@@ -7,6 +7,7 @@ use crate::{
 use anyhow::{Context, Result};
 use futures::stream::{self, StreamExt};
 use proposalsapp_db::models::discourse_post;
+use regex::Regex;
 use reqwest::Client;
 use sea_orm::{
     prelude::{Expr, Uuid},
@@ -167,7 +168,7 @@ impl PostIndexer {
     }
 
     #[instrument(skip( discourse_api, http_client), fields(post_id = %post.id, username = %post.username))]
-    async fn process_post(post: Post, dao_discourse_id: Uuid, discourse_api: Arc<DiscourseApi>, http_client: Arc<Client>, priority: bool) {
+    async fn process_post(mut post: Post, dao_discourse_id: Uuid, discourse_api: Arc<DiscourseApi>, http_client: Arc<Client>, priority: bool) {
         // Before upserting the post, ensure the user exists.
         let user_fetcher = UserIndexer::new(Arc::clone(&discourse_api), Arc::clone(&http_client)); // Pass shared http_client
         let user_exists = match user_fetcher
@@ -205,6 +206,15 @@ impl PostIndexer {
                 }
             }
         };
+
+        if let Some(raw_content) = &post_to_upsert.raw {
+            let re = Regex::new(r"upload:\/\/([a-zA-Z0-9]+)\.png").unwrap();
+            let modified_raw_content = re.replace_all(
+                raw_content,
+                format!("{}/uploads/short-url/$1.png", discourse_api.base_url),
+            );
+            post.raw = Some(modified_raw_content.to_string());
+        }
 
         match upsert_post(&post_to_upsert, dao_discourse_id).await {
             Ok(_) => {

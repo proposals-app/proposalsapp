@@ -3740,7 +3740,7 @@ __metadata:
     hast: "npm:^1.0.0"
     hast-util-to-dom: "npm:^4.0.1"
     jsdom: "npm:26.0.0"
-    lucide-react: "npm:0.475.0"
+    lucide-react: "npm:0.476.0"
     mdast-util-from-markdown: "npm:^2.0.2"
     mdast-util-to-hast: "npm:^13.2.0"
     next: "npm:^15.1.7"
@@ -3830,7 +3830,7 @@ __metadata:
     fuse.js: "npm:^7.1.0"
     input-otp: "npm:^1.4.2"
     lucia: "npm:3.2.2"
-    lucide-react: "npm:0.475.0"
+    lucide-react: "npm:0.476.0"
     moment: "npm:2.30.1"
     next: "npm:^15.1.7"
     next-themes: "npm:^0.4.4"
@@ -13342,12 +13342,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:0.475.0":
-  version: 0.475.0
-  resolution: "lucide-react@npm:0.475.0"
+"lucide-react@npm:0.476.0":
+  version: 0.476.0
+  resolution: "lucide-react@npm:0.476.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/9cb17bd4e70da4db104874b6b2e9d9c7e2be9438e9d1c0b2565df0c4d0bdd1add41b7dff3cb60840699ecbd29870c453878b42b69a7c46480def0c9370a852a9
+  checksum: 10c0/85d26dbfaf02ef8e4140545c1da09d8df2b78cde45457c8a4ae0898e523e753063c9cc6c05a184575edda981f8b1ff0f77e43dcafbfc189079212844262380e3
   languageName: node
   linkType: hard
 
