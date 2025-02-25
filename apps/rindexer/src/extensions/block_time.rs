@@ -147,6 +147,7 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                     .context("Timestamp from provider out of range");
             }
         }
+        error!("Block not found by provider or block number exceeds current block");
         Err(anyhow::anyhow!(
             "Block not found by provider or block number exceeds current block"
         ))
@@ -167,13 +168,19 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                             .map(|dt| dt.naive_utc())
                             .context("Timestamp from past scan api out of range");
                     } else if let Some(BlockRewardResult::Error(err_msg)) = response.result {
+                        error!("Past scan API error: {}", err_msg);
                         return Err(anyhow::anyhow!("Past scan API error: {}", err_msg));
                     } else {
+                        error!("Past scan API response result is None but status is success");
                         return Err(anyhow::anyhow!(
                             "Past scan API response result is None but status is success"
                         ));
                     }
                 } else {
+                    error!(
+                        "Past scan API request failed with status: {}, message: {}",
+                        response.status, response.message
+                    );
                     return Err(anyhow::anyhow!(
                         "Past scan API request failed with status: {}, message: {}",
                         response.status,
@@ -181,9 +188,11 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                     ));
                 }
             } else {
+                error!("Past scan API request returned None");
                 return Err(anyhow::anyhow!("Past scan API request returned None"));
             }
         }
+        error!("Past scan API not configured for this chain");
         Err(anyhow::anyhow!(
             "Past scan API not configured for this chain"
         ))
@@ -205,13 +214,19 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                             .context("Failed to add duration to current time from future scan api")
                             .map(|dt| dt.naive_utc());
                     } else if let Some(EstimateTimestampResult::Error(err_msg)) = response.result {
+                        error!("Future scan API error: {}", err_msg);
                         return Err(anyhow::anyhow!("Future scan API error: {}", err_msg));
                     } else {
+                        error!("Future scan API response result is None but status is success");
                         return Err(anyhow::anyhow!(
                             "Future scan API response result is None but status is success"
                         ));
                     }
                 } else {
+                    error!(
+                        "Future scan API request failed with status: {}, message: {}",
+                        response.status, response.message
+                    );
                     return Err(anyhow::anyhow!(
                         "Future scan API request failed with status: {}, message: {}",
                         response.status,
@@ -219,9 +234,11 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                     ));
                 }
             } else {
+                error!("Future scan API request returned None");
                 return Err(anyhow::anyhow!("Future scan API request returned None"));
             }
         }
+        error!("Future scan API not configured for this chain");
         Err(anyhow::anyhow!(
             "Future scan API not configured for this chain"
         ))
@@ -232,6 +249,7 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
         return Ok(timestamp);
     }
 
+    error!("All methods failed to estimate timestamp.",);
     Err(anyhow::anyhow!(
         "All methods failed to estimate timestamp. \nProvider error: {:?}\nPast scan API error: {:?}\nFuture scan API error: {:?}",
         provider_result.err(),

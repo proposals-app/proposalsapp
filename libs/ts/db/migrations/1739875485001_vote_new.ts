@@ -48,7 +48,11 @@ export async function up(db: Kysely<DB>): Promise<void> {
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
-    .addUniqueConstraint("unique_vote_new", ["proposal_id", "voter_address"])
+    .addUniqueConstraint("unique_vote_new", [
+      "proposal_id",
+      "voter_address",
+      "created_at",
+    ])
     .execute();
 
   await db.schema

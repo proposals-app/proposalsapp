@@ -90,6 +90,8 @@ export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
+export type Numeric = ColumnType<string, number | string, number | string>;
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface Dao {
@@ -348,6 +350,86 @@ export interface ProposalNew {
   url: string;
 }
 
+export interface RindexerInternalRindexerArbitrumCoreGovernorProposalCreated {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumCoreGovernorProposalExtended {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumCoreGovernorProposalQueued {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumCoreGovernorVoteCast {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumCoreGovernorVoteCastWithParams {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalQueued {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorVoteCastWithParams {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbTokenDelegateChanged {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbTokenDelegateVotesChanged {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerLastKnownIndexesDroppingSql {
+  key: number;
+  value: string;
+}
+
+export interface RindexerInternalRindexerLastKnownRelationshipDroppingSql {
+  key: number;
+  value: string;
+}
+
 export interface Subscription {
   createdAt: Generated<Timestamp>;
   daoId: string;
@@ -460,6 +542,22 @@ export interface DB {
   proposal: Proposal;
   proposalGroup: ProposalGroup;
   proposalNew: ProposalNew;
+  "rindexerInternal.rindexerArbitrumCoreGovernorProposalCreated": RindexerInternalRindexerArbitrumCoreGovernorProposalCreated;
+  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExecuted": RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted;
+  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExtended": RindexerInternalRindexerArbitrumCoreGovernorProposalExtended;
+  "rindexerInternal.rindexerArbitrumCoreGovernorProposalQueued": RindexerInternalRindexerArbitrumCoreGovernorProposalQueued;
+  "rindexerInternal.rindexerArbitrumCoreGovernorVoteCast": RindexerInternalRindexerArbitrumCoreGovernorVoteCast;
+  "rindexerInternal.rindexerArbitrumCoreGovernorVoteCastWithParams": RindexerInternalRindexerArbitrumCoreGovernorVoteCastWithParams;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalCreated": RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExecuted": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExtended": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalQueued": RindexerInternalRindexerArbitrumTreasuryGovernorProposalQueued;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCast": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCastWithParams": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCastWithParams;
+  "rindexerInternal.rindexerArbTokenDelegateChanged": RindexerInternalRindexerArbTokenDelegateChanged;
+  "rindexerInternal.rindexerArbTokenDelegateVotesChanged": RindexerInternalRindexerArbTokenDelegateVotesChanged;
+  "rindexerInternal.rindexerLastKnownIndexesDroppingSql": RindexerInternalRindexerLastKnownIndexesDroppingSql;
+  "rindexerInternal.rindexerLastKnownRelationshipDroppingSql": RindexerInternalRindexerLastKnownRelationshipDroppingSql;
   subscription: Subscription;
   user: User;
   userPushNotificationSubscription: UserPushNotificationSubscription;

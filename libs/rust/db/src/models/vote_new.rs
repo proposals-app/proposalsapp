@@ -60,7 +60,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 pub enum Relation {
     Dao,
     DaoIndexer,
-    Proposal,
+    ProposalNew,
     Voter,
 }
 
@@ -95,9 +95,9 @@ impl RelationTrait for Relation {
                 .from(Column::IndexerId)
                 .to(super::dao_indexer::Column::Id)
                 .into(),
-            Self::Proposal => Entity::belongs_to(super::proposal::Entity)
+            Self::ProposalNew => Entity::belongs_to(super::proposal_new::Entity)
                 .from(Column::ProposalId)
-                .to(super::proposal::Column::Id)
+                .to(super::proposal_new::Column::Id)
                 .into(),
             Self::Voter => Entity::belongs_to(super::voter::Entity)
                 .from(Column::VoterAddress)
@@ -119,9 +119,9 @@ impl Related<super::dao_indexer::Entity> for Entity {
     }
 }
 
-impl Related<super::proposal::Entity> for Entity {
+impl Related<super::proposal_new::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Proposal.def()
+        Relation::ProposalNew.def()
     }
 }
 

@@ -65,7 +65,7 @@ pub async fn initialize_db() -> Result<()> {
 }
 
 #[instrument(skip(proposal))]
-pub async fn store_proposal(mut proposal: proposal_new::ActiveModel) -> Result<()> {
+pub async fn store_proposal(proposal: proposal_new::ActiveModel) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
     // Extract indexer ID and external ID from the proposal
@@ -95,38 +95,76 @@ pub async fn store_proposal(mut proposal: proposal_new::ActiveModel) -> Result<(
             id: Set(existing.id),
             external_id: Set(proposal
                 .external_id
+                .clone()
                 .take()
                 .unwrap_or(existing.external_id.clone())),
-            name: Set(proposal.name.take().unwrap_or(existing.name.clone())),
-            body: Set(proposal.body.take().unwrap_or(existing.body.clone())),
-            url: Set(proposal.url.take().unwrap_or(existing.url.clone())),
+            name: Set(proposal
+                .name
+                .clone()
+                .take()
+                .unwrap_or(existing.name.clone())),
+            body: Set(proposal
+                .body
+                .clone()
+                .take()
+                .unwrap_or(existing.body.clone())),
+            url: Set(proposal.url.clone().take().unwrap_or(existing.url.clone())),
             discussion_url: Set(proposal
                 .discussion_url
+                .clone()
                 .take()
                 .unwrap_or(existing.discussion_url.clone())),
-            choices: Set(proposal.choices.take().unwrap_or(existing.choices.clone())),
-            quorum: Set(proposal.quorum.take().unwrap_or(existing.quorum)),
+            choices: Set(proposal
+                .choices
+                .clone()
+                .take()
+                .unwrap_or(existing.choices.clone())),
+            quorum: Set(proposal.quorum.clone().take().unwrap_or(existing.quorum)),
             proposal_state: Set(proposal
                 .proposal_state
+                .clone()
                 .take()
                 .unwrap_or(existing.proposal_state.clone())),
-            marked_spam: Set(proposal.marked_spam.take().unwrap_or(existing.marked_spam)),
-            created_at: Set(proposal.created_at.take().unwrap_or(existing.created_at)),
-            start_at: Set(proposal.start_at.take().unwrap_or(existing.start_at)),
-            end_at: Set(proposal.end_at.take().unwrap_or(existing.end_at)),
+            marked_spam: Set(proposal
+                .marked_spam
+                .clone()
+                .take()
+                .unwrap_or(existing.marked_spam)),
+            created_at: Set(proposal
+                .created_at
+                .clone()
+                .take()
+                .unwrap_or(existing.created_at)),
+            start_at: Set(proposal
+                .start_at
+                .clone()
+                .take()
+                .unwrap_or(existing.start_at)),
+            end_at: Set(proposal.end_at.clone().take().unwrap_or(existing.end_at)),
             block_created_at: Set(proposal
                 .block_created_at
+                .clone()
                 .take()
                 .unwrap_or(existing.block_created_at)),
-            txid: Set(proposal.txid.take().unwrap_or(existing.txid.clone())),
+            txid: Set(proposal
+                .txid
+                .clone()
+                .take()
+                .unwrap_or(existing.txid.clone())),
             metadata: Set(proposal
                 .metadata
+                .clone()
                 .take()
                 .unwrap_or(existing.metadata.clone())),
-            dao_id: Set(proposal.dao_id.take().unwrap_or(existing.dao_id)),
-            author: Set(proposal.author.take().unwrap_or(existing.author.clone())),
+            dao_id: Set(proposal.dao_id.clone().take().unwrap_or(existing.dao_id)),
+            author: Set(proposal
+                .author
+                .clone()
+                .take()
+                .unwrap_or(existing.author.clone())),
             dao_indexer_id: Set(proposal
                 .dao_indexer_id
+                .clone()
                 .take()
                 .unwrap_or(existing.dao_indexer_id)),
         };
@@ -187,17 +225,20 @@ pub async fn store_vote(vote: vote_new::ActiveModel, proposals_indexer_id: Uuid)
 
     let result = vote_new::Entity::insert(vote_active_model)
         .on_conflict(
-            sea_orm::sea_query::OnConflict::columns([vote_new::Column::ProposalId, vote_new::Column::VoterAddress])
-                .update_columns([
-                    vote_new::Column::Choice,
-                    vote_new::Column::VotingPower,
-                    vote_new::Column::Reason,
-                    vote_new::Column::CreatedAt,
-                    vote_new::Column::BlockCreatedAt,
-                    vote_new::Column::Txid,
-                    vote_new::Column::ProposalId,
-                ])
-                .to_owned(),
+            sea_orm::sea_query::OnConflict::columns([
+                vote_new::Column::ProposalId,
+                vote_new::Column::VoterAddress,
+                vote_new::Column::CreatedAt,
+            ])
+            .update_columns([
+                vote_new::Column::Choice,
+                vote_new::Column::VotingPower,
+                vote_new::Column::Reason,
+                vote_new::Column::BlockCreatedAt,
+                vote_new::Column::Txid,
+                vote_new::Column::ProposalId,
+            ])
+            .to_owned(),
         )
         .exec(&txn)
         .await;
