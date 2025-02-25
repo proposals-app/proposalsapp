@@ -142,12 +142,12 @@ async fn main() -> Result<()> {
         // Spawn topic fetcher thread
         let dao_discourse_topic_clone = dao_discourse.clone();
         let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
-        let http_client_topic = Arc::clone(&http_client); // Clone for topic fetcher
+        let http_client_topic = Arc::clone(&http_client);
         let topic_handle = tokio::spawn(async move {
             let start = Instant::now() + Duration::from_secs(10);
             let mut interval = interval_at(start, SLOW_INDEX);
 
-            interval.tick().await;
+            // interval.tick().await;
             loop {
                 interval.tick().await;
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler), Arc::clone(&http_client_topic)); // Pass shared http_client
