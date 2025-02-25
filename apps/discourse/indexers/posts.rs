@@ -19,7 +19,7 @@ use tracing::{error, info, instrument, warn};
 
 pub struct PostIndexer {
     discourse_api: Arc<DiscourseApi>,
-    http_client: Arc<Client>, // Reused http_client
+    http_client: Arc<Client>,
 }
 
 impl PostIndexer {
@@ -81,7 +81,7 @@ impl PostIndexer {
                         stream::iter(posts)
                             .map(|post| {
                                 let api_handler = Arc::clone(&self.discourse_api);
-                                let http_client = Arc::clone(&self.http_client); // Clone the Arc
+                                let http_client = Arc::clone(&self.http_client);
                                 task::spawn(async move { Self::process_post(post, dao_discourse_id, api_handler, http_client, priority).await })
                             })
                             .buffer_unordered(10)
@@ -208,12 +208,20 @@ impl PostIndexer {
         };
 
         if let Some(raw_content) = &post_to_upsert.raw {
-            let re = Regex::new(r"upload:\/\/([a-zA-Z0-9]+)\.png").unwrap();
-            let modified_raw_content = re.replace_all(
-                raw_content,
-                format!("{}/uploads/short-url/$1.png", discourse_api.base_url),
-            );
-            post.raw = Some(modified_raw_content.to_string());
+            match process_post_raw_content(raw_content, discourse_api.clone(), http_client.clone()).await {
+                Ok(processed_content) => {
+                    post.raw = Some(processed_content);
+                }
+                Err(e) => {
+                    error!(
+                        error = ?e,
+                        post_id = post_to_upsert.id,
+                        "Failed to process post raw content"
+                    );
+                    // Continue with the original raw content if processing fails.
+                    post.raw = Some(raw_content.clone());
+                }
+            }
         }
 
         match upsert_post(&post_to_upsert, dao_discourse_id).await {
@@ -266,6 +274,70 @@ impl PostIndexer {
                     post_id = post.id,
                     "Failed to upsert post"
                 );
+            }
+        }
+        #[instrument(skip(discourse_api, http_client))]
+        async fn process_post_raw_content(raw_content: &str, discourse_api: Arc<DiscourseApi>, http_client: Arc<Client>) -> Result<String> {
+            let re_upload = Regex::new(r"upload:\/\/([a-zA-Z0-9]+)\.png").unwrap();
+            let replaced_content = re_upload.replace_all(
+                raw_content,
+                format!("{}/uploads/short-url/$1.png", discourse_api.base_url),
+            );
+            let mut modified_content = replaced_content.to_string();
+
+            // Find all image URLs that might need redirect checking.
+            // This regex is more general to capture URLs after 'upload://' replacement and other potential
+            // image links.
+            let re_img_url = Regex::new(r"(https?://[\w\d\-\.]+\.[\w]+[\w\d\-\.\/\?\&\=\#\_\%]*(?:png|jpg|jpeg|gif))").unwrap();
+
+            for capture in re_img_url.captures_iter(&replaced_content) {
+                if let Some(url_match) = capture.get(0) {
+                    let original_url = url_match.as_str();
+                    match fetch_redirected_url(original_url, http_client.clone()).await {
+                        Ok(final_url) => {
+                            if final_url != original_url {
+                                info!(original_url = %original_url, redirected_url = %final_url, "Post raw image URL redirected");
+                                modified_content = modified_content.replace(original_url, &final_url);
+                            }
+                        }
+                        Err(e) => {
+                            warn!(error = ?e, url = %original_url, "Failed to fetch redirected URL for post raw image, using original URL");
+                            // If fetching redirect fails, we keep the original URL.
+                        }
+                    }
+                }
+            }
+            Ok(modified_content)
+        }
+
+        #[instrument(skip(http_client))]
+        async fn fetch_redirected_url(url: &str, http_client: Arc<Client>) -> Result<String> {
+            info!(url = %url, "Fetching URL to check for redirects");
+            let response = http_client
+                .get(url)
+                .send()
+                .await
+                .with_context(|| format!("Failed to fetch URL: {}", url))?;
+
+            if response.status().is_redirection() {
+                if let Some(final_url) = response
+                    .headers()
+                    .get("location")
+                    .and_then(|h| h.to_str().ok())
+                {
+                    info!(original_url = %url, redirected_url = %final_url, "URL redirected");
+                    Ok(final_url.to_string())
+                } else {
+                    error!(url = %url, "Redirection without a location header");
+                    Ok(url.to_string()) // Return the original URL if no location header
+                }
+            } else if response.status().is_success() {
+                info!(url = %url, "URL fetched successfully");
+                Ok(url.to_string()) // Return the original URL if no redirect and the request was
+                                    // successful
+            } else {
+                error!(url = %url, status = %response.status(), "Failed to fetch URL");
+                Ok(url.to_string()) // Return the original URL if the request failed
             }
         }
     }
