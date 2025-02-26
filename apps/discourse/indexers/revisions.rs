@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use proposalsapp_db::models::discourse_post;
+use proposalsapp_db::models::{discourse_post, discourse_post_revision};
 use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
 use std::sync::Arc;
 use tokio::task::JoinSet;
@@ -119,15 +119,25 @@ impl RevisionIndexer {
             .filter(discourse_post::Column::Deleted.eq(false))
             .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id))
             .filter(discourse_post::Column::UpdatedAt.gte(one_hour_ago.naive_utc()))
+            .find_with_related(discourse_post_revision::Entity)
             .all(DB.get().unwrap())
             .await
             .context("Failed to fetch recent posts with revisions")?;
 
+        let filtered_posts: Vec<discourse_post::Model> = posts
+            .into_iter()
+            .filter(|(post, revisions)| {
+                let revision_count = revisions.len();
+                revision_count < (post.version - 1) as usize
+            })
+            .map(|(post, _)| post)
+            .collect();
+
         info!(
-            posts_count = posts.len(),
+            posts_count = filtered_posts.len(),
             "Fetched recent posts with incomplete revisions"
         );
-        Ok(posts)
+        Ok(filtered_posts)
     }
 }
 
