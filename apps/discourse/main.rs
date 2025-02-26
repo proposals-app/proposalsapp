@@ -179,7 +179,7 @@ async fn main() -> Result<()> {
         let revision_handle = tokio::spawn(async move {
             let start = Instant::now() + Duration::from_secs(10);
             let mut interval = interval_at(start, SLOW_INDEX);
-            interval.tick().await;
+            // interval.tick().await;
             loop {
                 interval.tick().await;
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
