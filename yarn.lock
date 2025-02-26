@@ -3747,7 +3747,7 @@ __metadata:
     next-themes: "npm:^0.4.4"
     nuqs: "npm:^2.4.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.223.4"
+    posthog-js: "npm:^1.223.5"
     prettier: "npm:^3.5.2"
     prettier-plugin-classnames: "npm:^0.7.6"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -3838,7 +3838,7 @@ __metadata:
     pg: "npm:8.13.3"
     pino-pretty: "npm:13.0.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:1.223.4"
+    posthog-js: "npm:1.223.5"
     postmark: "npm:^4.0.5"
     prettier: "npm:^3.5.2"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
@@ -15518,9 +15518,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:1.223.4, posthog-js@npm:^1.223.4":
-  version: 1.223.4
-  resolution: "posthog-js@npm:1.223.4"
+"posthog-js@npm:1.223.5, posthog-js@npm:^1.223.5":
+  version: 1.223.5
+  resolution: "posthog-js@npm:1.223.5"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -15528,7 +15528,7 @@ __metadata:
     web-vitals: "npm:^4.2.0"
   peerDependencies:
     "@rrweb/types": 2.0.0-alpha.17
-  checksum: 10c0/f3972939e6781fa5c699ddb1138ff61d180dbaf7eb9edceeaac1929340fc8b25c4fdaca591b03f37d65de814725e5ad439e6bfc91fd83ff151666503e4a4b42f
+  checksum: 10c0/de57a75fa3fbeef7bd0bb38e986e7d99b05836fbe5b4c5e30036d666c10644e0a564434a48da30335705e978dfadbde3d0936ba243def47a4a76cd1bd3782526
   languageName: node
   linkType: hard
 

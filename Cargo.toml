@@ -54,7 +54,7 @@ pyroscope = "0.5.8"
 pyroscope_pprofrs = "0.2.8"
 alloy-chains = "0.1.63"
 ethers = "2.0"
-rindexer = { git = "https://github.com/andreivcodes/rindexer", branch = "master", package = "rindexer" }
+rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "master", package = "rindexer" }
 tokio-retry = "0.3.0"
 serial_test = "3.2.0"
 
