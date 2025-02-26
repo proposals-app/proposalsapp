@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@proposalsapp/db": "1.0.0",
-    "axios": "^1.7.9",
+    "axios": "^1.8.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "node-cron": "^3.0.3",
