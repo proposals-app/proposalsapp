@@ -78,10 +78,8 @@ async fn main() -> Result<()> {
             let start = Instant::now() + Duration::from_secs(10);
             let mut interval = interval_at(start, SLOW_INDEX);
 
-            interval.tick().await;
+            // interval.tick().await;
             loop {
-                interval.tick().await;
-
                 let category_fetcher = CategoryIndexer::new(Arc::clone(&api_handler));
                 match category_fetcher
                     .update_all_categories(dao_discourse_category_clone.id)
@@ -102,6 +100,7 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+                interval.tick().await;
             }
         });
 
@@ -115,7 +114,6 @@ async fn main() -> Result<()> {
 
             interval.tick().await;
             loop {
-                interval.tick().await;
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler), Arc::clone(&http_client_user)); // Pass shared http_client
                 match user_fetcher
                     .update_all_users(dao_discourse_users_clone.id)
@@ -136,6 +134,7 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+                interval.tick().await;
             }
         });
 
@@ -149,7 +148,6 @@ async fn main() -> Result<()> {
 
             // interval.tick().await;
             loop {
-                interval.tick().await;
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler), Arc::clone(&http_client_topic)); // Pass shared http_client
                 match topic_fetcher
                     .update_all_topics(dao_discourse_topic_clone.id)
@@ -170,6 +168,7 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+                interval.tick().await;
             }
         });
 
@@ -181,7 +180,6 @@ async fn main() -> Result<()> {
             let mut interval = interval_at(start, SLOW_INDEX);
             // interval.tick().await;
             loop {
-                interval.tick().await;
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
                 match revision_fetcher
                     .update_all_revisions(dao_discourse_revision_clone.id)
@@ -202,6 +200,7 @@ async fn main() -> Result<()> {
                         );
                     }
                 }
+                interval.tick().await;
             }
         });
 
