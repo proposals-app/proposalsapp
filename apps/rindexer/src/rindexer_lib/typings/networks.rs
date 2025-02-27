@@ -34,7 +34,7 @@ lazy_static! {
     static ref ETHEREUM_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("ETHEREUM_NODE_URL").unwrap_or("ETHEREUM_NODE_URL".to_string()),
         None,
-        Some(U64::from(100000)),
+        Some(U64::from(10000)),
         Some(U64::from(10)),
         HeaderMap::new()
     )
@@ -42,7 +42,7 @@ lazy_static! {
     static ref ARBITRUM_PROVIDER: Arc<JsonRpcCachedProvider> = create_client(
         &public_read_env_value("ARBITRUM_NODE_URL").unwrap_or("ARBITRUM_NODE_URL".to_string()),
         None,
-        Some(U64::from(100000)),
+        Some(U64::from(10000)),
         Some(U64::from(10)),
         HeaderMap::new()
     )
