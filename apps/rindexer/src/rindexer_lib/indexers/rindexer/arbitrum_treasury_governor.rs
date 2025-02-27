@@ -3,7 +3,7 @@ use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{store_proposal, store_vote, update_last_synced_block, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP, DB},
+        db_extension::{store_proposal, store_vote, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP, DB},
     },
     rindexer_lib::typings::rindexer::events::arbitrum_treasury_governor::arbitrum_treasury_governor_contract,
 };
@@ -18,7 +18,7 @@ use proposalsapp_db::models::{
     sea_orm_active_enums::{IndexerVariant, ProposalState},
     vote_new,
 };
-use rindexer::{event::callback_registry::EventCallbackRegistry, rindexer_error, EthereumSqlTypeWrapper, PgType, RindexerColorize};
+use rindexer::{event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error, EthereumSqlTypeWrapper, PgType, RindexerColorize};
 use sea_orm::{
     prelude::Uuid,
     ActiveValue::{self, NotSet},
@@ -158,24 +158,9 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::ProposalCreated",
-                    status = "INDEXED",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
                     results = results.len(),
                 );
-
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                update_last_synced_block(
-                    &context.database,
-                    "arbitrum",
-                    "arbitrum_treasury_governor",
-                    "proposal_created",
-                    to_block,
-                )
-                .await;
 
                 Ok(())
             },
@@ -223,24 +208,9 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::ProposalExecuted",
-                    status = "INDEXED",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
                     results = results.len(),
                 );
-
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                update_last_synced_block(
-                    &context.database,
-                    "arbitrum",
-                    "arbitrum_treasury_governor",
-                    "proposal_executed",
-                    to_block,
-                )
-                .await;
 
                 Ok(())
             },
@@ -292,24 +262,9 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::ProposalExtended",
-                    status = "INDEXED",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
                     results = results.len(),
                 );
-
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                update_last_synced_block(
-                    &context.database,
-                    "arbitrum",
-                    "arbitrum_treasury_governor",
-                    "proposal_extended",
-                    to_block,
-                )
-                .await;
 
                 Ok(())
             },
@@ -357,24 +312,9 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::ProposalQueued",
-                    status = "INDEXED",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
                     results = results.len(),
                 );
-
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                update_last_synced_block(
-                    &context.database,
-                    "arbitrum",
-                    "arbitrum_treasury_governor",
-                    "proposal_queued",
-                    to_block,
-                )
-                .await;
 
                 Ok(())
             },
@@ -424,24 +364,9 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::VoteCast",
-                    status = "INDEXED",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
                     results = results.len(),
                 );
-
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                update_last_synced_block(
-                    &context.database,
-                    "arbitrum",
-                    "arbitrum_treasury_governor",
-                    "vote_cast",
-                    to_block,
-                )
-                .await;
 
                 Ok(())
             },
@@ -491,24 +416,9 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
 
                 info!(
                     event = "ArbitrumTreasuryGovernor::VoteCastWithParams",
-                    status = "INDEXED",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
                     results = results.len(),
                 );
-
-                let to_block = results
-                    .iter()
-                    .map(|r| r.tx_information.block_number)
-                    .max()
-                    .unwrap();
-
-                update_last_synced_block(
-                    &context.database,
-                    "arbitrum",
-                    "arbitrum_treasury_governor",
-                    "vote_cast_with_params",
-                    to_block,
-                )
-                .await;
 
                 Ok(())
             },

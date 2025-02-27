@@ -123,12 +123,12 @@ impl Drop for OtelGuard {
 }
 
 pub async fn setup_otel() -> Result<OtelGuard> {
-    tokio::time::sleep(Duration::from_secs(10)).await;
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
     dotenv().ok();
     let mut guard = init_otel();
 
-    tokio::time::sleep(Duration::from_secs(10)).await;
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
     info!("Setting up profiling!");
 

@@ -1,14 +1,8 @@
 use anyhow::{Context, Result};
-use ethers::types::U64;
 use once_cell::sync::OnceCell;
 use proposalsapp_db::models::{dao, dao_indexer, proposal_new, sea_orm_active_enums::IndexerVariant, vote_new};
-use rindexer::{EthereumSqlTypeWrapper, PostgresClient};
 use sea_orm::{prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait};
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Mutex, time::Duration};
 use tracing::instrument;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
@@ -250,19 +244,4 @@ pub async fn store_vote(vote: vote_new::ActiveModel, proposals_indexer_id: Uuid)
 
     txn.commit().await?;
     Ok(())
-}
-
-pub async fn update_last_synced_block(database: &Arc<PostgresClient>, network: &str, contract: &str, event: &str, to_block: U64) {
-    let _ = database
-        .execute(
-            &format!(
-                "UPDATE rindexer_internal.{}_{}_{} SET last_synced_block = $1 WHERE network = $2 AND $1 > last_synced_block",
-                "rindexer", contract, event
-            ),
-            &[
-                &EthereumSqlTypeWrapper::U64(to_block),
-                &EthereumSqlTypeWrapper::String(network.to_string()),
-            ],
-        )
-        .await;
 }

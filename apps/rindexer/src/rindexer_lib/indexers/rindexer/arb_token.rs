@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use super::super::super::typings::rindexer::events::arb_token::{no_extensions, ARBTokenEventType, DelegateChangedEvent, DelegateVotesChangedEvent};
-use rindexer::{event::callback_registry::EventCallbackRegistry, rindexer_error, EthereumSqlTypeWrapper, PgType, RindexerColorize};
+use rindexer::{event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error, EthereumSqlTypeWrapper, PgType, RindexerColorize};
 use std::{path::PathBuf, sync::Arc};
 use tracing::{info, instrument};
 
@@ -15,7 +15,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 info!(
                     event = "ARBToken::DelegateChanged",
-                    status = "INDEXED",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
                     results = results.len(),
                 );
 
@@ -39,7 +39,7 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
 
                 info!(
                     event = "ARBToken::DelegateVotesChanged",
-                    status = "INDEXED",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
                     results = results.len(),
                 );
 
