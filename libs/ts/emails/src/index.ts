@@ -7,3 +7,4 @@ export {
 export { QuorumEmail, type QuorumData } from "../emails/quorum";
 export { NotVotedEmail, type NotVotedData } from "../emails/not-voted";
 export { render } from "@react-email/render";
+export { DeprecationNoticeEmail } from "../emails/deprecation";

@@ -15,7 +15,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 info!(
                     event = "ARBToken::DelegateChanged",
-                    status = "INDEXED".green().to_string(),
+                    status = "INDEXED",
                     results = results.len(),
                 );
 
@@ -39,7 +39,7 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
 
                 info!(
                     event = "ARBToken::DelegateVotesChanged",
-                    status = "INDEXED".green().to_string(),
+                    status = "INDEXED",
                     results = results.len(),
                 );
 

@@ -158,7 +158,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 info!(
                     event = "ArbitrumCoreGovernor::ProposalCreated",
-                    status = "INDEXED".green().to_string(),
+                    status = "INDEXED",
                     results = results.len(),
                 );
 
@@ -223,7 +223,7 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
 
                 info!(
                     event = "ArbitrumCoreGovernor::ProposalExecuted",
-                    status = "INDEXED".green().to_string(),
+                    status = "INDEXED",
                     results = results.len(),
                 );
 
@@ -292,7 +292,7 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
 
                 info!(
                     event = "ArbitrumCoreGovernor::ProposalExtended",
-                    status = "INDEXED".green().to_string(),
+                    status = "INDEXED",
                     results = results.len(),
                 );
 
@@ -357,7 +357,7 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
 
                 info!(
                     event = "ArbitrumCoreGovernor::ProposalQueued",
-                    status = "INDEXED".green().to_string(),
+                    status = "INDEXED",
                     results = results.len(),
                 );
 
@@ -424,7 +424,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 
                 info!(
                     event = "ArbitrumCoreGovernor::VoteCast",
-                    status = "INDEXED".green().to_string(),
+                    status = "INDEXED",
                     results = results.len(),
                 );
 
@@ -491,7 +491,7 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
 
                 info!(
                     event = "ArbitrumCoreGovernor::VoteCastWithParams",
-                    status = "INDEXED".green().to_string(),
+                    status = "INDEXED",
                     results = results.len(),
                 );
 

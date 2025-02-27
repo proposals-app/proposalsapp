@@ -6,6 +6,7 @@ import axios from "axios";
 import { sendBulletin } from "./send_bulletin";
 import { sendQuorum } from "./send_quorum";
 import { sendTimeend } from "./send_timeend";
+import { sendDeprecationNotice } from "./send_deprecation_notice";
 
 dotenvConfig();
 
@@ -45,7 +46,8 @@ async function processJobQueue() {
       try {
         switch (job.type) {
           case "EMAIL_BULLETIN":
-            await sendBulletin(job.data);
+            // await sendBulletin(job.data);
+            await sendDeprecationNotice(job.data);
             break;
           case "EMAIL_QUORUM_NOT_REACHED":
             await sendQuorum(job.data);
