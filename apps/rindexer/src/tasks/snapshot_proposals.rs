@@ -9,7 +9,6 @@ use sea_orm::{ActiveValue::NotSet, Set, prelude::Uuid};
 use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
-use tokio::time;
 use tracing::{error, info, instrument};
 
 #[derive(Deserialize)]
@@ -206,7 +205,6 @@ impl SnapshotProposal {
 #[instrument]
 pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
     info!("Starting periodic task for fetching latest snapshot proposals");
-    let mut interval = time::interval(Duration::from_secs(300)); // 5 minutes
 
     loop {
         match update_snapshot_proposals().await {
@@ -214,6 +212,6 @@ pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
             Err(e) => error!("Failed to update proposals: {:?}", e),
         }
 
-        interval.tick().await;
+        tokio::time::sleep(Duration::from_secs(5)).await;
     }
 }

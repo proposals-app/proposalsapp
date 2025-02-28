@@ -8,8 +8,7 @@ use proposalsapp_db::models::vote_new;
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, FromQueryResult, QueryFilter, QuerySelect, Set, prelude::Uuid};
 use serde::Deserialize;
 use std::time::Duration;
-use tokio::time;
-use tracing::{error, info, instrument};
+use tracing::{debug, error, info, instrument};
 
 #[derive(Deserialize, Debug)]
 struct SnapshotVotesResponse {
@@ -155,15 +154,14 @@ async fn store_snapshot_vote(vote_data: &SnapshotVote, governor_id: Uuid, dao_id
 #[instrument]
 pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
     info!("Starting periodic task for fetching latest snapshot votes");
-    let mut interval = time::interval(Duration::from_secs(60));
 
     loop {
         match update_snapshot_votes().await {
-            Ok(_) => info!("Successfully updated snapshot votes"),
+            Ok(_) => debug!("Successfully updated snapshot votes"),
             Err(e) => error!("Failed to update snapshot votes: {:?}", e),
         }
 
-        interval.tick().await;
+        tokio::time::sleep(Duration::from_secs(5)).await;
     }
 }
 

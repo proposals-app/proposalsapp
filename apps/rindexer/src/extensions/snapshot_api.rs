@@ -7,7 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{
-    sync::{mpsc, oneshot, Semaphore},
+    sync::{Semaphore, mpsc, oneshot},
     time::{sleep, timeout},
 };
 use tracing::{error, info, instrument, warn};
@@ -15,7 +15,7 @@ use tracing::{error, info, instrument, warn};
 static SNAPSHOT_MAX_RETRIES: usize = 5;
 static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
 static SNAPSHOT_MAX_QUEUE: usize = 100;
-static SNAPSHOT_TIMEOUT: Duration = Duration::from_secs(60);
+static SNAPSHOT_TIMEOUT: Duration = Duration::from_secs(60 * 5);
 
 struct RateLimiter {
     remaining: std::sync::atomic::AtomicU32,
