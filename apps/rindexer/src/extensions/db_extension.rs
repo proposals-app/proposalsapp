@@ -1,12 +1,12 @@
 use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
-use proposalsapp_db::models::{dao, dao_indexer, proposal_new, sea_orm_active_enums::IndexerVariant, vote_new};
+use proposalsapp_db::models::{dao, governor_new, proposal_new, vote_new};
 use sea_orm::{prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
 use tracing::instrument;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
-pub static DAO_INDEXER_ID_MAP: OnceCell<Mutex<HashMap<IndexerVariant, Uuid>>> = OnceCell::new();
+pub static DAO_GOVERNOR_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
 pub static DAO_ID_SLUG_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
 
 #[instrument]
@@ -30,17 +30,17 @@ pub async fn initialize_db() -> Result<()> {
         .map_err(|_| anyhow::anyhow!("Failed to set database connection"))?;
 
     // Initialize and populate DAO_INDEXER_ID_MAP
-    let dao_indexer_map = Mutex::new(HashMap::new());
-    let indexers = dao_indexer::Entity::find().all(DB.get().unwrap()).await?;
-    for indexer in indexers {
-        dao_indexer_map
+    let governors_map = Mutex::new(HashMap::new());
+    let governors = governor_new::Entity::find().all(DB.get().unwrap()).await?;
+    for governor in governors {
+        governors_map
             .lock()
             .unwrap()
-            .insert(indexer.indexer_variant, indexer.id);
+            .insert(governor.r#type, governor.id);
     }
-    DAO_INDEXER_ID_MAP
-        .set(dao_indexer_map)
-        .map_err(|_| anyhow::anyhow!("Failed to set DAO_INDEXER_ID_MAP"))?;
+    DAO_GOVERNOR_ID_MAP
+        .set(governors_map)
+        .map_err(|_| anyhow::anyhow!("Failed to set DAO_GOVERNOR_ID_MAP"))?;
 
     // Initialize and populate DAO_ID_SLUG_MAP
     let dao_slug_map = Mutex::new(HashMap::new());
@@ -63,11 +63,11 @@ pub async fn store_proposal(proposal: proposal_new::ActiveModel) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
     // Extract indexer ID and external ID from the proposal
-    let indexer_id = proposal
-        .dao_indexer_id
+    let governor_id = proposal
+        .governor_id
         .clone()
         .take()
-        .ok_or_else(|| anyhow::anyhow!("Missing dao_indexer_id in proposal"))?;
+        .ok_or_else(|| anyhow::anyhow!("Missing governor_id in proposal"))?;
     let external_id = proposal
         .external_id
         .clone()
@@ -78,7 +78,7 @@ pub async fn store_proposal(proposal: proposal_new::ActiveModel) -> Result<()> {
         .filter(
             Condition::all()
                 .add(proposal_new::Column::ExternalId.eq(external_id.clone()))
-                .add(proposal_new::Column::DaoIndexerId.eq(indexer_id)),
+                .add(proposal_new::Column::GovernorId.eq(governor_id)),
         )
         .one(&txn)
         .await?;
@@ -156,11 +156,11 @@ pub async fn store_proposal(proposal: proposal_new::ActiveModel) -> Result<()> {
                 .clone()
                 .take()
                 .unwrap_or(existing.author.clone())),
-            dao_indexer_id: Set(proposal
-                .dao_indexer_id
+            governor_id: Set(proposal
+                .governor_id
                 .clone()
                 .take()
-                .unwrap_or(existing.dao_indexer_id)),
+                .unwrap_or(existing.governor_id)),
         };
 
         proposal_new::Entity::update(active_model)
@@ -176,7 +176,7 @@ pub async fn store_proposal(proposal: proposal_new::ActiveModel) -> Result<()> {
 }
 
 #[instrument(skip(vote))]
-pub async fn store_vote(vote: vote_new::ActiveModel, proposals_indexer_id: Uuid) -> Result<()> {
+pub async fn store_vote(vote: vote_new::ActiveModel, governor_id: Uuid) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
     let proposal_external_id = vote
@@ -187,7 +187,7 @@ pub async fn store_vote(vote: vote_new::ActiveModel, proposals_indexer_id: Uuid)
 
     let proposal: Option<proposal_new::Model> = proposal_new::Entity::find()
         .filter(proposal_new::Column::ExternalId.eq(proposal_external_id.clone()))
-        .filter(proposal_new::Column::DaoIndexerId.eq(proposals_indexer_id))
+        .filter(proposal_new::Column::GovernorId.eq(governor_id))
         .one(&txn)
         .await?;
 
@@ -212,7 +212,7 @@ pub async fn store_vote(vote: vote_new::ActiveModel, proposals_indexer_id: Uuid)
         txid: vote.txid.clone(),
         proposal_external_id: vote.proposal_external_id.clone(),
         dao_id: vote.dao_id.clone(),
-        indexer_id: vote.indexer_id.clone(),
+        governor_id: vote.governor_id.clone(),
         proposal_id: Set(proposal.id),
         id: NotSet,
     };

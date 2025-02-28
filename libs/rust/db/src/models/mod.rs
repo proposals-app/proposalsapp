@@ -16,6 +16,7 @@ pub mod discourse_post_revision;
 pub mod discourse_topic;
 pub mod discourse_user;
 pub mod email_verification;
+pub mod governor_new;
 pub mod job_queue;
 pub mod kysely_migration;
 pub mod kysely_migration_lock;

@@ -31,9 +31,9 @@ pub struct Model {
     pub block_created_at: Option<i32>,
     pub txid: Option<String>,
     pub metadata: Option<Json>,
-    pub dao_indexer_id: Uuid,
     pub dao_id: Uuid,
     pub author: Option<String>,
+    pub governor_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -54,9 +54,9 @@ pub enum Column {
     BlockCreatedAt,
     Txid,
     Metadata,
-    DaoIndexerId,
     DaoId,
     Author,
+    GovernorId,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -74,7 +74,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     Dao,
-    DaoIndexer,
+    GovernorNew,
     VoteNew,
 }
 
@@ -98,9 +98,9 @@ impl ColumnTrait for Column {
             Self::BlockCreatedAt => ColumnType::Integer.def().null(),
             Self::Txid => ColumnType::Text.def().null().unique(),
             Self::Metadata => ColumnType::JsonBinary.def().null(),
-            Self::DaoIndexerId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
             Self::Author => ColumnType::Text.def().null(),
+            Self::GovernorId => ColumnType::Uuid.def(),
         }
     }
 }
@@ -112,9 +112,9 @@ impl RelationTrait for Relation {
                 .from(Column::DaoId)
                 .to(super::dao::Column::Id)
                 .into(),
-            Self::DaoIndexer => Entity::belongs_to(super::dao_indexer::Entity)
-                .from(Column::DaoIndexerId)
-                .to(super::dao_indexer::Column::Id)
+            Self::GovernorNew => Entity::belongs_to(super::governor_new::Entity)
+                .from(Column::GovernorId)
+                .to(super::governor_new::Column::Id)
                 .into(),
             Self::VoteNew => Entity::has_many(super::vote_new::Entity).into(),
         }
@@ -127,9 +127,9 @@ impl Related<super::dao::Entity> for Entity {
     }
 }
 
-impl Related<super::dao_indexer::Entity> for Entity {
+impl Related<super::governor_new::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::DaoIndexer.def()
+        Relation::GovernorNew.def()
     }
 }
 

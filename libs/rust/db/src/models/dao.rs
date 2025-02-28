@@ -52,6 +52,7 @@ pub enum Relation {
     DaoIndexer,
     Delegate,
     Delegation,
+    GovernorNew,
     Proposal,
     ProposalGroup,
     ProposalNew,
@@ -83,6 +84,7 @@ impl RelationTrait for Relation {
             Self::DaoIndexer => Entity::has_many(super::dao_indexer::Entity).into(),
             Self::Delegate => Entity::has_many(super::delegate::Entity).into(),
             Self::Delegation => Entity::has_many(super::delegation::Entity).into(),
+            Self::GovernorNew => Entity::has_many(super::governor_new::Entity).into(),
             Self::Proposal => Entity::has_many(super::proposal::Entity).into(),
             Self::ProposalGroup => Entity::has_many(super::proposal_group::Entity).into(),
             Self::ProposalNew => Entity::has_many(super::proposal_new::Entity).into(),
@@ -115,6 +117,12 @@ impl Related<super::delegate::Entity> for Entity {
 impl Related<super::delegation::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Delegation.def()
+    }
+}
+
+impl Related<super::governor_new::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::GovernorNew.def()
     }
 }
 

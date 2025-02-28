@@ -64,4 +64,4 @@ COPY --from=builder /app/apps/rindexer/abis /app/abis
 COPY --from=builder /app/apps/rindexer/rindexer.yaml /app/rindexer.yaml
 
 # Set the default command
-CMD ["proposalsapp-rindexer", "--indexer"]
+CMD ["proposalsapp-rindexer"]

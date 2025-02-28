@@ -1,13 +1,16 @@
 use self::rindexer_lib::indexers::all_handlers::register_all_handlers;
+use anyhow::{Context, Result};
 use dotenv::dotenv;
-use extensions::db_extension::initialize_db;
-use rindexer::{start_rindexer, GraphqlOverrideSettings, IndexingDetails, StartDetails};
+use extensions::{db_extension::initialize_db, snapshot_api::initialize_snapshot_api};
+use rindexer::{GraphqlOverrideSettings, IndexingDetails, StartDetails, start_rindexer};
 use std::env;
+use tasks::{ended_onchian_proposals::run_periodic_proposal_state_update, snapshot_proposals::run_periodic_snapshot_proposals_update, snapshot_votes::run_periodic_snapshot_votes_update};
+use tracing::{error, instrument};
 use utils::tracing::setup_otel;
+
 mod extensions;
 mod rindexer_lib;
-use anyhow::{Context, Result};
-use tracing::instrument;
+mod tasks;
 
 #[instrument]
 #[tokio::main]
@@ -22,50 +25,39 @@ async fn main() -> Result<()> {
         .await
         .context("Failed to initialize database")?;
 
-    let args: Vec<String> = env::args().collect();
+    initialize_snapshot_api()
+        .await
+        .context("Failed to initialize snapshot API")?;
 
-    let mut enable_graphql = false;
-    let mut enable_indexer = false;
-
-    let mut port: Option<u16> = None;
-
-    let args_iter = args.iter();
-    if args.len() == 1 {
-        enable_graphql = true;
-        enable_indexer = true;
-    }
-
-    for arg in args_iter {
-        match arg.as_str() {
-            "--graphql" => enable_graphql = true,
-            "--indexer" => enable_indexer = true,
-            _ if arg.starts_with("--port=") || arg.starts_with("--p") => {
-                if let Some(value) = arg.split('=').nth(1) {
-                    let overridden_port = value
-                        .parse::<u16>()
-                        .context("Invalid port number provided")?;
-                    port = Some(overridden_port);
-                }
-            }
-            _ => {}
+    tokio::spawn(async {
+        if let Err(e) = run_periodic_proposal_state_update().await {
+            error!("Error in periodic proposal state update task: {:?}", e);
         }
-    }
+    });
+
+    tokio::spawn(async {
+        if let Err(e) = run_periodic_snapshot_proposals_update().await {
+            error!("Error in periodic snapshot proposals update task: {:?}", e);
+        }
+    });
+
+    tokio::spawn(async {
+        if let Err(e) = run_periodic_snapshot_votes_update().await {
+            error!("Error in periodic snapshot votes update task: {:?}", e);
+        }
+    });
 
     let path = env::current_dir().context("Failed to get current directory")?;
     let manifest_path = path.join("rindexer.yaml");
 
     start_rindexer(StartDetails {
         manifest_path: &manifest_path,
-        indexing_details: if enable_indexer {
-            Some(IndexingDetails {
-                registry: register_all_handlers(&manifest_path).await,
-            })
-        } else {
-            None
-        },
+        indexing_details: Some(IndexingDetails {
+            registry: register_all_handlers(&manifest_path).await,
+        }),
         graphql_details: GraphqlOverrideSettings {
-            enabled: enable_graphql,
-            override_port: port,
+            enabled: false,
+            override_port: None,
         },
     })
     .await

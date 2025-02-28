@@ -3,7 +3,7 @@ use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{store_proposal, store_vote, DAO_ID_SLUG_MAP, DAO_INDEXER_ID_MAP, DB},
+        db_extension::{store_proposal, store_vote, DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, DB},
     },
     rindexer_lib::typings::rindexer::events::arbitrum_treasury_governor::arbitrum_treasury_governor_contract,
 };
@@ -28,37 +28,34 @@ use serde_json::json;
 use std::{path::PathBuf, sync::Arc};
 use tracing::{info, instrument};
 
-fn get_proposals_dao_indexer_id() -> ActiveValue<Uuid> {
-    DAO_INDEXER_ID_MAP
+fn get_proposals_governor_id() -> Option<Uuid> {
+    DAO_GOVERNOR_ID_MAP
         .get()
         .unwrap()
         .lock()
         .unwrap()
-        .get(&IndexerVariant::ArbTreasuryArbitrumProposals)
-        .map(|id| Set(*id))
-        .unwrap_or(NotSet)
+        .get("ARBITRUM_TREASURY")
+        .copied()
 }
 
-fn get_votes_dao_indexer_id() -> ActiveValue<Uuid> {
-    DAO_INDEXER_ID_MAP
+fn get_votes_governor_id() -> Option<Uuid> {
+    DAO_GOVERNOR_ID_MAP
         .get()
         .unwrap()
         .lock()
         .unwrap()
-        .get(&IndexerVariant::ArbTreasuryArbitrumVotes)
-        .map(|id| Set(*id))
-        .unwrap_or(NotSet)
+        .get("ARBITRUM_TREASURY")
+        .copied()
 }
 
-fn get_dao_id() -> ActiveValue<Uuid> {
+fn get_dao_id() -> Option<Uuid> {
     DAO_ID_SLUG_MAP
         .get()
         .unwrap()
         .lock()
         .unwrap()
         .get("arbitrum")
-        .map(|id| Set(*id))
-        .unwrap_or(NotSet)
+        .copied()
 }
 
 #[instrument(skip(manifest_path, registry))]
@@ -148,8 +145,8 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
                         metadata: Set(json!({"vote_type":"basic", "quorum_choices":[0,2], "total_delegated_vp":total_delegated_vp, "targets":result.event_data.targets, "values":result.event_data.values, "calldatas":result.event_data.calldatas, "signatures":result.event_data.signatures}).into()),
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
-                        dao_indexer_id: get_proposals_dao_indexer_id(),
-                        dao_id: get_dao_id(),
+                        governor_id: Set(get_proposals_governor_id().take().unwrap()),
+                        dao_id: Set(get_dao_id().unwrap()),
                         author: Set(Some(to_checksum(&result.event_data.proposer, None))),
                     };
 
@@ -198,8 +195,8 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                         block_created_at: NotSet,
                         metadata: NotSet,
                         txid: NotSet,
-                        dao_indexer_id: get_proposals_dao_indexer_id(),
-                        dao_id: get_dao_id(),
+                        governor_id: Set(get_proposals_governor_id().take().unwrap()),
+                        dao_id: Set(get_dao_id().unwrap()),
                         author: NotSet,
                     };
 
@@ -252,8 +249,8 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                         block_created_at: NotSet,
                         metadata: NotSet,
                         txid: NotSet,
-                        dao_indexer_id: get_proposals_dao_indexer_id(),
-                        dao_id: get_dao_id(),
+                        governor_id: Set(get_proposals_governor_id().take().unwrap()),
+                        dao_id: Set(get_dao_id().unwrap()),
                         author: NotSet,
                     };
 
@@ -302,8 +299,8 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                         block_created_at: NotSet,
                         metadata: NotSet,
                         txid: NotSet,
-                        dao_indexer_id: get_proposals_dao_indexer_id(),
-                        dao_id: get_dao_id(),
+                        governor_id: Set(get_proposals_governor_id().take().unwrap()),
+                        dao_id: Set(get_dao_id().unwrap()),
                         author: NotSet,
                     };
 
@@ -355,11 +352,11 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
                         proposal_external_id: Set(result.event_data.proposal_id.to_string()),
                         proposal_id: NotSet,
-                        dao_id: get_dao_id(),
-                        indexer_id: get_votes_dao_indexer_id(),
+                        governor_id: Set(get_votes_governor_id().take().unwrap()),
+                        dao_id: Set(get_dao_id().unwrap()),
                     };
 
-                    store_vote(vote, get_proposals_dao_indexer_id().take().unwrap()).await;
+                    store_vote(vote, get_proposals_governor_id().take().unwrap()).await;
                 }
 
                 info!(
@@ -407,11 +404,11 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
                         proposal_external_id: Set(result.event_data.proposal_id.to_string()),
                         proposal_id: NotSet,
-                        dao_id: get_dao_id(),
-                        indexer_id: get_votes_dao_indexer_id(),
+                        governor_id: Set(get_votes_governor_id().take().unwrap()),
+                        dao_id: Set(get_dao_id().unwrap()),
                     };
 
-                    store_vote(vote, get_proposals_dao_indexer_id().take().unwrap()).await;
+                    store_vote(vote, get_proposals_governor_id().take().unwrap()).await;
                 }
 
                 info!(

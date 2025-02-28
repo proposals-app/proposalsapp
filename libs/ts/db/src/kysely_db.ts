@@ -286,6 +286,16 @@ export interface EmailVerification {
   userId: string;
 }
 
+export interface GovernorNew {
+  daoId: string;
+  enabled: Generated<boolean>;
+  id: Generated<string>;
+  metadata: Generated<Json>;
+  name: string;
+  portalUrl: string | null;
+  type: string;
+}
+
 export interface JobQueue {
   createdAt: Generated<Timestamp>;
   data: Json;
@@ -335,10 +345,10 @@ export interface ProposalNew {
   choices: Generated<Json>;
   createdAt: Timestamp;
   daoId: string;
-  daoIndexerId: string;
   discussionUrl: string | null;
   endAt: Timestamp;
   externalId: string;
+  governorId: string;
   id: Generated<string>;
   markedSpam: Generated<boolean>;
   metadata: Json | null;
@@ -497,8 +507,8 @@ export interface VoteNew {
   choice: Generated<Json>;
   createdAt: Generated<Timestamp>;
   daoId: string;
+  governorId: string;
   id: Generated<string>;
-  indexerId: string;
   proposalExternalId: string;
   proposalId: string;
   reason: string | null;
@@ -538,6 +548,7 @@ export interface DB {
   discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;
   emailVerification: EmailVerification;
+  governorNew: GovernorNew;
   jobQueue: JobQueue;
   proposal: Proposal;
   proposalGroup: ProposalGroup;

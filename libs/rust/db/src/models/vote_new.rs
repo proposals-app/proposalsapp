@@ -25,7 +25,7 @@ pub struct Model {
     pub proposal_external_id: String,
     pub proposal_id: Uuid,
     pub dao_id: Uuid,
-    pub indexer_id: Uuid,
+    pub governor_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -41,7 +41,7 @@ pub enum Column {
     ProposalExternalId,
     ProposalId,
     DaoId,
-    IndexerId,
+    GovernorId,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -59,7 +59,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     Dao,
-    DaoIndexer,
+    GovernorNew,
     ProposalNew,
     Voter,
 }
@@ -79,7 +79,7 @@ impl ColumnTrait for Column {
             Self::ProposalExternalId => ColumnType::Text.def(),
             Self::ProposalId => ColumnType::Uuid.def(),
             Self::DaoId => ColumnType::Uuid.def(),
-            Self::IndexerId => ColumnType::Uuid.def(),
+            Self::GovernorId => ColumnType::Uuid.def(),
         }
     }
 }
@@ -91,9 +91,9 @@ impl RelationTrait for Relation {
                 .from(Column::DaoId)
                 .to(super::dao::Column::Id)
                 .into(),
-            Self::DaoIndexer => Entity::belongs_to(super::dao_indexer::Entity)
-                .from(Column::IndexerId)
-                .to(super::dao_indexer::Column::Id)
+            Self::GovernorNew => Entity::belongs_to(super::governor_new::Entity)
+                .from(Column::GovernorId)
+                .to(super::governor_new::Column::Id)
                 .into(),
             Self::ProposalNew => Entity::belongs_to(super::proposal_new::Entity)
                 .from(Column::ProposalId)
@@ -113,9 +113,9 @@ impl Related<super::dao::Entity> for Entity {
     }
 }
 
-impl Related<super::dao_indexer::Entity> for Entity {
+impl Related<super::governor_new::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::DaoIndexer.def()
+        Relation::GovernorNew.def()
     }
 }
 
