@@ -3,7 +3,7 @@ use crate::extensions::{
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::{Context, Result, anyhow};
-use chrono::DateTime;
+use chrono::{DateTime, NaiveDateTime};
 use proposalsapp_db::models::vote_new;
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, FromQueryResult, QueryFilter, QuerySelect, Set, prelude::Uuid};
 use serde::Deserialize;
@@ -169,7 +169,7 @@ pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
 
 #[derive(FromQueryResult)]
 struct LastCreatedValue {
-    last_created: Option<i64>,
+    last_created: Option<NaiveDateTime>,
 }
 
 async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64> {
@@ -185,5 +185,9 @@ async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64>
         .one(db)
         .await?;
 
-    Ok(last_vote.and_then(|v| v.last_created).unwrap_or(0))
+    let timestamp = last_vote
+        .and_then(|v| v.last_created)
+        .map(|dt| dt.and_utc().timestamp())
+        .unwrap_or(0);
+    Ok(timestamp)
 }
