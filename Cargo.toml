@@ -58,6 +58,8 @@ ethers = "2.0"
 rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "proposalsapp-next", package = "rindexer" }
 tokio-retry = "0.3.0"
 serial_test = "3.2.0"
+proposalsapp-db = { path = "libs/rust/db" }
+utils = { path = "libs/rust/utils" }
 
 [profile.release]
 opt-level = 3

@@ -3,9 +3,9 @@ use crate::extensions::{
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::{Context, Result, anyhow};
-use chrono::{DateTime, NaiveDateTime};
-use proposalsapp_db::models::vote_new;
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, FromQueryResult, QueryFilter, QuerySelect, Set, prelude::Uuid};
+use chrono::{DateTime, NaiveDateTime, Utc};
+use proposalsapp_db::models::{proposal_new, vote_new};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityOrSelect, EntityTrait, FromQueryResult, Order, QueryFilter, QueryOrder, QuerySelect, Set, prelude::Uuid};
 use serde::Deserialize;
 use std::time::Duration;
 use tracing::{debug, error, info, instrument};
@@ -59,6 +59,17 @@ pub async fn update_snapshot_votes() -> Result<()> {
         .context("Snapshot votes governor not found")?;
 
     let mut last_vote_created = get_latest_vote_created(governor_id, dao_id).await?;
+
+    let relevant_proposals_vec = get_relevant_proposals(governor_id, dao_id, last_vote_created).await?;
+    let relevant_proposals_str = format!(
+        "[{}]",
+        relevant_proposals_vec
+            .iter()
+            .map(|id| format!("\"{}\"", id))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+
     let mut loop_count = 0;
     let max_loops = 10;
 
@@ -75,12 +86,13 @@ pub async fn update_snapshot_votes() -> Result<()> {
             r#"
             {{
                 votes(
-                    first: 100,
+                    first: 1000,
                     orderBy: "created",
                     orderDirection: asc,
                     where: {{
                         space: "arbitrumfoundation.eth"
-                        created_gt: {}
+                        created_gt: {},
+                        proposal_in: {}
                     }}
                 ) {{
                     voter
@@ -95,7 +107,7 @@ pub async fn update_snapshot_votes() -> Result<()> {
                 }}
             }}
             "#,
-            last_vote_created
+            last_vote_created, relevant_proposals_str
         );
 
         let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
@@ -188,4 +200,28 @@ async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64>
         .map(|dt| dt.and_utc().timestamp())
         .unwrap_or(0);
     Ok(timestamp)
+}
+
+async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_created: i64) -> Result<Vec<String>> {
+    let db = DB.get().context("DB not initialized")?;
+
+    let last_vote_created_datetime = DateTime::<Utc>::from_timestamp(last_vote_created, 0).context("Invalid last vote created timestamp")?;
+
+    let relevant_proposals = proposal_new::Entity::find()
+        .select()
+        .filter(proposal_new::Column::StartAt.lt(last_vote_created_datetime.naive_utc()))
+        .filter(proposal_new::Column::EndAt.gt(last_vote_created_datetime.naive_utc()))
+        .filter(proposal_new::Column::GovernorId.eq(governor_id))
+        .filter(proposal_new::Column::DaoId.eq(dao_id))
+        .order_by(proposal_new::Column::EndAt, Order::Asc)
+        .limit(10)
+        .all(db)
+        .await?;
+
+    let ids = relevant_proposals
+        .iter()
+        .map(|rp| rp.external_id.clone())
+        .collect();
+
+    Ok(ids)
 }

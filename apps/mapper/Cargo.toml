@@ -14,7 +14,7 @@ futures = { workspace = true }
 lazy_static = { workspace = true }
 once_cell = { workspace = true }
 opentelemetry = { workspace = true }
-proposalsapp-db = { path = "../../libs/rust/db" }
+proposalsapp-db = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
@@ -36,7 +36,7 @@ tracing-subscriber = { workspace = true, features = [
     "env-filter",
     "json",
 ] }
-utils = { path = "../../libs/rust/utils" }
+utils = { workspace = true }
 
 [[bin]]
 name = "mapper"

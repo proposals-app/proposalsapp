@@ -10,7 +10,7 @@ dotenv = { workspace = true }
 ethers = { workspace = true, features = ["rustls", "openssl"] }
 lazy_static = { workspace = true }
 once_cell = { workspace = true }
-proposalsapp-db = { path = "../../libs/rust/db" }
+proposalsapp-db = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware = { workspace = true }
@@ -31,7 +31,7 @@ serial_test = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tokio-retry = { workspace = true }
 tracing = { workspace = true }
-utils = { path = "../../libs/rust/utils" }
+utils = { workspace = true }
 
 [[bin]]
 name = "proposalsapp-rindexer"
