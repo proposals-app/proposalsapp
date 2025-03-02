@@ -212,6 +212,6 @@ pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
             Err(e) => error!("Failed to update proposals: {:?}", e),
         }
 
-        tokio::time::sleep(Duration::from_secs(5)).await;
+        tokio::time::sleep(Duration::from_secs(60)).await;
     }
 }
