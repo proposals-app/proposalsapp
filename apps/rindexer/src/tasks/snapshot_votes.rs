@@ -190,7 +190,6 @@ async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64>
         .column_as(vote_new::Column::CreatedAt.max(), "last_created")
         .filter(vote_new::Column::GovernorId.eq(governor_id))
         .filter(vote_new::Column::DaoId.eq(dao_id))
-        .group_by(vote_new::Column::GovernorId)
         .into_model::<LastCreatedValue>()
         .one(db)
         .await?;
@@ -199,6 +198,7 @@ async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64>
         .and_then(|v| v.last_created)
         .map(|dt| dt.and_utc().timestamp())
         .unwrap_or(0);
+
     Ok(timestamp)
 }
 
@@ -209,11 +209,10 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
 
     let relevant_proposals = proposal_new::Entity::find()
         .select()
-        .filter(proposal_new::Column::StartAt.lt(last_vote_created_datetime.naive_utc()))
         .filter(proposal_new::Column::EndAt.gt(last_vote_created_datetime.naive_utc()))
         .filter(proposal_new::Column::GovernorId.eq(governor_id))
         .filter(proposal_new::Column::DaoId.eq(dao_id))
-        .order_by(proposal_new::Column::EndAt, Order::Asc)
+        .order_by(proposal_new::Column::StartAt, Order::Asc)
         .limit(10)
         .all(db)
         .await?;
