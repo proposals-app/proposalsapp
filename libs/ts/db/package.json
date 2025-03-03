@@ -10,7 +10,7 @@
     "@tsconfig/recommended": "^1.0.8",
     "@types/dotenv": "^8.2.3",
     "@types/pg": "8",
-    "kysely-codegen": "0.18.0",
+    "kysely-codegen": "0.18.1",
     "kysely-ctl": "0.12.1",
     "typescript": "^5.8.2"
   },
