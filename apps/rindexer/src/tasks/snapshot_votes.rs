@@ -213,7 +213,7 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
         .filter(proposal_new::Column::GovernorId.eq(governor_id))
         .filter(proposal_new::Column::DaoId.eq(dao_id))
         .order_by(proposal_new::Column::EndAt, Order::Asc)
-        .limit(10)
+        .limit(25)
         .all(db)
         .await?;
 
