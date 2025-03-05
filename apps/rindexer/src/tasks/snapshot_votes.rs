@@ -206,10 +206,12 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
     let db = DB.get().context("DB not initialized")?;
 
     let last_vote_created_datetime = DateTime::<Utc>::from_timestamp(last_vote_created, 0).context("Invalid last vote created timestamp")?;
+    let one_year_ago_datetime = last_vote_created_datetime - Duration::from_secs(52 * 7 * 24 * 60 * 60);
 
     let relevant_proposals = proposal::Entity::find()
         .select()
         .filter(proposal::Column::EndAt.gt(last_vote_created_datetime.naive_utc()))
+        .filter(proposal::Column::StartAt.gt(one_year_ago_datetime.naive_utc()))
         .filter(proposal::Column::GovernorId.eq(governor_id))
         .filter(proposal::Column::DaoId.eq(dao_id))
         .order_by(proposal::Column::EndAt, Order::Asc)
