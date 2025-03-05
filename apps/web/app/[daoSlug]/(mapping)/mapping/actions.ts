@@ -1,32 +1,10 @@
 'use server';
 
 import { otel } from '@/lib/otel';
+import { ProposalGroup, ProposalGroupItem } from '@/lib/types';
 import { db } from '@proposalsapp/db-indexer';
 import Fuse from 'fuse.js';
 import { revalidatePath } from 'next/cache';
-
-export interface ProposalGroup {
-  id?: string;
-  name: string;
-  items: ProposalGroupItem[];
-  createdAt?: string;
-}
-
-export type ProposalGroupItem =
-  | {
-      type: 'topic';
-      id: string;
-      name: string;
-      external_id: string;
-      dao_discourse_id: string;
-    }
-  | {
-      type: 'proposal';
-      id: string;
-      name: string;
-      external_id: string;
-      governor_id: string;
-    };
 
 export async function fetchData(daoSlug: string) {
   return otel('mapping-fetch-data', async () => {
@@ -53,14 +31,14 @@ export async function fetchData(daoSlug: string) {
               const proposal = await db
                 .selectFrom('proposal')
                 .leftJoin(
-                  'daoIndexer',
-                  'daoIndexer.id',
-                  'proposal.daoIndexerId'
+                  'daoGovernor',
+                  'daoGovernor.id',
+                  'proposal.governorId'
                 )
-                .select('indexerVariant')
+                .select('daoGovernor.name as governorName')
                 .where('proposal.id', '=', item.id)
                 .executeTakeFirst();
-              indexerName = proposal?.indexerVariant ?? 'unknown';
+              indexerName = proposal?.governorName ?? 'unknown';
             } else if (item.type === 'topic') {
               const topic = await db
                 .selectFrom('discourseTopic')
@@ -102,8 +80,12 @@ export async function fetchUngroupedProposals(daoSlug: string) {
     const allProposals = await db
       .selectFrom('proposal')
       .where('proposal.daoId', '=', dao.id)
-      .leftJoin('daoIndexer', 'daoIndexer.id', 'proposal.daoIndexerId')
-      .select(['proposal.id', 'proposal.name', 'daoIndexer.indexerVariant'])
+      .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
+      .select([
+        'proposal.id',
+        'proposal.name as proposalName',
+        'daoGovernor.name as governorName',
+      ])
       .where('markedSpam', '=', false)
       .execute();
 
@@ -125,9 +107,9 @@ export async function fetchUngroupedProposals(daoSlug: string) {
       .filter((proposal) => !uniqueGroupedIds.includes(proposal.id.toString()))
       .map((proposal) => ({
         id: proposal.id.toString(),
-        name: proposal.name,
+        name: proposal.proposalName,
         type: 'proposal' as const,
-        indexerName: proposal.indexerVariant ?? 'unknown',
+        indexerName: proposal.governorName ?? 'unknown',
       }));
   });
 }
@@ -136,7 +118,9 @@ export interface FuzzyItem {
   id: string;
   type: 'proposal' | 'topic';
   name: string;
-  indexerName: string;
+  external_id?: string;
+  dao_discourse_id?: string;
+  governor_id?: string;
   score: number;
 }
 
@@ -162,8 +146,12 @@ export async function fuzzySearchItems(
         .selectFrom('proposal')
         .where('markedSpam', '=', false)
         .where('proposal.daoId', '=', dao.id)
-        .leftJoin('daoIndexer', 'daoIndexer.id', 'proposal.daoIndexerId')
-        .select(['proposal.id', 'proposal.name', 'daoIndexer.indexerVariant'])
+        .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
+        .select([
+          'proposal.id',
+          'proposal.name as proposalName',
+          'daoGovernor.name as governorName',
+        ])
         .execute(),
       db
         .selectFrom('discourseTopic')
@@ -180,9 +168,9 @@ export async function fuzzySearchItems(
     const allItems: FuzzyItem[] = [
       ...proposals.map((p) => ({
         id: p.id.toString(),
-        name: p.name,
+        name: p.proposalName,
         type: 'proposal' as const,
-        indexerName: p.indexerVariant ?? 'unknown',
+        indexerName: p.governorName ?? 'unknown',
         score: 1,
       })),
       ...topics.map((t) => ({

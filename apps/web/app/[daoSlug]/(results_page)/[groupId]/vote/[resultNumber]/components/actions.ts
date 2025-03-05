@@ -8,7 +8,7 @@ async function getProposalGovernor(proposalId: string) {
     const proposal = await db
       .selectFrom('proposal')
       .where('id', '=', proposalId)
-      .select(['daoIndexerId'])
+      .select(['governorId'])
       .executeTakeFirst();
 
     if (!proposal) {
@@ -17,14 +17,14 @@ async function getProposalGovernor(proposalId: string) {
     }
 
     const daoIndexer = await db
-      .selectFrom('daoIndexer')
-      .where('id', '=', proposal.daoIndexerId)
+      .selectFrom('daoGovernor')
+      .where('id', '=', proposal.governorId)
       .selectAll()
       .executeTakeFirst();
 
     if (!daoIndexer) {
       console.warn(
-        `DaoIndexer with id ${proposal.daoIndexerId} not found for proposal ${proposalId}.`
+        `DaoIndexer with id ${proposal.governorId} not found for proposal ${proposalId}.`
       );
       return null;
     }

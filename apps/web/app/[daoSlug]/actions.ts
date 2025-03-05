@@ -3,8 +3,14 @@
 import { cookies } from 'next/headers';
 import { otel } from '@/lib/otel';
 import { AsyncReturnType, superjson_cache } from '@/lib/utils';
-import { db } from '@proposalsapp/db-indexer';
+import {
+  db,
+  DiscourseTopic,
+  Proposal,
+  Selectable,
+} from '@proposalsapp/db-indexer';
 import { unstable_cache } from 'next/cache';
+import { ProposalGroupItem } from '@/lib/types';
 
 const COOKIE_PREFIX = 'group_last_seen_';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -64,15 +70,15 @@ async function getGroups(daoSlug: string) {
       .selectFrom('dao')
       .where('slug', '=', daoSlug)
       .selectAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+
+    if (!dao) return null;
 
     const daoDiscourse = await db
       .selectFrom('daoDiscourse')
       .where('daoId', '=', dao.id)
       .selectAll()
       .executeTakeFirstOrThrow();
-
-    if (!dao) return null;
 
     // First, fetch all groups for the DAO
     const allGroups = await db
@@ -89,18 +95,45 @@ async function getGroups(daoSlug: string) {
       newestVoteTimestamp: number;
     }> => {
       return otel('get-group-timestamps', async () => {
-        const items = group.items as Array<{
-          id: string;
-          type: 'proposal' | 'topic';
-        }>;
+        const items = group.items as ProposalGroupItem[];
 
-        const proposalIds = items
-          .filter((item) => item.type === 'proposal')
-          .map((item) => item.id);
+        const proposals: Selectable<Proposal>[] = [];
+        const proposalItems = items.filter((item) => item.type === 'proposal');
+        if (proposalItems.length > 0) {
+          for (const proposalItem of proposalItems) {
+            try {
+              const p = await db
+                .selectFrom('proposal')
+                .selectAll()
+                .where('externalId', '=', proposalItem.externalId)
+                .where('governorId', '=', proposalItem.governorId)
+                .executeTakeFirstOrThrow();
+              proposals.push(p);
+            } catch (error) {
+              console.error('Error fetching:', proposalItem, error);
+            }
+          }
+        }
+        const proposalIds = proposals.map((p) => p.id);
 
-        const topicIds = items
-          .filter((item) => item.type === 'topic')
-          .map((item) => item.id);
+        const topics: Selectable<DiscourseTopic>[] = [];
+        const topicItems = items.filter((item) => item.type === 'topic');
+        if (topicItems.length > 0) {
+          for (const topicItem of topicItems) {
+            try {
+              const t = await db
+                .selectFrom('discourseTopic')
+                .selectAll()
+                .where('externalId', '=', parseInt(topicItem.externalId, 10))
+                .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
+                .executeTakeFirstOrThrow();
+              topics.push(t);
+            } catch (error) {
+              console.error('Error fetching:', topicItem, error);
+            }
+          }
+        }
+        const topicIds = topics.map((t) => t.id);
 
         const [latestProposal, latestTopic, latestPost, latestVote] =
           await Promise.all([
@@ -248,10 +281,7 @@ async function getGroupAuthor(groupId: string): Promise<{
       };
     }
 
-    const items = group.items as Array<{
-      id: string;
-      type: 'proposal' | 'topic';
-    }>;
+    const items = group.items as ProposalGroupItem[];
 
     let authorInfo = {
       originalAuthorName: 'Unknown',
@@ -259,21 +289,51 @@ async function getGroupAuthor(groupId: string): Promise<{
         'https://api.dicebear.com/9.x/pixel-art/png?seed=proposals.app',
     };
 
+    const proposals: Selectable<Proposal>[] = [];
+    const proposalItems = items.filter((item) => item.type === 'proposal');
+    if (proposalItems.length > 0) {
+      for (const proposalItem of proposalItems) {
+        try {
+          const p = await db
+            .selectFrom('proposal')
+            .selectAll()
+            .where('externalId', '=', proposalItem.externalId)
+            .where('governorId', '=', proposalItem.governorId)
+            .executeTakeFirstOrThrow();
+          proposals.push(p);
+        } catch (error) {
+          console.error('Error fetching:', proposalItem, error);
+        }
+      }
+    }
+
+    const topics: Selectable<DiscourseTopic>[] = [];
+    const topicItems = items.filter((item) => item.type === 'topic');
+    if (topicItems.length > 0) {
+      for (const topicItem of topicItems) {
+        try {
+          const t = await db
+            .selectFrom('discourseTopic')
+            .selectAll()
+            .where('externalId', '=', parseInt(topicItem.externalId, 10))
+            .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
+            .executeTakeFirstOrThrow();
+          topics.push(t);
+        } catch (error) {
+          console.error('Error fetching:', topicItem, error);
+        }
+      }
+    }
+
     // Helper function to fetch topic and its author info
     const getTopicAuthorInfo = async (
-      topicId: string
+      topic: Selectable<DiscourseTopic>
     ): Promise<AuthorInfo | null> => {
       try {
-        const discourseTopic = await db
-          .selectFrom('discourseTopic')
-          .where('id', '=', topicId)
-          .selectAll()
-          .executeTakeFirstOrThrow();
-
         const discourseFirstPost = await db
           .selectFrom('discoursePost')
-          .where('discoursePost.topicId', '=', discourseTopic.externalId)
-          .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
+          .where('discoursePost.topicId', '=', topic.externalId)
+          .where('daoDiscourseId', '=', topic.daoDiscourseId)
           .where('discoursePost.postNumber', '=', 1)
           .selectAll()
           .executeTakeFirstOrThrow();
@@ -281,7 +341,7 @@ async function getGroupAuthor(groupId: string): Promise<{
         const discourseFirstPostAuthor = await db
           .selectFrom('discourseUser')
           .where('discourseUser.externalId', '=', discourseFirstPost.userId)
-          .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
+          .where('daoDiscourseId', '=', topic.daoDiscourseId)
           .selectAll()
           .executeTakeFirstOrThrow();
 
@@ -293,7 +353,7 @@ async function getGroupAuthor(groupId: string): Promise<{
           originalAuthorPicture: discourseFirstPostAuthor.avatarTemplate.length
             ? discourseFirstPostAuthor.avatarTemplate
             : `https://api.dicebear.com/9.x/pixel-art/png?seed=${discourseFirstPostAuthor.username}`,
-          createdAt: discourseTopic.createdAt,
+          createdAt: topic.createdAt,
         };
       } catch (topicError) {
         console.error('Error fetching topic author data:', topicError);
@@ -303,15 +363,9 @@ async function getGroupAuthor(groupId: string): Promise<{
 
     // Helper function to fetch proposal and its author info
     const getProposalAuthorInfo = async (
-      proposalId: string
+      proposal: Selectable<Proposal>
     ): Promise<AuthorInfo | null> => {
       try {
-        const proposal = await db
-          .selectFrom('proposal')
-          .where('id', '=', proposalId)
-          .selectAll()
-          .executeTakeFirstOrThrow();
-
         return {
           originalAuthorName: proposal.author || 'Unknown',
           originalAuthorPicture: `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author}`,
@@ -325,16 +379,12 @@ async function getGroupAuthor(groupId: string): Promise<{
 
     // Fetch all topics with their author info
     const topicsWithAuthors = await Promise.all(
-      items
-        .filter((item) => item.type === 'topic')
-        .map((topic) => getTopicAuthorInfo(topic.id))
+      topics.map((topic) => getTopicAuthorInfo(topic))
     );
 
     // Fetch all proposals with their author info
     const proposalsWithAuthors = await Promise.all(
-      items
-        .filter((item) => item.type === 'proposal')
-        .map((proposal) => getProposalAuthorInfo(proposal.id))
+      proposals.map((proposal) => getProposalAuthorInfo(proposal))
     );
 
     // Combine topics and proposals, filter out null results, and sort by createdAt

@@ -5,7 +5,7 @@ use proposalsapp_db_indexer::models::{dao, dao_discourse, delegate, delegate_to_
 use reqwest::Client;
 use sea_orm::{
     ActiveValue::NotSet,
-    ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait,
+    ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
     prelude::{Expr, Uuid},
 };
 use serde::Deserialize;
@@ -105,8 +105,6 @@ async fn fetch_karma_data() -> Result<()> {
                     let address: Address = delegate.public_address.parse()?;
                     delegate.public_address = address.to_checksum(None);
                 }
-
-                update_delegates_ens(&all_delegates).await?;
 
                 METRICS
                     .get()
@@ -503,103 +501,6 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             "Created new delegate_to_discourse_user mapping"
         );
         METRICS.get().unwrap().db_inserts.add(1, &[]);
-    }
-
-    METRICS
-        .get()
-        .unwrap()
-        .db_query_duration
-        .record(start_time.elapsed().as_secs_f64(), &[]);
-
-    Ok(())
-}
-
-#[instrument(skip(delegates), fields(delegate_count = delegates.len()))]
-async fn update_delegates_ens(delegates: &[KarmaDelegate]) -> Result<()> {
-    let start_time = Instant::now();
-
-    // Filter delegates with ENS set
-    let filtered_delegates: Vec<&KarmaDelegate> = delegates
-        .iter()
-        .filter(|delegate| delegate.ens_name.is_some())
-        .collect();
-
-    if filtered_delegates.is_empty() {
-        info!("No delegates with ENS names found.");
-        return Ok(());
-    }
-
-    // Fetch voters by public addresses in batches
-    let addresses: Vec<&str> = filtered_delegates
-        .iter()
-        .map(|delegate| delegate.public_address.as_str())
-        .collect();
-
-    let mut voters_to_update = HashMap::new();
-
-    const BATCH_SIZE: usize = 100;
-    for batch_addresses in addresses.chunks(BATCH_SIZE) {
-        let chunk_voters: Vec<voter::Model> = voter::Entity::find()
-            .filter(voter::Column::Address.is_in(batch_addresses.to_vec()))
-            .all(DB.get().unwrap())
-            .await
-            .with_context(|| {
-                format!(
-                    "Failed to fetch voters in batch for addresses: {:?}",
-                    batch_addresses
-                )
-            })?;
-
-        for voter in chunk_voters {
-            voters_to_update.insert(voter.address.clone(), voter);
-        }
-    }
-
-    // Prepare updates and new voters
-    let mut active_voters_to_save = Vec::new();
-
-    for delegate in filtered_delegates {
-        if let Some(voter) = voters_to_update.remove(&delegate.public_address) {
-            if voter.ens != delegate.ens_name {
-                // Convert Model to ActiveModel for updating
-                let mut active_voter = voter.into_active_model();
-                active_voter.ens = Set(delegate.ens_name.clone());
-                active_voters_to_save.push(active_voter);
-            }
-        } else {
-            // If voter does not exist, create a new one
-            let new_voter = voter::ActiveModel {
-                id: NotSet,
-                address: Set(delegate.public_address.clone()),
-                ens: Set(delegate.ens_name.clone()),
-            };
-            active_voters_to_save.push(new_voter);
-        }
-    }
-
-    // Batch update or insert voters
-    if !active_voters_to_save.is_empty() {
-        let tx = DB.get().unwrap().begin().await?;
-
-        for voter in active_voters_to_save.clone() {
-            if voter.id.is_not_set() {
-                // Insert new voter
-                voter::Entity::insert(voter).exec(&tx).await?;
-                METRICS.get().unwrap().db_inserts.add(1, &[]);
-            } else {
-                // Update existing voter
-                voter::Entity::update(voter).exec(&tx).await?;
-                METRICS.get().unwrap().db_updates.add(1, &[]);
-            }
-        }
-
-        info!(
-            "Updated or inserted ENS names for {} voters.",
-            active_voters_to_save.len()
-        );
-        tx.commit().await.context("Failed to commit transaction")?;
-    } else {
-        info!("No updates needed for voters.");
     }
 
     METRICS

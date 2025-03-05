@@ -11,14 +11,18 @@ pub enum ProposalGroupItem {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TopicItem {
     pub name: String,
+    #[serde(rename = "externalId")]
     pub external_id: String,
+    #[serde(rename = "daoDiscourseId")]
     pub dao_discourse_id: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProposalItem {
     pub name: String,
+    #[serde(rename = "governorId")]
     pub governor_id: Uuid,
+    #[serde(rename = "externalId")]
     pub external_id: String,
 }
 

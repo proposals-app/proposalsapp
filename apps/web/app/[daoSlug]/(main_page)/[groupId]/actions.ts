@@ -1,4 +1,5 @@
 import { otel } from '@/lib/otel';
+import { ProposalGroupItem } from '@/lib/types';
 import { AsyncReturnType } from '@/lib/utils';
 import {
   db,
@@ -44,42 +45,44 @@ async function getGroup(daoSlug: string, groupId: string) {
     }
 
     if (group) {
-      const items = group.items as Array<{
-        id: string;
-        type: 'proposal' | 'topic';
-      }>;
+      const items = group.items as ProposalGroupItem[];
 
-      const proposalIds = items
-        .filter((item) => item.type === 'proposal')
-        .map((item) => item.id);
+      const proposalItems = items.filter((item) => item.type === 'proposal');
+      const topicItems = items.filter((item) => item.type === 'topic');
 
-      const topicIds = items
-        .filter((item) => item.type === 'topic')
-        .map((item) => item.id);
+      const proposals: Selectable<Proposal>[] = [];
+      if (proposalItems.length > 0) {
+        for (const proposalItem of proposalItems) {
+          try {
+            const p = await db
+              .selectFrom('proposal')
+              .selectAll()
+              .where('externalId', '=', proposalItem.externalId)
+              .where('governorId', '=', proposalItem.governorId)
+              .executeTakeFirstOrThrow();
 
-      let proposals: Selectable<Proposal>[] = [];
-      if (proposalIds.length > 0) {
-        try {
-          proposals = await db
-            .selectFrom('proposal')
-            .selectAll()
-            .where('proposal.id', 'in', proposalIds)
-            .execute();
-        } catch (error) {
-          console.error('Error fetching proposals:', error);
+            proposals.push(p);
+          } catch (error) {
+            console.error('Error fetching:', proposalItem, error);
+          }
         }
       }
 
-      let topics: Selectable<DiscourseTopic>[] = [];
-      if (topicIds.length > 0) {
-        try {
-          topics = await db
-            .selectFrom('discourseTopic')
-            .where('discourseTopic.id', 'in', topicIds)
-            .selectAll()
-            .execute();
-        } catch (error) {
-          console.error('Error fetching topics:', error);
+      const topics: Selectable<DiscourseTopic>[] = [];
+      if (topicItems.length > 0) {
+        for (const topicItem of topicItems) {
+          try {
+            const t = await db
+              .selectFrom('discourseTopic')
+              .where('externalId', '=', parseInt(topicItem.externalId, 10))
+              .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
+              .selectAll()
+              .executeTakeFirstOrThrow();
+
+            topics.push(t);
+          } catch (error) {
+            console.error('Error fetching:', topicItem, error);
+          }
         }
       }
 
@@ -121,29 +124,26 @@ async function getBodies(groupID: string) {
       return null;
     }
 
-    const items = group.items as Array<{
-      id: string;
-      type: 'proposal' | 'topic';
-    }>;
+    const items = group.items as ProposalGroupItem[];
 
-    const proposalIds = items
-      .filter((item) => item.type === 'proposal')
-      .map((item) => item.id);
+    const proposalItems = items.filter((item) => item.type === 'proposal');
+    const topicItems = items.filter((item) => item.type === 'topic');
 
-    const topicIds = items
-      .filter((item) => item.type === 'topic')
-      .map((item) => item.id);
+    const proposals: Selectable<Proposal>[] = [];
+    if (proposalItems.length > 0) {
+      for (const proposalItem of proposalItems) {
+        try {
+          const p = await db
+            .selectFrom('proposal')
+            .selectAll()
+            .where('externalId', '=', proposalItem.externalId)
+            .where('governorId', '=', proposalItem.governorId)
+            .executeTakeFirstOrThrow();
 
-    let proposals: Selectable<Proposal>[] = [];
-    if (proposalIds.length > 0) {
-      try {
-        proposals = await db
-          .selectFrom('proposal')
-          .selectAll()
-          .where('proposal.id', 'in', proposalIds)
-          .execute();
-      } catch (error) {
-        console.error('Error fetching proposals:', error);
+          proposals.push(p);
+        } catch (error) {
+          console.error('Error fetching:', proposalItem, error);
+        }
       }
     }
 
@@ -154,20 +154,25 @@ async function getBodies(groupID: string) {
         author_name: proposal.author ?? 'Unknown',
         author_picture: `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author}`,
         createdAt: proposal.createdAt,
-        type: proposal.blockCreated ? 'onchain' : 'offchain',
+        type: proposal.blockCreatedAt ? 'onchain' : 'offchain',
       })
     );
 
-    let discourseTopics: Selectable<DiscourseTopic>[] = [];
-    if (topicIds.length > 0) {
-      try {
-        discourseTopics = await db
-          .selectFrom('discourseTopic')
-          .selectAll()
-          .where('discourseTopic.id', 'in', topicIds)
-          .execute();
-      } catch (error) {
-        console.error('Error fetching topics:', error);
+    const discourseTopics: Selectable<DiscourseTopic>[] = [];
+    if (topicItems.length > 0) {
+      for (const topicItem of topicItems) {
+        try {
+          const t = await db
+            .selectFrom('discourseTopic')
+            .where('externalId', '=', parseInt(topicItem.externalId, 10))
+            .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
+            .selectAll()
+            .executeTakeFirstOrThrow();
+
+          discourseTopics.push(t);
+        } catch (error) {
+          console.error('Error fetching:', topicItem, error);
+        }
       }
     }
 
@@ -270,46 +275,48 @@ async function getTotalVersions(groupID: string) {
       return null;
     }
 
-    const items = group.items as Array<{
-      id: string;
-      type: 'proposal' | 'topic';
-    }>;
+    const items = group.items as ProposalGroupItem[];
 
-    const proposalIds = items
-      .filter((item) => item.type === 'proposal')
-      .map((item) => item.id);
+    const proposalItems = items.filter((item) => item.type === 'proposal');
+    const topicItems = items.filter((item) => item.type === 'topic');
 
-    const topicIds = items
-      .filter((item) => item.type === 'topic')
-      .map((item) => item.id);
+    const proposals: Selectable<Proposal>[] = [];
+    if (proposalItems.length > 0) {
+      for (const proposalItem of proposalItems) {
+        try {
+          const p = await db
+            .selectFrom('proposal')
+            .selectAll()
+            .where('externalId', '=', proposalItem.externalId)
+            .where('governorId', '=', proposalItem.governorId)
+            .executeTakeFirstOrThrow();
 
-    let proposals: Selectable<Proposal>[] = [];
-    if (proposalIds.length > 0) {
-      try {
-        proposals = await db
-          .selectFrom('proposal')
-          .selectAll()
-          .where('proposal.id', 'in', proposalIds)
-          .execute();
-      } catch (error) {
-        console.error('Error fetching proposals:', error);
+          proposals.push(p);
+        } catch (error) {
+          console.error('Error fetching:', proposalItem, error);
+        }
+      }
+    }
+
+    const discourseTopics: Selectable<DiscourseTopic>[] = [];
+    if (topicItems.length > 0) {
+      for (const topicItem of topicItems) {
+        try {
+          const t = await db
+            .selectFrom('discourseTopic')
+            .where('externalId', '=', parseInt(topicItem.externalId, 10))
+            .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
+            .selectAll()
+            .executeTakeFirstOrThrow();
+
+          discourseTopics.push(t);
+        } catch (error) {
+          console.error('Error fetching:', topicItem, error);
+        }
       }
     }
 
     totalVersions += proposals.length;
-
-    let discourseTopics: Selectable<DiscourseTopic>[] = [];
-    if (topicIds.length > 0) {
-      try {
-        discourseTopics = await db
-          .selectFrom('discourseTopic')
-          .selectAll()
-          .where('discourseTopic.id', 'in', topicIds)
-          .execute();
-      } catch (error) {
-        console.error('Error fetching topics:', error);
-      }
-    }
 
     for (const discourseTopic of discourseTopics) {
       const discourseFirstPost = await db

@@ -5,12 +5,14 @@ import { ProcessedVote, processResultsAction } from '@/lib/results_processing';
 import {
   db,
   DiscoursePost,
+  DiscourseTopic,
   Proposal,
   Selectable,
   sql,
   Vote,
 } from '@proposalsapp/db-indexer';
 import { unstable_cache } from 'next/cache';
+import { ProposalGroupItem } from '@/lib/types';
 
 async function getFeed(
   groupID: string,
@@ -38,52 +40,64 @@ async function getFeed(
       }
 
       // Extract proposal and topic IDs from group items
-      const items = group.items as Array<{
-        id: string;
-        type: 'proposal' | 'topic';
-      }>;
+      const items = group.items as ProposalGroupItem[];
 
-      const proposalIds = items
-        .filter((item) => item.type === 'proposal')
-        .map((item) => item.id);
+      const proposalItems = items.filter((item) => item.type === 'proposal');
+      const topicItems = items.filter((item) => item.type === 'topic');
 
-      const topicIds = items
-        .filter((item) => item.type === 'topic')
-        .map((item) => item.id);
+      const proposals: Selectable<Proposal>[] = [];
+      if (proposalItems.length > 0) {
+        for (const proposalItem of proposalItems) {
+          try {
+            const p = await db
+              .selectFrom('proposal')
+              .selectAll()
+              .where('externalId', '=', proposalItem.externalId)
+              .where('governorId', '=', proposalItem.governorId)
+              .executeTakeFirstOrThrow();
 
-      // Fetch proposals to get details
-      let proposals: Selectable<Proposal>[] = [];
-
-      if (proposalIds.length > 0) {
-        proposals = await db
-          .selectFrom('proposal')
-          .selectAll()
-          .where('id', 'in', proposalIds)
-          .execute();
+            proposals.push(p);
+          } catch (error) {
+            console.error('Error fetching:', proposalItem, error);
+          }
+        }
       }
 
       // Fetch topics to get daoDiscourseId and externalIds
-      let topicsExternalIds: number[] = [];
+
       let firstDaoDiscourseId: string | undefined;
 
-      if (topicIds.length > 0) {
-        const topics = await db
-          .selectFrom('discourseTopic')
-          .selectAll()
-          .where('discourseTopic.id', 'in', topicIds)
-          .execute();
+      const topics: Selectable<DiscourseTopic>[] = [];
+      if (topicItems.length > 0) {
+        for (const topicItem of topicItems) {
+          try {
+            const t = await db
+              .selectFrom('discourseTopic')
+              .where('externalId', '=', parseInt(topicItem.externalId, 10))
+              .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
+              .selectAll()
+              .executeTakeFirstOrThrow();
 
-        topicsExternalIds = topics.map((t) => t.externalId);
+            topics.push(t);
+          } catch (error) {
+            console.error('Error fetching:', topicItem, error);
+          }
+        }
+
         firstDaoDiscourseId = topics[0]?.daoDiscourseId;
       }
 
       // Fetch votes for the proposals
       let votes: Selectable<Vote>[] = [];
 
-      if (proposalIds.length > 0) {
+      if (proposals.length > 0) {
         const votesQuery = db
           .selectFrom('vote')
-          .where('proposalId', 'in', proposalIds)
+          .where(
+            'proposalId',
+            'in',
+            proposals.map((p) => p.id)
+          )
           .$if(votesFilter !== undefined, (qb) => {
             switch (votesFilter) {
               case VotesFilterEnum.FIFTY_THOUSAND:
@@ -102,14 +116,14 @@ async function getFeed(
       }
 
       // Build the query for posts if comments are enabled and there are topics
-      if (
-        commentsFilter &&
-        topicsExternalIds.length > 0 &&
-        firstDaoDiscourseId
-      ) {
+      if (commentsFilter && topics.length > 0 && firstDaoDiscourseId) {
         const postsQuery = db
           .selectFrom('discoursePost')
-          .where('topicId', 'in', topicsExternalIds)
+          .where(
+            'topicId',
+            'in',
+            topics.map((t) => t.externalId)
+          )
           .where('daoDiscourseId', '=', firstDaoDiscourseId)
           .where('postNumber', '!=', 1)
           .selectAll();

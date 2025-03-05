@@ -4,7 +4,6 @@ import ExternalLinkIcon from '@/public/assets/web/arrow_external_link.svg';
 import OnchainIcon from '@/public/assets/web/onchain.svg';
 import OffchainIcon from '@/public/assets/web/offchain.svg';
 import { DelegateInfo } from '../actions';
-import { IndexerType, IndexerVariant } from '@proposalsapp/db-indexer';
 
 interface ResultsTitleProps {
   processedResults: {
@@ -21,12 +20,7 @@ interface ResultsTitleProps {
     daoId: string;
     name: string | null;
     enabled: boolean;
-    index: number;
-    indexerType: IndexerType;
-    indexerVariant: IndexerVariant;
     portalUrl: string | null;
-    speed: number;
-    updatedAt: Date;
   } | null;
 }
 

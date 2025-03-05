@@ -70,7 +70,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     proposal.id
   );
 
-  const onChain = !governor?.indexerVariant.includes('SNAPSHOT');
+  const onChain = !governor?.type.includes('SNAPSHOT');
 
   return (
     <div className='flex w-full gap-2'>

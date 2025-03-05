@@ -1,9 +1,12 @@
 use anyhow::{Context, Result};
+use ethers::{providers::Middleware, types::Address};
 use once_cell::sync::OnceCell;
 use proposalsapp_db_indexer::models::{dao, dao_governor, proposal, vote, voter};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait, prelude::Uuid};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait, prelude::Uuid};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
 use tracing::instrument;
+
+use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static DAO_GOVERNOR_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
@@ -248,19 +251,42 @@ pub async fn store_vote(vote: vote::ActiveModel, governor_id: Uuid) -> Result<()
 
 #[instrument(skip(txn, voter_address))]
 async fn ensure_voter_exist(txn: &DatabaseTransaction, voter_address: String) -> Result<()> {
+    // Fetch ENS for the voter address
+    let ens_result = get_ethereum_provider_cache()
+        .get_inner_provider()
+        .lookup_address(voter_address.clone().parse::<Address>()?)
+        .await;
+
+    let fetched_ens = match ens_result {
+        Ok(ens) => Some(ens),
+        Err(_) => None, // If ENS lookup fails, we proceed without ENS
+    };
+
     // Check if voter exists
     let existing_voter: Option<voter::Model> = voter::Entity::find()
         .filter(voter::Column::Address.eq(voter_address.clone()))
         .one(txn)
         .await?;
 
-    // If voter does not exist, create a new voter
-    if existing_voter.is_none() {
-        let new_voter = voter::ActiveModel {
+    if let Some(voter) = existing_voter {
+        // Voter exists, check and update ENS if necessary
+        if voter.ens != fetched_ens {
+            let mut voter_active_model = voter.into_active_model();
+            voter_active_model.ens = Set(fetched_ens);
+            voter::Entity::update(voter_active_model).exec(txn).await?;
+        }
+    } else {
+        // Voter does not exist, create a new voter
+        let mut new_voter = voter::ActiveModel {
             id: NotSet,
             address: Set(voter_address.clone()),
-            ens: NotSet, // ENS is not provided in this context, so default to NotSet
+            ens: NotSet,
         };
+
+        if let Some(ens) = fetched_ens {
+            new_voter.ens = Set(Some(ens));
+        }
+
         voter::Entity::insert(new_voter).exec(txn).await?;
     }
 

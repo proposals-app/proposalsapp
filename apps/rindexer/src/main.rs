@@ -30,12 +30,6 @@ async fn main() -> Result<()> {
         .context("Failed to initialize snapshot API")?;
 
     tokio::spawn(async {
-        if let Err(e) = run_periodic_proposal_state_update().await {
-            error!("Error in periodic proposal state update task: {:?}", e);
-        }
-    });
-
-    tokio::spawn(async {
         if let Err(e) = run_periodic_snapshot_proposals_update().await {
             error!("Error in periodic snapshot proposals update task: {:?}", e);
         }
@@ -44,6 +38,12 @@ async fn main() -> Result<()> {
     tokio::spawn(async {
         if let Err(e) = run_periodic_snapshot_votes_update().await {
             error!("Error in periodic snapshot votes update task: {:?}", e);
+        }
+    });
+
+    tokio::spawn(async {
+        if let Err(e) = run_periodic_proposal_state_update().await {
+            error!("Error in periodic proposal state update task: {:?}", e);
         }
     });
 
@@ -62,6 +62,8 @@ async fn main() -> Result<()> {
     })
     .await
     .context("Failed to start rindexer")?;
+
+    std::future::pending::<()>().await;
 
     Ok(())
 }

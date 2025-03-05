@@ -18,9 +18,6 @@ pub struct Model {
     pub name: String,
     pub slug: String,
     pub picture: String,
-    pub background_color: String,
-    pub hot: bool,
-    pub email_quorum_warning_support: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -29,9 +26,6 @@ pub enum Column {
     Name,
     Slug,
     Picture,
-    BackgroundColor,
-    Hot,
-    EmailQuorumWarningSupport,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -66,9 +60,6 @@ impl ColumnTrait for Column {
             Self::Name => ColumnType::Text.def().unique(),
             Self::Slug => ColumnType::Text.def().unique(),
             Self::Picture => ColumnType::Text.def(),
-            Self::BackgroundColor => ColumnType::Text.def(),
-            Self::Hot => ColumnType::Boolean.def(),
-            Self::EmailQuorumWarningSupport => ColumnType::Boolean.def(),
         }
     }
 }

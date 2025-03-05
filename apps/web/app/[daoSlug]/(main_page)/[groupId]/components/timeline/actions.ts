@@ -1,11 +1,5 @@
 import { otel } from '@/lib/otel';
-import {
-  db,
-  IndexerVariant,
-  Proposal,
-  Selectable,
-  sql,
-} from '@proposalsapp/db-indexer';
+import { db, Proposal, Selectable, sql } from '@proposalsapp/db-indexer';
 import { format, formatDistanceToNow } from 'date-fns';
 import { GroupReturnType } from '../../actions';
 import { ProposalMetadata } from '@/app/types';
@@ -254,14 +248,13 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
         const startedAt = new Date(proposal.startAt);
         const endedAt = new Date(proposal.endAt);
 
-        const daoIndexer = await db
-          .selectFrom('daoIndexer')
+        const daoGovernor = await db
+          .selectFrom('daoGovernor')
           .selectAll()
-          .where('id', '=', proposal.daoIndexerId)
+          .where('id', '=', proposal.governorId)
           .executeTakeFirstOrThrow();
 
-        const offchain =
-          daoIndexer.indexerVariant == IndexerVariant.SNAPSHOT_PROPOSALS;
+        const offchain = daoGovernor.type.includes('SNAPSHOT');
 
         const currentTimestamp = new Date();
 

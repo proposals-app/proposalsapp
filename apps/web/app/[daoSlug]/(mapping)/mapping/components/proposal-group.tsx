@@ -8,9 +8,9 @@ import {
   deleteGroup,
   FuzzyItem,
   fuzzySearchItems,
-  ProposalGroup,
   saveGroups,
 } from '../actions';
+import { ProposalGroup, ProposalGroupItem } from '@/lib/types';
 
 interface GroupingInterfaceProps {
   initialGroups?: ProposalGroup[];
@@ -74,7 +74,17 @@ export default function GroupingInterface({
     setGroups((prev) =>
       prev.map((group) =>
         group.id === groupId
-          ? { ...group, items: [item, ...group.items] }
+          ? {
+              ...group,
+              items: [
+                {
+                  type: item.type,
+                  id: item.id,
+                  name: item.name,
+                } as ProposalGroupItem,
+                ...group.items,
+              ],
+            }
           : group
       )
     );
@@ -231,7 +241,7 @@ export default function GroupingInterface({
                         >
                           {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
                         </span>
-                        <span
+                        {/* <span
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
                       item.indexerName.includes('SNAPSHOT')
                               ? 'bg-yellow-100'
@@ -241,7 +251,7 @@ export default function GroupingInterface({
                           }`}
                         >
                           {item.indexerName}
-                        </span>
+                        </span> */}
                         {item.name}
                       </span>
                       <button
@@ -276,9 +286,9 @@ export default function GroupingInterface({
                       >
                         {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
                       </span>
-                      <span
+                      {/* <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          item.indexerName.includes('SNAPSHOT')
+                        item.indexerName.includes('SNAPSHOT')
                             ? 'bg-yellow-100'
                             : item.indexerName.includes('http')
                               ? 'bg-blue-100'
@@ -286,7 +296,7 @@ export default function GroupingInterface({
                         }`}
                       >
                         {item.indexerName}
-                      </span>
+                      </span> */}
                       <label htmlFor={`item-${item.id}`}>{item.name}</label>
                       <span className='rounded-full bg-red-100 px-2 py-1 text-xs'>
                         {item.score}
@@ -306,7 +316,7 @@ export default function GroupingInterface({
                     >
                       {item.type === 'proposal' ? 'Proposal' : 'Discussion'}
                     </span>
-                    <span
+                    {/* <span
                       className={`rounded-full px-2 py-1 text-xs font-medium ${
                         item.indexerName.includes('SNAPSHOT')
                           ? 'bg-yellow-100'
@@ -316,7 +326,7 @@ export default function GroupingInterface({
                       }`}
                     >
                       {item.indexerName}
-                    </span>
+                    </span> */}
                     <span>{item.name}</span>
                   </li>
                 ))}

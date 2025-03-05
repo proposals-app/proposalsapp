@@ -2,10 +2,10 @@ import { searchParamsCache } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import {
+  VersionType,
   getGroup_cached,
   getTotalVersions_cached,
   getBodies_cached,
-  VersionType,
 } from './actions';
 import Body, { BodyLoading } from './components/body/Body';
 import Feed, { FeedLoading } from './components/feed/Feed';
