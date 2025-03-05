@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "dependencies": {
     "dotenv": "^16.4.7",
-    "kysely": "0.27.5",
+    "kysely": "0.27.6",
     "pg": "8.13.3"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
     "@types/dotenv": "^8.2.3",
     "@types/pg": "8",
-    "kysely-codegen": "0.18.1",
+    "kysely-codegen": "0.18.2",
     "kysely-ctl": "0.12.1",
     "typescript": "^5.8.2"
   },
