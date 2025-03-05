@@ -1,120 +1,167 @@
 @import 'tailwindcss';
-
 @config '../tailwind.config.ts';
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+@layer utilities {
+  /* Default Theme (when data-theme is null) */
+  :root:not([data-theme]) {
+    --for-400: #87ff42;
+    --for-600: #56b200;
+    --abstain-400: #ffdc42;
+    --abstain-600: #ffbc1f;
+    --against-400: #ff5842;
+    --against-600: #ff4242;
+    --neutral-50: #f9fafb;
+    --neutral-100: #f4f5f6;
+    --neutral-200: #e1e6e9;
+    --neutral-300: #ced6da;
+    --neutral-350: #b3bfc6;
+    --neutral-400: #96a6b0;
+    --neutral-450: #80949f;
+    --neutral-500: #637783;
+    --neutral-550: #566771;
+    --neutral-600: #47555d;
+    --neutral-650: #414e56;
+    --neutral-700: #374249;
+    --neutral-800: #21272b;
+    --neutral-900: #14181a;
+    --neutral-950: #0d1011;
+    --brand-accent: #12aaff;
+    --brand-accent-bright: #12aaff;
+    --brand-accent-darker: #0088cc;
+  }
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
-@layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+  /* Arbitrum Theme */
+  [data-theme='arbitrum'] {
+    --for-400: #87ff42;
+    --for-600: #56b200;
+    --abstain-400: #ffdc42;
+    --abstain-600: #ffbc1f;
+    --against-400: #ff5842;
+    --against-600: #ff4242;
+    --neutral-50: #f9fafb;
+    --neutral-100: #f4f5f6;
+    --neutral-200: #e1e6e9;
+    --neutral-300: #ced6da;
+    --neutral-350: #b3bfc6;
+    --neutral-400: #96a6b0;
+    --neutral-450: #80949f;
+    --neutral-500: #637783;
+    --neutral-550: #566771;
+    --neutral-600: #47555d;
+    --neutral-650: #414e56;
+    --neutral-700: #374249;
+    --neutral-800: #21272b;
+    --neutral-900: #14181a;
+    --neutral-950: #0d1011;
+    --brand-accent: #12aaff;
+  }
+
+  /* Optimism Theme */
+  [data-theme='optimism'] {
+    --for-400: #87ff42;
+    --for-600: #56b200;
+    --abstain-400: #ffdc42;
+    --abstain-600: #ffbc1f;
+    --against-400: #ff5842;
+    --against-600: #ff4242;
+    --neutral-50: #fbf9f9;
+    --neutral-100: #f6f4f4;
+    --neutral-200: #e9e1e2;
+    --neutral-300: #dacecf;
+    --neutral-350: #c6b3b6;
+    --neutral-400: #b09699;
+    --neutral-450: #9f8084;
+    --neutral-500: #836366;
+    --neutral-550: #715659;
+    --neutral-600: #5d4749;
+    --neutral-650: #564143;
+    --neutral-700: #493739;
+    --neutral-800: #2b2122;
+    --neutral-900: #1a1415;
+    --neutral-950: #110d0e;
+    --brand-accent-bright: #ff0522;
+    --brand-accent-darker: #ff0522;
+  }
+
+  /* Safe Theme */
+  [data-theme='safe'] {
+    --for-400: #87ff42;
+    --for-600: #56b200;
+    --abstain-400: #ffdc42;
+    --abstain-600: #ffbc1f;
+    --against-400: #ff5842;
+    --against-600: #ff4242;
+    --neutral-50: #f9fbfa;
+    --neutral-100: #f4f6f5;
+    --neutral-200: #e1e9e5;
+    --neutral-300: #cedad4;
+    --neutral-350: #b3c6bc;
+    --neutral-400: #96b0a2;
+    --neutral-450: #809f8f;
+    --neutral-500: #638371;
+    --neutral-550: #567163;
+    --neutral-600: #475d51;
+    --neutral-650: #41564a;
+    --neutral-700: #37493f;
+    --neutral-800: #212b26;
+    --neutral-900: #141a17;
+    --neutral-950: #0d110f;
+    --brand-accent-bright: #12ff80;
+    --brand-accent-darker: #00b460;
+  }
+
+  /* Polygon Theme */
+  [data-theme='polygon'] {
+    --for-400: #87ff42;
+    --for-600: #56b200;
+    --abstain-400: #ffdc42;
+    --abstain-600: #ffbc1f;
+    --against-400: #ff5842;
+    --against-600: #ff4242;
+    --neutral-50: #faf9fb;
+    --neutral-100: #f5f4f6;
+    --neutral-200: #e4e1e9;
+    --neutral-300: #d3ceda;
+    --neutral-350: #bbb3c6;
+    --neutral-400: #a096b0;
+    --neutral-450: #8d809f;
+    --neutral-500: #6f6383;
+    --neutral-550: #615671;
+    --neutral-600: #50475d;
+    --neutral-650: #494156;
+    --neutral-700: #3e3749;
+    --neutral-800: #25212b;
+    --neutral-900: #16141a;
+    --neutral-950: #0f0d11;
+    --brand-accent-bright: #6600ff;
+    --brand-accent-darker: #36007b;
   }
 }
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  /* .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-  } */
-  .dark {
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-neutral-50 dark:bg-neutral-900;
   }
+}
+
+.prose .diff-deleted {
+  @apply border border-red-300 bg-red-100 line-through dark:border-red-800 dark:bg-red-900/50;
+}
+
+.prose .diff-deleted * {
+  @apply border-none bg-red-200 dark:bg-red-900/70;
+}
+
+.prose .diff-added {
+  @apply border border-emerald-300 bg-emerald-100 no-underline dark:border-emerald-800 dark:bg-emerald-900/50;
+}
+
+.prose .diff-added * {
+  @apply border-none bg-emerald-200 dark:bg-emerald-900/70;
+}
+
+/* Modified styles with dark theme support */
+.prose .diff-modified,
+.prose .diff-modified * {
+  @apply border! border-amber-400! bg-amber-100! dark:border-amber-800! dark:bg-amber-900/50!;
 }

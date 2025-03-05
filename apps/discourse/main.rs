@@ -2,16 +2,16 @@
 
 use crate::metrics::Metrics;
 use anyhow::Result;
-use axum::{routing::get, Router};
-use db_handler::{initialize_db, DB};
+use axum::{Router, routing::get};
+use db_handler::{DB, initialize_db};
 use discourse_api::DiscourseApi;
 use dotenv::dotenv;
 use indexers::{categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer, users::UserIndexer};
-use proposalsapp_db::models::dao_discourse;
+use proposalsapp_db_indexer::models::dao_discourse;
 use reqwest::Client;
-use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, prelude::Uuid};
 use std::{collections::HashMap, sync::Arc, time::Duration};
-use tokio::time::{interval_at, Instant};
+use tokio::time::{Instant, interval_at};
 use tracing::{error, info, warn};
 use utils::tracing::setup_otel;
 

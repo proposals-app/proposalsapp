@@ -1,28 +1,24 @@
 #![allow(non_snake_case)]
-use super::super::super::typings::rindexer::events::arbitrum_core_governor::{no_extensions, ArbitrumCoreGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent, VoteCastEvent, VoteCastWithParamsEvent};
+use super::super::super::typings::rindexer::events::arbitrum_core_governor::{ArbitrumCoreGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent, VoteCastEvent, VoteCastWithParamsEvent, no_extensions};
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{store_proposal, store_vote, DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, DB},
+        db_extension::{DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, DB, store_proposal, store_vote},
     },
     rindexer_lib::typings::rindexer::events::arbitrum_core_governor::arbitrum_core_governor_contract,
 };
 use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use ethers::{
-    types::{U256, U64},
+    types::{U64, U256},
     utils::{hex::ToHex, to_checksum},
 };
-use proposalsapp_db::models::{
-    proposal_new,
-    sea_orm_active_enums::{IndexerVariant, ProposalState},
-    vote_new,
-};
-use rindexer::{event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error, EthereumSqlTypeWrapper, PgType, PostgresClient, RindexerColorize};
+use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState, vote};
+use rindexer::{EthereumSqlTypeWrapper, PgType, PostgresClient, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};
 use sea_orm::{
-    prelude::Uuid,
     ActiveValue::{self, NotSet},
     ConnectionTrait, Set,
+    prelude::Uuid,
 };
 use serde_json::json;
 use std::{path::PathBuf, sync::Arc};
@@ -128,7 +124,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         .await
                         .expect("Failed to calculate total delegated voting power");
 
-                    let proposal = proposal_new::ActiveModel {
+                    let proposal = proposal::ActiveModel {
                         id: NotSet,
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: Set(title),
@@ -178,7 +174,7 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                 }
 
                 for result in results.clone() {
-                    let proposal = proposal_new::ActiveModel {
+                    let proposal = proposal::ActiveModel {
                         id: NotSet,
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: NotSet,
@@ -232,7 +228,7 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                         .await
                         .expect("Failed to estimate end timestamp");
 
-                    let proposal = proposal_new::ActiveModel {
+                    let proposal = proposal::ActiveModel {
                         id: NotSet,
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: NotSet,
@@ -282,7 +278,7 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                 }
 
                 for result in results.clone() {
-                    let proposal = proposal_new::ActiveModel {
+                    let proposal = proposal::ActiveModel {
                         id: NotSet,
                         external_id: Set(result.event_data.proposal_id.to_string()),
                         name: NotSet,
@@ -336,7 +332,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                         .await
                         .expect("Failed to estimate created timestamp");
 
-                    let vote = vote_new::ActiveModel {
+                    let vote = vote::ActiveModel {
                         id: NotSet,
                         voter_address: Set(to_checksum(&result.event_data.voter, None)),
                         choice: Set(match result.event_data.support {
@@ -388,7 +384,7 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                         .await
                         .expect("Failed to estimate created timestamp");
 
-                    let vote = vote_new::ActiveModel {
+                    let vote = vote::ActiveModel {
                         id: NotSet,
                         voter_address: Set(to_checksum(&result.event_data.voter, None)),
                         choice: Set(match result.event_data.support {

@@ -1,7 +1,7 @@
 use crate::extensions::db_extension::DB;
 use anyhow::{Context, Result};
 use chrono::Utc;
-use proposalsapp_db::models::{proposal_new, sea_orm_active_enums::ProposalState, vote_new};
+use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::collections::HashMap;
 use tokio::time;
@@ -12,8 +12,8 @@ pub async fn update_ended_proposals_state() -> Result<()> {
     info!("Running task to update ended proposals state");
     let db: &DatabaseConnection = DB.get().context("DB not initialized")?;
 
-    let active_proposals = proposal_new::Entity::find()
-        .filter(proposal_new::Column::ProposalState.eq(ProposalState::Active))
+    let active_proposals = proposal::Entity::find()
+        .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
         .all(db)
         .await?;
 
@@ -30,16 +30,16 @@ pub async fn update_ended_proposals_state() -> Result<()> {
                 "Proposal end time reached. Calculating final state."
             );
 
-            let votes = vote_new::Entity::find()
-                .filter(vote_new::Column::ProposalId.eq(proposal.id))
+            let votes = vote::Entity::find()
+                .filter(vote::Column::ProposalId.eq(proposal.id))
                 .all(db)
                 .await?;
 
             let final_state = calculate_final_proposal_state(&proposal, &votes).await?;
 
-            let mut proposal_active_model: proposal_new::ActiveModel = proposal.into();
+            let mut proposal_active_model: proposal::ActiveModel = proposal.into();
             proposal_active_model.proposal_state = Set(final_state);
-            proposal_new::Entity::update(proposal_active_model)
+            proposal::Entity::update(proposal_active_model)
                 .exec(db)
                 .await?;
         }
@@ -52,7 +52,7 @@ pub async fn update_ended_proposals_state() -> Result<()> {
 #[instrument(skip(proposal, votes))]
 /// Calculates the final state of a proposal based on votes and quorum, considering configured
 /// quorum choices.
-async fn calculate_final_proposal_state(proposal: &proposal_new::Model, votes: &Vec<vote_new::Model>) -> Result<ProposalState> {
+async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<vote::Model>) -> Result<ProposalState> {
     let mut for_votes = 0.0;
     let mut against_votes = 0.0;
 

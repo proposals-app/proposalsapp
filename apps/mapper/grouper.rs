@@ -1,18 +1,17 @@
+use crate::{DB, metrics::METRICS};
 use anyhow::{Context, Result};
 use chrono::Duration;
-use proposalsapp_db::models::{dao_discourse, dao_indexer, discourse_topic, job_queue, proposal, proposal_group};
+use proposalsapp_db_indexer::models::{dao_discourse, discourse_topic, job_queue, proposal, proposal_group};
 use sea_orm::{
-    prelude::{Expr, Uuid},
-    sea_query::Alias,
     ActiveValue::NotSet,
     ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set,
+    prelude::{Expr, Uuid},
+    sea_query::Alias,
 };
 use std::time::Duration as StdDuration;
-use tokio::time::{sleep, Instant};
-use tracing::{error, info, instrument, warn, Span};
-use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalJobData};
-
-use crate::{metrics::METRICS, DB};
+use tokio::time::{Instant, sleep};
+use tracing::{Span, error, info, instrument, warn};
+use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalItem, ProposalJobData, TopicItem};
 
 pub async fn run_group_task() -> Result<()> {
     let interval = Duration::minutes(1);
@@ -190,13 +189,14 @@ async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Re
                 id: NotSet,
                 dao_id: Set(discourse_indexer.dao_id),
                 name: Set(topic.title.clone()),
-                items: Set(serde_json::to_value(vec![ProposalGroupItem {
-                    id: topic.id.to_string(),
-                    type_field: "topic".to_string(),
-                    name: topic.title.clone(),
-                    indexer_name: discourse_indexer.discourse_base_url,
-                }])
-                .context("Failed to serialize proposal group items")?),
+                items: Set(
+                    serde_json::to_value(vec![ProposalGroupItem::Topic(TopicItem {
+                        name: topic.title.clone(),
+                        external_id: topic.id.to_string(),
+                        dao_discourse_id: discourse_indexer.id,
+                    })])
+                    .context("Failed to serialize proposal group items")?,
+                ),
                 created_at: NotSet,
             };
 
@@ -370,29 +370,23 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
 
                 if let Ok(mut items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
                     // Check if proposal is not already in the group
-                    if !items
-                        .iter()
-                        .any(|item| item.id == proposal.id.to_string() && item.type_field == "proposal")
-                    {
+                    let proposal_already_in_group = items.iter().any(|item| match item {
+                        ProposalGroupItem::Proposal(prop_item) => prop_item.external_id == proposal.id.to_string(),
+                        _ => false,
+                    });
+
+                    if !proposal_already_in_group {
                         info!(
                             job_id = job_id,
                             proposal_id = %proposal_id,
                             "Proposal is not in the group, adding it"
                         );
 
-                        // Add the proposal to the group
-                        let indexer = dao_indexer::Entity::find_by_id(proposal.dao_indexer_id)
-                            .one(DB.get().unwrap())
-                            .await
-                            .context("Failed to find DAO indexer")?
-                            .unwrap();
-
-                        items.push(ProposalGroupItem {
-                            id: proposal.id.to_string(),
-                            type_field: "proposal".to_string(),
+                        items.push(ProposalGroupItem::Proposal(ProposalItem {
                             name: proposal.name.clone(),
-                            indexer_name: format!("{:?}", indexer.indexer_variant),
-                        });
+                            governor_id: proposal.governor_id,
+                            external_id: proposal.id.to_string(),
+                        }));
 
                         // Update the group
                         let mut group: proposal_group::ActiveModel = group.into();

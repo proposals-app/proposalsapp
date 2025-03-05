@@ -1,17 +1,14 @@
 use chrono::NaiveDateTime;
-use proposalsapp_db::models::{delegation, proposal, sea_orm_active_enums::ProposalState, vote, voting_power};
+use proposalsapp_db_indexer::models::{delegation, proposal, sea_orm_active_enums::ProposalState, vote, voting_power};
 use serde_json::Value;
 
 pub struct ExpectedProposal {
-    pub index_created: i32,
     pub external_id: &'static str,
     pub name: &'static str,
     pub body_contains: Option<Vec<&'static str>>,
     pub url: &'static str,
     pub discussion_url: Option<String>,
     pub choices: Value,
-    pub scores: Value,
-    pub scores_total: f64,
     pub quorum: f64,
     pub scores_quorum: f64,
     pub proposal_state: ProposalState,
@@ -19,17 +16,12 @@ pub struct ExpectedProposal {
     pub time_created: NaiveDateTime,
     pub time_start: NaiveDateTime,
     pub time_end: NaiveDateTime,
-    pub block_created: Option<i32>,
+    pub block_created_at: Option<i32>,
     pub txid: Option<&'static str>,
     pub metadata: Option<Value>,
 }
 
 pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProposal) {
-    assert_eq!(
-        proposal.index_created.clone().take().unwrap(),
-        expected.index_created,
-        "Proposal index_created mismatch"
-    );
     assert_eq!(
         proposal.external_id.clone().take().unwrap(),
         expected.external_id,
@@ -75,26 +67,13 @@ pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProp
         expected.choices,
         "Proposal choices mismatch"
     );
-    assert_eq!(
-        proposal.scores.clone().take().unwrap(),
-        expected.scores,
-        "Proposal scores mismatch"
-    );
-    assert_eq!(
-        proposal.scores_total.clone().take().unwrap(),
-        expected.scores_total,
-        "Proposal scores_total mismatch"
-    );
+
     assert_eq!(
         proposal.quorum.clone().take().unwrap(),
         expected.quorum,
         "Proposal quorum mismatch"
     );
-    assert_eq!(
-        proposal.scores_quorum.clone().take().unwrap(),
-        expected.scores_quorum,
-        "Proposal scores_quorum mismatch"
-    );
+
     assert_eq!(
         proposal.proposal_state.clone().take().unwrap(),
         expected.proposal_state,
@@ -121,9 +100,9 @@ pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProp
         "Proposal time_end mismatch"
     );
     assert_eq!(
-        proposal.block_created.clone().take().flatten(),
-        expected.block_created,
-        "Proposal block_created mismatch"
+        proposal.block_created_at.clone().take().flatten(),
+        expected.block_created_at,
+        "Proposal block_created_at mismatch"
     );
     assert_eq!(
         proposal.txid.clone().take().flatten(),
@@ -138,23 +117,17 @@ pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProp
 }
 
 pub struct ExpectedVote {
-    pub index_created: i32,
     pub voter_address: &'static str,
     pub choice: Value,
     pub voting_power: f64,
     pub reason: Option<&'static str>,
     pub proposal_external_id: &'static str,
     pub time_created: Option<NaiveDateTime>,
-    pub block_created: Option<i32>,
+    pub block_created_at: Option<i32>,
     pub txid: Option<&'static str>,
 }
 
 pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
-    assert_eq!(
-        vote.index_created.clone().take().unwrap(),
-        expected.index_created,
-        "Vote index_created mismatch"
-    );
     assert_eq!(
         vote.voter_address.clone().take().unwrap(),
         expected.voter_address,
@@ -186,9 +159,9 @@ pub fn assert_vote(vote: &vote::ActiveModel, expected: &ExpectedVote) {
         "Vote time_created mismatch"
     );
     assert_eq!(
-        vote.block_created.clone().take().flatten(),
-        expected.block_created,
-        "Vote block_created mismatch"
+        vote.block_created_at.clone().take().flatten(),
+        expected.block_created_at,
+        "Vote block_created_at mismatch"
     );
     assert_eq!(
         vote.txid.clone().take().flatten(),

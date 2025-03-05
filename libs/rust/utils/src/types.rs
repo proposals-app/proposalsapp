@@ -1,14 +1,25 @@
-use ::serde::{Deserialize, Serialize};
 use sea_orm::prelude::Uuid;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ProposalGroupItem {
-    pub id: String,
-    #[serde(rename = "type")]
-    pub type_field: String,
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum ProposalGroupItem {
+    Topic(TopicItem),
+    Proposal(ProposalItem),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TopicItem {
     pub name: String,
-    #[serde(rename = "indexerName")]
-    pub indexer_name: String,
+    pub external_id: String,
+    pub dao_discourse_id: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProposalItem {
+    pub name: String,
+    pub governor_id: Uuid,
+    pub external_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -4,7 +4,7 @@ use crate::extensions::{
 };
 use anyhow::{Context, Result, anyhow};
 use chrono::{DateTime, NaiveDateTime, Utc};
-use proposalsapp_db::models::{proposal_new, vote_new};
+use proposalsapp_db_indexer::models::{proposal, vote};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityOrSelect, EntityTrait, FromQueryResult, Order, QueryFilter, QueryOrder, QuerySelect, Set, prelude::Uuid};
 use serde::Deserialize;
 use std::time::Duration;
@@ -142,7 +142,7 @@ async fn store_snapshot_vote(vote_data: &SnapshotVote, governor_id: Uuid, dao_id
         .context("Invalid created timestamp")?
         .naive_utc();
 
-    let vote_model = vote_new::ActiveModel {
+    let vote_model = vote::ActiveModel {
         id: NotSet,
         governor_id: Set(governor_id),
         dao_id: Set(dao_id),
@@ -185,11 +185,11 @@ struct LastCreatedValue {
 async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64> {
     let db = DB.get().context("DB not initialized")?;
 
-    let last_vote = vote_new::Entity::find()
+    let last_vote = vote::Entity::find()
         .select_only()
-        .column_as(vote_new::Column::CreatedAt.max(), "last_created")
-        .filter(vote_new::Column::GovernorId.eq(governor_id))
-        .filter(vote_new::Column::DaoId.eq(dao_id))
+        .column_as(vote::Column::CreatedAt.max(), "last_created")
+        .filter(vote::Column::GovernorId.eq(governor_id))
+        .filter(vote::Column::DaoId.eq(dao_id))
         .into_model::<LastCreatedValue>()
         .one(db)
         .await?;
@@ -207,12 +207,12 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
 
     let last_vote_created_datetime = DateTime::<Utc>::from_timestamp(last_vote_created, 0).context("Invalid last vote created timestamp")?;
 
-    let relevant_proposals = proposal_new::Entity::find()
+    let relevant_proposals = proposal::Entity::find()
         .select()
-        .filter(proposal_new::Column::EndAt.gt(last_vote_created_datetime.naive_utc()))
-        .filter(proposal_new::Column::GovernorId.eq(governor_id))
-        .filter(proposal_new::Column::DaoId.eq(dao_id))
-        .order_by(proposal_new::Column::EndAt, Order::Asc)
+        .filter(proposal::Column::EndAt.gt(last_vote_created_datetime.naive_utc()))
+        .filter(proposal::Column::GovernorId.eq(governor_id))
+        .filter(proposal::Column::DaoId.eq(dao_id))
+        .order_by(proposal::Column::EndAt, Order::Asc)
         .limit(25)
         .all(db)
         .await?;

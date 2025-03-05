@@ -4,7 +4,7 @@ use crate::extensions::{
 };
 use anyhow::{Context, Result, anyhow};
 use chrono::DateTime;
-use proposalsapp_db::models::{proposal_new, sea_orm_active_enums::ProposalState};
+use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState};
 use sea_orm::{ActiveValue::NotSet, Set, prelude::Uuid};
 use serde::Deserialize;
 use serde_json::json;
@@ -135,7 +135,7 @@ pub async fn update_snapshot_proposals() -> Result<()> {
 }
 
 impl SnapshotProposal {
-    fn to_active_model(&self, governor_id: Uuid, dao_id: Uuid) -> Result<proposal_new::ActiveModel> {
+    fn to_active_model(&self, governor_id: Uuid, dao_id: Uuid) -> Result<proposal::ActiveModel> {
         let state = match self.state.as_str() {
             "pending" if self.privacy == "shutter" => ProposalState::Hidden,
             "active" => ProposalState::Active,
@@ -170,7 +170,7 @@ impl SnapshotProposal {
             metadata["hidden_vote"] = json!(true);
         }
 
-        Ok(proposal_new::ActiveModel {
+        Ok(proposal::ActiveModel {
             id: NotSet,
             governor_id: Set(governor_id),
             dao_id: Set(dao_id),

@@ -1,16 +1,16 @@
 use crate::{
-    db_handler::{get_or_create_unknown_user, get_post_like_count, upsert_post, DB},
-    discourse_api::{process_upload_urls, DiscourseApi},
+    db_handler::{DB, get_or_create_unknown_user, get_post_like_count, upsert_post},
+    discourse_api::{DiscourseApi, process_upload_urls},
     indexers::{likes::LikesIndexer, users::UserIndexer},
     models::posts::{Post, PostResponse},
 };
 use anyhow::{Context, Result};
 use futures::stream::{self, StreamExt};
-use proposalsapp_db::models::discourse_post;
+use proposalsapp_db_indexer::models::discourse_post;
 use reqwest::Client;
 use sea_orm::{
-    prelude::{Expr, Uuid},
     ColumnTrait, Condition, EntityTrait, QueryFilter,
+    prelude::{Expr, Uuid},
 };
 use std::{collections::HashSet, sync::Arc};
 use tokio::task;

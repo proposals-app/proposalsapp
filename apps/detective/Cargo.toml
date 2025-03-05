@@ -17,7 +17,7 @@ itertools = { workspace = true }
 lazy_static = { workspace = true }
 num-bigint = { workspace = true }
 once_cell = { workspace = true }
-proposalsapp-db = { workspace = true }
+proposalsapp-db-indexer = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware = { workspace = true }

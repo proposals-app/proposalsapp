@@ -30,7 +30,7 @@ opentelemetry_sdk = { workspace = true, features = [
     "metrics",
     "trace",
 ] }
-proposalsapp-db = { workspace = true }
+proposalsapp-db-indexer = { workspace = true }
 pyroscope = { workspace = true }
 pyroscope_pprofrs = { workspace = true }
 reqwest = { workspace = true }

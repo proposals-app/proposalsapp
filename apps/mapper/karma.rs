@@ -1,19 +1,19 @@
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use proposalsapp_db::models::{dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user, voter};
+use proposalsapp_db_indexer::models::{dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user, voter};
 use reqwest::Client;
 use sea_orm::{
-    prelude::{Expr, Uuid},
     ActiveValue::NotSet,
     ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait,
+    prelude::{Expr, Uuid},
 };
 use serde::Deserialize;
 use std::collections::HashMap;
-use tokio::time::{sleep, Instant};
-use tracing::{error, info, instrument, warn, Span};
+use tokio::time::{Instant, sleep};
+use tracing::{Span, error, info, instrument, warn};
 
-use crate::{metrics::METRICS, DB};
+use crate::{DB, metrics::METRICS};
 
 #[derive(Debug, Deserialize)]
 struct KarmaApiResponse {

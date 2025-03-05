@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
-use proposalsapp_db::models::{dao, governor_new, proposal_new, vote_new};
-use sea_orm::{prelude::Uuid, ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait};
+use proposalsapp_db_indexer::models::{dao, dao_governor, proposal, vote, voter};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, Set, TransactionTrait, prelude::Uuid};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
 use tracing::instrument;
 
@@ -31,7 +31,7 @@ pub async fn initialize_db() -> Result<()> {
 
     // Initialize and populate DAO_INDEXER_ID_MAP
     let governors_map = Mutex::new(HashMap::new());
-    let governors = governor_new::Entity::find().all(DB.get().unwrap()).await?;
+    let governors = dao_governor::Entity::find().all(DB.get().unwrap()).await?;
     for governor in governors {
         governors_map
             .lock()
@@ -59,7 +59,7 @@ pub async fn initialize_db() -> Result<()> {
 }
 
 #[instrument(skip(proposal))]
-pub async fn store_proposal(proposal: proposal_new::ActiveModel) -> Result<()> {
+pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
     // Extract indexer ID and external ID from the proposal
@@ -74,18 +74,18 @@ pub async fn store_proposal(proposal: proposal_new::ActiveModel) -> Result<()> {
         .take()
         .ok_or_else(|| anyhow::anyhow!("Missing external_id in proposal"))?;
 
-    let existing_proposal = proposal_new::Entity::find()
+    let existing_proposal = proposal::Entity::find()
         .filter(
             Condition::all()
-                .add(proposal_new::Column::ExternalId.eq(external_id.clone()))
-                .add(proposal_new::Column::GovernorId.eq(governor_id)),
+                .add(proposal::Column::ExternalId.eq(external_id.clone()))
+                .add(proposal::Column::GovernorId.eq(governor_id)),
         )
         .one(&txn)
         .await?;
 
     if let Some(existing) = existing_proposal {
         // Update existing proposal
-        let active_model = proposal_new::ActiveModel {
+        let active_model = proposal::ActiveModel {
             id: Set(existing.id),
             external_id: Set(proposal
                 .external_id
@@ -163,12 +163,10 @@ pub async fn store_proposal(proposal: proposal_new::ActiveModel) -> Result<()> {
                 .unwrap_or(existing.governor_id)),
         };
 
-        proposal_new::Entity::update(active_model)
-            .exec(&txn)
-            .await?;
+        proposal::Entity::update(active_model).exec(&txn).await?;
     } else {
         // Insert new proposal
-        proposal_new::Entity::insert(proposal).exec(&txn).await?;
+        proposal::Entity::insert(proposal).exec(&txn).await?;
     }
 
     txn.commit().await?;
@@ -176,7 +174,7 @@ pub async fn store_proposal(proposal: proposal_new::ActiveModel) -> Result<()> {
 }
 
 #[instrument(skip(vote))]
-pub async fn store_vote(vote: vote_new::ActiveModel, governor_id: Uuid) -> Result<()> {
+pub async fn store_vote(vote: vote::ActiveModel, governor_id: Uuid) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
     let proposal_external_id = vote
@@ -185,9 +183,9 @@ pub async fn store_vote(vote: vote_new::ActiveModel, governor_id: Uuid) -> Resul
         .take()
         .ok_or_else(|| anyhow::anyhow!("Missing proposal_external_id in vote"))?;
 
-    let proposal: Option<proposal_new::Model> = proposal_new::Entity::find()
-        .filter(proposal_new::Column::ExternalId.eq(proposal_external_id.clone()))
-        .filter(proposal_new::Column::GovernorId.eq(governor_id))
+    let proposal: Option<proposal::Model> = proposal::Entity::find()
+        .filter(proposal::Column::ExternalId.eq(proposal_external_id.clone()))
+        .filter(proposal::Column::GovernorId.eq(governor_id))
         .one(&txn)
         .await?;
 
@@ -202,7 +200,7 @@ pub async fn store_vote(vote: vote_new::ActiveModel, governor_id: Uuid) -> Resul
         }
     };
 
-    let vote_active_model = vote_new::ActiveModel {
+    let vote_active_model = vote::ActiveModel {
         voter_address: vote.voter_address.clone(),
         choice: vote.choice.clone(),
         voting_power: vote.voting_power.clone(),
@@ -217,20 +215,22 @@ pub async fn store_vote(vote: vote_new::ActiveModel, governor_id: Uuid) -> Resul
         id: NotSet,
     };
 
-    let result = vote_new::Entity::insert(vote_active_model)
+    ensure_voter_exist(&txn, vote.voter_address.clone().take().unwrap()).await?;
+
+    let result = vote::Entity::insert(vote_active_model)
         .on_conflict(
             sea_orm::sea_query::OnConflict::columns([
-                vote_new::Column::ProposalId,
-                vote_new::Column::VoterAddress,
-                vote_new::Column::CreatedAt,
+                vote::Column::ProposalId,
+                vote::Column::VoterAddress,
+                vote::Column::CreatedAt,
             ])
             .update_columns([
-                vote_new::Column::Choice,
-                vote_new::Column::VotingPower,
-                vote_new::Column::Reason,
-                vote_new::Column::BlockCreatedAt,
-                vote_new::Column::Txid,
-                vote_new::Column::ProposalId,
+                vote::Column::Choice,
+                vote::Column::VotingPower,
+                vote::Column::Reason,
+                vote::Column::BlockCreatedAt,
+                vote::Column::Txid,
+                vote::Column::ProposalId,
             ])
             .to_owned(),
         )
@@ -243,5 +243,26 @@ pub async fn store_vote(vote: vote_new::ActiveModel, governor_id: Uuid) -> Resul
     }
 
     txn.commit().await?;
+    Ok(())
+}
+
+#[instrument(skip(txn, voter_address))]
+async fn ensure_voter_exist(txn: &DatabaseTransaction, voter_address: String) -> Result<()> {
+    // Check if voter exists
+    let existing_voter: Option<voter::Model> = voter::Entity::find()
+        .filter(voter::Column::Address.eq(voter_address.clone()))
+        .one(txn)
+        .await?;
+
+    // If voter does not exist, create a new voter
+    if existing_voter.is_none() {
+        let new_voter = voter::ActiveModel {
+            id: NotSet,
+            address: Set(voter_address.clone()),
+            ens: NotSet, // ENS is not provided in this context, so default to NotSet
+        };
+        voter::Entity::insert(new_voter).exec(txn).await?;
+    }
+
     Ok(())
 }

@@ -1,27 +1,13 @@
-import { Filters } from "./components/filters/filters";
-import { ProposalsTable } from "./components/table/table";
-import NavBar from "./components/header/header";
-import { PostHogIdentifier } from "./components/posthog-identifier";
-import SendNotification from "./components/notification";
+import { Suspense } from 'react';
+import Banner from './components/Banner';
 
-export default async function Home(
-  props: {
-    searchParams: Promise<{
-      state: string;
-      dao: string | string[];
-    }>;
-  }
-) {
-  const searchParams = await props.searchParams;
+export default async function Home() {
   return (
-    <div className="flex w-full flex-col items-center gap-8">
-      <PostHogIdentifier />
-      <NavBar />
-      <div className="flex w-full flex-col items-center lg:px-2">
-        <Filters />
-      </div>
-
-      <ProposalsTable searchParams={searchParams} />
+    <div className='flex w-full flex-col items-center p-8'>
+      <h2 className='text-xl font-semibold'>coming soon</h2>
+      <Suspense>
+        <Banner />
+      </Suspense>
     </div>
   );
 }

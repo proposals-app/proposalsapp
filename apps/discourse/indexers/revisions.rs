@@ -1,13 +1,13 @@
 use crate::{
-    db_handler::upsert_revision,
-    discourse_api::{process_upload_urls, DiscourseApi},
-    models::revisions::Revision,
     DB,
+    db_handler::upsert_revision,
+    discourse_api::{DiscourseApi, process_upload_urls},
+    models::revisions::Revision,
 };
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use proposalsapp_db::models::{discourse_post, discourse_post_revision};
-use sea_orm::{prelude::Uuid, ColumnTrait, EntityTrait, QueryFilter};
+use proposalsapp_db_indexer::models::{discourse_post, discourse_post_revision};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, prelude::Uuid};
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::{error, info, instrument};

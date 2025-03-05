@@ -6,5 +6,5 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../../libs/ts/db" }]
+  "references": [{ "path": "../../libs/ts/db-indexer" }]
 }

@@ -15,7 +15,7 @@ lazy_static = { workspace = true }
 once_cell = { workspace = true }
 oneshot = { workspace = true }
 opentelemetry = { workspace = true }
-proposalsapp-db = { workspace = true }
+proposalsapp-db-indexer = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls", "cookies"] }

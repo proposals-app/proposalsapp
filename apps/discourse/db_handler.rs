@@ -1,12 +1,12 @@
 use crate::{
-    models::{categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User},
     DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS,
+    models::{categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User},
 };
 use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::OnceCell;
-use proposalsapp_db::models::{discourse_category, discourse_post, discourse_post_like, discourse_post_revision, discourse_topic, discourse_user, job_queue};
-use sea_orm::{prelude::Uuid, sea_query::OnConflict, ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set};
+use proposalsapp_db_indexer::models::{discourse_category, discourse_post, discourse_post_like, discourse_post_revision, discourse_topic, discourse_user, job_queue};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
 use std::time::Duration;
 use tracing::{info, instrument};
 use utils::types::{DiscussionJobData, JobData};
