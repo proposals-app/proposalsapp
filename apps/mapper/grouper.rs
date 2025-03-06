@@ -2,12 +2,7 @@ use crate::{DB, metrics::METRICS};
 use anyhow::{Context, Result};
 use chrono::Duration;
 use proposalsapp_db_indexer::models::{dao_discourse, discourse_topic, job_queue, proposal, proposal_group};
-use sea_orm::{
-    ActiveValue::NotSet,
-    ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set,
-    prelude::{Expr, Uuid},
-    sea_query::Alias,
-};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, prelude::Uuid};
 use std::time::Duration as StdDuration;
 use tokio::time::{Instant, sleep};
 use tracing::{Span, error, info, instrument, warn};
@@ -151,12 +146,7 @@ async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Re
         "Checking if topic is already part of a proposal group"
     );
 
-    let topic_already_mapped = !proposal_group::Entity::find()
-        .filter(Expr::expr(Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text"))).like(format!("%{}%", discourse_topic_id)))
-        .all(DB.get().unwrap())
-        .await
-        .context("Failed to check if topic is already mapped")?
-        .is_empty();
+    let topic_already_mapped = check_topic_already_mapped(topic.clone()).await?;
 
     if topic_already_mapped {
         info!(
@@ -243,6 +233,26 @@ async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Re
     );
 
     Ok(())
+}
+
+async fn check_topic_already_mapped(topic: discourse_topic::Model) -> Result<bool> {
+    let proposal_groups = proposal_group::Entity::find()
+        .all(DB.get().unwrap())
+        .await
+        .context("Failed to fetch proposal groups")?;
+
+    for group in proposal_groups {
+        if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items) {
+            for item in items {
+                if let ProposalGroupItem::Topic(topic_item) = item {
+                    if topic_item.external_id == topic.external_id.to_string() && topic_item.dao_discourse_id == topic.dao_discourse_id {
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+    }
+    Ok(false)
 }
 
 #[instrument(fields(job_id = job_id, proposal_id = %proposal_id))]
@@ -354,11 +364,7 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
             );
 
             // Find the proposal group containing this topic directly
-            let group = proposal_group::Entity::find()
-                .filter(Expr::expr(Expr::col(proposal_group::Column::Items).cast_as(Alias::new("text"))).like(format!("%{}%", topic.id)))
-                .one(DB.get().unwrap())
-                .await
-                .context("Failed to find proposal group")?;
+            let group = find_group_by_topic(topic.clone()).await?;
 
             if let Some(group) = group {
                 info!(
@@ -453,6 +459,26 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
     );
 
     Ok(())
+}
+
+async fn find_group_by_topic(topic: discourse_topic::Model) -> Result<Option<proposal_group::Model>> {
+    let proposal_groups = proposal_group::Entity::find()
+        .all(DB.get().unwrap())
+        .await
+        .context("Failed to fetch proposal groups")?;
+
+    for group in proposal_groups {
+        if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
+            for item in items {
+                if let ProposalGroupItem::Topic(topic_item) = item {
+                    if topic_item.external_id == topic.external_id.to_string() && topic_item.dao_discourse_id == topic.dao_discourse_id {
+                        return Ok(Some(group));
+                    }
+                }
+            }
+        }
+    }
+    Ok(None)
 }
 
 fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
