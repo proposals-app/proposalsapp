@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use ethers::{providers::Middleware, types::Address};
 use once_cell::sync::OnceCell;
 use proposalsapp_db_indexer::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait, prelude::Uuid};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
 use tracing::instrument;
 use utils::types::{JobData, ProposalJobData};
@@ -305,7 +305,10 @@ pub async fn store_vote(vote: vote::ActiveModel, governor_id: Uuid) -> Result<()
 pub async fn store_delegation(delegation: delegation::ActiveModel) -> Result<()> {
     let txn = DB.get().unwrap().begin().await?;
 
-    delegation::Entity::insert(delegation).exec(&txn).await?;
+    delegation::Entity::insert(delegation)
+        .on_conflict(OnConflict::new().do_nothing().to_owned())
+        .exec(&txn)
+        .await?;
 
     txn.commit().await?;
     Ok(())
@@ -316,6 +319,7 @@ pub async fn store_voting_power(voting_power: voting_power::ActiveModel) -> Resu
     let txn = DB.get().unwrap().begin().await?;
 
     voting_power::Entity::insert(voting_power)
+        .on_conflict(OnConflict::new().do_nothing().to_owned())
         .exec(&txn)
         .await?;
 
