@@ -1,10 +1,11 @@
 use anyhow::{Context, Result};
 use ethers::{providers::Middleware, types::Address};
 use once_cell::sync::OnceCell;
-use proposalsapp_db_indexer::models::{dao, dao_governor, proposal, vote, voter};
+use proposalsapp_db_indexer::models::{dao, dao_governor, job_queue, proposal, vote, voter};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait, prelude::Uuid};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
 use tracing::instrument;
+use utils::types::{JobData, ProposalJobData};
 
 use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
 
@@ -169,7 +170,39 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
         proposal::Entity::update(active_model).exec(&txn).await?;
     } else {
         // Insert new proposal
-        proposal::Entity::insert(proposal).exec(&txn).await?;
+        let inserted_proposal = proposal::Entity::insert(proposal.clone())
+            .exec(&txn)
+            .await?;
+
+        // Fetch governor to check its type
+        let governor_id_to_find = proposal
+            .governor_id
+            .clone()
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Missing governor_id for governor lookup"))?;
+        let governor = dao_governor::Entity::find()
+            .filter(dao_governor::Column::Id.eq(governor_id_to_find))
+            .one(&txn)
+            .await?;
+
+        let governor_model = governor.ok_or_else(|| anyhow::anyhow!("Governor not found with id: {}", governor_id_to_find))?;
+
+        if governor_model.r#type == "SNAPSHOT" && proposal.discussion_url.is_set() {
+            let job_data = ProposalJobData {
+                proposal_id: inserted_proposal.last_insert_id,
+            };
+
+            // Enqueue job to fetch snapshot discussion details
+            job_queue::Entity::insert(job_queue::ActiveModel {
+                id: NotSet,
+                r#type: Set(ProposalJobData::job_type().to_string()),
+                data: Set(serde_json::to_value(job_data)?),
+                status: Set("PENDING".into()),
+                created_at: NotSet,
+            })
+            .exec(&txn)
+            .await?;
+        }
     }
 
     txn.commit().await?;
