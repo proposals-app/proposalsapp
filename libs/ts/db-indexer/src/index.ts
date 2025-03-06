@@ -14,6 +14,10 @@ import pg from "pg";
 
 dotenv_config();
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is not defined.");
+}
+
 const { Pool } = pg;
 
 const db_pool = new Pool({
