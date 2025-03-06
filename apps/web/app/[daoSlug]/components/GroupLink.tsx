@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useTransition } from 'react';
-import { setGroupLastSeenTimestamp } from '../actions';
+// import { setGroupLastSeenTimestamp } from '../actions';
 
 interface GroupLinkProps {
   groupId: string;
@@ -10,12 +10,12 @@ interface GroupLinkProps {
   children: React.ReactNode;
 }
 
-export function GroupLink({ groupId, timestamp, children }: GroupLinkProps) {
+export function GroupLink({ groupId, children }: GroupLinkProps) {
   const [, startTransition] = useTransition();
 
   const handleClick = () => {
     startTransition(() => {
-      setGroupLastSeenTimestamp(groupId, timestamp);
+      // setGroupLastSeenTimestamp(groupId, timestamp);
     });
   };
 

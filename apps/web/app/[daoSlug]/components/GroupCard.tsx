@@ -1,9 +1,9 @@
 'use client';
 
 import { formatDistanceToNowStrict } from 'date-fns';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { GroupLink } from './GroupLink';
-import { getGroupLastSeenTimestamp, initializeGroupCookie } from '../actions';
+// import { getGroupLastSeenTimestamp, initializeGroupCookie } from '../actions';
 
 interface GroupCardProps {
   group: {
@@ -16,41 +16,39 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group }: GroupCardProps) {
-  const [lastSeenTimestamp, setLastSeenTimestamp] = useState<number | null>(
-    null
-  );
+  const [lastSeenTimestamp] = useState<number | null>(null);
 
-  useEffect(() => {
-    // Initialize the last seen timestamp when the component mounts
-    const initializeTimestamp = async () => {
-      try {
-        // Get the current last seen timestamp from cookies
-        const timestamp = await getGroupLastSeenTimestamp(group.id);
+  // useEffect(() => {
+  //   // Initialize the last seen timestamp when the component mounts
+  //   const initializeTimestamp = async () => {
+  //     try {
+  //       // Get the current last seen timestamp from cookies
+  //       const timestamp = await getGroupLastSeenTimestamp(group.id);
 
-        // If there's no timestamp yet, initialize it with the current latest activity
-        if (!timestamp) {
-          const latestActivityTimestamp = Math.max(
-            group.newestItemTimestamp || 0,
-            group.newestPostTimestamp || 0,
-            group.newestVoteTimestamp || 0
-          );
-          await initializeGroupCookie(group.id, latestActivityTimestamp);
-          setLastSeenTimestamp(latestActivityTimestamp);
-        } else {
-          setLastSeenTimestamp(timestamp);
-        }
-      } catch (error) {
-        console.error('Error initializing timestamp:', error);
-      }
-    };
+  //       // If there's no timestamp yet, initialize it with the current latest activity
+  //       if (!timestamp) {
+  //         const latestActivityTimestamp = Math.max(
+  //           group.newestItemTimestamp || 0,
+  //           group.newestPostTimestamp || 0,
+  //           group.newestVoteTimestamp || 0
+  //         );
+  //         await initializeGroupCookie(group.id, latestActivityTimestamp);
+  //         setLastSeenTimestamp(latestActivityTimestamp);
+  //       } else {
+  //         setLastSeenTimestamp(timestamp);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error initializing timestamp:', error);
+  //     }
+  //   };
 
-    initializeTimestamp();
-  }, [
-    group.id,
-    group.newestItemTimestamp,
-    group.newestPostTimestamp,
-    group.newestVoteTimestamp,
-  ]);
+  //   initializeTimestamp();
+  // }, [
+  //   group.id,
+  //   group.newestItemTimestamp,
+  //   group.newestPostTimestamp,
+  //   group.newestVoteTimestamp,
+  // ]);
 
   const formatTimestamp = (timestamp: number) => {
     if (!timestamp) return 'No activity yet';
