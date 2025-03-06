@@ -7,7 +7,7 @@ use crate::{
     },
     rindexer_lib::typings::rindexer::events::arb_token::arb_token_contract,
 };
-use ethers::utils::hex::ToHex;
+use ethers::utils::{hex::ToHex, to_checksum};
 use proposalsapp_db_indexer::models::{delegation, voting_power};
 use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};
 use sea_orm::{
@@ -45,8 +45,8 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     let delegation = delegation::ActiveModel {
                         id: NotSet,
-                        delegator: Set(result.event_data.delegator.to_string()),
-                        delegate: Set(result.event_data.to_delegate.to_string()),
+                        delegator: Set(to_checksum(&result.event_data.delegator, None)),
+                        delegate: Set(to_checksum(&result.event_data.to_delegate, None)),
                         dao_id: Set(get_dao_id().unwrap()),
                         block: Set(result.tx_information.block_number.as_u64() as i32),
                         timestamp: Set(created_at),
@@ -89,7 +89,7 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
 
                     let vp = voting_power::ActiveModel {
                         id: NotSet,
-                        voter: Set(result.event_data.delegate.to_string()),
+                        voter: Set(to_checksum(&result.event_data.delegate, None)),
                         voting_power: Set(result.event_data.new_balance.as_u128() as f64 / (10.0f64.powi(18))),
                         dao_id: Set(get_dao_id().unwrap()),
                         block: Set(result.tx_information.block_number.as_u64() as i32),
