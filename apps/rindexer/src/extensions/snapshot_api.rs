@@ -119,7 +119,6 @@ impl SnapshotApiHandler {
             response_sender,
         };
 
-        info!(url = ?job.url, query = ?job.query, "Job added to queue");
         self.sender.send(job).await?;
 
         let response = response_receiver.await??;
@@ -230,8 +229,6 @@ impl SnapshotApiHandler {
                 }
             }
         }
-
-        info!("Rate limit updated");
     }
 
     #[instrument(skip(rate_limiter))]
