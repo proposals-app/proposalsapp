@@ -12,10 +12,10 @@
   "private": true,
   "scripts": {
     "build-db-indexer": "yarn workspace @proposalsapp/db-indexer run db:gen:ts",
-    "build-email-service": "yarn run build-db-indexer && yarn workspace @proposalsapp/email-service run build",
+    "build-email-service": "yarn workspace @proposalsapp/email-service run build",
     "build-emails": "yarn workspace @proposalsapp/emails run build",
-    "build-push-service": "yarn run build-db-indexer && yarn workspace @proposalsapp/push-service run build",
-    "build-web": "yarn run build-db-indexer && yarn workspace @proposalsapp/web run build",
+    "build-push-service": "yarn workspace @proposalsapp/push-service run build",
+    "build-web": "yarn workspace @proposalsapp/web run build",
     "start-email-service": "yarn workspace @proposalsapp/email-service run start",
     "start-push-service": "yarn workspace @proposalsapp/push-service run start",
     "start-web": "yarn workspace @proposalsapp/web run start",

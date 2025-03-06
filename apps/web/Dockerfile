@@ -26,7 +26,7 @@ COPY libs/ts/emails/ libs/ts/emails/
 COPY libs/ts/visual-dom-diff/ libs/ts/visual-dom-diff/
 
 # Build the project
-ARG DATABASE_URL=postgresql://user:password@host:5432/database
+ARG DATABASE_URL=postgres://user:password@host:5432/database
 
 ENV DATABASE_URL=${DATABASE_URL}
 RUN yarn build-web
