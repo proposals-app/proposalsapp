@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::OnceCell;
 use proposalsapp_db_indexer::models::{discourse_category, discourse_post, discourse_post_like, discourse_post_revision, discourse_topic, discourse_user, job_queue};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, InsertResult, PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
 use std::time::Duration;
 use tracing::{info, instrument};
 use utils::types::{DiscussionJobData, JobData};
@@ -160,7 +160,15 @@ pub async fn upsert_category(category: &Category, dao_discourse_id: Uuid) -> Res
 
 #[instrument(skip( topic), fields(topic_id = topic.id, topic_title = %topic.title, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
-    // Create an active model for the topic
+    let existing_topic = discourse_topic::Entity::find()
+        .filter(
+            Condition::all()
+                .add(discourse_topic::Column::ExternalId.eq(topic.id))
+                .add(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
+        )
+        .one(DB.get().unwrap())
+        .await?;
+
     let topic_model = discourse_topic::ActiveModel {
         external_id: Set(topic.id),
         title: Set(topic.title.clone()),
@@ -183,55 +191,63 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
         ..Default::default()
     };
 
-    // Perform the upsert operation
-    let stored_topic = discourse_topic::Entity::insert(topic_model)
-        .on_conflict(
-            OnConflict::columns([
-                discourse_topic::Column::ExternalId,
-                discourse_topic::Column::DaoDiscourseId,
-            ])
-            .update_columns([
-                discourse_topic::Column::Title,
-                discourse_topic::Column::FancyTitle,
-                discourse_topic::Column::Slug,
-                discourse_topic::Column::PostsCount,
-                discourse_topic::Column::ReplyCount,
-                discourse_topic::Column::CreatedAt,
-                discourse_topic::Column::LastPostedAt,
-                discourse_topic::Column::BumpedAt,
-                discourse_topic::Column::Pinned,
-                discourse_topic::Column::Visible,
-                discourse_topic::Column::Closed,
-                discourse_topic::Column::Archived,
-                discourse_topic::Column::Views,
-                discourse_topic::Column::LikeCount,
-                discourse_topic::Column::CategoryId,
-                discourse_topic::Column::PinnedGlobally,
-            ])
-            .to_owned(),
-        )
-        .exec(DB.get().unwrap())
-        .await?;
-
-    if let Some(category_ids) = DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id) {
-        if category_ids.contains(&topic.category_id) {
-            let job_data = DiscussionJobData {
-                discourse_topic_id: stored_topic.last_insert_id,
-            };
-
-            job_queue::Entity::insert(job_queue::ActiveModel {
-                id: NotSet,
-                r#type: Set(DiscussionJobData::job_type().to_string()),
-                data: Set(serde_json::to_value(job_data)?),
-                status: Set("PENDING".into()),
-                created_at: NotSet,
-            })
+    if existing_topic.is_none() {
+        // Insert new topic and create job if necessary
+        let stored_topic: InsertResult<discourse_topic::ActiveModel> = discourse_topic::Entity::insert(topic_model)
             .exec(DB.get().unwrap())
             .await?;
+
+        if let Some(category_ids) = DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id) {
+            if category_ids.contains(&topic.category_id) {
+                // Ensure last_insert_id is Some before unwrapping
+                let job_data = DiscussionJobData {
+                    discourse_topic_id: stored_topic.last_insert_id,
+                };
+
+                job_queue::Entity::insert(job_queue::ActiveModel {
+                    id: NotSet,
+                    r#type: Set(DiscussionJobData::job_type().to_string()),
+                    data: Set(serde_json::to_value(job_data)?),
+                    status: Set("PENDING".into()),
+                    created_at: NotSet,
+                })
+                .exec(DB.get().unwrap())
+                .await?;
+            }
         }
+        info!("Topic inserted successfully");
+    } else {
+        discourse_topic::Entity::insert(topic_model)
+            .on_conflict(
+                OnConflict::columns([
+                    discourse_topic::Column::ExternalId,
+                    discourse_topic::Column::DaoDiscourseId,
+                ])
+                .update_columns([
+                    discourse_topic::Column::Title,
+                    discourse_topic::Column::FancyTitle,
+                    discourse_topic::Column::Slug,
+                    discourse_topic::Column::PostsCount,
+                    discourse_topic::Column::ReplyCount,
+                    discourse_topic::Column::CreatedAt,
+                    discourse_topic::Column::LastPostedAt,
+                    discourse_topic::Column::BumpedAt,
+                    discourse_topic::Column::Pinned,
+                    discourse_topic::Column::Visible,
+                    discourse_topic::Column::Closed,
+                    discourse_topic::Column::Archived,
+                    discourse_topic::Column::Views,
+                    discourse_topic::Column::LikeCount,
+                    discourse_topic::Column::CategoryId,
+                    discourse_topic::Column::PinnedGlobally,
+                ])
+                .to_owned(),
+            )
+            .exec(DB.get().unwrap())
+            .await?;
+        info!("Topic updated successfully");
     }
 
-    info!("Topic upserted successfully");
     Ok(())
 }
 
