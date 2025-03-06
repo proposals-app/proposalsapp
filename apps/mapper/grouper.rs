@@ -192,7 +192,7 @@ async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Re
                 items: Set(
                     serde_json::to_value(vec![ProposalGroupItem::Topic(TopicItem {
                         name: topic.title.clone(),
-                        external_id: topic.id.to_string(),
+                        external_id: topic.external_id.to_string(),
                         dao_discourse_id: topic.dao_discourse_id,
                     })])
                     .context("Failed to serialize proposal group items")?,
