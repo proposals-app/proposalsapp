@@ -391,7 +391,7 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
                         items.push(ProposalGroupItem::Proposal(ProposalItem {
                             name: proposal.name.clone(),
                             governor_id: proposal.governor_id,
-                            external_id: proposal.id.to_string(),
+                            external_id: proposal.external_id.to_string(),
                         }));
 
                         // Update the group
