@@ -83,6 +83,7 @@ export async function fetchUngroupedProposals(daoSlug: string) {
       .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
       .select([
         'proposal.id',
+        'proposal.externalId',
         'proposal.name as proposalName',
         'daoGovernor.name as governorName',
       ])
@@ -97,14 +98,14 @@ export async function fetchUngroupedProposals(daoSlug: string) {
         groups.flatMap((group) =>
           (group.items as unknown as ProposalGroupItem[])
             .filter((item) => item.type === 'proposal')
-            .map((item) => item.id)
+            .map((item) => item.externalId)
         )
       );
 
     const uniqueGroupedIds = [...new Set(groupedProposalIds)];
 
     return allProposals
-      .filter((proposal) => !uniqueGroupedIds.includes(proposal.id.toString()))
+      .filter((proposal) => !uniqueGroupedIds.includes(proposal.externalId))
       .map((proposal) => ({
         id: proposal.id.toString(),
         name: proposal.proposalName,
