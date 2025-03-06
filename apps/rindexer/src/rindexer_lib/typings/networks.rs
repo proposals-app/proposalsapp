@@ -5,9 +5,9 @@
 use ethers::providers::{Http, Provider, RetryClient};
 use ethers::types::U64;
 use rindexer::{
-    lazy_static,
-    provider::{create_client, JsonRpcCachedProvider, RetryClientError},
-    public_read_env_value, HeaderMap,
+    HeaderMap, lazy_static,
+    provider::{JsonRpcCachedProvider, RetryClientError, create_client},
+    public_read_env_value,
 };
 use std::sync::Arc;
 

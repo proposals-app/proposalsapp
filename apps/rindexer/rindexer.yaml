@@ -100,6 +100,23 @@ contracts:
               events:
                 - ProposalExecuted
 
+  - name: ArbitrumSCNominations
+    abi: ./abis/ArbitrumSCNominations.abi.json
+    details:
+      - network: arbitrum
+        address: "0x8a1cDA8dee421cD06023470608605934c16A05a0"
+        start_block: 121763102
+    reorg_safe_distance: true
+    include_events:
+      - ProposalCreated
+      - ProposalExecuted
+    dependency_events:
+      events:
+        - ProposalCreated
+      then:
+        events:
+          - ProposalExecuted
+
   - name: ARBToken
     abi: ./abis/ARBToken.abi.json
     details:

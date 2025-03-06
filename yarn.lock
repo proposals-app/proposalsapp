@@ -3139,9 +3139,9 @@ __metadata:
     mdast-util-to-hast: "npm:^13.2.0"
     next: "npm:^15.2.1"
     next-themes: "npm:^0.4.4"
-    nuqs: "npm:^2.4.0"
+    nuqs: "npm:^2.4.1"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.227.0"
+    posthog-js: "npm:^1.227.2"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.6"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -12490,9 +12490,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nuqs@npm:^2.4.0":
-  version: 2.4.0
-  resolution: "nuqs@npm:2.4.0"
+"nuqs@npm:^2.4.1":
+  version: 2.4.1
+  resolution: "nuqs@npm:2.4.1"
   dependencies:
     mitt: "npm:^3.0.1"
   peerDependencies:
@@ -12510,7 +12510,7 @@ __metadata:
       optional: true
     react-router-dom:
       optional: true
-  checksum: 10c0/19d6e973a21990f88ba9c01c593991cad1fe4a4ee9a0a7e91fe9b9d23ac5025dd6caf16ecda564e7cc115bfad9a523d7cf8948b60215eac967699391d67e2289
+  checksum: 10c0/128faf503ca7d7373c7a82e6c0e96640b27014295f832778b7d01c9e9d2621c3825570d3530624dd4a2636e91587a8768d77d7595b5b0045f5d0c42a98d5076f
   languageName: node
   linkType: hard
 
@@ -13462,9 +13462,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.227.0":
-  version: 1.227.0
-  resolution: "posthog-js@npm:1.227.0"
+"posthog-js@npm:^1.227.2":
+  version: 1.227.2
+  resolution: "posthog-js@npm:1.227.2"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -13472,7 +13472,13 @@ __metadata:
     web-vitals: "npm:^4.2.0"
   peerDependencies:
     "@rrweb/types": 2.0.0-alpha.17
-  checksum: 10c0/1fbeafdf533162fe0329d6d3134433163f7f39d45c0f03381307f81e6aa4cba790532e5b9d9a4e13b61f8ab3e551e427c7612d01c35e28f2b2440cf1e1de03a4
+    rrweb-snapshot: 2.0.0-alpha.17
+  peerDependenciesMeta:
+    "@rrweb/types":
+      optional: true
+    rrweb-snapshot:
+      optional: true
+  checksum: 10c0/daf2b55e60d77e619701af8921245de445062d4d2534d42dbf08f01a3f26df2b427f8a734de7ffa104679796c988749691648ebcad3ad69039e6f5756f1657d9
   languageName: node
   linkType: hard
 
