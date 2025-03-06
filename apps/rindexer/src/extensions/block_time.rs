@@ -66,11 +66,16 @@ lazy_static! {
         );
         map
     };
-    static ref HTTP_CLIENT: Client = Client::builder()
+    static ref HTTP_CLIENT: Client = match Client::builder()
         .connect_timeout(Duration::from_secs(5))
         .timeout(Duration::from_secs(5))
         .build()
-        .expect("Failed to create HTTP client");
+    {
+        Ok(client) => client,
+        Err(e) => {
+            panic!("Failed to create HTTP client: {}", e);
+        }
+    };
     static ref JOBS_QUEUE: Arc<Mutex<VecDeque<TimestampJob>>> = Arc::new(Mutex::new(VecDeque::with_capacity(100)));
     static ref PROCESSOR_INIT: OnceCell<tokio::task::JoinHandle<()>> = OnceCell::const_new();
 }
@@ -134,13 +139,21 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
         let provider = config.provider.clone();
         let provider = provider.get_inner_provider();
 
-        let current_block = provider.get_block_number().await?;
+        let current_block = provider
+            .get_block_number()
+            .await
+            .context("Failed to get current block number from provider")?;
 
         if block_number <= current_block.as_u64() {
-            if let Some(block) = provider
+            let block = provider
                 .get_block(BlockId::Number(block_number.into()))
-                .await?
-            {
+                .await
+                .context(format!(
+                    "Failed to get block {} from provider",
+                    block_number
+                ))?;
+
+            if let Some(block) = block {
                 let timestamp = block.timestamp.as_u64() as i64;
                 return DateTime::<Utc>::from_timestamp(timestamp, 0)
                     .map(|dt| dt.naive_utc())
@@ -160,10 +173,16 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
 
     let past_scan_api_result = async {
         if let (Some(scan_api_url), Some(scan_api_key)) = (config.scan_api_url.clone(), config.scan_api_key.clone()) {
-            if let Some(response) = past_scan_api_request(&scan_api_url, &scan_api_key, block_number).await? {
+            let response = past_scan_api_request(&scan_api_url, &scan_api_key, block_number)
+                .await
+                .context("Past scan API request failed")?;
+            if let Some(response) = response {
                 if response.status == "1" {
                     if let Some(BlockRewardResult::Success(result)) = response.result {
-                        let timestamp: i64 = result.timestamp.parse()?;
+                        let timestamp: i64 = result
+                            .timestamp
+                            .parse()
+                            .context("Failed to parse timestamp from past scan API response")?;
                         return DateTime::<Utc>::from_timestamp(timestamp, 0)
                             .map(|dt| dt.naive_utc())
                             .context("Timestamp from past scan api out of range");
@@ -205,10 +224,16 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
 
     let future_scan_api_result = async {
         if let (Some(scan_api_url), Some(scan_api_key)) = (config.scan_api_url.clone(), config.scan_api_key.clone()) {
-            if let Some(response) = future_scan_api_request(&scan_api_url, &scan_api_key, block_number).await? {
+            let response = future_scan_api_request(&scan_api_url, &scan_api_key, block_number)
+                .await
+                .context("Future scan API request failed")?;
+            if let Some(response) = response {
                 if response.status == "1" {
                     if let Some(EstimateTimestampResult::Success(result)) = response.result {
-                        let estimate_time_in_sec: f64 = result.estimate_time_in_sec.parse()?;
+                        let estimate_time_in_sec: f64 = result
+                            .estimate_time_in_sec
+                            .parse()
+                            .context("Failed to parse estimate_time_in_sec from future scan API response")?;
                         return Utc::now()
                             .checked_add_signed(chrono::Duration::seconds(estimate_time_in_sec as i64))
                             .context("Failed to add duration to current time from future scan api")
@@ -285,7 +310,9 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
         .get_or_init(|| async { tokio::spawn(async { job_processor().await }) })
         .await;
 
-    receiver.await?
+    receiver
+        .await
+        .context("Failed to receive timestamp estimation result")?
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -321,7 +348,11 @@ async fn future_scan_api_request(api_url: &str, api_key: &str, block_number: u64
         api_url, block_number, api_key
     );
 
-    let response = HTTP_CLIENT.get(&url).send().await?;
+    let response = HTTP_CLIENT
+        .get(&url)
+        .send()
+        .await
+        .context("Failed to send future scan API request")?;
 
     if !response.status().is_success() {
         let status = response.status();
@@ -335,10 +366,13 @@ async fn future_scan_api_request(api_url: &str, api_key: &str, block_number: u64
             text
         ));
     }
-    let response_text = response.text().await?;
+    let response_text = response
+        .text()
+        .await
+        .context("Failed to get response text from future scan API request")?;
     serde_json::from_str::<EstimateTimestamp>(&response_text)
         .map(Some)
-        .map_err(|e| anyhow::anyhow!(e))
+        .map_err(|e| anyhow::anyhow!(e).context("Failed to deserialize future scan API response"))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -368,7 +402,11 @@ async fn past_scan_api_request(api_url: &str, api_key: &str, block_number: u64) 
         api_url, block_number, api_key
     );
 
-    let response = HTTP_CLIENT.get(&url).send().await?;
+    let response = HTTP_CLIENT
+        .get(&url)
+        .send()
+        .await
+        .context("Failed to send past scan API request")?;
 
     if !response.status().is_success() {
         let status = response.status();
@@ -383,11 +421,14 @@ async fn past_scan_api_request(api_url: &str, api_key: &str, block_number: u64) 
         ));
     }
 
-    let response_text = response.text().await?;
+    let response_text = response
+        .text()
+        .await
+        .context("Failed to get response text from past scan API request")?;
 
     serde_json::from_str::<BlockRewardResponse>(&response_text)
         .map(Some)
-        .map_err(|e| anyhow::anyhow!(e))
+        .map_err(|e| anyhow::anyhow!(e).context("Failed to deserialize past scan API response"))
 }
 
 // Unit tests
@@ -513,10 +554,9 @@ mod request_tests {
     async fn test_estimate_timestamp_unsupported_network() -> Result<()> {
         let result = estimate_timestamp("unsupported_network", 1000000).await;
         assert!(result.is_err(), "Expected error for unsupported network");
-        assert_eq!(
-            result.unwrap_err().to_string(),
-            "Unsupported network: unsupported_network"
-        );
+        if let Err(e) = result {
+            assert_eq!(e.to_string(), "Unsupported network: unsupported_network");
+        }
         Ok(())
     }
 
@@ -660,17 +700,17 @@ mod api_tests {
     use std::env;
     use tokio::time::sleep;
 
-    async fn ensure_api_keys() -> (String, String) {
+    async fn ensure_api_keys() -> Result<(String, String)> {
         dotenv::dotenv().ok();
-        let etherscan_key = env::var("ETHERSCAN_API_KEY").expect("ETHERSCAN_API_KEY must be set for tests");
-        let arbiscan_key = env::var("ARBISCAN_API_KEY").expect("ARBISCAN_API_KEY must be set for tests");
-        (etherscan_key, arbiscan_key)
+        let etherscan_key = env::var("ETHERSCAN_API_KEY").context("ETHERSCAN_API_KEY must be set for tests")?;
+        let arbiscan_key = env::var("ARBISCAN_API_KEY").context("ARBISCAN_API_KEY must be set for tests")?;
+        Ok((etherscan_key, arbiscan_key))
     }
 
     #[tokio::test]
     #[serial]
     async fn test_block_reward_request_success_ethereum() -> Result<()> {
-        let (etherscan_key, _) = ensure_api_keys().await;
+        let (etherscan_key, _) = ensure_api_keys().await?;
 
         let block_number = 10000000;
         let api_url = "https://api.etherscan.io/api";
@@ -678,7 +718,7 @@ mod api_tests {
         let response = past_scan_api_request(api_url, &etherscan_key, block_number).await?;
 
         assert!(response.is_some());
-        let response = response.unwrap();
+        let response = response.context("Expected some response")?;
         assert_eq!(response.status, "1");
         assert!(response.result.is_some());
 
@@ -689,7 +729,7 @@ mod api_tests {
     #[tokio::test]
     #[serial]
     async fn test_block_reward_request_success_arbitrum() -> Result<()> {
-        let (_, arbiscan_key) = ensure_api_keys().await;
+        let (_, arbiscan_key) = ensure_api_keys().await?;
 
         let block_number = 10000000;
         let api_url = "https://api.arbiscan.io/api";
@@ -697,7 +737,7 @@ mod api_tests {
         let response = past_scan_api_request(api_url, &arbiscan_key, block_number).await?;
 
         assert!(response.is_some());
-        let response = response.unwrap();
+        let response = response.context("Expected some response")?;
         assert_eq!(response.status, "1");
         assert!(response.result.is_some());
 
@@ -708,7 +748,7 @@ mod api_tests {
     #[tokio::test]
     #[serial]
     async fn test_block_reward_request_invalid_block() -> Result<()> {
-        let (etherscan_key, _) = ensure_api_keys().await;
+        let (etherscan_key, _) = ensure_api_keys().await?;
 
         // Use a future block that doesn't exist yet
         let block_number = u64::MAX;
@@ -717,7 +757,7 @@ mod api_tests {
         let response = past_scan_api_request(api_url, &etherscan_key, block_number).await?;
 
         assert!(response.is_some());
-        let response = response.unwrap();
+        let response = response.context("Expected some response")?;
 
         assert_eq!(response.status, "0");
         assert_eq!(response.message, "NOTOK");
@@ -740,7 +780,7 @@ mod api_tests {
         let response = past_scan_api_request(api_url, invalid_key, block_number).await?;
 
         assert!(response.is_some());
-        let response = response.unwrap();
+        let response = response.context("Expected some response")?;
 
         assert_eq!(
             response.status, "0",
@@ -760,23 +800,20 @@ mod api_tests {
     #[tokio::test]
     #[serial]
     async fn test_api_request_success_ethereum() -> Result<()> {
-        let (etherscan_key, _) = ensure_api_keys().await;
+        let (etherscan_key, _) = ensure_api_keys().await?;
 
-        let current_block = get_ethereum_provider_cache()
-            .get_block_number()
-            .await?
-            .as_u64();
-        let future_block = current_block + 1000;
+        let current_block = get_ethereum_provider_cache().get_block_number().await?;
+        let future_block = current_block.as_u64() + 1000;
         let api_url = "https://api.etherscan.io/api";
 
         let response = future_scan_api_request(api_url, &etherscan_key, future_block).await?;
 
         assert!(response.is_some());
-        let response = response.unwrap();
+        let response = response.context("Expected some response")?;
         assert_eq!(response.status, "1");
         assert!(response.result.is_some());
 
-        let result = response.result.unwrap();
+        let result = response.result.context("Expected result in response")?;
         assert!(matches!(result, EstimateTimestampResult::Success(_)));
         if let EstimateTimestampResult::Success(success_result) = result {
             assert!(success_result.estimate_time_in_sec.parse::<f64>().is_ok());
@@ -789,19 +826,16 @@ mod api_tests {
     #[tokio::test]
     #[serial]
     async fn test_api_request_success_arbitrum() -> Result<()> {
-        let (_, arbiscan_key) = ensure_api_keys().await;
+        let (_, arbiscan_key) = ensure_api_keys().await?;
 
-        let current_block = get_arbitrum_provider_cache()
-            .get_block_number()
-            .await?
-            .as_u64();
-        let future_block = current_block + 1000;
+        let current_block = get_arbitrum_provider_cache().get_block_number().await?;
+        let future_block = current_block.as_u64() + 1000;
         let api_url = "https://api.arbiscan.io/api";
 
         let response = future_scan_api_request(api_url, &arbiscan_key, future_block).await?;
 
         assert!(response.is_some());
-        let response = response.unwrap();
+        let response = response.context("Expected some response")?;
         assert_eq!(response.status, "1");
         assert!(response.result.is_some());
 
@@ -812,7 +846,7 @@ mod api_tests {
     #[tokio::test]
     #[serial]
     async fn test_api_request_past_block() -> Result<()> {
-        let (etherscan_key, _) = ensure_api_keys().await;
+        let (etherscan_key, _) = ensure_api_keys().await?;
 
         // Use a past block
         let block_number = 15000000;
@@ -821,7 +855,7 @@ mod api_tests {
         let response = past_scan_api_request(api_url, &etherscan_key, block_number).await?;
 
         assert!(response.is_some());
-        let response = response.unwrap();
+        let response = response.context("Expected some response")?;
         assert_eq!(response.status, "1");
         assert!(response.result.is_some());
 
@@ -832,7 +866,7 @@ mod api_tests {
     #[tokio::test]
     #[serial]
     async fn test_invalid_api_url() -> Result<()> {
-        let (etherscan_key, _) = ensure_api_keys().await;
+        let (etherscan_key, _) = ensure_api_keys().await?;
 
         let block_number = 15000000;
         let invalid_api_url = "https://invalid.api.url/api";
@@ -848,7 +882,7 @@ mod api_tests {
     #[tokio::test]
     #[serial]
     async fn test_rate_limiting() -> Result<()> {
-        let (etherscan_key, _) = ensure_api_keys().await;
+        let (etherscan_key, _) = ensure_api_keys().await?;
         let api_url = "https://api.etherscan.io/api";
         let block_number = 15000000;
 

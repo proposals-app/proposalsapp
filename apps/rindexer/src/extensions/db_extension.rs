@@ -1,13 +1,12 @@
+use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
 use anyhow::{Context, Result};
 use ethers::{providers::Middleware, types::Address};
 use once_cell::sync::OnceCell;
-use proposalsapp_db_indexer::models::{dao, dao_governor, job_queue, proposal, vote, voter};
+use proposalsapp_db_indexer::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait, prelude::Uuid};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
 use tracing::instrument;
 use utils::types::{JobData, ProposalJobData};
-
-use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static DAO_GOVERNOR_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
@@ -35,7 +34,12 @@ pub async fn initialize_db() -> Result<()> {
 
     // Initialize and populate DAO_INDEXER_ID_MAP
     let governors_map = Mutex::new(HashMap::new());
-    let governors = dao_governor::Entity::find().all(DB.get().unwrap()).await?;
+    let governors = dao_governor::Entity::find()
+        .all(
+            DB.get()
+                .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?,
+        )
+        .await?;
     for governor in governors {
         governors_map
             .lock()
@@ -48,7 +52,12 @@ pub async fn initialize_db() -> Result<()> {
 
     // Initialize and populate DAO_ID_SLUG_MAP
     let dao_slug_map = Mutex::new(HashMap::new());
-    let daos = dao::Entity::find().all(DB.get().unwrap()).await?;
+    let daos = dao::Entity::find()
+        .all(
+            DB.get()
+                .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?,
+        )
+        .await?;
     for dao_model in daos {
         dao_slug_map
             .lock()
@@ -64,7 +73,10 @@ pub async fn initialize_db() -> Result<()> {
 
 #[instrument(skip(proposal))]
 pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
-    let txn = DB.get().unwrap().begin().await?;
+    let db = DB
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
+    let txn = db.begin().await?;
 
     // Extract indexer ID and external ID from the proposal
     let governor_id = proposal
@@ -184,7 +196,6 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
             .filter(dao_governor::Column::Id.eq(governor_id_to_find))
             .one(&txn)
             .await?;
-
         let governor_model = governor.ok_or_else(|| anyhow::anyhow!("Governor not found with id: {}", governor_id_to_find))?;
 
         if governor_model.r#type == "SNAPSHOT" && proposal.discussion_url.is_set() {
@@ -211,7 +222,10 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
 
 #[instrument(skip(vote))]
 pub async fn store_vote(vote: vote::ActiveModel, governor_id: Uuid) -> Result<()> {
-    let txn = DB.get().unwrap().begin().await?;
+    let db = DB
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
+    let txn = db.begin().await?;
 
     let proposal_external_id = vote
         .proposal_external_id
@@ -236,6 +250,13 @@ pub async fn store_vote(vote: vote::ActiveModel, governor_id: Uuid) -> Result<()
         }
     };
 
+    let voter_address_to_ensure = vote
+        .voter_address
+        .clone()
+        .take()
+        .ok_or_else(|| anyhow::anyhow!("Missing voter_address in vote"))?;
+    ensure_voter_exist(&txn, voter_address_to_ensure).await?;
+
     let vote_active_model = vote::ActiveModel {
         voter_address: vote.voter_address.clone(),
         choice: vote.choice.clone(),
@@ -250,8 +271,6 @@ pub async fn store_vote(vote: vote::ActiveModel, governor_id: Uuid) -> Result<()
         proposal_id: Set(proposal.id),
         id: NotSet,
     };
-
-    ensure_voter_exist(&txn, vote.voter_address.clone().take().unwrap()).await?;
 
     let result = vote::Entity::insert(vote_active_model)
         .on_conflict(
@@ -282,18 +301,40 @@ pub async fn store_vote(vote: vote::ActiveModel, governor_id: Uuid) -> Result<()
     Ok(())
 }
 
+#[instrument]
+pub async fn store_delegation(delegation: delegation::ActiveModel) -> Result<()> {
+    let txn = DB.get().unwrap().begin().await?;
+
+    delegation::Entity::insert(delegation).exec(&txn).await?;
+
+    txn.commit().await?;
+    Ok(())
+}
+
+#[instrument]
+pub async fn store_voting_power(voting_power: voting_power::ActiveModel) -> Result<()> {
+    let txn = DB.get().unwrap().begin().await?;
+
+    voting_power::Entity::insert(voting_power)
+        .exec(&txn)
+        .await?;
+
+    txn.commit().await?;
+    Ok(())
+}
+
 #[instrument(skip(txn, voter_address))]
 async fn ensure_voter_exist(txn: &DatabaseTransaction, voter_address: String) -> Result<()> {
     // Fetch ENS for the voter address
-    // let ens_result = get_ethereum_provider_cache()
-    //     .get_inner_provider()
-    //     .lookup_address(voter_address.clone().parse::<Address>()?)
-    //     .await;
+    let ens_result = get_ethereum_provider_cache()
+        .get_inner_provider()
+        .lookup_address(voter_address.clone().parse::<Address>()?)
+        .await;
 
-    // let fetched_ens = match ens_result {
-    //     Ok(ens) => Some(ens),
-    //     Err(_) => None, // If ENS lookup fails, we proceed without ENS
-    // };
+    let fetched_ens = match ens_result {
+        Ok(ens) => Some(ens),
+        Err(_) => None, // If ENS lookup fails, we proceed without ENS
+    };
 
     // Check if voter exists
     let existing_voter: Option<voter::Model> = voter::Entity::find()
@@ -303,11 +344,11 @@ async fn ensure_voter_exist(txn: &DatabaseTransaction, voter_address: String) ->
 
     if let Some(voter) = existing_voter {
         // Voter exists, check and update ENS if necessary
-        // if voter.ens != fetched_ens {
-        //     let mut voter_active_model = voter.into_active_model();
-        //     voter_active_model.ens = Set(fetched_ens);
-        //     voter::Entity::update(voter_active_model).exec(txn).await?;
-        // }
+        if voter.ens != fetched_ens {
+            let mut voter_active_model = voter.into_active_model();
+            voter_active_model.ens = Set(fetched_ens);
+            voter::Entity::update(voter_active_model).exec(txn).await?;
+        }
     } else {
         // Voter does not exist, create a new voter
         let mut new_voter = voter::ActiveModel {
@@ -316,9 +357,9 @@ async fn ensure_voter_exist(txn: &DatabaseTransaction, voter_address: String) ->
             ens: NotSet,
         };
 
-        // if let Some(ens) = fetched_ens {
-        //     new_voter.ens = Set(Some(ens));
-        // }
+        if let Some(ens) = fetched_ens {
+            new_voter.ens = Set(Some(ens));
+        }
 
         voter::Entity::insert(new_voter).exec(txn).await?;
     }
