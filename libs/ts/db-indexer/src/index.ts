@@ -21,7 +21,7 @@ if (!process.env.DATABASE_URL) {
 const { Pool } = pg;
 
 const db_pool = new Pool({
-  connectionString: process.env.DATABASE_URL!,
+  connectionString: process.env.DATABASE_URL,
   min: 5,
   max: 10,
 });
