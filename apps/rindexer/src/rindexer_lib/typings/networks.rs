@@ -21,13 +21,7 @@ fn create_shadow_client(rpc_url: &str, compute_units_per_second: Option<u64>, ma
             .parse()
             .unwrap(),
     );
-    create_client(
-        rpc_url,
-        compute_units_per_second,
-        max_block_range,
-        min_block_range,
-        header,
-    )
+    create_client(rpc_url, compute_units_per_second, max_block_range, header)
 }
 
 lazy_static! {
@@ -35,7 +29,6 @@ lazy_static! {
         &public_read_env_value("ETHEREUM_NODE_URL").unwrap_or("ETHEREUM_NODE_URL".to_string()),
         None,
         Some(U64::from(10000)),
-        Some(U64::from(10)),
         HeaderMap::new()
     )
     .expect("Error creating provider");
@@ -43,7 +36,6 @@ lazy_static! {
         &public_read_env_value("ARBITRUM_NODE_URL").unwrap_or("ARBITRUM_NODE_URL".to_string()),
         None,
         Some(U64::from(10000)),
-        Some(U64::from(10)),
         HeaderMap::new()
     )
     .expect("Error creating provider");
@@ -51,7 +43,6 @@ lazy_static! {
         &public_read_env_value("OPTIMISM_NODE_URL").unwrap_or("OPTIMISM_NODE_URL".to_string()),
         None,
         Some(U64::from(10000)),
-        Some(U64::from(10)),
         HeaderMap::new()
     )
     .expect("Error creating provider");
@@ -59,7 +50,6 @@ lazy_static! {
         &public_read_env_value("POLYGON_NODE_URL").unwrap_or("POLYGON_NODE_URL".to_string()),
         None,
         Some(U64::from(10000)),
-        Some(U64::from(10)),
         HeaderMap::new()
     )
     .expect("Error creating provider");
@@ -67,7 +57,6 @@ lazy_static! {
         &public_read_env_value("AVALANCHE_NODE_URL").unwrap_or("AVALANCHE_NODE_URL".to_string()),
         None,
         Some(U64::from(10000)),
-        Some(U64::from(10)),
         HeaderMap::new()
     )
     .expect("Error creating provider");

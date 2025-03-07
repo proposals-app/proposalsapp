@@ -302,10 +302,11 @@ pub async fn store_vote(vote: vote::ActiveModel, governor_id: Uuid) -> Result<()
 }
 
 #[instrument]
-pub async fn store_delegation(delegation: delegation::ActiveModel) -> Result<()> {
-    let txn = DB.get().unwrap().begin().await?;
+pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Result<()> {
+    let db = DB.get().unwrap();
+    let txn = db.begin().await?;
 
-    delegation::Entity::insert(delegation)
+    delegation::Entity::insert_many(delegations)
         .on_conflict(OnConflict::new().do_nothing().to_owned())
         .exec(&txn)
         .await?;
@@ -315,10 +316,11 @@ pub async fn store_delegation(delegation: delegation::ActiveModel) -> Result<()>
 }
 
 #[instrument]
-pub async fn store_voting_power(voting_power: voting_power::ActiveModel) -> Result<()> {
-    let txn = DB.get().unwrap().begin().await?;
+pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) -> Result<()> {
+    let db = DB.get().unwrap();
+    let txn = db.begin().await?;
 
-    voting_power::Entity::insert(voting_power)
+    voting_power::Entity::insert_many(voting_powers)
         .on_conflict(OnConflict::new().do_nothing().to_owned())
         .exec(&txn)
         .await?;

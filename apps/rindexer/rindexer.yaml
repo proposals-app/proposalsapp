@@ -11,31 +11,26 @@ networks:
     chain_id: 1
     rpc: ${ETHEREUM_NODE_URL}
     max_block_range: 10000
-    min_block_range: 10
 
   - name: arbitrum
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}
     max_block_range: 10000
-    min_block_range: 10
 
   - name: optimism
     chain_id: 10
     rpc: ${OPTIMISM_NODE_URL}
     max_block_range: 10000
-    min_block_range: 10
 
   - name: polygon
     chain_id: 137
     rpc: ${POLYGON_NODE_URL}
     max_block_range: 10000
-    min_block_range: 10
 
   - name: avalanche
     chain_id: 43114
     rpc: ${AVALANCHE_NODE_URL}
     max_block_range: 10000
-    min_block_range: 10
 
 contracts:
   - name: ArbitrumCoreGovernor
@@ -46,6 +41,13 @@ contracts:
         start_block: 70398215
     reorg_safe_distance: true
     include_events:
+      - ProposalCreated
+      - VoteCast
+      - VoteCastWithParams
+      - ProposalExtended
+      - ProposalQueued
+      - ProposalExecuted
+    index_event_in_order:
       - ProposalCreated
       - VoteCast
       - VoteCastWithParams
@@ -83,6 +85,13 @@ contracts:
       - ProposalExtended
       - ProposalQueued
       - ProposalExecuted
+    index_event_in_order:
+      - ProposalCreated
+      - VoteCast
+      - VoteCastWithParams
+      - ProposalExtended
+      - ProposalQueued
+      - ProposalExecuted
     dependency_events:
       events:
         - ProposalCreated
@@ -110,6 +119,9 @@ contracts:
     include_events:
       - ProposalCreated
       - ProposalExecuted
+    index_event_in_order:
+      - ProposalCreated
+      - ProposalExecuted
     dependency_events:
       events:
         - ProposalCreated
@@ -125,5 +137,8 @@ contracts:
         start_block: 70398215
     reorg_safe_distance: true
     include_events:
+      - DelegateVotesChanged
+      - DelegateChanged
+    index_event_in_order:
       - DelegateVotesChanged
       - DelegateChanged

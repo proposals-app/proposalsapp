@@ -63,6 +63,12 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     return Ok(());
                 }
 
+                info!(
+                    event = "ArbitrumTreasuryGovernor::ProposalCreated",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    results = results.len(),
+                );
+
                 for result in results.clone() {
                     let arbitrum_core_governor = arbitrum_treasury_governor_contract("arbitrum");
 
@@ -149,12 +155,6 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     store_proposal(proposal).await;
                 }
 
-                info!(
-                    event = "ArbitrumTreasuryGovernor::ProposalCreated",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
-                    results = results.len(),
-                );
-
                 Ok(())
             },
             no_extensions(),
@@ -172,6 +172,12 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                 if results.is_empty() {
                     return Ok(());
                 }
+
+                info!(
+                    event = "ArbitrumTreasuryGovernor::ProposalExecuted",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    results = results.len(),
+                );
 
                 for result in results.clone() {
                     let proposal = proposal::ActiveModel {
@@ -199,12 +205,6 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                     store_proposal(proposal).await;
                 }
 
-                info!(
-                    event = "ArbitrumTreasuryGovernor::ProposalExecuted",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
-                    results = results.len(),
-                );
-
                 Ok(())
             },
             no_extensions(),
@@ -222,6 +222,12 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                 if results.is_empty() {
                     return Ok(());
                 }
+
+                info!(
+                    event = "ArbitrumTreasuryGovernor::ProposalExtended",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    results = results.len(),
+                );
 
                 for result in results.clone() {
                     let end_at = estimate_timestamp("ethereum", result.event_data.extended_deadline)
@@ -253,12 +259,6 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                     store_proposal(proposal).await;
                 }
 
-                info!(
-                    event = "ArbitrumTreasuryGovernor::ProposalExtended",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
-                    results = results.len(),
-                );
-
                 Ok(())
             },
             no_extensions(),
@@ -276,6 +276,12 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                 if results.is_empty() {
                     return Ok(());
                 }
+
+                info!(
+                    event = "ArbitrumTreasuryGovernor::ProposalQueued",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    results = results.len(),
+                );
 
                 for result in results.clone() {
                     let proposal = proposal::ActiveModel {
@@ -303,12 +309,6 @@ async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCa
                     store_proposal(proposal).await;
                 }
 
-                info!(
-                    event = "ArbitrumTreasuryGovernor::ProposalQueued",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
-                    results = results.len(),
-                );
-
                 Ok(())
             },
             no_extensions(),
@@ -326,6 +326,12 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                 if results.is_empty() {
                     return Ok(());
                 }
+
+                info!(
+                    event = "ArbitrumTreasuryGovernor::VoteCast",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    results = results.len(),
+                );
 
                 for result in results.clone() {
                     let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
@@ -354,12 +360,6 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 
                     store_vote(vote, get_proposals_governor_id().take().unwrap()).await;
                 }
-
-                info!(
-                    event = "ArbitrumTreasuryGovernor::VoteCast",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
-                    results = results.len(),
-                );
 
                 Ok(())
             },
@@ -379,6 +379,12 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                     return Ok(());
                 }
 
+                info!(
+                    event = "ArbitrumTreasuryGovernor::VoteCastWithParams",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    results = results.len(),
+                );
+
                 for result in results.clone() {
                     let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
                         .await
@@ -406,12 +412,6 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
 
                     store_vote(vote, get_proposals_governor_id().take().unwrap()).await;
                 }
-
-                info!(
-                    event = "ArbitrumTreasuryGovernor::VoteCastWithParams",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
-                    results = results.len(),
-                );
 
                 Ok(())
             },

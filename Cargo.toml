@@ -54,7 +54,7 @@ pyroscope_pprofrs = "0.2.8"
 alloy-chains = "0.1.64"
 ethers = "2.0"
 # rindexer = { path = "./../rindexer/core", package = "rindexer" }
-rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "proposalsapp-next", package = "rindexer" }
+rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "proposalsapp", package = "rindexer" }
 tokio-retry = "0.3.0"
 serial_test = "3.2.0"
 proposalsapp-db-indexer = { path = "libs/rust/db-indexer" }

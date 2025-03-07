@@ -50,6 +50,12 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     return Ok(());
                 }
 
+                info!(
+                    event = "ArbitrumSCNominations::ProposalCreated",
+                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    results = results.len(),
+                );
+
                 for result in results.clone() {
                     let arbitrum_sc_nominations_governor = arbitrum_sc_nominations_contract("arbitrum");
 
@@ -134,12 +140,6 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     store_proposal(proposal).await;
                 }
-
-                info!(
-                    event = "ArbitrumSCNominations::ProposalCreated",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
-                    results = results.len(),
-                );
 
                 Ok(())
             },
