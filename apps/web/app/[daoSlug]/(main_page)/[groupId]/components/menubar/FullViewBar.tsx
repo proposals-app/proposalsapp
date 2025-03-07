@@ -1,37 +1,21 @@
 'use client';
 
-import { ViewEnum, VotesFilterEnum } from '@/app/searchParams';
+import { VotesFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useEffect, useRef } from 'react';
-import { SharedSelectItem, voteFilters } from './MenuBar';
+import { SharedSelectItem, ViewEnum, voteFilters } from './MenuBar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import * as Select from '@radix-ui/react-select';
 
-const useDebouncedScroll = (callback: () => void, delay: number) => {
-  const timeoutId = useRef<NodeJS.Timeout | null>(null);
+interface FullViewBarProps {
+  view: ViewEnum;
+  setView: (view: ViewEnum) => void;
+}
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
-      timeoutId.current = setTimeout(callback, delay);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [callback, delay]);
-};
-
-export const FullViewBar = () => {
+export const FullViewBar = ({ view, setView }: FullViewBarProps) => {
   const [comments, setComments] = useQueryState(
     'comments',
     parseAsBoolean.withDefault(true).withOptions({ shallow: false })
@@ -44,13 +28,6 @@ export const FullViewBar = () => {
       .withOptions({ shallow: false })
   );
 
-  const [view, setView] = useQueryState(
-    'view',
-    parseAsStringEnum<ViewEnum>(Object.values(ViewEnum))
-      .withDefault(ViewEnum.FULL)
-      .withOptions({ shallow: false })
-  );
-
   const [expanded, setExpanded] = useQueryState(
     'expanded',
     parseAsBoolean.withDefault(false).withOptions({ shallow: false })
@@ -58,28 +35,35 @@ export const FullViewBar = () => {
 
   const fullViewBarRef = useRef<HTMLDivElement | null>(null);
 
-  useDebouncedScroll(() => {
-    if (!fullViewBarRef.current) return;
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!fullViewBarRef.current) return;
 
-    const rect = fullViewBarRef.current.getBoundingClientRect();
+      const rect = fullViewBarRef.current.getBoundingClientRect();
 
-    if (rect.top < 80 && view !== ViewEnum.COMMENTS) {
-      setView(ViewEnum.COMMENTS);
-    } else if (
-      rect.top >= 80 &&
-      rect.bottom <= window.innerHeight &&
-      view !== ViewEnum.FULL
-    ) {
-      setView(ViewEnum.FULL);
-    } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
-      setView(ViewEnum.BODY);
-    }
-  }, 10);
+      if (rect.top < 80 && view !== ViewEnum.COMMENTS) {
+        setView(ViewEnum.COMMENTS);
+      } else if (
+        rect.top >= 80 &&
+        rect.bottom <= window.innerHeight &&
+        view !== ViewEnum.FULL
+      ) {
+        setView(ViewEnum.FULL);
+      } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
+        setView(ViewEnum.BODY);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [view, setView]);
 
   return (
     <div
       ref={fullViewBarRef}
-      className={`mt-4 min-w-4xl self-center overflow-visible px-2 transition-opacity duration-100
+      className={`mt-4 min-w-4xl self-center overflow-visible px-2
         ${view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'}`}
     >
       <div

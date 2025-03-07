@@ -1,10 +1,6 @@
-import { ViewEnum } from '@/app/searchParams';
-import {
-  parseAsBoolean,
-  parseAsInteger,
-  parseAsStringEnum,
-  useQueryState,
-} from 'nuqs';
+'use client';
+
+import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import NextSvg from '@/public/assets/web/next.svg';
 import PreviousSvg from '@/public/assets/web/previous.svg';
@@ -13,25 +9,23 @@ import LastSvg from '@/public/assets/web/last.svg';
 import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 import { VersionType } from '../../actions';
+import { ViewEnum } from './MenuBar';
 
 interface BodyViewBarProps {
   totalVersions: number;
   versionTypes: VersionType[];
   currentVersion: number;
+  view: ViewEnum;
+  setView: (view: ViewEnum) => void;
 }
 
 export const BodyViewBar = ({
   totalVersions,
   versionTypes,
   currentVersion,
+  view,
+  setView,
 }: BodyViewBarProps) => {
-  const [view, setView] = useQueryState(
-    'view',
-    parseAsStringEnum<ViewEnum>(Object.values(ViewEnum))
-      .withDefault(ViewEnum.FULL)
-      .withOptions({ shallow: false })
-  );
-
   const [expanded, setExpanded] = useQueryState(
     'expanded',
     parseAsBoolean.withDefault(false).withOptions({ shallow: false })
@@ -59,8 +53,8 @@ export const BodyViewBar = ({
 
   return (
     <div
-      className={`fixed bottom-0 z-50 mt-4 min-w-4xl self-center px-4 pb-4 transition-opacity
-        duration-100 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed bottom-0 z-50 mt-4 min-w-4xl self-center px-4 pb-4
+        ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
         className='dark:border-neutral-450 flex w-full items-center justify-between gap-2

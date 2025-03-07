@@ -1,8 +1,8 @@
 'use client';
 
-import { ViewEnum, VotesFilterEnum } from '@/app/searchParams';
+import { VotesFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
-import { SharedSelectItem, voteFilters } from './MenuBar';
+import { SharedSelectItem, ViewEnum, voteFilters } from './MenuBar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
@@ -10,7 +10,12 @@ import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import * as Select from '@radix-ui/react-select';
 import React from 'react';
 
-export const CommentsViewBar = () => {
+interface CommentsViewBarProps {
+  view: ViewEnum;
+  setView: (view: ViewEnum) => void;
+}
+
+export const CommentsViewBar = ({ view, setView }: CommentsViewBarProps) => {
   const [comments, setComments] = useQueryState(
     'comments',
     parseAsBoolean.withDefault(true).withOptions({ shallow: false })
@@ -23,13 +28,6 @@ export const CommentsViewBar = () => {
       .withOptions({ shallow: false })
   );
 
-  const [view, setView] = useQueryState(
-    'view',
-    parseAsStringEnum<ViewEnum>(Object.values(ViewEnum))
-      .withDefault(ViewEnum.FULL)
-      .withOptions({ shallow: false })
-  );
-
   const [, setExpanded] = useQueryState(
     'expanded',
     parseAsBoolean.withDefault(false)
@@ -37,8 +35,8 @@ export const CommentsViewBar = () => {
 
   return (
     <div
-      className={`fixed top-0 z-50 mt-24 min-w-4xl self-center px-4 pb-4 transition-opacity
-        duration-100 ${view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed top-0 z-50 mt-24 min-w-4xl self-center px-4 pb-4
+        ${view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
         className='dark:border-neutral-450 flex w-full items-center justify-between gap-2

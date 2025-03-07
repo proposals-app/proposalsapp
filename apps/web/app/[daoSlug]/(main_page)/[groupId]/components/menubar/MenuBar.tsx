@@ -1,12 +1,12 @@
 'use client';
-import { ViewEnum, VotesFilterEnum } from '@/app/searchParams';
-import { parseAsStringEnum, useQueryState } from 'nuqs';
+
+import { VotesFilterEnum } from '@/app/searchParams';
 import { BodyViewBar } from './BodyViewBar';
 import { CommentsViewBar } from './CommentsViewBar';
 import { FullViewBar } from './FullViewBar';
 import * as Select from '@radix-ui/react-select';
 import CheckSvg from '@/public/assets/web/check.svg';
-import React from 'react';
+import React, { useState } from 'react';
 import { VersionType } from '../../actions';
 
 export const SharedSelectItem = React.forwardRef<
@@ -54,6 +54,12 @@ export const voteFilters = [
   },
 ];
 
+export enum ViewEnum {
+  BODY = 'body',
+  FULL = 'full',
+  COMMENTS = 'comments',
+}
+
 interface MenuBarProps {
   totalVersions: number;
   versionTypes: VersionType[];
@@ -65,24 +71,23 @@ export const MenuBar = ({
   versionTypes,
   currentVersion,
 }: MenuBarProps) => {
-  const [view] = useQueryState(
-    'view',
-    parseAsStringEnum<ViewEnum>(Object.values(ViewEnum)).withDefault(
-      ViewEnum.FULL
-    )
-  );
+  const [view, setView] = useState(ViewEnum.FULL);
 
   return (
     <div className='font-condensed flex w-full justify-center'>
-      <FullViewBar />
+      <FullViewBar view={view} setView={setView} />
       {view == ViewEnum.BODY && (
         <BodyViewBar
           totalVersions={totalVersions}
           versionTypes={versionTypes}
           currentVersion={currentVersion}
+          view={view}
+          setView={setView}
         />
       )}
-      {view == ViewEnum.COMMENTS && <CommentsViewBar />}
+      {view == ViewEnum.COMMENTS && (
+        <CommentsViewBar view={view} setView={setView} />
+      )}
     </div>
   );
 };

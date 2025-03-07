@@ -5,12 +5,6 @@ import {
   parseAsStringEnum,
 } from 'nuqs/server';
 
-export enum ViewEnum {
-  BODY = 'body',
-  FULL = 'full',
-  COMMENTS = 'comments',
-}
-
 export enum VotesFilterEnum {
   ALL = 'all',
   FIFTY_THOUSAND = '50k',
@@ -20,9 +14,6 @@ export enum VotesFilterEnum {
 
 export const searchParamsCache = createSearchParamsCache({
   version: parseAsInteger,
-  view: parseAsStringEnum<ViewEnum>(Object.values(ViewEnum)).withDefault(
-    ViewEnum.FULL
-  ),
   expanded: parseAsBoolean.withDefault(false),
   diff: parseAsBoolean.withDefault(false),
   comments: parseAsBoolean.withDefault(true),
