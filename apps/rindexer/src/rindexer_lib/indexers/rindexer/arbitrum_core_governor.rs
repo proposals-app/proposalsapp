@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use super::super::super::typings::rindexer::events::arbitrum_core_governor::{ArbitrumCoreGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, ProposalQueuedEvent, VoteCastEvent, VoteCastWithParamsEvent, no_extensions};
+use super::super::super::typings::rindexer::events::arbitrum_core_governor::{ArbitrumCoreGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, VoteCastEvent, VoteCastWithParamsEvent, no_extensions};
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
@@ -269,56 +269,6 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
 }
 
 #[instrument(skip(manifest_path, registry))]
-async fn proposal_queued_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumCoreGovernorEventType::ProposalQueued(
-        ProposalQueuedEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                info!(
-                    event = "ArbitrumCoreGovernor::ProposalQueued",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
-                    results = results.len(),
-                );
-
-                for result in results.clone() {
-                    let proposal = proposal::ActiveModel {
-                        id: NotSet,
-                        external_id: Set(result.event_data.proposal_id.to_string()),
-                        name: NotSet,
-                        body: NotSet,
-                        url: NotSet,
-                        discussion_url: NotSet,
-                        choices: NotSet,
-                        quorum: NotSet,
-                        proposal_state: Set(ProposalState::Queued),
-                        marked_spam: NotSet,
-                        created_at: NotSet,
-                        start_at: NotSet,
-                        end_at: NotSet,
-                        block_created_at: NotSet,
-                        metadata: NotSet,
-                        txid: NotSet,
-                        governor_id: Set(get_proposals_governor_id().take().unwrap()),
-                        dao_id: Set(get_dao_id().unwrap()),
-                        author: NotSet,
-                    };
-
-                    store_proposal(proposal).await;
-                }
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
-#[instrument(skip(manifest_path, registry))]
 async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ArbitrumCoreGovernorEventType::VoteCast(
         VoteCastEvent::handler(
@@ -429,8 +379,6 @@ pub async fn arbitrum_core_governor_handlers(manifest_path: &PathBuf, registry: 
     proposal_executed_handler(manifest_path, registry).await;
 
     proposal_extended_handler(manifest_path, registry).await;
-
-    proposal_queued_handler(manifest_path, registry).await;
 
     vote_cast_handler(manifest_path, registry).await;
 

@@ -12,7 +12,7 @@ use rindexer::{
 use std::sync::Arc;
 
 #[allow(dead_code)]
-fn create_shadow_client(rpc_url: &str, compute_units_per_second: Option<u64>, max_block_range: Option<U64>, min_block_range: Option<U64>) -> Result<Arc<JsonRpcCachedProvider>, RetryClientError> {
+fn create_shadow_client(rpc_url: &str, compute_units_per_second: Option<u64>, max_block_range: Option<U64>) -> Result<Arc<JsonRpcCachedProvider>, RetryClientError> {
     let mut header = HeaderMap::new();
     header.insert(
         "X-SHADOW-API-KEY",

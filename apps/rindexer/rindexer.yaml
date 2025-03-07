@@ -45,14 +45,12 @@ contracts:
       - VoteCast
       - VoteCastWithParams
       - ProposalExtended
-      - ProposalQueued
       - ProposalExecuted
     index_event_in_order:
       - ProposalCreated
       - VoteCast
       - VoteCastWithParams
       - ProposalExtended
-      - ProposalQueued
       - ProposalExecuted
     dependency_events:
       events:
@@ -66,10 +64,7 @@ contracts:
             - VoteCastWithParams
           then:
             events:
-              - ProposalQueued
-            then:
-              events:
-                - ProposalExecuted
+              - ProposalExecuted
 
   - name: ArbitrumTreasuryGovernor
     abi: ./abis/ArbitrumTreasuryGovernor.abi.json
@@ -83,14 +78,12 @@ contracts:
       - VoteCast
       - VoteCastWithParams
       - ProposalExtended
-      - ProposalQueued
       - ProposalExecuted
     index_event_in_order:
       - ProposalCreated
       - VoteCast
       - VoteCastWithParams
       - ProposalExtended
-      - ProposalQueued
       - ProposalExecuted
     dependency_events:
       events:
@@ -104,10 +97,7 @@ contracts:
             - VoteCastWithParams
           then:
             events:
-              - ProposalQueued
-            then:
-              events:
-                - ProposalExecuted
+              - ProposalExecuted
 
   - name: ArbitrumSCNominations
     abi: ./abis/ArbitrumSCNominations.abi.json
