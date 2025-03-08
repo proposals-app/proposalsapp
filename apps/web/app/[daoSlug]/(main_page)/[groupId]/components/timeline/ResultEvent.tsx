@@ -9,11 +9,14 @@ import TimelineEventIcon from '@/public/assets/web/timeline_event.svg'; // Impor
 import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg'; // Import the SVG as a React component
 import ArrowResultRightIcon from '@/public/assets/web/arrow_result_right.svg'; // Import the SVG as a React component
 import Link from 'next/link';
+import { VoteSegmentData } from './actions';
 
 interface ResultEventProps {
   content: string;
   timestamp: Date;
-  result: ProcessedResults;
+  result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
+    voteSegments: { [key: string]: VoteSegmentData[] };
+  };
   resultNumber: number;
   last: boolean;
   daoSlug: string;
