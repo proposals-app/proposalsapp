@@ -1,11 +1,15 @@
 use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
 use anyhow::{Context, Result};
-use ethers::{providers::Middleware, types::Address};
+use ethers::{
+    providers::{Middleware, ProviderError},
+    types::Address,
+};
+use futures::future::join_all;
 use once_cell::sync::OnceCell;
 use proposalsapp_db_indexer::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, IntoActiveModel, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
 use std::{collections::HashMap, sync::Mutex, time::Duration};
-use tracing::instrument;
+use tracing::{debug, instrument};
 use utils::types::{JobData, ProposalJobData};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
@@ -220,81 +224,104 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip(vote))]
-pub async fn store_vote(vote: vote::ActiveModel, governor_id: Uuid) -> Result<()> {
+#[instrument(skip(votes))]
+pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Result<()> {
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
     let txn = db.begin().await?;
 
-    let proposal_external_id = vote
-        .proposal_external_id
-        .clone()
-        .take()
-        .ok_or_else(|| anyhow::anyhow!("Missing proposal_external_id in vote"))?;
+    let proposal_external_ids: Vec<String> = votes
+        .iter()
+        .filter_map(|vote| vote.proposal_external_id.clone().take())
+        .collect();
 
-    let proposal: Option<proposal::Model> = proposal::Entity::find()
-        .filter(proposal::Column::ExternalId.eq(proposal_external_id.clone()))
+    if proposal_external_ids.is_empty() {
+        txn.rollback().await?;
+        return Err(anyhow::anyhow!(
+            "No proposal_external_ids provided in votes"
+        ));
+    }
+
+    let proposals_result = proposal::Entity::find()
+        .filter(proposal::Column::ExternalId.is_in(proposal_external_ids.clone()))
         .filter(proposal::Column::GovernorId.eq(governor_id))
-        .one(&txn)
+        .all(&txn)
         .await?;
 
-    let proposal = match proposal {
-        Some(p) => p,
-        None => {
-            txn.rollback().await?;
-            return Err(anyhow::anyhow!(
+    let proposal_map: HashMap<String, proposal::Model> = proposals_result
+        .into_iter()
+        .filter_map(|p| Some((p.external_id.clone(), p.clone())))
+        .collect();
+
+    let voter_addresses: Vec<String> = votes
+        .iter()
+        .filter_map(|vote| vote.voter_address.clone().take())
+        .collect();
+
+    if voter_addresses.is_empty() {
+        txn.rollback().await?;
+        return Err(anyhow::anyhow!("No voter_addresses provided in votes"));
+    }
+
+    ensure_voters_exist(&txn, voter_addresses).await?;
+
+    let mut vote_active_models = Vec::new();
+    for vote in votes {
+        let proposal_external_id = vote
+            .proposal_external_id
+            .clone()
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Missing proposal_external_id in vote"))?;
+        let proposal_model = proposal_map.get(&proposal_external_id).ok_or_else(|| {
+            anyhow::anyhow!(
                 "No proposal found for external_id: {}",
                 proposal_external_id
-            ));
+            )
+        })?;
+
+        let vote_active_model = vote::ActiveModel {
+            voter_address: vote.voter_address.clone(),
+            choice: vote.choice.clone(),
+            voting_power: vote.voting_power.clone(),
+            reason: vote.reason.clone(),
+            created_at: vote.created_at.clone(),
+            block_created_at: vote.block_created_at.clone(),
+            txid: vote.txid.clone(),
+            proposal_external_id: vote.proposal_external_id.clone(),
+            dao_id: vote.dao_id.clone(),
+            governor_id: vote.governor_id.clone(),
+            proposal_id: Set(proposal_model.id),
+            id: NotSet,
+        };
+        vote_active_models.push(vote_active_model);
+    }
+
+    for chunk in vote_active_models.chunks(100) {
+        let result: Result<InsertResult<vote::ActiveModel>, sea_orm::DbErr> = vote::Entity::insert_many(chunk.to_vec())
+            .on_conflict(
+                OnConflict::columns([
+                    vote::Column::ProposalId,
+                    vote::Column::VoterAddress,
+                    vote::Column::CreatedAt,
+                ])
+                .update_columns([
+                    vote::Column::Choice,
+                    vote::Column::VotingPower,
+                    vote::Column::Reason,
+                    vote::Column::BlockCreatedAt,
+                    vote::Column::Txid,
+                    vote::Column::ProposalId,
+                ])
+                .to_owned(),
+            )
+            .exec(&txn)
+            .await;
+
+        if let Err(err) = result {
+            txn.rollback().await?;
+            return Err(err.into());
         }
-    };
-
-    let voter_address_to_ensure = vote
-        .voter_address
-        .clone()
-        .take()
-        .ok_or_else(|| anyhow::anyhow!("Missing voter_address in vote"))?;
-    ensure_voter_exist(&txn, voter_address_to_ensure).await?;
-
-    let vote_active_model = vote::ActiveModel {
-        voter_address: vote.voter_address.clone(),
-        choice: vote.choice.clone(),
-        voting_power: vote.voting_power.clone(),
-        reason: vote.reason.clone(),
-        created_at: vote.created_at.clone(),
-        block_created_at: vote.block_created_at.clone(),
-        txid: vote.txid.clone(),
-        proposal_external_id: vote.proposal_external_id.clone(),
-        dao_id: vote.dao_id.clone(),
-        governor_id: vote.governor_id.clone(),
-        proposal_id: Set(proposal.id),
-        id: NotSet,
-    };
-
-    let result = vote::Entity::insert(vote_active_model)
-        .on_conflict(
-            sea_orm::sea_query::OnConflict::columns([
-                vote::Column::ProposalId,
-                vote::Column::VoterAddress,
-                vote::Column::CreatedAt,
-            ])
-            .update_columns([
-                vote::Column::Choice,
-                vote::Column::VotingPower,
-                vote::Column::Reason,
-                vote::Column::BlockCreatedAt,
-                vote::Column::Txid,
-                vote::Column::ProposalId,
-            ])
-            .to_owned(),
-        )
-        .exec(&txn)
-        .await;
-
-    if let Err(err) = result {
-        txn.rollback().await?;
-        return Err(err.into());
     }
 
     txn.commit().await?;
@@ -329,45 +356,96 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
     Ok(())
 }
 
-#[instrument(skip(txn, voter_address))]
-async fn ensure_voter_exist(txn: &DatabaseTransaction, voter_address: String) -> Result<()> {
-    // Fetch ENS for the voter address
-    let ens_result = get_ethereum_provider_cache()
-        .get_inner_provider()
-        .lookup_address(voter_address.clone().parse::<Address>()?)
-        .await;
+#[instrument(skip(txn, voter_addresses))]
+async fn ensure_voters_exist(txn: &DatabaseTransaction, voter_addresses: Vec<String>) -> Result<()> {
+    if voter_addresses.is_empty() {
+        return Ok(()); // No addresses to process
+    }
 
-    let fetched_ens = match ens_result {
-        Ok(ens) => Some(ens),
-        Err(_) => None, // If ENS lookup fails, we proceed without ENS
-    };
+    let ens_lookups = voter_addresses.iter().map(|address| {
+        let addr_clone = address.clone();
+        async move {
+            let provider = get_ethereum_provider_cache().get_inner_provider();
+            let ens_result: Result<String, ProviderError> = provider
+                .lookup_address(addr_clone.parse::<Address>()?)
+                .await;
+            let result = match ens_result {
+                Ok(ens) => Ok(Some(ens)),
+                Err(e) => {
+                    debug!("ENS lookup failed for address {}: {}", addr_clone, e);
+                    Ok(None) // Proceed without ENS if lookup fails
+                }
+            };
+            Ok((addr_clone, result))
+        }
+    });
 
-    // Check if voter exists
-    let existing_voter: Option<voter::Model> = voter::Entity::find()
-        .filter(voter::Column::Address.eq(voter_address.clone()))
-        .one(txn)
+    let ens_results: Vec<Result<(String, Result<Option<String>, ProviderError>), anyhow::Error>> = join_all(ens_lookups).await;
+    let ens_map: HashMap<String, Option<String>> = ens_results
+        .into_iter()
+        .filter_map(Result::ok) // Filter out any failed lookups
+        .map(|(address, result)| {
+            let ens = match result {
+                Ok(ens_opt) => ens_opt,
+                Err(_) => None, // If ENS lookup fails, proceed without ENS
+            };
+            (address, ens)
+        })
+        .collect();
+
+    let existing_voters: Vec<voter::Model> = voter::Entity::find()
+        .filter(voter::Column::Address.is_in(voter_addresses.clone()))
+        .all(txn)
         .await?;
 
-    if let Some(voter) = existing_voter {
-        // Voter exists, check and update ENS if necessary
-        if voter.ens != fetched_ens {
-            let mut voter_active_model = voter.into_active_model();
-            voter_active_model.ens = Set(fetched_ens);
-            voter::Entity::update(voter_active_model).exec(txn).await?;
-        }
-    } else {
-        // Voter does not exist, create a new voter
-        let mut new_voter = voter::ActiveModel {
-            id: NotSet,
-            address: Set(voter_address.clone()),
-            ens: NotSet,
-        };
+    let existing_voter_map: HashMap<String, voter::Model> = existing_voters
+        .into_iter()
+        .map(|voter| (voter.address.clone(), voter))
+        .collect();
 
-        if let Some(ens) = fetched_ens {
-            new_voter.ens = Set(Some(ens));
-        }
+    let mut voters_to_insert: Vec<voter::ActiveModel> = Vec::new();
+    let mut voters_to_update: Vec<voter::ActiveModel> = Vec::new();
 
-        voter::Entity::insert(new_voter).exec(txn).await?;
+    for address in voter_addresses.iter() {
+        if let Some(existing_voter) = existing_voter_map.get(address) {
+            // Voter exists, check and update ENS if necessary
+            let fetched_ens = ens_map.get(address).unwrap_or(&None).clone();
+            if existing_voter.ens != fetched_ens {
+                debug!("Updating ENS for voter: {}", address);
+                let mut voter_active_model = existing_voter.clone().into_active_model();
+                voter_active_model.ens = Set(fetched_ens);
+                voters_to_update.push(voter_active_model);
+            }
+        } else {
+            // Voter does not exist, create a new voter
+            debug!("Inserting new voter: {}", address);
+            let fetched_ens = ens_map.get(address).unwrap_or(&None).clone();
+            let mut new_voter = voter::ActiveModel {
+                id: NotSet,
+                address: Set(address.clone()),
+                ens: NotSet,
+            };
+            if let Some(ens) = fetched_ens {
+                new_voter.ens = Set(Some(ens));
+            }
+            voters_to_insert.push(new_voter);
+        }
+    }
+
+    if !voters_to_insert.is_empty() {
+        voter::Entity::insert_many(voters_to_insert)
+            .exec(txn)
+            .await?;
+    }
+    if !voters_to_update.is_empty() {
+        // Using chunking to avoid potential issues with large updates in a single query
+        for chunk in voters_to_update.chunks(100) {
+            // Adjust chunk size as needed
+            let futures = chunk
+                .iter()
+                .map(|voter_model| voter::Entity::update(voter_model.clone()).exec(txn));
+            join_all(futures).await; // Execute updates in chunks
+        }
     }
 
     Ok(())

@@ -3,7 +3,7 @@ use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, DB, store_proposal, store_vote},
+        db_extension::{DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, DB, store_proposal, store_votes},
     },
     rindexer_lib::typings::rindexer::events::arbitrum_treasury_governor::arbitrum_treasury_governor_contract,
 };
@@ -283,6 +283,8 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     results = results.len(),
                 );
 
+                let mut votes = vec![];
+
                 for result in results.clone() {
                     let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
                         .await
@@ -308,8 +310,10 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                         dao_id: Set(get_dao_id().unwrap()),
                     };
 
-                    store_vote(vote, get_proposals_governor_id().take().unwrap()).await;
+                    votes.push(vote);
                 }
+
+                store_votes(votes, get_proposals_governor_id().take().unwrap()).await;
 
                 Ok(())
             },
@@ -335,6 +339,8 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                     results = results.len(),
                 );
 
+                let mut votes = vec![];
+
                 for result in results.clone() {
                     let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
                         .await
@@ -360,8 +366,10 @@ async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut E
                         dao_id: Set(get_dao_id().unwrap()),
                     };
 
-                    store_vote(vote, get_proposals_governor_id().take().unwrap()).await;
+                    votes.push(vote);
                 }
+
+                store_votes(votes, get_proposals_governor_id().take().unwrap()).await;
 
                 Ok(())
             },

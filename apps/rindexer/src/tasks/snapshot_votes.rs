@@ -1,5 +1,5 @@
 use crate::extensions::{
-    db_extension::{DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, DB, store_vote},
+    db_extension::{DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, DB, store_votes},
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::{Context, Result, anyhow};
@@ -126,40 +126,39 @@ pub async fn update_snapshot_votes() -> Result<()> {
 
         info!("Processing batch of {} snapshot votes", votes_data.len());
 
+        let mut votes = vec![];
+
         for vote_data in &votes_data {
-            store_snapshot_vote(vote_data, governor_id, dao_id).await?;
+            let created_at = DateTime::from_timestamp(vote_data.created, 0)
+                .context("Invalid created timestamp")?
+                .naive_utc();
+
+            let vote_model = vote::ActiveModel {
+                id: NotSet,
+                governor_id: Set(governor_id),
+                dao_id: Set(dao_id),
+                proposal_external_id: Set(vote_data.proposal.id.clone()),
+                voter_address: Set(vote_data.voter.clone()),
+                voting_power: Set(vote_data.vp),
+                choice: Set(vote_data.choice.clone()),
+                reason: Set(vote_data.reason.clone()),
+                created_at: Set(created_at),
+                block_created_at: NotSet, // Block number is not relevant for snapshot votes
+                txid: Set(Some(vote_data.ipfs.clone())),
+                proposal_id: NotSet, // Proposal id will be set in store_vote if proposal exists
+            };
+
+            votes.push(vote_model);
+
             last_vote_created = vote_data.created; // Update last created timestamp
         }
+
+        store_votes(votes, governor_id).await?;
+
         loop_count += 1;
     }
 
     info!("Successfully updated snapshot votes");
-    Ok(())
-}
-
-async fn store_snapshot_vote(vote_data: &SnapshotVote, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
-    let created_at = DateTime::from_timestamp(vote_data.created, 0)
-        .context("Invalid created timestamp")?
-        .naive_utc();
-
-    let vote_model = vote::ActiveModel {
-        id: NotSet,
-        governor_id: Set(governor_id),
-        dao_id: Set(dao_id),
-        proposal_external_id: Set(vote_data.proposal.id.clone()),
-        voter_address: Set(vote_data.voter.clone()),
-        voting_power: Set(vote_data.vp),
-        choice: Set(vote_data.choice.clone()),
-        reason: Set(vote_data.reason.clone()),
-        created_at: Set(created_at),
-        block_created_at: NotSet, // Block number is not relevant for snapshot votes
-        txid: Set(Some(vote_data.ipfs.clone())),
-        proposal_id: NotSet, // Proposal id will be set in store_vote if proposal exists
-    };
-
-    // Assuming store_vote is adapted or a new function is created to handle snapshot votes
-    store_vote(vote_model, governor_id).await?;
-
     Ok(())
 }
 
