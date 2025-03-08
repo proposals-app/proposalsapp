@@ -76,124 +76,124 @@ type Event =
   | GapEvent
   | ResultEvent;
 
-const MIN_TIME_BETWEEN_EVENTS = 1000 * 60 * 60 * 24; // 1 day in milliseconds
+// const MIN_TIME_BETWEEN_EVENTS = 1000 * 60 * 60 * 24; // 1 day in milliseconds
 
-const MAX_HEIGHT = 800;
-const EVENT_HEIGHT_UNITS = {
-  [TimelineEventType.Basic]: 40,
-  [TimelineEventType.ResultEndedBasicVote]: 136,
-  [TimelineEventType.ResultEndedOtherVotes]: 88,
-  [TimelineEventType.ResultOngoingBasicVote]: 136,
-  [TimelineEventType.ResultOngoingOtherVotes]: 88,
-  [TimelineEventType.CommentsVolume]: 4,
-  [TimelineEventType.VotesVolume]: 4,
-  [TimelineEventType.Gap]: 20,
-} as const;
+// const MAX_HEIGHT = 800;
+// const EVENT_HEIGHT_UNITS = {
+//   [TimelineEventType.Basic]: 40,
+//   [TimelineEventType.ResultEndedBasicVote]: 136,
+//   [TimelineEventType.ResultEndedOtherVotes]: 88,
+//   [TimelineEventType.ResultOngoingBasicVote]: 136,
+//   [TimelineEventType.ResultOngoingOtherVotes]: 88,
+//   [TimelineEventType.CommentsVolume]: 4,
+//   [TimelineEventType.VotesVolume]: 4,
+//   [TimelineEventType.Gap]: 20,
+// } as const;
 
 // Helper function to aggregate volume events
-function aggregateVolumeEvents(
-  events: Event[],
-  type: TimelineEventType.CommentsVolume | TimelineEventType.VotesVolume,
-  timeWindow: number
-): Event[] {
-  const volumeEvents = events.filter((e) => e.type === type) as
-    | CommentsVolumeEvent[]
-    | VotesVolumeEvent[];
+// function aggregateVolumeEvents(
+//   events: Event[],
+//   type: TimelineEventType.CommentsVolume | TimelineEventType.VotesVolume,
+//   timeWindow: number
+// ): Event[] {
+//   const volumeEvents = events.filter((e) => e.type === type) as
+//     | CommentsVolumeEvent[]
+//     | VotesVolumeEvent[];
 
-  if (volumeEvents.length <= 1) return volumeEvents;
+//   if (volumeEvents.length <= 1) return volumeEvents;
 
-  const aggregatedEvents: Event[] = [];
-  let currentWindow: (CommentsVolumeEvent | VotesVolumeEvent)[] = [];
-  let windowStart = volumeEvents[0].timestamp;
+//   const aggregatedEvents: Event[] = [];
+//   let currentWindow: (CommentsVolumeEvent | VotesVolumeEvent)[] = [];
+//   let windowStart = volumeEvents[0].timestamp;
 
-  const createAggregatedEvent = (
-    windowEvents: (CommentsVolumeEvent | VotesVolumeEvent)[],
-    lastTimestamp: Date
-  ): CommentsVolumeEvent | VotesVolumeEvent => {
-    const totalVolume = windowEvents.reduce((sum, e) => sum + e.volume, 0);
-    const isComments = type === TimelineEventType.CommentsVolume;
+//   const createAggregatedEvent = (
+//     windowEvents: (CommentsVolumeEvent | VotesVolumeEvent)[],
+//     lastTimestamp: Date
+//   ): CommentsVolumeEvent | VotesVolumeEvent => {
+//     const totalVolume = windowEvents.reduce((sum, e) => sum + e.volume, 0);
+//     const isComments = type === TimelineEventType.CommentsVolume;
 
-    if (isComments) {
-      return {
-        type: TimelineEventType.CommentsVolume,
-        timestamp: lastTimestamp,
-        content: `${windowEvents.length} comments in this period`,
-        volume: totalVolume / windowEvents.length,
-        volumeType: 'comments',
-      };
-    } else {
-      const totalVotingPower = windowEvents.reduce(
-        (sum, e) => sum + (e.metadata?.votingPower || 0),
-        0
-      );
+//     if (isComments) {
+//       return {
+//         type: TimelineEventType.CommentsVolume,
+//         timestamp: lastTimestamp,
+//         content: `${windowEvents.length} comments in this period`,
+//         volume: totalVolume / windowEvents.length,
+//         volumeType: 'comments',
+//       };
+//     } else {
+//       const totalVotingPower = windowEvents.reduce(
+//         (sum, e) => sum + (e.metadata?.votingPower || 0),
+//         0
+//       );
 
-      return {
-        type: TimelineEventType.VotesVolume,
-        timestamp: lastTimestamp,
-        content: `${windowEvents.length} votes in this period`,
-        volume: totalVolume / windowEvents.length,
-        volumeType: 'votes',
-        metadata: {
-          votingPower: totalVotingPower,
-        },
-      };
-    }
-  };
+//       return {
+//         type: TimelineEventType.VotesVolume,
+//         timestamp: lastTimestamp,
+//         content: `${windowEvents.length} votes in this period`,
+//         volume: totalVolume / windowEvents.length,
+//         volumeType: 'votes',
+//         metadata: {
+//           votingPower: totalVotingPower,
+//         },
+//       };
+//     }
+//   };
 
-  volumeEvents.forEach((event) => {
-    if (event.timestamp.getTime() - windowStart.getTime() <= timeWindow) {
-      currentWindow.push(event);
-    } else {
-      if (currentWindow.length > 0) {
-        const lastTimestamp = currentWindow[currentWindow.length - 1].timestamp;
-        aggregatedEvents.push(
-          createAggregatedEvent(currentWindow, lastTimestamp)
-        );
-      }
-      currentWindow = [event];
-      windowStart = event.timestamp;
-    }
-  });
+//   volumeEvents.forEach((event) => {
+//     if (event.timestamp.getTime() - windowStart.getTime() <= timeWindow) {
+//       currentWindow.push(event);
+//     } else {
+//       if (currentWindow.length > 0) {
+//         const lastTimestamp = currentWindow[currentWindow.length - 1].timestamp;
+//         aggregatedEvents.push(
+//           createAggregatedEvent(currentWindow, lastTimestamp)
+//         );
+//       }
+//       currentWindow = [event];
+//       windowStart = event.timestamp;
+//     }
+//   });
 
-  if (currentWindow.length > 0) {
-    const lastTimestamp = currentWindow[currentWindow.length - 1].timestamp;
-    aggregatedEvents.push(createAggregatedEvent(currentWindow, lastTimestamp));
-  }
+//   if (currentWindow.length > 0) {
+//     const lastTimestamp = currentWindow[currentWindow.length - 1].timestamp;
+//     aggregatedEvents.push(createAggregatedEvent(currentWindow, lastTimestamp));
+//   }
 
-  return aggregatedEvents;
-}
+//   return aggregatedEvents;
+// }
 
 // Helper function to calculate total height units
-function calculateTotalHeightUnits(events: Event[]): number {
-  return events.reduce((sum, event) => sum + EVENT_HEIGHT_UNITS[event.type], 0);
-}
+// function calculateTotalHeightUnits(events: Event[]): number {
+//   return events.reduce((sum, event) => sum + EVENT_HEIGHT_UNITS[event.type], 0);
+// }
 
 // Helper function to add gap events
-function addGapEvents(events: Event[], totalTimeSpan: number): Event[] {
-  const dynamicMinGapDays = (totalTimeSpan / (1000 * 60 * 60 * 24)) * 0.1;
+// function addGapEvents(events: Event[], totalTimeSpan: number): Event[] {
+//   const dynamicMinGapDays = (totalTimeSpan / (1000 * 60 * 60 * 24)) * 0.1;
 
-  return events.reduce<Event[]>((acc, event, index) => {
-    acc.push(event);
+//   return events.reduce<Event[]>((acc, event, index) => {
+//     acc.push(event);
 
-    const nextEvent = events[index + 1];
-    if (nextEvent) {
-      const timeDiff =
-        event.timestamp.getTime() - nextEvent.timestamp.getTime();
-      const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+//     const nextEvent = events[index + 1];
+//     if (nextEvent) {
+//       const timeDiff =
+//         event.timestamp.getTime() - nextEvent.timestamp.getTime();
+//       const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
 
-      if (daysDiff > dynamicMinGapDays) {
-        acc.push({
-          type: TimelineEventType.Gap,
-          timestamp: new Date(nextEvent.timestamp.getTime() + timeDiff / 2),
-          content: `${Math.floor(daysDiff)} days`,
-          gapSize: Math.min(daysDiff * 2, 10),
-        });
-      }
-    }
+//       if (daysDiff > dynamicMinGapDays) {
+//         acc.push({
+//           type: TimelineEventType.Gap,
+//           timestamp: new Date(nextEvent.timestamp.getTime() + timeDiff / 2),
+//           content: `${Math.floor(daysDiff)} days`,
+//           gapSize: Math.min(daysDiff * 2, 10),
+//         });
+//       }
+//     }
 
-    return acc;
-  }, []);
-}
+//     return acc;
+//   }, []);
+// }
 
 // Helper function to add summary event
 function addSummaryEvent(
@@ -223,7 +223,7 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
   return otel('get-events', async () => {
     if (!group) return [];
 
-    let events: Event[] = [];
+    const events: Event[] = [];
 
     // Add initial proposal post event
     if (group.topics && group.topics.length > 0) {
@@ -392,46 +392,46 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
     // Sort events by timestamp in descending order
     events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-    // Aggregate events if necessary
-    const totalHeightUnits = calculateTotalHeightUnits(events);
+    // // Aggregate events if necessary
+    // const totalHeightUnits = calculateTotalHeightUnits(events);
 
-    const maxHeightUnits = MAX_HEIGHT;
+    // const maxHeightUnits = MAX_HEIGHT;
 
-    if (totalHeightUnits > maxHeightUnits) {
-      const commentEvents = aggregateVolumeEvents(
-        events,
-        TimelineEventType.CommentsVolume,
-        MIN_TIME_BETWEEN_EVENTS
-      );
-      const voteEvents = aggregateVolumeEvents(
-        events,
-        TimelineEventType.VotesVolume,
-        MIN_TIME_BETWEEN_EVENTS
-      );
+    // if (totalHeightUnits > maxHeightUnits) {
+    //   const commentEvents = aggregateVolumeEvents(
+    //     events,
+    //     TimelineEventType.CommentsVolume,
+    //     MIN_TIME_BETWEEN_EVENTS
+    //   );
+    //   const voteEvents = aggregateVolumeEvents(
+    //     events,
+    //     TimelineEventType.VotesVolume,
+    //     MIN_TIME_BETWEEN_EVENTS
+    //   );
 
-      const importantEvents = events.filter(
-        (e) =>
-          e.type === TimelineEventType.Basic ||
-          e.type === TimelineEventType.ResultOngoingBasicVote ||
-          e.type === TimelineEventType.ResultOngoingOtherVotes ||
-          e.type === TimelineEventType.ResultEndedBasicVote ||
-          e.type === TimelineEventType.ResultEndedOtherVotes
-      );
+    //   const importantEvents = events.filter(
+    //     (e) =>
+    //       e.type === TimelineEventType.Basic ||
+    //       e.type === TimelineEventType.ResultOngoingBasicVote ||
+    //       e.type === TimelineEventType.ResultOngoingOtherVotes ||
+    //       e.type === TimelineEventType.ResultEndedBasicVote ||
+    //       e.type === TimelineEventType.ResultEndedOtherVotes
+    //   );
 
-      events = [...importantEvents, ...commentEvents, ...voteEvents].sort(
-        (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-      );
+    //   events = [...importantEvents, ...commentEvents, ...voteEvents].sort(
+    //     (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+    //   );
 
-      while (calculateTotalHeightUnits(events) > maxHeightUnits) {
-        const volumeEventIndex = events.findIndex(
-          (e) =>
-            e.type === TimelineEventType.CommentsVolume ||
-            e.type === TimelineEventType.VotesVolume
-        );
-        if (volumeEventIndex === -1) break;
-        events.splice(volumeEventIndex, 1);
-      }
-    }
+    //   while (calculateTotalHeightUnits(events) > maxHeightUnits) {
+    //     const volumeEventIndex = events.findIndex(
+    //       (e) =>
+    //         e.type === TimelineEventType.CommentsVolume ||
+    //         e.type === TimelineEventType.VotesVolume
+    //     );
+    //     if (volumeEventIndex === -1) break;
+    //     events.splice(volumeEventIndex, 1);
+    //   }
+    // }
 
     // Calculate total comments and votes
     let totalComments = 0;
@@ -463,15 +463,15 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
     }
 
     // Add gap events
-    const firstEventTimestamp = events[0].timestamp.getTime();
-    const lastEventTimestamp = events[events.length - 1].timestamp.getTime();
-    const totalTimeSpan = firstEventTimestamp - lastEventTimestamp;
-    let eventsWithGaps = addGapEvents(events, totalTimeSpan);
+    // const firstEventTimestamp = events[0].timestamp.getTime();
+    // const lastEventTimestamp = events[events.length - 1].timestamp.getTime();
+    // const totalTimeSpan = firstEventTimestamp - lastEventTimestamp;
+    // let eventsWithGaps = addGapEvents(events, totalTimeSpan);
 
     // Add summary event if necessary
-    eventsWithGaps = addSummaryEvent(eventsWithGaps, totalComments, totalVotes);
+    const finalEvents = addSummaryEvent(events, totalComments, totalVotes);
 
-    return eventsWithGaps;
+    return finalEvents;
   });
 }
 
