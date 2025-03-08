@@ -7,8 +7,12 @@ use ethers::{
 use futures::future::join_all;
 use once_cell::sync::OnceCell;
 use proposalsapp_db_indexer::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, IntoActiveModel, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
-use std::{collections::HashMap, sync::Mutex, time::Duration};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Mutex,
+    time::Duration,
+};
 use tracing::{debug, instrument};
 use utils::types::{JobData, ProposalJobData};
 
@@ -264,7 +268,8 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
         return Err(anyhow::anyhow!("No voter_addresses provided in votes"));
     }
 
-    ensure_voters_exist(&txn, voter_addresses).await?;
+    let voter_address_set: HashSet<String> = voter_addresses.into_iter().collect();
+    store_voters(&txn, voter_address_set).await?;
 
     let mut vote_active_models = Vec::new();
     for vote in votes {
@@ -357,94 +362,70 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
 }
 
 #[instrument(skip(txn, voter_addresses))]
-async fn ensure_voters_exist(txn: &DatabaseTransaction, voter_addresses: Vec<String>) -> Result<()> {
-    if voter_addresses.is_empty() {
-        return Ok(()); // No addresses to process
-    }
+async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String>) -> Result<()> {
+    const BATCH_SIZE: usize = 1000; // Adjust based on database performance
 
-    let ens_lookups = voter_addresses.iter().map(|address| {
-        let addr_clone = address.clone();
-        async move {
-            let provider = get_ethereum_provider_cache().get_inner_provider();
-            let ens_result: Result<String, ProviderError> = provider
-                .lookup_address(addr_clone.parse::<Address>()?)
-                .await;
-            let result = match ens_result {
-                Ok(ens) => Ok(Some(ens)),
-                Err(e) => {
-                    debug!("ENS lookup failed for address {}: {}", addr_clone, e);
-                    Ok(None) // Proceed without ENS if lookup fails
+    for addresses_chunk in voter_addresses
+        .into_iter()
+        .collect::<Vec<_>>()
+        .chunks(BATCH_SIZE)
+    {
+        let existing_voters: HashSet<String> = voter::Entity::find()
+            .filter(voter::Column::Address.is_in(addresses_chunk.to_vec()))
+            .all(txn)
+            .await?
+            .into_iter()
+            .map(|v| v.address)
+            .collect();
+
+        let new_voter_addresses: Vec<String> = addresses_chunk
+            .iter()
+            .filter(|&address| !existing_voters.contains(address))
+            .map(|address| address.clone())
+            .collect();
+
+        if !new_voter_addresses.is_empty() {
+            let ens_lookups = new_voter_addresses.iter().map(|address| {
+                let addr_clone = address.clone();
+                async move {
+                    let provider = get_ethereum_provider_cache().get_inner_provider();
+                    let ens_result: Result<String, ProviderError> = provider
+                        .lookup_address(addr_clone.parse::<Address>()?)
+                        .await;
+                    let result = match ens_result {
+                        Ok(ens) => Ok(Some(ens)),
+                        Err(e) => {
+                            debug!("ENS lookup failed for address {}: {}", addr_clone, e);
+                            Ok(None) // Proceed without ENS if lookup fails
+                        }
+                    };
+                    Ok((addr_clone, result))
                 }
-            };
-            Ok((addr_clone, result))
-        }
-    });
+            });
 
-    let ens_results: Vec<Result<(String, Result<Option<String>, ProviderError>), anyhow::Error>> = join_all(ens_lookups).await;
-    let ens_map: HashMap<String, Option<String>> = ens_results
-        .into_iter()
-        .filter_map(Result::ok) // Filter out any failed lookups
-        .map(|(address, result)| {
-            let ens = match result {
-                Ok(ens_opt) => ens_opt,
-                Err(_) => None, // If ENS lookup fails, proceed without ENS
-            };
-            (address, ens)
-        })
-        .collect();
-
-    let existing_voters: Vec<voter::Model> = voter::Entity::find()
-        .filter(voter::Column::Address.is_in(voter_addresses.clone()))
-        .all(txn)
-        .await?;
-
-    let existing_voter_map: HashMap<String, voter::Model> = existing_voters
-        .into_iter()
-        .map(|voter| (voter.address.clone(), voter))
-        .collect();
-
-    let mut voters_to_insert: Vec<voter::ActiveModel> = Vec::new();
-    let mut voters_to_update: Vec<voter::ActiveModel> = Vec::new();
-
-    for address in voter_addresses.iter() {
-        if let Some(existing_voter) = existing_voter_map.get(address) {
-            // Voter exists, check and update ENS if necessary
-            let fetched_ens = ens_map.get(address).unwrap_or(&None).clone();
-            if existing_voter.ens != fetched_ens {
-                debug!("Updating ENS for voter: {}", address);
-                let mut voter_active_model = existing_voter.clone().into_active_model();
-                voter_active_model.ens = Set(fetched_ens);
-                voters_to_update.push(voter_active_model);
-            }
-        } else {
-            // Voter does not exist, create a new voter
-            debug!("Inserting new voter: {}", address);
-            let fetched_ens = ens_map.get(address).unwrap_or(&None).clone();
-            let mut new_voter = voter::ActiveModel {
-                id: NotSet,
-                address: Set(address.clone()),
-                ens: NotSet,
-            };
-            if let Some(ens) = fetched_ens {
-                new_voter.ens = Set(Some(ens));
-            }
-            voters_to_insert.push(new_voter);
-        }
-    }
-
-    if !voters_to_insert.is_empty() {
-        voter::Entity::insert_many(voters_to_insert)
-            .exec(txn)
-            .await?;
-    }
-    if !voters_to_update.is_empty() {
-        // Using chunking to avoid potential issues with large updates in a single query
-        for chunk in voters_to_update.chunks(100) {
-            // Adjust chunk size as needed
-            let futures = chunk
-                .iter()
-                .map(|voter_model| voter::Entity::update(voter_model.clone()).exec(txn));
-            join_all(futures).await; // Execute updates in chunks
+            let ens_results: Vec<Result<(String, Result<Option<String>, ProviderError>), anyhow::Error>> = join_all(ens_lookups).await;
+            let voters_to_insert: Vec<voter::ActiveModel> = ens_results
+                .into_iter()
+                .filter_map(Result::ok) // Filter out any failed lookups
+                .map(|(address, result)| {
+                    let fetched_ens = match result {
+                        Ok(ens_opt) => ens_opt,
+                        Err(_) => None, // If ENS lookup fails, proceed without ENS
+                    };
+                    let mut new_voter = voter::ActiveModel {
+                        id: NotSet,
+                        address: Set(address.clone()),
+                        ens: NotSet,
+                    };
+                    if let Some(ens) = fetched_ens {
+                        new_voter.ens = Set(Some(ens));
+                    }
+                    new_voter
+                })
+                .collect();
+            voter::Entity::insert_many(voters_to_insert)
+                .exec(txn)
+                .await?;
         }
     }
 
