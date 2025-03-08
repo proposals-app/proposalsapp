@@ -4,7 +4,6 @@ use ethers::{
     providers::{Middleware, ProviderError},
     types::Address,
 };
-use futures::future::join_all;
 use once_cell::sync::OnceCell;
 use proposalsapp_db_indexer::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
@@ -370,62 +369,87 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
         .collect::<Vec<_>>()
         .chunks(BATCH_SIZE)
     {
-        let existing_voters: HashSet<String> = voter::Entity::find()
+        // Fetch existing voters with address and ens
+        let existing_voters_models: Vec<voter::Model> = voter::Entity::find()
             .filter(voter::Column::Address.is_in(addresses_chunk.to_vec()))
             .all(txn)
-            .await?
+            .await?;
+
+        // Create a HashMap of existing voters for quick lookup
+        let existing_voters_map: HashMap<String, voter::Model> = existing_voters_models
             .into_iter()
-            .map(|v| v.address)
+            .map(|v| (v.address.clone(), v))
             .collect();
 
-        let new_voter_addresses: Vec<String> = addresses_chunk
-            .iter()
-            .filter(|&address| !existing_voters.contains(address))
-            .map(|address| address.clone())
-            .collect();
+        let mut voters_to_insert: Vec<voter::ActiveModel> = Vec::new();
+        let mut voters_to_update: Vec<voter::ActiveModel> = Vec::new();
 
-        if !new_voter_addresses.is_empty() {
-            let ens_lookups = new_voter_addresses.iter().map(|address| {
+        for address in addresses_chunk {
+            if let Some(existing_voter) = existing_voters_map.get(address) {
+                // Voter exists, check and update ENS if needed
                 let addr_clone = address.clone();
-                async move {
-                    let provider = get_ethereum_provider_cache().get_inner_provider();
-                    let ens_result: Result<String, ProviderError> = provider
-                        .lookup_address(addr_clone.parse::<Address>()?)
-                        .await;
-                    let result = match ens_result {
-                        Ok(ens) => Ok(Some(ens)),
-                        Err(e) => {
-                            debug!("ENS lookup failed for address {}: {}", addr_clone, e);
-                            Ok(None) // Proceed without ENS if lookup fails
-                        }
-                    };
-                    Ok((addr_clone, result))
-                }
-            });
+                let provider = get_ethereum_provider_cache().get_inner_provider();
+                let ens_result: Result<String, ProviderError> = provider
+                    .lookup_address(addr_clone.parse::<Address>()?)
+                    .await;
 
-            let ens_results: Vec<Result<(String, Result<Option<String>, ProviderError>), anyhow::Error>> = join_all(ens_lookups).await;
-            let voters_to_insert: Vec<voter::ActiveModel> = ens_results
-                .into_iter()
-                .filter_map(Result::ok) // Filter out any failed lookups
-                .map(|(address, result)| {
-                    let fetched_ens = match result {
-                        Ok(ens_opt) => ens_opt,
-                        Err(_) => None, // If ENS lookup fails, proceed without ENS
-                    };
-                    let mut new_voter = voter::ActiveModel {
+                match ens_result {
+                    Ok(fetched_ens) => {
+                        if existing_voter.ens != Some(fetched_ens.clone()) {
+                            debug!(
+                                "Updating ENS for address {}: old ENS: {:?}, new ENS: {:?}",
+                                address, existing_voter.ens, fetched_ens
+                            );
+                            voters_to_update.push(voter::ActiveModel {
+                                id: Set(existing_voter.id),  // Use Set to update existing record
+                                address: NotSet,             // Don't update address
+                                ens: Set(Some(fetched_ens)), // Set the new ENS
+                            });
+                        }
+                    }
+                    Err(e) => {
+                        debug!(
+                            "ENS lookup failed for address {} (update check): {}",
+                            addr_clone, e
+                        );
+                        // Do not update ENS if lookup fails, or handle differently if needed
+                    }
+                }
+            } else {
+                // Voter does not exist, perform ENS lookup and prepare for insert
+                let addr_clone = address.clone();
+                let provider = get_ethereum_provider_cache().get_inner_provider();
+                let ens_result: Result<String, ProviderError> = provider
+                    .lookup_address(addr_clone.parse::<Address>()?)
+                    .await;
+
+                match ens_result {
+                    Ok(ens) => voters_to_insert.push(voter::ActiveModel {
+                        id: NotSet,
+                        address: Set(address.clone()),
+                        ens: Set(Some(ens)),
+                    }),
+                    Err(_) => voters_to_insert.push(voter::ActiveModel {
                         id: NotSet,
                         address: Set(address.clone()),
                         ens: NotSet,
-                    };
-                    if let Some(ens) = fetched_ens {
-                        new_voter.ens = Set(Some(ens));
-                    }
-                    new_voter
-                })
-                .collect();
+                    }),
+                };
+            }
+        }
+
+        // Perform bulk insert for new voters
+        if !voters_to_insert.is_empty() {
             voter::Entity::insert_many(voters_to_insert)
+                .on_conflict(OnConflict::new().do_nothing().to_owned())
                 .exec(txn)
                 .await?;
+        }
+        // Perform bulk update for existing voters with new ENS
+        if !voters_to_update.is_empty() {
+            for voter_update in voters_to_update.into_iter() {
+                voter::Entity::update(voter_update).exec(txn).await?;
+            }
         }
     }
 
