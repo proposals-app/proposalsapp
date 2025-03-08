@@ -5,9 +5,12 @@ import {
   DEFAULT_CHOICE_COLOR,
   ProcessedResults,
 } from '@/lib/results_processing';
+import { VoteSegmentData } from '../actions';
 
 interface RankedChoiceVoteProps {
-  result: ProcessedResults;
+  result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
+    voteSegments: { [key: string]: VoteSegmentData[] };
+  };
 }
 
 export const RankedChoiceVote = ({ result }: RankedChoiceVoteProps) => {

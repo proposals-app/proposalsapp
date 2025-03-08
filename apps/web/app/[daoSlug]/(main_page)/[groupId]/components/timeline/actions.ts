@@ -7,7 +7,7 @@ import {
   ProcessedResults,
   processResultsAction,
 } from '@/lib/results_processing';
-import { superjson_cache } from '@/lib/utils';
+import { formatNumberWithSuffix, superjson_cache } from '@/lib/utils';
 
 export enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -58,6 +58,12 @@ interface GapEvent extends BaseEvent {
   gapSize: number;
 }
 
+export interface VoteSegmentData {
+  votingPower: number;
+  tooltip: string;
+  isAggregated?: boolean;
+}
+
 interface ResultEvent extends BaseEvent {
   type:
     | TimelineEventType.ResultOngoingBasicVote
@@ -66,7 +72,9 @@ interface ResultEvent extends BaseEvent {
     | TimelineEventType.ResultEndedOtherVotes;
   content: string;
   proposal: Selectable<Proposal>;
-  result: ProcessedResults;
+  result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
+    voteSegments: { [key: string]: VoteSegmentData[] };
+  };
 }
 
 type Event =
@@ -218,6 +226,64 @@ function addSummaryEvent(
   return events;
 }
 
+const MIN_VISIBLE_WIDTH_PERCENT = 1;
+
+function calculateVoteSegments(processedResults: ProcessedResults): {
+  [key: string]: VoteSegmentData[];
+} {
+  const { finalResults, totalVotingPower, choices, votes } = processedResults;
+
+  const sortedVotes =
+    votes
+      ?.filter((vote) => !vote.aggregate)
+      .sort((a, b) => b.votingPower - a.votingPower) || [];
+
+  const voteSegments: { [key: string]: VoteSegmentData[] } = {};
+  const aggregatedVotes: { [key: number]: { count: number; power: number } } =
+    {};
+
+  choices.forEach((_, index) => {
+    voteSegments[index.toString()] = [];
+    aggregatedVotes[index] = { count: 0, power: 0 };
+  });
+
+  sortedVotes.forEach((vote) => {
+    const choice = vote.choice as number;
+
+    // Ensure the choice is a valid index in the choices array
+    if (choice >= 0 && choice < choices.length) {
+      const percentage = (vote.votingPower / totalVotingPower) * 100;
+
+      if (percentage >= MIN_VISIBLE_WIDTH_PERCENT) {
+        voteSegments[choice.toString()].push({
+          votingPower: vote.votingPower,
+          tooltip: `${formatNumberWithSuffix(vote.votingPower)} vote "${
+            choices[choice]
+          }"`,
+        });
+      } else {
+        aggregatedVotes[choice].count += 1;
+        aggregatedVotes[choice].power += vote.votingPower;
+      }
+    } else {
+      console.warn(`Invalid choice index: ${choice}. Skipping this vote.`);
+    }
+  });
+
+  Object.entries(aggregatedVotes).forEach(([choice, data]) => {
+    if (data.power > 0) {
+      voteSegments[choice.toString()].push({
+        votingPower: data.power,
+        tooltip: `${data.count} votes with ${formatNumberWithSuffix(
+          data.power
+        )} total voting power for "${choices[parseInt(choice)]}"`,
+        isAggregated: true,
+      });
+    }
+  });
+  return voteSegments;
+}
+
 // Main function to extract events
 async function getEvents(group: GroupReturnType): Promise<Event[]> {
   return otel('get-events', async () => {
@@ -282,6 +348,8 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
             aggregatedVotes: false,
           });
 
+          const voteSegments = calculateVoteSegments(processedResults);
+
           const metadata =
             typeof proposal.metadata === 'string'
               ? (JSON.parse(proposal.metadata) as ProposalMetadata)
@@ -300,7 +368,7 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
                   ? TimelineEventType.ResultEndedBasicVote
                   : TimelineEventType.ResultEndedOtherVotes,
               timestamp: endedAt,
-              result: processedResults,
+              result: { ...processedResults, voteSegments },
               proposal,
             });
           } else {
@@ -314,7 +382,7 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
                   ? TimelineEventType.ResultOngoingBasicVote
                   : TimelineEventType.ResultOngoingOtherVotes,
               timestamp: endedAt,
-              result: processedResults,
+              result: { ...processedResults, voteSegments },
               proposal,
             });
           }

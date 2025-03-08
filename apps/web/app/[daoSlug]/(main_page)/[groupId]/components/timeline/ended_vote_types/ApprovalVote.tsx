@@ -2,9 +2,12 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { ProcessedResults } from '@/lib/results_processing';
 import React, { useMemo } from 'react';
 import { HiddenVote } from './HiddenVote';
+import { VoteSegmentData } from '../actions';
 
 interface ApprovalVoteProps {
-  result: ProcessedResults;
+  result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
+    voteSegments: { [key: string]: VoteSegmentData[] };
+  };
 }
 
 export const ApprovalVote = ({ result }: ApprovalVoteProps) => {

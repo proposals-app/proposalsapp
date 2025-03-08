@@ -4,28 +4,25 @@ import { HiddenVote } from './HiddenVote';
 import { ProcessedResults } from '@/lib/results_processing';
 import PassedSmallIcon from '@/public/assets/web/passed-small.svg';
 import FailedSmallIcon from '@/public/assets/web/failed-small.svg';
+import { VoteSegmentData } from '../actions';
 
 interface BasicVoteProps {
-  result: ProcessedResults;
+  result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
+    voteSegments: { [key: string]: VoteSegmentData[] };
+  };
 }
 
-interface VoteSegmentData {
-  votingPower: number;
-  tooltip: string;
-  isAggregated?: boolean;
-}
-
-const MIN_VISIBLE_WIDTH_PERCENT = 1;
-
-const VoteSegment = ({
-  color,
-  width,
-  isAggregated = false,
-}: {
+interface VoteSegmentProps {
   color: string;
   width: number;
   isAggregated?: boolean;
-}) => (
+}
+
+export const VoteSegment = ({
+  color,
+  width,
+  isAggregated = false,
+}: VoteSegmentProps) => (
   <div
     className={'h-full'}
     style={{
@@ -46,26 +43,34 @@ const VoteSegment = ({
 );
 
 export const BasicVote = ({ result }: BasicVoteProps) => {
-  const { finalResults, totalVotingPower, choiceColors, choices, quorum } =
-    useMemo(() => {
-      if (result.hiddenVote && result.scoresState !== 'final') {
-        return {
-          finalResults: {},
-          totalVotingPower: 0,
-          choiceColors: result.choiceColors || [],
-          choices: result.choices || [],
-          quorum: result.quorum || 0,
-        };
-      }
-
+  const {
+    finalResults,
+    totalVotingPower,
+    choiceColors,
+    choices,
+    quorum,
+    voteSegments,
+  } = useMemo(() => {
+    if (result.hiddenVote && result.scoresState !== 'final') {
       return {
-        finalResults: result.finalResults || {},
-        totalVotingPower: result.totalVotingPower,
+        finalResults: {},
+        totalVotingPower: 0,
         choiceColors: result.choiceColors || [],
         choices: result.choices || [],
         quorum: result.quorum || 0,
+        voteSegments: result.voteSegments || {},
       };
-    }, [result]);
+    }
+
+    return {
+      finalResults: result.finalResults || {},
+      totalVotingPower: result.totalVotingPower,
+      choiceColors: result.choiceColors || [],
+      choices: result.choices || [],
+      quorum: result.quorum || 0,
+      voteSegments: result.voteSegments || {},
+    };
+  }, [result]);
 
   if (result.hiddenVote && result.scoresState !== 'final') {
     return <HiddenVote result={result} />;
@@ -75,54 +80,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
     return <div>No votes recorded</div>;
   }
 
-  const sortedVotes =
-    result.votes
-      ?.filter((vote) => !vote.aggregate)
-      .sort((a, b) => b.votingPower - a.votingPower) || [];
-
-  const voteSegments: { [key: string]: VoteSegmentData[] } = {};
-  const aggregatedVotes: { [key: number]: { count: number; power: number } } =
-    {};
-
-  choices.forEach((_, index) => {
-    voteSegments[index.toString()] = [];
-    aggregatedVotes[index] = { count: 0, power: 0 };
-  });
-
-  sortedVotes.forEach((vote) => {
-    const choice = vote.choice as number;
-
-    // Ensure the choice is a valid index in the choices array
-    if (choice >= 0 && choice < choices.length) {
-      const percentage = (vote.votingPower / totalVotingPower) * 100;
-
-      if (percentage >= MIN_VISIBLE_WIDTH_PERCENT) {
-        voteSegments[choice.toString()].push({
-          votingPower: vote.votingPower,
-          tooltip: `${formatNumberWithSuffix(vote.votingPower)} vote "${
-            choices[choice]
-          }"`,
-        });
-      } else {
-        aggregatedVotes[choice].count += 1;
-        aggregatedVotes[choice].power += vote.votingPower;
-      }
-    } else {
-      console.warn(`Invalid choice index: ${choice}. Skipping this vote.`);
-    }
-  });
-
-  Object.entries(aggregatedVotes).forEach(([choice, data]) => {
-    if (data.power > 0) {
-      voteSegments[choice.toString()].push({
-        votingPower: data.power,
-        tooltip: `${data.count} votes with ${formatNumberWithSuffix(
-          data.power
-        )} total voting power for "${choices[parseInt(choice)]}"`,
-        isAggregated: true,
-      });
-    }
-  });
+  const isBasicVote = ['For', 'Against', 'Abstain'].includes(choices[0]);
 
   const votingPowerByChoice = Object.entries(finalResults).map(
     ([choiceIndex, votingPower]) => ({
@@ -147,7 +105,6 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
     .reduce((sum, [, votingPower]) => sum + votingPower, 0);
 
   const hasQuorum = quorumVotingPower > (quorum || 0);
-  const isBasicVote = ['For', 'Against', 'Abstain'].includes(choices[0]);
 
   return (
     <div className='space-y-1'>
@@ -158,7 +115,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
               const choiceIndex = choices.indexOf(choiceLabel);
               if (choiceIndex === -1) return null;
 
-              return voteSegments[choiceIndex.toString()].map(
+              return voteSegments[choiceIndex.toString()]?.map(
                 (segment, index) => (
                   <VoteSegment
                     key={`${choiceLabel}-${index}`}
@@ -170,7 +127,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
               );
             })
           : // Only show winning choice for non-basic votes
-            voteSegments[winningChoice.choiceIndex.toString()].map(
+            voteSegments[winningChoice.choiceIndex.toString()]?.map(
               (segment, index) => (
                 <VoteSegment
                   key={`winning-${index}`}

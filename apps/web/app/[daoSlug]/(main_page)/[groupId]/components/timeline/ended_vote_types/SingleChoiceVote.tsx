@@ -5,9 +5,12 @@ import {
   DEFAULT_CHOICE_COLOR,
   ProcessedResults,
 } from '@/lib/results_processing';
+import { VoteSegmentData } from '../actions';
 
 interface SingleChoiceVoteProps {
-  result: ProcessedResults;
+  result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
+    voteSegments: { [key: string]: VoteSegmentData[] };
+  };
 }
 
 export const SingleChoiceVote = ({ result }: SingleChoiceVoteProps) => {

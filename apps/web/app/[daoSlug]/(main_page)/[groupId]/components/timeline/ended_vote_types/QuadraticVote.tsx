@@ -1,7 +1,10 @@
 import { ProcessedResults } from '@/lib/results_processing';
+import { VoteSegmentData } from '../actions';
 
 interface QuadraticVoteProps {
-  result: ProcessedResults;
+  result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
+    voteSegments: { [key: string]: VoteSegmentData[] };
+  };
 }
 
 export const QuadraticVote = ({ result }: QuadraticVoteProps) => {

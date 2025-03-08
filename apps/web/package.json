@@ -54,7 +54,7 @@
     "@types/diff-match-patch": "^1.0.36",
     "@types/eslint": "^9.6.1",
     "@types/jsdom": "^21.1.7",
-    "@types/node": "22.13.9",
+    "@types/node": "22.13.10",
     "@types/postcss-load-config": "^3.0.1",
     "@types/prettier": "^3.0.0",
     "@types/react": "^19.0.10",

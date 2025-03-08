@@ -1,7 +1,11 @@
 import { ProcessedResults } from '@/lib/results_processing';
 import { formatNumberWithSuffix } from '@/lib/utils';
+import { VoteSegmentData } from '../actions';
+
 interface HiddenVoteProps {
-  result: ProcessedResults;
+  result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
+    voteSegments: { [key: string]: VoteSegmentData[] };
+  };
 }
 
 export function HiddenVote({ result }: HiddenVoteProps) {
