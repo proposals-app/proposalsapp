@@ -140,7 +140,16 @@ pub async fn update_snapshot_votes() -> Result<()> {
                 proposal_external_id: Set(vote_data.proposal.id.clone()),
                 voter_address: Set(vote_data.voter.clone()),
                 voting_power: Set(vote_data.vp),
-                choice: Set(vote_data.choice.clone()),
+                choice: Set(if vote_data.choice.is_number() {
+                    (vote_data
+                        .choice
+                        .as_i64()
+                        .ok_or_else(|| anyhow::anyhow!("Invalid choice value"))?
+                        - 1)
+                    .into()
+                } else {
+                    vote_data.choice.clone()
+                }),
                 reason: Set(vote_data.reason.clone()),
                 created_at: Set(created_at),
                 block_created_at: NotSet, // Block number is not relevant for snapshot votes
