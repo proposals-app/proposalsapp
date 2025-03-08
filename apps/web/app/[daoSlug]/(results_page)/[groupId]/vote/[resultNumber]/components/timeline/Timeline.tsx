@@ -8,10 +8,18 @@ import {
 import { ResultEvent } from './ResultEvent';
 import { GroupReturnType } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
-import {
-  getEvents_cached,
-  TimelineEventType,
-} from '@/app/[daoSlug]/(main_page)/[groupId]/components/timeline/actions';
+import { getEvents_cached } from '@/app/[daoSlug]/(main_page)/[groupId]/components/timeline/actions';
+
+enum TimelineEventType {
+  ResultOngoingBasicVote = 'ResultOngoingBasicVote',
+  ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',
+  ResultEndedBasicVote = 'ResultEndedBasicVote',
+  ResultEndedOtherVotes = 'ResultEndedOtherVotes',
+  Basic = 'Basic',
+  CommentsVolume = 'CommentsVolume',
+  VotesVolume = 'VotesVolume',
+  Gap = 'Gap',
+}
 
 export async function Timeline({
   group,

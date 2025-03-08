@@ -3,7 +3,17 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg';
-import { TimelineEventType } from '@/app/[daoSlug]/(main_page)/[groupId]/components/timeline/actions';
+
+enum TimelineEventType {
+  ResultOngoingBasicVote = 'ResultOngoingBasicVote',
+  ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',
+  ResultEndedBasicVote = 'ResultEndedBasicVote',
+  ResultEndedOtherVotes = 'ResultEndedOtherVotes',
+  Basic = 'Basic',
+  CommentsVolume = 'CommentsVolume',
+  VotesVolume = 'VotesVolume',
+  Gap = 'Gap',
+}
 
 interface ResultEventProps {
   eventType: TimelineEventType;

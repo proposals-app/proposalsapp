@@ -971,7 +971,6 @@ export async function processResultsAction(
     aggregatedVotes = false,
   }: ProcessingConfig
 ): Promise<ProcessedResults> {
-  'use server';
   return otel('process-results', async () => {
     const choices = proposal.choices as string[];
     const metadata = proposal.metadata as ProposalMetadata;

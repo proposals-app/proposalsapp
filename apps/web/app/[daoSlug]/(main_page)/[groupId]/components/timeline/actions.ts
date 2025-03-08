@@ -1,3 +1,5 @@
+'use server';
+
 import { otel } from '@/lib/otel';
 import { db, Proposal, Selectable, sql } from '@proposalsapp/db-indexer';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -9,7 +11,7 @@ import {
 } from '@/lib/results_processing';
 import { formatNumberWithSuffix, superjson_cache } from '@/lib/utils';
 
-export enum TimelineEventType {
+enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
   ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',
   ResultEndedBasicVote = 'ResultEndedBasicVote',
@@ -77,7 +79,7 @@ interface ResultEvent extends BaseEvent {
   };
 }
 
-type Event =
+export type Event =
   | BasicEvent
   | CommentsVolumeEvent
   | VotesVolumeEvent
@@ -231,7 +233,7 @@ const MIN_VISIBLE_WIDTH_PERCENT = 1;
 function calculateVoteSegments(processedResults: ProcessedResults): {
   [key: string]: VoteSegmentData[];
 } {
-  const { finalResults, totalVotingPower, choices, votes } = processedResults;
+  const { totalVotingPower, choices, votes } = processedResults;
 
   const sortedVotes =
     votes
