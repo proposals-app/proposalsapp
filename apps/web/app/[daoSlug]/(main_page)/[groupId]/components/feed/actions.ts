@@ -155,7 +155,7 @@ async function getFeed(
 
       return {
         votes: processedVotes,
-        posts: posts.filter((p) => p.name != 'System'),
+        posts,
       };
     } catch (error) {
       console.error('Error fetching feed:', error);
