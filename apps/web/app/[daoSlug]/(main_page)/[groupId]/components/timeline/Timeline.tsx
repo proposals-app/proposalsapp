@@ -149,7 +149,7 @@ export function Timeline({
       // Start animation after events are loaded
       setTimeout(() => {
         setAnimationStarted(true);
-      }, 100); // Small delay to ensure DOM is ready
+      }, 250); // Small delay to ensure DOM is ready
     };
 
     fetchEvents();
@@ -211,7 +211,7 @@ export function Timeline({
       <div className='relative h-full w-full'>
         <div
           className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
-            translate-x-[1px] bg-neutral-800 transition-transform duration-2000 ease-out
+            translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-out
             ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
         />
 
@@ -219,7 +219,13 @@ export function Timeline({
           {displayEvents.map((event, index, array) => {
             // Calculate the animation delay from bottom to top
             // The last item (bottom) should animate first
-            const animationDelay = (displayEvents.length - index - 1) * 16;
+            let animationDelay = 0;
+            if (displayEvents.length > 1) {
+              animationDelay =
+                ((displayEvents.length - 1 - index) /
+                  (displayEvents.length - 1)) *
+                1000;
+            }
 
             // Determine visibility based on filters and metadata
             const isVisible =
