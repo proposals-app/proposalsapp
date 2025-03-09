@@ -9,7 +9,14 @@ import { CommentsVolumeEvent } from './CommentsVolumeEvent';
 import { GapEvent } from './GapEvent';
 import { ResultEvent } from './ResultEvent';
 import { VotesVolumeEvent } from './VotesVolumeEvent';
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+  RefObject,
+} from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -48,6 +55,9 @@ interface VotesVolumeEvent extends BaseEvent {
   };
 }
 
+/**
+ * Aggregates volume events to reduce visual clutter based on a specified level
+ */
 function aggregateVolumeEvents(events: Event[], level: number = 1): Event[] {
   if (!events || events.length <= 1) return events || [];
 
@@ -127,11 +137,311 @@ function aggregateVolumeEvents(events: Event[], level: number = 1): Event[] {
   }
 
   // Merge and sort all events by timestamp
-  const result = [...otherEvents, ...aggregatedVolumeEvents].sort(
+  return [...otherEvents, ...aggregatedVolumeEvents].sort(
     (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
   );
+}
 
-  return result;
+// Custom hook to manage timeline events and visibility logic
+function useTimelineEvents(
+  group: GroupReturnType,
+  commentsFilter: boolean,
+  votesFilter: VotesFilterEnum
+) {
+  const [state, setState] = useState({
+    rawEvents: null as Event[] | null,
+    aggregationLevel: 0,
+    animationStarted: false,
+    isFullyRendered: false,
+  });
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const lastVisibilityCheckRef = useRef(Date.now());
+  const VISIBILITY_CHECK_THROTTLE = 50; // ms
+
+  // Process events based on current aggregation level
+  const displayEvents = useMemo(() => {
+    if (!state.rawEvents) return null;
+
+    if (state.aggregationLevel === 0) {
+      return state.rawEvents;
+    } else {
+      return aggregateVolumeEvents(state.rawEvents, state.aggregationLevel);
+    }
+  }, [state.rawEvents, state.aggregationLevel]);
+
+  // Create a map of proposal IDs to their display order
+  const proposalOrderMap = useMemo(() => {
+    const map = new Map<string, number>();
+    group!.proposals.forEach((proposal, index) => {
+      map.set(proposal.id, index + 1); // +1 to make it 1-based
+    });
+    return map;
+  }, [group?.proposals]);
+
+  // Filter visible events based on filters
+  const isEventVisible = useCallback(
+    (event: Event) => {
+      if (event.type === TimelineEventType.CommentsVolume) {
+        return commentsFilter;
+      }
+      if (event.type === TimelineEventType.VotesVolume) {
+        if (!event.metadata?.votingPower) return false;
+
+        switch (votesFilter) {
+          case VotesFilterEnum.ALL:
+            return true;
+          case VotesFilterEnum.FIFTY_THOUSAND:
+            return event.metadata.votingPower > 50000;
+          case VotesFilterEnum.FIVE_HUNDRED_THOUSAND:
+            return event.metadata.votingPower > 500000;
+          case VotesFilterEnum.FIVE_MILLION:
+            return event.metadata.votingPower > 5000000;
+          default:
+            return false;
+        }
+      }
+
+      // Always show these event types
+      return [
+        TimelineEventType.Basic,
+        TimelineEventType.ResultOngoingBasicVote,
+        TimelineEventType.ResultOngoingOtherVotes,
+        TimelineEventType.ResultEndedBasicVote,
+        TimelineEventType.ResultEndedOtherVotes,
+        TimelineEventType.Gap,
+      ].includes(event.type);
+    },
+    [commentsFilter, votesFilter]
+  );
+
+  // Get filtered events for visibility checks
+  const visibleEvents = useMemo(() => {
+    return displayEvents?.filter(isEventVisible) || [];
+  }, [displayEvents, isEventVisible]);
+
+  // Check if end is visible and adjust aggregation level if needed
+  const checkVisibility = useCallback(() => {
+    if (
+      !endRef.current ||
+      !containerRef.current ||
+      !state.rawEvents ||
+      !state.isFullyRendered ||
+      visibleEvents.length === 0
+    )
+      return;
+
+    // Throttle checks to avoid excessive performance impact
+    const now = Date.now();
+    if (now - lastVisibilityCheckRef.current < VISIBILITY_CHECK_THROTTLE) {
+      return;
+    }
+    lastVisibilityCheckRef.current = now;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const endRect = endRef.current.getBoundingClientRect();
+    const isEndVisible = endRect.bottom <= containerRect.bottom;
+
+    setState((prevState) => {
+      // If end is not visible and we have enough events, increase aggregation
+      if (
+        !isEndVisible &&
+        prevState.aggregationLevel < 5 &&
+        visibleEvents.length > 5
+      ) {
+        return {
+          ...prevState,
+          aggregationLevel: prevState.aggregationLevel + 1,
+        };
+      }
+      // If end is visible with extra space, decrease aggregation
+      else if (
+        isEndVisible &&
+        prevState.aggregationLevel > 0 &&
+        endRect.bottom < containerRect.bottom - 100
+      ) {
+        return {
+          ...prevState,
+          aggregationLevel: Math.max(0, prevState.aggregationLevel - 1),
+        };
+      }
+      return prevState;
+    });
+  }, [state.rawEvents, state.isFullyRendered, visibleEvents.length]);
+
+  // Handle container size changes
+  const onResize = useCallback(
+    (size: { width: number; height: number }, sizeIncreased: boolean) => {
+      if (size.height > 0) {
+        // If the size increased, try to decrease aggregation level
+        if (sizeIncreased && state.aggregationLevel > 0) {
+          setState((prevState) => ({
+            ...prevState,
+            aggregationLevel: Math.max(0, prevState.aggregationLevel - 1),
+          }));
+        }
+
+        // Still check visibility with a slight delay to allow for DOM updates
+        setTimeout(checkVisibility, 50);
+      }
+    },
+    [checkVisibility, state.aggregationLevel]
+  );
+
+  // Setup resize observer
+  useResizeObserver(containerRef as React.RefObject<HTMLElement>, onResize);
+
+  // Fetch the raw events data
+  useEffect(() => {
+    const fetchEvents = async () => {
+      const fetchedEvents = await getEvents_cached(group);
+
+      setState((prev) => ({
+        ...prev,
+        rawEvents: fetchedEvents,
+      }));
+
+      // Start animation after events are loaded
+      setTimeout(() => {
+        setState((prev) => ({ ...prev, animationStarted: true }));
+      }, 250);
+    };
+
+    fetchEvents();
+  }, [group]);
+
+  // Setup intersection observer for the container
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setTimeout(checkVisibility, 50);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    intersectionObserver.observe(containerRef.current);
+    return () => intersectionObserver.disconnect();
+  }, [checkVisibility]);
+
+  // Run initial visibility check when animation completes
+  useEffect(() => {
+    if (state.rawEvents && state.animationStarted && !state.isFullyRendered) {
+      const timer = setTimeout(() => {
+        setState((prev) => ({ ...prev, isFullyRendered: true }));
+        checkVisibility();
+      }, 1000); // Wait for animations to complete
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    state.rawEvents,
+    state.animationStarted,
+    state.isFullyRendered,
+    checkVisibility,
+  ]);
+
+  // Update check on filter changes
+  useEffect(() => {
+    if (state.isFullyRendered) {
+      setTimeout(checkVisibility, 100);
+    }
+  }, [commentsFilter, votesFilter, state.isFullyRendered, checkVisibility]);
+
+  return {
+    state,
+    displayEvents,
+    visibleEvents,
+    proposalOrderMap,
+    isEventVisible,
+    refs: {
+      containerRef,
+      timelineRef,
+      endRef,
+    },
+  };
+}
+
+// Create a separate component for timeline events to improve readability
+function TimelineEventItem({
+  event,
+  index,
+  isVisible,
+  isLastVisible,
+  animationStarted,
+  animationDelay,
+  resultNumber,
+  group,
+  endRef,
+}: {
+  event: Event;
+  index: number;
+  isVisible: boolean;
+  isLastVisible: boolean;
+  animationStarted: boolean;
+  animationDelay: number;
+  resultNumber?: number;
+  group: GroupReturnType;
+  endRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div
+      className={`transition-opacity duration-200 ease-in-out
+        ${isVisible ? 'opacity-100' : 'h-0 overflow-hidden opacity-0'}`}
+    >
+      <div
+        className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'}
+          transition-all duration-500 ease-out`}
+        style={{
+          transitionDelay: `${animationDelay}ms`,
+          WebkitTransitionDelay: `${animationDelay}ms`,
+          msTransitionDelay: `${animationDelay}ms`,
+        }}
+        ref={isLastVisible ? endRef : undefined}
+      >
+        {event.type === TimelineEventType.Gap ? (
+          <GapEvent />
+        ) : event.type === TimelineEventType.CommentsVolume ? (
+          <CommentsVolumeEvent
+            timestamp={event.timestamp}
+            width={event.volume / event.maxVolume}
+            last={index === 0}
+          />
+        ) : event.type === TimelineEventType.VotesVolume ? (
+          <VotesVolumeEvent
+            timestamp={event.timestamp}
+            width={event.volume / event.maxVolume}
+            last={index === 0}
+          />
+        ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
+          event.type === TimelineEventType.ResultOngoingOtherVotes ||
+          event.type === TimelineEventType.ResultEndedBasicVote ||
+          event.type === TimelineEventType.ResultEndedOtherVotes ? (
+          <ResultEvent
+            content={event.content}
+            timestamp={event.timestamp}
+            result={event.result}
+            resultNumber={resultNumber!}
+            last={index === 0}
+            daoSlug={group!.daoSlug}
+            groupId={group!.group.id}
+          />
+        ) : event.type === TimelineEventType.Basic ? (
+          <BasicEvent
+            content={event.content}
+            timestamp={event.timestamp}
+            url={event.url}
+            last={index === 0}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 export function Timeline({
@@ -147,195 +457,14 @@ export function Timeline({
     notFound();
   }
 
-  const [rawEvents, setRawEvents] = useState<Event[] | null>(null);
-  const [displayEvents, setDisplayEvents] = useState<Event[] | null>(null);
-  const [animationStarted, setAnimationStarted] = useState(false);
-  const [aggregationLevel, setAggregationLevel] = useState(0);
-  const [isFullyRendered, setIsFullyRendered] = useState(false);
-
-  const endRef = useRef<HTMLDivElement>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Track visibility check timing
-  const lastVisibilityCheckRef = useRef(Date.now());
-  const visibilityCheckThrottleRef = useRef(250); // ms
-
-  const proposalOrderMap = useMemo(() => {
-    const map = new Map<string, number>();
-    group.proposals.forEach((proposal, index) => {
-      map.set(proposal.id, index + 1); // +1 to make it 1-based
-    });
-    return map;
-  }, [group.proposals]);
-
-  // Filter visible events based on filters
-  const getVisibleEvents = useCallback(
-    (events: Event[]) => {
-      return events.filter(
-        (event) =>
-          (event.type === TimelineEventType.CommentsVolume && commentsFilter) ||
-          (event.type === TimelineEventType.VotesVolume &&
-            event.metadata?.votingPower &&
-            (votesFilter === VotesFilterEnum.ALL ||
-              (votesFilter === VotesFilterEnum.FIFTY_THOUSAND &&
-                event.metadata.votingPower > 50000) ||
-              (votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND &&
-                event.metadata.votingPower > 500000) ||
-              (votesFilter === VotesFilterEnum.FIVE_MILLION &&
-                event.metadata.votingPower > 5000000))) ||
-          event.type === TimelineEventType.Basic ||
-          event.type === TimelineEventType.ResultOngoingBasicVote ||
-          event.type === TimelineEventType.ResultOngoingOtherVotes ||
-          event.type === TimelineEventType.ResultEndedBasicVote ||
-          event.type === TimelineEventType.ResultEndedOtherVotes ||
-          event.type === TimelineEventType.Gap
-      );
-    },
-    [commentsFilter, votesFilter]
-  );
-
-  // Check if end is visible and adjust aggregation level if needed
-  const checkVisibility = useCallback(() => {
-    if (
-      !endRef.current ||
-      !containerRef.current ||
-      !rawEvents ||
-      !isFullyRendered
-    )
-      return;
-
-    // Throttle checks to avoid excessive performance impact
-    const now = Date.now();
-    if (
-      now - lastVisibilityCheckRef.current <
-      visibilityCheckThrottleRef.current
-    ) {
-      return;
-    }
-    lastVisibilityCheckRef.current = now;
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const endRect = endRef.current.getBoundingClientRect();
-
-    const isEndVisible = endRect.bottom <= containerRect.bottom;
-
-    // Get visible count to make better decisions
-    const visibleEventsCount = getVisibleEvents(displayEvents || []).length;
-
-    if (!isEndVisible && aggregationLevel < 5 && visibleEventsCount > 5) {
-      // Only increase aggregation if we have enough events to warrant it
-      setAggregationLevel((prev) => prev + 1);
-    } else if (
-      isEndVisible &&
-      aggregationLevel > 0 &&
-      endRect.bottom < containerRect.bottom - 100
-    ) {
-      // End is visible with extra space, try to decrease aggregation
-      setAggregationLevel((prev) => Math.max(0, prev - 1));
-    }
-  }, [
-    rawEvents,
+  const {
+    state,
     displayEvents,
-    aggregationLevel,
-    isFullyRendered,
-    getVisibleEvents,
-  ]);
-
-  // Fetch the raw events data
-  useEffect(() => {
-    const fetchEvents = async () => {
-      const fetchedEvents = await getEvents_cached(group);
-      setRawEvents(fetchedEvents);
-
-      // Start animation after events are loaded
-      setTimeout(() => {
-        setAnimationStarted(true);
-      }, 250); // Small delay to ensure DOM is ready
-    };
-
-    fetchEvents();
-  }, [group]);
-
-  // Process events based on current aggregation level
-  useEffect(() => {
-    if (!rawEvents) return;
-
-    if (aggregationLevel === 0) {
-      // Use raw events without aggregation
-      setDisplayEvents(rawEvents);
-    } else {
-      // Apply aggregation at the current level
-      const aggregated = aggregateVolumeEvents(rawEvents, aggregationLevel);
-      setDisplayEvents(aggregated);
-    }
-  }, [rawEvents, aggregationLevel]);
-
-  // Set up resize observer to check visibility when layout changes
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const resizeObserver = new ResizeObserver(() => {
-      // Add a small delay to ensure the DOM has updated
-      setTimeout(checkVisibility, 50);
-    });
-
-    resizeObserver.observe(containerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [checkVisibility]);
-
-  // Setup scroll observer
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Use IntersectionObserver for more efficient visibility detection
-    const intersectionObserver = new IntersectionObserver(
-      (entries) => {
-        // When container visibility changes, check child visibility
-        if (entries[0].isIntersecting) {
-          setTimeout(checkVisibility, 50);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    intersectionObserver.observe(containerRef.current);
-
-    return () => {
-      intersectionObserver.disconnect();
-    };
-  }, [checkVisibility]);
-
-  // Run initial visibility check when animation completes and events are displayed
-  useEffect(() => {
-    if (displayEvents && animationStarted) {
-      // Mark as fully rendered after animation completes
-      const timer = setTimeout(() => {
-        setIsFullyRendered(true);
-        checkVisibility();
-      }, 1000); // Wait for animations to complete
-
-      return () => clearTimeout(timer);
-    }
-  }, [displayEvents, animationStarted, checkVisibility]);
-
-  // Check visibility periodically in case other checks fail
-  useEffect(() => {
-    if (displayEvents && isFullyRendered) {
-      const intervalId = setInterval(checkVisibility, 2000);
-      return () => clearInterval(intervalId);
-    }
-  }, [displayEvents, isFullyRendered, checkVisibility]);
-
-  // Update check on filter changes
-  useEffect(() => {
-    if (isFullyRendered) {
-      setTimeout(checkVisibility, 100);
-    }
-  }, [commentsFilter, votesFilter, isFullyRendered, checkVisibility]);
+    visibleEvents,
+    proposalOrderMap,
+    isEventVisible,
+    refs,
+  } = useTimelineEvents(group, commentsFilter, votesFilter);
 
   if (!displayEvents) {
     return null;
@@ -343,23 +472,23 @@ export function Timeline({
 
   return (
     <div
-      ref={timelineRef}
+      ref={refs.timelineRef}
       className='fixed top-0 right-0 flex h-full min-w-96 flex-col items-end justify-start pt-24
         pl-4'
     >
       <div
-        ref={containerRef}
+        ref={refs.containerRef}
         className='relative h-full w-full overflow-hidden'
-        data-aggregation-level={aggregationLevel} // For debugging purposes
+        data-aggregation-level={state.aggregationLevel}
       >
         <div
           className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
             translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out
-            ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
+            ${state.animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
         />
 
         <div className='flex h-full flex-col justify-between'>
-          {displayEvents.map((event, index, array) => {
+          {displayEvents.map((event, index) => {
             // Calculate the animation delay from bottom to top
             // The last item (bottom) should animate first
             let animationDelay = 0;
@@ -370,25 +499,10 @@ export function Timeline({
                 700;
             }
 
-            // Determine visibility based on filters and metadata
-            const isVisible =
-              (event.type === TimelineEventType.CommentsVolume &&
-                commentsFilter) ||
-              (event.type === TimelineEventType.VotesVolume &&
-                event.metadata?.votingPower &&
-                (votesFilter === VotesFilterEnum.ALL ||
-                  (votesFilter === VotesFilterEnum.FIFTY_THOUSAND &&
-                    event.metadata.votingPower > 50000) ||
-                  (votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND &&
-                    event.metadata.votingPower > 500000) ||
-                  (votesFilter === VotesFilterEnum.FIVE_MILLION &&
-                    event.metadata.votingPower > 5000000))) ||
-              event.type === TimelineEventType.Basic ||
-              event.type === TimelineEventType.ResultOngoingBasicVote ||
-              event.type === TimelineEventType.ResultOngoingOtherVotes ||
-              event.type === TimelineEventType.ResultEndedBasicVote ||
-              event.type === TimelineEventType.ResultEndedOtherVotes ||
-              event.type === TimelineEventType.Gap;
+            const isVisible = isEventVisible(event);
+            const isLastVisible =
+              visibleEvents.length > 0 &&
+              event === visibleEvents[visibleEvents.length - 1];
 
             const resultNumber =
               event.type === TimelineEventType.ResultOngoingBasicVote ||
@@ -398,101 +512,67 @@ export function Timeline({
                 ? proposalOrderMap.get(event.result.proposal.id)
                 : undefined;
 
-            // Find the last visible element
-            const visibleEvents = array.filter((e, i) => {
-              // Use the same visibility calculation logic
-              return (
-                (e.type === TimelineEventType.CommentsVolume &&
-                  commentsFilter) ||
-                (e.type === TimelineEventType.VotesVolume &&
-                  e.metadata?.votingPower &&
-                  (votesFilter === VotesFilterEnum.ALL ||
-                    (votesFilter === VotesFilterEnum.FIFTY_THOUSAND &&
-                      e.metadata.votingPower > 50000) ||
-                    (votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND &&
-                      e.metadata.votingPower > 500000) ||
-                    (votesFilter === VotesFilterEnum.FIVE_MILLION &&
-                      e.metadata.votingPower > 5000000))) ||
-                e.type === TimelineEventType.Basic ||
-                e.type === TimelineEventType.ResultOngoingBasicVote ||
-                e.type === TimelineEventType.ResultOngoingOtherVotes ||
-                e.type === TimelineEventType.ResultEndedBasicVote ||
-                e.type === TimelineEventType.ResultEndedOtherVotes ||
-                e.type === TimelineEventType.Gap
-              );
-            });
-
-            const lastVisibleIndex = array.indexOf(
-              visibleEvents[visibleEvents.length - 1]
-            );
-            const isLastVisible = index === lastVisibleIndex;
-
             return (
-              <div
+              <TimelineEventItem
                 key={`${event.type}-${index}-${event.timestamp.toString()}`}
-                className={`transition-opacity duration-200 ease-in-out
-                ${isVisible ? 'opacity-100' : 'h-0 overflow-hidden opacity-0'}`}
-              >
-                <div
-                  className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'}
-                  transition-all duration-500 ease-out`}
-                  style={{
-                    transitionDelay: `${animationDelay}ms`,
-                    WebkitTransitionDelay: `${animationDelay}ms`,
-                    msTransitionDelay: `${animationDelay}ms`,
-                  }}
-                  ref={isLastVisible && isVisible ? endRef : undefined}
-                >
-                  {event.type === TimelineEventType.Gap ? (
-                    <GapEvent />
-                  ) : event.type === TimelineEventType.CommentsVolume ? (
-                    <CommentsVolumeEvent
-                      timestamp={event.timestamp}
-                      width={event.volume / event.maxVolume}
-                      last={index === 0}
-                    />
-                  ) : event.type === TimelineEventType.VotesVolume ? (
-                    <VotesVolumeEvent
-                      timestamp={event.timestamp}
-                      width={event.volume / event.maxVolume}
-                      last={index === 0}
-                    />
-                  ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
-                    event.type === TimelineEventType.ResultOngoingOtherVotes ? (
-                    <ResultEvent
-                      content={event.content}
-                      timestamp={event.timestamp}
-                      result={event.result}
-                      resultNumber={resultNumber!}
-                      last={index === 0}
-                      daoSlug={group.daoSlug}
-                      groupId={group.group.id}
-                    />
-                  ) : event.type === TimelineEventType.ResultEndedBasicVote ||
-                    event.type === TimelineEventType.ResultEndedOtherVotes ? (
-                    <ResultEvent
-                      content={event.content}
-                      timestamp={event.timestamp}
-                      result={event.result}
-                      resultNumber={resultNumber!}
-                      last={index === 0}
-                      daoSlug={group.daoSlug}
-                      groupId={group.group.id}
-                    />
-                  ) : event.type === TimelineEventType.Basic ? (
-                    <BasicEvent
-                      content={event.content}
-                      timestamp={event.timestamp}
-                      url={event.url}
-                      last={index === 0}
-                    />
-                  ) : null}
-                </div>
-              </div>
+                event={event}
+                index={index}
+                isVisible={isVisible}
+                isLastVisible={isLastVisible}
+                animationStarted={state.animationStarted}
+                animationDelay={animationDelay}
+                resultNumber={resultNumber}
+                group={group!}
+                endRef={refs.endRef}
+              />
             );
           })}
         </div>
       </div>
     </div>
   );
+}
+
+export function useResizeObserver(
+  ref: RefObject<HTMLElement>,
+  callback: (
+    size: { width: number; height: number },
+    sizeIncreased: boolean
+  ) => void
+) {
+  const prevSizeRef = useRef({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const element = entries[0];
+      if (element) {
+        const newSize = {
+          width: element.contentRect.width,
+          height: element.contentRect.height,
+        };
+
+        // Only call callback if size actually changed
+        if (
+          newSize.width !== prevSizeRef.current.width ||
+          newSize.height !== prevSizeRef.current.height
+        ) {
+          // Determine if the size increased
+          const sizeIncreased =
+            newSize.height > prevSizeRef.current.height ||
+            newSize.width > prevSizeRef.current.width;
+
+          prevSizeRef.current = newSize;
+          callback(newSize, sizeIncreased);
+        }
+      }
+    });
+
+    resizeObserver.observe(ref.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [ref, callback]);
 }
