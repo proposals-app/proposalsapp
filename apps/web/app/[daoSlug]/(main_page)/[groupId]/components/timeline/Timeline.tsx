@@ -9,8 +9,7 @@ import { CommentsVolumeEvent } from './CommentsVolumeEvent';
 import { GapEvent } from './GapEvent';
 import { ResultEvent } from './ResultEvent';
 import { VotesVolumeEvent } from './VotesVolumeEvent';
-import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -214,9 +213,6 @@ export function Timeline({
           className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
             translate-x-[1px] bg-neutral-800 transition-transform duration-2000 ease-out
             ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
-          style={{
-            transformOrigin: 'bottom',
-          }}
         />
 
         <div className='flex h-full flex-col justify-between'>
@@ -259,16 +255,16 @@ export function Timeline({
             return (
               <div
                 key={`${event.type}-${index}-${event.timestamp.toString()}`}
-                style={{
-                  opacity: isVisible ? 1 : 0,
-                  transition: 'opacity 0.2s ease-in-out',
-                }}
+                className={`transition-opacity duration-200 ease-in-out
+                ${isVisible ? 'opacity-100' : 'opacity-0'}`}
               >
                 <div
                   className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'}
                   transition-all duration-500 ease-out`}
                   style={{
                     transitionDelay: `${animationDelay}ms`,
+                    WebkitTransitionDelay: `${animationDelay}ms`,
+                    msTransitionDelay: `${animationDelay}ms`,
                   }}
                   ref={isLastVisible ? endRef : undefined}
                 >
@@ -325,40 +321,3 @@ export function Timeline({
     </div>
   );
 }
-
-// export function LoadingTimeline() {
-//   return (
-//     <div className='fixed top-0 right-0 flex h-full w-96 flex-col items-end justify-start pt-24 pl-4'>
-//       <div className='relative h-full w-full'>
-//         <div
-//           className='absolute top-1 flex h-8 w-8 items-center justify-center rounded-xs border
-//             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
-//         >
-//           <TimelineEventIcon
-//             className='dark:fill-neutral-350 fill-neutral-800'
-//             width={24}
-//             height={24}
-//             alt={'Timeline event'}
-//           />
-//         </div>
-
-//         <div
-//           className='dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 translate-x-[1px]
-//             bg-neutral-800'
-//         />
-
-//         <div
-//           className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border
-//             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
-//         >
-//           <TimelineEventIcon
-//             className='dark:fill-neutral-350 fill-neutral-800'
-//             width={24}
-//             height={24}
-//             alt={'Timeline event'}
-//           />
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
