@@ -1,17 +1,16 @@
 interface VotesVolumeEventProps {
-  content: string;
   timestamp: Date;
-  volume: number;
+  width: number;
   last: boolean;
 }
 
-export function VotesVolumeEvent({ volume }: VotesVolumeEventProps) {
+export function VotesVolumeEvent({ width }: VotesVolumeEventProps) {
   return (
-    <div className='flex h-1 w-full items-center py-1'>
+    <div className='flex min-h-1 w-full items-center py-[1px]'>
       <div
-        className='ml-4 h-1 translate-x-[1px] bg-neutral-400 dark:bg-neutral-500'
+        className='ml-4 min-h-1 translate-x-[1px] bg-neutral-400 dark:bg-neutral-500'
         style={{
-          width: `${Math.max(volume * 80, 1)}%`,
+          width: `${Math.max(width * 80, 1)}%`,
         }}
       />
     </div>

@@ -81,5 +81,5 @@ const nextConfig = {
     return config;
   },
 };
-
-export default withSerwist(nextConfig);
+export default nextConfig;
+// export default withSerwist(nextConfig);

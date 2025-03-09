@@ -39,15 +39,15 @@ interface BasicEvent extends BaseEvent {
 
 interface CommentsVolumeEvent extends BaseEvent {
   type: TimelineEventType.CommentsVolume;
-  content: string;
   volume: number;
+  maxVolume: number;
   volumeType: 'comments';
 }
 
 interface VotesVolumeEvent extends BaseEvent {
   type: TimelineEventType.VotesVolume;
-  content: string;
   volume: number;
+  maxVolume: number;
   volumeType: 'votes';
   metadata: {
     votingPower: number;
@@ -287,16 +287,11 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
 
           dailyVotes.forEach((dailyVote) => {
             const timestamp = new Date(dailyVote.lastVoteTime);
-            const normalizedVolume =
-              Number(dailyVote.totalVotingPower) / maxVotes;
             events.push({
-              content: `${Number(dailyVote.totalVotingPower).toFixed(2)} voting power on ${format(
-                timestamp,
-                'MMM d'
-              )}`,
               type: TimelineEventType.VotesVolume,
               timestamp,
-              volume: normalizedVolume,
+              volume: Number(dailyVote.totalVotingPower),
+              maxVolume: maxVotes,
               volumeType: 'votes',
               metadata: {
                 votingPower: Number(dailyVote.totalVotingPower),
@@ -328,12 +323,11 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
 
         dailyPosts.forEach((dailyPost) => {
           const timestamp = new Date(dailyPost.lastPostTime);
-          const normalizedVolume = Number(dailyPost.count) / maxComments;
           events.push({
-            content: `${dailyPost.count} post(s) on ${format(timestamp, 'MMM d')}`,
             type: TimelineEventType.CommentsVolume,
             timestamp,
-            volume: normalizedVolume,
+            volume: Number(dailyPost.count),
+            maxVolume: maxComments,
             volumeType: 'comments',
           });
         });

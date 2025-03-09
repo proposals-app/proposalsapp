@@ -9,7 +9,7 @@ import { CommentsVolumeEvent } from './CommentsVolumeEvent';
 import { GapEvent } from './GapEvent';
 import { ResultEvent } from './ResultEvent';
 import { VotesVolumeEvent } from './VotesVolumeEvent';
-import TimelineEventIcon from '@/public/assets/web/timeline_event.svg'; // Import the SVG as a React component
+import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import { useEffect, useRef, useState, useMemo } from 'react';
 
 enum TimelineEventType {
@@ -34,15 +34,15 @@ interface BaseEvent {
 
 interface CommentsVolumeEvent extends BaseEvent {
   type: TimelineEventType.CommentsVolume;
-  content: string;
   volume: number;
+  maxVolume: number;
   volumeType: 'comments';
 }
 
 interface VotesVolumeEvent extends BaseEvent {
   type: TimelineEventType.VotesVolume;
-  content: string;
   volume: number;
+  maxVolume: number;
   volumeType: 'votes';
   metadata: {
     votingPower: number;
@@ -63,7 +63,10 @@ export function Timeline({
   }
 
   const [events, setEvents] = useState<Event[] | null>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
+  const [originalEvents, setOriginalEvents] = useState<Event[] | null>(null);
+  const [isEndVisible, setIsEndVisible] = useState(true); // Initially consider end as visible to show unmerged events
+
+  const endRef = useRef<HTMLDivElement>(null);
   const proposalOrderMap = useMemo(() => {
     const map = new Map<string, number>();
     group.proposals.forEach((proposal, index) => {
@@ -76,24 +79,128 @@ export function Timeline({
     const fetchEvents = async () => {
       const fetchedEvents = await getEvents_cached(group);
       setEvents(fetchedEvents);
+      setOriginalEvents(fetchedEvents);
     };
 
     fetchEvents();
   }, [group]);
+
+  useEffect(() => {
+    if (!originalEvents) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.intersectionRatio < 1) {
+            console.log('endRef is not fully visible');
+            setIsEndVisible(false);
+          } else {
+            console.log('endRef is fully visible');
+            setIsEndVisible(true);
+          }
+        });
+      },
+      {
+        threshold: 0,
+      }
+    );
+
+    const node = endRef.current;
+    if (node) {
+      observer.observe(node);
+    }
+
+    return () => {
+      observer.disconnect();
+      if (node && observer.unobserve) observer.unobserve(node);
+    };
+  }, [originalEvents]);
+
+  useEffect(() => {
+    if (isEndVisible) {
+      if (!originalEvents) return;
+      // When endRef is visible, use original events to show all events
+      setEvents(originalEvents);
+    } else {
+      if (!events) return;
+      // When endRef is not visible, merge volume events
+      const merged = mergeVolumeEvents(events);
+      setEvents(merged);
+    }
+  }, [isEndVisible, originalEvents]);
+
+  const mergeVolumeEvents = (eventsToMerge: Event[]): Event[] => {
+    if (!eventsToMerge) return [];
+    const mergedEventsArray: Event[] = [];
+    let currentMergedCommentVolume: CommentsVolumeEvent | null = null;
+    let currentMergedVotesVolume: VotesVolumeEvent | null = null;
+
+    for (const event of eventsToMerge) {
+      if (event.type === TimelineEventType.CommentsVolume) {
+        if (currentMergedCommentVolume) {
+          currentMergedCommentVolume.volume += event.volume;
+          currentMergedCommentVolume.maxVolume = event.maxVolume;
+          mergedEventsArray.push(currentMergedCommentVolume as Event);
+          currentMergedCommentVolume = null;
+        } else {
+          currentMergedCommentVolume = { ...event };
+        }
+      } else if (event.type === TimelineEventType.VotesVolume) {
+        if (currentMergedVotesVolume) {
+          currentMergedVotesVolume.volume += event.volume;
+          currentMergedVotesVolume.maxVolume += event.maxVolume;
+          if (
+            event.metadata?.votingPower &&
+            currentMergedVotesVolume.metadata
+          ) {
+            currentMergedVotesVolume.metadata.votingPower = Math.max(
+              currentMergedVotesVolume.metadata.votingPower || 0,
+              event.metadata.votingPower
+            );
+          }
+          mergedEventsArray.push(currentMergedVotesVolume as Event);
+          currentMergedVotesVolume = null;
+        } else {
+          currentMergedVotesVolume = { ...event };
+        }
+      } else {
+        if (currentMergedCommentVolume) {
+          mergedEventsArray.push(currentMergedCommentVolume as Event);
+          currentMergedCommentVolume = null;
+        }
+        if (currentMergedVotesVolume) {
+          mergedEventsArray.push(currentMergedVotesVolume as Event);
+          currentMergedVotesVolume = null;
+        }
+        mergedEventsArray.push(event);
+      }
+    }
+    if (currentMergedCommentVolume) {
+      mergedEventsArray.push(currentMergedCommentVolume as Event);
+    }
+    if (currentMergedVotesVolume) {
+      mergedEventsArray.push(currentMergedVotesVolume as Event);
+    }
+    return mergedEventsArray;
+  };
 
   if (!events) {
     return <LoadingTimeline />;
   }
 
   return (
-    <div className='fixed top-0 right-0 flex h-full w-96 flex-col items-end justify-start pt-24 pl-4'>
-      <div className='relative h-full w-full' ref={timelineRef}>
+    <div
+      className='fixed top-0 right-0 flex h-full min-w-96 flex-col items-end justify-start pt-24
+        pl-4'
+    >
+      <div className='relative h-full w-full'>
         <div
           className='dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 translate-x-[1px]
             bg-neutral-800'
         />
+
         <div className='flex h-full flex-col justify-between'>
-          {events.map((event, index) => {
+          {events.map((event, index, array) => {
             // Determine visibility based on filters and metadata
             const isVisible =
               (event.type === TimelineEventType.CommentsVolume &&
@@ -129,21 +236,20 @@ export function Timeline({
                   opacity: isVisible ? 1 : 0,
                   transition: 'opacity 0.2s ease-in-out',
                 }}
+                ref={index == array.length - 1 ? endRef : undefined}
               >
                 {event.type === TimelineEventType.Gap ? (
                   <GapEvent />
                 ) : event.type === TimelineEventType.CommentsVolume ? (
                   <CommentsVolumeEvent
-                    content={event.content}
                     timestamp={event.timestamp}
-                    volume={event.volume}
+                    width={event.volume / event.maxVolume}
                     last={index == 0}
                   />
                 ) : event.type === TimelineEventType.VotesVolume ? (
                   <VotesVolumeEvent
-                    content={event.content}
                     timestamp={event.timestamp}
-                    volume={event.volume}
+                    width={event.volume / event.maxVolume}
                     last={index == 0}
                   />
                 ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
@@ -152,7 +258,7 @@ export function Timeline({
                     content={event.content}
                     timestamp={event.timestamp}
                     result={event.result}
-                    resultNumber={resultNumber!} // Pass the resultNumber
+                    resultNumber={resultNumber!}
                     last={index == 0}
                     daoSlug={group.daoSlug}
                     groupId={group.group.id}
@@ -163,7 +269,7 @@ export function Timeline({
                     content={event.content}
                     timestamp={event.timestamp}
                     result={event.result}
-                    resultNumber={resultNumber!} // Pass the resultNumber
+                    resultNumber={resultNumber!}
                     last={index == 0}
                     daoSlug={group.daoSlug}
                     groupId={group.group.id}
@@ -190,7 +296,7 @@ export function LoadingTimeline() {
     <div className='fixed top-0 right-0 flex h-full w-96 flex-col items-end justify-start pt-24 pl-4'>
       <div className='relative h-full w-full'>
         <div
-          className='absolute top-1 flex h-8 w-8 items-center justify-center rounded-xs border-2
+          className='absolute top-1 flex h-8 w-8 items-center justify-center rounded-xs border
             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
         >
           <TimelineEventIcon
@@ -207,7 +313,7 @@ export function LoadingTimeline() {
         />
 
         <div
-          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2
+          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border
             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
         >
           <TimelineEventIcon
