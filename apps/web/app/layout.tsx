@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '@/styles/globals.css';
-import Head from 'next/head';
 import { PostHogProvider } from './components/posthog-provider';
 import SuspendedPostHogPageView from './components/PostHogPageView';
 import { WebVitals } from './web-vitals';
@@ -43,25 +42,10 @@ export default async function RootLayout({
 }) {
   return (
     <html lang='en'>
-      <head>
-        <link rel='preconnect' href='https://fonts.googleapis.com' />
-        <link
-          rel='preconnect'
-          href='https://fonts.gstatic.com'
-          crossOrigin='anonymous'
-        />
-        <link
-          href='https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@300;400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&family=Fira+Mono:wght@400;500;700&display=swap'
-          rel='stylesheet'
-        />
-      </head>
       <PostHogProvider>
         <WebVitals />
         <NuqsAdapter>
           <SuspendedPostHogPageView />
-          <Head>
-            <link rel='icon' href='/favicon.ico' />
-          </Head>
           <body>{children}</body>
         </NuqsAdapter>
       </PostHogProvider>

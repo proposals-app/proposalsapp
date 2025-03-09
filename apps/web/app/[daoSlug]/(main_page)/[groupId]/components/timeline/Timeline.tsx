@@ -11,7 +11,6 @@ import { ResultEvent } from './ResultEvent';
 import { VotesVolumeEvent } from './VotesVolumeEvent';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg'; // Import the SVG as a React component
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { format } from 'date-fns';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -50,84 +49,6 @@ interface VotesVolumeEvent extends BaseEvent {
   };
 }
 
-const MAX_HEIGHT = 840;
-const MIN_TIME_BETWEEN_EVENTS_AGGREGATION = 1000 * 60 * 60 * 24; // 1 day in milliseconds
-
-function aggregateVolumeEvents(
-  events: Event[],
-  type: TimelineEventType.CommentsVolume | TimelineEventType.VotesVolume,
-  timeWindow: number
-): Event[] {
-  const volumeEvents = events.filter((e) => e.type === type) as
-    | CommentsVolumeEvent[]
-    | VotesVolumeEvent[];
-
-  if (volumeEvents.length <= 1) return volumeEvents;
-
-  const aggregatedEvents: Event[] = [];
-  let currentWindow: (CommentsVolumeEvent | VotesVolumeEvent)[] = [];
-  let windowStart = volumeEvents[0].timestamp;
-
-  const createAggregatedEvent = (
-    windowEvents: (CommentsVolumeEvent | VotesVolumeEvent)[],
-    lastTimestamp: Date
-  ): CommentsVolumeEvent | VotesVolumeEvent => {
-    const totalVolume = windowEvents.reduce((sum, e) => sum + e.volume, 0);
-    const isComments = type === TimelineEventType.CommentsVolume;
-    const firstTimestamp = windowEvents[0].timestamp;
-
-    const aggregatedContent = `${windowEvents.length} ${isComments ? 'comment' : 'vote'} events from ${format(firstTimestamp, 'MMM d')} to ${format(lastTimestamp, 'MMM d')}`;
-
-    if (isComments) {
-      return {
-        type: TimelineEventType.CommentsVolume,
-        timestamp: lastTimestamp,
-        content: aggregatedContent,
-        volume: totalVolume / windowEvents.length, // Average volume
-        volumeType: 'comments',
-      } as CommentsVolumeEvent;
-    } else {
-      const totalVotingPower = windowEvents.reduce(
-        (sum, e) => sum + (e.metadata?.votingPower || 0),
-        0
-      );
-
-      return {
-        type: TimelineEventType.VotesVolume,
-        timestamp: lastTimestamp,
-        content: aggregatedContent,
-        volume: totalVolume / windowEvents.length, // Average volume
-        volumeType: 'votes',
-        metadata: {
-          votingPower: totalVotingPower,
-        },
-      } as VotesVolumeEvent;
-    }
-  };
-
-  volumeEvents.forEach((event) => {
-    if (event.timestamp.getTime() - windowStart.getTime() <= timeWindow) {
-      currentWindow.push(event);
-    } else {
-      if (currentWindow.length > 0) {
-        const lastTimestamp = currentWindow[currentWindow.length - 1].timestamp;
-        aggregatedEvents.push(
-          createAggregatedEvent(currentWindow, lastTimestamp)
-        );
-      }
-      currentWindow = [event];
-      windowStart = event.timestamp;
-    }
-  });
-
-  if (currentWindow.length > 0) {
-    const lastTimestamp = currentWindow[currentWindow.length - 1].timestamp;
-    aggregatedEvents.push(createAggregatedEvent(currentWindow, lastTimestamp));
-  }
-
-  return aggregatedEvents;
-}
-
 export function Timeline({
   group,
   commentsFilter,
@@ -160,53 +81,13 @@ export function Timeline({
     fetchEvents();
   }, [group]);
 
-  useEffect(() => {
-    if (!events || !timelineRef.current) return;
-
-    if (timelineRef.current.offsetHeight > MAX_HEIGHT) {
-      const commentVolumeEvents = events.filter(
-        (event) => event.type === TimelineEventType.CommentsVolume
-      );
-      const voteVolumeEvents = events.filter(
-        (event) => event.type === TimelineEventType.VotesVolume
-      );
-      const nonVolumeEvents = events.filter(
-        (event) =>
-          event.type !== TimelineEventType.CommentsVolume &&
-          event.type !== TimelineEventType.VotesVolume
-      );
-
-      const aggregatedCommentEvents = aggregateVolumeEvents(
-        commentVolumeEvents,
-        TimelineEventType.CommentsVolume,
-        MIN_TIME_BETWEEN_EVENTS_AGGREGATION
-      );
-      const aggregatedVoteEvents = aggregateVolumeEvents(
-        voteVolumeEvents,
-        TimelineEventType.VotesVolume,
-        MIN_TIME_BETWEEN_EVENTS_AGGREGATION
-      );
-
-      const aggregatedEvents = [
-        ...nonVolumeEvents,
-        ...aggregatedCommentEvents,
-        ...aggregatedVoteEvents,
-      ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-      setEvents(aggregatedEvents);
-    }
-  }, [events]);
-
   if (!events) {
     return <LoadingTimeline />;
   }
 
   return (
-    <div
-      className='fixed top-0 right-0 flex h-screen w-96 flex-col items-end justify-start pt-24
-        pl-4'
-    >
-      <div className='relative h-full max-h-[840px] w-full' ref={timelineRef}>
+    <div className='fixed top-0 right-0 flex h-full w-96 flex-col items-end justify-start pt-24 pl-4'>
+      <div className='relative h-full w-full' ref={timelineRef}>
         <div
           className='dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 translate-x-[1px]
             bg-neutral-800'
@@ -306,11 +187,8 @@ export function Timeline({
 
 export function LoadingTimeline() {
   return (
-    <div
-      className='fixed top-0 right-0 flex h-screen w-96 flex-col items-end justify-start pt-24
-        pl-4'
-    >
-      <div className='relative h-full max-h-[840px] w-full'>
+    <div className='fixed top-0 right-0 flex h-full w-96 flex-col items-end justify-start pt-24 pl-4'>
+      <div className='relative h-full w-full'>
         <div
           className='absolute top-1 flex h-8 w-8 items-center justify-center rounded-xs border-2
             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
