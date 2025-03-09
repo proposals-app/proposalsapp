@@ -15,20 +15,14 @@ export function GapEvent() {
 }
 
 interface VotesVolumeEventProps {
-  content: string;
   timestamp: Date;
   volume: number;
 }
 
-export function VotesVolumeEvent({ volume }: VotesVolumeEventProps) {
+export function VotesVolumeEvent() {
   return (
     <div className='flex h-full w-full items-center'>
-      <div
-        className='ml-4 h-1 opacity-0'
-        style={{
-          width: `${Math.max(volume * 80, 1)}%`,
-        }}
-      />
+      <div className='ml-4 min-h-1' />
     </div>
   );
 }
@@ -36,7 +30,7 @@ export function VotesVolumeEvent({ volume }: VotesVolumeEventProps) {
 export function CommentsVolumeEvent() {
   return (
     <div className='flex h-full w-full items-center'>
-      <div className='ml-4 h-1' />
+      <div className='ml-4 min-h-1' />
     </div>
   );
 }

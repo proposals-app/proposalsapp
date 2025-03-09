@@ -106,11 +106,7 @@ export async function Timeline({
                 ) : event.type === TimelineEventType.CommentsVolume ? (
                   <CommentsVolumeEvent />
                 ) : event.type === TimelineEventType.VotesVolume ? (
-                  <VotesVolumeEvent
-                    content={event.content}
-                    timestamp={event.timestamp}
-                    volume={event.volume}
-                  />
+                  <VotesVolumeEvent />
                 ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
                   event.type === TimelineEventType.ResultOngoingOtherVotes ||
                   event.type === TimelineEventType.ResultEndedBasicVote ||

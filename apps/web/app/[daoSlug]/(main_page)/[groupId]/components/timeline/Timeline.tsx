@@ -10,7 +10,7 @@ import { GapEvent } from './GapEvent';
 import { ResultEvent } from './ResultEvent';
 import { VotesVolumeEvent } from './VotesVolumeEvent';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -49,6 +49,69 @@ interface VotesVolumeEvent extends BaseEvent {
   };
 }
 
+function aggregateVolumeEvents(events: Event[]): Event[] {
+  if (!events || events.length <= 1) return events || [];
+
+  const aggregatedEvents: Event[] = [];
+  for (let i = 0; i < events.length; i++) {
+    const currentEvent = events[i];
+    if (
+      (currentEvent.type === TimelineEventType.CommentsVolume ||
+        currentEvent.type === TimelineEventType.VotesVolume) &&
+      i + 1 < events.length
+    ) {
+      const nextEvent = events[i + 1];
+      if (currentEvent.type === nextEvent.type) {
+        if (currentEvent.type === TimelineEventType.CommentsVolume) {
+          const aggregatedVolumeEvent: CommentsVolumeEvent = {
+            type: TimelineEventType.CommentsVolume,
+            timestamp:
+              currentEvent.timestamp < nextEvent.timestamp
+                ? currentEvent.timestamp
+                : nextEvent.timestamp,
+            volume:
+              (currentEvent as CommentsVolumeEvent).volume +
+              (nextEvent as CommentsVolumeEvent).volume,
+            maxVolume: Math.max(
+              (currentEvent as CommentsVolumeEvent).maxVolume,
+              (nextEvent as CommentsVolumeEvent).maxVolume
+            ),
+            volumeType: 'comments',
+          };
+          aggregatedEvents.push(aggregatedVolumeEvent);
+        } else if (currentEvent.type === TimelineEventType.VotesVolume) {
+          const aggregatedVolumeEvent: VotesVolumeEvent = {
+            type: TimelineEventType.VotesVolume,
+            timestamp:
+              currentEvent.timestamp < nextEvent.timestamp
+                ? currentEvent.timestamp
+                : nextEvent.timestamp,
+            volume:
+              (currentEvent as VotesVolumeEvent).volume +
+              (nextEvent as VotesVolumeEvent).volume,
+            maxVolume: Math.max(
+              (currentEvent as VotesVolumeEvent).maxVolume,
+              (nextEvent as VotesVolumeEvent).maxVolume
+            ),
+            volumeType: 'votes',
+            metadata: {
+              votingPower: (currentEvent as VotesVolumeEvent).metadata!
+                .votingPower,
+            },
+          };
+          aggregatedEvents.push(aggregatedVolumeEvent);
+        }
+        i++; // Skip the next event as it's aggregated
+      } else {
+        aggregatedEvents.push(currentEvent);
+      }
+    } else {
+      aggregatedEvents.push(currentEvent);
+    }
+  }
+  return aggregatedEvents;
+}
+
 export function Timeline({
   group,
   commentsFilter,
@@ -62,11 +125,14 @@ export function Timeline({
     notFound();
   }
 
-  const [events, setEvents] = useState<Event[] | null>(null);
-  const [originalEvents, setOriginalEvents] = useState<Event[] | null>(null);
-  const [isEndVisible, setIsEndVisible] = useState(true); // Initially consider end as visible to show unmerged events
+  const [rawEvents, setRawEvents] = useState<Event[] | null>(null);
+  const [displayEvents, setDisplayEvents] = useState<Event[] | null>(null);
+  const [animationStarted, setAnimationStarted] = useState(false);
+  const [isEndVisible, setIsEndVisible] = useState(true);
 
   const endRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+
   const proposalOrderMap = useMemo(() => {
     const map = new Map<string, number>();
     group.proposals.forEach((proposal, index) => {
@@ -75,132 +141,90 @@ export function Timeline({
     return map;
   }, [group.proposals]);
 
+  // Fetch the raw events data
   useEffect(() => {
     const fetchEvents = async () => {
       const fetchedEvents = await getEvents_cached(group);
-      setEvents(fetchedEvents);
-      setOriginalEvents(fetchedEvents);
+      setRawEvents(fetchedEvents);
+
+      // Start animation after events are loaded
+      setTimeout(() => {
+        setAnimationStarted(true);
+      }, 100); // Small delay to ensure DOM is ready
     };
 
     fetchEvents();
   }, [group]);
 
+  // Process raw events to determine display events based on visibility
   useEffect(() => {
-    if (!originalEvents) return;
+    if (!rawEvents) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.intersectionRatio < 1) {
-            console.log('endRef is not fully visible');
-            setIsEndVisible(false);
-          } else {
-            console.log('endRef is fully visible');
-            setIsEndVisible(true);
-          }
-        });
-      },
-      {
-        threshold: 0,
-      }
-    );
-
-    const node = endRef.current;
-    if (node) {
-      observer.observe(node);
-    }
-
-    return () => {
-      observer.disconnect();
-      if (node && observer.unobserve) observer.unobserve(node);
-    };
-  }, [originalEvents]);
-
-  useEffect(() => {
     if (isEndVisible) {
-      if (!originalEvents) return;
-      // When endRef is visible, use original events to show all events
-      setEvents(originalEvents);
+      // If the end is visible, show all events without aggregation
+      setDisplayEvents(rawEvents);
     } else {
-      if (!events) return;
-      // When endRef is not visible, merge volume events
-      const merged = mergeVolumeEvents(events);
-      setEvents(merged);
+      // If the end is not visible, apply aggregation
+      const aggregated = aggregateVolumeEvents(rawEvents);
+      setDisplayEvents(aggregated);
     }
-  }, [isEndVisible, originalEvents]);
+  }, [rawEvents, isEndVisible]);
 
-  const mergeVolumeEvents = (eventsToMerge: Event[]): Event[] => {
-    if (!eventsToMerge) return [];
-    const mergedEventsArray: Event[] = [];
-    let currentMergedCommentVolume: CommentsVolumeEvent | null = null;
-    let currentMergedVotesVolume: VotesVolumeEvent | null = null;
+  // // Set up the intersection observer for the end element
+  // useEffect(() => {
+  //   const observer = new IntersectionObserver(
+  //     (entries) => {
+  //       const entry = entries[0];
+  //       if (entry) {
+  //         setIsEndVisible(entry.isIntersecting);
+  //       }
+  //     },
+  //     {
+  //       root: null,
+  //       rootMargin: '0px',
+  //       threshold: 0.1, // Detect when at least 10% is visible
+  //     }
+  //   );
 
-    for (const event of eventsToMerge) {
-      if (event.type === TimelineEventType.CommentsVolume) {
-        if (currentMergedCommentVolume) {
-          currentMergedCommentVolume.volume += event.volume;
-          currentMergedCommentVolume.maxVolume = event.maxVolume;
-          mergedEventsArray.push(currentMergedCommentVolume as Event);
-          currentMergedCommentVolume = null;
-        } else {
-          currentMergedCommentVolume = { ...event };
-        }
-      } else if (event.type === TimelineEventType.VotesVolume) {
-        if (currentMergedVotesVolume) {
-          currentMergedVotesVolume.volume += event.volume;
-          currentMergedVotesVolume.maxVolume += event.maxVolume;
-          if (
-            event.metadata?.votingPower &&
-            currentMergedVotesVolume.metadata
-          ) {
-            currentMergedVotesVolume.metadata.votingPower = Math.max(
-              currentMergedVotesVolume.metadata.votingPower || 0,
-              event.metadata.votingPower
-            );
-          }
-          mergedEventsArray.push(currentMergedVotesVolume as Event);
-          currentMergedVotesVolume = null;
-        } else {
-          currentMergedVotesVolume = { ...event };
-        }
-      } else {
-        if (currentMergedCommentVolume) {
-          mergedEventsArray.push(currentMergedCommentVolume as Event);
-          currentMergedCommentVolume = null;
-        }
-        if (currentMergedVotesVolume) {
-          mergedEventsArray.push(currentMergedVotesVolume as Event);
-          currentMergedVotesVolume = null;
-        }
-        mergedEventsArray.push(event);
-      }
-    }
-    if (currentMergedCommentVolume) {
-      mergedEventsArray.push(currentMergedCommentVolume as Event);
-    }
-    if (currentMergedVotesVolume) {
-      mergedEventsArray.push(currentMergedVotesVolume as Event);
-    }
-    return mergedEventsArray;
-  };
+  //   const node = endRef.current;
+  //   if (node) {
+  //     observer.observe(node);
+  //   }
 
-  if (!events) {
-    return <LoadingTimeline />;
+  //   return () => {
+  //     if (node) {
+  //       observer.unobserve(node);
+  //     }
+  //     observer.disconnect();
+  //   };
+  // }, [displayEvents]); // Re-run when displayEvents changes to ensure we observe the correct element
+
+  if (!displayEvents) {
+    return null;
   }
 
   return (
     <div
+      ref={timelineRef}
       className='fixed top-0 right-0 flex h-full min-w-96 flex-col items-end justify-start pt-24
         pl-4'
     >
       <div className='relative h-full w-full'>
         <div
-          className='dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 translate-x-[1px]
-            bg-neutral-800'
+          className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
+            translate-x-[1px] bg-neutral-800 transition-transform duration-2000 ease-out
+            ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
+          style={{
+            transformOrigin: 'bottom',
+          }}
         />
 
         <div className='flex h-full flex-col justify-between'>
-          {events.map((event, index, array) => {
+          {displayEvents.map((event, index, array) => {
+            // Calculate the animation delay from bottom to top
+            // The last item (bottom) should animate first
+            const animationDelay = (displayEvents.length - index - 1) * 16;
+
             // Determine visibility based on filters and metadata
             const isVisible =
               (event.type === TimelineEventType.CommentsVolume &&
@@ -229,59 +253,70 @@ export function Timeline({
                 ? proposalOrderMap.get(event.result.proposal.id)
                 : undefined;
 
+            // Set the end ref for the last visible element
+            const isLastVisible = index === array.length - 1;
+
             return (
               <div
-                key={index}
+                key={`${event.type}-${index}-${event.timestamp.toString()}`}
                 style={{
                   opacity: isVisible ? 1 : 0,
                   transition: 'opacity 0.2s ease-in-out',
                 }}
-                ref={index == array.length - 1 ? endRef : undefined}
               >
-                {event.type === TimelineEventType.Gap ? (
-                  <GapEvent />
-                ) : event.type === TimelineEventType.CommentsVolume ? (
-                  <CommentsVolumeEvent
-                    timestamp={event.timestamp}
-                    width={event.volume / event.maxVolume}
-                    last={index == 0}
-                  />
-                ) : event.type === TimelineEventType.VotesVolume ? (
-                  <VotesVolumeEvent
-                    timestamp={event.timestamp}
-                    width={event.volume / event.maxVolume}
-                    last={index == 0}
-                  />
-                ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
-                  event.type === TimelineEventType.ResultOngoingOtherVotes ? (
-                  <ResultEvent
-                    content={event.content}
-                    timestamp={event.timestamp}
-                    result={event.result}
-                    resultNumber={resultNumber!}
-                    last={index == 0}
-                    daoSlug={group.daoSlug}
-                    groupId={group.group.id}
-                  />
-                ) : event.type === TimelineEventType.ResultEndedBasicVote ||
-                  event.type === TimelineEventType.ResultEndedOtherVotes ? (
-                  <ResultEvent
-                    content={event.content}
-                    timestamp={event.timestamp}
-                    result={event.result}
-                    resultNumber={resultNumber!}
-                    last={index == 0}
-                    daoSlug={group.daoSlug}
-                    groupId={group.group.id}
-                  />
-                ) : event.type === TimelineEventType.Basic ? (
-                  <BasicEvent
-                    content={event.content}
-                    timestamp={event.timestamp}
-                    url={event.url}
-                    last={index == 0}
-                  />
-                ) : null}
+                <div
+                  className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'}
+                  transition-all duration-500 ease-out`}
+                  style={{
+                    transitionDelay: `${animationDelay}ms`,
+                  }}
+                  ref={isLastVisible ? endRef : undefined}
+                >
+                  {event.type === TimelineEventType.Gap ? (
+                    <GapEvent />
+                  ) : event.type === TimelineEventType.CommentsVolume ? (
+                    <CommentsVolumeEvent
+                      timestamp={event.timestamp}
+                      width={event.volume / event.maxVolume}
+                      last={index === 0}
+                    />
+                  ) : event.type === TimelineEventType.VotesVolume ? (
+                    <VotesVolumeEvent
+                      timestamp={event.timestamp}
+                      width={event.volume / event.maxVolume}
+                      last={index === 0}
+                    />
+                  ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
+                    event.type === TimelineEventType.ResultOngoingOtherVotes ? (
+                    <ResultEvent
+                      content={event.content}
+                      timestamp={event.timestamp}
+                      result={event.result}
+                      resultNumber={resultNumber!}
+                      last={index === 0}
+                      daoSlug={group.daoSlug}
+                      groupId={group.group.id}
+                    />
+                  ) : event.type === TimelineEventType.ResultEndedBasicVote ||
+                    event.type === TimelineEventType.ResultEndedOtherVotes ? (
+                    <ResultEvent
+                      content={event.content}
+                      timestamp={event.timestamp}
+                      result={event.result}
+                      resultNumber={resultNumber!}
+                      last={index === 0}
+                      daoSlug={group.daoSlug}
+                      groupId={group.group.id}
+                    />
+                  ) : event.type === TimelineEventType.Basic ? (
+                    <BasicEvent
+                      content={event.content}
+                      timestamp={event.timestamp}
+                      url={event.url}
+                      last={index === 0}
+                    />
+                  ) : null}
+                </div>
               </div>
             );
           })}
@@ -291,39 +326,39 @@ export function Timeline({
   );
 }
 
-export function LoadingTimeline() {
-  return (
-    <div className='fixed top-0 right-0 flex h-full w-96 flex-col items-end justify-start pt-24 pl-4'>
-      <div className='relative h-full w-full'>
-        <div
-          className='absolute top-1 flex h-8 w-8 items-center justify-center rounded-xs border
-            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
-        >
-          <TimelineEventIcon
-            className='dark:fill-neutral-350 fill-neutral-800'
-            width={24}
-            height={24}
-            alt={'Timeline event'}
-          />
-        </div>
+// export function LoadingTimeline() {
+//   return (
+//     <div className='fixed top-0 right-0 flex h-full w-96 flex-col items-end justify-start pt-24 pl-4'>
+//       <div className='relative h-full w-full'>
+//         <div
+//           className='absolute top-1 flex h-8 w-8 items-center justify-center rounded-xs border
+//             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
+//         >
+//           <TimelineEventIcon
+//             className='dark:fill-neutral-350 fill-neutral-800'
+//             width={24}
+//             height={24}
+//             alt={'Timeline event'}
+//           />
+//         </div>
 
-        <div
-          className='dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 translate-x-[1px]
-            bg-neutral-800'
-        />
+//         <div
+//           className='dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 translate-x-[1px]
+//             bg-neutral-800'
+//         />
 
-        <div
-          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border
-            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
-        >
-          <TimelineEventIcon
-            className='dark:fill-neutral-350 fill-neutral-800'
-            width={24}
-            height={24}
-            alt={'Timeline event'}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
+//         <div
+//           className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border
+//             border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
+//         >
+//           <TimelineEventIcon
+//             className='dark:fill-neutral-350 fill-neutral-800'
+//             width={24}
+//             height={24}
+//             alt={'Timeline event'}
+//           />
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }

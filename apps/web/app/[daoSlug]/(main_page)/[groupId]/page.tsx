@@ -10,7 +10,7 @@ import {
 import Body, { BodyLoading } from './components/body/Body';
 import Feed, { FeedLoading } from './components/feed/Feed';
 import { MenuBar } from './components/menubar/MenuBar';
-import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
+import { Timeline } from './components/timeline/Timeline';
 
 export default async function GroupPage({
   params,
@@ -68,9 +68,9 @@ export default async function GroupPage({
         </Suspense>
       </div>
 
-      <Suspense fallback={<LoadingTimeline />}>
-        <Timeline group={group} commentsFilter={comments} votesFilter={votes} />
-      </Suspense>
+      {/* <Suspense fallback={<LoadingTimeline />}> */}
+      <Timeline group={group} commentsFilter={comments} votesFilter={votes} />
+      {/* </Suspense> */}
     </div>
   );
 }
