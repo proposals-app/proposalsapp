@@ -5,9 +5,9 @@ import { RankedChoiceVote } from './ended_vote_types/RankedChoiceVote';
 import { SingleChoiceVote } from './ended_vote_types/SingleChoiceVote';
 import { WeightedVote } from './ended_vote_types/WeightedVote';
 import { ProcessedResults } from '@/lib/results_processing';
-import TimelineEventIcon from '@/public/assets/web/timeline_event.svg'; // Import the SVG as a React component
-import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg'; // Import the SVG as a React component
-import ArrowResultRightIcon from '@/public/assets/web/arrow_result_right.svg'; // Import the SVG as a React component
+import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
+import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg';
+import ArrowResultRightIcon from '@/public/assets/web/arrow_result_right.svg';
 import Link from 'next/link';
 import { VoteSegmentData } from './actions';
 
@@ -75,7 +75,7 @@ export function ResultEvent({
         )}
         <Link
           className='w-full'
-          href={`/${groupId}/vote/${resultNumber}`} // Link to the results page
+          href={`/${groupId}/vote/${resultNumber}`}
           prefetch={true}
         >
           <div className='flex w-full items-center justify-between pl-3'>

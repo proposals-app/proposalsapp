@@ -211,7 +211,7 @@ export function Timeline({
       <div className='relative h-full w-full'>
         <div
           className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
-            translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-out
+            translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out
             ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
         />
 
@@ -224,7 +224,7 @@ export function Timeline({
               animationDelay =
                 ((displayEvents.length - 1 - index) /
                   (displayEvents.length - 1)) *
-                1000;
+                700;
             }
 
             // Determine visibility based on filters and metadata
