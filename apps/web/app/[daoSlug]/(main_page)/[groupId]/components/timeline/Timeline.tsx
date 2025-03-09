@@ -9,7 +9,7 @@ import { CommentsVolumeEvent } from './CommentsVolumeEvent';
 import { GapEvent } from './GapEvent';
 import { ResultEvent } from './ResultEvent';
 import { VotesVolumeEvent } from './VotesVolumeEvent';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -48,67 +48,90 @@ interface VotesVolumeEvent extends BaseEvent {
   };
 }
 
-function aggregateVolumeEvents(events: Event[]): Event[] {
+function aggregateVolumeEvents(events: Event[], level: number = 1): Event[] {
   if (!events || events.length <= 1) return events || [];
 
-  const aggregatedEvents: Event[] = [];
-  for (let i = 0; i < events.length; i++) {
-    const currentEvent = events[i];
+  // Group events by type for easier aggregation
+  const volumeEvents: Event[] = [];
+  const otherEvents: Event[] = [];
+
+  events.forEach((event) => {
     if (
-      (currentEvent.type === TimelineEventType.CommentsVolume ||
-        currentEvent.type === TimelineEventType.VotesVolume) &&
-      i + 1 < events.length
+      event.type === TimelineEventType.CommentsVolume ||
+      event.type === TimelineEventType.VotesVolume
     ) {
-      const nextEvent = events[i + 1];
-      if (currentEvent.type === nextEvent.type) {
-        if (currentEvent.type === TimelineEventType.CommentsVolume) {
-          const aggregatedVolumeEvent: CommentsVolumeEvent = {
-            type: TimelineEventType.CommentsVolume,
-            timestamp:
-              currentEvent.timestamp < nextEvent.timestamp
-                ? currentEvent.timestamp
-                : nextEvent.timestamp,
-            volume:
-              (currentEvent as CommentsVolumeEvent).volume +
-              (nextEvent as CommentsVolumeEvent).volume,
-            maxVolume: Math.max(
-              (currentEvent as CommentsVolumeEvent).maxVolume,
-              (nextEvent as CommentsVolumeEvent).maxVolume
-            ),
-            volumeType: 'comments',
-          };
-          aggregatedEvents.push(aggregatedVolumeEvent);
-        } else if (currentEvent.type === TimelineEventType.VotesVolume) {
-          const aggregatedVolumeEvent: VotesVolumeEvent = {
-            type: TimelineEventType.VotesVolume,
-            timestamp:
-              currentEvent.timestamp < nextEvent.timestamp
-                ? currentEvent.timestamp
-                : nextEvent.timestamp,
-            volume:
-              (currentEvent as VotesVolumeEvent).volume +
-              (nextEvent as VotesVolumeEvent).volume,
-            maxVolume: Math.max(
-              (currentEvent as VotesVolumeEvent).maxVolume,
-              (nextEvent as VotesVolumeEvent).maxVolume
-            ),
-            volumeType: 'votes',
-            metadata: {
-              votingPower: (currentEvent as VotesVolumeEvent).metadata!
-                .votingPower,
-            },
-          };
-          aggregatedEvents.push(aggregatedVolumeEvent);
-        }
-        i++; // Skip the next event as it's aggregated
-      } else {
-        aggregatedEvents.push(currentEvent);
-      }
+      volumeEvents.push(event);
     } else {
-      aggregatedEvents.push(currentEvent);
+      otherEvents.push(event);
+    }
+  });
+
+  // Skip if there are no volume events to aggregate
+  if (volumeEvents.length <= 1) return events;
+
+  // Calculate how many events to merge based on the level
+  // Higher level means more aggressive aggregation
+  const mergeCount = Math.min(Math.pow(2, level), volumeEvents.length);
+
+  // Group volume events for aggregation
+  const aggregatedVolumeEvents: Event[] = [];
+
+  for (let i = 0; i < volumeEvents.length; i += mergeCount) {
+    const chunk = volumeEvents.slice(i, i + mergeCount);
+
+    if (chunk.length === 1) {
+      // No need to aggregate a single event
+      aggregatedVolumeEvents.push(chunk[0]);
+    } else {
+      // Group events by type
+      const commentEvents = chunk.filter(
+        (e) => e.type === TimelineEventType.CommentsVolume
+      ) as CommentsVolumeEvent[];
+      const voteEvents = chunk.filter(
+        (e) => e.type === TimelineEventType.VotesVolume
+      ) as VotesVolumeEvent[];
+
+      // Aggregate comment events if any
+      if (commentEvents.length > 0) {
+        const aggregatedCommentEvent: CommentsVolumeEvent = {
+          type: TimelineEventType.CommentsVolume,
+          timestamp: new Date(
+            Math.min(...commentEvents.map((e) => e.timestamp.getTime()))
+          ),
+          volume: commentEvents.reduce((sum, e) => sum + e.volume, 0),
+          maxVolume: Math.max(...commentEvents.map((e) => e.maxVolume)),
+          volumeType: 'comments',
+        };
+        aggregatedVolumeEvents.push(aggregatedCommentEvent);
+      }
+
+      // Aggregate vote events if any
+      if (voteEvents.length > 0) {
+        const aggregatedVoteEvent: VotesVolumeEvent = {
+          type: TimelineEventType.VotesVolume,
+          timestamp: new Date(
+            Math.min(...voteEvents.map((e) => e.timestamp.getTime()))
+          ),
+          volume: voteEvents.reduce((sum, e) => sum + e.volume, 0),
+          maxVolume: Math.max(...voteEvents.map((e) => e.maxVolume)),
+          volumeType: 'votes',
+          metadata: {
+            votingPower: Math.max(
+              ...voteEvents.map((e) => e.metadata?.votingPower || 0)
+            ),
+          },
+        };
+        aggregatedVolumeEvents.push(aggregatedVoteEvent);
+      }
     }
   }
-  return aggregatedEvents;
+
+  // Merge and sort all events by timestamp
+  const result = [...otherEvents, ...aggregatedVolumeEvents].sort(
+    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+  );
+
+  return result;
 }
 
 export function Timeline({
@@ -127,10 +150,11 @@ export function Timeline({
   const [rawEvents, setRawEvents] = useState<Event[] | null>(null);
   const [displayEvents, setDisplayEvents] = useState<Event[] | null>(null);
   const [animationStarted, setAnimationStarted] = useState(false);
-  const [isEndVisible, setIsEndVisible] = useState(true);
+  const [aggregationLevel, setAggregationLevel] = useState(0);
 
   const endRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const proposalOrderMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -139,6 +163,29 @@ export function Timeline({
     });
     return map;
   }, [group.proposals]);
+
+  // Check if end is visible and adjust aggregation level if needed
+  const checkVisibility = useCallback(() => {
+    if (!endRef.current || !containerRef.current || !rawEvents) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const endRect = endRef.current.getBoundingClientRect();
+
+    const isEndVisible = endRect.bottom <= containerRect.bottom;
+
+    if (!isEndVisible && aggregationLevel < 5) {
+      // Limit maximum aggregation level
+      // End is not visible, increase aggregation
+      setAggregationLevel((prev) => prev + 1);
+    } else if (
+      isEndVisible &&
+      aggregationLevel > 0 &&
+      endRect.bottom < containerRect.bottom - 100
+    ) {
+      // End is visible with extra space, try to decrease aggregation
+      setAggregationLevel((prev) => Math.max(0, prev - 1));
+    }
+  }, [rawEvents, aggregationLevel]);
 
   // Fetch the raw events data
   useEffect(() => {
@@ -155,48 +202,42 @@ export function Timeline({
     fetchEvents();
   }, [group]);
 
-  // Process raw events to determine display events based on visibility
+  // Process events based on current aggregation level
   useEffect(() => {
     if (!rawEvents) return;
 
-    if (isEndVisible) {
-      // If the end is visible, show all events without aggregation
+    if (aggregationLevel === 0) {
+      // Use raw events without aggregation
       setDisplayEvents(rawEvents);
     } else {
-      // If the end is not visible, apply aggregation
-      const aggregated = aggregateVolumeEvents(rawEvents);
+      // Apply aggregation at the current level
+      const aggregated = aggregateVolumeEvents(rawEvents, aggregationLevel);
       setDisplayEvents(aggregated);
     }
-  }, [rawEvents, isEndVisible]);
+  }, [rawEvents, aggregationLevel]);
 
-  // // Set up the intersection observer for the end element
-  // useEffect(() => {
-  //   const observer = new IntersectionObserver(
-  //     (entries) => {
-  //       const entry = entries[0];
-  //       if (entry) {
-  //         setIsEndVisible(entry.isIntersecting);
-  //       }
-  //     },
-  //     {
-  //       root: null,
-  //       rootMargin: '0px',
-  //       threshold: 0.1, // Detect when at least 10% is visible
-  //     }
-  //   );
+  // Set up resize observer to check visibility when layout changes
+  useEffect(() => {
+    if (!containerRef.current) return;
 
-  //   const node = endRef.current;
-  //   if (node) {
-  //     observer.observe(node);
-  //   }
+    const resizeObserver = new ResizeObserver(() => {
+      checkVisibility();
+    });
 
-  //   return () => {
-  //     if (node) {
-  //       observer.unobserve(node);
-  //     }
-  //     observer.disconnect();
-  //   };
-  // }, [displayEvents]); // Re-run when displayEvents changes to ensure we observe the correct element
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [checkVisibility]);
+
+  // Check visibility when display events change
+  useEffect(() => {
+    if (displayEvents) {
+      // Use setTimeout to ensure the DOM has updated
+      setTimeout(checkVisibility, 100);
+    }
+  }, [displayEvents, checkVisibility]);
 
   if (!displayEvents) {
     return null;
@@ -208,7 +249,10 @@ export function Timeline({
       className='fixed top-0 right-0 flex h-full min-w-96 flex-col items-end justify-start pt-24
         pl-4'
     >
-      <div className='relative h-full w-full'>
+      <div
+        ref={containerRef}
+        className='relative h-full w-full overflow-hidden'
+      >
         <div
           className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
             translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out
@@ -272,7 +316,7 @@ export function Timeline({
                     WebkitTransitionDelay: `${animationDelay}ms`,
                     msTransitionDelay: `${animationDelay}ms`,
                   }}
-                  ref={isLastVisible ? endRef : undefined}
+                  ref={isLastVisible && isVisible ? endRef : undefined}
                 >
                   {event.type === TimelineEventType.Gap ? (
                     <GapEvent />
