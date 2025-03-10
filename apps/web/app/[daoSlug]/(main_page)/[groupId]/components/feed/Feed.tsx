@@ -1,4 +1,4 @@
-import { VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { DiscoursePost, Selectable, Vote } from '@proposalsapp/db-indexer';
 import { notFound } from 'next/navigation';
 import { PostItem } from './items/PostItem/PostItem';
@@ -10,11 +10,11 @@ import { AggregateVoteItem } from './items/VoteItem/AggregateVoteItem';
 
 export default async function Feed({
   group,
-  commentsFilter,
+  feedFilter,
   votesFilter,
 }: {
   group: GroupReturnType;
-  commentsFilter: boolean;
+  feedFilter: FeedFilterEnum;
   votesFilter: VotesFilterEnum;
   page?: number;
 }) {
@@ -22,18 +22,16 @@ export default async function Feed({
     notFound();
   }
 
-  const feed = await getFeed_cached(
-    group.group.id,
-    commentsFilter,
-    votesFilter
-  );
+  const feed = await getFeed_cached(group.group.id, feedFilter, votesFilter);
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
 
   // Filter out posts if comments is false
   const itemsToDisplay = sortedItems.filter(
     (item) =>
-      (item.type == 'post' && commentsFilter && item.postNumber != 1) ||
+      (item.type == 'post' &&
+        feedFilter != FeedFilterEnum.VOTES &&
+        item.postNumber != 1) ||
       item.type == 'vote'
   );
 

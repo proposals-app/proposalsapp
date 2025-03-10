@@ -1,6 +1,6 @@
 'use client';
 
-import { VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { GroupReturnType } from '../../actions';
 import { getEvents_cached, Event } from './actions';
@@ -145,7 +145,7 @@ function aggregateVolumeEvents(events: Event[], level: number = 1): Event[] {
 // Custom hook to manage timeline events and visibility logic
 function useTimelineEvents(
   group: GroupReturnType,
-  commentsFilter: boolean,
+  feedFilter: FeedFilterEnum,
   votesFilter: VotesFilterEnum
 ) {
   const [state, setState] = useState({
@@ -185,7 +185,7 @@ function useTimelineEvents(
   const isEventVisible = useCallback(
     (event: Event) => {
       if (event.type === TimelineEventType.CommentsVolume) {
-        return commentsFilter;
+        return feedFilter != FeedFilterEnum.VOTES;
       }
       if (event.type === TimelineEventType.VotesVolume) {
         if (!event.metadata?.votingPower) return false;
@@ -214,7 +214,7 @@ function useTimelineEvents(
         TimelineEventType.Gap,
       ].includes(event.type);
     },
-    [commentsFilter, votesFilter]
+    [feedFilter, votesFilter]
   );
 
   // Get filtered events for visibility checks
@@ -351,7 +351,7 @@ function useTimelineEvents(
     if (state.isFullyRendered) {
       setTimeout(checkVisibility, 100);
     }
-  }, [commentsFilter, votesFilter, state.isFullyRendered, checkVisibility]);
+  }, [feedFilter, votesFilter, state.isFullyRendered, checkVisibility]);
 
   return {
     state,
@@ -392,7 +392,7 @@ function TimelineEventItem({
   return (
     <div
       className={`transition-opacity duration-200 ease-in-out
-        ${isVisible ? 'opacity-100' : 'h-0 overflow-hidden opacity-0'}`}
+        ${isVisible ? 'opacity-100' : 'opacity-0'}`}
     >
       <div
         className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'}
@@ -446,11 +446,11 @@ function TimelineEventItem({
 
 export function Timeline({
   group,
-  commentsFilter,
+  feedFilter,
   votesFilter,
 }: {
   group: GroupReturnType;
-  commentsFilter: boolean;
+  feedFilter: FeedFilterEnum;
   votesFilter: VotesFilterEnum;
 }) {
   if (!group) {
@@ -464,7 +464,7 @@ export function Timeline({
     proposalOrderMap,
     isEventVisible,
     refs,
-  } = useTimelineEvents(group, commentsFilter, votesFilter);
+  } = useTimelineEvents(group, feedFilter, votesFilter);
 
   if (!displayEvents) {
     return null;

@@ -1,12 +1,15 @@
 'use client';
 
-import { VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useEffect, useRef } from 'react';
-import { SharedSelectItem, ViewEnum, voteFilters } from './MenuBar';
+import {
+  feedFilters,
+  SharedSelectItem,
+  ViewEnum,
+  voteFilters,
+} from './MenuBar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
-import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
-import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import * as Select from '@radix-ui/react-select';
 
@@ -16,9 +19,11 @@ interface FullViewBarProps {
 }
 
 export const FullViewBar = ({ view, setView }: FullViewBarProps) => {
-  const [comments, setComments] = useQueryState(
-    'comments',
-    parseAsBoolean.withDefault(true).withOptions({ shallow: false })
+  const [feedFilter, setFeedFilter] = useQueryState(
+    'feed',
+    parseAsStringEnum<FeedFilterEnum>(Object.values(FeedFilterEnum))
+      .withDefault(FeedFilterEnum.COMMENTS_AND_VOTES)
+      .withOptions({ shallow: false })
   );
 
   const [votesFilter, setVotesFilter] = useQueryState(
@@ -99,36 +104,40 @@ export const FullViewBar = ({ view, setView }: FullViewBarProps) => {
           )}
 
           <div className='flex'>
-            <div className='flex h-8 cursor-pointer items-center justify-start gap-2 px-3 text-sm'>
-              <label
-                htmlFor='comments'
-                className='flex cursor-pointer items-center gap-2'
+            <Select.Root
+              value={feedFilter}
+              onValueChange={(value) => setFeedFilter(value as FeedFilterEnum)}
+            >
+              <Select.Trigger
+                className='flex h-8 w-44 cursor-pointer items-center justify-between px-3 text-sm
+                  outline-none'
               >
-                <div className='relative flex items-start'>
-                  <input
-                    type='checkbox'
-                    id='comments'
-                    checked={comments}
-                    onChange={(e) => setComments(e.target.checked)}
-                    className='h-6 w-6 cursor-pointer appearance-none'
-                  />
-                  {comments ? (
-                    <CheckboxCheck
-                      className='absolute inset-0'
-                      width={24}
-                      height={24}
-                    />
-                  ) : (
-                    <CheckboxNocheck
-                      className='absolute inset-0'
-                      width={24}
-                      height={24}
-                    />
-                  )}
-                </div>
-                All comments
-              </label>
-            </div>
+                <Select.Value>
+                  {
+                    feedFilters.find((filter) => filter.value === feedFilter)
+                      ?.label
+                  }
+                </Select.Value>
+                <Select.Icon>
+                  <ChevronDownSvg width={24} height={24} />
+                </Select.Icon>
+              </Select.Trigger>
+
+              <Select.Content
+                className='dark:border-neutral-450 w-[200px] border border-neutral-800 bg-white p-1
+                  shadow-lg dark:bg-neutral-950'
+                position='popper'
+                sideOffset={5}
+              >
+                <Select.Viewport>
+                  {feedFilters.map((filter) => (
+                    <SharedSelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SharedSelectItem>
+                  ))}
+                </Select.Viewport>
+              </Select.Content>
+            </Select.Root>
 
             <Select.Root
               value={votesFilter}

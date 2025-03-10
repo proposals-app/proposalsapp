@@ -3145,12 +3145,12 @@ __metadata:
     mdast-util-from-markdown: "npm:^2.0.2"
     mdast-util-to-hast: "npm:^13.2.0"
     next: "npm:^15.2.1"
-    next-themes: "npm:^0.4.4"
+    next-themes: "npm:^0.4.5"
     nuqs: "npm:^2.4.1"
     postcss: "npm:^8.5.3"
     posthog-js: "npm:^1.229.5"
     prettier: "npm:^3.5.3"
-    prettier-plugin-classnames: "npm:^0.7.6"
+    prettier-plugin-classnames: "npm:^0.7.7"
     prettier-plugin-merge: "npm:^0.7.2"
     prettier-plugin-organize-imports: "npm:^4.1.0"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
@@ -12204,13 +12204,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next-themes@npm:^0.4.4":
-  version: 0.4.4
-  resolution: "next-themes@npm:0.4.4"
+"next-themes@npm:^0.4.5":
+  version: 0.4.5
+  resolution: "next-themes@npm:0.4.5"
   peerDependencies:
     react: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
     react-dom: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
-  checksum: 10c0/45d82f968ccfc90f6e6e3cdb95962132f6d1e19eaf614c4e824fc5d079ec522dd50cc196c58da2f000d755b81dbb0caf378c4f512a9e6b6c0a0daa3f99f1a2c7
+  checksum: 10c0/62c9523fbe88a21dd86b220a1492f4e99467d9fdbbcb8ae61e0b5403cc49bdd094ee57b7e18e897c5c2c7509b993ad4a0234115d7ee962bdfb1e450081269f38
   languageName: node
   linkType: hard
 
@@ -13522,9 +13522,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier-plugin-classnames@npm:^0.7.6":
-  version: 0.7.6
-  resolution: "prettier-plugin-classnames@npm:0.7.6"
+"prettier-plugin-classnames@npm:^0.7.7":
+  version: 0.7.7
+  resolution: "prettier-plugin-classnames@npm:0.7.7"
   peerDependencies:
     prettier: ^2 || ^3
     prettier-plugin-astro: "*"
@@ -13534,7 +13534,7 @@ __metadata:
       optional: true
     prettier-plugin-svelte:
       optional: true
-  checksum: 10c0/97c9d168e688842764b9ab57cf839b2c0862d089f31290abefb2ea1a89cba5525394ef9a7114badcbffbd5c87439ba90435ccbe09bedd8de7bd029592fe04d1c
+  checksum: 10c0/e9d24e504e84717c82c7fcb7bb9c152b5e36d7983635d2946fc9f4a7e0656b8e48069b20bde03c22b78b23035514489b1feb11939b07e93da00bfae14c2a345d
   languageName: node
   linkType: hard
 

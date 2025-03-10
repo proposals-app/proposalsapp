@@ -1,6 +1,6 @@
 'use client';
 
-import { VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { BodyViewBar } from './BodyViewBar';
 import { CommentsViewBar } from './CommentsViewBar';
 import { FullViewBar } from './FullViewBar';
@@ -38,19 +38,34 @@ SharedSelectItem.displayName = 'SharedSelectItem';
 export const voteFilters = [
   {
     value: VotesFilterEnum.ALL,
-    label: 'All votes',
+    label: 'with any ARB',
   },
   {
     value: VotesFilterEnum.FIFTY_THOUSAND,
-    label: 'Votes +50k ARB',
+    label: 'above 50k ARB',
   },
   {
     value: VotesFilterEnum.FIVE_HUNDRED_THOUSAND,
-    label: 'Votes +500k ARB',
+    label: 'above 500k ARB',
   },
   {
     value: VotesFilterEnum.FIVE_MILLION,
-    label: 'Votes +5m ARB',
+    label: 'above 5m ARB',
+  },
+];
+
+export const feedFilters = [
+  {
+    value: FeedFilterEnum.COMMENTS_AND_VOTES,
+    label: 'Comments and Votes',
+  },
+  {
+    value: FeedFilterEnum.COMMENTS,
+    label: 'Only Comments',
+  },
+  {
+    value: FeedFilterEnum.VOTES,
+    label: 'Only Votes',
   },
 ];
 

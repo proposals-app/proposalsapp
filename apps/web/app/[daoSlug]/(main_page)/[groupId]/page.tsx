@@ -31,7 +31,7 @@ export default async function GroupPage({
     notFound();
   }
 
-  const { version, comments, votes, diff, page } =
+  const { version, feed, votes, diff, page } =
     await searchParamsCache.parse(searchParams);
 
   // Always use the latest version if no version is specified
@@ -61,7 +61,7 @@ export default async function GroupPage({
         <Suspense fallback={<FeedLoading />}>
           <Feed
             group={group}
-            commentsFilter={comments}
+            feedFilter={feed}
             votesFilter={votes}
             page={page ? Number(page) : 1}
           />
@@ -69,7 +69,7 @@ export default async function GroupPage({
       </div>
 
       {/* <Suspense fallback={<LoadingTimeline />}> */}
-      <Timeline group={group} commentsFilter={comments} votesFilter={votes} />
+      <Timeline group={group} feedFilter={feed} votesFilter={votes} />
       {/* </Suspense> */}
     </div>
   );

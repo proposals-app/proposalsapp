@@ -1,4 +1,4 @@
-import { VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { otel } from '@/lib/otel';
 import { AsyncReturnType, superjson_cache } from '@/lib/utils';
 import { ProcessedVote, processResultsAction } from '@/lib/results_processing';
@@ -16,7 +16,7 @@ import { ProposalGroupItem } from '@/lib/types';
 
 async function getFeed(
   groupID: string,
-  commentsFilter: boolean,
+  feedFilter: FeedFilterEnum,
   votesFilter: VotesFilterEnum
 ): Promise<{
   votes: ProcessedVote[];
@@ -90,7 +90,11 @@ async function getFeed(
       // Fetch votes for the proposals
       let votes: Selectable<Vote>[] = [];
 
-      if (proposals.length > 0) {
+      if (
+        feedFilter != FeedFilterEnum.COMMENTS &&
+        proposals.length > 0 &&
+        firstDaoDiscourseId
+      ) {
         const votesQuery = db
           .selectFrom('vote')
           .where(
@@ -116,7 +120,11 @@ async function getFeed(
       }
 
       // Build the query for posts if comments are enabled and there are topics
-      if (commentsFilter && topics.length > 0 && firstDaoDiscourseId) {
+      if (
+        feedFilter != FeedFilterEnum.VOTES &&
+        topics.length > 0 &&
+        firstDaoDiscourseId
+      ) {
         const postsQuery = db
           .selectFrom('discoursePost')
           .where(
@@ -601,10 +609,10 @@ export type FeedReturnType = AsyncReturnType<typeof getFeed>;
 export const getFeed_cached = superjson_cache(
   async (
     groupId: string,
-    commentsFilter: boolean,
+    feedFilter: FeedFilterEnum,
     votesFilter: VotesFilterEnum
   ) => {
-    return await getFeed(groupId, commentsFilter, votesFilter);
+    return await getFeed(groupId, feedFilter, votesFilter);
   },
   ['get-feed-for-group'],
   { revalidate: 60 * 5, tags: ['get-feed-for-group'] }
