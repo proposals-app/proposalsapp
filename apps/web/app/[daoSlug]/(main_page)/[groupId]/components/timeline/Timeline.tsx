@@ -179,7 +179,7 @@ function useTimelineEvents(
       map.set(proposal.id, index + 1); // +1 to make it 1-based
     });
     return map;
-  }, [group?.proposals]);
+  }, [group]);
 
   // Filter visible events based on filters
   const isEventVisible = useCallback(

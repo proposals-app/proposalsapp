@@ -14,11 +14,6 @@ export function GapEvent() {
   );
 }
 
-interface VotesVolumeEventProps {
-  timestamp: Date;
-  volume: number;
-}
-
 export function VotesVolumeEvent() {
   return (
     <div className='flex h-full w-full items-center'>
