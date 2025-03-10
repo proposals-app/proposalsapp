@@ -184,10 +184,18 @@ function useTimelineEvents(
   // Filter visible events based on filters
   const isEventVisible = useCallback(
     (event: Event) => {
-      if (event.type === TimelineEventType.CommentsVolume) {
-        return feedFilter != FeedFilterEnum.VOTES;
+      if (
+        event.type === TimelineEventType.CommentsVolume &&
+        (feedFilter == FeedFilterEnum.COMMENTS ||
+          feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES)
+      ) {
+        return true;
       }
-      if (event.type === TimelineEventType.VotesVolume) {
+      if (
+        event.type === TimelineEventType.VotesVolume &&
+        (feedFilter == FeedFilterEnum.VOTES ||
+          feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES)
+      ) {
         if (!event.metadata?.votingPower) return false;
 
         switch (votesFilter) {
