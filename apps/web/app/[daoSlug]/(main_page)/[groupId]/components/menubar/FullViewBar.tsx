@@ -8,17 +8,23 @@ import {
   SharedSelectItem,
   ViewEnum,
   voteFilters,
+  SelectTrigger,
+  SelectContent,
 } from './MenuBar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
-import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import * as Select from '@radix-ui/react-select';
 
 interface FullViewBarProps {
   view: ViewEnum;
   setView: (view: ViewEnum) => void;
+  includesProposals: boolean;
 }
 
-export const FullViewBar = ({ view, setView }: FullViewBarProps) => {
+export const FullViewBar = ({
+  view,
+  setView,
+  includesProposals,
+}: FullViewBarProps) => {
   const [feedFilter, setFeedFilter] = useQueryState(
     'feed',
     parseAsStringEnum<FeedFilterEnum>(Object.values(FeedFilterEnum))
@@ -29,7 +35,7 @@ export const FullViewBar = ({ view, setView }: FullViewBarProps) => {
   const [votesFilter, setVotesFilter] = useQueryState(
     'votes',
     parseAsStringEnum<VotesFilterEnum>(Object.values(VotesFilterEnum))
-      .withDefault(VotesFilterEnum.FIVE_MILLION)
+      .withDefault(VotesFilterEnum.FIFTY_THOUSAND)
       .withOptions({ shallow: false })
   );
 
@@ -39,6 +45,12 @@ export const FullViewBar = ({ view, setView }: FullViewBarProps) => {
   );
 
   const fullViewBarRef = useRef<HTMLDivElement | null>(null);
+
+  // Find the current filter labels
+  const currentFeedFilter =
+    feedFilters.find((filter) => filter.value === feedFilter)?.label || '';
+  const currentVotesFilter =
+    voteFilters.find((filter) => filter.value === votesFilter)?.label || '';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -86,6 +98,7 @@ export const FullViewBar = ({ view, setView }: FullViewBarProps) => {
                 setExpanded(false);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
+              aria-label='Collapse proposal'
             >
               <ArrowSvg width={24} height={24} />
               <div>Collapse Proposal</div>
@@ -97,47 +110,38 @@ export const FullViewBar = ({ view, setView }: FullViewBarProps) => {
                 setView(ViewEnum.BODY);
                 setExpanded(true);
               }}
+              aria-label='Read proposal'
             >
               <ArrowSvg className='rotate-180' width={24} height={24} />
               <div>Read Proposal</div>
             </button>
           )}
 
-          <div className='flex'>
-            <Select.Root
-              value={feedFilter}
-              onValueChange={(value) => setFeedFilter(value as FeedFilterEnum)}
-            >
-              <Select.Trigger
-                className='flex h-8 w-44 cursor-pointer items-center justify-between px-3 text-sm
-                  outline-none'
+          <div className='flex space-x-2'>
+            {includesProposals ? (
+              <Select.Root
+                value={feedFilter}
+                onValueChange={(value) =>
+                  setFeedFilter(value as FeedFilterEnum)
+                }
               >
-                <Select.Value>
-                  {
-                    feedFilters.find((filter) => filter.value === feedFilter)
-                      ?.label
-                  }
-                </Select.Value>
-                <Select.Icon>
-                  <ChevronDownSvg width={24} height={24} />
-                </Select.Icon>
-              </Select.Trigger>
+                <SelectTrigger aria-label='Select feed filter' className='w-44'>
+                  <Select.Value>{currentFeedFilter}</Select.Value>
+                </SelectTrigger>
 
-              <Select.Content
-                className='dark:border-neutral-450 w-[200px] border border-neutral-800 bg-white p-1
-                  shadow-lg dark:bg-neutral-950'
-                position='popper'
-                sideOffset={5}
-              >
-                <Select.Viewport>
+                <SelectContent>
                   {feedFilters.map((filter) => (
                     <SharedSelectItem key={filter.value} value={filter.value}>
                       {filter.label}
                     </SharedSelectItem>
                   ))}
-                </Select.Viewport>
-              </Select.Content>
-            </Select.Root>
+                </SelectContent>
+              </Select.Root>
+            ) : (
+              <div className='flex h-8 items-center justify-center rounded-xs px-3 text-sm'>
+                Comments
+              </div>
+            )}
 
             <Select.Root
               value={votesFilter}
@@ -145,35 +149,17 @@ export const FullViewBar = ({ view, setView }: FullViewBarProps) => {
                 setVotesFilter(value as VotesFilterEnum)
               }
             >
-              <Select.Trigger
-                className='flex h-8 w-44 cursor-pointer items-center justify-between px-3 text-sm
-                  outline-none'
-              >
-                <Select.Value>
-                  {
-                    voteFilters.find((filter) => filter.value === votesFilter)
-                      ?.label
-                  }
-                </Select.Value>
-                <Select.Icon>
-                  <ChevronDownSvg width={24} height={24} />
-                </Select.Icon>
-              </Select.Trigger>
+              <SelectTrigger aria-label='Select votes filter' className='w-44'>
+                <Select.Value>{currentVotesFilter}</Select.Value>
+              </SelectTrigger>
 
-              <Select.Content
-                className='dark:border-neutral-450 w-[200px] border border-neutral-800 bg-white p-1
-                  shadow-lg dark:bg-neutral-950'
-                position='popper'
-                sideOffset={5}
-              >
-                <Select.Viewport>
-                  {voteFilters.map((filter) => (
-                    <SharedSelectItem key={filter.value} value={filter.value}>
-                      {filter.label}
-                    </SharedSelectItem>
-                  ))}
-                </Select.Viewport>
-              </Select.Content>
+              <SelectContent>
+                {voteFilters.map((filter) => (
+                  <SharedSelectItem key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </SharedSelectItem>
+                ))}
+              </SelectContent>
             </Select.Root>
           </div>
         </div>

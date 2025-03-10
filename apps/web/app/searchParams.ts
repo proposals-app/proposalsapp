@@ -27,6 +27,6 @@ export const searchParamsCache = createSearchParamsCache({
   ).withDefault(FeedFilterEnum.COMMENTS_AND_VOTES),
   votes: parseAsStringEnum<VotesFilterEnum>(
     Object.values(VotesFilterEnum)
-  ).withDefault(VotesFilterEnum.FIVE_MILLION),
+  ).withDefault(VotesFilterEnum.FIFTY_THOUSAND),
   page: parseAsInteger,
 });

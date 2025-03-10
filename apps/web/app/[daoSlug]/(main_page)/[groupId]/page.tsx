@@ -56,6 +56,7 @@ export default async function GroupPage({
           totalVersions={totalVersions}
           versionTypes={versionTypes}
           currentVersion={currentVersion}
+          includesProposals={group.proposals.length > 0}
         />
 
         <Suspense fallback={<FeedLoading />}>
