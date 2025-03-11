@@ -99,8 +99,18 @@ function addSummaryEvent(
       lastEvent.type === TimelineEventType.VotesVolume)
   ) {
     const currentTimestamp = new Date();
+    let summaryContent = '';
+    if (totalComments > 0 && totalVotes > 0) {
+      summaryContent = `${totalComments} comments and ${totalVotes} votes`;
+    } else if (totalComments > 0) {
+      summaryContent = `${totalComments} comments`;
+    } else if (totalVotes > 0) {
+      summaryContent = `${totalVotes} votes`;
+    } else {
+      summaryContent = 'No activity';
+    }
     events.unshift({
-      content: `${totalComments} comments and ${totalVotes} votes`,
+      content: summaryContent,
       type: TimelineEventType.Basic,
       timestamp: currentTimestamp,
       url: '',
