@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { PostItem } from './items/PostItem/PostItem';
 import { VoteItem } from './items/VoteItem/VoteItem';
 import { GroupReturnType } from '../../actions';
-import { getFeed_cached } from './actions';
+import { FeedReturnType, getFeed_cached } from './actions';
 import { ProcessedVote } from '@/lib/results_processing';
 import { AggregateVoteItem } from './items/VoteItem/AggregateVoteItem';
 
@@ -12,16 +12,16 @@ export default async function Feed({
   group,
   feedFilter,
   votesFilter,
+  feed,
 }: {
   group: GroupReturnType;
   feedFilter: FeedFilterEnum;
   votesFilter: VotesFilterEnum;
+  feed: FeedReturnType;
 }) {
   if (!group) {
     notFound();
   }
-
-  const feed = await getFeed_cached(group.group.id, feedFilter, votesFilter);
 
   const sortedItems = mergeAndSortFeedItems(feed.votes, feed.posts);
 

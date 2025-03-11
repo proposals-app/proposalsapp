@@ -11,6 +11,7 @@ import Body, { BodyLoading } from './components/body/Body';
 import Feed, { FeedLoading } from './components/feed/Feed';
 import { MenuBar } from './components/menubar/MenuBar';
 import { Timeline } from './components/timeline/Timeline';
+import { getFeed_cached } from './components/feed/actions';
 
 export default async function GroupPage({
   params,
@@ -31,14 +32,20 @@ export default async function GroupPage({
     notFound();
   }
 
-  const { version, feed, votes, diff } =
-    await searchParamsCache.parse(searchParams);
+  const {
+    version,
+    feed: feedFilter,
+    votes: votesFilter,
+    diff,
+  } = await searchParamsCache.parse(searchParams);
 
   // Always use the latest version if no version is specified
   const currentVersion = version ?? totalVersions - 1;
 
   // Extract just the version types
   const versionTypes: VersionType[] = bodies.map((body) => body.type);
+
+  const feed = await getFeed_cached(group.group.id, feedFilter, votesFilter);
 
   return (
     <div className='flex w-full flex-col items-center pt-10'>
@@ -60,12 +67,21 @@ export default async function GroupPage({
         />
 
         <Suspense fallback={<FeedLoading />}>
-          <Feed group={group} feedFilter={feed} votesFilter={votes} />
+          <Feed
+            group={group}
+            feedFilter={feedFilter}
+            votesFilter={votesFilter}
+            feed={feed}
+          />
         </Suspense>
       </div>
 
       {/* <Suspense fallback={<LoadingTimeline />}> */}
-      <Timeline group={group} feedFilter={feed} votesFilter={votes} />
+      <Timeline
+        group={group}
+        feedFilter={feedFilter}
+        votesFilter={votesFilter}
+      />
       {/* </Suspense> */}
     </div>
   );
