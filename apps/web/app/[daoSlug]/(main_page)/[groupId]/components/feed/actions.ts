@@ -139,6 +139,46 @@ async function getFeed(
         posts = await postsQuery.orderBy('createdAt', 'desc').execute();
       }
 
+      if (votesFilter != VotesFilterEnum.ALL && posts.length > 0) {
+        const dao = await db
+          .selectFrom('dao')
+          .selectAll()
+          .where('dao.id', '=', proposals[0].daoId)
+          .executeTakeFirstOrThrow();
+
+        const filteredPosts = [];
+        for (const post of posts) {
+          const delegate = await getDelegateByDiscourseUser(
+            post.userId,
+            dao.slug,
+            false,
+            topics.map((t) => t.id.toString()),
+            proposals.map((p) => p.id)
+          );
+
+          const authorVotingPower =
+            delegate?.delegatetovoter?.latestVotingPower?.votingPower || 0;
+
+          if (
+            votesFilter === VotesFilterEnum.FIFTY_THOUSAND &&
+            authorVotingPower > 50000
+          ) {
+            filteredPosts.push(post);
+          } else if (
+            votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND &&
+            authorVotingPower > 500000
+          ) {
+            filteredPosts.push(post);
+          } else if (
+            votesFilter === VotesFilterEnum.FIVE_MILLION &&
+            authorVotingPower > 5000000
+          ) {
+            filteredPosts.push(post);
+          }
+        }
+        posts = filteredPosts;
+      }
+
       // Process votes using processResultsAction and calculate relative voting power
       const processedVotes: ProcessedVote[] = [];
 

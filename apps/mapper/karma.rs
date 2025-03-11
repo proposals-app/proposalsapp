@@ -16,23 +16,23 @@ use tracing::{Span, error, info, instrument, warn};
 use crate::{DB, metrics::METRICS};
 
 #[derive(Debug, Deserialize)]
-struct KarmaApiResponse {
-    data: KarmaApiData,
+struct KarmaFullApiResponse {
+    data: KarmaApiResponseData,
 }
 
 #[derive(Debug, Deserialize)]
-struct KarmaApiData {
+struct KarmaApiResponseData {
     delegates: Vec<KarmaDelegate>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 struct KarmaDelegate {
     #[serde(rename = "publicAddress")]
     public_address: String,
     #[serde(rename = "ensName")]
     ens_name: Option<String>,
-    #[serde(rename = "discourseHandle")]
-    discourse_handle: Option<String>,
+    #[serde(rename = "discourseHandles")]
+    discourse_handles: Option<Vec<String>>,
     #[serde(rename = "isForumVerified")]
     is_forum_verified: bool,
 }
@@ -114,15 +114,23 @@ async fn fetch_karma_data() -> Result<()> {
 
                 let delegates_with_forum_handle: Vec<&KarmaDelegate> = all_delegates
                     .iter()
-                    .filter(|d| d.discourse_handle.is_some())
+                    .filter(|d| d.discourse_handles.is_some() && !d.discourse_handles.as_ref().unwrap().is_empty())
                     .collect();
 
                 info!("{:?}", delegates_with_forum_handle);
-
-                info!("{:?}", delegates_with_forum_handle.len());
+                info!(
+                    "Number of delegates with forum handles: {:?}",
+                    delegates_with_forum_handle.len()
+                );
 
                 for delegate in &delegates_with_forum_handle {
-                    update_delegate(&dao, delegate, discourse.id).await?;
+                    if let Some(forum_handle) = delegate
+                        .discourse_handles
+                        .as_ref()
+                        .and_then(|handles| handles.first())
+                    {
+                        update_delegate(&dao, delegate, discourse.id, forum_handle).await?;
+                    }
                 }
             } else {
                 warn!(
@@ -231,20 +239,13 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
 }
 
 fn parse_json_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
-    let response: KarmaApiResponse = serde_json::from_str(body).with_context(|| format!("Failed to parse JSON for DAO: {}", dao_slug))?;
-
+    let response: KarmaFullApiResponse = serde_json::from_str(body).with_context(|| format!("Failed to parse JSON for DAO: {}", dao_slug))?;
     Ok(response.data.delegates)
 }
 
 #[instrument(skip( dao, delegate_data), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
-async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_discourse_id: Uuid) -> Result<()> {
+async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_discourse_id: Uuid, forum_handle: &str) -> Result<()> {
     let start_time = Instant::now();
-
-    // Early return if forum_handle is None
-    let forum_handle = match &delegate_data.discourse_handle {
-        Some(handle) => handle,
-        None => return Ok(()),
-    };
 
     // Check if the voter exists
     let mut voter: Option<voter::Model> = voter::Entity::find()

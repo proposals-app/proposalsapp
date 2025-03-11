@@ -36,18 +36,18 @@ export default async function Feed({
   );
 
   // Generate a list of posts with placeholders for missing post numbers
-  const itemsWithPlaceholders = insertPlaceholderPosts(itemsToDisplay);
+  // const itemsWithPlaceholders = insertPlaceholderPosts(itemsToDisplay);
 
   return (
     <div className='w-full'>
-      {itemsWithPlaceholders.map((item, index) => {
+      {itemsToDisplay.map((item, index) => {
         if (item.type === 'post') {
           const postItem = (
             <div key={index}>
               <div className='flex w-full flex-col p-4'>
                 <PostItem item={item} group={group} />
               </div>
-              {index < itemsWithPlaceholders.length - 1 && (
+              {index < itemsToDisplay.length - 1 && (
                 <div className='border-b border-neutral-200 dark:border-neutral-800' />
               )}
             </div>
@@ -64,7 +64,7 @@ export default async function Feed({
                   <VoteItem item={item} group={group} />
                 )}
               </div>
-              {index < itemsWithPlaceholders.length - 1 && (
+              {index < itemsToDisplay.length - 1 && (
                 <div className='border-b border-neutral-200 dark:border-neutral-800' />
               )}
             </div>

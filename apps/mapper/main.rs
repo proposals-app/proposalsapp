@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
         }
     });
 
-    // Uptime ping task
+    // // Uptime ping task
     let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
     let client = Client::new();
     let uptime_handle = tokio::spawn(async move {
