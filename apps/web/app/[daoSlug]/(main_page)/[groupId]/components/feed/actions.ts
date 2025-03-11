@@ -143,7 +143,7 @@ async function getFeed(
         const dao = await db
           .selectFrom('dao')
           .selectAll()
-          .where('dao.id', '=', proposals[0].daoId)
+          .where('dao.id', '=', group.daoId)
           .executeTakeFirstOrThrow();
 
         const filteredPosts = [];
