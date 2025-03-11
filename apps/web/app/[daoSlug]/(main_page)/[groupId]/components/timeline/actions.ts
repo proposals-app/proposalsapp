@@ -10,6 +10,7 @@ import {
   processResultsAction,
 } from '@/lib/results_processing';
 import { formatNumberWithSuffix, superjson_cache } from '@/lib/utils';
+import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -178,7 +179,11 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
 }
 
 // Main function to extract events
-async function getEvents(group: GroupReturnType): Promise<Event[]> {
+async function getEvents(
+  group: GroupReturnType,
+  feedFilter: FeedFilterEnum,
+  votesFilter: VotesFilterEnum
+): Promise<Event[]> {
   return otel('get-events', async () => {
     if (!group) return [];
 
@@ -284,7 +289,17 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
             .selectFrom('vote')
             .select([
               sql<Date>`DATE_TRUNC('day', "created_at")`.as('date'),
-              sql<number>`SUM("voting_power")`.as('totalVotingPower'),
+              sql<number>`COALESCE(SUM(CASE WHEN "voting_power" > ${
+                votesFilter === VotesFilterEnum.FIFTY_THOUSAND
+                  ? 50000
+                  : votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND
+                    ? 500000
+                    : votesFilter === VotesFilterEnum.FIVE_MILLION
+                      ? 5000000
+                      : 0
+              } OR ${votesFilter === VotesFilterEnum.ALL} THEN "voting_power" ELSE 0 END), 0)`.as(
+                'totalVotingPower'
+              ),
               sql<Date>`MAX("created_at")`.as('lastVoteTime'),
             ])
             .where('proposalId', '=', proposal.id)
@@ -296,15 +311,17 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
           );
 
           dailyVotes.forEach((dailyVote) => {
+            const dailyVotingPower = Number(dailyVote.totalVotingPower);
+
             const timestamp = new Date(dailyVote.lastVoteTime);
             events.push({
               type: TimelineEventType.VotesVolume,
               timestamp,
-              volume: Number(dailyVote.totalVotingPower),
+              volume: dailyVotingPower,
               maxVolume: maxVotes,
               volumeType: 'votes',
               metadata: {
-                votingPower: Number(dailyVote.totalVotingPower),
+                votingPower: dailyVotingPower,
               },
             });
           });
@@ -384,8 +401,12 @@ async function getEvents(group: GroupReturnType): Promise<Event[]> {
 }
 
 export const getEvents_cached = superjson_cache(
-  async (group: GroupReturnType) => {
-    return await getEvents(group);
+  async (
+    group: GroupReturnType,
+    feedFilter: FeedFilterEnum,
+    votesFilter: VotesFilterEnum
+  ) => {
+    return await getEvents(group, feedFilter, votesFilter);
   },
   ['get-events'],
   { revalidate: 60 * 5, tags: ['get-events'] }

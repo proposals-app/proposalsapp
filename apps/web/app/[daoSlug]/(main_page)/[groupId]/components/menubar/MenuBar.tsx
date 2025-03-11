@@ -62,17 +62,17 @@ export const SelectContent = ({
   className = '',
   ...props
 }: Select.SelectContentProps) => (
-  <Select.Content
-    className={`dark:border-neutral-450 z-[999] translate-z-0 overflow-hidden rounded-xs border
-      border-neutral-800 bg-white p-1 shadow-lg will-change-transform
-      dark:bg-neutral-950 ${className}`}
-    position='popper'
-    sideOffset={5}
-    sticky='always'
-    {...props}
-  >
-    <Select.Viewport className='p-1'>{children}</Select.Viewport>
-  </Select.Content>
+  <Select.Portal>
+    <Select.Content
+      className={`dark:border-neutral-450 z-[999] translate-z-0 overflow-hidden rounded-xs border
+        border-neutral-800 bg-white p-1 shadow-lg will-change-transform
+        dark:bg-neutral-950 ${className}`}
+      position='popper'
+      {...props}
+    >
+      <Select.Viewport className='p-1'>{children}</Select.Viewport>
+    </Select.Content>
+  </Select.Portal>
 );
 SelectContent.displayName = 'SelectContent';
 

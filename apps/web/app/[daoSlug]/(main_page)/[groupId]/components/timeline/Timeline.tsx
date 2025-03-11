@@ -304,7 +304,11 @@ function useTimelineEvents(
   // Fetch the raw events data
   useEffect(() => {
     const fetchEvents = async () => {
-      const fetchedEvents = await getEvents_cached(group);
+      const fetchedEvents = await getEvents_cached(
+        group,
+        feedFilter,
+        votesFilter
+      );
 
       setState((prev) => ({
         ...prev,
@@ -318,7 +322,7 @@ function useTimelineEvents(
     };
 
     fetchEvents();
-  }, [group]);
+  }, [group, feedFilter, votesFilter]);
 
   // Setup intersection observer for the container
   useEffect(() => {
