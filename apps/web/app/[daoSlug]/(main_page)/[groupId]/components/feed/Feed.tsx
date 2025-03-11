@@ -34,9 +34,6 @@ export default async function Feed({
       item.type == 'vote'
   );
 
-  // Generate a list of posts with placeholders for missing post numbers
-  // const itemsWithPlaceholders = insertPlaceholderPosts(itemsToDisplay);
-
   return (
     <div className='w-full'>
       {itemsToDisplay.map((item, index) => {
