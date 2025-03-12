@@ -1,6 +1,5 @@
 import { searchParamsCache } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 import {
   VersionType,
   getGroup_cached,
@@ -8,8 +7,8 @@ import {
   getBodies_cached,
   getFeed,
 } from './actions';
-import Body, { BodyLoading } from './components/body/Body';
-import Feed, { FeedLoading } from './components/feed/Feed';
+import Body from './components/body/Body';
+import Feed from './components/feed/Feed';
 import { MenuBar } from './components/menubar/MenuBar';
 import { Timeline } from './components/timeline/Timeline';
 
@@ -50,14 +49,12 @@ export default async function GroupPage({
   return (
     <div className='flex w-full flex-col items-center pt-10'>
       <div className='flex max-w-3xl flex-col overflow-visible'>
-        <Suspense fallback={<BodyLoading />}>
-          <Body
-            group={group}
-            version={currentVersion}
-            diff={diff}
-            bodies={bodies}
-          />
-        </Suspense>
+        <Body
+          group={group}
+          version={currentVersion}
+          diff={diff}
+          bodies={bodies}
+        />
 
         <MenuBar
           totalVersions={totalVersions}
@@ -66,9 +63,7 @@ export default async function GroupPage({
           includesProposals={group.proposals.length > 0}
         />
 
-        <Suspense fallback={<FeedLoading />}>
-          <Feed group={group} feed={feed} />
-        </Suspense>
+        <Feed group={group} feed={feed} />
       </div>
 
       <Timeline

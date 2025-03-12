@@ -1,5 +1,4 @@
 import { Proposal, Selectable } from '@proposalsapp/db-indexer';
-import { Suspense } from 'react';
 import {
   DelegateInfo,
   DelegateVotingPower,
@@ -8,9 +7,9 @@ import {
   getProposalGovernor_cached,
   getVotesAction_cached,
 } from './actions';
-import { LoadingChart, ResultsChart } from './result/ResultsChart';
-import { LoadingList, ResultsList } from './result/ResultsList';
-import { LoadingTable, ResultsTable } from './result/ResultsTable';
+import { ResultsChart } from './result/ResultsChart';
+import { ResultsList } from './result/ResultsList';
+import { ResultsTable } from './result/ResultsTable';
 import { processResultsAction } from '@/lib/results_processing';
 import { ResultsTitle } from './result/ResultsTitle';
 
@@ -22,9 +21,7 @@ interface ResultsProps {
 export function Results({ proposal, daoSlug }: ResultsProps) {
   return (
     <div className='flex w-full'>
-      <Suspense fallback={<ResultsLoading />}>
-        <ResultsContent proposal={proposal} daoSlug={daoSlug} />
-      </Suspense>
+      <ResultsContent proposal={proposal} daoSlug={daoSlug} />
     </div>
   );
 }
@@ -91,40 +88,6 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
       </div>
 
       <ResultsList results={processedResults} onchain={onChain} />
-    </div>
-  );
-}
-
-function TitleLoading() {
-  return (
-    <div className='mb-4 flex flex-col gap-4'>
-      {/* Title placeholder */}
-      <div className='h-6 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-
-      {/* Metadata row */}
-      <div className='flex items-center gap-4'>
-        {/* Published by text */}
-        <div className='flex items-center gap-2'>
-          <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-3 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function ResultsLoading() {
-  return (
-    <div className='flex w-full gap-2'>
-      <div className='flex w-full flex-col gap-2'>
-        <TitleLoading />
-        <LoadingChart />
-        <LoadingTable />
-      </div>
-
-      <LoadingList />
     </div>
   );
 }

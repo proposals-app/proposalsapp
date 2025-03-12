@@ -11,6 +11,7 @@ import {
 } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -115,18 +116,20 @@ export async function Timeline({
                   event.type === TimelineEventType.ResultOngoingOtherVotes ||
                   event.type === TimelineEventType.ResultEndedBasicVote ||
                   event.type === TimelineEventType.ResultEndedOtherVotes ? (
-                  <ResultEvent
-                    eventType={event.type}
-                    content={event.content}
-                    timestamp={event.timestamp}
-                    proposal={event.proposal}
-                    resultNumber={resultNumber!}
-                    selectedResult={selectedResult}
-                    daoSlug={group.daoSlug}
-                    groupId={group.group.id}
-                    eventIndex={index}
-                    last={index == 0}
-                  />
+                  <ViewTransition name={`result-${resultNumber}`}>
+                    <ResultEvent
+                      eventType={event.type}
+                      content={event.content}
+                      timestamp={event.timestamp}
+                      proposal={event.proposal}
+                      resultNumber={resultNumber!}
+                      selectedResult={selectedResult}
+                      daoSlug={group.daoSlug}
+                      groupId={group.group.id}
+                      eventIndex={index}
+                      last={index == 0}
+                    />
+                  </ViewTransition>
                 ) : event.type === TimelineEventType.Basic ? (
                   <BasicEvent />
                 ) : null}
@@ -183,14 +186,16 @@ export function LoadingTimeline() {
               className='h relative flex w-full items-center justify-start'
             >
               {/* Placeholder Event Content */}
-              <div
-                className='dark:border-neutral-650 z-20 flex h-[120px] flex-col gap-2 border
-                  border-neutral-300 bg-white px-4 py-2 dark:bg-neutral-950'
-              >
-                <div className='h-4 w-20 rounded-sm bg-gray-300' />
-                <div className='h-4 w-16 rounded-sm bg-gray-300' />
-                <div className='h-4 w-20 rounded-sm bg-gray-300' />
-              </div>
+              <ViewTransition name={`result-${index}`}>
+                <div
+                  className='dark:border-neutral-650 z-20 flex h-[120px] flex-col gap-2 border
+                    border-neutral-300 bg-white px-4 py-2 dark:bg-neutral-950'
+                >
+                  <div className='h-4 w-20 rounded-sm bg-gray-300' />
+                  <div className='h-4 w-16 rounded-sm bg-gray-300' />
+                  <div className='h-4 w-20 rounded-sm bg-gray-300' />
+                </div>
+              </ViewTransition>
             </div>
           ))}
         </div>

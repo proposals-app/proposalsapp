@@ -6,6 +6,8 @@ import { NavBar } from './components/NavBar';
 import { ThemeProvider } from '../components/theme-provider';
 import { UpdateManifest } from '../components/update-manifest';
 import Banner from '../components/Banner';
+import { unstable_ViewTransition as ViewTransition } from 'react';
+
 // Define a cached function to fetch the DAO data
 const getDaoBySlug = unstable_cache(
   async (daoSlug: string) => {
@@ -43,7 +45,9 @@ export default async function DaoLayout({
           dark:bg-neutral-900 dark:text-neutral-300'
       >
         <NavBar dao={dao} />
-        <div className='flex w-full pl-20'>{children}</div>
+        <ViewTransition>
+          <div className='flex w-full pl-20'>{children}</div>
+        </ViewTransition>
       </div>
       <Suspense>
         <Banner />

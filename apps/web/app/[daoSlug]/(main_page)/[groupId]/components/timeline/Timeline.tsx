@@ -16,6 +16,7 @@ import {
   RefObject,
 } from 'react';
 import React from 'react';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -393,37 +394,45 @@ const TimelineEventItem = React.memo(
           ref={isLastVisible ? endRef : undefined}
         >
           {event.type === TimelineEventType.CommentsVolume ? (
-            <CommentsVolumeEvent
-              timestamp={event.timestamp}
-              width={event.volume / event.maxVolume}
-              last={index === 0}
-            />
+            <ViewTransition name={`commentsvolume-${index}`}>
+              <CommentsVolumeEvent
+                timestamp={event.timestamp}
+                width={event.volume / event.maxVolume}
+                last={index === 0}
+              />
+            </ViewTransition>
           ) : event.type === TimelineEventType.VotesVolume ? (
-            <VotesVolumeEvent
-              timestamp={event.timestamp}
-              width={event.volume / event.maxVolume}
-              last={index === 0}
-            />
+            <ViewTransition name={`votesvolume-${index}`}>
+              <VotesVolumeEvent
+                timestamp={event.timestamp}
+                width={event.volume / event.maxVolume}
+                last={index === 0}
+              />
+            </ViewTransition>
           ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
             event.type === TimelineEventType.ResultOngoingOtherVotes ||
             event.type === TimelineEventType.ResultEndedBasicVote ||
             event.type === TimelineEventType.ResultEndedOtherVotes ? (
-            <ResultEvent
-              content={event.content}
-              timestamp={event.timestamp}
-              result={event.result}
-              resultNumber={resultNumber!}
-              last={index === 0}
-              daoSlug={group!.daoSlug}
-              groupId={group!.group.id}
-            />
+            <ViewTransition name={`result-${resultNumber}`}>
+              <ResultEvent
+                content={event.content}
+                timestamp={event.timestamp}
+                result={event.result}
+                resultNumber={resultNumber!}
+                last={index === 0}
+                daoSlug={group!.daoSlug}
+                groupId={group!.group.id}
+              />
+            </ViewTransition>
           ) : event.type === TimelineEventType.Basic ? (
-            <BasicEvent
-              content={event.content}
-              timestamp={event.timestamp}
-              url={event.url}
-              last={index === 0}
-            />
+            <ViewTransition name={event.content}>
+              <BasicEvent
+                content={event.content}
+                timestamp={event.timestamp}
+                url={event.url}
+                last={index === 0}
+              />
+            </ViewTransition>
           ) : null}
         </div>
       </div>
