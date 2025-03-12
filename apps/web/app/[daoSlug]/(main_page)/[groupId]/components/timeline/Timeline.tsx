@@ -46,7 +46,8 @@ interface CommentsVolumeEvent extends BaseEvent {
 
 interface VotesVolumeEvent extends BaseEvent {
   type: TimelineEventType.VotesVolume;
-  volume: number;
+  volumes: number[];
+  colors: string[];
   maxVolume: number;
   volumeType: 'votes';
   metadata: {
@@ -119,12 +120,28 @@ function aggregateVolumeEvents(
 
       // Aggregate vote events if any
       if (voteEvents.length > 0) {
+        // Initialize aggregated arrays
+        const aggregatedVolumes: number[] = Array(
+          voteEvents[0].volumes.length
+        ).fill(0);
+        const colors: string[] = voteEvents[0].colors || [];
+
+        // Sum up volumes for each choice
+        voteEvents.forEach((event) => {
+          event.volumes.forEach((vol, idx) => {
+            if (idx < aggregatedVolumes.length) {
+              aggregatedVolumes[idx] += vol;
+            }
+          });
+        });
+
         const aggregatedVoteEvent: VotesVolumeEvent = {
           type: TimelineEventType.VotesVolume,
           timestamp: new Date(
             Math.min(...voteEvents.map((e) => e.timestamp.getTime()))
           ),
-          volume: voteEvents.reduce((sum, e) => sum + e.volume, 0),
+          volumes: aggregatedVolumes,
+          colors: colors,
           maxVolume: Math.max(...voteEvents.map((e) => e.maxVolume)),
           volumeType: 'votes',
           metadata: {
@@ -405,7 +422,9 @@ const TimelineEventItem = React.memo(
             <ViewTransition name={`votesvolume-${index}`}>
               <VotesVolumeEvent
                 timestamp={event.timestamp}
-                width={event.volume / event.maxVolume}
+                width={event.maxVolume}
+                volumes={event.volumes}
+                colors={event.colors}
                 last={index === 0}
               />
             </ViewTransition>

@@ -392,7 +392,8 @@ interface CommentsVolumeEvent extends BaseEvent {
 
 interface VotesVolumeEvent extends BaseEvent {
   type: TimelineEventType.VotesVolume;
-  volume: number;
+  volumes: number[];
+  colors: string[];
   maxVolume: number;
   volumeType: 'votes';
   metadata: {
@@ -523,6 +524,7 @@ export async function getFeed(
 
       const allVotes: Selectable<Vote>[] = [];
       const processedVotes: ProcessedVote[] = [];
+      const filteredProcessedVotes: ProcessedVote[] = [];
 
       const events: FeedEvent[] = [];
 
@@ -569,11 +571,24 @@ export async function getFeed(
             proposals.push(proposal);
             allVotes.push(...allVotesForProposal);
 
+            const filteredProcessedResults = await processResultsAction(
+              proposal,
+              filteredVotesForTimeline,
+              {
+                withVotes: true,
+                withTimeseries: false,
+                aggregatedVotes: true,
+              }
+            );
+
+            if (filteredProcessedResults.votes)
+              filteredProcessedVotes.push(...filteredProcessedResults.votes);
+
             const dailyFilteredVotesMap = new Map<
               string,
               { totalVotingPower: number; lastVoteTime: Date }
             >();
-            filteredVotesForTimeline.forEach((vote) => {
+            filteredProcessedVotes.forEach((vote) => {
               // Use allVotesForProposal here
               // Get the date in locale format (e.g., "MM/DD/YYYY" or "DD/MM/YYYY") to use as key
               const date = vote.createdAt.toLocaleDateString();
@@ -602,25 +617,47 @@ export async function getFeed(
             dailyFilteredVotes.forEach((dailyVote) => {
               const dailyVotingPower = Number(dailyVote.totalVotingPower);
               const timestamp = new Date(dailyVote.lastVoteTime);
+
+              // Get votes for this day
+              const dayVotes = filteredVotesForTimeline.filter(
+                (vote) =>
+                  vote.createdAt.toLocaleDateString() ===
+                  dailyVote.lastVoteTime.toLocaleDateString()
+              );
+
+              // Get choices from the proposal
+              const choices = proposal.choices as string[];
+
+              // Initialize volumes array with one element per choice, all set to 0
+              const volumes: number[] = Array(choices.length).fill(0);
+              const colors: string[] = [];
+
+              // Fill the volumes array with voting power by choice
+              dayVotes.forEach((vote) => {
+                const choiceIndex = Number(vote.choice); // Convert from 1-based to 0-based index
+                if (
+                  !isNaN(choiceIndex) &&
+                  choiceIndex >= 0 &&
+                  choiceIndex < volumes.length
+                ) {
+                  volumes[choiceIndex] += vote.votingPower;
+                }
+              });
+
+              colors.push(...filteredProcessedResults.choiceColors);
+
               events.push({
                 type: TimelineEventType.VotesVolume,
                 timestamp,
-                volume: filteredVotesForTimeline.reduce((sum, vote) => {
-                  // Recalculate volume with filtered votes for timeline
-                  const voteDate = vote.createdAt.toLocaleDateString();
-                  return voteDate ===
-                    dailyVote.lastVoteTime.toLocaleDateString()
-                    ? sum + vote.votingPower
-                    : sum;
-                }, 0),
-                maxVolume: maxVotes, // maxVolume is still based on all votes
+                volumes: volumes,
+                colors: colors,
+                maxVolume: maxVotes,
                 volumeType: 'votes',
                 metadata: {
                   votingPower: dailyVotingPower,
                 },
               });
             });
-
             const startedAt = new Date(proposal.startAt);
             const endedAt = new Date(proposal.endAt);
 
