@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
-import { Results } from './components/Results';
-import { Timeline } from './components/timeline/Timeline';
+import { Results, ResultsLoading } from './components/Results';
+import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
 import { getGroup_cached } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import { Header } from '@/app/[daoSlug]/components/Header';
+import { Suspense } from 'react';
 
 export default async function ResultPage({
   params,
@@ -27,7 +28,9 @@ export default async function ResultPage({
     <div className='flex min-h-screen w-full flex-row'>
       <Header groupId={group.groupId} withBack={true} withHide={false} />
 
-      <Timeline group={group} selectedResult={proposalIndex + 1} />
+      <Suspense fallback={<LoadingTimeline />}>
+        <Timeline group={group} selectedResult={proposalIndex + 1} />
+      </Suspense>
 
       <div
         className={'flex w-full grow -translate-x-[1px] -translate-y-2 py-28'}
@@ -37,7 +40,9 @@ export default async function ResultPage({
             className='dark:border-neutral-650 flex h-full min-h-[calc(100vh-114px)] w-full flex-col
               rounded-r-xs border border-neutral-800 bg-white p-6 dark:bg-neutral-950'
           >
-            <Results proposal={proposal} daoSlug={daoSlug} />
+            <Suspense fallback={<ResultsLoading />}>
+              <Results proposal={proposal} daoSlug={daoSlug} />
+            </Suspense>
           </div>
         </div>
       </div>

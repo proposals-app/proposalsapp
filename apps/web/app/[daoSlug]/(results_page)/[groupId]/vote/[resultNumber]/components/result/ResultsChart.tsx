@@ -408,3 +408,59 @@ const roundToGoodValue = (value: number): number => {
     return 10 * magnitude;
   }
 };
+
+export function LoadingChart() {
+  return (
+    <div className='flex h-[380px] w-full items-center justify-center'>
+      <div className='w-full space-y-4'>
+        {/* Chart area placeholder */}
+        <div className='relative h-[320px] w-full'>
+          {/* Y-axis labels */}
+          <div className='absolute top-0 left-0 flex h-full w-16 flex-col justify-between py-4'>
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className='h-4 w-12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
+              />
+            ))}
+          </div>
+
+          {/* Chart grid lines */}
+          <div className='absolute inset-0 ml-16'>
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className='border-b border-neutral-200 dark:border-neutral-700'
+                style={{ height: `${100 / 5}%` }}
+              />
+            ))}
+          </div>
+
+          {/* Loading lines */}
+          <div className='absolute inset-0 mt-4 ml-16 flex flex-col justify-around'>
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className='h-1 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
+                style={{
+                  opacity: 1 - i * 0.2,
+                  width: `${100 - i * 15}%`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* X-axis labels */}
+        <div className='flex justify-between px-16'>
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className='h-4 w-20 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

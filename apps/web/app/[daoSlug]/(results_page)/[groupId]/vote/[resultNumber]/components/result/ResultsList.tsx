@@ -338,3 +338,54 @@ function ParticipationPercentage({ percentage }: ParticipationPercentageProps) {
     </div>
   );
 }
+
+export function LoadingList() {
+  return (
+    <div className='ml-6 w-72 text-neutral-700 dark:text-neutral-200'>
+      {/* Status message placeholder */}
+      <div className='mb-1 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+      <div className='mb-4 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+
+      <div className='space-y-2'>
+        {/* Choice bars loading state */}
+        {[...Array(3)].map((_, index) => (
+          <div
+            key={index}
+            className='relative h-10 w-full animate-pulse overflow-hidden border-2 border-neutral-200
+              dark:border-neutral-700'
+          />
+        ))}
+        {/* Majority support placeholder */}
+        <div className='flex w-full items-center gap-1'>
+          <div className='h-4 w-4 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700' />
+          <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+        </div>
+        {/* Quorum bar placeholder */}
+        <div>
+          <div className='mb-4'>
+            <div
+              className='relative h-4 w-full overflow-hidden border border-neutral-200
+                dark:border-neutral-700'
+            >
+              <div className='h-full w-1/2 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
+            </div>
+            {/* Quorum text placeholder */}
+            <div className='mt-2 flex items-center gap-1'>
+              <div className='h-4 w-4 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700' />
+              <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+            </div>
+          </div>
+        </div>
+        {/* Delegated voting power placeholder */}
+        <div className='mt-4'>
+          <div className='relative h-2 w-full border border-neutral-200 dark:border-neutral-700'>
+            <div className='h-full w-1/3 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
+          </div>
+          <div className='mt-2 flex items-center gap-1'>
+            <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

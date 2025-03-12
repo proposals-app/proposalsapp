@@ -350,3 +350,65 @@ export function ResultsTable({
     </div>
   );
 }
+
+export function LoadingTable() {
+  return (
+    <div className='mt-6'>
+      {/* Header */}
+      <div
+        className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center gap-2 border-b
+          border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-700
+          dark:bg-neutral-800'
+      >
+        <div className='col-span-2 flex items-center'>
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+        </div>
+        <div className='col-span-3'>
+          <div className='h-8 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+        </div>
+        <div className='col-span-1 flex items-center justify-end gap-2'>
+          <div className='h-4 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+        </div>
+        <div className='col-span-1 flex items-center justify-end gap-2'>
+          <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+        </div>
+      </div>
+
+      {/* Rows */}
+      {[...Array(10)].map((_, index) => (
+        <div key={index} className='relative'>
+          {/* Color bar */}
+          <div
+            className='absolute top-0 left-0 h-2 w-full opacity-50'
+            style={{ width: '10%' }} // Adjust the width as needed to match the real content
+          >
+            <div className='h-full w-full animate-pulse bg-neutral-300 dark:bg-neutral-700' />
+          </div>
+
+          {/* Row content */}
+          <div className='relative grid h-20 grid-cols-7 items-center p-2'>
+            <div className='col-span-2 flex items-center gap-2'>
+              <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-300 dark:bg-neutral-700' />
+              <div className='flex flex-col gap-1'>
+                <div className='h-4 w-32 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+                <div className='h-3 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+              </div>
+            </div>
+            <div className='col-span-3 flex flex-col gap-1 px-2'>
+              <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+              <div className='h-3 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            </div>
+            <div className='col-span-1 flex flex-col gap-1 px-2'>
+              <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+              <div className='h-3 w-20 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            </div>
+            <div className='col-span-1 flex flex-col items-end gap-1 px-2'>
+              <div className='h-4 w-28 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+              <div className='h-3 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

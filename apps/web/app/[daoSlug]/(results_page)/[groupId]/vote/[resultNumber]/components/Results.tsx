@@ -7,11 +7,12 @@ import {
   getProposalGovernor_cached,
   getVotesAction_cached,
 } from './actions';
-import { ResultsChart } from './result/ResultsChart';
-import { ResultsList } from './result/ResultsList';
-import { ResultsTable } from './result/ResultsTable';
+import { LoadingChart, ResultsChart } from './result/ResultsChart';
+import { LoadingList, ResultsList } from './result/ResultsList';
+import { LoadingTable, ResultsTable } from './result/ResultsTable';
 import { processResultsAction } from '@/lib/results_processing';
 import { ResultsTitle } from './result/ResultsTitle';
+import { Suspense } from 'react';
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
@@ -72,22 +73,65 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   return (
     <div className='flex w-full gap-2'>
       <div className='flex w-full flex-col gap-2'>
-        <ResultsTitle
-          processedResults={processedResults}
-          onChain={onChain}
-          publisher={publisher}
-          governor={governor}
-        />
-        <ResultsChart results={processedResults} delegateMap={delegateMap} />
+        <Suspense>
+          <ResultsTitle
+            processedResults={processedResults}
+            onChain={onChain}
+            publisher={publisher}
+            governor={governor}
+          />
+        </Suspense>
 
-        <ResultsTable
-          results={processedResults}
-          delegateMap={delegateMap}
-          votingPowerMap={votingPowerMap}
-        />
+        <Suspense fallback={<LoadingChart />}>
+          <ResultsChart results={processedResults} delegateMap={delegateMap} />
+        </Suspense>
+
+        <Suspense fallback={<LoadingTable />}>
+          <ResultsTable
+            results={processedResults}
+            delegateMap={delegateMap}
+            votingPowerMap={votingPowerMap}
+          />
+        </Suspense>
       </div>
 
-      <ResultsList results={processedResults} onchain={onChain} />
+      <Suspense fallback={<LoadingList />}>
+        <ResultsList results={processedResults} onchain={onChain} />
+      </Suspense>
+    </div>
+  );
+}
+
+function TitleLoading() {
+  return (
+    <div className='mb-4 flex flex-col gap-4'>
+      {/* Title placeholder */}
+      <div className='h-6 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+
+      {/* Metadata row */}
+      <div className='flex items-center gap-4'>
+        {/* Published by text */}
+        <div className='flex items-center gap-2'>
+          <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+          <div className='h-3 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+          <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ResultsLoading() {
+  return (
+    <div className='flex w-full gap-2'>
+      <div className='flex w-full flex-col gap-2'>
+        <TitleLoading />
+        <LoadingChart />
+        <LoadingTable />
+      </div>
+
+      <LoadingList />
     </div>
   );
 }
