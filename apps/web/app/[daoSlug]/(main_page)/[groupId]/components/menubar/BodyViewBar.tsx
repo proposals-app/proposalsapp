@@ -29,7 +29,7 @@ export const BodyViewBar = ({
 }: BodyViewBarProps) => {
   const [expanded, setExpanded] = useQueryState(
     'expanded',
-    parseAsBoolean.withDefault(false).withOptions({ shallow: false })
+    parseAsBoolean.withDefault(false)
   );
 
   const [diff, setDiff] = useQueryState(
@@ -66,6 +66,19 @@ export const BodyViewBar = ({
         >
           <div className='flex w-full justify-between'>
             <div className='flex items-center gap-4'>
+              <button
+                className='flex cursor-pointer items-center gap-4 hover:underline'
+                onClick={() => {
+                  if (expanded) {
+                    setExpanded(false);
+                    setView(ViewEnum.FULL);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+              >
+                <ArrowSvg width={24} height={24} />
+              </button>
+
               <div className='flex h-8 cursor-pointer items-center justify-start gap-2 px-3'>
                 <label
                   htmlFor='changes'
@@ -166,8 +179,8 @@ export const BodyViewBar = ({
               className='flex cursor-pointer items-center gap-4 hover:underline'
               onClick={() => {
                 if (expanded) {
-                  setView(ViewEnum.FULL);
                   setExpanded(false);
+                  setView(ViewEnum.FULL);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
               }}

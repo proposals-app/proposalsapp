@@ -3,7 +3,7 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { format, toZonedTime } from 'date-fns-tz';
 import Link from 'next/link';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { WindowScroller, List, AutoSizer } from 'react-virtualized';
 import { DelegateInfo, DelegateVotingPower } from '../actions';
 import { ProcessedResults } from '@/lib/results_processing';
@@ -13,9 +13,10 @@ import ArrowSvg from '@/public/assets/web/arrow.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import Image from 'next/image';
 import { VotingPowerTag } from './VotingPowerTag';
+import superjson, { SuperJSONResult } from 'superjson';
 
 interface ResultsTableProps {
-  results: ProcessedResults;
+  results: SuperJSONResult;
   delegateMap: Map<string, DelegateInfo>;
   votingPowerMap: Map<string, DelegateVotingPower>;
 }
@@ -47,6 +48,8 @@ export function ResultsTable({
   delegateMap,
   votingPowerMap,
 }: ResultsTableProps) {
+  const deserializedResults: ProcessedResults = superjson.deserialize(results);
+
   const [sortColumn, setSortColumn] = useState<'timestamp' | 'votingPower'>(
     'votingPower'
   );
@@ -54,7 +57,7 @@ export function ResultsTable({
   const [selectedChoice, setSelectedChoice] = useState<string>('all');
 
   const sortedAndFilteredVotes = useMemo(() => {
-    let filteredVotes = results.votes || [];
+    let filteredVotes = deserializedResults.votes || [];
 
     // Apply choice filter
     if (selectedChoice !== 'all') {
@@ -78,7 +81,7 @@ export function ResultsTable({
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [results.votes, sortColumn, sortDirection, selectedChoice]);
+  }, [deserializedResults.votes, sortColumn, sortDirection, selectedChoice]);
 
   const handleSortChange = (column: typeof sortColumn) => {
     if (sortColumn === column) {
@@ -88,6 +91,10 @@ export function ResultsTable({
       setSortDirection('desc');
     }
   };
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedChoice, sortColumn, sortDirection]);
 
   const isUrl = (text: string): boolean => {
     try {
@@ -110,10 +117,11 @@ export function ResultsTable({
     const vote = sortedAndFilteredVotes[index];
     const delegate = delegateMap.get(vote.voterAddress);
     const votingPowerPercentage =
-      (vote.votingPower / results.totalVotingPower) * 100;
+      (vote.votingPower / deserializedResults.totalVotingPower) * 100;
 
     const shouldHideVote =
-      results.hiddenVote && results.scoresState !== 'final';
+      deserializedResults.hiddenVote &&
+      deserializedResults.scoresState !== 'final';
     const choiceText = shouldHideVote ? 'Hidden vote' : vote.choiceText;
     const barWidth = `${(vote.relativeVotingPower || 0) * 100}%`;
     const votingPowerInfo = votingPowerMap.get(vote.voterAddress);
@@ -251,7 +259,7 @@ export function ResultsTable({
               className='flex w-full items-center justify-between'
             >
               <div className='flex items-center gap-1'>
-                {selectedChoice === 'all' ? 'All Choices' : selectedChoice}
+                {selectedChoice === 'all' ? 'All Vote Choices' : selectedChoice}
                 <ChevronDownSvg
                   width={24}
                   height={24}
@@ -270,7 +278,7 @@ export function ResultsTable({
             >
               <Select.Viewport className=''>
                 <SelectItem value='all'>All Choices</SelectItem>
-                {results.choices.map((choice, index) => (
+                {deserializedResults.choices.map((choice, index) => (
                   <SelectItem key={index} value={choice}>
                     {choice}
                   </SelectItem>

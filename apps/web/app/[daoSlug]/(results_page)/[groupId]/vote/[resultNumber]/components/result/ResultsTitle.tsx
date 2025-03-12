@@ -4,15 +4,10 @@ import ExternalLinkIcon from '@/public/assets/web/arrow_external_link.svg';
 import OnchainIcon from '@/public/assets/web/onchain.svg';
 import OffchainIcon from '@/public/assets/web/offchain.svg';
 import { DelegateInfo } from '../actions';
+import superjson, { SuperJSONResult } from 'superjson';
 
 interface ResultsTitleProps {
-  processedResults: {
-    proposal: {
-      name: string;
-      createdAt: Date;
-      url: string;
-    };
-  };
+  results: SuperJSONResult;
   onChain: boolean;
   publisher: DelegateInfo | null;
   governor: {
@@ -25,14 +20,24 @@ interface ResultsTitleProps {
 }
 
 export function ResultsTitle({
-  processedResults,
+  results,
   onChain,
   publisher,
   governor,
 }: ResultsTitleProps) {
+  const deserializedResults: {
+    proposal: {
+      name: string;
+      createdAt: Date;
+      url: string;
+    };
+  } = superjson.deserialize(results);
+
   return (
     <div className='flex h-28 flex-col gap-2'>
-      <div className='text-2xl font-bold'>{processedResults.proposal.name}</div>
+      <div className='text-2xl font-bold'>
+        {deserializedResults.proposal.name}
+      </div>
       <div className='flex items-center gap-2 text-xs'>
         <div>
           Published {onChain ? 'onchain' : 'offchain'} by{' '}
@@ -41,12 +46,12 @@ export function ResultsTitle({
           </span>{' '}
           at{' '}
           <span className='font-bold'>
-            {format(processedResults.proposal.createdAt, 'MMM d, yyyy')}
+            {format(deserializedResults.proposal.createdAt, 'MMM d, yyyy')}
           </span>
         </div>
         <Link
           className='flex items-center gap-1 rounded-xs bg-neutral-100 px-1 dark:bg-neutral-800'
-          href={processedResults.proposal.url}
+          href={deserializedResults.proposal.url}
           target='_blank'
         >
           {onChain ? (

@@ -4,23 +4,26 @@ import { toZonedTime } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
 import PassedIcon from '@/public/assets/web/passed.svg';
 import FailedIcon from '@/public/assets/web/failed.svg';
+import superjson, { SuperJSONResult } from 'superjson';
 
 interface ResultsListProps {
-  results: ProcessedResults;
+  results: SuperJSONResult;
   onchain: boolean;
 }
 
 export function ResultsList({ results, onchain }: ResultsListProps) {
+  const deserializedResults: ProcessedResults = superjson.deserialize(results);
+
   const explicitOrder = ['For', 'Abstain', 'Against'];
-  const totalVotingPower = results.totalVotingPower;
-  const totalDelegatedVp = results.totalDelegatedVp;
+  const totalVotingPower = deserializedResults.totalVotingPower;
+  const totalDelegatedVp = deserializedResults.totalDelegatedVp;
 
   // Calculate voting power for each choice using finalResults
-  const choicesWithPower = results.choices.map((choice, index) => ({
+  const choicesWithPower = deserializedResults.choices.map((choice, index) => ({
     choice,
-    votingPower: results.finalResults[index] || 0,
-    color: results.choiceColors[index],
-    countsTowardsQuorum: results.quorumChoices.includes(index),
+    votingPower: deserializedResults.finalResults[index] || 0,
+    color: deserializedResults.choiceColors[index],
+    countsTowardsQuorum: deserializedResults.quorumChoices.includes(index),
   }));
 
   // Sort by voting power descending
@@ -50,33 +53,33 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
       : false
     : undefined;
 
-  const hasQuorum = quorumVotingPower > (results.quorum || 0);
+  const hasQuorum = quorumVotingPower > (deserializedResults.quorum || 0);
 
   return (
     <div className='ml-6 flex w-72 flex-col gap-4 text-neutral-700 dark:text-neutral-200'>
       <div className='flex h-28 items-center'>
         <StatusMessage
-          endTime={toZonedTime(results.proposal.endAt, 'UTC')}
+          endTime={toZonedTime(deserializedResults.proposal.endAt, 'UTC')}
           hasQuorum={hasQuorum}
           isOnchain={onchain}
           hasMajoritySupport={hasMajoritySupport}
         />
       </div>
       <ChoiceList choices={sortedChoices} totalVotingPower={totalVotingPower} />
-      {results.quorum !== null && totalDelegatedVp && (
+      {deserializedResults.quorum !== null && totalDelegatedVp && (
         <div className='flex flex-col gap-2'>
           <MajoritySupportCheckmark
             hasQuorum={hasMajoritySupport}
-            results={{ quorum: results.quorum, totalDelegatedVp }}
+            results={{ quorum: deserializedResults.quorum, totalDelegatedVp }}
           />
-          {results.totalDelegatedVp && (
+          {deserializedResults.totalDelegatedVp && (
             <QuorumBar
               choices={sortedChoices.filter(
                 (choice) => choice.countsTowardsQuorum
               )}
               quorumVotingPower={quorumVotingPower}
-              quorum={results.quorum}
-              totalDelegatedVp={results.totalDelegatedVp}
+              quorum={deserializedResults.quorum}
+              totalDelegatedVp={deserializedResults.totalDelegatedVp}
             />
           )}
         </div>

@@ -4,6 +4,7 @@ import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
 import { getGroup_cached } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import { Header } from '@/app/[daoSlug]/components/Header';
 import { Suspense } from 'react';
+import { getGroupAuthor_cached } from '@/app/[daoSlug]/actions';
 
 export default async function ResultPage({
   params,
@@ -24,9 +25,19 @@ export default async function ResultPage({
     notFound();
   }
 
+  const { originalAuthorName, originalAuthorPicture, groupName } =
+    await getGroupAuthor_cached(group.groupId);
+
   return (
     <div className='flex min-h-screen w-full flex-row'>
-      <Header groupId={group.groupId} withBack={true} withHide={false} />
+      <Header
+        groupId={group.groupId}
+        withBack={true}
+        withHide={false}
+        originalAuthorName={originalAuthorName}
+        originalAuthorPicture={originalAuthorPicture}
+        groupName={groupName}
+      />
 
       <Suspense fallback={<LoadingTimeline />}>
         <Timeline group={group} selectedResult={proposalIndex + 1} />

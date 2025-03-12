@@ -7,9 +7,10 @@ import { useEffect, useRef } from 'react';
 import { DelegateInfo } from '../actions';
 import { ProcessedResults } from '@/lib/results_processing';
 import { useTheme } from 'next-themes';
+import superjson, { SuperJSONResult } from 'superjson';
 
 interface ResultsChartProps {
-  results: ProcessedResults;
+  results: SuperJSONResult;
   delegateMap: Map<string, DelegateInfo>;
 }
 
@@ -19,9 +20,10 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
 
+  const deserializedResults: ProcessedResults = superjson.deserialize(results);
   useEffect(() => {
     if (!chartRef.current) return;
-    if (!results.timeSeriesData) return;
+    if (!deserializedResults.timeSeriesData) return;
 
     const themeColors = {
       axisLabel: theme == 'dark' ? 'var(--neutral-300)' : 'var(--neutral-500)',
@@ -43,16 +45,16 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
     const chart = echarts.init(chartRef.current, null, { renderer: 'svg' });
 
-    const isRankedChoice = results.voteType === 'ranked-choice';
+    const isRankedChoice = deserializedResults.voteType === 'ranked-choice';
 
     // Calculate cumulative data for each choice
     const cumulativeData: { [choice: number]: [Date, number][] } = {};
 
-    results.choices.forEach((_, choiceIndex) => {
+    deserializedResults.choices.forEach((_, choiceIndex) => {
       cumulativeData[choiceIndex] = [];
       let cumulative = 0;
 
-      results.timeSeriesData?.forEach((point) => {
+      deserializedResults.timeSeriesData?.forEach((point) => {
         const value = point.values[choiceIndex] || 0;
         cumulative += value;
         cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
@@ -61,11 +63,13 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
     // Get last known values for sorting
     const lastKnownValues: { [choice: number]: number } = {};
-    results.choices.forEach((_, choiceIndex) => {
+    deserializedResults.choices.forEach((_, choiceIndex) => {
       if (isRankedChoice) {
         // For ranked-choice, use the raw values from the last time series point
         const lastPoint =
-          results.timeSeriesData?.[results.timeSeriesData.length - 1];
+          deserializedResults.timeSeriesData?.[
+            deserializedResults.timeSeriesData.length - 1
+          ];
         lastKnownValues[choiceIndex] = lastPoint?.values[choiceIndex] || 0;
       } else {
         // For other vote types, use the cumulative values
@@ -77,28 +81,28 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
     // Sort choices by voting power
     const explicitOrder = ['For', 'Abstain'];
-    const sortedChoices = [...results.choices].sort((a, b) => {
+    const sortedChoices = [...deserializedResults.choices].sort((a, b) => {
       const indexA = explicitOrder.indexOf(a);
       const indexB = explicitOrder.indexOf(b);
       if (indexA !== -1 && indexB !== -1) return indexA - indexB;
       return (
-        lastKnownValues[results.choices.indexOf(b)] -
-        lastKnownValues[results.choices.indexOf(a)]
+        lastKnownValues[deserializedResults.choices.indexOf(b)] -
+        lastKnownValues[deserializedResults.choices.indexOf(a)]
       );
     });
 
     const sortedChoiceIndices = sortedChoices.map((choice) =>
-      results.choices.indexOf(choice)
+      deserializedResults.choices.indexOf(choice)
     );
 
     // Create series for each choice
     const series: echarts.SeriesOption[] = sortedChoiceIndices.map(
       (choiceIndex) => {
-        const choice = results.choices[choiceIndex];
-        const color = results.choiceColors[choiceIndex];
+        const choice = deserializedResults.choices[choiceIndex];
+        const color = deserializedResults.choiceColors[choiceIndex];
         const shouldStack =
-          results.quorumChoices.includes(choiceIndex) &&
-          results.quorum !== null;
+          deserializedResults.quorumChoices.includes(choiceIndex) &&
+          deserializedResults.quorum !== null;
 
         let zIndex: number;
         if (choice === 'Against') {
@@ -113,7 +117,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
 
         const significantPoints: [Date, number][] = [];
         let cumulativeValue = 0;
-        results.timeSeriesData?.forEach((point) => {
+        deserializedResults.timeSeriesData?.forEach((point) => {
           const value = point.values[choiceIndex] || 0;
           cumulativeValue += value;
           if (
@@ -177,7 +181,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
               }
             : undefined,
           data: isRankedChoice
-            ? results.timeSeriesData?.map((point) => [
+            ? deserializedResults.timeSeriesData?.map((point) => [
                 point.timestamp,
                 point.values[choiceIndex] || 0,
               ])
@@ -190,14 +194,16 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
     // Add the "Total" series for ranked-choice voting
     let totalSeriesMaxValue = 0;
     if (isRankedChoice) {
-      const totalSeriesData = results.timeSeriesData.map((point) => {
-        const totalValue =
-          (point.values as Record<string | number, number>)[
-            'Winning threshold'
-          ] || 0;
-        totalSeriesMaxValue = Math.max(totalSeriesMaxValue, totalValue); // Track the max value of the Total series
-        return [point.timestamp, totalValue];
-      });
+      const totalSeriesData = deserializedResults.timeSeriesData.map(
+        (point) => {
+          const totalValue =
+            (point.values as Record<string | number, number>)[
+              'Winning threshold'
+            ] || 0;
+          totalSeriesMaxValue = Math.max(totalSeriesMaxValue, totalValue); // Track the max value of the Total series
+          return [point.timestamp, totalValue];
+        }
+      );
 
       const totalSeries: echarts.SeriesOption = {
         name: 'Winning threshold',
@@ -221,7 +227,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
     }
 
     // Add quorum line if needed
-    if (results.quorum !== null) {
+    if (deserializedResults.quorum !== null) {
       series.push({
         name: 'Quorum',
         type: 'line',
@@ -235,11 +241,11 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           },
           data: [
             {
-              yAxis: results.quorum,
+              yAxis: deserializedResults.quorum,
               label: {
                 formatter: () => {
-                  if (results.quorum !== null)
-                    return `{bold|${formatNumberWithSuffix(results.quorum)}} Quorum needed`;
+                  if (deserializedResults.quorum !== null)
+                    return `{bold|${formatNumberWithSuffix(deserializedResults.quorum)}} Quorum needed`;
                   return '';
                 },
                 color: themeColors.quorumLabel.text,
@@ -267,7 +273,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
     const maxVotingValue = Math.max(
       ...Object.values(lastKnownValues),
       totalSeriesMaxValue, // Include the max value from the Total series
-      results.quorum || 0
+      deserializedResults.quorum || 0
     );
     const yAxisMax = roundToGoodValue(maxVotingValue * 1.1);
 
@@ -284,7 +290,7 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           const selectedDate = new Date(params.value[0]);
 
           // Get the data point that contains metadata
-          const timeSeriesPoint = results.votes?.find(
+          const timeSeriesPoint = deserializedResults.votes?.find(
             (point) => point.createdAt.getTime() === selectedDate.getTime()
           );
 
@@ -311,8 +317,18 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       },
       xAxis: {
         type: 'time',
-        min: results.proposal.startAt,
-        max: results.proposal.endAt,
+        min: new Date(
+          deserializedResults.proposal.startAt.getTime() -
+            (deserializedResults.proposal.endAt.getTime() -
+              deserializedResults.proposal.startAt.getTime()) *
+              0.01
+        ),
+        max: new Date(
+          deserializedResults.proposal.endAt.getTime() +
+            (deserializedResults.proposal.endAt.getTime() -
+              deserializedResults.proposal.startAt.getTime()) *
+              0.01
+        ),
         axisLabel: {
           color: themeColors.axisLabel,
           formatter: (value: number) => {

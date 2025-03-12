@@ -42,7 +42,7 @@ export const FullViewBar = ({
 
   const [expanded, setExpanded] = useQueryState(
     'expanded',
-    parseAsBoolean.withDefault(false).withOptions({ shallow: false })
+    parseAsBoolean.withDefault(false)
   );
 
   const fullViewBarRef = useRef<HTMLDivElement | null>(null);
@@ -53,30 +53,35 @@ export const FullViewBar = ({
   const currentVotesFilter =
     voteFilters.find((filter) => filter.value === votesFilter)?.label || '';
 
+  const handleSwitchView = () => {
+    if (!fullViewBarRef.current) return;
+
+    const rect = fullViewBarRef.current.getBoundingClientRect();
+
+    if (rect.top < 80 && view !== ViewEnum.COMMENTS) {
+      setView(ViewEnum.COMMENTS);
+    } else if (
+      rect.top >= 80 &&
+      rect.bottom <= window.innerHeight &&
+      view !== ViewEnum.FULL
+    ) {
+      setView(ViewEnum.FULL);
+    } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
+      setView(ViewEnum.BODY);
+    }
+  };
+
   useEffect(() => {
-    const handleScroll = () => {
-      if (!fullViewBarRef.current) return;
-
-      const rect = fullViewBarRef.current.getBoundingClientRect();
-
-      if (rect.top < 80 && view !== ViewEnum.COMMENTS) {
-        setView(ViewEnum.COMMENTS);
-      } else if (
-        rect.top >= 80 &&
-        rect.bottom <= window.innerHeight &&
-        view !== ViewEnum.FULL
-      ) {
-        setView(ViewEnum.FULL);
-      } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
-        setView(ViewEnum.BODY);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleSwitchView, { passive: true });
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleSwitchView);
     };
   }, [view, setView]);
+
+  useEffect(() => {
+    if (expanded) setView(ViewEnum.BODY);
+    else setView(ViewEnum.FULL);
+  }, [expanded]);
 
   return (
     <ViewTransition name='menubar'>

@@ -141,6 +141,7 @@ async function processBasicVotes(
       choice,
       choiceText: choices[choice] || 'Unknown Choice',
       color: choiceColors[choice],
+      createdAt: new Date(vote.createdAt), // Ensure createdAt is a Date object
     };
   });
 
@@ -217,8 +218,15 @@ async function processBasicVotes(
       (finalResults[vote.choice as number] || 0) + vote.votingPower;
   });
 
+  const processedProposal = {
+    ...proposal,
+    startAt: new Date(proposal.startAt),
+    endAt: new Date(proposal.endAt),
+    createdAt: new Date(proposal.createdAt),
+  };
+
   return {
-    proposal,
+    proposal: processedProposal,
     choices,
     choiceColors,
     totalVotingPower: processedVotes.reduce(
@@ -320,6 +328,7 @@ async function processWeightedVotes(
           choice: -1,
           choiceText: combinedChoiceName,
           color: colorList,
+          createdAt: new Date(vote.createdAt), // Ensure createdAt is a Date object
         });
       }
 
@@ -367,6 +376,7 @@ async function processWeightedVotes(
           choice,
           choiceText: choices[choice] || 'Unknown Choice',
           color: choiceColors[choice],
+          createdAt: new Date(vote.createdAt), // Ensure createdAt is a Date object
         });
       }
 
@@ -455,8 +465,15 @@ async function processWeightedVotes(
     }
   });
 
+  const processedProposal = {
+    ...proposal,
+    startAt: new Date(proposal.startAt),
+    endAt: new Date(proposal.endAt),
+    createdAt: new Date(proposal.createdAt),
+  };
+
   return {
-    proposal,
+    proposal: processedProposal,
     choices,
     choiceColors,
     totalVotingPower: (processedVotes ?? votes).reduce(
@@ -542,6 +559,7 @@ async function processApprovalVotes(
         choice: approvedChoices[0], // Use the first choice as the primary choice
         choiceText, // Include all choices in the choiceText
         color: colorList,
+        createdAt: new Date(vote.createdAt), // Ensure createdAt is a Date object
       });
     }
 
@@ -604,8 +622,15 @@ async function processApprovalVotes(
     });
   });
 
+  const processedProposal = {
+    ...proposal,
+    startAt: new Date(proposal.startAt),
+    endAt: new Date(proposal.endAt),
+    createdAt: new Date(proposal.createdAt),
+  };
+
   return {
-    proposal,
+    proposal: processedProposal,
     choices,
     choiceColors,
     totalVotingPower: (processedVotes ?? votes).reduce(
@@ -682,6 +707,7 @@ async function processRankedChoiceVotes(
             .map((c) => choices[c - 1] || 'Unknown Choice')
             .join(', '),
           color: (vote.choice as number[]).map((c) => choiceColors[c]),
+          createdAt: new Date(vote.createdAt), // Ensure createdAt is a Date object
         }))
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
     : undefined;
@@ -872,8 +898,15 @@ async function processRankedChoiceVotes(
     });
   }
 
+  const processedProposal = {
+    ...proposal,
+    startAt: new Date(proposal.startAt),
+    endAt: new Date(proposal.endAt),
+    createdAt: new Date(proposal.createdAt),
+  };
+
   return {
-    proposal,
+    proposal: processedProposal,
     choices,
     choiceColors,
     totalVotingPower,
@@ -885,6 +918,7 @@ async function processRankedChoiceVotes(
           ...vote,
           choice: Array.isArray(vote.choice) ? vote.choice[0] : vote.choice,
           choiceText: vote.choiceText,
+          createdAt: new Date(vote.createdAt), // Ensure createdAt is a Date object
         }))
       : undefined,
     timeSeriesData: withTimeseries ? timeSeriesData : undefined,
@@ -929,11 +963,20 @@ async function processQuadraticVotes(
     withTimeseries
   );
 
+  const processedProposal = {
+    ...proposal,
+    startAt: new Date(proposal.startAt),
+    endAt: new Date(proposal.endAt),
+    createdAt: new Date(proposal.createdAt),
+  };
+
   return {
     ...result,
+    proposal: processedProposal,
     voteType: 'quadratic',
     votes: result.votes?.map((vote) => ({
       ...vote,
+      createdAt: new Date(vote.createdAt), // Ensure createdAt is a Date object
     })),
   };
 }
@@ -1058,6 +1101,11 @@ export async function processResultsAction(
                 aggregate: true,
                 createdAt: vote.createdAt, // Use the timestamp of the last large vote
                 choice: Number(choice),
+                color: vote.color, // keep color
+                choiceText: vote.choiceText, // keep choiceText
+                voterAddress: vote.voterAddress, // keep voterAddress
+                proposalId: vote.proposalId, // keep proposalId
+                id: vote.id, // keep id
               });
             }
             inAggregationWindow = false;
@@ -1088,6 +1136,11 @@ export async function processResultsAction(
             aggregate: true,
             createdAt: lastVote.createdAt, // Use the timestamp of the last large vote
             choice: Number(choice),
+            color: lastVote.color, // keep color
+            choiceText: lastVote.choiceText, // keep choiceText
+            voterAddress: lastVote.voterAddress, // keep voterAddress
+            proposalId: lastVote.proposalId, // keep proposalId
+            id: lastVote.id, // keep id
           });
         }
       }
@@ -1124,6 +1177,22 @@ export async function processResultsAction(
           values: { [-1]: totalVotingPower },
         };
       });
+    }
+
+    // Ensure proposal dates are Date objects
+    result.proposal = {
+      ...result.proposal,
+      startAt: new Date(result.proposal.startAt),
+      endAt: new Date(result.proposal.endAt),
+      createdAt: new Date(result.proposal.createdAt),
+    };
+
+    // Ensure timeSeriesData timestamps are Date objects
+    if (result.timeSeriesData) {
+      result.timeSeriesData = result.timeSeriesData.map((point) => ({
+        ...point,
+        timestamp: new Date(point.timestamp),
+      }));
     }
 
     return result;

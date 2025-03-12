@@ -8,7 +8,7 @@ import { memo } from 'react';
 
 const BodyContent = memo(
   ({ processedContent }: { processedContent: string }) => {
-    const [expanded] = useQueryState(
+    const [expanded, setExpanded] = useQueryState(
       'expanded',
       parseAsBoolean.withDefault(false)
     );
@@ -16,14 +16,18 @@ const BodyContent = memo(
     return (
       <div className='relative overflow-hidden'>
         <div
-          className={`prose prose-lg p-6 ${expanded ? 'overflow-visible' : 'overflow-hidden'}`}
+          className={`prose prose-lg max-w-none p-6
+            ${expanded ? 'overflow-visible' : 'overflow-hidden'}`}
           style={{
             maxHeight: expanded ? 'none' : COLLAPSED_HEIGHT,
           }}
+          onClick={() => {
+            if (!expanded) setExpanded(true);
+          }}
         >
           <div
-            dangerouslySetInnerHTML={{ __html: processedContent }}
             className='diff-content'
+            dangerouslySetInnerHTML={{ __html: processedContent }}
           />
           {!expanded && (
             <div

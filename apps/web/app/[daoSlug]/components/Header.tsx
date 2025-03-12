@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { getGroupAuthor_cached } from '../actions';
 import { HeaderClient } from './HeaderClient';
 import { Suspense } from 'react';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
@@ -10,12 +9,19 @@ interface HeaderProps {
   groupId: string;
   withBack: boolean;
   withHide: boolean;
+  originalAuthorName: string;
+  originalAuthorPicture: string;
+  groupName: string;
 }
 
-export async function Header({ groupId, withBack, withHide }: HeaderProps) {
-  const { originalAuthorName, originalAuthorPicture, groupName } =
-    await getGroupAuthor_cached(groupId);
-
+export async function Header({
+  groupId,
+  withBack,
+  withHide,
+  originalAuthorName,
+  originalAuthorPicture,
+  groupName,
+}: HeaderProps) {
   if (withHide)
     return (
       <Suspense>

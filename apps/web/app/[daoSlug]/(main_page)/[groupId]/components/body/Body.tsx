@@ -20,6 +20,7 @@ import {
 import Image from 'next/image';
 import { Header } from '@/app/[daoSlug]/components/Header';
 import { unstable_ViewTransition as ViewTransition } from 'react';
+import { getGroupAuthor_cached } from '@/app/[daoSlug]/actions';
 
 export async function Body({
   group,
@@ -55,21 +56,31 @@ export async function Body({
       ? processDiff(visibleBody.content, bodies[currentVersion - 1].content)
       : markdownToHtml(visibleBody.content);
 
+  const { originalAuthorName, originalAuthorPicture, groupName } =
+    await getGroupAuthor_cached(group.groupId);
+
   return (
     <ViewTransition name={`body`}>
       <div className='w-full'>
-        <Header groupId={group.groupId} withBack={false} withHide={true} />
+        <Header
+          groupId={group.groupId}
+          withBack={false}
+          withHide={true}
+          originalAuthorName={originalAuthorName}
+          originalAuthorPicture={originalAuthorPicture}
+          groupName={groupName}
+        />
 
         <div className='flex w-full flex-col gap-6'>
           <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-300'>
-            {visibleBody.title}
+            {groupName}
           </h1>
 
           <div className='flex flex-col'>
             <div className='flex flex-row justify-between'>
               <AuthorInfo
-                authorName={visibleBody.author_name}
-                authorPicture={visibleBody.author_picture}
+                authorName={originalAuthorName}
+                authorPicture={originalAuthorPicture}
               />
 
               <div className='flex flex-col items-center gap-2'>

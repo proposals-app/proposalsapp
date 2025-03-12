@@ -13,6 +13,7 @@ import { LoadingTable, ResultsTable } from './result/ResultsTable';
 import { processResultsAction } from '@/lib/results_processing';
 import { ResultsTitle } from './result/ResultsTitle';
 import { Suspense } from 'react';
+import superjson from 'superjson';
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
@@ -61,6 +62,8 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     aggregatedVotes: false,
   });
 
+  const serializedResults = superjson.serialize(processedResults);
+
   const governor = await getProposalGovernor_cached(proposal.id);
   const publisher = await getDelegateForVoter_cached(
     processedResults.proposal.author ?? '',
@@ -75,7 +78,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
       <div className='flex w-full flex-col gap-2'>
         <Suspense>
           <ResultsTitle
-            processedResults={processedResults}
+            results={serializedResults}
             onChain={onChain}
             publisher={publisher}
             governor={governor}
@@ -83,12 +86,12 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
         </Suspense>
 
         <Suspense fallback={<LoadingChart />}>
-          <ResultsChart results={processedResults} delegateMap={delegateMap} />
+          <ResultsChart results={serializedResults} delegateMap={delegateMap} />
         </Suspense>
 
         <Suspense fallback={<LoadingTable />}>
           <ResultsTable
-            results={processedResults}
+            results={serializedResults}
             delegateMap={delegateMap}
             votingPowerMap={votingPowerMap}
           />
@@ -96,7 +99,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
       </div>
 
       <Suspense fallback={<LoadingList />}>
-        <ResultsList results={processedResults} onchain={onChain} />
+        <ResultsList results={serializedResults} onchain={onChain} />
       </Suspense>
     </div>
   );
