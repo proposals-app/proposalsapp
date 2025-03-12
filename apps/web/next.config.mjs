@@ -50,6 +50,7 @@ const nextConfig = {
   cacheHandler: resolve('./cache-handler.js'),
   experimental: {
     reactCompiler: true,
+    viewTransition: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },

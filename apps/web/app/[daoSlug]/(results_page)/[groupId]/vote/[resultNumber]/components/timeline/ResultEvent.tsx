@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -61,59 +62,61 @@ export function ResultEvent({
 
   // Content to be rendered inside the div
   const eventContent = (
-    <div className='relative z-20 flex items-center py-2'>
-      <div
-        className={`flex flex-col gap-1 py-1.5 ${last ? 'pl-5' : 'pl-3'} ${
-          resultNumber == selectedResult
-            ? 'w-32 border-t border-b border-l'
-            : 'w-28 rounded-xs border'
-          } dark:border-neutral-650 rounded-l-xs border-neutral-800 bg-white
-          dark:bg-neutral-950 ${heightClass}`}
-      >
-        {isLive ? (
-          <TimelineEventActiveIcon
-            className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
-            width={24}
-            height={24}
-            alt={'Timeline event'}
-          />
-        ) : (
-          <TimelineEventIcon
-            className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
-            width={24}
-            height={24}
-            alt={'Timeline event'}
-          />
-        )}
+    <ViewTransition name={proposal.id}>
+      <div className='relative z-20 flex items-center py-2'>
+        <div
+          className={`flex flex-col gap-1 py-1.5 ${last ? 'pl-5' : 'pl-3'} ${
+            resultNumber == selectedResult
+              ? 'w-32 border-t border-b border-l'
+              : 'w-28 rounded-xs border'
+            } dark:border-neutral-650 rounded-l-xs border-neutral-800 bg-white
+            dark:bg-neutral-950 ${heightClass}`}
+        >
+          {isLive ? (
+            <TimelineEventActiveIcon
+              className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
+              width={24}
+              height={24}
+              alt={'Timeline event'}
+            />
+          ) : (
+            <TimelineEventIcon
+              className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
+              width={24}
+              height={24}
+              alt={'Timeline event'}
+            />
+          )}
 
-        {!last && (
-          <div
-            className='dark:bg-neutral-350 absolute top-[7px] left-[12.5px] z-10 h-[15px] max-h-[15px]
-              w-0.5 translate-x-[2.5px] bg-neutral-800'
-          />
-        )}
-        <div className='ml-3 flex flex-col'>
-          <div className='text-sm font-semibold'>{voteType}</div>
+          {!last && (
+            <div
+              className='dark:bg-neutral-350 absolute top-[7px] left-[12.5px] z-10 h-[15px] max-h-[15px]
+                w-0.5 translate-x-[2.5px] bg-neutral-800'
+            />
+          )}
+          <div className='ml-3 flex flex-col'>
+            <div className='text-sm font-semibold'>{voteType}</div>
 
-          <div className='text-foreground w-full text-sm'>
-            {isLive ? (
-              <div className='flex flex-col'>
-                <span className='font-bold'>Live Vote</span>
+            <div className='text-foreground w-full text-sm'>
+              {isLive ? (
                 <div className='flex flex-col'>
-                  <span>Ends </span>
+                  <span className='font-bold'>Live Vote</span>
+                  <div className='flex flex-col'>
+                    <span>Ends </span>
+                    <span className='font-bold'>{endDate}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className='flex flex-col'>
+                  <span>Ended </span>
                   <span className='font-bold'>{endDate}</span>
                 </div>
-              </div>
-            ) : (
-              <div className='flex flex-col'>
-                <span>Ended </span>
-                <span className='font-bold'>{endDate}</span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </ViewTransition>
   );
 
   // If resultNumber is not equal to selectedResult, wrap the content in a Link

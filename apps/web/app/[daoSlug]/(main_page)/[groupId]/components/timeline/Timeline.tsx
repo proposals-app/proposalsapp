@@ -3,7 +3,7 @@
 import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { FeedEvent, GroupReturnType } from '../../actions';
-
+import { unstable_ViewTransition as ViewTransition } from 'react';
 import { BasicEvent } from './BasicEvent';
 import { CommentsVolumeEvent } from './CommentsVolumeEvent';
 import { GapEvent } from './GapEvent';
@@ -16,7 +16,6 @@ import {
   useMemo,
   useCallback,
   RefObject,
-  useLayoutEffect,
 } from 'react';
 import React from 'react';
 
@@ -401,17 +400,27 @@ const TimelineEventItem = React.memo(
           {event.type === TimelineEventType.Gap ? (
             <GapEvent />
           ) : event.type === TimelineEventType.CommentsVolume ? (
-            <CommentsVolumeEvent
-              timestamp={event.timestamp}
-              width={event.volume / event.maxVolume}
-              last={index === 0}
-            />
+            <ViewTransition
+              key={index}
+              name={`${event.type}-${event.timestamp.toString()}`}
+            >
+              <CommentsVolumeEvent
+                timestamp={event.timestamp}
+                width={event.volume / event.maxVolume}
+                last={index === 0}
+              />
+            </ViewTransition>
           ) : event.type === TimelineEventType.VotesVolume ? (
-            <VotesVolumeEvent
-              timestamp={event.timestamp}
-              width={event.volume / event.maxVolume}
-              last={index === 0}
-            />
+            <ViewTransition
+              key={index}
+              name={`${event.type}-${event.timestamp.toString()}`}
+            >
+              <VotesVolumeEvent
+                timestamp={event.timestamp}
+                width={event.volume / event.maxVolume}
+                last={index === 0}
+              />
+            </ViewTransition>
           ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
             event.type === TimelineEventType.ResultOngoingOtherVotes ||
             event.type === TimelineEventType.ResultEndedBasicVote ||

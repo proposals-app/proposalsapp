@@ -526,6 +526,7 @@ export async function getFeed(
         return { votes: [], posts: [], events: [] };
       }
 
+      let allPosts: Selectable<DiscoursePost>[] = [];
       let posts: Selectable<DiscoursePost>[] = [];
 
       const allVotes: Selectable<Vote>[] = [];
@@ -754,7 +755,7 @@ export async function getFeed(
       });
 
       if (topics.length > 0) {
-        posts = await db
+        allPosts = await db
           .selectFrom('discoursePost')
           .where(
             'topicId',
@@ -768,7 +769,7 @@ export async function getFeed(
           .execute();
 
         const filteredPosts = await Promise.all(
-          posts.map(async (post) => {
+          allPosts.map(async (post) => {
             const delegate = await getDelegateByDiscourseUser(
               post.userId,
               dao.slug,
@@ -851,10 +852,10 @@ export async function getFeed(
       ) {
         const currentTimestamp = new Date();
         let summaryContent = '';
-        if (posts.length > 0 && allVotes.length > 0) {
-          summaryContent = `${posts.length} comments and ${allVotes.length} votes`;
-        } else if (posts.length > 0) {
-          summaryContent = `${posts.length} comments`;
+        if (allPosts.length > 0 && allVotes.length > 0) {
+          summaryContent = `${allPosts.length} comments and ${allVotes.length} votes`;
+        } else if (allPosts.length > 0) {
+          summaryContent = `${allPosts.length} comments`;
         } else if (allVotes.length > 0) {
           summaryContent = `${allVotes.length} votes`;
         } else {

@@ -10,6 +10,7 @@ import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.s
 import ArrowResultRightIcon from '@/public/assets/web/arrow_result_right.svg';
 import Link from 'next/link';
 import { VoteSegmentData } from './actions';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 interface ResultEventProps {
   content: string;
@@ -42,61 +43,63 @@ export function ResultEvent({
   const Component = result.voteType ? VoteComponents[result.voteType] : null;
 
   return (
-    <div
-      className={`relative mr-4 flex
-        ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} my-1
-        w-full items-center`}
-    >
+    <ViewTransition name={result.proposal.id}>
       <div
-        className={`${last ? 'dark:border-neutral-450 border-neutral-800' : 'dark:border-neutral-650 border-neutral-400'}
-          flex h-full w-full rounded-xs border bg-white px-4 py-1 text-neutral-800
-          dark:bg-neutral-950 dark:text-neutral-200`}
+        className={`relative mr-4 flex
+          ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} my-1
+          w-full items-center`}
       >
-        {last ? (
-          <TimelineEventActiveIcon
-            className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800'
-            width={24}
-            height={24}
-            alt={'Timeline event'}
-          />
-        ) : (
-          <TimelineEventIcon
-            className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800'
-            width={24}
-            height={24}
-            alt={'Timeline event'}
-          />
-        )}
-        {!last && (
-          <div
-            className='dark:bg-neutral-350 absolute top-0 left-3 z-10 h-[15px] max-h-[15px] w-0.5
-              translate-x-[3px] bg-neutral-800'
-          />
-        )}
-        <Link
-          className='w-full'
-          href={`/${groupId}/vote/${resultNumber}`}
-          prefetch={true}
+        <div
+          className={`${last ? 'dark:border-neutral-450 border-neutral-800' : 'dark:border-neutral-650 border-neutral-400'}
+            flex h-full w-full rounded-xs border bg-white px-4 py-1 text-neutral-800
+            dark:bg-neutral-950 dark:text-neutral-200`}
         >
-          <div className='flex w-full items-center justify-between pl-3'>
-            <div className='text-xs'>{content}</div>
-
-            <ArrowResultRightIcon
-              className='fill-neutral-900 dark:fill-neutral-100'
+          {last ? (
+            <TimelineEventActiveIcon
+              className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800'
               width={24}
               height={24}
-              alt={'Go to results'}
+              alt={'Timeline event'}
             />
-          </div>
-          <div className='text-sm'>
-            {Component ? (
-              <Component result={result} />
-            ) : (
-              <p>Invalid or unsupported vote type</p>
-            )}
-          </div>
-        </Link>
+          ) : (
+            <TimelineEventIcon
+              className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800'
+              width={24}
+              height={24}
+              alt={'Timeline event'}
+            />
+          )}
+          {!last && (
+            <div
+              className='dark:bg-neutral-350 absolute top-0 left-3 z-10 h-[15px] max-h-[15px] w-0.5
+                translate-x-[3px] bg-neutral-800'
+            />
+          )}
+          <Link
+            className='w-full'
+            href={`/${groupId}/vote/${resultNumber}`}
+            prefetch={true}
+          >
+            <div className='flex w-full items-center justify-between pl-3'>
+              <div className='text-xs'>{content}</div>
+
+              <ArrowResultRightIcon
+                className='fill-neutral-900 dark:fill-neutral-100'
+                width={24}
+                height={24}
+                alt={'Go to results'}
+              />
+            </div>
+            <div className='text-sm'>
+              {Component ? (
+                <Component result={result} />
+              ) : (
+                <p>Invalid or unsupported vote type</p>
+              )}
+            </div>
+          </Link>
+        </div>
       </div>
-    </div>
+    </ViewTransition>
   );
 }
