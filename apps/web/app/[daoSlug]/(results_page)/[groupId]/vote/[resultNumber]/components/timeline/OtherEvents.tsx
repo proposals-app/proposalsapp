@@ -8,30 +8,20 @@ export function GapEvent() {
         alignItems: 'center',
         justifyContent: 'center',
       }}
-    >
-      <div className='z-50 ml-30 h-full w-full' />
-    </div>
+    ></div>
   );
 }
 
 export function VotesVolumeEvent() {
-  return (
-    <div className='flex h-full w-full items-center'>
-      <div className='ml-4 min-h-1' />
-    </div>
-  );
+  return <div className='flex min-h-1 w-full items-center'></div>;
 }
 
 export function CommentsVolumeEvent() {
-  return (
-    <div className='flex h-full w-full items-center'>
-      <div className='ml-4 min-h-1' />
-    </div>
-  );
+  return <div className='flex min-h-1 w-full items-center'></div>;
 }
 
 export function BasicEvent() {
   return (
-    <div className='relative mr-4 flex h-8 w-full items-center py-2'></div>
+    <div className='relative mr-4 flex min-h-8 w-full items-center py-2'></div>
   );
 }

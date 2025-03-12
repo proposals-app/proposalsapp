@@ -6,9 +6,12 @@ import {
   VotesVolumeEvent,
 } from './OtherEvents';
 import { ResultEvent } from './ResultEvent';
-import { GroupReturnType } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
+import {
+  getFeed,
+  GroupReturnType,
+} from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
-import { getEvents_cached } from '@/app/[daoSlug]/(main_page)/[groupId]/components/timeline/actions';
+import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -33,7 +36,11 @@ export async function Timeline({
   }
 
   // Use the cached version of extractEvents
-  const events = await getEvents_cached(group);
+  const feed = await getFeed(
+    group.group.id,
+    FeedFilterEnum.COMMENTS_AND_VOTES,
+    VotesFilterEnum.ALL
+  );
 
   // Map proposals to their chronological order
   const proposalOrderMap = new Map<string, number>();
@@ -86,7 +93,7 @@ export async function Timeline({
         </div>
 
         <div className='flex h-full flex-col justify-between'>
-          {events.map((event, index) => {
+          {feed.events.map((event, index) => {
             // Add resultNumber for ResultEndedEvent and ResultOngoingEvent
             const resultNumber =
               event.type === TimelineEventType.ResultEndedBasicVote ||

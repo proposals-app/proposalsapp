@@ -7,7 +7,6 @@ import { toHast } from 'mdast-util-to-hast';
 import { Suspense } from 'react';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
-import { CombinedFeedItem, PostFeedItem } from '../../Feed';
 import {
   COLLAPSIBLE_STYLES,
   MARKDOWN_STYLES,
@@ -18,22 +17,18 @@ import {
   getDiscourseUser_cached,
   getPostLikesCount_cached,
 } from '../../actions';
-import { GroupReturnType } from '../../../../actions';
+import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { VotingPowerTag } from './VotingPowerTag';
 import Image from 'next/image';
-
-const isPostItem = (item: CombinedFeedItem): item is PostFeedItem => {
-  return item.type === 'post';
-};
 
 export async function PostItem({
   item,
   group,
 }: {
-  item: CombinedFeedItem;
+  item: FeedReturnType['posts'][0];
   group: GroupReturnType;
 }) {
-  if (!isPostItem(item) || !group) {
+  if (!group) {
     return null;
   }
 
@@ -158,7 +153,7 @@ const PostContent = ({
   updatedAt: Date;
   likesCount: number;
   processedContent: string;
-  item: PostFeedItem;
+  item: FeedReturnType['posts'][0];
   votingPower?: number;
 }) => {
   const CONTENT_THRESHOLD = 400;

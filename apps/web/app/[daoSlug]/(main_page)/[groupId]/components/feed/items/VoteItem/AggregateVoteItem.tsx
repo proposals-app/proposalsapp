@@ -2,22 +2,17 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
-import { CombinedFeedItem, VoteFeedItem } from '../../Feed';
-import { GroupReturnType } from '../../../../actions';
+import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import Image from 'next/image';
-
-const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
-  return item.type === 'vote';
-};
 
 export async function AggregateVoteItem({
   item,
   group,
 }: {
-  item: CombinedFeedItem;
+  item: FeedReturnType['votes'][0];
   group: GroupReturnType;
 }) {
-  if (!isVoteItem(item) || !group) {
+  if (!group) {
     notFound();
   }
 

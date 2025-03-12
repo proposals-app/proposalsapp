@@ -3,23 +3,18 @@ import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { VotingPowerTag } from './VotingPowerTag';
-import { GroupReturnType } from '../../../../actions';
+import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { getDelegateByVoterAddress_cache } from '../../actions';
-import { CombinedFeedItem, VoteFeedItem } from '../../Feed';
 import Image from 'next/image';
-
-const isVoteItem = (item: CombinedFeedItem): item is VoteFeedItem => {
-  return item.type === 'vote';
-};
 
 export async function VoteItem({
   item,
   group,
 }: {
-  item: CombinedFeedItem;
+  item: FeedReturnType['votes'][0];
   group: GroupReturnType;
 }) {
-  if (!isVoteItem(item) || !group) {
+  if (!group) {
     notFound();
   }
 

@@ -2,8 +2,8 @@
 
 import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import { GroupReturnType } from '../../actions';
-import { getEvents_cached, Event } from './actions';
+import { FeedEvent, GroupReturnType } from '../../actions';
+
 import { BasicEvent } from './BasicEvent';
 import { CommentsVolumeEvent } from './CommentsVolumeEvent';
 import { GapEvent } from './GapEvent';
@@ -58,12 +58,15 @@ interface VotesVolumeEvent extends BaseEvent {
 /**
  * Aggregates volume events to reduce visual clutter based on a specified level
  */
-function aggregateVolumeEvents(events: Event[], level: number = 1): Event[] {
+function aggregateVolumeEvents(
+  events: FeedEvent[],
+  level: number = 1
+): FeedEvent[] {
   if (!events || events.length <= 1) return events || [];
 
   // Group events by type for easier aggregation
-  const volumeEvents: Event[] = [];
-  const otherEvents: Event[] = [];
+  const volumeEvents: FeedEvent[] = [];
+  const otherEvents: FeedEvent[] = [];
 
   events.forEach((event) => {
     if (
@@ -84,7 +87,7 @@ function aggregateVolumeEvents(events: Event[], level: number = 1): Event[] {
   const mergeCount = Math.min(Math.pow(2, level), volumeEvents.length);
 
   // Group volume events for aggregation
-  const aggregatedVolumeEvents: Event[] = [];
+  const aggregatedVolumeEvents: FeedEvent[] = [];
 
   for (let i = 0; i < volumeEvents.length; i += mergeCount) {
     const chunk = volumeEvents.slice(i, i + mergeCount);
@@ -144,12 +147,13 @@ function aggregateVolumeEvents(events: Event[], level: number = 1): Event[] {
 
 // Custom hook to manage timeline events and visibility logic
 function useTimelineEvents(
+  events: FeedEvent[],
   group: GroupReturnType,
   feedFilter: FeedFilterEnum,
   votesFilter: VotesFilterEnum
 ) {
   const [state, setState] = useState({
-    rawEvents: null as Event[] | null,
+    rawEvents: events,
     aggregationLevel: 0,
     animationStarted: false,
     isFullyRendered: false,
@@ -183,7 +187,7 @@ function useTimelineEvents(
 
   // Filter visible events based on filters
   const isEventVisible = useCallback(
-    (event: Event) => {
+    (event: FeedEvent) => {
       if (
         event.type === TimelineEventType.CommentsVolume &&
         (feedFilter == FeedFilterEnum.COMMENTS ||
@@ -303,25 +307,9 @@ function useTimelineEvents(
 
   // Fetch the raw events data
   useEffect(() => {
-    const fetchEvents = async () => {
-      const fetchedEvents = await getEvents_cached(
-        group,
-        feedFilter,
-        votesFilter
-      );
-
-      setState((prev) => ({
-        ...prev,
-        rawEvents: fetchedEvents,
-      }));
-
-      // Start animation after events are loaded
-      setTimeout(() => {
-        setState((prev) => ({ ...prev, animationStarted: true }));
-      }, 250);
-    };
-
-    fetchEvents();
+    setTimeout(() => {
+      setState((prev) => ({ ...prev, animationStarted: true }));
+    }, 250);
   }, [group, feedFilter, votesFilter]);
 
   // Setup intersection observer for the container
@@ -391,7 +379,7 @@ function TimelineEventItem({
   group,
   endRef,
 }: {
-  event: Event;
+  event: FeedEvent;
   index: number;
   isVisible: boolean;
   isLastVisible: boolean;
@@ -457,10 +445,12 @@ function TimelineEventItem({
 }
 
 export function Timeline({
+  events,
   group,
   feedFilter,
   votesFilter,
 }: {
+  events: FeedEvent[];
   group: GroupReturnType;
   feedFilter: FeedFilterEnum;
   votesFilter: VotesFilterEnum;
@@ -476,7 +466,7 @@ export function Timeline({
     proposalOrderMap,
     isEventVisible,
     refs,
-  } = useTimelineEvents(group, feedFilter, votesFilter);
+  } = useTimelineEvents(events, group, feedFilter, votesFilter);
 
   if (!displayEvents) {
     return null;
