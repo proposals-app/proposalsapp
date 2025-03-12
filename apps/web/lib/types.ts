@@ -8,14 +8,12 @@ export interface ProposalGroup {
 export type ProposalGroupItem =
   | {
       type: 'topic';
-      id: string;
       name: string;
       externalId: string;
       daoDiscourseId: string;
     }
   | {
       type: 'proposal';
-      id: string;
       name: string;
       externalId: string;
       governorId: string;

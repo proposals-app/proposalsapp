@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { fetchData, fetchUngroupedProposals } from './actions';
+import { getGroupsData, getUngroupedProposals } from './actions';
 import GroupingInterface from './components/proposal-group';
 
 export default async function MappingPage({
@@ -8,8 +8,8 @@ export default async function MappingPage({
   params: Promise<{ daoSlug: string }>;
 }) {
   const { daoSlug } = await params;
-  const { proposalGroups } = await fetchData(daoSlug);
-  const ungroupedProposals = await fetchUngroupedProposals(daoSlug);
+  const { proposalGroups } = await getGroupsData(daoSlug);
+  const ungroupedProposals = await getUngroupedProposals(daoSlug);
   if (!proposalGroups) notFound();
 
   return (
@@ -23,7 +23,10 @@ export default async function MappingPage({
           <div className='rounded-lg border p-4'>
             <ul className='space-y-2'>
               {ungroupedProposals.map((proposal) => (
-                <li key={proposal.id} className='flex items-center gap-2'>
+                <li
+                  key={`${proposal.name}`}
+                  className='flex items-center gap-2'
+                >
                   <span className='rounded-full bg-blue-100 px-2 py-1 text-xs font-medium'>
                     Proposal
                   </span>
@@ -44,7 +47,7 @@ export default async function MappingPage({
         </div>
       )}
 
-      <GroupingInterface initialGroups={proposalGroups} daoSlug={daoSlug} />
+      <GroupingInterface proposalGroups={proposalGroups} daoSlug={daoSlug} />
     </div>
   );
 }

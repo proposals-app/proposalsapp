@@ -8,21 +8,22 @@ import {
   deleteGroup,
   FuzzyItem,
   fuzzySearchItems,
+  GroupsDataReturnType,
   saveGroups,
 } from '../actions';
 import { ProposalGroup, ProposalGroupItem } from '@/lib/types';
 
 interface GroupingInterfaceProps {
-  initialGroups?: ProposalGroup[];
+  proposalGroups: GroupsDataReturnType['proposalGroups'];
   daoSlug: string;
 }
 
 export default function GroupingInterface({
-  initialGroups = [],
+  proposalGroups,
   daoSlug,
 }: GroupingInterfaceProps) {
-  const [groups, setGroups] = useState<ProposalGroup[]>(() =>
-    [...initialGroups].sort(
+  const [groups, setGroups] = useState(() =>
+    [...proposalGroups].sort(
       (a, b) =>
         new Date(b.createdAt || 0).getTime() -
         new Date(a.createdAt || 0).getTime()
