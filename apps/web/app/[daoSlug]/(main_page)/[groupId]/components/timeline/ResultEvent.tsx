@@ -9,8 +9,8 @@ import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg';
 import ArrowResultRightIcon from '@/public/assets/web/arrow_result_right.svg';
 import Link from 'next/link';
-import { VoteSegmentData } from './actions';
 import { unstable_ViewTransition as ViewTransition } from 'react';
+import { VoteSegmentData } from '../../actions';
 
 interface ResultEventProps {
   content: string;

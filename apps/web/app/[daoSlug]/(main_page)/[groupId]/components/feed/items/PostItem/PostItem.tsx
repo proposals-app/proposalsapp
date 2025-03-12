@@ -20,6 +20,7 @@ import {
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { VotingPowerTag } from './VotingPowerTag';
 import Image from 'next/image';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export async function PostItem({
   item,
@@ -75,26 +76,11 @@ export async function PostItem({
   const isPostDeleted = item.deleted;
 
   return (
-    <div id={postAnchorId} className='w-full scroll-mt-36'>
-      {item.id.includes('placeholder') ? (
-        // Show just the "deleted post" summary
-        <div className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500'>
-          <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
-          <span
-            className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
-              dark:text-neutral-400'
-          >
-            Deleted Post
-          </span>
-          <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
-        </div>
-      ) : isPostDeleted ? (
-        // Show the full details/summary UI for deleted posts
-        <details className='w-full'>
-          <summary
-            className='flex h-12 cursor-default list-none items-center justify-center
-              border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'
-          >
+    <ViewTransition name={item.id}>
+      <div id={postAnchorId} className='w-full scroll-mt-36'>
+        {item.id.includes('placeholder') ? (
+          // Show just the "deleted post" summary
+          <div className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500'>
             <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
             <span
               className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
@@ -103,8 +89,24 @@ export async function PostItem({
               Deleted Post
             </span>
             <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
-          </summary>
-          {/* <div className='p-4'>
+          </div>
+        ) : isPostDeleted ? (
+          // Show the full details/summary UI for deleted posts
+          <details className='w-full'>
+            <summary
+              className='flex h-12 cursor-default list-none items-center justify-center
+                border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'
+            >
+              <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
+              <span
+                className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
+                  dark:text-neutral-400'
+              >
+                Deleted Post
+              </span>
+              <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
+            </summary>
+            {/* <div className='p-4'>
             {item.id != 'placeholder' && (
               <PostContent
                 author={author}
@@ -118,22 +120,23 @@ export async function PostItem({
               />
             )}
           </div> */}
-        </details>
-      ) : (
-        <div className='p-4'>
-          <PostContent
-            author={author}
-            relativeCreateTime={relativeCreateTime}
-            relativeUpdateTime={relativeUpdateTime}
-            updatedAt={updatedAt}
-            likesCount={likesCount}
-            processedContent={processedContent}
-            votingPower={votingPower}
-            item={item}
-          />
-        </div>
-      )}
-    </div>
+          </details>
+        ) : (
+          <div className='p-4'>
+            <PostContent
+              author={author}
+              relativeCreateTime={relativeCreateTime}
+              relativeUpdateTime={relativeUpdateTime}
+              updatedAt={updatedAt}
+              likesCount={likesCount}
+              processedContent={processedContent}
+              votingPower={votingPower}
+              item={item}
+            />
+          </div>
+        )}
+      </div>
+    </ViewTransition>
   );
 }
 

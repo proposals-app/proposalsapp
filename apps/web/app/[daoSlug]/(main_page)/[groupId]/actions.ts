@@ -366,7 +366,6 @@ enum TimelineEventType {
   Basic = 'Basic',
   CommentsVolume = 'CommentsVolume',
   VotesVolume = 'VotesVolume',
-  Gap = 'Gap',
 }
 
 interface BaseEvent {
@@ -401,12 +400,6 @@ interface VotesVolumeEvent extends BaseEvent {
   };
 }
 
-interface GapEvent extends BaseEvent {
-  type: TimelineEventType.Gap;
-  content: string;
-  gapSize: number;
-}
-
 export interface VoteSegmentData {
   votingPower: number;
   tooltip: string;
@@ -430,7 +423,6 @@ export type FeedEvent =
   | BasicEvent
   | CommentsVolumeEvent
   | VotesVolumeEvent
-  | GapEvent
   | ResultEvent;
 
 const MIN_VISIBLE_WIDTH_PERCENT = 1;

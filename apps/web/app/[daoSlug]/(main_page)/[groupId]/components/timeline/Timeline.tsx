@@ -3,10 +3,8 @@
 import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { FeedEvent, GroupReturnType } from '../../actions';
-import { unstable_ViewTransition as ViewTransition } from 'react';
 import { BasicEvent } from './BasicEvent';
 import { CommentsVolumeEvent } from './CommentsVolumeEvent';
-import { GapEvent } from './GapEvent';
 import { ResultEvent } from './ResultEvent';
 import { VotesVolumeEvent } from './VotesVolumeEvent';
 import {
@@ -27,7 +25,6 @@ enum TimelineEventType {
   Basic = 'Basic',
   CommentsVolume = 'CommentsVolume',
   VotesVolume = 'VotesVolume',
-  Gap = 'Gap',
 }
 
 interface BaseEvent {
@@ -157,7 +154,6 @@ function useTimelineEvents(
   const containerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
-  const lastVisibilityCheckRef = useRef(Date.now());
 
   // Use refs for state that shouldn't trigger re-renders on their own
   const animationStartedRef = useRef(false);
@@ -216,7 +212,6 @@ function useTimelineEvents(
         TimelineEventType.ResultOngoingOtherVotes,
         TimelineEventType.ResultEndedBasicVote,
         TimelineEventType.ResultEndedOtherVotes,
-        TimelineEventType.Gap,
       ].includes(event.type);
     },
     [feedFilter, votesFilter]
@@ -384,12 +379,12 @@ const TimelineEventItem = React.memo(
   }) {
     return (
       <div
-        className={`transition-all duration-200 ease-in-out
+        className={`transition-opacity duration-200 ease-in-out
           ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       >
         <div
           className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'}
-            transition-all duration-500 ease-out`}
+            transition-transform duration-500 ease-out`}
           style={{
             transitionDelay: `${animationDelay}ms`,
             WebkitTransitionDelay: `${animationDelay}ms`,
@@ -397,30 +392,18 @@ const TimelineEventItem = React.memo(
           }}
           ref={isLastVisible ? endRef : undefined}
         >
-          {event.type === TimelineEventType.Gap ? (
-            <GapEvent />
-          ) : event.type === TimelineEventType.CommentsVolume ? (
-            <ViewTransition
-              key={index}
-              name={`${event.type}-${event.timestamp.toString()}`}
-            >
-              <CommentsVolumeEvent
-                timestamp={event.timestamp}
-                width={event.volume / event.maxVolume}
-                last={index === 0}
-              />
-            </ViewTransition>
+          {event.type === TimelineEventType.CommentsVolume ? (
+            <CommentsVolumeEvent
+              timestamp={event.timestamp}
+              width={event.volume / event.maxVolume}
+              last={index === 0}
+            />
           ) : event.type === TimelineEventType.VotesVolume ? (
-            <ViewTransition
-              key={index}
-              name={`${event.type}-${event.timestamp.toString()}`}
-            >
-              <VotesVolumeEvent
-                timestamp={event.timestamp}
-                width={event.volume / event.maxVolume}
-                last={index === 0}
-              />
-            </ViewTransition>
+            <VotesVolumeEvent
+              timestamp={event.timestamp}
+              width={event.volume / event.maxVolume}
+              last={index === 0}
+            />
           ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
             event.type === TimelineEventType.ResultOngoingOtherVotes ||
             event.type === TimelineEventType.ResultEndedBasicVote ||

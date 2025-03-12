@@ -1,17 +1,3 @@
-export function GapEvent() {
-  return (
-    <div
-      className='relative min-h-[40px] w-full'
-      style={{
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    ></div>
-  );
-}
-
 export function VotesVolumeEvent() {
   return <div className='flex min-h-1 w-full items-center'></div>;
 }

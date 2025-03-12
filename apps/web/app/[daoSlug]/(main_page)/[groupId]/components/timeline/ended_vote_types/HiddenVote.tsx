@@ -1,6 +1,6 @@
 import { ProcessedResults } from '@/lib/results_processing';
 import { formatNumberWithSuffix } from '@/lib/utils';
-import { VoteSegmentData } from '../actions';
+import { VoteSegmentData } from '../../../actions';
 
 interface HiddenVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {

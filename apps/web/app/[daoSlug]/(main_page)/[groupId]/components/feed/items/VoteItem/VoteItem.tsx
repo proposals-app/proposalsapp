@@ -6,6 +6,7 @@ import { VotingPowerTag } from './VotingPowerTag';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { getDelegateByVoterAddress_cache } from '../../actions';
 import Image from 'next/image';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export async function VoteItem({
   item,
@@ -90,95 +91,97 @@ export async function VoteItem({
   }
 
   return (
-    <div className='flex w-full flex-col gap-2 p-4'>
-      <div style={{ width: barWidth }} className='opacity-30'>
-        {Array.isArray(item.color) ? (
-          <div className='flex w-full'>
-            {item.color.map((color, index) => (
-              <div
-                key={index}
-                className={'h-2'}
-                style={{
-                  width: `${(1 / item.color.length) * 100}%`,
-                  backgroundColor: color,
-                }}
-              />
-            ))}
-          </div>
-        ) : (
-          <div
-            className={'h-2 w-full'}
-            style={{ width: '100%', backgroundColor: item.color }}
-          />
-        )}
-      </div>
-
-      <div className='flex cursor-default flex-row justify-between select-none'>
-        <div className='flex flex-col gap-2'>
-          <Suspense>
-            <div className='flex flex-row items-center gap-2'>
-              <div
-                className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
-                  border-neutral-700 dark:border-neutral-300'
-              >
-                <Image
-                  src={
-                    avatarUrl ??
-                    `https://api.dicebear.com/9.x/pixel-art/png?seed=${displayName}`
-                  }
-                  className='rounded-full'
-                  fetchPriority='high'
-                  alt={displayName}
-                  width={40}
-                  height={40}
+    <ViewTransition name={item.id}>
+      <div className='flex w-full flex-col gap-2 p-4'>
+        <div style={{ width: barWidth }} className='opacity-30'>
+          {Array.isArray(item.color) ? (
+            <div className='flex w-full'>
+              {item.color.map((color, index) => (
+                <div
+                  key={index}
+                  className={'h-2'}
+                  style={{
+                    width: `${(1 / item.color.length) * 100}%`,
+                    backgroundColor: color,
+                  }}
                 />
-              </div>
-              <div className='flex flex-col'>
-                <div>
-                  <span className='font-bold text-neutral-800 dark:text-neutral-200'>
-                    {displayName}
-                  </span>
-                  {displayName !== voterAddress && (
-                    <span className='text-neutral-450 dark:text-neutral-350 text-sm'>
-                      {' '}
-                      with <span className='font-bold'>{voterAddress}</span>
-                    </span>
-                  )}
-                </div>
-                <VotingPowerTag item={item} />
-              </div>
+              ))}
             </div>
-          </Suspense>
+          ) : (
+            <div
+              className={'h-2 w-full'}
+              style={{ width: '100%', backgroundColor: item.color }}
+            />
+          )}
         </div>
 
-        <div className='dark:text-neutral-350 flex flex-col items-end text-sm text-neutral-600'>
-          <div>
-            voted <span className='font-bold'>{relativeCreateTime}</span>
+        <div className='flex cursor-default flex-row justify-between select-none'>
+          <div className='flex flex-col gap-2'>
+            <Suspense>
+              <div className='flex flex-row items-center gap-2'>
+                <div
+                  className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
+                    border-neutral-700 dark:border-neutral-300'
+                >
+                  <Image
+                    src={
+                      avatarUrl ??
+                      `https://api.dicebear.com/9.x/pixel-art/png?seed=${displayName}`
+                    }
+                    className='rounded-full'
+                    fetchPriority='high'
+                    alt={displayName}
+                    width={40}
+                    height={40}
+                  />
+                </div>
+                <div className='flex flex-col'>
+                  <div>
+                    <span className='font-bold text-neutral-800 dark:text-neutral-200'>
+                      {displayName}
+                    </span>
+                    {displayName !== voterAddress && (
+                      <span className='text-neutral-450 dark:text-neutral-350 text-sm'>
+                        {' '}
+                        with <span className='font-bold'>{voterAddress}</span>
+                      </span>
+                    )}
+                  </div>
+                  <VotingPowerTag item={item} />
+                </div>
+              </div>
+            </Suspense>
+          </div>
+
+          <div className='dark:text-neutral-350 flex flex-col items-end text-sm text-neutral-600'>
+            <div>
+              voted <span className='font-bold'>{relativeCreateTime}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
-        <span className=''>{formattedVotingPower} ARB </span>
-        <span className='font-bold'>
-          {((proposal?.choices ?? []) as string[])[item.choice as number]}
-        </span>
-      </div>
+        <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
+          <span className=''>{formattedVotingPower} ARB </span>
+          <span className='font-bold'>
+            {((proposal?.choices ?? []) as string[])[item.choice as number]}
+          </span>
+        </div>
 
-      <div className='flex flex-col'>
-        <p className=''>{item.reason}</p>
-        {match && (
-          <p className='self-end'>
-            <a
-              href={anchorHref ?? ''}
-              className='dark:text-neutral-350 text-sm font-bold text-neutral-600 hover:underline'
-            >
-              jump to post →
-            </a>
-          </p>
-        )}
+        <div className='flex flex-col'>
+          <p className=''>{item.reason}</p>
+          {match && (
+            <p className='self-end'>
+              <a
+                href={anchorHref ?? ''}
+                className='dark:text-neutral-350 text-sm font-bold text-neutral-600 hover:underline'
+              >
+                jump to post →
+              </a>
+            </p>
+          )}
+        </div>
       </div>
-    </div>
+    </ViewTransition>
   );
 }
 

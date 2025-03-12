@@ -19,6 +19,7 @@ import {
 } from '@/lib/markdown_styles';
 import Image from 'next/image';
 import { Header } from '@/app/[daoSlug]/components/Header';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export default async function Body({
   group,
@@ -88,7 +89,9 @@ export default async function Body({
         </div>
 
         <div className='relative'>
-          <BodyContent processedContent={processedContent} />
+          <ViewTransition name={`version-${currentVersion - 1}`}>
+            <BodyContent processedContent={processedContent} />
+          </ViewTransition>
         </div>
       </div>
     </div>

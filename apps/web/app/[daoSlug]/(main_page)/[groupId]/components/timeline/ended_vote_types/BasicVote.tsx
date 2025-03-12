@@ -4,7 +4,7 @@ import { HiddenVote } from './HiddenVote';
 import { ProcessedResults } from '@/lib/results_processing';
 import PassedSmallIcon from '@/public/assets/web/passed-small.svg';
 import FailedSmallIcon from '@/public/assets/web/failed-small.svg';
-import { VoteSegmentData } from '../actions';
+import { VoteSegmentData } from '../../../actions';
 
 interface BasicVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {

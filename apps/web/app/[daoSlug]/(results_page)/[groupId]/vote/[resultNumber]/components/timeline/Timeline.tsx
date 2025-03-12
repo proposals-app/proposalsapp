@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import {
   BasicEvent,
   CommentsVolumeEvent,
-  GapEvent,
   VotesVolumeEvent,
 } from './OtherEvents';
 import { ResultEvent } from './ResultEvent';
@@ -108,9 +107,7 @@ export async function Timeline({
                 key={index}
                 className='relative flex w-full items-center justify-start'
               >
-                {event.type === TimelineEventType.Gap ? (
-                  <GapEvent />
-                ) : event.type === TimelineEventType.CommentsVolume ? (
+                {event.type === TimelineEventType.CommentsVolume ? (
                   <CommentsVolumeEvent />
                 ) : event.type === TimelineEventType.VotesVolume ? (
                   <VotesVolumeEvent />
