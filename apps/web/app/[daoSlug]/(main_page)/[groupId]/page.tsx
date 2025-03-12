@@ -5,7 +5,7 @@ import {
   getGroup_cached,
   getTotalVersions_cached,
   getBodies_cached,
-  getFeed,
+  getFeed_cached,
 } from './actions';
 import { Body, BodyLoading } from './components/body/Body';
 import { Feed, FeedLoading } from './components/feed/Feed';
@@ -45,7 +45,7 @@ export default async function GroupPage({
   // Extract just the version types
   const versionTypes: VersionType[] = bodies.map((body) => body.type);
 
-  const feed = await getFeed(group.group.id, feedFilter, votesFilter);
+  const feed = await getFeed_cached(group.group.id, feedFilter, votesFilter);
 
   return (
     <div className='flex w-full flex-col items-center pt-10'>

@@ -6,7 +6,7 @@ import {
 } from './OtherEvents';
 import { ResultEvent } from './ResultEvent';
 import {
-  getFeed,
+  getFeed_cached,
   GroupReturnType,
 } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
@@ -36,7 +36,7 @@ export async function Timeline({
   }
 
   // Use the cached version of extractEvents
-  const feed = await getFeed(
+  const feed = await getFeed_cached(
     group.group.id,
     FeedFilterEnum.COMMENTS_AND_VOTES,
     VotesFilterEnum.ALL

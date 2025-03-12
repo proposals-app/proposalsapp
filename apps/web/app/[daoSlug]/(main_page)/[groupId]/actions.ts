@@ -6,7 +6,11 @@ import {
   processResultsAction,
 } from '@/lib/results_processing';
 import { ProposalGroupItem } from '@/lib/types';
-import { AsyncReturnType, formatNumberWithSuffix } from '@/lib/utils';
+import {
+  AsyncReturnType,
+  formatNumberWithSuffix,
+  superjson_cache,
+} from '@/lib/utils';
 import {
   db,
   DiscoursePost,
@@ -484,7 +488,7 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
   return voteSegments;
 }
 
-export async function getFeed(
+async function getFeed(
   groupID: string,
   feedFilter: FeedFilterEnum,
   votesFilter: VotesFilterEnum
@@ -934,17 +938,17 @@ export const getTotalVersions_cached = unstable_cache(
   { revalidate: 60 * 5, tags: ['get-total-versions'] }
 );
 
-// export const getFeed_cached = superjson_cache(
-//   async (
-//     groupId: string,
-//     feedFilter: FeedFilterEnum,
-//     votesFilter: VotesFilterEnum
-//   ) => {
-//     return await getFeed(groupId, feedFilter, votesFilter);
-//   },
-//   ['get-feed-for-group'],
-//   { revalidate: 60 * 5, tags: ['get-feed-for-group'] }
-// );
+export const getFeed_cached = superjson_cache(
+  async (
+    groupId: string,
+    feedFilter: FeedFilterEnum,
+    votesFilter: VotesFilterEnum
+  ) => {
+    return await getFeed(groupId, feedFilter, votesFilter);
+  },
+  ['get-feed-for-group'],
+  { revalidate: 60 * 5, tags: ['get-feed-for-group'] }
+);
 
 export type GroupReturnType = AsyncReturnType<typeof getGroup>;
 export type BodiesReturnType = AsyncReturnType<typeof getBodies>;
