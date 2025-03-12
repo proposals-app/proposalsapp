@@ -1,18 +1,7 @@
-import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { otel } from '@/lib/otel';
-import { AsyncReturnType, superjson_cache } from '@/lib/utils';
-import { ProcessedVote, processResultsAction } from '@/lib/results_processing';
-import {
-  db,
-  DiscoursePost,
-  DiscourseTopic,
-  Proposal,
-  Selectable,
-  sql,
-  Vote,
-} from '@proposalsapp/db-indexer';
+import { AsyncReturnType } from '@/lib/utils';
+import { db, sql } from '@proposalsapp/db-indexer';
 import { unstable_cache } from 'next/cache';
-import { ProposalGroupItem } from '@/lib/types';
 
 async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   'use server';

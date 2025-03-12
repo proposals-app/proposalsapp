@@ -17,6 +17,7 @@ import {
   useCallback,
   RefObject,
 } from 'react';
+import React from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -152,53 +153,48 @@ function useTimelineEvents(
   feedFilter: FeedFilterEnum,
   votesFilter: VotesFilterEnum
 ) {
-  const [state, setState] = useState({
-    rawEvents: events,
-    aggregationLevel: 0,
-    animationStarted: false,
-    isFullyRendered: false,
-  });
-
+  // Refs for DOM elements and visibility checking
   const containerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const lastVisibilityCheckRef = useRef(Date.now());
+
+  // Use refs for state that shouldn't trigger re-renders on their own
+  const animationStartedRef = useRef(false);
+  const isFullyRenderedRef = useRef(false);
+  const lastFiltersRef = useRef({ feedFilter, votesFilter });
+
+  // State that requires re-renders
+  const [rawEvents] = useState(events);
+  const [aggregationLevel, setAggregationLevel] = useState(0);
+  const [forceUpdate, setForceUpdate] = useState(0); // Used to force re-renders when needed
+
   const VISIBILITY_CHECK_THROTTLE = 50; // ms
 
-  // Process events based on current aggregation level
-  const displayEvents = useMemo(() => {
-    if (!state.rawEvents) return null;
-
-    if (state.aggregationLevel === 0) {
-      return state.rawEvents;
-    } else {
-      return aggregateVolumeEvents(state.rawEvents, state.aggregationLevel);
-    }
-  }, [state.rawEvents, state.aggregationLevel]);
-
-  // Create a map of proposal IDs to their display order
+  // Create a map of proposal IDs to their display order (memoized once)
   const proposalOrderMap = useMemo(() => {
     const map = new Map<string, number>();
-    group!.proposals.forEach((proposal, index) => {
+    group?.proposals?.forEach((proposal, index) => {
       map.set(proposal.id, index + 1); // +1 to make it 1-based
     });
     return map;
   }, [group]);
 
-  // Filter visible events based on filters
+  // Filter logic based on user-selected filters
   const isEventVisible = useCallback(
     (event: FeedEvent) => {
       if (
         event.type === TimelineEventType.CommentsVolume &&
-        (feedFilter == FeedFilterEnum.COMMENTS ||
-          feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES)
+        (feedFilter === FeedFilterEnum.COMMENTS ||
+          feedFilter === FeedFilterEnum.COMMENTS_AND_VOTES)
       ) {
         return true;
       }
+
       if (
         event.type === TimelineEventType.VotesVolume &&
-        (feedFilter == FeedFilterEnum.VOTES ||
-          feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES)
+        (feedFilter === FeedFilterEnum.VOTES ||
+          feedFilter === FeedFilterEnum.COMMENTS_AND_VOTES)
       ) {
         if (!event.metadata?.votingPower) return false;
 
@@ -229,7 +225,16 @@ function useTimelineEvents(
     [feedFilter, votesFilter]
   );
 
-  // Get filtered events for visibility checks
+  // Process events based on current aggregation level (memoized)
+  const displayEvents = useMemo(() => {
+    if (!rawEvents) return null;
+
+    return aggregationLevel === 0
+      ? rawEvents
+      : aggregateVolumeEvents(rawEvents, aggregationLevel);
+  }, [rawEvents, aggregationLevel]);
+
+  // Get filtered events based on visibility criteria (memoized)
   const visibleEvents = useMemo(() => {
     return displayEvents?.filter(isEventVisible) || [];
   }, [displayEvents, isEventVisible]);
@@ -239,13 +244,12 @@ function useTimelineEvents(
     if (
       !endRef.current ||
       !containerRef.current ||
-      !state.rawEvents ||
-      !state.isFullyRendered ||
-      visibleEvents.length === 0
+      !rawEvents ||
+      !isFullyRenderedRef.current
     )
       return;
 
-    // Throttle checks to avoid excessive performance impact
+    // Throttle checks to avoid excessive calculations
     const now = Date.now();
     if (now - lastVisibilityCheckRef.current < VISIBILITY_CHECK_THROTTLE) {
       return;
@@ -256,63 +260,50 @@ function useTimelineEvents(
     const endRect = endRef.current.getBoundingClientRect();
     const isEndVisible = endRect.bottom <= containerRect.bottom;
 
-    setState((prevState) => {
-      // If end is not visible and we have enough events, increase aggregation
-      if (
-        !isEndVisible &&
-        prevState.aggregationLevel < 5 &&
-        visibleEvents.length > 5
-      ) {
-        return {
-          ...prevState,
-          aggregationLevel: prevState.aggregationLevel + 1,
-        };
-      }
-      // If end is visible with extra space, decrease aggregation
-      else if (
-        isEndVisible &&
-        prevState.aggregationLevel > 0 &&
-        endRect.bottom < containerRect.bottom - 100
-      ) {
-        return {
-          ...prevState,
-          aggregationLevel: Math.max(0, prevState.aggregationLevel - 1),
-        };
-      }
-      return prevState;
-    });
-  }, [state.rawEvents, state.isFullyRendered, visibleEvents.length]);
+    // If end is not visible and we have enough events, increase aggregation
+    if (!isEndVisible && aggregationLevel < 5 && visibleEvents.length > 5) {
+      setAggregationLevel((prev) => prev + 1);
+    }
+    // If end is visible with extra space, decrease aggregation
+    else if (
+      isEndVisible &&
+      aggregationLevel > 0 &&
+      endRect.bottom < containerRect.bottom - 100
+    ) {
+      setAggregationLevel((prev) => Math.max(0, prev - 1));
+    }
+  }, [rawEvents, aggregationLevel, visibleEvents.length]);
 
   // Handle container size changes
   const onResize = useCallback(
     (size: { width: number; height: number }, sizeIncreased: boolean) => {
       if (size.height > 0) {
         // If the size increased, try to decrease aggregation level
-        if (sizeIncreased && state.aggregationLevel > 0) {
-          setState((prevState) => ({
-            ...prevState,
-            aggregationLevel: Math.max(0, prevState.aggregationLevel - 1),
-          }));
+        if (sizeIncreased && aggregationLevel > 0) {
+          setAggregationLevel((prev) => Math.max(0, prev - 1));
         }
 
-        // Still check visibility with a slight delay to allow for DOM updates
+        // Check visibility with a slight delay to allow for DOM updates
         setTimeout(checkVisibility, 50);
       }
     },
-    [checkVisibility, state.aggregationLevel]
+    [checkVisibility, aggregationLevel]
   );
 
   // Setup resize observer
   useResizeObserver(containerRef as React.RefObject<HTMLElement>, onResize);
 
-  // Fetch the raw events data
+  // Start animation after a slight delay
   useEffect(() => {
-    setTimeout(() => {
-      setState((prev) => ({ ...prev, animationStarted: true }));
+    const timer = setTimeout(() => {
+      animationStartedRef.current = true;
+      setForceUpdate((prev) => prev + 1);
     }, 250);
-  }, [group, feedFilter, votesFilter]);
 
-  // Setup intersection observer for the container
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Setup intersection observer for checking visibility when scrolling
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -329,36 +320,51 @@ function useTimelineEvents(
     return () => intersectionObserver.disconnect();
   }, [checkVisibility]);
 
-  // Run initial visibility check when animation completes
+  // Mark timeline as fully rendered after animations complete
   useEffect(() => {
-    if (state.rawEvents && state.animationStarted && !state.isFullyRendered) {
+    if (
+      rawEvents &&
+      animationStartedRef.current &&
+      !isFullyRenderedRef.current
+    ) {
       const timer = setTimeout(() => {
-        setState((prev) => ({ ...prev, isFullyRendered: true }));
+        isFullyRenderedRef.current = true;
         checkVisibility();
-      }, 1000); // Wait for animations to complete
+      }, 1000);
 
       return () => clearTimeout(timer);
     }
-  }, [
-    state.rawEvents,
-    state.animationStarted,
-    state.isFullyRendered,
-    checkVisibility,
-  ]);
+  }, [rawEvents, checkVisibility, forceUpdate]);
 
-  // Update check on filter changes
+  // Check if filters have changed and update accordingly
   useEffect(() => {
-    if (state.isFullyRendered) {
-      setTimeout(checkVisibility, 100);
+    const prevFilters = lastFiltersRef.current;
+
+    // Only perform these actions if filters have actually changed
+    if (
+      prevFilters.feedFilter !== feedFilter ||
+      prevFilters.votesFilter !== votesFilter
+    ) {
+      // Update the stored filters
+      lastFiltersRef.current = { feedFilter, votesFilter };
+
+      // Reset aggregation level when filters change to prevent visual glitches
+      setAggregationLevel(0);
+
+      // Schedule visibility check after DOM update
+      if (isFullyRenderedRef.current) {
+        setTimeout(checkVisibility, 100);
+      }
     }
-  }, [feedFilter, votesFilter, state.isFullyRendered, checkVisibility]);
+  }, [feedFilter, votesFilter, checkVisibility]);
 
   return {
-    state,
     displayEvents,
     visibleEvents,
     proposalOrderMap,
     isEventVisible,
+    aggregationLevel,
+    animationStarted: animationStartedRef.current,
     refs: {
       containerRef,
       timelineRef,
@@ -367,82 +373,96 @@ function useTimelineEvents(
   };
 }
 
-// Create a separate component for timeline events to improve readability
-function TimelineEventItem({
-  event,
-  index,
-  isVisible,
-  isLastVisible,
-  animationStarted,
-  animationDelay,
-  resultNumber,
-  group,
-  endRef,
-}: {
-  event: FeedEvent;
-  index: number;
-  isVisible: boolean;
-  isLastVisible: boolean;
-  animationStarted: boolean;
-  animationDelay: number;
-  resultNumber?: number;
-  group: GroupReturnType;
-  endRef: React.RefObject<HTMLDivElement | null>;
-}) {
-  return (
-    <div
-      className={`transition-opacity duration-200 ease-in-out
-        ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-    >
+// Create a memo-optimized component for timeline events
+const TimelineEventItem = React.memo(
+  function TimelineEventItem({
+    event,
+    index,
+    isVisible,
+    isLastVisible,
+    animationStarted,
+    animationDelay,
+    resultNumber,
+    group,
+    endRef,
+  }: {
+    event: FeedEvent;
+    index: number;
+    isVisible: boolean;
+    isLastVisible: boolean;
+    animationStarted: boolean;
+    animationDelay: number;
+    resultNumber?: number;
+    group: GroupReturnType;
+    endRef: React.RefObject<HTMLDivElement | null>;
+  }) {
+    return (
       <div
-        className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'}
-          transition-all duration-500 ease-out`}
-        style={{
-          transitionDelay: `${animationDelay}ms`,
-          WebkitTransitionDelay: `${animationDelay}ms`,
-          msTransitionDelay: `${animationDelay}ms`,
-        }}
-        ref={isLastVisible ? endRef : undefined}
+        className={`transition-opacity duration-200 ease-in-out
+          ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       >
-        {event.type === TimelineEventType.Gap ? (
-          <GapEvent />
-        ) : event.type === TimelineEventType.CommentsVolume ? (
-          <CommentsVolumeEvent
-            timestamp={event.timestamp}
-            width={event.volume / event.maxVolume}
-            last={index === 0}
-          />
-        ) : event.type === TimelineEventType.VotesVolume ? (
-          <VotesVolumeEvent
-            timestamp={event.timestamp}
-            width={event.volume / event.maxVolume}
-            last={index === 0}
-          />
-        ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
-          event.type === TimelineEventType.ResultOngoingOtherVotes ||
-          event.type === TimelineEventType.ResultEndedBasicVote ||
-          event.type === TimelineEventType.ResultEndedOtherVotes ? (
-          <ResultEvent
-            content={event.content}
-            timestamp={event.timestamp}
-            result={event.result}
-            resultNumber={resultNumber!}
-            last={index === 0}
-            daoSlug={group!.daoSlug}
-            groupId={group!.group.id}
-          />
-        ) : event.type === TimelineEventType.Basic ? (
-          <BasicEvent
-            content={event.content}
-            timestamp={event.timestamp}
-            url={event.url}
-            last={index === 0}
-          />
-        ) : null}
+        <div
+          className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'}
+            transition-all duration-500 ease-out`}
+          style={{
+            transitionDelay: `${animationDelay}ms`,
+            WebkitTransitionDelay: `${animationDelay}ms`,
+            msTransitionDelay: `${animationDelay}ms`,
+          }}
+          ref={isLastVisible ? endRef : undefined}
+        >
+          {event.type === TimelineEventType.Gap ? (
+            <GapEvent />
+          ) : event.type === TimelineEventType.CommentsVolume ? (
+            <CommentsVolumeEvent
+              timestamp={event.timestamp}
+              width={event.volume / event.maxVolume}
+              last={index === 0}
+            />
+          ) : event.type === TimelineEventType.VotesVolume ? (
+            <VotesVolumeEvent
+              timestamp={event.timestamp}
+              width={event.volume / event.maxVolume}
+              last={index === 0}
+            />
+          ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
+            event.type === TimelineEventType.ResultOngoingOtherVotes ||
+            event.type === TimelineEventType.ResultEndedBasicVote ||
+            event.type === TimelineEventType.ResultEndedOtherVotes ? (
+            <ResultEvent
+              content={event.content}
+              timestamp={event.timestamp}
+              result={event.result}
+              resultNumber={resultNumber!}
+              last={index === 0}
+              daoSlug={group!.daoSlug}
+              groupId={group!.group.id}
+            />
+          ) : event.type === TimelineEventType.Basic ? (
+            <BasicEvent
+              content={event.content}
+              timestamp={event.timestamp}
+              url={event.url}
+              last={index === 0}
+            />
+          ) : null}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  },
+  // Optimize re-renders by comparing relevant props
+  (prevProps, nextProps) => {
+    return (
+      prevProps.isVisible === nextProps.isVisible &&
+      prevProps.isLastVisible === nextProps.isLastVisible &&
+      prevProps.animationStarted === nextProps.animationStarted &&
+      prevProps.animationDelay === nextProps.animationDelay &&
+      prevProps.index === nextProps.index &&
+      prevProps.resultNumber === nextProps.resultNumber &&
+      prevProps.event.type === nextProps.event.type
+    );
+  }
+);
 
 export function Timeline({
   events,
@@ -460,11 +480,12 @@ export function Timeline({
   }
 
   const {
-    state,
     displayEvents,
     visibleEvents,
     proposalOrderMap,
     isEventVisible,
+    aggregationLevel,
+    animationStarted,
     refs,
   } = useTimelineEvents(events, group, feedFilter, votesFilter);
 
@@ -481,12 +502,12 @@ export function Timeline({
       <div
         ref={refs.containerRef}
         className='relative h-full w-full overflow-hidden'
-        data-aggregation-level={state.aggregationLevel}
+        data-aggregation-level={aggregationLevel}
       >
         <div
           className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
             translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out
-            ${state.animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
+            ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
         />
 
         <div className='flex h-full flex-col justify-between'>
@@ -521,10 +542,10 @@ export function Timeline({
                 index={index}
                 isVisible={isVisible}
                 isLastVisible={isLastVisible}
-                animationStarted={state.animationStarted}
+                animationStarted={animationStarted}
                 animationDelay={animationDelay}
                 resultNumber={resultNumber}
-                group={group!}
+                group={group}
                 endRef={refs.endRef}
               />
             );
@@ -543,6 +564,12 @@ export function useResizeObserver(
   ) => void
 ) {
   const prevSizeRef = useRef({ width: 0, height: 0 });
+  const callbackRef = useRef(callback);
+
+  // Update callback ref when callback changes to avoid stale closures
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -566,7 +593,7 @@ export function useResizeObserver(
             newSize.width > prevSizeRef.current.width;
 
           prevSizeRef.current = newSize;
-          callback(newSize, sizeIncreased);
+          callbackRef.current(newSize, sizeIncreased);
         }
       }
     });
@@ -576,5 +603,5 @@ export function useResizeObserver(
     return () => {
       resizeObserver.disconnect();
     };
-  }, [ref, callback]);
+  }, [ref]); // Only depends on ref to avoid unnecessary cleanup/setup
 }

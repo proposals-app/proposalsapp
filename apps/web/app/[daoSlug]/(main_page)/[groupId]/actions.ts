@@ -6,11 +6,7 @@ import {
   processResultsAction,
 } from '@/lib/results_processing';
 import { ProposalGroupItem } from '@/lib/types';
-import {
-  AsyncReturnType,
-  formatNumberWithSuffix,
-  superjson_cache,
-} from '@/lib/utils';
+import { AsyncReturnType, formatNumberWithSuffix } from '@/lib/utils';
 import {
   db,
   DiscoursePost,
@@ -532,10 +528,10 @@ export async function getFeed(
 
       let posts: Selectable<DiscoursePost>[] = [];
 
-      let allVotes: Selectable<Vote>[] = [];
-      let processedVotes: ProcessedVote[] = [];
+      const allVotes: Selectable<Vote>[] = [];
+      const processedVotes: ProcessedVote[] = [];
 
-      let events: FeedEvent[] = [];
+      const events: FeedEvent[] = [];
 
       // Extract proposal and topic IDs from group items
       const items = group.items as ProposalGroupItem[];
@@ -877,8 +873,6 @@ export async function getFeed(
           url: '',
         });
       }
-
-      events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
       return {
         votes: processedVotes,
