@@ -21,7 +21,7 @@ import Image from 'next/image';
 import { Header } from '@/app/[daoSlug]/components/Header';
 import { unstable_ViewTransition as ViewTransition } from 'react';
 
-export default async function Body({
+export async function Body({
   group,
   version,
   diff,
@@ -56,45 +56,88 @@ export default async function Body({
       : markdownToHtml(visibleBody.content);
 
   return (
-    <div className='w-full'>
-      <Header groupId={group.groupId} withBack={false} withHide={true} />
+    <ViewTransition name={`body`}>
+      <div className='w-full'>
+        <Header groupId={group.groupId} withBack={false} withHide={true} />
 
-      <div className='flex w-full flex-col gap-6'>
-        <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-300'>
-          {visibleBody.title}
-        </h1>
+        <div className='flex w-full flex-col gap-6'>
+          <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-300'>
+            {visibleBody.title}
+          </h1>
 
-        <div className='flex flex-col'>
-          <div className='flex flex-row justify-between'>
-            <AuthorInfo
-              authorName={visibleBody.author_name}
-              authorPicture={visibleBody.author_picture}
-            />
+          <div className='flex flex-col'>
+            <div className='flex flex-row justify-between'>
+              <AuthorInfo
+                authorName={visibleBody.author_name}
+                authorPicture={visibleBody.author_picture}
+              />
 
-            <div className='flex flex-col items-center gap-2'>
-              <div className='flex flex-row gap-4'>
-                <PostedTime
-                  label='initially posted'
-                  createdAt={initialBody.createdAt}
-                />
+              <div className='flex flex-col items-center gap-2'>
+                <div className='flex flex-row gap-4'>
+                  <PostedTime
+                    label='initially posted'
+                    createdAt={initialBody.createdAt}
+                  />
 
-                <PostedTime
-                  label='latest revision'
-                  createdAt={latestBody.createdAt}
-                  border
-                />
+                  <PostedTime
+                    label='latest revision'
+                    createdAt={latestBody.createdAt}
+                    border
+                  />
+                </div>
               </div>
+            </div>
+          </div>
+
+          <div className='relative'>
+            <BodyContent processedContent={processedContent} />
+          </div>
+        </div>
+      </div>
+    </ViewTransition>
+  );
+}
+
+export function BodyLoading() {
+  return (
+    <ViewTransition name={`body`}>
+      <div className='w-full'>
+        {/* Title Loading */}
+        <div className='mb-8 h-12 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
+
+        {/* Author Info Loading */}
+        <div className='mb-6 flex animate-pulse items-center justify-between'>
+          <div className='flex items-center gap-4'>
+            <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
+            <div className='space-y-2'>
+              <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+              <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            </div>
+          </div>
+          <div className='flex space-x-2'>
+            <div className='space-y-2'>
+              <div className='h-4 w-40 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+              <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            </div>
+            <div className='space-y-2'>
+              <div className='h-4 w-40 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+              <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
             </div>
           </div>
         </div>
 
-        <div className='relative'>
-          <ViewTransition name={`version-${currentVersion - 1}`}>
-            <BodyContent processedContent={processedContent} />
-          </ViewTransition>
+        {/* Content Loading */}
+        <div className='space-y-4'>
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className='h-4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'
+              style={{ width: `${Math.random() * 40 + 60}%` }}
+            ></div>
+          ))}
         </div>
       </div>
-    </div>
+    </ViewTransition>
   );
 }
 

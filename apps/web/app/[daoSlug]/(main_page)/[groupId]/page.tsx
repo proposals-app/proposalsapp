@@ -7,10 +7,11 @@ import {
   getBodies_cached,
   getFeed,
 } from './actions';
-import Body from './components/body/Body';
-import Feed from './components/feed/Feed';
+import { Body, BodyLoading } from './components/body/Body';
+import { Feed, FeedLoading } from './components/feed/Feed';
 import { MenuBar } from './components/menubar/MenuBar';
 import { Timeline } from './components/timeline/Timeline';
+import { Suspense } from 'react';
 
 export default async function GroupPage({
   params,
@@ -49,29 +50,37 @@ export default async function GroupPage({
   return (
     <div className='flex w-full flex-col items-center pt-10'>
       <div className='flex max-w-3xl flex-col overflow-visible'>
-        <Body
-          group={group}
-          version={currentVersion}
-          diff={diff}
-          bodies={bodies}
-        />
+        <Suspense fallback={<BodyLoading />}>
+          <Body
+            group={group}
+            version={currentVersion}
+            diff={diff}
+            bodies={bodies}
+          />
+        </Suspense>
 
-        <MenuBar
-          totalVersions={totalVersions}
-          versionTypes={versionTypes}
-          currentVersion={currentVersion}
-          includesProposals={group.proposals.length > 0}
-        />
+        <Suspense>
+          <MenuBar
+            totalVersions={totalVersions}
+            versionTypes={versionTypes}
+            currentVersion={currentVersion}
+            includesProposals={group.proposals.length > 0}
+          />
+        </Suspense>
 
-        <Feed group={group} feed={feed} />
+        <Suspense fallback={<FeedLoading />}>
+          <Feed group={group} feed={feed} />
+        </Suspense>
       </div>
 
-      <Timeline
-        events={feed.events}
-        group={group}
-        feedFilter={feedFilter}
-        votesFilter={votesFilter}
-      />
+      <Suspense>
+        <Timeline
+          events={feed.events}
+          group={group}
+          feedFilter={feedFilter}
+          votesFilter={votesFilter}
+        />
+      </Suspense>
     </div>
   );
 }

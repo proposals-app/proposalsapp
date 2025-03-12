@@ -482,65 +482,67 @@ export function Timeline({
   }
 
   return (
-    <div
-      ref={refs.timelineRef}
-      className='fixed top-0 right-0 flex h-full min-w-96 flex-col items-end justify-start pt-24
-        pl-4'
-    >
+    <ViewTransition name={`timeline`}>
       <div
-        ref={refs.containerRef}
-        className='relative h-full w-full overflow-hidden'
-        data-aggregation-level={aggregationLevel}
+        ref={refs.timelineRef}
+        className='fixed top-0 right-0 flex h-full min-w-96 flex-col items-end justify-start pt-24
+          pl-4'
       >
         <div
-          className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
-            translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out
-            ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
-        />
+          ref={refs.containerRef}
+          className='relative h-full w-full overflow-hidden'
+          data-aggregation-level={aggregationLevel}
+        >
+          <div
+            className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
+              translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out
+              ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
+          />
 
-        <div className='flex h-full flex-col justify-between'>
-          {displayEvents.map((event, index) => {
-            // Calculate the animation delay from bottom to top
-            // The last item (bottom) should animate first
-            let animationDelay = 0;
-            if (displayEvents.length > 1) {
-              animationDelay =
-                ((displayEvents.length - 1 - index) /
-                  (displayEvents.length - 1)) *
-                700;
-            }
+          <div className='flex h-full flex-col justify-between'>
+            {displayEvents.map((event, index) => {
+              // Calculate the animation delay from bottom to top
+              // The last item (bottom) should animate first
+              let animationDelay = 0;
+              if (displayEvents.length > 1) {
+                animationDelay =
+                  ((displayEvents.length - 1 - index) /
+                    (displayEvents.length - 1)) *
+                  700;
+              }
 
-            const isVisible = isEventVisible(event);
-            const isLastVisible =
-              visibleEvents.length > 0 &&
-              event === visibleEvents[visibleEvents.length - 1];
+              const isVisible = isEventVisible(event);
+              const isLastVisible =
+                visibleEvents.length > 0 &&
+                event === visibleEvents[visibleEvents.length - 1];
 
-            const resultNumber =
-              event.type === TimelineEventType.ResultOngoingBasicVote ||
-              event.type === TimelineEventType.ResultOngoingOtherVotes ||
-              event.type === TimelineEventType.ResultEndedBasicVote ||
-              event.type === TimelineEventType.ResultEndedOtherVotes
-                ? proposalOrderMap.get(event.result.proposal.id)
-                : undefined;
+              const resultNumber =
+                event.type === TimelineEventType.ResultOngoingBasicVote ||
+                event.type === TimelineEventType.ResultOngoingOtherVotes ||
+                event.type === TimelineEventType.ResultEndedBasicVote ||
+                event.type === TimelineEventType.ResultEndedOtherVotes
+                  ? proposalOrderMap.get(event.result.proposal.id)
+                  : undefined;
 
-            return (
-              <TimelineEventItem
-                key={`${event.type}-${index}-${event.timestamp.toString()}`}
-                event={event}
-                index={index}
-                isVisible={isVisible}
-                isLastVisible={isLastVisible}
-                animationStarted={animationStarted}
-                animationDelay={animationDelay}
-                resultNumber={resultNumber}
-                group={group}
-                endRef={refs.endRef}
-              />
-            );
-          })}
+              return (
+                <TimelineEventItem
+                  key={`${event.type}-${index}-${event.timestamp.toString()}`}
+                  event={event}
+                  index={index}
+                  isVisible={isVisible}
+                  isLastVisible={isLastVisible}
+                  animationStarted={animationStarted}
+                  animationDelay={animationDelay}
+                  resultNumber={resultNumber}
+                  group={group}
+                  endRef={refs.endRef}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </ViewTransition>
   );
 }
 export function useResizeObserver(

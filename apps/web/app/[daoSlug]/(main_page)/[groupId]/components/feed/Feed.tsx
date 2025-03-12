@@ -3,8 +3,9 @@ import { PostItem } from './items/PostItem/PostItem';
 import { VoteItem } from './items/VoteItem/VoteItem';
 import { FeedReturnType, GroupReturnType } from '../../actions';
 import { AggregateVoteItem } from './items/VoteItem/AggregateVoteItem';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
-export default async function Feed({
+export async function Feed({
   group,
   feed,
 }: {
@@ -40,38 +41,68 @@ export default async function Feed({
   });
 
   return (
-    <div className='w-full'>
-      {combinedItems.map((item, index) => {
-        if (item.type === 'post') {
-          const postItem = (
-            <div key={index}>
-              <div className='flex w-full flex-col p-4'>
-                <PostItem item={item} group={group} />
-              </div>
-              {index < combinedItems.length - 1 && (
-                <div className='border-b border-neutral-200 dark:border-neutral-800' />
-              )}
-            </div>
-          );
-
-          return postItem;
-        } else {
-          return (
-            <div key={index}>
-              <div className='flex w-full flex-col p-4'>
-                {item.aggregate ? (
-                  <AggregateVoteItem item={item} group={group} />
-                ) : (
-                  <VoteItem item={item} group={group} />
+    <ViewTransition name='feed'>
+      <div className='w-full'>
+        {combinedItems.map((item, index) => {
+          if (item.type === 'post') {
+            const postItem = (
+              <div key={index}>
+                <div className='flex w-full flex-col p-4'>
+                  <PostItem item={item} group={group} />
+                </div>
+                {index < combinedItems.length - 1 && (
+                  <div className='border-b border-neutral-200 dark:border-neutral-800' />
                 )}
               </div>
-              {index < combinedItems.length - 1 && (
-                <div className='border-b border-neutral-200 dark:border-neutral-800' />
-              )}
+            );
+
+            return postItem;
+          } else {
+            return (
+              <div key={index}>
+                <div className='flex w-full flex-col p-4'>
+                  {item.aggregate ? (
+                    <AggregateVoteItem item={item} group={group} />
+                  ) : (
+                    <VoteItem item={item} group={group} />
+                  )}
+                </div>
+                {index < combinedItems.length - 1 && (
+                  <div className='border-b border-neutral-200 dark:border-neutral-800' />
+                )}
+              </div>
+            );
+          }
+        })}
+      </div>
+    </ViewTransition>
+  );
+}
+
+export function FeedLoading() {
+  return (
+    <ViewTransition name='feed'>
+      <div className='mt-6 w-full space-y-6'>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className='px-6 py-4'>
+            <div className='flex animate-pulse items-center justify-between'>
+              <div className='flex items-center gap-4'>
+                <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
+                <div className='space-y-2'>
+                  <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                </div>
+              </div>
+              <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
             </div>
-          );
-        }
-      })}
-    </div>
+
+            <div className='mt-4 space-y-2'>
+              <div className='h-4 w-3/4 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+              <div className='h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </ViewTransition>
   );
 }
