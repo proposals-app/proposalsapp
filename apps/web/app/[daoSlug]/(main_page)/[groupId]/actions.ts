@@ -658,7 +658,7 @@ export async function getFeed(
                 {
                   withVotes: true,
                   withTimeseries: false,
-                  aggregatedVotes: false,
+                  aggregatedVotes: true,
                 }
               );
 
@@ -753,11 +753,7 @@ export async function getFeed(
         url: `${daoDiscourse.discourseBaseUrl}/t/${topics[0].externalId}`,
       });
 
-      if (
-        topics.length > 0 &&
-        (feedFilter == FeedFilterEnum.COMMENTS ||
-          feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES)
-      ) {
+      if (topics.length > 0) {
         posts = await db
           .selectFrom('discoursePost')
           .where(

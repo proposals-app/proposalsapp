@@ -16,6 +16,7 @@ import {
   useMemo,
   useCallback,
   RefObject,
+  useLayoutEffect,
 } from 'react';
 import React from 'react';
 
@@ -165,11 +166,8 @@ function useTimelineEvents(
   const lastFiltersRef = useRef({ feedFilter, votesFilter });
 
   // State that requires re-renders
-  const [rawEvents] = useState(events);
   const [aggregationLevel, setAggregationLevel] = useState(0);
   const [forceUpdate, setForceUpdate] = useState(0); // Used to force re-renders when needed
-
-  const VISIBILITY_CHECK_THROTTLE = 50; // ms
 
   // Create a map of proposal IDs to their display order (memoized once)
   const proposalOrderMap = useMemo(() => {
@@ -227,12 +225,12 @@ function useTimelineEvents(
 
   // Process events based on current aggregation level (memoized)
   const displayEvents = useMemo(() => {
-    if (!rawEvents) return null;
+    if (!events) return null;
 
     return aggregationLevel === 0
-      ? rawEvents
-      : aggregateVolumeEvents(rawEvents, aggregationLevel);
-  }, [rawEvents, aggregationLevel]);
+      ? events
+      : aggregateVolumeEvents(events, aggregationLevel);
+  }, [events, aggregationLevel]);
 
   // Get filtered events based on visibility criteria (memoized)
   const visibleEvents = useMemo(() => {
@@ -244,17 +242,10 @@ function useTimelineEvents(
     if (
       !endRef.current ||
       !containerRef.current ||
-      !rawEvents ||
+      !events ||
       !isFullyRenderedRef.current
     )
       return;
-
-    // Throttle checks to avoid excessive calculations
-    const now = Date.now();
-    if (now - lastVisibilityCheckRef.current < VISIBILITY_CHECK_THROTTLE) {
-      return;
-    }
-    lastVisibilityCheckRef.current = now;
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const endRect = endRef.current.getBoundingClientRect();
@@ -272,7 +263,7 @@ function useTimelineEvents(
     ) {
       setAggregationLevel((prev) => Math.max(0, prev - 1));
     }
-  }, [rawEvents, aggregationLevel, visibleEvents.length]);
+  }, [events, aggregationLevel, visibleEvents.length]);
 
   // Handle container size changes
   const onResize = useCallback(
@@ -322,11 +313,7 @@ function useTimelineEvents(
 
   // Mark timeline as fully rendered after animations complete
   useEffect(() => {
-    if (
-      rawEvents &&
-      animationStartedRef.current &&
-      !isFullyRenderedRef.current
-    ) {
+    if (events && animationStartedRef.current && !isFullyRenderedRef.current) {
       const timer = setTimeout(() => {
         isFullyRenderedRef.current = true;
         checkVisibility();
@@ -334,7 +321,7 @@ function useTimelineEvents(
 
       return () => clearTimeout(timer);
     }
-  }, [rawEvents, checkVisibility, forceUpdate]);
+  }, [events, checkVisibility, forceUpdate]);
 
   // Check if filters have changed and update accordingly
   useEffect(() => {
@@ -398,7 +385,7 @@ const TimelineEventItem = React.memo(
   }) {
     return (
       <div
-        className={`transition-opacity duration-200 ease-in-out
+        className={`transition-all duration-200 ease-in-out
           ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       >
         <div
@@ -555,7 +542,6 @@ export function Timeline({
     </div>
   );
 }
-
 export function useResizeObserver(
   ref: RefObject<HTMLElement>,
   callback: (
