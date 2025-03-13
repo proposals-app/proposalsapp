@@ -7,6 +7,6 @@ pub async fn register_all_handlers(manifest_path: &PathBuf) -> EventCallbackRegi
     arbitrum_core_governor_handlers(manifest_path, &mut registry).await;
     arbitrum_treasury_governor_handlers(manifest_path, &mut registry).await;
     arbitrum_sc_nominations_handlers(manifest_path, &mut registry).await;
-    arb_token_handlers(manifest_path, &mut registry).await;
+    // arb_token_handlers(manifest_path, &mut registry).await;
     registry
 }
