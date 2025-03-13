@@ -1,7 +1,8 @@
 export interface ProposalGroup {
-  id?: string;
+  id: string;
   name: string;
   items: ProposalGroupItem[];
+  daoId: string;
   createdAt?: string;
 }
 
