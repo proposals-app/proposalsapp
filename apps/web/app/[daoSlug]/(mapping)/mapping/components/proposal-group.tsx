@@ -317,20 +317,25 @@ export default function GroupingInterface({
 
   // Render the IndexerBadge component for items
   const renderIndexerBadge = (indexerName?: string) => {
-    let bgColor = 'bg-gray-100';
+    let bgColorClasses = 'bg-gray-100 dark:bg-gray-700';
 
     if (indexerName) {
       if (indexerName.includes('SNAPSHOT')) {
-        bgColor = 'bg-yellow-100';
+        bgColorClasses =
+          'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300';
       } else if (indexerName.includes('http')) {
-        bgColor = 'bg-blue-100';
+        bgColorClasses =
+          'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300';
       } else {
-        bgColor = 'bg-green-100';
+        bgColorClasses =
+          'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300';
       }
     }
 
     return (
-      <span className={`rounded-full px-2 py-1 text-xs font-medium ${bgColor}`}>
+      <span
+        className={`rounded-full px-2 py-1 text-xs font-medium ${bgColorClasses}`}
+      >
         {indexerName || 'unknown'}
       </span>
     );
@@ -340,7 +345,10 @@ export default function GroupingInterface({
   const renderTypeBadge = (type: 'proposal' | 'topic') => (
     <span
       className={`rounded-full px-2 py-1 text-xs font-medium ${
-        type === 'proposal' ? 'bg-blue-100' : 'bg-gray-100' }`}
+        type === 'proposal'
+          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+        }`}
     >
       {type === 'proposal' ? 'Proposal' : 'Discussion'}
     </span>
@@ -355,13 +363,18 @@ export default function GroupingInterface({
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
           placeholder='New group name'
-          className='grow rounded-md border p-2'
+          className='grow rounded-md border border-neutral-300 bg-white p-2 text-neutral-900
+            dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100'
           disabled={isLoading}
         />
         <button
           onClick={createNewGroup}
-          className={`rounded-md border px-4 py-2
-            ${isLoading || !newGroupName.trim() ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50'}`}
+          className={`rounded-md border border-neutral-300 bg-white px-4 py-2 text-neutral-900
+            dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 ${
+            isLoading || !newGroupName.trim()
+                ? 'cursor-not-allowed opacity-50'
+                : 'hover:bg-neutral-100 dark:hover:bg-neutral-700'
+            }`}
           disabled={isLoading || !newGroupName.trim()}
         >
           {isLoading ? 'Creating...' : 'Create Group'}
@@ -370,28 +383,36 @@ export default function GroupingInterface({
 
       {/* Groups list */}
       {groups.length === 0 ? (
-        <div className='p-8 text-center text-gray-500'>
+        <div className='p-8 text-center text-neutral-500 dark:text-neutral-400'>
           No groups found. Create your first group above.
         </div>
       ) : (
         groups.map((group) => (
-          <div key={group.id} className='rounded-lg border shadow-xs'>
+          <div
+            key={group.id}
+            className='rounded-lg border border-neutral-300 bg-white shadow-xs dark:border-neutral-600
+              dark:bg-neutral-800'
+          >
             {/* Group header */}
-            <div className='flex items-center justify-between border-b p-4'>
-              <h2 className='text-lg font-semibold'>
+            <div
+              className='flex items-center justify-between border-b border-neutral-300 p-4
+                dark:border-neutral-600'
+            >
+              <h2 className='text-lg font-semibold text-neutral-900 dark:text-neutral-100'>
                 {editingGroupId === group.id ? (
                   <input
                     type='text'
                     value={editingGroupName}
                     onChange={(e) => setEditingGroupName(e.target.value)}
-                    className='w-64 rounded-md border p-2'
+                    className='w-64 rounded-md border border-neutral-300 bg-white p-2 text-neutral-900
+                      dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100'
                     disabled={isLoading}
                   />
                 ) : (
                   <Link
-                    href={`/${daoSlug}/${group.id}`}
+                    href={`/${group.id}`}
                     target='_blank'
-                    className='flex items-center gap-2 hover:underline'
+                    className='flex items-center gap-2 text-neutral-900 hover:underline dark:text-neutral-100'
                   >
                     {group.name}
                   </Link>
@@ -401,11 +422,13 @@ export default function GroupingInterface({
                 {editingGroupId === group.id ? (
                   <button
                     onClick={() => editGroup(group.id!, editingGroupName)}
-                    className={`h-8 w-32 rounded-md border px-3 py-1 ${
+                    className={`h-8 w-32 rounded-md border border-neutral-300 bg-white px-3 py-1
+                      text-neutral-900 dark:border-neutral-600 dark:bg-neutral-700
+                      dark:text-neutral-100 ${
                       isLoading || !editingGroupName.trim()
-                        ? 'cursor-not-allowed opacity-50'
-                        : 'hover:bg-gray-50'
-                          }`}
+                          ? 'cursor-not-allowed opacity-50'
+                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-600'
+                      }`}
                     disabled={isLoading || !editingGroupName.trim()}
                   >
                     {isLoading ? 'Saving...' : 'Save Changes'}
@@ -419,22 +442,25 @@ export default function GroupingInterface({
                         setSearchTerm('');
                         setSearchResults([]);
                       }}
-                      className={`h-8 w-32 rounded-md border px-3 py-1 ${
+                      className={`h-8 w-32 rounded-md border border-neutral-300 bg-white px-3 py-1
+                        text-neutral-900 dark:border-neutral-600 dark:bg-neutral-700
+                        dark:text-neutral-100 ${
                         isLoading
-                          ? 'cursor-not-allowed opacity-50'
-                          : 'hover:bg-gray-50'
-                      }`}
+                            ? 'cursor-not-allowed opacity-50'
+                            : 'hover:bg-neutral-100 dark:hover:bg-neutral-600'
+                        }`}
                       disabled={isLoading}
                     >
                       Edit Group
                     </button>
                     <button
                       onClick={() => handleDeleteGroup(group.id!)}
-                      className={`h-8 w-32 rounded-md border px-3 py-1 text-red-600 ${
+                      className={`h-8 w-32 rounded-md border border-red-300 bg-white px-3 py-1 text-red-600
+                        dark:border-red-700 dark:bg-neutral-700 dark:text-red-400 ${
                         isLoading
-                          ? 'cursor-not-allowed opacity-50'
-                          : 'hover:bg-red-50'
-                      }`}
+                            ? 'cursor-not-allowed opacity-50'
+                            : 'hover:bg-red-50 dark:hover:bg-red-900/20'
+                        }`}
                       disabled={isLoading}
                     >
                       {isLoading ? 'Deleting...' : 'Delete Group'}
@@ -455,12 +481,15 @@ export default function GroupingInterface({
                       group.items.map((item) => (
                         <li
                           key={getItemIdentifier(item)}
-                          className='flex items-center justify-between rounded-md border p-2'
+                          className='flex items-center justify-between rounded-md border border-neutral-300 bg-white
+                            p-2 dark:border-neutral-600 dark:bg-neutral-700'
                         >
                           <span className='flex items-center gap-2 truncate'>
                             {renderTypeBadge(item.type)}
                             {renderIndexerBadge(item.indexerName)}
-                            <span className='truncate'>{item.name}</span>
+                            <span className='truncate text-neutral-900 dark:text-neutral-100'>
+                              {item.name}
+                            </span>
                           </span>
                           <button
                             onClick={() =>
@@ -469,7 +498,8 @@ export default function GroupingInterface({
                                 getItemIdentifier(item)
                               )
                             }
-                            className={`ml-2 shrink-0 rounded-md bg-red-500 px-2 py-1 text-white hover:bg-red-600 ${
+                            className={`ml-2 shrink-0 rounded-md bg-red-500 px-2 py-1 text-white hover:bg-red-600
+                              dark:bg-red-700 dark:hover:bg-red-600 ${
                               isLoading ? 'cursor-not-allowed opacity-50' : '' }`}
                             disabled={isLoading}
                           >
@@ -478,7 +508,7 @@ export default function GroupingInterface({
                         </li>
                       ))
                     ) : (
-                      <p className='text-center text-gray-500'>
+                      <p className='text-center text-neutral-500 dark:text-neutral-400'>
                         No items in this group yet. Search below to add items.
                       </p>
                     )}
@@ -488,7 +518,7 @@ export default function GroupingInterface({
                   <div className='mb-4'>
                     <label
                       htmlFor={`search-${group.id}`}
-                      className='mb-1 block text-sm font-medium text-gray-700'
+                      className='mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300'
                     >
                       Search for items to add
                     </label>
@@ -498,17 +528,23 @@ export default function GroupingInterface({
                       value={searchTerm}
                       onChange={(e) => handleSearch(e.target.value)}
                       placeholder='Search proposals and discussions...'
-                      className='w-full rounded-md border p-2'
+                      className='w-full rounded-md border border-neutral-300 bg-white p-2 text-neutral-900
+                        dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100'
                       disabled={isLoading}
                     />
                   </div>
 
                   {/* Search results */}
                   {searchTerm && (
-                    <div className='rounded-md border bg-gray-50 p-2'>
-                      <h3 className='mb-2 font-medium'>Search Results</h3>
+                    <div
+                      className='dark:bg-neutral-750 rounded-md border border-neutral-300 bg-neutral-50 p-2
+                        dark:border-neutral-600'
+                    >
+                      <h3 className='mb-2 font-medium text-neutral-900 dark:text-neutral-100'>
+                        Search Results
+                      </h3>
                       {searchResults.length === 0 ? (
-                        <p className='p-2 text-center text-gray-500'>
+                        <p className='p-2 text-center text-neutral-500 dark:text-neutral-400'>
                           {isLoading
                             ? 'Searching...'
                             : 'No matching items found'}
@@ -521,7 +557,7 @@ export default function GroupingInterface({
                               className={`flex items-center gap-2 rounded-md p-2 ${
                                 isLoading
                                   ? 'cursor-not-allowed opacity-50'
-                                  : 'cursor-pointer hover:bg-gray-100'
+                                  : 'cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700'
                                 }`}
                               onClick={() =>
                                 !isLoading && addItemToGroup(group.id!, item)
@@ -529,10 +565,13 @@ export default function GroupingInterface({
                             >
                               {renderTypeBadge(item.type)}
                               {renderIndexerBadge(item.indexerName)}
-                              <span className='flex-1 truncate'>
+                              <span className='flex-1 truncate text-neutral-900 dark:text-neutral-100'>
                                 {item.name}
                               </span>
-                              <span className='rounded-full bg-red-100 px-2 py-1 text-xs'>
+                              <span
+                                className='rounded-full bg-red-100 px-2 py-1 text-xs text-red-800 dark:bg-red-900/40
+                                  dark:text-red-300'
+                              >
                                 {item.score.toFixed(2)}
                               </span>
                             </li>
@@ -546,7 +585,7 @@ export default function GroupingInterface({
                 // View mode
                 <>
                   {group.items.length === 0 ? (
-                    <p className='p-2 text-center text-gray-500'>
+                    <p className='p-2 text-center text-neutral-500 dark:text-neutral-400'>
                       No items in this group
                     </p>
                   ) : (
@@ -554,11 +593,14 @@ export default function GroupingInterface({
                       {group.items.map((item) => (
                         <li
                           key={getItemIdentifier(item)}
-                          className='flex items-center gap-2 rounded-md border p-2'
+                          className='flex items-center gap-2 rounded-md border border-neutral-300 bg-white p-2
+                            dark:border-neutral-600 dark:bg-neutral-700'
                         >
                           {renderTypeBadge(item.type)}
                           {renderIndexerBadge(item.indexerName)}
-                          <span className='truncate'>{item.name}</span>
+                          <span className='truncate text-neutral-900 dark:text-neutral-100'>
+                            {item.name}
+                          </span>
                         </li>
                       ))}
                     </ul>
