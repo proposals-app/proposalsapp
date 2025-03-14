@@ -2,7 +2,7 @@
 
 import { Selectable, Voter } from '@proposalsapp/db-indexer';
 import { fuzzySearchVoters } from '../actions';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 interface FuzzyVoterSearchProps {
   daoSlug: string;
@@ -20,6 +20,8 @@ const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Selectable<Voter>[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = useCallback(
     async (term: string) => {
@@ -58,36 +60,48 @@ const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
   };
 
   return (
-    <div>
+    <div className='relative'>
+      {' '}
+      {/* Make this div relative */}
       <input
+        ref={inputRef}
         type='text'
         placeholder='Search Voters...'
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className='w-full rounded-md border border-neutral-300 bg-white p-2 text-neutral-900
-          dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100'
+        className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border
+          border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm
+          focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
+          dark:shadow-neutral-950'
         disabled={isLoading}
       />
-
       {searchTerm.trim() && (
         <div
-          className='dark:bg-neutral-750 mt-1 rounded-md border border-neutral-300 bg-neutral-50 p-2
-            dark:border-neutral-600'
+          ref={dropdownRef}
+          className='absolute top-full left-0 z-10 mt-1 w-full rounded-md border border-neutral-300
+            bg-white shadow-md dark:border-neutral-700 dark:bg-neutral-900
+            dark:shadow-neutral-950' /* Absolute positioning */
+          style={{ zIndex: 10 }}
         >
           {searchLoading ? (
-            <p className='p-2 text-center text-neutral-500 dark:text-neutral-400'>
+            <p className='px-4 py-2 text-center text-neutral-500 dark:text-neutral-400'>
               Searching...
             </p>
           ) : searchResults.length === 0 ? (
-            <p className='p-2 text-center text-neutral-500 dark:text-neutral-400'>
+            <p className='px-4 py-2 text-center text-neutral-500 dark:text-neutral-400'>
               No voters found
             </p>
           ) : (
-            <ul className='max-h-48 overflow-y-auto'>
+            <ul
+              className='scrollbar-thin scrollbar-thumb-rounded scrollbar-track-transparent
+                scrollbar-thumb-neutral-400 dark:scrollbar-thumb-neutral-600 max-h-48
+                overflow-y-auto'
+            >
               {searchResults.map((voter) => (
                 <li
                   key={voter.id}
-                  className='cursor-pointer rounded-md p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                  className='cursor-pointer px-4 py-2 transition-colors hover:bg-neutral-100
+                    dark:text-neutral-100 dark:hover:bg-neutral-800'
                   onClick={() => selectVoter(voter)}
                 >
                   {voter.address}

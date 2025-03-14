@@ -90,63 +90,86 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
   };
 
   return (
-    <tr className='border-b border-neutral-200 dark:border-neutral-800'>
-      <td className='px-4 py-2'>{delegate.id}</td>
-      <td className='px-4 py-2'>
-        {currentDiscourseUsers.map((user) => (
-          <div
-            className='mb-1 flex items-center justify-between gap-2 rounded-md bg-neutral-100 p-2
-              dark:bg-neutral-700'
-            key={user.id}
-          >
-            {user.username}
-            <button
-              onClick={() => handleUnmapDiscourseUser(user.id)}
-              className='rounded-md bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600'
-              disabled={isSaving}
-            >
-              Unmap
-            </button>
-          </div>
-        ))}
-        <FuzzyDiscourseUserSearch
-          daoSlug={daoSlug}
-          excludeUserIds={currentDiscourseUsers.map((user) => user.id)}
-          onSelectUser={handleMapDiscourseUser}
-          isLoading={isSaving}
-        />
+    <tr className='border-b border-neutral-200 transition-colors dark:border-neutral-700'>
+      <td
+        className='px-6 py-4 text-sm font-medium whitespace-nowrap text-neutral-900
+          dark:text-neutral-100'
+      >
+        {delegate.id}
       </td>
-      <td className='px-4 py-2'>
-        {currentVoters.map((voter) => (
-          <div
-            className='mb-1 flex items-center justify-between gap-2 rounded-md bg-neutral-100 p-2
-              dark:bg-neutral-700'
-            key={voter.id}
-          >
-            {voter.address}
-            <button
-              onClick={() => handleUnmapVoter(voter.id)}
-              className='rounded-md bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600'
-              disabled={isSaving}
+      <td className='px-6 py-4'>
+        <div className='space-y-2'>
+          {currentDiscourseUsers.map((user) => (
+            <div
+              className='flex items-center justify-between rounded-md bg-neutral-100 p-2
+                dark:bg-neutral-700'
+              key={user.id}
             >
-              Unmap
-            </button>
-          </div>
-        ))}
-        <FuzzyVoterSearch
-          daoSlug={daoSlug}
-          excludeVoterIds={currentVoters.map((voter) => voter.id)}
-          onSelectVoter={handleMapVoter}
-          isLoading={isSaving}
-        />
+              <span className='text-sm text-neutral-900 dark:text-neutral-100'>
+                {user.username}
+              </span>{' '}
+              <button
+                onClick={() => handleUnmapDiscourseUser(user.id)}
+                className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white
+                  transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500
+                  disabled:opacity-50'
+                disabled={isSaving}
+              >
+                Unmap
+              </button>
+            </div>
+          ))}
+          <FuzzyDiscourseUserSearch
+            daoSlug={daoSlug}
+            excludeUserIds={currentDiscourseUsers.map((user) => user.id)}
+            onSelectUser={handleMapDiscourseUser}
+            isLoading={isSaving}
+          />
+        </div>
       </td>
-      <td className='px-4 py-2'>
+      <td className='px-6 py-4'>
+        <div className='space-y-2'>
+          {currentVoters.map((voter) => (
+            <div
+              className='flex items-center justify-between rounded-md bg-neutral-100 p-2
+                dark:bg-neutral-700'
+              key={voter.id}
+            >
+              <div className='text-sm text-neutral-900 dark:text-neutral-100'>
+                <div>{voter.address}</div>
+                {voter.ens && (
+                  <div className='text-xs text-neutral-500 dark:text-neutral-400'>
+                    {voter.ens}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => handleUnmapVoter(voter.id)}
+                className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white
+                  transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500
+                  disabled:opacity-50'
+                disabled={isSaving}
+              >
+                Unmap
+              </button>
+            </div>
+          ))}
+          <FuzzyVoterSearch
+            daoSlug={daoSlug}
+            excludeVoterIds={currentVoters.map((voter) => voter.id)}
+            onSelectVoter={handleMapVoter}
+            isLoading={isSaving}
+          />
+        </div>
+      </td>
+      <td className='px-6 py-4 text-sm font-medium whitespace-nowrap'>
         <div className='flex gap-2'>
           <button
             onClick={onCancel}
-            className='w-full rounded-md border border-neutral-300 bg-white px-3 py-1 text-neutral-900
-              hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800
-              dark:text-neutral-100 dark:hover:bg-neutral-700'
+            className='focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4
+              py-2 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100
+              focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600
+              dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
             disabled={isSaving}
           >
             Close
@@ -185,34 +208,50 @@ export const DelegateRow = ({
   return (
     <tr
       key={delegate.id}
-      className='border-b border-neutral-200 dark:border-neutral-800'
+      className='border-b border-neutral-200 transition-colors dark:border-neutral-700'
     >
-      <td className='px-4 py-2'>{delegate.id}</td>
-      <td className='px-4 py-2'>
-        {discourseUsers.map((user) => (
-          <div className='flex items-center gap-2' key={user.id}>
-            {user.username}
-          </div>
-        ))}
+      <td
+        className='px-6 py-4 text-sm font-medium whitespace-nowrap text-neutral-900
+          dark:text-neutral-100'
+      >
+        {delegate.id}
       </td>
-      <td className='px-4 py-2'>
-        {voters.map((voter) => (
-          <div className='flex flex-col gap-1' key={voter.id}>
-            <div>{voter.address}</div>
-            {voter.ens && (
-              <div className='text-sm text-neutral-500 dark:text-neutral-400'>
-                {voter.ens}
-              </div>
-            )}
-          </div>
-        ))}
+      <td className='px-6 py-4'>
+        <div className='space-y-2'>
+          {discourseUsers.map((user) => (
+            <div
+              className='text-sm text-neutral-900 dark:text-neutral-100'
+              key={user.id}
+            >
+              {user.username}
+            </div>
+          ))}
+        </div>
       </td>
-      <td className='px-4 py-2'>
+      <td className='px-6 py-4'>
+        <div className='space-y-2'>
+          {voters.map((voter) => (
+            <div
+              className='text-sm text-neutral-900 dark:text-neutral-100'
+              key={voter.id}
+            >
+              <div className='font-mono'>{voter.address}</div>
+              {voter.ens && (
+                <div className='text-xs text-neutral-500 dark:text-neutral-400'>
+                  {voter.ens}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </td>
+      <td className='px-6 py-4 text-sm font-medium whitespace-nowrap'>
         <button
           onClick={() => setIsEditing(true)}
-          className='w-full rounded-md border border-neutral-300 bg-white px-3 py-1 text-neutral-900
-            hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800
-            dark:text-neutral-100 dark:hover:bg-neutral-700'
+          className='border-brand-accent bg-brand-accent hover:bg-brand-accent-darker
+            focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2
+            text-sm font-medium text-white transition-colors focus:ring-2
+            disabled:opacity-50'
         >
           Edit Mappings
         </button>

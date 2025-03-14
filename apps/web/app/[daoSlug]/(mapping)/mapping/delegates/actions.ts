@@ -137,16 +137,11 @@ export async function fuzzySearchVoters(
     return [];
   }
 
-  const dao = await db
-    .selectFrom('dao')
-    .where('slug', '=', daoSlug)
-    .selectAll()
-    .executeTakeFirstOrThrow();
-
   const allVoters = await db
     .selectFrom('voter')
     .where('id', 'not in', excludeVoterIds)
     .selectAll()
+    .limit(10)
     .execute();
 
   const fuse = new Fuse(allVoters, {
