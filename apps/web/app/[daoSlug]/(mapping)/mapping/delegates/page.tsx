@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getDelegatesWithMappings } from './actions';
+import { getDelegatesWithMappings, createDelegate } from './actions';
 import { getDao } from '../actions';
 import { DelegateRow } from './components/edit-delegate-row';
 
@@ -19,13 +19,33 @@ export default async function DelegatesMappingPage({
 
   return (
     <div className='container mx-auto p-6'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-neutral-900 dark:text-neutral-100'>
-          Delegate Mappings for {dao.name}
-        </h1>
-        <p className='mt-2 text-neutral-500 dark:text-neutral-400'>
-          Manage delegate mappings for Discourse users and Voters in {dao.name}.
-        </p>
+      <div className='mb-8 flex items-center justify-between'>
+        <div>
+          <h1 className='text-3xl font-bold text-neutral-900 dark:text-neutral-100'>
+            Delegate Mappings for {dao.name}
+          </h1>
+          <p className='mt-2 text-neutral-500 dark:text-neutral-400'>
+            Manage delegate mappings for Discourse users and Voters in{' '}
+            {dao.name}.
+          </p>
+        </div>
+        <form
+          action={async () => {
+            'use server';
+            await createDelegate(daoSlug);
+          }}
+        >
+          <button
+            type='submit'
+            className='focus:ring-opacity-50 border-brand-accent bg-brand-accent
+              hover:bg-brand-accent-darker focus:ring-brand-accent rounded-md border px-4 py-2
+              text-sm font-medium text-white transition-colors focus:ring-2
+              disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
+              dark:text-neutral-100 dark:hover:bg-neutral-700'
+          >
+            Create Delegate
+          </button>
+        </form>
       </div>
       <div className='overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-700'>
         <table className='min-w-full table-auto border-collapse'>

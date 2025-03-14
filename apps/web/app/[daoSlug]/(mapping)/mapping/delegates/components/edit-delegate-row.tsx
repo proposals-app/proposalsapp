@@ -12,9 +12,11 @@ import {
   mapVoterToDelegate,
   unmapDiscourseUserFromDelegate,
   unmapVoterFromDelegate,
+  deleteDelegate,
 } from '../actions';
 import FuzzyDiscourseUserSearch from './fuzzy-discourse-user-search';
 import FuzzyVoterSearch from './fuzzy-voter-search';
+import { useTransition } from 'react';
 
 interface EditDelegateRowProps {
   delegate: Selectable<Delegate>;
@@ -36,6 +38,26 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
   const [currentVoters, setCurrentVoters] =
     useState<Selectable<Voter>[]>(voters);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  const handleDeleteDelegate = async () => {
+    if (
+      window.confirm(
+        'Are you sure you want to delete this delegate and all its mappings?'
+      )
+    ) {
+      setIsDeleting(true);
+      try {
+        await deleteDelegate(delegate.id);
+        // Optimistically remove the row from the UI, or re-fetch the data
+        onCancel(); // For simplicity, just close the edit row which will trigger re-fetch on page level
+      } catch (error) {
+        console.error('Error deleting delegate:', error);
+        setIsDeleting(false);
+      }
+    }
+  };
 
   const handleMapDiscourseUser = async (
     discourseUser: Selectable<DiscourseUser>
@@ -113,7 +135,7 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
                 className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white
                   transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500
                   disabled:opacity-50'
-                disabled={isSaving}
+                disabled={isSaving || isDeleting}
               >
                 Unmap
               </button>
@@ -123,7 +145,7 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
             daoSlug={daoSlug}
             excludeUserIds={currentDiscourseUsers.map((user) => user.id)}
             onSelectUser={handleMapDiscourseUser}
-            isLoading={isSaving}
+            isLoading={isSaving || isDeleting}
           />
         </div>
       </td>
@@ -148,7 +170,7 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
                 className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white
                   transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500
                   disabled:opacity-50'
-                disabled={isSaving}
+                disabled={isSaving || isDeleting}
               >
                 Unmap
               </button>
@@ -158,7 +180,7 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
             daoSlug={daoSlug}
             excludeVoterIds={currentVoters.map((voter) => voter.id)}
             onSelectVoter={handleMapVoter}
-            isLoading={isSaving}
+            isLoading={isSaving || isDeleting}
           />
         </div>
       </td>
@@ -170,9 +192,18 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
               py-2 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100
               focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600
               dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
-            disabled={isSaving}
+            disabled={isSaving || isDeleting}
           >
             Close
+          </button>
+          <button
+            onClick={handleDeleteDelegate}
+            className='focus:ring-opacity-50 w-full rounded-md border border-red-500 bg-red-500 px-4
+              py-2 text-sm font-medium text-white transition-colors hover:bg-red-600
+              focus:ring-2 focus:ring-red-500 disabled:opacity-50'
+            disabled={isSaving || isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </td>
@@ -248,10 +279,11 @@ export const DelegateRow = ({
       <td className='px-6 py-4 text-sm font-medium whitespace-nowrap'>
         <button
           onClick={() => setIsEditing(true)}
-          className='border-brand-accent bg-brand-accent hover:bg-brand-accent-darker
-            focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2
-            text-sm font-medium text-white transition-colors focus:ring-2
-            disabled:opacity-50'
+          className='focus:ring-opacity-50 border-brand-accent bg-brand-accent
+            hover:bg-brand-accent-darker focus:ring-brand-accent w-full rounded-md border
+            px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2
+            disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
+            dark:text-neutral-100 dark:hover:bg-neutral-700'
         >
           Edit Mappings
         </button>

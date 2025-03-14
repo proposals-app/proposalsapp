@@ -27,7 +27,7 @@ export async function getDelegatesWithMappings(daoSlug: string) {
 
     const delegatesWithMappings = await Promise.all(
       delegates.map(async (delegate) => {
-        const delegateToDiscourseUser = await db
+        const delegateToDiscourseUsers = await db
           .selectFrom('delegateToDiscourseUser')
           .innerJoin(
             'discourseUser',
@@ -40,18 +40,19 @@ export async function getDelegatesWithMappings(daoSlug: string) {
 
         let discourseUsers: Selectable<DiscourseUser>[] = [];
 
-        if (delegateToDiscourseUser.length)
+        if (delegateToDiscourseUsers.length) {
           discourseUsers = await db
             .selectFrom('discourseUser')
             .where(
               'discourseUser.id',
               'in',
-              delegateToDiscourseUser.map((dd) => dd.discourseUserId)
+              delegateToDiscourseUsers.map((dd) => dd.discourseUserId)
             )
             .selectAll()
             .execute();
+        }
 
-        const delegateToVoter = await db
+        const delegateToVoters = await db
           .selectFrom('delegateToVoter')
           .innerJoin('voter', 'voter.id', 'delegateToVoter.voterId')
           .where('delegateToVoter.delegateId', '=', delegate.id)
@@ -60,24 +61,69 @@ export async function getDelegatesWithMappings(daoSlug: string) {
 
         let voters: Selectable<Voter>[] = [];
 
-        if (delegateToVoter.length)
+        if (delegateToVoters.length) {
           voters = await db
             .selectFrom('voter')
             .where(
               'voter.id',
               'in',
-              delegateToVoter.map((dtv) => dtv.voterId)
+              delegateToVoters.map((dtv) => dtv.voterId)
             )
             .selectAll()
             .execute();
+        }
+
+        let latestMappingTimestamp: Date | null = null;
+
+        if (
+          delegateToDiscourseUsers.length > 0 ||
+          delegateToVoters.length > 0
+        ) {
+          const discourseUserTimestamps = delegateToDiscourseUsers.map(
+            (d) => d.periodStart
+          );
+          const voterTimestamps = delegateToVoters.map((v) => v.periodStart);
+          const allTimestamps = [
+            ...discourseUserTimestamps,
+            ...voterTimestamps,
+          ];
+          latestMappingTimestamp = new Date(
+            Math.max(...allTimestamps.map((date) => date.getTime()))
+          );
+        }
 
         return {
           delegate,
           discourseUsers: discourseUsers,
           voters: voters,
+          latestMappingTimestamp,
         };
       })
     );
+
+    delegatesWithMappings.sort((a, b) => {
+      const hasMappingsA = a.discourseUsers.length > 0 || a.voters.length > 0;
+      const hasMappingsB = b.discourseUsers.length > 0 || b.voters.length > 0;
+
+      if (!hasMappingsA && hasMappingsB) {
+        return -1; // a comes before b (a has no mappings)
+      }
+      if (hasMappingsA && !hasMappingsB) {
+        return 1; // b comes before a (b has no mappings)
+      }
+      if (!hasMappingsA && !hasMappingsB) {
+        return -1; // if both have no mappings, keep relative order (or can be 0)
+      }
+
+      // Both have mappings, sort by latestMappingTimestamp
+      const timestampA = a.latestMappingTimestamp
+        ? a.latestMappingTimestamp.getTime()
+        : -Infinity; // Should not happen as hasMappingsA is true
+      const timestampB = b.latestMappingTimestamp
+        ? b.latestMappingTimestamp.getTime()
+        : -Infinity; // Should not happen as hasMappingsB is true
+      return timestampB - timestampA; // Sort in descending order (newest first)
+    });
 
     return delegatesWithMappings;
   });
@@ -110,7 +156,7 @@ export async function fuzzySearchDiscourseUsers(
     .executeTakeFirst();
 
   if (!daoDiscourse) {
-    return []; // No discourse configured for this DAO
+    return [];
   }
 
   const allDiscourseUsers = await db
@@ -222,5 +268,49 @@ export async function unmapVoterFromDelegate(
   } catch (error) {
     console.error('Failed to unmap voter from delegate:', error);
     throw new Error('Failed to unmap voter from delegate');
+  }
+}
+
+export async function createDelegate(daoSlug: string) {
+  try {
+    const dao = await db
+      .selectFrom('dao')
+      .where('slug', '=', daoSlug)
+      .selectAll()
+      .executeTakeFirstOrThrow();
+
+    await db
+      .insertInto('delegate')
+      .values({
+        daoId: dao.id,
+      })
+      .execute();
+    revalidateMappingPath();
+  } catch (error) {
+    console.error('Failed to create delegate:', error);
+    throw new Error('Failed to create delegate');
+  }
+}
+
+export async function deleteDelegate(delegateId: string) {
+  try {
+    await db.transaction().execute(async (trx) => {
+      await trx
+        .deleteFrom('delegateToDiscourseUser')
+        .where('delegateId', '=', delegateId)
+        .execute();
+
+      await trx
+        .deleteFrom('delegateToVoter')
+        .where('delegateId', '=', delegateId)
+        .execute();
+
+      await trx.deleteFrom('delegate').where('id', '=', delegateId).execute();
+    });
+
+    revalidateMappingPath();
+  } catch (error) {
+    console.error('Failed to delete delegate:', error);
+    throw new Error('Failed to delete delegate');
   }
 }
