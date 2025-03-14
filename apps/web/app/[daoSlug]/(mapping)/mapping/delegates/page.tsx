@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getDelegatesWithMappings, createDelegate } from './actions';
 import { getDao } from '../actions';
 import { DelegateRow } from './components/edit-delegate-row';
+import Link from 'next/link';
 
 export default async function DelegatesMappingPage({
   params,
@@ -29,23 +30,35 @@ export default async function DelegatesMappingPage({
             {dao.name}.
           </p>
         </div>
-        <form
-          action={async () => {
-            'use server';
-            await createDelegate(daoSlug);
-          }}
-        >
-          <button
-            type='submit'
+        <div className='flex flex-col gap-2'>
+          <Link
+            href={`/mapping`}
             className='focus:ring-opacity-50 border-brand-accent bg-brand-accent
-              hover:bg-brand-accent-darker focus:ring-brand-accent rounded-md border px-4 py-2
-              text-sm font-medium text-white transition-colors focus:ring-2
+              hover:bg-brand-accent-darker focus:ring-brand-accent w-48 rounded-md border px-4
+              py-2 text-center text-sm font-medium text-white transition-colors focus:ring-2
               disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
               dark:text-neutral-100 dark:hover:bg-neutral-700'
           >
-            Create Delegate
-          </button>
-        </form>
+            Proposal Mapping
+          </Link>
+          <form
+            action={async () => {
+              'use server';
+              await createDelegate(daoSlug);
+            }}
+          >
+            <button
+              type='submit'
+              className='focus:ring-opacity-50 border-brand-accent bg-brand-accent
+                hover:bg-brand-accent-darker focus:ring-brand-accent w-48 rounded-md border px-4
+                py-2 text-sm font-medium text-white transition-colors focus:ring-2
+                disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
+                dark:text-neutral-100 dark:hover:bg-neutral-700'
+            >
+              Create Delegate
+            </button>
+          </form>
+        </div>
       </div>
       <div className='overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-700'>
         <table className='min-w-full table-auto border-collapse'>

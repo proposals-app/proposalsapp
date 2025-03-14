@@ -317,7 +317,8 @@ export default function GroupingInterface({
 
   // Render the IndexerBadge component for items
   const renderIndexerBadge = (indexerName?: string) => {
-    let bgColorClasses = 'bg-gray-100 dark:bg-gray-700';
+    let bgColorClasses =
+      'bg-neutral-100 text-neutral-800 dark:bg-neutral-700 dark:text-neutral-300';
 
     if (indexerName) {
       if (indexerName.includes('SNAPSHOT')) {
@@ -347,7 +348,7 @@ export default function GroupingInterface({
       className={`rounded-full px-2 py-1 text-xs font-medium ${
         type === 'proposal'
           ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
-          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+          : 'bg-neutral-100 text-neutral-800 dark:bg-neutral-700 dark:text-neutral-300'
         }`}
     >
       {type === 'proposal' ? 'Proposal' : 'Discussion'}
@@ -357,28 +358,48 @@ export default function GroupingInterface({
   return (
     <div className='space-y-6'>
       {/* Create new group form */}
-      <div className='flex space-x-4'>
-        <input
-          type='text'
-          value={newGroupName}
-          onChange={(e) => setNewGroupName(e.target.value)}
-          placeholder='New group name'
-          className='grow rounded-md border border-neutral-300 bg-white p-2 text-neutral-900
-            dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100'
-          disabled={isLoading}
-        />
-        <button
-          onClick={createNewGroup}
-          className={`rounded-md border border-neutral-300 bg-white px-4 py-2 text-neutral-900
-            dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 ${
-            isLoading || !newGroupName.trim()
-                ? 'cursor-not-allowed opacity-50'
-                : 'hover:bg-neutral-100 dark:hover:bg-neutral-700'
-            }`}
-          disabled={isLoading || !newGroupName.trim()}
+      <div
+        className='rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-700
+          dark:bg-neutral-800 dark:shadow-md'
+      >
+        <div
+          className='flex items-center justify-between border-b border-neutral-200 p-4
+            dark:border-neutral-700'
         >
-          {isLoading ? 'Creating...' : 'Create Group'}
-        </button>
+          <h3 className='text-lg font-semibold text-neutral-900 dark:text-neutral-100'>
+            Create New Group
+          </h3>
+        </div>
+        <div className='p-4'>
+          <div className='flex space-x-4'>
+            <input
+              type='text'
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              placeholder='New group name'
+              className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border
+                border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm
+                focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
+                dark:shadow-neutral-950'
+              disabled={isLoading}
+            />
+            <button
+              onClick={createNewGroup}
+              className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker
+                focus:ring-brand-accent focus:ring-opacity-50 w-48 rounded-md border px-4 py-2
+                text-sm font-medium text-white transition-colors focus:ring-2
+                disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
+                dark:text-neutral-100 dark:hover:bg-neutral-700 ${
+                isLoading || !newGroupName.trim()
+                    ? 'cursor-not-allowed opacity-50'
+                    : ''
+                }`}
+              disabled={isLoading || !newGroupName.trim()}
+            >
+              {isLoading ? 'Creating...' : 'Create Group'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Groups list */}
@@ -387,229 +408,296 @@ export default function GroupingInterface({
           No groups found. Create your first group above.
         </div>
       ) : (
-        groups.map((group) => (
-          <div
-            key={group.id}
-            className='rounded-lg border border-neutral-300 bg-white shadow-xs dark:border-neutral-600
-              dark:bg-neutral-800'
-          >
-            {/* Group header */}
-            <div
-              className='flex items-center justify-between border-b border-neutral-300 p-4
-                dark:border-neutral-600'
-            >
-              <h2 className='text-lg font-semibold text-neutral-900 dark:text-neutral-100'>
-                {editingGroupId === group.id ? (
-                  <input
-                    type='text'
-                    value={editingGroupName}
-                    onChange={(e) => setEditingGroupName(e.target.value)}
-                    className='w-64 rounded-md border border-neutral-300 bg-white p-2 text-neutral-900
-                      dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100'
-                    disabled={isLoading}
-                  />
-                ) : (
-                  <Link
-                    href={`/${group.id}`}
-                    target='_blank'
-                    className='flex items-center gap-2 text-neutral-900 hover:underline dark:text-neutral-100'
-                  >
-                    {group.name}
-                  </Link>
-                )}
-              </h2>
-              <div className='flex space-x-2'>
-                {editingGroupId === group.id ? (
-                  <button
-                    onClick={() => editGroup(group.id!, editingGroupName)}
-                    className={`h-8 w-32 rounded-md border border-neutral-300 bg-white px-3 py-1
-                      text-neutral-900 dark:border-neutral-600 dark:bg-neutral-700
-                      dark:text-neutral-100 ${
-                      isLoading || !editingGroupName.trim()
-                          ? 'cursor-not-allowed opacity-50'
-                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-600'
-                      }`}
-                    disabled={isLoading || !editingGroupName.trim()}
-                  >
-                    {isLoading ? 'Saving...' : 'Save Changes'}
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        setEditingGroupName(group.name);
-                        setEditingGroupId(group.id!);
-                        setSearchTerm('');
-                        setSearchResults([]);
-                      }}
-                      className={`h-8 w-32 rounded-md border border-neutral-300 bg-white px-3 py-1
-                        text-neutral-900 dark:border-neutral-600 dark:bg-neutral-700
-                        dark:text-neutral-100 ${
-                        isLoading
-                            ? 'cursor-not-allowed opacity-50'
-                            : 'hover:bg-neutral-100 dark:hover:bg-neutral-600'
-                        }`}
-                      disabled={isLoading}
-                    >
-                      Edit Group
-                    </button>
-                    <button
-                      onClick={() => handleDeleteGroup(group.id!)}
-                      className={`h-8 w-32 rounded-md border border-red-300 bg-white px-3 py-1 text-red-600
-                        dark:border-red-700 dark:bg-neutral-700 dark:text-red-400 ${
-                        isLoading
-                            ? 'cursor-not-allowed opacity-50'
-                            : 'hover:bg-red-50 dark:hover:bg-red-900/20'
-                        }`}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? 'Deleting...' : 'Delete Group'}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Group content */}
-            <div className='p-4'>
-              {editingGroupId === group.id ? (
-                // Editing mode
-                <>
-                  {/* List of current items */}
-                  <ul className='mb-4 space-y-2'>
-                    {group.items.length > 0 ? (
-                      group.items.map((item) => (
-                        <li
-                          key={getItemIdentifier(item)}
-                          className='flex items-center justify-between rounded-md border border-neutral-300 bg-white
-                            p-2 dark:border-neutral-600 dark:bg-neutral-700'
-                        >
-                          <span className='flex items-center gap-2 truncate'>
-                            {renderTypeBadge(item.type)}
-                            {renderIndexerBadge(item.indexerName)}
-                            <span className='truncate text-neutral-900 dark:text-neutral-100'>
-                              {item.name}
-                            </span>
-                          </span>
-                          <button
-                            onClick={() =>
-                              removeItemFromGroup(
-                                group.id!,
-                                getItemIdentifier(item)
-                              )
-                            }
-                            className={`ml-2 shrink-0 rounded-md bg-red-500 px-2 py-1 text-white hover:bg-red-600
-                              dark:bg-red-700 dark:hover:bg-red-600 ${
-                              isLoading ? 'cursor-not-allowed opacity-50' : '' }`}
-                            disabled={isLoading}
-                          >
-                            Remove
-                          </button>
-                        </li>
-                      ))
+        <div
+          className='overflow-x-auto rounded-lg border border-neutral-200 bg-white
+            dark:border-neutral-700 dark:bg-neutral-800'
+        >
+          <table className='min-w-full table-auto border-collapse'>
+            <thead className='bg-neutral-100 dark:bg-neutral-800'>
+              <tr>
+                <th
+                  className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold
+                    text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'
+                >
+                  Group Name
+                </th>
+                <th
+                  className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold
+                    text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'
+                >
+                  Items
+                </th>
+                <th
+                  className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold
+                    text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((group) => (
+                <tr
+                  key={group.id}
+                  className='border-b border-neutral-200 dark:border-neutral-700'
+                >
+                  <td className='px-6 py-4 font-medium text-neutral-900 dark:text-neutral-100'>
+                    {editingGroupId === group.id ? (
+                      <input
+                        type='text'
+                        value={editingGroupName}
+                        onChange={(e) => setEditingGroupName(e.target.value)}
+                        className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border
+                          border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm
+                          focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
+                          dark:shadow-neutral-950'
+                        disabled={isLoading}
+                      />
                     ) : (
-                      <p className='text-center text-neutral-500 dark:text-neutral-400'>
-                        No items in this group yet. Search below to add items.
-                      </p>
+                      <Link
+                        href={`/${group.id}`}
+                        target='_blank'
+                        className='hover:underline'
+                      >
+                        {group.name}
+                      </Link>
                     )}
-                  </ul>
+                  </td>
+                  <td className='px-6 py-4'>
+                    {editingGroupId === group.id ? (
+                      <div className='space-y-3'>
+                        {/* List of current items */}
+                        <div className='mb-2'>
+                          <div className='mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300'>
+                            Current Items ({group.items.length})
+                          </div>
+                          <div className='max-h-60 overflow-y-auto'>
+                            <ul className='flex flex-col gap-2'>
+                              {group.items.length > 0 ? (
+                                group.items.map((item) => (
+                                  <li
+                                    key={getItemIdentifier(item)}
+                                    className='flex items-start justify-between rounded-md border border-neutral-200
+                                      bg-neutral-100 p-2 dark:border-neutral-700 dark:bg-neutral-700'
+                                  >
+                                    <div className='flex flex-1 flex-wrap items-start gap-2 pr-2'>
+                                      <div className='flex-shrink-0'>
+                                        {renderTypeBadge(item.type)}
+                                      </div>
+                                      <div className='flex-shrink-0'>
+                                        {renderIndexerBadge(item.indexerName)}
+                                      </div>
+                                      <span className='break-words text-neutral-900 dark:text-neutral-100'>
+                                        {item.name}
+                                      </span>
+                                    </div>
+                                    <button
+                                      onClick={() =>
+                                        removeItemFromGroup(
+                                          group.id!,
+                                          getItemIdentifier(item)
+                                        )
+                                      }
+                                      className={`focus:ring-opacity-50 mt-0 ml-2 flex-shrink-0 rounded-md bg-red-500 px-3 py-1
+                                        text-xs text-white transition-colors hover:bg-red-600 focus:ring-2
+                                        focus:ring-red-500 disabled:opacity-50 ${
+                                        isLoading
+                                            ? 'cursor-not-allowed opacity-50'
+                                            : ''
+                                        }`}
+                                      disabled={isLoading}
+                                    >
+                                      Remove
+                                    </button>
+                                  </li>
+                                ))
+                              ) : (
+                                <p className='p-2 text-center text-neutral-500 dark:text-neutral-400'>
+                                  No items in this group yet.
+                                </p>
+                              )}
+                            </ul>
+                          </div>
+                        </div>
 
-                  {/* Search box */}
-                  <div className='mb-4'>
-                    <label
-                      htmlFor={`search-${group.id}`}
-                      className='mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300'
-                    >
-                      Search for items to add
-                    </label>
-                    <input
-                      id={`search-${group.id}`}
-                      type='text'
-                      value={searchTerm}
-                      onChange={(e) => handleSearch(e.target.value)}
-                      placeholder='Search proposals and discussions...'
-                      className='w-full rounded-md border border-neutral-300 bg-white p-2 text-neutral-900
-                        dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100'
-                      disabled={isLoading}
-                    />
-                  </div>
+                        {/* Search box */}
+                        <div className='space-y-2'>
+                          <label
+                            htmlFor={`search-${group.id}`}
+                            className='block text-sm font-medium text-neutral-700 dark:text-neutral-300'
+                          >
+                            Search for items to add
+                          </label>
+                          <input
+                            id={`search-${group.id}`}
+                            type='text'
+                            value={searchTerm}
+                            onChange={(e) => handleSearch(e.target.value)}
+                            placeholder='Search proposals and discussions...'
+                            className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border
+                              border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm
+                              focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
+                              dark:shadow-neutral-950'
+                            disabled={isLoading}
+                          />
+                        </div>
 
-                  {/* Search results */}
-                  {searchTerm && (
-                    <div
-                      className='dark:bg-neutral-750 rounded-md border border-neutral-300 bg-neutral-50 p-2
-                        dark:border-neutral-600'
-                    >
-                      <h3 className='mb-2 font-medium text-neutral-900 dark:text-neutral-100'>
-                        Search Results
-                      </h3>
-                      {searchResults.length === 0 ? (
-                        <p className='p-2 text-center text-neutral-500 dark:text-neutral-400'>
-                          {isLoading
-                            ? 'Searching...'
-                            : 'No matching items found'}
-                        </p>
-                      ) : (
-                        <ul className='max-h-60 space-y-2 overflow-y-auto'>
-                          {searchResults.map((item) => (
-                            <li
-                              key={getItemIdentifier(item)}
-                              className={`flex items-center gap-2 rounded-md p-2 ${
-                                isLoading
-                                  ? 'cursor-not-allowed opacity-50'
-                                  : 'cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700'
-                                }`}
-                              onClick={() =>
-                                !isLoading && addItemToGroup(group.id!, item)
-                              }
-                            >
-                              {renderTypeBadge(item.type)}
-                              {renderIndexerBadge(item.indexerName)}
-                              <span className='flex-1 truncate text-neutral-900 dark:text-neutral-100'>
-                                {item.name}
-                              </span>
-                              <span
-                                className='rounded-full bg-red-100 px-2 py-1 text-xs text-red-800 dark:bg-red-900/40
-                                  dark:text-red-300'
+                        {/* Search results */}
+                        {searchTerm && (
+                          <div
+                            className='rounded-md border border-neutral-200 bg-neutral-50 dark:border-neutral-700
+                              dark:bg-neutral-800'
+                          >
+                            <h3 className='mb-2 px-4 pt-4 font-medium text-neutral-900 dark:text-neutral-100'>
+                              Search Results
+                            </h3>
+                            {searchResults.length === 0 ? (
+                              <p className='px-4 py-2 text-center text-neutral-500 dark:text-neutral-400'>
+                                {isLoading
+                                  ? 'Searching...'
+                                  : 'No matching items found'}
+                              </p>
+                            ) : (
+                              <ul className='max-h-60 space-y-1 overflow-y-auto px-2 pb-2'>
+                                {searchResults.map((item) => (
+                                  <li
+                                    key={getItemIdentifier(item)}
+                                    className='focus:ring-opacity-50 flex cursor-pointer items-start justify-between rounded-md
+                                      p-2 transition-colors hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500
+                                      dark:hover:bg-neutral-700'
+                                    onClick={() =>
+                                      !isLoading &&
+                                      addItemToGroup(group.id!, item)
+                                    }
+                                  >
+                                    <div className='flex flex-1 flex-wrap items-start gap-2 pr-2'>
+                                      <div className='flex-shrink-0'>
+                                        {renderTypeBadge(item.type)}
+                                      </div>
+                                      <div className='flex-shrink-0'>
+                                        {renderIndexerBadge(item.indexerName)}
+                                      </div>
+                                      <span className='break-words text-neutral-900 dark:text-neutral-100'>
+                                        {item.name}
+                                      </span>
+                                    </div>
+                                    <span
+                                      className='mt-0 ml-2 flex-shrink-0 rounded-full bg-red-100 px-2 py-1 text-xs text-red-800
+                                        dark:bg-red-900/40 dark:text-red-300'
+                                    >
+                                      {item.score.toFixed(2)}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className='max-h-48 overflow-y-auto'>
+                        {group.items.length === 0 ? (
+                          <p className='text-sm text-neutral-500 dark:text-neutral-400'>
+                            No items
+                          </p>
+                        ) : (
+                          <div className='flex flex-col gap-2'>
+                            {group.items.map((item) => (
+                              <div
+                                key={getItemIdentifier(item)}
+                                className='flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-100 p-2
+                                  text-xs dark:border-neutral-700 dark:bg-neutral-700'
                               >
-                                {item.score.toFixed(2)}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                </>
-              ) : (
-                // View mode
-                <>
-                  {group.items.length === 0 ? (
-                    <p className='p-2 text-center text-neutral-500 dark:text-neutral-400'>
-                      No items in this group
-                    </p>
-                  ) : (
-                    <ul className='space-y-2'>
-                      {group.items.map((item) => (
-                        <li
-                          key={getItemIdentifier(item)}
-                          className='flex items-center gap-2 rounded-md border border-neutral-300 bg-white p-2
-                            dark:border-neutral-600 dark:bg-neutral-700'
+                                <div className='flex-shrink-0'>
+                                  {renderTypeBadge(item.type)}
+                                </div>
+                                <div className='flex-shrink-0'>
+                                  {renderIndexerBadge(item.indexerName)}
+                                </div>
+                                <span
+                                  className='max-w-[200px] truncate text-neutral-900 dark:text-neutral-100'
+                                  title={item.name}
+                                >
+                                  {item.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className='px-6 py-4 text-sm font-medium'>
+                    {editingGroupId === group.id ? (
+                      <div className='flex gap-2'>
+                        <button
+                          onClick={() => editGroup(group.id!, editingGroupName)}
+                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker
+                            focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2
+                            text-sm font-medium text-white transition-colors focus:ring-2
+                            disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
+                            dark:text-neutral-100 dark:hover:bg-neutral-700 ${
+                            isLoading || !editingGroupName.trim()
+                                ? 'cursor-not-allowed opacity-50'
+                                : ''
+                            }`}
+                          disabled={isLoading || !editingGroupName.trim()}
                         >
-                          {renderTypeBadge(item.type)}
-                          {renderIndexerBadge(item.indexerName)}
-                          <span className='truncate text-neutral-900 dark:text-neutral-100'>
-                            {item.name}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        ))
+                          {isLoading ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingGroupId(null);
+                            setEditingGroupName('');
+                            setSearchTerm('');
+                            setSearchResults([]);
+                          }}
+                          className='focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4
+                            py-2 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100
+                            focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600
+                            dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+                          disabled={isLoading}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className='flex gap-2'>
+                        <button
+                          onClick={() => {
+                            setEditingGroupName(group.name);
+                            setEditingGroupId(group.id!);
+                            setSearchTerm('');
+                            setSearchResults([]);
+                          }}
+                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker
+                            focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2
+                            text-sm font-medium text-white transition-colors focus:ring-2
+                            disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
+                            dark:text-neutral-100 dark:hover:bg-neutral-700 ${
+                            isLoading ? 'cursor-not-allowed opacity-50' : '' }`}
+                          disabled={isLoading}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteGroup(group.id!)}
+                          className={`focus:ring-opacity-50 w-full rounded-md border border-red-500 bg-red-500 px-4
+                            py-2 text-sm font-medium text-white transition-colors hover:bg-red-600
+                            focus:ring-2 focus:ring-red-500 disabled:opacity-50 dark:border-red-700
+                            dark:bg-red-500 dark:hover:bg-red-600`}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
