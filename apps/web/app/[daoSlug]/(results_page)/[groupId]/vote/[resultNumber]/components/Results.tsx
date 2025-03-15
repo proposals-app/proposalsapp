@@ -2,10 +2,10 @@ import { Proposal, Selectable } from '@proposalsapp/db-indexer';
 import {
   DelegateInfo,
   DelegateVotingPower,
-  getDelegateForVoter_cached,
-  getDelegateVotingPower_cached,
-  getProposalGovernor_cached,
-  getVotesAction_cached,
+  getDelegateForVoter,
+  getDelegateVotingPower,
+  getProposalGovernor,
+  getVotesAction,
 } from './actions';
 import { LoadingChart, ResultsChart } from './result/ResultsChart';
 import { LoadingList, ResultsList } from './result/ResultsList';
@@ -30,7 +30,7 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 
 // New component to handle the async content
 async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
-  const votes = await getVotesAction_cached(proposal.id);
+  const votes = await getVotesAction(proposal.id);
 
   // Create maps for delegate info and voting power
   const delegateMap = new Map<string, DelegateInfo>();
@@ -41,12 +41,8 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     votes.map(async (vote) => {
       if (vote.votingPower > 50000) {
         const [delegate, votingPower] = await Promise.all([
-          getDelegateForVoter_cached(vote.voterAddress, daoSlug, proposal.id),
-          getDelegateVotingPower_cached(
-            vote.voterAddress,
-            daoSlug,
-            proposal.id
-          ),
+          getDelegateForVoter(vote.voterAddress, daoSlug, proposal.id),
+          getDelegateVotingPower(vote.voterAddress, daoSlug, proposal.id),
         ]);
         delegateMap.set(vote.voterAddress, delegate);
         if (votingPower) {
@@ -64,8 +60,8 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
 
   const serializedResults = superjson.serialize(processedResults);
 
-  const governor = await getProposalGovernor_cached(proposal.id);
-  const publisher = await getDelegateForVoter_cached(
+  const governor = await getProposalGovernor(proposal.id);
+  const publisher = await getDelegateForVoter(
     processedResults.proposal.author ?? '',
     daoSlug,
     proposal.id

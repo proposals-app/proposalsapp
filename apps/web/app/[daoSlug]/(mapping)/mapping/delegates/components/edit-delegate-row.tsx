@@ -16,7 +16,6 @@ import {
 } from '../actions';
 import FuzzyDiscourseUserSearch from './fuzzy-discourse-user-search';
 import FuzzyVoterSearch from './fuzzy-voter-search';
-import { useTransition } from 'react';
 
 interface EditDelegateRowProps {
   delegate: Selectable<Delegate>;

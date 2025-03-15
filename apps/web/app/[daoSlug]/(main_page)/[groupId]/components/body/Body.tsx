@@ -19,7 +19,7 @@ import {
 } from '@/lib/markdown_styles';
 import Image from 'next/image';
 import { Header } from '@/app/[daoSlug]/components/Header';
-import { unstable_ViewTransition as ViewTransition } from 'react';
+
 import { getGroupAuthor } from '@/app/[daoSlug]/actions';
 
 export async function Body({
@@ -58,52 +58,50 @@ export async function Body({
     await getGroupAuthor(group.groupId);
 
   return (
-    <ViewTransition name={`body`}>
-      <div className='w-full'>
-        <Header
-          groupId={group.groupId}
-          withBack={false}
-          withHide={true}
-          originalAuthorName={originalAuthorName}
-          originalAuthorPicture={originalAuthorPicture}
-          groupName={groupName}
-        />
+    <div className='w-full'>
+      <Header
+        groupId={group.groupId}
+        withBack={false}
+        withHide={true}
+        originalAuthorName={originalAuthorName}
+        originalAuthorPicture={originalAuthorPicture}
+        groupName={groupName}
+      />
 
-        <div className='flex w-full flex-col gap-6'>
-          <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-300'>
-            {groupName}
-          </h1>
+      <div className='flex w-full flex-col gap-6'>
+        <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-300'>
+          {groupName}
+        </h1>
 
-          <div className='flex flex-col'>
-            <div className='flex flex-row justify-between'>
-              <AuthorInfo
-                authorName={originalAuthorName}
-                authorPicture={originalAuthorPicture}
-              />
+        <div className='flex flex-col'>
+          <div className='flex flex-row justify-between'>
+            <AuthorInfo
+              authorName={originalAuthorName}
+              authorPicture={originalAuthorPicture}
+            />
 
-              <div className='flex flex-col items-center gap-2'>
-                <div className='flex flex-row gap-4'>
-                  <PostedTime
-                    label='initially posted'
-                    createdAt={firstBodyVersion.createdAt}
-                  />
+            <div className='flex flex-col items-center gap-2'>
+              <div className='flex flex-row gap-4'>
+                <PostedTime
+                  label='initially posted'
+                  createdAt={firstBodyVersion.createdAt}
+                />
 
-                  <PostedTime
-                    label='latest revision'
-                    createdAt={lastBodyVersion.createdAt}
-                    border
-                  />
-                </div>
+                <PostedTime
+                  label='latest revision'
+                  createdAt={lastBodyVersion.createdAt}
+                  border
+                />
               </div>
             </div>
           </div>
+        </div>
 
-          <div className='relative'>
-            <BodyContent processedContent={processedContent} />
-          </div>
+        <div className='relative'>
+          <BodyContent processedContent={processedContent} />
         </div>
       </div>
-    </ViewTransition>
+    </div>
   );
 }
 

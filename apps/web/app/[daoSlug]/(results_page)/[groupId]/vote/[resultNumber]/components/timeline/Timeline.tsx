@@ -11,7 +11,6 @@ import {
 } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
-import { unstable_ViewTransition as ViewTransition } from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -184,16 +183,15 @@ export function LoadingTimeline() {
               className='h relative flex w-full items-center justify-start'
             >
               {/* Placeholder Event Content */}
-              <ViewTransition name={`timeline-result-${index + 1}`}>
-                <div
-                  className='dark:border-neutral-650 z-20 flex h-[120px] flex-col gap-2 border
-                    border-neutral-300 bg-white px-4 py-2 dark:bg-neutral-950'
-                >
-                  <div className='h-4 w-20 rounded-sm bg-gray-300' />
-                  <div className='h-4 w-16 rounded-sm bg-gray-300' />
-                  <div className='h-4 w-20 rounded-sm bg-gray-300' />
-                </div>
-              </ViewTransition>
+
+              <div
+                className='dark:border-neutral-650 z-20 flex h-[120px] flex-col gap-2 border
+                  border-neutral-300 bg-white px-4 py-2 dark:bg-neutral-950'
+              >
+                <div className='h-4 w-20 rounded-sm bg-gray-300' />
+                <div className='h-4 w-16 rounded-sm bg-gray-300' />
+                <div className='h-4 w-20 rounded-sm bg-gray-300' />
+              </div>
             </div>
           ))}
         </div>

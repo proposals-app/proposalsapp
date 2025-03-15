@@ -3,7 +3,6 @@ import { PostItem } from './items/PostItem/PostItem';
 import { VoteItem } from './items/VoteItem/VoteItem';
 import { FeedReturnType, GroupReturnType } from '../../actions';
 import { AggregateVoteItem } from './items/VoteItem/AggregateVoteItem';
-import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export async function Feed({
   group,
@@ -45,33 +44,29 @@ export async function Feed({
       {combinedItems.map((item, index) => {
         if (item.type === 'post') {
           return (
-            <ViewTransition key={index} name={`feed-item-${item.id}`}>
-              <div>
-                <div className='flex w-full flex-col p-4'>
-                  <PostItem item={item} group={group} />
-                </div>
-                {index < combinedItems.length - 1 && (
-                  <div className='border-b border-neutral-200 dark:border-neutral-800' />
-                )}
+            <div key={index}>
+              <div className='flex w-full flex-col p-4'>
+                <PostItem item={item} group={group} />
               </div>
-            </ViewTransition>
+              {index < combinedItems.length - 1 && (
+                <div className='border-b border-neutral-200 dark:border-neutral-800' />
+              )}
+            </div>
           );
         } else {
           return (
-            <ViewTransition key={index} name={`feed-item-${item.id}`}>
-              <div>
-                <div className='flex w-full flex-col p-4'>
-                  {item.aggregate ? (
-                    <AggregateVoteItem item={item} group={group} />
-                  ) : (
-                    <VoteItem item={item} group={group} />
-                  )}
-                </div>
-                {index < combinedItems.length - 1 && (
-                  <div className='border-b border-neutral-200 dark:border-neutral-800' />
+            <div key={index}>
+              <div className='flex w-full flex-col p-4'>
+                {item.aggregate ? (
+                  <AggregateVoteItem item={item} group={group} />
+                ) : (
+                  <VoteItem item={item} group={group} />
                 )}
               </div>
-            </ViewTransition>
+              {index < combinedItems.length - 1 && (
+                <div className='border-b border-neutral-200 dark:border-neutral-800' />
+              )}
+            </div>
           );
         }
       })}
