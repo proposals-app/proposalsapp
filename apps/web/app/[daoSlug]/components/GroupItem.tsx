@@ -25,6 +25,7 @@ export function GroupItem({ group }: GroupItemProps) {
       href={`/${group.slug}`}
       className='block border border-neutral-200 bg-white p-4 dark:border-neutral-700
         dark:bg-neutral-800'
+      prefetch={true}
     >
       <div className='flex items-center justify-between'>
         <div>
