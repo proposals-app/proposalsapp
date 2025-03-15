@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { HeaderClient } from './HeaderClient';
-import { Suspense } from 'react';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import { unstable_ViewTransition as ViewTransition } from 'react';
 
@@ -24,17 +23,15 @@ export async function Header({
 }: HeaderProps) {
   if (withHide)
     return (
-      <Suspense>
-        <ViewTransition name={`header`}>
-          <HeaderClient
-            originalAuthorName={originalAuthorName}
-            originalAuthorPicture={originalAuthorPicture}
-            groupName={groupName}
-            groupId={groupId}
-            withBack={withBack}
-          />
-        </ViewTransition>
-      </Suspense>
+      <ViewTransition name={`header`}>
+        <HeaderClient
+          originalAuthorName={originalAuthorName}
+          originalAuthorPicture={originalAuthorPicture}
+          groupName={groupName}
+          groupId={groupId}
+          withBack={withBack}
+        />
+      </ViewTransition>
     );
   else
     return (
