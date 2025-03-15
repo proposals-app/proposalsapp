@@ -119,7 +119,7 @@ export type BodyVersionType = {
 
 export type VersionType = 'topic' | 'onchain' | 'offchain';
 
-export async function getBodyVersions(groupID: string) {
+export async function getBodyVersions(groupID: string, withContent: boolean) {
   'use server';
 
   const bodies: BodyVersionType[] = [];
@@ -160,7 +160,7 @@ export async function getBodyVersions(groupID: string) {
   proposals.map((proposal) =>
     bodies.push({
       title: proposal.name,
-      content: proposal.body,
+      content: withContent ? proposal.body : '', // Conditionally include content
       author_name: proposal.author ?? 'Unknown',
       author_picture: `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author}`,
       createdAt: proposal.createdAt,
@@ -216,7 +216,7 @@ export async function getBodyVersions(groupID: string) {
     if (!discourseFirstPostRevisions.length)
       bodies.push({
         title: discourseTopic.title,
-        content: discourseFirstPost.cooked ?? 'Unknown',
+        content: withContent ? (discourseFirstPost.cooked ?? 'Unknown') : '', // Conditionally include content
         author_name:
           discourseFirstPostAuthor.name?.trim() ||
           discourseFirstPostAuthor.username ||
@@ -233,10 +233,11 @@ export async function getBodyVersions(groupID: string) {
           title:
             discourseFirstPostRevision.cookedTitleBefore ??
             discourseTopic.title,
-          content:
-            discourseFirstPostRevision.cookedBodyBefore ??
-            discourseFirstPost.cooked ??
-            'Unknown',
+          content: withContent
+            ? (discourseFirstPostRevision.cookedBodyBefore ??
+              discourseFirstPost.cooked ??
+              'Unknown')
+            : '', // Conditionally include content
           author_name:
             discourseFirstPostAuthor.name?.trim() ||
             discourseFirstPostAuthor.username ||
@@ -249,10 +250,11 @@ export async function getBodyVersions(groupID: string) {
       bodies.push({
         title:
           discourseFirstPostRevision.cookedTitleAfter ?? discourseTopic.title,
-        content:
-          discourseFirstPostRevision.cookedBodyAfter ??
-          discourseFirstPost.cooked ??
-          'Unknown',
+        content: withContent
+          ? (discourseFirstPostRevision.cookedBodyAfter ??
+            discourseFirstPost.cooked ??
+            'Unknown')
+          : '', // Conditionally include content
         author_name:
           discourseFirstPostAuthor.name?.trim() ||
           discourseFirstPostAuthor.username ||

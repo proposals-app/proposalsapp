@@ -10,6 +10,7 @@ import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 import { BodyVersionType, VersionType } from '../../actions';
 import { ViewEnum } from './MenuBar';
+import { useOptimistic, useTransition } from 'react';
 
 interface BodyViewBarProps {
   bodyVersions: BodyVersionType[];
@@ -30,23 +31,47 @@ export const BodyViewBar = ({
 }: BodyViewBarProps) => {
   const totalVersions = bodyVersions.length;
   const versionTypes: VersionType[] = bodyVersions.map((body) => body.type);
+  const [isExpandedPending, startTransitionExpanded] = useTransition();
+  const [isDiffPending, startTransitionDiff] = useTransition();
+  const [isVersionPending, startTransitionVersion] = useTransition();
 
-  const [, setExpanded] = useQueryState(
+  const [optimisticExpanded, setOptimisticExpanded] = useOptimistic(
+    expanded,
+    (currentExpanded, newExpanded: boolean) => newExpanded
+  );
+
+  const [optimisticDiff, setOptimisticDiff] = useOptimistic(
+    diff,
+    (currentDiff, newDiff: boolean) => newDiff
+  );
+
+  const [optimisticVersion, setOptimisticVersion] = useOptimistic(
+    currentVersion,
+    (currentVersionOptimistic, newVersion: number) => newVersion
+  );
+
+  const [, setExpandedQuery] = useQueryState(
     'expanded',
-    parseAsBoolean.withDefault(false)
+    parseAsBoolean
+      .withDefault(false)
+      .withOptions({ shallow: false, startTransition: startTransitionExpanded })
   );
 
-  const [, setDiff] = useQueryState(
+  const [, setDiffQuery] = useQueryState(
     'diff',
-    parseAsBoolean.withDefault(false).withOptions({ shallow: false })
+    parseAsBoolean
+      .withDefault(false)
+      .withOptions({ shallow: false, startTransition: startTransitionDiff })
   );
 
-  const [, setVersion] = useQueryState(
+  const [, setVersionQuery] = useQueryState(
     'version',
-    parseAsInteger.withDefault(currentVersion).withOptions({ shallow: false })
+    parseAsInteger
+      .withDefault(currentVersion)
+      .withOptions({ shallow: false, startTransition: startTransitionVersion })
   );
 
-  const currentType = versionTypes[currentVersion];
+  const currentType = versionTypes[optimisticVersion];
   const versionTypeText =
     currentType === 'topic'
       ? 'Discourse Topic Version'
@@ -70,10 +95,13 @@ export const BodyViewBar = ({
             <button
               className='flex cursor-pointer items-center gap-4 hover:underline'
               onClick={() => {
-                if (expanded) {
-                  setExpanded(false);
-                  setView(ViewEnum.FULL);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                if (optimisticExpanded) {
+                  startTransitionExpanded(() => {
+                    setOptimisticExpanded(false);
+                    setExpandedQuery(false);
+                    setView(ViewEnum.FULL);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  });
                 }
               }}
             >
@@ -89,11 +117,16 @@ export const BodyViewBar = ({
                   <input
                     type='checkbox'
                     id='changes'
-                    checked={diff}
-                    onChange={(e) => setDiff(e.target.checked)}
+                    checked={optimisticDiff}
+                    onChange={(e) => {
+                      startTransitionDiff(() => {
+                        setOptimisticDiff(e.target.checked);
+                        setDiffQuery(e.target.checked);
+                      });
+                    }}
                     className='h-6 w-6 cursor-pointer appearance-none'
                   />
-                  {diff ? (
+                  {optimisticDiff ? (
                     <CheckboxCheck
                       className='absolute inset-0'
                       width={24}
@@ -114,62 +147,90 @@ export const BodyViewBar = ({
 
           <div className='flex items-center gap-2'>
             <button
-              onClick={() => setVersion(0)}
-              disabled={currentVersion === 0}
+              onClick={() => {
+                startTransitionVersion(() => {
+                  setOptimisticVersion(0);
+                  setVersionQuery(0);
+                });
+              }}
+              disabled={optimisticVersion === 0}
               className={`flex h-8 items-center justify-center px-1 text-sm ${
-                currentVersion === 0 ? 'cursor-not-allowed' : 'cursor-pointer' }`}
+                optimisticVersion === 0
+                  ? 'cursor-not-allowed'
+                  : 'cursor-pointer'
+                      }`}
             >
               <FirstSvg
-                className={`${currentVersion === 0 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
+                className={`${optimisticVersion === 0 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
                 width={24}
                 height={24}
               />
             </button>
 
             <button
-              onClick={() => setVersion(Math.max(0, currentVersion - 1))}
-              disabled={currentVersion === 0}
+              onClick={() => {
+                startTransitionVersion(() => {
+                  setOptimisticVersion(Math.max(0, optimisticVersion - 1));
+                  setVersionQuery(Math.max(0, optimisticVersion - 1));
+                });
+              }}
+              disabled={optimisticVersion === 0}
               className={`flex h-8 items-center justify-center px-1 text-sm ${
-                currentVersion === 0 ? 'cursor-not-allowed' : 'cursor-pointer' }`}
+                optimisticVersion === 0
+                  ? 'cursor-not-allowed'
+                  : 'cursor-pointer'
+              }`}
             >
               <PreviousSvg
-                className={`${currentVersion === 0 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
+                className={`${optimisticVersion === 0 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
                 width={24}
                 height={24}
               />
             </button>
             <div className='flex h-8 w-full items-center justify-center gap-2 text-sm'>
-              {versionTypeText} {currentVersion + 1} of {totalVersions}
+              {versionTypeText} {optimisticVersion + 1} of {totalVersions}
             </div>
 
             <button
-              onClick={() =>
-                setVersion(Math.min(totalVersions - 1, currentVersion + 1))
-              }
-              disabled={currentVersion === totalVersions - 1}
+              onClick={() => {
+                startTransitionVersion(() => {
+                  setOptimisticVersion(
+                    Math.min(totalVersions - 1, optimisticVersion + 1)
+                  );
+                  setVersionQuery(
+                    Math.min(totalVersions - 1, optimisticVersion + 1)
+                  );
+                });
+              }}
+              disabled={optimisticVersion === totalVersions - 1}
               className={`flex h-8 items-center justify-center px-1 text-sm ${
-                currentVersion === totalVersions - 1
+                optimisticVersion === totalVersions - 1
                   ? 'cursor-not-allowed'
                   : 'cursor-pointer'
-                  }`}
+              }`}
             >
               <NextSvg
-                className={`${currentVersion === totalVersions - 1 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
+                className={`${optimisticVersion === totalVersions - 1 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
                 width={24}
                 height={24}
               />
             </button>
             <button
-              onClick={() => setVersion(totalVersions - 1)}
-              disabled={currentVersion === totalVersions - 1}
+              onClick={() => {
+                startTransitionVersion(() => {
+                  setOptimisticVersion(totalVersions - 1);
+                  setVersionQuery(totalVersions - 1);
+                });
+              }}
+              disabled={optimisticVersion === totalVersions - 1}
               className={`flex h-8 items-center justify-center px-1 text-sm ${
-                currentVersion === totalVersions - 1
+                optimisticVersion === totalVersions - 1
                   ? 'cursor-not-allowed'
                   : 'cursor-pointer'
               }`}
             >
               <LastSvg
-                className={`${currentVersion === totalVersions - 1 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
+                className={`${optimisticVersion === totalVersions - 1 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
                 width={24}
                 height={24}
               />
@@ -179,10 +240,13 @@ export const BodyViewBar = ({
           <button
             className='flex cursor-pointer items-center gap-4 hover:underline'
             onClick={() => {
-              if (expanded) {
-                setExpanded(false);
-                setView(ViewEnum.FULL);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+              if (optimisticExpanded) {
+                startTransitionExpanded(() => {
+                  setOptimisticExpanded(false);
+                  setExpandedQuery(false);
+                  setView(ViewEnum.FULL);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
               }
             }}
           >

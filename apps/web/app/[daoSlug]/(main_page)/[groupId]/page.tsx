@@ -37,7 +37,7 @@ export default async function GroupPage({
       <div className='flex w-full max-w-3xl flex-col overflow-visible'>
         <Suspense
           fallback={<BodyLoading />}
-          key={`body-${version}-${diff}-${expanded}`}
+          key={`body-loading-${version}-${diff}`}
         >
           <BodySection
             daoSlug={daoSlug}
@@ -48,7 +48,10 @@ export default async function GroupPage({
           />
         </Suspense>
 
-        <Suspense fallback={<LoadingMenuBar />} key={`menu-${version}-${diff}`}>
+        <Suspense
+          fallback={<LoadingMenuBar />}
+          key={`menu-loading-${version}-${diff}`}
+        >
           <MenuBarSection
             groupId={groupId}
             version={version}
@@ -97,7 +100,7 @@ async function BodySection({
 }) {
   const [group, bodyVersions] = await Promise.all([
     getGroup(daoSlug, groupId),
-    getBodyVersions(groupId),
+    getBodyVersions(groupId, true),
   ]);
 
   if (!group || !bodyVersions) {
@@ -121,15 +124,15 @@ async function BodySection({
 async function MenuBarSection({
   groupId,
   version,
-  expanded,
   diff,
+  expanded,
 }: {
   groupId: string;
   version: number | null;
   expanded: boolean;
   diff: boolean;
 }) {
-  const bodyVersions = await getBodyVersions(groupId);
+  const bodyVersions = await getBodyVersions(groupId, false);
 
   if (!bodyVersions) {
     return null;

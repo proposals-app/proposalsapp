@@ -21,6 +21,20 @@ import Image from 'next/image';
 import { Header } from '@/app/[daoSlug]/components/Header';
 
 import { getGroupAuthor } from '@/app/[daoSlug]/actions';
+import { Suspense } from 'react';
+
+async function processMarkdown(
+  visibleBodyContent: string,
+  previousBodyContent: string | null,
+  diffEnabled: boolean,
+  currentVersion: number
+): Promise<string> {
+  if (diffEnabled && currentVersion > 0 && previousBodyContent) {
+    return processDiff(visibleBodyContent, previousBodyContent);
+  } else {
+    return markdownToHtml(visibleBodyContent);
+  }
+}
 
 export async function Body({
   group,
@@ -47,28 +61,24 @@ export async function Body({
   const lastBodyVersion = bodyVersions[bodyVersions.length - 1];
 
   const visibleBody = bodyVersions[currentVersion];
-
-  const processedContent =
-    diff && currentVersion > 0
-      ? processDiff(
-          visibleBody.content,
-          bodyVersions[currentVersion - 1].content
-        )
-      : markdownToHtml(visibleBody.content);
+  const previousBody =
+    diff && currentVersion > 0 ? bodyVersions[currentVersion - 1] : null;
 
   const { originalAuthorName, originalAuthorPicture, groupName } =
     await getGroupAuthor(group.groupId);
 
   return (
     <div className='w-full'>
-      <Header
-        groupId={group.groupId}
-        withBack={false}
-        withHide={true}
-        originalAuthorName={originalAuthorName}
-        originalAuthorPicture={originalAuthorPicture}
-        groupName={groupName}
-      />
+      <Suspense>
+        <Header
+          groupId={group.groupId}
+          withBack={false}
+          withHide={true}
+          originalAuthorName={originalAuthorName}
+          originalAuthorPicture={originalAuthorPicture}
+          groupName={groupName}
+        />
+      </Suspense>
 
       <div className='flex w-full flex-col gap-6'>
         <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-300'>
@@ -100,13 +110,94 @@ export async function Body({
         </div>
 
         <div className='relative'>
-          <BodyContent
-            processedContent={processedContent}
-            expanded={expanded}
-          />
+          <Suspense fallback={<BodyLoadingContent />}>
+            <AsyncBodyContent
+              visibleBodyContent={visibleBody.content}
+              previousBodyContent={previousBody?.content}
+              diffEnabled={diff}
+              currentVersion={currentVersion}
+              expanded={expanded}
+            />
+          </Suspense>
         </div>
       </div>
     </div>
+  );
+}
+
+function BodyLoadingContent() {
+  return (
+    <div className='relative overflow-hidden'>
+      <div
+        className='prose prose-lg max-w-none overflow-hidden p-6'
+        style={{ maxHeight: '25rem' }}
+      >
+        <div className='space-y-4'>
+          {/* Title and first paragraph */}
+          <div className='h-6 w-1/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+
+          {/* Section heading */}
+          <div className='h-5 w-1/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+
+          {/* Bullet points */}
+          <div className='ml-6 space-y-2'>
+            <div className='flex items-start gap-2'>
+              <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
+              <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            </div>
+            <div className='flex items-start gap-2'>
+              <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
+              <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            </div>
+            <div className='flex items-start gap-2'>
+              <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
+              <div className='h-4 w-9/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            </div>
+          </div>
+
+          {/* More paragraphs */}
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='h-5 w-1/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+        </div>
+
+        {/* Gradient overlay */}
+        <div
+          className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-neutral-50
+            to-transparent dark:from-neutral-900'
+        ></div>
+      </div>
+    </div>
+  );
+}
+
+async function AsyncBodyContent({
+  visibleBodyContent,
+  previousBodyContent,
+  diffEnabled,
+  currentVersion,
+  expanded,
+}: {
+  visibleBodyContent: string;
+  previousBodyContent: string | null | undefined;
+  diffEnabled: boolean;
+  currentVersion: number;
+  expanded: boolean;
+}) {
+  const processedContent = await processMarkdown(
+    visibleBodyContent,
+    previousBodyContent || null,
+    diffEnabled,
+    currentVersion
+  );
+
+  return (
+    <BodyContent processedContent={processedContent} expanded={expanded} />
   );
 }
 
@@ -158,52 +249,7 @@ export function BodyLoading() {
 
         {/* Content Loading */}
         <div className='relative'>
-          <div className='relative overflow-hidden'>
-            <div
-              className='prose prose-lg max-w-none overflow-hidden p-6'
-              style={{ maxHeight: '25rem' }}
-            >
-              <div className='space-y-4'>
-                {/* Title and first paragraph */}
-                <div className='h-6 w-1/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-
-                {/* Section heading */}
-                <div className='h-5 w-1/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-
-                {/* Bullet points */}
-                <div className='ml-6 space-y-2'>
-                  <div className='flex items-start gap-2'>
-                    <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
-                    <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                  </div>
-                  <div className='flex items-start gap-2'>
-                    <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
-                    <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                  </div>
-                  <div className='flex items-start gap-2'>
-                    <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
-                    <div className='h-4 w-9/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                  </div>
-                </div>
-
-                {/* More paragraphs */}
-                <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                <div className='h-5 w-1/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-              </div>
-
-              {/* Gradient overlay */}
-              <div
-                className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-neutral-50
-                  to-transparent dark:from-neutral-900'
-              ></div>
-            </div>
-          </div>
+          <BodyLoadingContent />
         </div>
       </div>
     </div>
@@ -320,64 +366,77 @@ function processDetails(html: string): string {
   return processedHtml;
 }
 
-export function applyStyle(
+export async function applyStyle(
   dom: Document | Element | Comment | DocumentFragment | DocumentType | Text
-): string {
-  const doc = getDocument();
-  const container = doc.createElement('div');
-  if (dom.hasChildNodes()) container.appendChild(dom.cloneNode(true));
-
-  Object.entries(MARKDOWN_STYLES).forEach(([tag, className]) => {
-    container.querySelectorAll(tag).forEach((element) => {
-      element.className = `${element.className} ${className}`.trim();
-    });
-  });
-
-  return container.innerHTML;
-}
-
-export function markdownToHtml(markdown: string): string {
-  // Create custom implementation of toDom that uses the server document
-  const customToDom = (node: Nodes) => {
+): Promise<string> {
+  return new Promise((resolve) => {
     const doc = getDocument();
-    return toDom(node, { document: doc });
-  };
+    const container = doc.createElement('div');
+    if (dom.hasChildNodes()) container.appendChild(dom.cloneNode(true));
 
-  const markdownDom = customToDom(toHast(fromMarkdown(markdown)));
-  const html = applyStyle(markdownDom);
-
-  // Process quotes and details after HTML conversion
-  return processDetails(processQuotes(html));
+    Object.entries(MARKDOWN_STYLES).forEach(([tag, className]) => {
+      container.querySelectorAll(tag).forEach((element) => {
+        element.className = `${element.className} ${className}`.trim();
+      });
+    });
+    resolve(container.innerHTML);
+  });
 }
 
-export function processDiff(
+export async function markdownToHtml(markdown: string): Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Create custom implementation of toDom that uses the server document
+      const customToDom = (node: Nodes) => {
+        const doc = getDocument();
+        return toDom(node, { document: doc });
+      };
+
+      const markdownDom = customToDom(toHast(fromMarkdown(markdown)));
+      let html = await applyStyle(markdownDom);
+
+      // Process quotes and details after HTML conversion
+      html = processDetails(processQuotes(html));
+      resolve(html);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+export async function processDiff(
   currentContent: string,
   previousContent: string
-): string {
-  const customToDom = (node: Nodes) => {
-    const doc = getDocument();
-    return toDom(node, { document: doc });
-  };
+): Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const customToDom = (node: Nodes) => {
+        const doc = getDocument();
+        return toDom(node, { document: doc });
+      };
 
-  // Parse both contents into DOM
-  const currentTree = customToDom(toHast(fromMarkdown(currentContent)));
-  const previousTree = customToDom(toHast(fromMarkdown(previousContent)));
+      // Parse both contents into DOM
+      const currentTree = customToDom(toHast(fromMarkdown(currentContent)));
+      const previousTree = customToDom(toHast(fromMarkdown(previousContent)));
 
-  if (!currentTree || !previousTree) {
-    throw new Error('Failed to parse markdown content');
-  }
+      if (!currentTree || !previousTree) {
+        throw new Error('Failed to parse markdown content');
+      }
 
-  // Generate the diff
-  const diffFragment = visualDomDiff(previousTree, currentTree, {
-    addedClass: 'diff-added',
-    removedClass: 'diff-deleted',
-    modifiedClass: 'diff-modified',
-    diffText: diffText_word,
+      // Generate the diff
+      const diffFragment = visualDomDiff(previousTree, currentTree, {
+        addedClass: 'diff-added',
+        removedClass: 'diff-deleted',
+        modifiedClass: 'diff-modified',
+        diffText: diffText_word,
+      });
+
+      const styledHtml = await applyStyle(diffFragment);
+      resolve(styledHtml);
+    } catch (error) {
+      reject(error);
+    }
   });
-
-  const styledHtml = applyStyle(diffFragment);
-
-  return styledHtml;
 }
 
 export function diffText_word(oldText: string, newText: string): Diff[] {
