@@ -20,7 +20,7 @@ import {
 import Image from 'next/image';
 import { Header } from '@/app/[daoSlug]/components/Header';
 import { unstable_ViewTransition as ViewTransition } from 'react';
-import { getGroupAuthor_cached } from '@/app/[daoSlug]/actions';
+import { getGroupAuthor } from '@/app/[daoSlug]/actions';
 
 export async function Body({
   group,
@@ -55,7 +55,7 @@ export async function Body({
       : markdownToHtml(visibleBody.content);
 
   const { originalAuthorName, originalAuthorPicture, groupName } =
-    await getGroupAuthor_cached(group.groupId);
+    await getGroupAuthor(group.groupId);
 
   return (
     <ViewTransition name={`body`}>

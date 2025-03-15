@@ -3,7 +3,6 @@ import { NavBar } from './components/NavBar';
 import { ThemeProvider } from '../components/theme-provider';
 import { UpdateManifest } from '../components/update-manifest';
 import Banner from '../components/Banner';
-import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export default async function DaoLayout({
   params,

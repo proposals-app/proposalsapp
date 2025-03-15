@@ -3,7 +3,7 @@ import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { VotingPowerTag } from './VotingPowerTag';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
-import { getDelegateByVoterAddress_cache } from '../../actions';
+import { getDelegateByVoterAddress } from '../../actions';
 import Image from 'next/image';
 
 export async function VoteItem({
@@ -25,7 +25,7 @@ export async function VoteItem({
 
   const proposal = group.proposals.find((p) => p.id == item.proposalId);
 
-  const delegate = await getDelegateByVoterAddress_cache(
+  const delegate = await getDelegateByVoterAddress(
     item.voterAddress,
     group.daoSlug,
     false,

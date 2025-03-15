@@ -3,7 +3,7 @@ import { AsyncReturnType } from '@/lib/utils';
 import { db, sql } from '@proposalsapp/db-indexer';
 import { unstable_cache } from 'next/cache';
 
-async function getDiscourseUser(userId: number, daoDiscourseId: string) {
+export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   'use server';
   return otel('get-discourse-user', async () => {
     const discourseUser = await db
@@ -17,7 +17,7 @@ async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   });
 }
 
-async function getVotingPower(voteId: string): Promise<{
+export async function getVotingPower(voteId: string): Promise<{
   votingPowerAtVote: number; // Voting power at the time of the vote
   latestVotingPower: number; // Latest voting power
   change: number | null; // Relative change between latest and voting power at vote
@@ -67,7 +67,7 @@ async function getVotingPower(voteId: string): Promise<{
   });
 }
 
-async function getDelegateByVoterAddress(
+export async function getDelegateByVoterAddress(
   voterAddress: string,
   daoSlug: string,
   withPeriodCheck: boolean,
@@ -383,7 +383,7 @@ export async function getDelegateByDiscourseUser(
   });
 }
 
-async function getPostLikesCount(
+export async function getPostLikesCount(
   externalPostId: number,
   daoDiscourseId: string
 ) {
@@ -436,74 +436,74 @@ async function getPostLikedUsers(
 
 export type VotingPowerReturnType = AsyncReturnType<typeof getVotingPower>;
 
-export const getDelegateByVoterAddress_cache = unstable_cache(
-  async (
-    voterAddress: string,
-    daoSlug: string,
-    withPeriodCheck: boolean,
-    topicIds: string[],
-    proposalIds: string[]
-  ) => {
-    return await getDelegateByVoterAddress(
-      voterAddress,
-      daoSlug,
-      withPeriodCheck,
-      topicIds,
-      proposalIds
-    );
-  },
-  ['get-delegate-by-voter-address'],
-  { revalidate: 60 * 30, tags: ['get-delegate-by-voter-address'] }
-);
+// export const getDelegateByVoterAddress_cache = unstable_cache(
+//   async (
+//     voterAddress: string,
+//     daoSlug: string,
+//     withPeriodCheck: boolean,
+//     topicIds: string[],
+//     proposalIds: string[]
+//   ) => {
+//     return await getDelegateByVoterAddress(
+//       voterAddress,
+//       daoSlug,
+//       withPeriodCheck,
+//       topicIds,
+//       proposalIds
+//     );
+//   },
+//   ['get-delegate-by-voter-address'],
+//   { revalidate: 60 * 30, tags: ['get-delegate-by-voter-address'] }
+// );
 
-export const getDelegateByDiscourseUser_cached = unstable_cache(
-  async (
-    discourseUserId: number,
-    daoSlug: string,
-    withPeriodCheck: boolean,
-    topicIds?: string[],
-    proposalIds?: string[]
-  ) => {
-    return await getDelegateByDiscourseUser(
-      discourseUserId,
-      daoSlug,
-      withPeriodCheck,
-      topicIds,
-      proposalIds
-    );
-  },
-  ['get-delegate-by-discourse-user'],
-  { revalidate: 60 * 30, tags: ['get-delegate-by-discourse-user'] }
-);
+// export const getDelegateByDiscourseUser_cached = unstable_cache(
+//   async (
+//     discourseUserId: number,
+//     daoSlug: string,
+//     withPeriodCheck: boolean,
+//     topicIds?: string[],
+//     proposalIds?: string[]
+//   ) => {
+//     return await getDelegateByDiscourseUser(
+//       discourseUserId,
+//       daoSlug,
+//       withPeriodCheck,
+//       topicIds,
+//       proposalIds
+//     );
+//   },
+//   ['get-delegate-by-discourse-user'],
+//   { revalidate: 60 * 30, tags: ['get-delegate-by-discourse-user'] }
+// );
 
-export const getDiscourseUser_cached = unstable_cache(
-  async (userId: number, daoDiscourseId: string) => {
-    return await getDiscourseUser(userId, daoDiscourseId);
-  },
-  ['get-discourse-user'],
-  { revalidate: 60 * 30, tags: ['get-discourse-user'] }
-);
+// export const getDiscourseUser_cached = unstable_cache(
+//   async (userId: number, daoDiscourseId: string) => {
+//     return await getDiscourseUser(userId, daoDiscourseId);
+//   },
+//   ['get-discourse-user'],
+//   { revalidate: 60 * 30, tags: ['get-discourse-user'] }
+// );
 
-export const getPostLikesCount_cached = unstable_cache(
-  async (externalPostId: number, daoDiscourseId: string) => {
-    return await getPostLikesCount(externalPostId, daoDiscourseId);
-  },
-  ['get-post-likes-count'],
-  { revalidate: 60 * 5, tags: ['get-post-likes-count'] }
-);
+// export const getPostLikesCount_cached = unstable_cache(
+//   async (externalPostId: number, daoDiscourseId: string) => {
+//     return await getPostLikesCount(externalPostId, daoDiscourseId);
+//   },
+//   ['get-post-likes-count'],
+//   { revalidate: 60 * 5, tags: ['get-post-likes-count'] }
+// );
 
-export const getPostLikedUsers_cached = unstable_cache(
-  async (externalPostId: number, daoDiscourseId: string) => {
-    return await getPostLikedUsers(externalPostId, daoDiscourseId);
-  },
-  ['get-post-liked-users'],
-  { revalidate: 60 * 5, tags: ['get-post-liked-users'] }
-);
+// export const getPostLikedUsers_cached = unstable_cache(
+//   async (externalPostId: number, daoDiscourseId: string) => {
+//     return await getPostLikedUsers(externalPostId, daoDiscourseId);
+//   },
+//   ['get-post-liked-users'],
+//   { revalidate: 60 * 5, tags: ['get-post-liked-users'] }
+// );
 
-export const getVotingPower_cache = unstable_cache(
-  async (itemId: string) => {
-    return await getVotingPower(itemId);
-  },
-  ['get-voting-power'],
-  { revalidate: 60 * 5, tags: ['get-voting-power'] }
-);
+// export const getVotingPower_cache = unstable_cache(
+//   async (itemId: string) => {
+//     return await getVotingPower(itemId);
+//   },
+//   ['get-voting-power'],
+//   { revalidate: 60 * 5, tags: ['get-voting-power'] }
+// );

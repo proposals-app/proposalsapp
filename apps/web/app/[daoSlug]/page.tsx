@@ -1,4 +1,4 @@
-import { getGroups_cached } from './actions';
+import { getGroups } from './actions';
 import { VirtualizedGroupList } from './components/VirtualizedGroupList';
 
 export default async function ListPage({
@@ -7,7 +7,7 @@ export default async function ListPage({
   params: Promise<{ daoSlug: string }>;
 }) {
   const { daoSlug } = await params;
-  const result = await getGroups_cached(daoSlug);
+  const result = await getGroups(daoSlug);
 
   if (!result) {
     return null;

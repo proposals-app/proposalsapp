@@ -12,9 +12,9 @@ import {
   QUOTE_STYLES_POST,
 } from '@/lib/markdown_styles';
 import {
-  getDelegateByDiscourseUser_cached,
-  getDiscourseUser_cached,
-  getPostLikesCount_cached,
+  getDelegateByDiscourseUser,
+  getDiscourseUser,
+  getPostLikesCount,
 } from '../../actions';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { VotingPowerTag } from './VotingPowerTag';
@@ -31,11 +31,8 @@ export async function PostItem({
     return null;
   }
 
-  const author = await getDiscourseUser_cached(
-    item.userId,
-    item.daoDiscourseId
-  );
-  const likesCount = await getPostLikesCount_cached(
+  const author = await getDiscourseUser(item.userId, item.daoDiscourseId);
+  const likesCount = await getPostLikesCount(
     item.externalId,
     item.daoDiscourseId
   );
@@ -43,7 +40,7 @@ export async function PostItem({
   const proposalIds = Array.from(new Set(group.proposals.map((p) => p.id)));
   const topicIds = Array.from(new Set(group.topics.map((t) => t.id)));
 
-  const delegate = await getDelegateByDiscourseUser_cached(
+  const delegate = await getDelegateByDiscourseUser(
     item.userId,
     group.daoSlug,
     false,

@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation';
 import { Results, ResultsLoading } from './components/Results';
 import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
-import { getGroup_cached } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
+import { getGroup } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import { Header } from '@/app/[daoSlug]/components/Header';
 import { Suspense } from 'react';
-import { getGroupAuthor_cached } from '@/app/[daoSlug]/actions';
+import { getGroupAuthor } from '@/app/[daoSlug]/actions';
 
 export default async function ResultPage({
   params,
@@ -13,7 +13,7 @@ export default async function ResultPage({
 }) {
   const { daoSlug, groupId, resultNumber } = await params;
 
-  const group = await getGroup_cached(daoSlug, groupId);
+  const group = await getGroup(daoSlug, groupId);
   if (!group) {
     notFound();
   }
@@ -26,7 +26,7 @@ export default async function ResultPage({
   }
 
   const { originalAuthorName, originalAuthorPicture, groupName } =
-    await getGroupAuthor_cached(group.groupId);
+    await getGroupAuthor(group.groupId);
 
   return (
     <div className='flex min-h-screen w-full flex-row'>

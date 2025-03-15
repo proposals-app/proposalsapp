@@ -4,11 +4,7 @@ import {
   VotesFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import {
-  getGroup_cached,
-  getBodyVersions_cached,
-  getFeed_cached,
-} from './actions';
+import { getGroup, getBodyVersions, getFeed } from './actions';
 import { Body, BodyLoading } from './components/body/Body';
 import { Feed, FeedLoading } from './components/feed/Feed';
 import { MenuBar } from './components/menubar/MenuBar';
@@ -80,8 +76,8 @@ async function BodySection({
   diff: boolean;
 }) {
   const [group, bodyVersions] = await Promise.all([
-    getGroup_cached(daoSlug, groupId),
-    getBodyVersions_cached(groupId),
+    getGroup(daoSlug, groupId),
+    getBodyVersions(groupId),
   ]);
 
   if (!group || !bodyVersions) {
@@ -108,7 +104,7 @@ async function MenuBarSection({
   groupId: string;
   version: number | null;
 }) {
-  const bodyVersions = await getBodyVersions_cached(groupId);
+  const bodyVersions = await getBodyVersions(groupId);
 
   if (!bodyVersions) {
     return null; // or handle notFound() if appropriate
@@ -141,8 +137,8 @@ async function FeedSection({
   votesFilter: VotesFilterEnum;
 }) {
   const [group, feed] = await Promise.all([
-    getGroup_cached(daoSlug, groupId),
-    getFeed_cached(groupId, feedFilter, votesFilter),
+    getGroup(daoSlug, groupId),
+    getFeed(groupId, feedFilter, votesFilter),
   ]);
 
   return <Feed group={group} feed={feed} />;
@@ -160,8 +156,8 @@ async function TimelineSection({
   votesFilter: VotesFilterEnum;
 }) {
   const [group, feed] = await Promise.all([
-    getGroup_cached(daoSlug, groupId),
-    getFeed_cached(groupId, feedFilter, votesFilter),
+    getGroup(daoSlug, groupId),
+    getFeed(groupId, feedFilter, votesFilter),
   ]);
 
   return (

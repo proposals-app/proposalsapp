@@ -2,14 +2,13 @@
 
 import { cookies } from 'next/headers';
 import { otel } from '@/lib/otel';
-import { AsyncReturnType, superjson_cache } from '@/lib/utils';
+import { AsyncReturnType } from '@/lib/utils';
 import {
   db,
   DiscourseTopic,
   Proposal,
   Selectable,
 } from '@proposalsapp/db-indexer';
-import { unstable_cache } from 'next/cache';
 import { ProposalGroupItem } from '@/lib/types';
 
 const COOKIE_PREFIX = 'group_last_seen_';
@@ -63,7 +62,7 @@ export async function updateLastSeenTimestampAction(
   return timestamp;
 }
 
-async function getGroups(daoSlug: string) {
+export async function getGroups(daoSlug: string) {
   return otel('get-groups', async () => {
     // Fetch the DAO based on the slug
     const dao = await db
@@ -243,14 +242,6 @@ async function getGroups(daoSlug: string) {
   });
 }
 
-export const getGroups_cached = unstable_cache(
-  async (daoSlug: string) => {
-    return await getGroups(daoSlug);
-  },
-  ['get-groups'],
-  { revalidate: 60 * 5, tags: ['get-groups'] }
-);
-
 export type GroupsReturnType = AsyncReturnType<typeof getGroups>;
 
 interface AuthorInfo {
@@ -259,7 +250,7 @@ interface AuthorInfo {
   createdAt: Date;
 }
 
-async function getGroupAuthor(groupId: string): Promise<{
+export async function getGroupAuthor(groupId: string): Promise<{
   originalAuthorName: string;
   originalAuthorPicture: string;
   groupName: string;
@@ -409,11 +400,3 @@ async function getGroupAuthor(groupId: string): Promise<{
     };
   });
 }
-
-export const getGroupAuthor_cached = superjson_cache(
-  async (groupId: string) => {
-    return await getGroupAuthor(groupId);
-  },
-  ['get-group-author'],
-  { revalidate: 60 * 30, tags: ['get-group-author'] }
-);

@@ -27,7 +27,7 @@ import { format } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
 import { ProposalMetadata } from '@/app/types';
 
-async function getGroup(daoSlug: string, groupId: string) {
+export async function getGroup(daoSlug: string, groupId: string) {
   'use server';
   return otel('get-group', async () => {
     if (daoSlug == 'favicon.ico') return null;
@@ -125,7 +125,7 @@ export type BodyVersionType = {
 
 export type VersionType = 'topic' | 'onchain' | 'offchain';
 
-async function getBodyVersions(groupID: string) {
+export async function getBodyVersions(groupID: string) {
   'use server';
   return otel('get-bodies-', async () => {
     const bodies: BodyVersionType[] = [];
@@ -402,7 +402,7 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
   return voteSegments;
 }
 
-async function getFeed(
+export async function getFeed(
   groupID: string,
   feedFilter: FeedFilterEnum,
   votesFilter: VotesFilterEnum
@@ -832,33 +832,33 @@ async function getFeed(
   });
 }
 
-export const getGroup_cached = unstable_cache(
-  async (daoSlug: string, groupId: string) => {
-    return await getGroup(daoSlug, groupId);
-  },
-  ['get-group'],
-  { revalidate: 60 * 5, tags: ['get-group'] }
-);
+// export const getGroup_cached = unstable_cache(
+//   async (daoSlug: string, groupId: string) => {
+//     return await getGroup(daoSlug, groupId);
+//   },
+//   ['get-group'],
+//   { revalidate: 60 * 5, tags: ['get-group'] }
+// );
 
-export const getBodyVersions_cached = unstable_cache(
-  async (groupId: string) => {
-    return await getBodyVersions(groupId);
-  },
-  ['get-bodies'],
-  { revalidate: 60 * 5, tags: ['get-bodies'] }
-);
+// export const getBodyVersions_cached = unstable_cache(
+//   async (groupId: string) => {
+//     return await getBodyVersions(groupId);
+//   },
+//   ['get-bodies'],
+//   { revalidate: 60 * 5, tags: ['get-bodies'] }
+// );
 
-export const getFeed_cached = superjson_cache(
-  async (
-    groupId: string,
-    feedFilter: FeedFilterEnum,
-    votesFilter: VotesFilterEnum
-  ) => {
-    return await getFeed(groupId, feedFilter, votesFilter);
-  },
-  ['get-feed-for-group'],
-  { revalidate: 60 * 5, tags: ['get-feed-for-group'] }
-);
+// export const getFeed_cached = superjson_cache(
+//   async (
+//     groupId: string,
+//     feedFilter: FeedFilterEnum,
+//     votesFilter: VotesFilterEnum
+//   ) => {
+//     return await getFeed(groupId, feedFilter, votesFilter);
+//   },
+//   ['get-feed-for-group'],
+//   { revalidate: 60 * 5, tags: ['get-feed-for-group'] }
+// );
 
 export type GroupReturnType = AsyncReturnType<typeof getGroup>;
 export type BodyVersionsReturnType = AsyncReturnType<typeof getBodyVersions>;
