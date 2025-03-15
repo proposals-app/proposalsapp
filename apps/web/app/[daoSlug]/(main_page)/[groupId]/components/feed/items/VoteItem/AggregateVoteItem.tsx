@@ -72,18 +72,3 @@ export async function AggregateVoteItem({
     </div>
   );
 }
-
-export function AggregateVoteItemLoading() {
-  return (
-    <div className='flex items-center justify-between gap-2 p-4'>
-      <div className='flex items-center gap-2'>
-        <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-64 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-      </div>
-
-      <div className='flex flex-col items-end'>
-        <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-      </div>
-    </div>
-  );
-}

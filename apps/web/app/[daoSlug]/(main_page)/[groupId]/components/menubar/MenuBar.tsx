@@ -8,6 +8,7 @@ import CheckSvg from '@/public/assets/web/check.svg';
 import React, { useState, useRef, useEffect } from 'react';
 import { BodyVersionType } from '../../actions';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 // Custom SelectContext to manage state
 const SelectContext = React.createContext<{
@@ -212,28 +213,30 @@ export const MenuBar = ({ bodyVersions, currentVersion }: MenuBarProps) => {
   );
 
   return (
-    <div className='font-condensed flex w-full justify-center'>
-      <FullViewBar
-        view={view}
-        setView={setView}
-        includesProposals={includesProposals}
-      />
-
-      {view == ViewEnum.BODY && (
-        <BodyViewBar
-          bodyVersions={bodyVersions}
-          currentVersion={currentVersion}
-          view={view}
-          setView={setView}
-        />
-      )}
-      {view == ViewEnum.COMMENTS && (
-        <CommentsViewBar
+    <ViewTransition name='menubar'>
+      <div className='font-condensed flex w-full justify-center'>
+        <FullViewBar
           view={view}
           setView={setView}
           includesProposals={includesProposals}
         />
-      )}
-    </div>
+
+        {view == ViewEnum.BODY && (
+          <BodyViewBar
+            bodyVersions={bodyVersions}
+            currentVersion={currentVersion}
+            view={view}
+            setView={setView}
+          />
+        )}
+        {view == ViewEnum.COMMENTS && (
+          <CommentsViewBar
+            view={view}
+            setView={setView}
+            includesProposals={includesProposals}
+          />
+        )}
+      </div>
+    </ViewTransition>
   );
 };

@@ -11,6 +11,7 @@ import { MenuBar } from './components/menubar/MenuBar';
 import { Timeline } from './components/timeline/Timeline';
 import { Suspense } from 'react';
 import { LoadingMenuBar } from './components/menubar/LoadingMenuBar';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export default async function GroupPage({
   params,
@@ -107,7 +108,7 @@ async function MenuBarSection({
   const bodyVersions = await getBodyVersions(groupId);
 
   if (!bodyVersions) {
-    return null; // or handle notFound() if appropriate
+    return null;
   }
   const bodyVersionsWithoutContent = bodyVersions.map((body) => ({
     ...body,

@@ -21,12 +21,9 @@ export default async function DaoLayout({
           dark:bg-neutral-900 dark:text-neutral-300'
       >
         <NavBar />
-
         <div className='flex w-full pl-20'>{children}</div>
       </div>
-      <Suspense>
-        <Banner />
-      </Suspense>
+      <Banner />
     </ThemeProvider>
   );
 }

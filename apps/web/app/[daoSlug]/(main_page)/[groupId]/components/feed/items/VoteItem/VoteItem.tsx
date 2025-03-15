@@ -1,7 +1,7 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
-import { VotingPowerTag } from './VotingPowerTag';
+import { VotingPowerTag } from './../VotingPowerTag';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { getDelegateByVoterAddress } from '../../actions';
 import Image from 'next/image';
@@ -68,6 +68,9 @@ export async function VoteItem({
       addSuffix: true,
     }
   );
+
+  const currentVotingPower =
+    delegate?.delegatetovoter?.latestVotingPower?.votingPower;
 
   const formattedVotingPower = item.votingPower
     ? formatNumberWithSuffix(item.votingPower)
@@ -143,7 +146,7 @@ export async function VoteItem({
                   </span>
                 )}
               </div>
-              <VotingPowerTag item={item} />
+              {currentVotingPower && <VotingPowerTag vp={currentVotingPower} />}
             </div>
           </div>
         </div>
@@ -189,32 +192,4 @@ export function formatNameOrAddress(address: string): string {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   }
   return address;
-}
-
-export function VoteItemLoading() {
-  return (
-    <div className='flex w-full flex-col gap-2 p-4'>
-      <div className='h-2 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-
-      <div className='flex cursor-default flex-row justify-between select-none'>
-        <div className='flex flex-row items-center gap-2'>
-          <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800' />
-          <div className='flex flex-col gap-1'>
-            <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-            <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-          </div>
-        </div>
-        <div className='flex flex-col items-end'>
-          <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-        </div>
-      </div>
-
-      <div className='h-4 w-36 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-
-      <div className='space-y-2'>
-        <div className='h-4 w-5/6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-4/6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-      </div>
-    </div>
-  );
 }

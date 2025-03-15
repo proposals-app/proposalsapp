@@ -4,6 +4,7 @@ import '@/styles/globals.css';
 import { PostHogProvider } from './components/posthog-provider';
 import SuspendedPostHogPageView from './components/PostHogPageView';
 import { WebVitals } from './web-vitals';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),

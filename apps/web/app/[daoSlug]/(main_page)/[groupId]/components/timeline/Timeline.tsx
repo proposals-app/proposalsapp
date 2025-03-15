@@ -16,7 +16,6 @@ import {
   RefObject,
 } from 'react';
 import React from 'react';
-import { unstable_ViewTransition as ViewTransition } from 'react';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -411,47 +410,41 @@ const TimelineEventItem = React.memo(
           ref={isLastVisible ? endRef : undefined}
         >
           {event.type === TimelineEventType.CommentsVolume ? (
-            <ViewTransition name={`commentsvolume-${index}`}>
-              <CommentsVolumeEvent
-                timestamp={event.timestamp}
-                width={event.volume / event.maxVolume}
-                last={index === 0}
-              />
-            </ViewTransition>
+            <CommentsVolumeEvent
+              timestamp={event.timestamp}
+              width={event.volume / event.maxVolume}
+              last={index === 0}
+              index={index}
+            />
           ) : event.type === TimelineEventType.VotesVolume ? (
-            <ViewTransition name={`votesvolume-${index}`}>
-              <VotesVolumeEvent
-                timestamp={event.timestamp}
-                width={event.maxVolume}
-                volumes={event.volumes}
-                colors={event.colors}
-                last={index === 0}
-              />
-            </ViewTransition>
+            <VotesVolumeEvent
+              timestamp={event.timestamp}
+              width={event.maxVolume}
+              volumes={event.volumes}
+              colors={event.colors}
+              last={index === 0}
+              index={index}
+            />
           ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
             event.type === TimelineEventType.ResultOngoingOtherVotes ||
             event.type === TimelineEventType.ResultEndedBasicVote ||
             event.type === TimelineEventType.ResultEndedOtherVotes ? (
-            <ViewTransition name={`result-${resultNumber}`}>
-              <ResultEvent
-                content={event.content}
-                timestamp={event.timestamp}
-                result={event.result}
-                resultNumber={resultNumber!}
-                last={index === 0}
-                daoSlug={group!.daoSlug}
-                groupId={group!.group.id}
-              />
-            </ViewTransition>
+            <ResultEvent
+              content={event.content}
+              timestamp={event.timestamp}
+              result={event.result}
+              resultNumber={resultNumber!}
+              last={index === 0}
+              daoSlug={group!.daoSlug}
+              groupId={group!.group.id}
+            />
           ) : event.type === TimelineEventType.Basic ? (
-            <ViewTransition name={event.content}>
-              <BasicEvent
-                content={event.content}
-                timestamp={event.timestamp}
-                url={event.url}
-                last={index === 0}
-              />
-            </ViewTransition>
+            <BasicEvent
+              content={event.content}
+              timestamp={event.timestamp}
+              url={event.url}
+              last={index === 0}
+            />
           ) : null}
         </div>
       </div>
@@ -501,67 +494,65 @@ export function Timeline({
   }
 
   return (
-    <ViewTransition name={`timeline`}>
+    <div
+      ref={refs.timelineRef}
+      className='fixed top-0 right-0 flex h-full min-w-96 flex-col items-end justify-start pt-24
+        pl-4'
+    >
       <div
-        ref={refs.timelineRef}
-        className='fixed top-0 right-0 flex h-full min-w-96 flex-col items-end justify-start pt-24
-          pl-4'
+        ref={refs.containerRef}
+        className='relative h-full w-full'
+        data-aggregation-level={aggregationLevel}
       >
         <div
-          ref={refs.containerRef}
-          className='relative h-full w-full'
-          data-aggregation-level={aggregationLevel}
-        >
-          <div
-            className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
-              translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out
-              ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
-          />
+          className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
+            translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out
+            ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
+        />
 
-          <div className='flex h-full flex-col justify-between'>
-            {displayEvents.map((event, index) => {
-              // Calculate the animation delay from bottom to top
-              // The last item (bottom) should animate first
-              let animationDelay = 0;
-              if (displayEvents.length > 1) {
-                animationDelay =
-                  ((displayEvents.length - 1 - index) /
-                    (displayEvents.length - 1)) *
-                  700;
-              }
+        <div className='flex h-full flex-col justify-between'>
+          {displayEvents.map((event, index) => {
+            // Calculate the animation delay from bottom to top
+            // The last item (bottom) should animate first
+            let animationDelay = 0;
+            if (displayEvents.length > 1) {
+              animationDelay =
+                ((displayEvents.length - 1 - index) /
+                  (displayEvents.length - 1)) *
+                700;
+            }
 
-              const isVisible = isEventVisible(event);
-              const isLastVisible =
-                visibleEvents.length > 0 &&
-                event === visibleEvents[visibleEvents.length - 1];
+            const isVisible = isEventVisible(event);
+            const isLastVisible =
+              visibleEvents.length > 0 &&
+              event === visibleEvents[visibleEvents.length - 1];
 
-              const resultNumber =
-                event.type === TimelineEventType.ResultOngoingBasicVote ||
-                event.type === TimelineEventType.ResultOngoingOtherVotes ||
-                event.type === TimelineEventType.ResultEndedBasicVote ||
-                event.type === TimelineEventType.ResultEndedOtherVotes
-                  ? proposalOrderMap.get(event.result.proposal.id)
-                  : undefined;
+            const resultNumber =
+              event.type === TimelineEventType.ResultOngoingBasicVote ||
+              event.type === TimelineEventType.ResultOngoingOtherVotes ||
+              event.type === TimelineEventType.ResultEndedBasicVote ||
+              event.type === TimelineEventType.ResultEndedOtherVotes
+                ? proposalOrderMap.get(event.result.proposal.id)
+                : undefined;
 
-              return (
-                <TimelineEventItem
-                  key={`${event.type}-${index}-${event.timestamp.toString()}`}
-                  event={event}
-                  index={index}
-                  isVisible={isVisible}
-                  isLastVisible={isLastVisible}
-                  animationStarted={animationStarted}
-                  animationDelay={animationDelay}
-                  resultNumber={resultNumber}
-                  group={group}
-                  endRef={refs.endRef}
-                />
-              );
-            })}
-          </div>
+            return (
+              <TimelineEventItem
+                key={`${event.type}-${index}-${event.timestamp.toString()}`}
+                event={event}
+                index={index}
+                isVisible={isVisible}
+                isLastVisible={isLastVisible}
+                animationStarted={animationStarted}
+                animationDelay={animationDelay}
+                resultNumber={resultNumber}
+                group={group}
+                endRef={refs.endRef}
+              />
+            );
+          })}
         </div>
       </div>
-    </ViewTransition>
+    </div>
   );
 }
 export function useResizeObserver(

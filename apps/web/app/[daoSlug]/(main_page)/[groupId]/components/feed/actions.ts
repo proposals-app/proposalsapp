@@ -1,7 +1,5 @@
 import { otel } from '@/lib/otel';
-import { AsyncReturnType } from '@/lib/utils';
 import { db, sql } from '@proposalsapp/db-indexer';
-import { unstable_cache } from 'next/cache';
 
 export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   'use server';
@@ -14,56 +12,6 @@ export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
       .executeTakeFirst();
 
     return discourseUser;
-  });
-}
-
-export async function getVotingPower(voteId: string): Promise<{
-  votingPowerAtVote: number; // Voting power at the time of the vote
-  latestVotingPower: number; // Latest voting power
-  change: number | null; // Relative change between latest and voting power at vote
-}> {
-  'use server';
-  return otel('get-voting-power', async () => {
-    try {
-      // Fetch the vote to get voter address and timestamps
-      const vote = await db
-        .selectFrom('vote')
-        .selectAll()
-        .where('id', '=', voteId)
-        .executeTakeFirstOrThrow();
-
-      // Fetch the latest voting power
-      const latestVotingPowerRecord = await db
-        .selectFrom('votingPower')
-        .selectAll()
-        .where('voter', '=', vote.voterAddress)
-        .where('daoId', '=', vote.daoId)
-        .orderBy('timestamp', 'desc')
-        .limit(1)
-        .executeTakeFirst();
-
-      const latestVotingPower = latestVotingPowerRecord?.votingPower ?? 0;
-
-      // Compute the relative change
-      let change: number | null = null;
-      if (vote.votingPower !== 0) {
-        const rawChange =
-          ((latestVotingPower - vote.votingPower) / vote.votingPower) * 100;
-        // Only set change if it's outside the range of -0.01 to 0.01
-        if (rawChange > 0.01 || rawChange < -0.01) {
-          change = rawChange;
-        }
-      }
-
-      return {
-        votingPowerAtVote: vote.votingPower,
-        latestVotingPower,
-        change,
-      };
-    } catch (error) {
-      console.error('Error fetching voting power:', error);
-      throw error; // Re-throw the error after logging
-    }
   });
 }
 
@@ -177,6 +125,15 @@ export async function getDelegateByVoterAddress(
 
       if (!delegateData) return null;
 
+      const latestVotingPower = await db
+        .selectFrom('votingPower')
+        .selectAll()
+        .where('voter', '=', delegateData.voterAddress)
+        .where('daoId', '=', dao.id)
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .executeTakeFirst();
+
       // Transform the data into the expected format
       return {
         delegate: { id: delegateData.delegateId },
@@ -191,6 +148,7 @@ export async function getDelegateByVoterAddress(
           ? {
               ens: delegateData.voterEns,
               address: delegateData.voterAddress,
+              latestVotingPower: latestVotingPower,
             }
           : null,
       };
@@ -434,8 +392,6 @@ async function getPostLikedUsers(
   });
 }
 
-export type VotingPowerReturnType = AsyncReturnType<typeof getVotingPower>;
-
 // export const getDelegateByVoterAddress_cache = unstable_cache(
 //   async (
 //     voterAddress: string,
@@ -498,12 +454,4 @@ export type VotingPowerReturnType = AsyncReturnType<typeof getVotingPower>;
 //   },
 //   ['get-post-liked-users'],
 //   { revalidate: 60 * 5, tags: ['get-post-liked-users'] }
-// );
-
-// export const getVotingPower_cache = unstable_cache(
-//   async (itemId: string) => {
-//     return await getVotingPower(itemId);
-//   },
-//   ['get-voting-power'],
-//   { revalidate: 60 * 5, tags: ['get-voting-power'] }
 // );

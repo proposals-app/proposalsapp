@@ -62,7 +62,7 @@ export function ResultEvent({
 
   // Content to be rendered inside the div
   const eventContent = (
-    <ViewTransition name={proposal.id}>
+    <ViewTransition name={`timeline-result-${resultNumber}`}>
       <div className='relative z-20 flex items-center py-2'>
         <div
           className={`flex flex-col gap-1 py-1.5 ${last ? 'pl-5' : 'pl-3'} ${

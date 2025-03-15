@@ -1,12 +1,9 @@
 import { notFound } from 'next/navigation';
-import { PostItem, PostItemLoading } from './items/PostItem/PostItem';
-import { VoteItem, VoteItemLoading } from './items/VoteItem/VoteItem';
+import { PostItem } from './items/PostItem/PostItem';
+import { VoteItem } from './items/VoteItem/VoteItem';
 import { FeedReturnType, GroupReturnType } from '../../actions';
-import {
-  AggregateVoteItem,
-  AggregateVoteItemLoading,
-} from './items/VoteItem/AggregateVoteItem';
-import { Suspense, unstable_ViewTransition as ViewTransition } from 'react';
+import { AggregateVoteItem } from './items/VoteItem/AggregateVoteItem';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export async function Feed({
   group,
@@ -44,80 +41,66 @@ export async function Feed({
   });
 
   return (
-    <ViewTransition name='feed'>
-      <div className='w-full'>
-        {combinedItems.map((item, index) => {
-          if (item.type === 'post') {
-            const postItem = (
-              <div key={index}>
+    <div className='w-full'>
+      {combinedItems.map((item, index) => {
+        if (item.type === 'post') {
+          return (
+            <ViewTransition key={index} name={`feed-item-${item.id}`}>
+              <div>
                 <div className='flex w-full flex-col p-4'>
-                  <Suspense fallback={<PostItemLoading />}>
-                    <ViewTransition name={`feed-${index}`}>
-                      <PostItem item={item} group={group} />
-                    </ViewTransition>
-                  </Suspense>
+                  <PostItem item={item} group={group} />
                 </div>
                 {index < combinedItems.length - 1 && (
                   <div className='border-b border-neutral-200 dark:border-neutral-800' />
                 )}
               </div>
-            );
-
-            return postItem;
-          } else {
-            return (
-              <div key={index}>
+            </ViewTransition>
+          );
+        } else {
+          return (
+            <ViewTransition key={index} name={`feed-item-${item.id}`}>
+              <div>
                 <div className='flex w-full flex-col p-4'>
                   {item.aggregate ? (
-                    <Suspense fallback={<AggregateVoteItemLoading />}>
-                      <ViewTransition name={`feed-${index}`}>
-                        <AggregateVoteItem item={item} group={group} />
-                      </ViewTransition>
-                    </Suspense>
+                    <AggregateVoteItem item={item} group={group} />
                   ) : (
-                    <Suspense fallback={<VoteItemLoading />}>
-                      <ViewTransition name={`feed-${index}`}>
-                        <VoteItem item={item} group={group} />
-                      </ViewTransition>
-                    </Suspense>
+                    <VoteItem item={item} group={group} />
                   )}
                 </div>
                 {index < combinedItems.length - 1 && (
                   <div className='border-b border-neutral-200 dark:border-neutral-800' />
                 )}
               </div>
-            );
-          }
-        })}
-      </div>
-    </ViewTransition>
+            </ViewTransition>
+          );
+        }
+      })}
+    </div>
   );
 }
 
 export function FeedLoading() {
   return (
-    <ViewTransition name='feed'>
-      <div className='mt-6 w-full space-y-6'>
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className='px-6 py-4'>
-            <div className='flex animate-pulse items-center justify-between'>
-              <div className='flex items-center gap-4'>
-                <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
-                <div className='space-y-2'>
-                  <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                  <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                </div>
+    <div className='w-full'>
+      {[...Array(3)].map((_, i) => (
+        <div className='px-6 py-4' key={i}>
+          <div className='flex animate-pulse items-center justify-between'>
+            <div className='flex items-center gap-4'>
+              <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
+              <div className='space-y-2'>
+                <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
               </div>
-              <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
             </div>
-
-            <div className='mt-4 space-y-2'>
-              <div className='h-4 w-3/4 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-              <div className='h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            </div>
+            <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
           </div>
-        ))}
-      </div>
-    </ViewTransition>
+
+          <div className='mt-4 space-y-2'>
+            <div className='h-4 w-3/4 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            <div className='h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

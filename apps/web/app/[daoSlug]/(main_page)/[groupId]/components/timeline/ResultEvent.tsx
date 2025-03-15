@@ -43,7 +43,7 @@ export function ResultEvent({
   const Component = result.voteType ? VoteComponents[result.voteType] : null;
 
   return (
-    <ViewTransition name={result.proposal.id}>
+    <ViewTransition name={`timeline-result-${resultNumber}`}>
       <div
         className={`relative mr-4 flex
           ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} group

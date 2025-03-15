@@ -17,7 +17,7 @@ import {
   getPostLikesCount,
 } from '../../actions';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
-import { VotingPowerTag } from './VotingPowerTag';
+import { VotingPowerTag } from './../VotingPowerTag';
 import Image from 'next/image';
 
 export async function PostItem({
@@ -48,7 +48,8 @@ export async function PostItem({
     proposalIds
   );
 
-  const votingPower = delegate?.delegatetovoter?.latestVotingPower?.votingPower;
+  const currentVotingPower =
+    delegate?.delegatetovoter?.latestVotingPower?.votingPower;
 
   const processedContent = markdownToHtml(item.cooked ?? 'Unknown');
   const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
@@ -71,20 +72,8 @@ export async function PostItem({
   const isPostDeleted = item.deleted;
 
   return (
-    <div id={postAnchorId} className='w-full scroll-mt-36'>
-      {item.id.includes('placeholder') ? (
-        // Show just the "deleted post" summary
-        <div className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500'>
-          <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
-          <span
-            className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
-              dark:text-neutral-400'
-          >
-            Deleted Post
-          </span>
-          <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
-        </div>
-      ) : isPostDeleted ? (
+    <div id={postAnchorId} className='w-full scroll-mt-36 p-4'>
+      {isPostDeleted ? (
         // Show the full details/summary UI for deleted posts
         <details className='w-full'>
           <summary
@@ -100,34 +89,18 @@ export async function PostItem({
             </span>
             <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
           </summary>
-          {/* <div className='p-4'>
-            {item.id != 'placeholder' && (
-              <PostContent
-                author={author}
-                relativeCreateTime={relativeCreateTime}
-                relativeUpdateTime={relativeUpdateTime}
-                updatedAt={updatedAt}
-                likesCount={likesCount}
-                processedContent={processedContent}
-                votingPower={votingPower}
-                item={item}
-              />
-            )}
-          </div> */}
         </details>
       ) : (
-        <div className='p-4'>
-          <PostContent
-            author={author}
-            relativeCreateTime={relativeCreateTime}
-            relativeUpdateTime={relativeUpdateTime}
-            updatedAt={updatedAt}
-            likesCount={likesCount}
-            processedContent={processedContent}
-            votingPower={votingPower}
-            item={item}
-          />
-        </div>
+        <PostContent
+          author={author}
+          relativeCreateTime={relativeCreateTime}
+          relativeUpdateTime={relativeUpdateTime}
+          updatedAt={updatedAt}
+          likesCount={likesCount}
+          processedContent={processedContent}
+          currentVotingPower={currentVotingPower}
+          item={item}
+        />
       )}
     </div>
   );
@@ -141,7 +114,7 @@ const PostContent = ({
   likesCount,
   processedContent,
   item,
-  votingPower,
+  currentVotingPower,
 }: {
   author: Selectable<DiscourseUser> | undefined;
   relativeCreateTime: string;
@@ -150,7 +123,7 @@ const PostContent = ({
   likesCount: number;
   processedContent: string;
   item: FeedReturnType['posts'][0];
-  votingPower?: number;
+  currentVotingPower?: number;
 }) => {
   const CONTENT_THRESHOLD = 400;
 
@@ -204,7 +177,7 @@ const PostContent = ({
                   ? author.username
                   : author.name}
               </div>
-              {votingPower && <VotingPowerTag vp={votingPower} />}
+              {currentVotingPower && <VotingPowerTag vp={currentVotingPower} />}
             </div>
           </div>
         )}
@@ -451,31 +424,4 @@ function markdownToHtml(markdown: string): string {
     console.error('Error converting markdown to HTML:', error);
     return '<div>Error processing content</div>';
   }
-}
-
-export function PostItemLoading() {
-  return (
-    <div className='w-full p-4'>
-      <div className='flex cursor-default flex-row justify-between select-none'>
-        <div className='flex flex-row items-center gap-2'>
-          <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800' />
-          <div className='flex flex-col gap-1'>
-            <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-            <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-          </div>
-        </div>
-        <div className='flex flex-col items-end gap-1'>
-          <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-        </div>
-      </div>
-
-      <div className='mt-6 space-y-3'>
-        <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-5/6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-4/6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-      </div>
-    </div>
-  );
 }
