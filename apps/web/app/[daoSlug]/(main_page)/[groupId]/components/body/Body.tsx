@@ -369,7 +369,8 @@ function processDetails(html: string): string {
 export async function applyStyle(
   dom: Document | Element | Comment | DocumentFragment | DocumentType | Text
 ): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise<string>((resolve) => {
+    // Explicitly type Promise<string>
     const doc = getDocument();
     const container = doc.createElement('div');
     if (dom.hasChildNodes()) container.appendChild(dom.cloneNode(true));
@@ -383,8 +384,9 @@ export async function applyStyle(
   });
 }
 
-export async function markdownToHtml(markdown: string): Promise<string> {
-  return new Promise(async (resolve, reject) => {
+export function markdownToHtml(markdown: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    // Explicitly type Promise<string>
     try {
       // Create custom implementation of toDom that uses the server document
       const customToDom = (node: Nodes) => {
@@ -393,22 +395,26 @@ export async function markdownToHtml(markdown: string): Promise<string> {
       };
 
       const markdownDom = customToDom(toHast(fromMarkdown(markdown)));
-      let html = await applyStyle(markdownDom);
-
-      // Process quotes and details after HTML conversion
-      html = processDetails(processQuotes(html));
-      resolve(html);
+      applyStyle(markdownDom)
+        .then((html: string) => {
+          // Explicitly type html as string
+          // Process quotes and details after HTML conversion
+          html = processDetails(processQuotes(html));
+          resolve(html);
+        })
+        .catch(reject);
     } catch (error) {
       reject(error);
     }
   });
 }
 
-export async function processDiff(
+export function processDiff(
   currentContent: string,
   previousContent: string
 ): Promise<string> {
-  return new Promise(async (resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
+    // Explicitly type Promise<string>
     try {
       const customToDom = (node: Nodes) => {
         const doc = getDocument();
@@ -431,8 +437,12 @@ export async function processDiff(
         diffText: diffText_word,
       });
 
-      const styledHtml = await applyStyle(diffFragment);
-      resolve(styledHtml);
+      applyStyle(diffFragment)
+        .then((styledHtml: string) => {
+          // Explicitly type styledHtml as string
+          resolve(styledHtml);
+        })
+        .catch(reject);
     } catch (error) {
       reject(error);
     }
