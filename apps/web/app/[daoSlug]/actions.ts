@@ -88,8 +88,6 @@ export async function getGroups(daoSlug: string) {
     group: (typeof allGroups)[0]
   ): Promise<{
     newestItemTimestamp: number;
-    newestPostTimestamp: number;
-    newestVoteTimestamp: number;
   }> => {
     const items = group.items as ProposalGroupItem[];
 
@@ -131,65 +129,31 @@ export async function getGroups(daoSlug: string) {
     }
     const topicIds = topics.map((t) => t.id);
 
-    const [latestProposal, latestTopic, latestPost, latestVote] =
-      await Promise.all([
-        // Get latest proposal
-        proposalIds.length > 0
-          ? db
-              .selectFrom('proposal')
-              .select('createdAt')
-              .where('id', 'in', proposalIds)
-              .where('daoId', '=', dao.id)
-              .orderBy('createdAt', 'desc')
-              .limit(1)
-              .executeTakeFirst()
-          : Promise.resolve(null),
+    const [latestProposal, latestTopic] = await Promise.all([
+      // Get latest proposal
+      proposalIds.length > 0
+        ? db
+            .selectFrom('proposal')
+            .select('createdAt')
+            .where('id', 'in', proposalIds)
+            .where('daoId', '=', dao.id)
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .executeTakeFirst()
+        : Promise.resolve(null),
 
-        // Get latest topic
-        topicIds.length > 0
-          ? db
-              .selectFrom('discourseTopic')
-              .select('createdAt')
-              .where('id', 'in', topicIds)
-              .where('daoDiscourseId', '=', daoDiscourse.id)
-              .orderBy('createdAt', 'desc')
-              .limit(1)
-              .executeTakeFirst()
-          : Promise.resolve(null),
-
-        // Get latest post from all topics
-        topicIds.length > 0
-          ? db
-              .selectFrom('discoursePost')
-              .select('createdAt')
-              .where('daoDiscourseId', '=', daoDiscourse.id)
-              .where(
-                'topicId',
-                'in',
-                db
-                  .selectFrom('discourseTopic')
-                  .select('externalId')
-                  .where('id', 'in', topicIds)
-                  .where('daoDiscourseId', '=', daoDiscourse.id)
-              )
-              .orderBy('createdAt', 'desc')
-              .limit(1)
-              .executeTakeFirst()
-          : Promise.resolve(null),
-
-        // Get latest vote from all proposals
-        proposalIds.length > 0
-          ? db
-              .selectFrom('vote')
-              .select('createdAt')
-              .where('proposalId', 'in', proposalIds)
-              .where('daoId', '=', dao.id)
-              .where('votingPower', '>=', 5000000)
-              .orderBy('createdAt', 'desc')
-              .limit(1)
-              .executeTakeFirst()
-          : Promise.resolve(null),
-      ]);
+      // Get latest topic
+      topicIds.length > 0
+        ? db
+            .selectFrom('discourseTopic')
+            .select('createdAt')
+            .where('id', 'in', topicIds)
+            .where('daoDiscourseId', '=', daoDiscourse.id)
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .executeTakeFirst()
+        : Promise.resolve(null),
+    ]);
 
     return {
       newestItemTimestamp: Math.max(
@@ -198,12 +162,6 @@ export async function getGroups(daoSlug: string) {
           : 0,
         latestTopic?.createdAt ? new Date(latestTopic.createdAt).getTime() : 0
       ),
-      newestPostTimestamp: latestPost?.createdAt
-        ? new Date(latestPost.createdAt).getTime()
-        : 0,
-      newestVoteTimestamp: latestVote?.createdAt
-        ? new Date(latestVote.createdAt).getTime()
-        : 0,
     };
   };
 
@@ -215,11 +173,7 @@ export async function getGroups(daoSlug: string) {
         ...group,
         ...timestamps,
         // Add a new field that tracks the newest timestamp across all activities
-        newestActivityTimestamp: Math.max(
-          timestamps.newestItemTimestamp,
-          timestamps.newestPostTimestamp,
-          timestamps.newestVoteTimestamp
-        ),
+        newestActivityTimestamp: Math.max(timestamps.newestItemTimestamp),
       };
     })
   );

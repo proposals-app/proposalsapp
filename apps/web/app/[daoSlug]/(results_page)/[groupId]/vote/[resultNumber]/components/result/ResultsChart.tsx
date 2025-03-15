@@ -141,28 +141,6 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
           },
           showSymbol: false, // Show symbols for significant points
 
-          // symbol: (data) => {
-          //   const isSignificant = significantPoints.find(
-          //     (sigPoint) => sigPoint[0] === data[0]
-          //   );
-          //   return isSignificant ? 'square' : 'none';
-          // },
-          // symbolSize(value) {
-          //   const selectedDate = new Date(value[0]);
-
-          //   const timeSeriesPoint = results.votes?.find(
-          //     (point) => point.createdAt.getTime() === selectedDate.getTime()
-          //   );
-
-          //   const votingPower = timeSeriesPoint?.votingPower ?? 0;
-
-          //   // Use a power function to amplify the differences
-          //   const baseSize = 1; // Minimum size
-          //   const scalingFactor = 0.2; // Adjust this factor to control the scaling
-          //   const size = baseSize + Math.pow(votingPower, scalingFactor);
-
-          //   return size;
-          // },
           itemStyle: {
             color: () => {
               return color;
@@ -394,7 +372,19 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, [results, delegateMap, theme]);
+  }, [
+    deserializedResults.timeSeriesData,
+    deserializedResults.choices,
+    deserializedResults.choiceColors,
+    deserializedResults.proposal.startAt,
+    deserializedResults.proposal.endAt,
+    deserializedResults.quorum,
+    deserializedResults.quorumChoices,
+    deserializedResults.voteType,
+    deserializedResults.votes,
+    delegateMap,
+    theme,
+  ]);
 
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
