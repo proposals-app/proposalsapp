@@ -24,22 +24,37 @@ export default async function GroupPage({
     searchParamsCache.parse(searchParams),
   ]);
 
-  const { version, diff, feed: feedFilter, votes: votesFilter } = parsedParams;
+  const {
+    version,
+    expanded,
+    diff,
+    feed: feedFilter,
+    votes: votesFilter,
+  } = parsedParams;
 
   return (
     <div className='flex w-full flex-col items-center pt-10 pr-96'>
       <div className='flex w-full max-w-3xl flex-col overflow-visible'>
-        <Suspense fallback={<BodyLoading />} key={`body-${version}-${diff}`}>
+        <Suspense
+          fallback={<BodyLoading />}
+          key={`body-${version}-${diff}-${expanded}`}
+        >
           <BodySection
             daoSlug={daoSlug}
             groupId={groupId}
             version={version}
             diff={diff}
+            expanded={expanded}
           />
         </Suspense>
 
         <Suspense fallback={<LoadingMenuBar />} key={`menu-${version}-${diff}`}>
-          <MenuBarSection groupId={groupId} version={version} />
+          <MenuBarSection
+            groupId={groupId}
+            version={version}
+            diff={diff}
+            expanded={expanded}
+          />
         </Suspense>
 
         <Suspense
@@ -72,11 +87,13 @@ async function BodySection({
   groupId,
   version,
   diff,
+  expanded,
 }: {
   daoSlug: string;
   groupId: string;
   version: number | null;
   diff: boolean;
+  expanded: boolean;
 }) {
   const [group, bodyVersions] = await Promise.all([
     getGroup(daoSlug, groupId),
@@ -96,6 +113,7 @@ async function BodySection({
       diff={diff}
       bodyVersions={bodyVersions}
       currentVersion={currentVersion}
+      expanded={expanded}
     />
   );
 }
@@ -103,9 +121,13 @@ async function BodySection({
 async function MenuBarSection({
   groupId,
   version,
+  expanded,
+  diff,
 }: {
   groupId: string;
   version: number | null;
+  expanded: boolean;
+  diff: boolean;
 }) {
   const bodyVersions = await getBodyVersions(groupId);
 
@@ -124,6 +146,8 @@ async function MenuBarSection({
     <MenuBar
       bodyVersions={bodyVersionsWithoutContent}
       currentVersion={currentVersion}
+      expanded={expanded}
+      diff={diff}
     />
   );
 }

@@ -27,11 +27,13 @@ export async function Body({
   diff,
   bodyVersions,
   currentVersion,
+  expanded,
 }: {
   group: GroupReturnType;
   diff: boolean;
   bodyVersions: BodyVersionType[];
   currentVersion: number;
+  expanded: boolean;
 }) {
   if (!group) {
     notFound();
@@ -98,7 +100,10 @@ export async function Body({
         </div>
 
         <div className='relative'>
-          <BodyContent processedContent={processedContent} />
+          <BodyContent
+            processedContent={processedContent}
+            expanded={expanded}
+          />
         </div>
       </div>
     </div>
@@ -320,7 +325,7 @@ export function applyStyle(
 ): string {
   const doc = getDocument();
   const container = doc.createElement('div');
-  container.appendChild(dom.cloneNode(true));
+  if (dom.hasChildNodes()) container.appendChild(dom.cloneNode(true));
 
   Object.entries(MARKDOWN_STYLES).forEach(([tag, className]) => {
     container.querySelectorAll(tag).forEach((element) => {

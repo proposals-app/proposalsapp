@@ -16,6 +16,8 @@ interface BodyViewBarProps {
   currentVersion: number;
   view: ViewEnum;
   setView: (view: ViewEnum) => void;
+  expanded: boolean;
+  diff: boolean;
 }
 
 export const BodyViewBar = ({
@@ -23,16 +25,18 @@ export const BodyViewBar = ({
   currentVersion,
   view,
   setView,
+  expanded,
+  diff,
 }: BodyViewBarProps) => {
   const totalVersions = bodyVersions.length;
   const versionTypes: VersionType[] = bodyVersions.map((body) => body.type);
 
-  const [expanded, setExpanded] = useQueryState(
+  const [, setExpanded] = useQueryState(
     'expanded',
     parseAsBoolean.withDefault(false)
   );
 
-  const [diff, setDiff] = useQueryState(
+  const [, setDiff] = useQueryState(
     'diff',
     parseAsBoolean.withDefault(false).withOptions({ shallow: false })
   );

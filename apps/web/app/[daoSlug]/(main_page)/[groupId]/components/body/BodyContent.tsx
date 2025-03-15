@@ -7,8 +7,14 @@ const COLLAPSED_HEIGHT = '25rem';
 import { memo } from 'react';
 
 const BodyContent = memo(
-  ({ processedContent }: { processedContent: string }) => {
-    const [expanded, setExpanded] = useQueryState(
+  ({
+    processedContent,
+    expanded,
+  }: {
+    processedContent: string;
+    expanded: boolean;
+  }) => {
+    const [, setExpanded] = useQueryState(
       'expanded',
       parseAsBoolean.withDefault(false)
     );
