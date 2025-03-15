@@ -111,39 +111,98 @@ export function BodyLoading() {
   return (
     <ViewTransition name={`body`}>
       <div className='w-full'>
-        {/* Title Loading */}
-        <div className='mb-8 h-12 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
+        {/* Main Content Loading */}
+        <div className='flex w-full flex-col gap-6'>
+          {/* Title Loading */}
+          <div className='h-10 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
 
-        {/* Author Info Loading */}
-        <div className='mb-6 flex animate-pulse items-center justify-between'>
-          <div className='flex items-center gap-4'>
-            <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
-            <div className='space-y-2'>
-              <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-              <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          {/* Author Info and Posted Time Loading */}
+          <div className='flex flex-col'>
+            <div className='flex flex-row justify-between'>
+              {/* Author Info Loading */}
+              <div className='flex flex-row items-center gap-2'>
+                <div
+                  className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
+                    border-neutral-200 dark:border-neutral-700'
+                >
+                  <div className='h-full w-full animate-pulse bg-neutral-200 dark:bg-neutral-800'></div>
+                </div>
+                <div className='h-5 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+              </div>
+
+              {/* Posted Time Loading */}
+              <div className='flex flex-col items-center gap-2'>
+                <div className='flex flex-row gap-4'>
+                  {/* Initially Posted */}
+                  <div className='flex flex-row items-center gap-2 px-2 py-1'>
+                    <div className='flex flex-col space-y-1'>
+                      <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                      <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                    </div>
+                  </div>
+
+                  {/* Latest Revision */}
+                  <div className='flex flex-row items-center gap-2 bg-white px-2 py-1 dark:bg-neutral-950'>
+                    <div className='flex flex-col space-y-1'>
+                      <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                      <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                    </div>
+                    <div className='h-6 w-6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className='flex space-x-2'>
-            <div className='space-y-2'>
-              <div className='h-4 w-40 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-              <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            </div>
-            <div className='space-y-2'>
-              <div className='h-4 w-40 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-              <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+
+          {/* Content Loading */}
+          <div className='relative'>
+            <div className='relative overflow-hidden'>
+              <div
+                className='prose prose-lg max-w-none overflow-hidden p-6'
+                style={{ maxHeight: '25rem' }}
+              >
+                <div className='space-y-4'>
+                  {/* Title and first paragraph */}
+                  <div className='h-6 w-1/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+
+                  {/* Section heading */}
+                  <div className='h-5 w-1/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+
+                  {/* Bullet points */}
+                  <div className='ml-6 space-y-2'>
+                    <div className='flex items-start gap-2'>
+                      <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
+                      <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                    </div>
+                    <div className='flex items-start gap-2'>
+                      <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
+                      <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                    </div>
+                    <div className='flex items-start gap-2'>
+                      <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
+                      <div className='h-4 w-9/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                    </div>
+                  </div>
+
+                  {/* More paragraphs */}
+                  <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-5 w-1/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                </div>
+
+                {/* Gradient overlay */}
+                <div
+                  className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-neutral-50
+                    to-transparent dark:from-neutral-900'
+                ></div>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Content Loading */}
-        <div className='space-y-4'>
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className='h-4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'
-              style={{ width: `${Math.random() * 40 + 60}%` }}
-            ></div>
-          ))}
         </div>
       </div>
     </ViewTransition>

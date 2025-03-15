@@ -3,5 +3,5 @@ export default function GroupLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className='w-full pr-96'>{children}</div>;
+  return <div className='w-full'>{children}</div>;
 }

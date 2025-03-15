@@ -4,7 +4,6 @@ import { Root } from 'hast';
 import { CheckCheck, HeartIcon } from 'lucide-react';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toHast } from 'mdast-util-to-hast';
-import { Suspense } from 'react';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
 import {
@@ -20,7 +19,6 @@ import {
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { VotingPowerTag } from './VotingPowerTag';
 import Image from 'next/image';
-import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export async function PostItem({
   item,
@@ -76,11 +74,26 @@ export async function PostItem({
   const isPostDeleted = item.deleted;
 
   return (
-    <ViewTransition name={item.id}>
-      <div id={postAnchorId} className='w-full scroll-mt-36'>
-        {item.id.includes('placeholder') ? (
-          // Show just the "deleted post" summary
-          <div className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500'>
+    <div id={postAnchorId} className='w-full scroll-mt-36'>
+      {item.id.includes('placeholder') ? (
+        // Show just the "deleted post" summary
+        <div className='flex h-12 w-full items-center justify-center border-neutral-400 text-neutral-500'>
+          <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
+          <span
+            className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
+              dark:text-neutral-400'
+          >
+            Deleted Post
+          </span>
+          <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
+        </div>
+      ) : isPostDeleted ? (
+        // Show the full details/summary UI for deleted posts
+        <details className='w-full'>
+          <summary
+            className='flex h-12 cursor-default list-none items-center justify-center
+              border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'
+          >
             <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
             <span
               className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
@@ -89,24 +102,8 @@ export async function PostItem({
               Deleted Post
             </span>
             <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
-          </div>
-        ) : isPostDeleted ? (
-          // Show the full details/summary UI for deleted posts
-          <details className='w-full'>
-            <summary
-              className='flex h-12 cursor-default list-none items-center justify-center
-                border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'
-            >
-              <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
-              <span
-                className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
-                  dark:text-neutral-400'
-              >
-                Deleted Post
-              </span>
-              <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
-            </summary>
-            {/* <div className='p-4'>
+          </summary>
+          {/* <div className='p-4'>
             {item.id != 'placeholder' && (
               <PostContent
                 author={author}
@@ -120,23 +117,22 @@ export async function PostItem({
               />
             )}
           </div> */}
-          </details>
-        ) : (
-          <div className='p-4'>
-            <PostContent
-              author={author}
-              relativeCreateTime={relativeCreateTime}
-              relativeUpdateTime={relativeUpdateTime}
-              updatedAt={updatedAt}
-              likesCount={likesCount}
-              processedContent={processedContent}
-              votingPower={votingPower}
-              item={item}
-            />
-          </div>
-        )}
-      </div>
-    </ViewTransition>
+        </details>
+      ) : (
+        <div className='p-4'>
+          <PostContent
+            author={author}
+            relativeCreateTime={relativeCreateTime}
+            relativeUpdateTime={relativeUpdateTime}
+            updatedAt={updatedAt}
+            likesCount={likesCount}
+            processedContent={processedContent}
+            votingPower={votingPower}
+            item={item}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -191,31 +187,29 @@ const PostContent = ({
     <>
       <div className='flex cursor-default flex-row justify-between select-none'>
         {author && (
-          <Suspense>
-            <div className='flex flex-row items-center gap-2'>
-              <div
-                className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
-                  border-neutral-700 dark:border-neutral-300'
-              >
-                <Image
-                  src={author.avatarTemplate}
-                  className='rounded-full'
-                  fetchPriority='high'
-                  alt={author.username}
-                  width={40}
-                  height={40}
-                />
-              </div>
-              <div className='flex flex-col'>
-                <div className='font-bold text-neutral-800 dark:text-neutral-200'>
-                  {author.username && author.username.length
-                    ? author.username
-                    : author.name}
-                </div>
-                {votingPower && <VotingPowerTag vp={votingPower} />}
-              </div>
+          <div className='flex flex-row items-center gap-2'>
+            <div
+              className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
+                border-neutral-700 dark:border-neutral-300'
+            >
+              <Image
+                src={author.avatarTemplate}
+                className='rounded-full'
+                fetchPriority='high'
+                alt={author.username}
+                width={40}
+                height={40}
+              />
             </div>
-          </Suspense>
+            <div className='flex flex-col'>
+              <div className='font-bold text-neutral-800 dark:text-neutral-200'>
+                {author.username && author.username.length
+                  ? author.username
+                  : author.name}
+              </div>
+              {votingPower && <VotingPowerTag vp={votingPower} />}
+            </div>
+          </div>
         )}
         <div
           className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm
@@ -460,4 +454,31 @@ function markdownToHtml(markdown: string): string {
     console.error('Error converting markdown to HTML:', error);
     return '<div>Error processing content</div>';
   }
+}
+
+export function PostItemLoading() {
+  return (
+    <div className='w-full p-4'>
+      <div className='flex cursor-default flex-row justify-between select-none'>
+        <div className='flex flex-row items-center gap-2'>
+          <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800' />
+          <div className='flex flex-col gap-1'>
+            <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+            <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+          </div>
+        </div>
+        <div className='flex flex-col items-end gap-1'>
+          <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+        </div>
+      </div>
+
+      <div className='mt-6 space-y-3'>
+        <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-5/6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-4/6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+      </div>
+    </div>
+  );
 }

@@ -57,8 +57,7 @@ export function ResultEvent({
         >
           {last ? (
             <TimelineEventActiveIcon
-              className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800
-                transition-opacity duration-200 ease-in-out group-hover:opacity-0'
+              className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800'
               width={24}
               height={24}
               alt={'Timeline event'}

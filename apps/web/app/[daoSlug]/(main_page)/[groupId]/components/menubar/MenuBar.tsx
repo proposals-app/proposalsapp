@@ -4,77 +4,160 @@ import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { BodyViewBar } from './BodyViewBar';
 import { CommentsViewBar } from './CommentsViewBar';
 import { FullViewBar } from './FullViewBar';
-import * as Select from '@radix-ui/react-select';
 import CheckSvg from '@/public/assets/web/check.svg';
-import React, { useState } from 'react';
-import { BodyVersionType, VersionType } from '../../actions';
+import React, { useState, useRef, useEffect } from 'react';
+import { BodyVersionType } from '../../actions';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 
-// Optimized SelectItem component for Safari
-export const SharedSelectItem = React.forwardRef<
-  HTMLDivElement,
-  { children: React.ReactNode; value: string }
->(({ children, value, ...props }, forwardedRef) => {
-  return (
-    <Select.Item
-      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm
-        text-neutral-800 transition-colors will-change-transform outline-none
-        hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800'
-      {...props}
-      ref={forwardedRef}
-      value={value}
-    >
-      <Select.ItemText>{children}</Select.ItemText>
-      <Select.ItemIndicator className='absolute right-2'>
-        <CheckSvg
-          className='fill-neutral-800 dark:fill-neutral-200'
-          width={24}
-          height={24}
-        />
-      </Select.ItemIndicator>
-    </Select.Item>
-  );
+// Custom SelectContext to manage state
+const SelectContext = React.createContext<{
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedValue: string;
+  onSelectValue: (value: string) => void;
+}>({
+  isOpen: false,
+  setIsOpen: () => {},
+  selectedValue: '',
+  onSelectValue: () => {},
 });
-SharedSelectItem.displayName = 'SharedSelectItem';
 
-// Safari-optimized SelectTrigger component for reuse
+interface SelectProps {
+  value: string;
+  onValueChange: (value: string) => void;
+  children: React.ReactNode;
+}
+
+export const Select = ({ value, onValueChange, children }: SelectProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <SelectContext.Provider
+      value={{
+        isOpen,
+        setIsOpen,
+        selectedValue: value,
+        onSelectValue: onValueChange,
+      }}
+    >
+      <div className='relative'>{children}</div>
+    </SelectContext.Provider>
+  );
+};
+
 export const SelectTrigger = ({
   children,
   className = '',
-  ...props
-}: Select.SelectTriggerProps) => (
-  <Select.Trigger
-    className={`flex h-8 cursor-pointer items-center justify-between rounded-xs px-3 text-sm
-      outline-none ${className}`}
-    {...props}
-  >
-    {children}
-    <Select.Icon>
-      <ChevronDownSvg width={24} height={24} className='opacity-70' />
-    </Select.Icon>
-  </Select.Trigger>
-);
-SelectTrigger.displayName = 'SelectTrigger';
+  'aria-label': ariaLabel,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  'aria-label'?: string;
+}) => {
+  const { isOpen, setIsOpen } = React.useContext(SelectContext);
 
-// Safari-optimized SelectContent component for reuse
+  return (
+    <button
+      type='button'
+      aria-haspopup='listbox'
+      aria-expanded={isOpen}
+      aria-label={ariaLabel}
+      className={`flex h-8 cursor-pointer items-center justify-between rounded-xs px-3 text-sm
+        outline-none ${className}`}
+      onClick={() => setIsOpen(!isOpen)}
+    >
+      {children}
+      <span className='ml-2'>
+        <ChevronDownSvg width={24} height={24} className='opacity-70' />
+      </span>
+    </button>
+  );
+};
+
+export const SelectValue = ({ children }: { children: React.ReactNode }) => {
+  return <span>{children}</span>;
+};
+
 export const SelectContent = ({
   children,
   className = '',
-  ...props
-}: Select.SelectContentProps) => (
-  <Select.Portal>
-    <Select.Content
-      className={`dark:border-neutral-450 z-[999] translate-z-0 overflow-hidden rounded-xs border
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
+  const { isOpen, setIsOpen } = React.useContext(SelectContext);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        contentRef.current &&
+        !contentRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen, setIsOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      ref={contentRef}
+      className={`dark:border-neutral-450 absolute z-[999] mt-1 overflow-hidden rounded-xs border
         border-neutral-800 bg-white p-1 shadow-lg will-change-transform
         dark:bg-neutral-950 ${className}`}
-      position='popper'
-      {...props}
+      role='listbox'
     >
-      <Select.Viewport className='p-1'>{children}</Select.Viewport>
-    </Select.Content>
-  </Select.Portal>
-);
-SelectContent.displayName = 'SelectContent';
+      <div className='p-1'>{children}</div>
+    </div>
+  );
+};
+
+interface SelectItemProps {
+  children: React.ReactNode;
+  value: string;
+}
+
+export const SharedSelectItem = ({ children, value }: SelectItemProps) => {
+  const { selectedValue, onSelectValue, setIsOpen } =
+    React.useContext(SelectContext);
+  const isSelected = selectedValue === value;
+
+  return (
+    <div
+      role='option'
+      aria-selected={isSelected}
+      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm
+        text-neutral-800 transition-colors will-change-transform outline-none
+        hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800'
+      onClick={() => {
+        onSelectValue(value);
+        setIsOpen(false);
+      }}
+    >
+      <span>{children}</span>
+      {isSelected && (
+        <span className='absolute right-2'>
+          <CheckSvg
+            className='fill-neutral-800 dark:fill-neutral-200'
+            width={24}
+            height={24}
+          />
+        </span>
+      )}
+    </div>
+  );
+};
 
 export const voteFilters = [
   {
@@ -135,6 +218,7 @@ export const MenuBar = ({ bodyVersions, currentVersion }: MenuBarProps) => {
         setView={setView}
         includesProposals={includesProposals}
       />
+
       {view == ViewEnum.BODY && (
         <BodyViewBar
           bodyVersions={bodyVersions}

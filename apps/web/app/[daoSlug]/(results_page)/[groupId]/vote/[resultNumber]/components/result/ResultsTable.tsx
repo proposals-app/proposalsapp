@@ -3,11 +3,10 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { format, toZonedTime } from 'date-fns-tz';
 import Link from 'next/link';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useContext } from 'react';
 import { WindowScroller, List, AutoSizer } from 'react-virtualized';
 import { DelegateInfo, DelegateVotingPower } from '../actions';
 import { ProcessedResults } from '@/lib/results_processing';
-import * as Select from '@radix-ui/react-select';
 import CheckSvg from '@/public/assets/web/check.svg';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
@@ -21,27 +20,151 @@ interface ResultsTableProps {
   votingPowerMap: Map<string, DelegateVotingPower>;
 }
 
-const SelectItem = React.forwardRef<
-  HTMLDivElement,
-  { children: React.ReactNode; value: string }
->(({ children, value, ...props }, forwardedRef) => {
-  return (
-    <Select.Item
-      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm
-        text-neutral-800 transition-colors outline-none hover:bg-neutral-100
-        dark:text-neutral-200 dark:hover:bg-neutral-700'
-      {...props}
-      ref={forwardedRef}
-      value={value}
-    >
-      <Select.ItemText>{children}</Select.ItemText>
-      <Select.ItemIndicator className='absolute right-2'>
-        <CheckSvg width={24} height={24} />
-      </Select.ItemIndicator>
-    </Select.Item>
-  );
+// Custom Select Context
+const SelectContext = React.createContext<{
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedValue: string;
+  onSelectValue: (value: string) => void;
+}>({
+  isOpen: false,
+  setIsOpen: () => {},
+  selectedValue: '',
+  onSelectValue: () => {},
 });
-SelectItem.displayName = 'SelectItem';
+
+interface SelectProps {
+  value: string;
+  onValueChange: (value: string) => void;
+  children: React.ReactNode;
+}
+
+const Select = ({ value, onValueChange, children }: SelectProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <SelectContext.Provider
+      value={{
+        isOpen,
+        setIsOpen,
+        selectedValue: value,
+        onSelectValue: onValueChange,
+      }}
+    >
+      <div className='relative'>{children}</div>
+    </SelectContext.Provider>
+  );
+};
+
+const SelectTrigger = ({
+  children,
+  className = '',
+  'aria-label': ariaLabel,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  'aria-label'?: string;
+}) => {
+  const { isOpen, setIsOpen } = useContext(SelectContext);
+
+  return (
+    <button
+      type='button'
+      aria-haspopup='listbox'
+      aria-expanded={isOpen}
+      aria-label={ariaLabel}
+      className={`flex h-8 cursor-pointer items-center justify-between text-sm outline-none
+        ${className}`}
+      onClick={() => setIsOpen(!isOpen)}
+    >
+      {children}
+    </button>
+  );
+};
+
+const SelectValue = ({ children }: { children: React.ReactNode }) => {
+  return <span>{children}</span>;
+};
+
+const SelectContent = ({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
+  const { isOpen, setIsOpen } = useContext(SelectContext);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        contentRef.current &&
+        !contentRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen, setIsOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      ref={contentRef}
+      className={`absolute z-[999] mt-1 overflow-hidden rounded-sm border border-neutral-200
+        bg-white p-1 shadow-lg will-change-transform dark:border-neutral-700
+        dark:bg-neutral-800 ${className}`}
+      role='listbox'
+    >
+      <div className='p-1'>{children}</div>
+    </div>
+  );
+};
+
+interface SelectItemProps {
+  children: React.ReactNode;
+  value: string;
+}
+
+const SelectItem = ({ children, value }: SelectItemProps) => {
+  const { selectedValue, onSelectValue, setIsOpen } = useContext(SelectContext);
+  const isSelected = selectedValue === value;
+
+  return (
+    <div
+      role='option'
+      aria-selected={isSelected}
+      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm
+        text-neutral-800 transition-colors will-change-transform outline-none
+        hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-700'
+      onClick={() => {
+        onSelectValue(value);
+        setIsOpen(false);
+      }}
+    >
+      <span>{children}</span>
+      {isSelected && (
+        <span className='absolute right-2'>
+          <CheckSvg
+            className='fill-neutral-800 dark:fill-neutral-200'
+            width={24}
+            height={24}
+          />
+        </span>
+      )}
+    </div>
+  );
+};
 
 export function ResultsTable({
   results,
@@ -249,15 +372,12 @@ export function ResultsTable({
         Delegate
       </div>
       <div className='col-span-3'>
-        <Select.Root value={selectedChoice} onValueChange={setSelectedChoice}>
-          <Select.Trigger
-            className='flex h-8 w-full cursor-pointer items-center justify-between rounded-sm text-sm
-              text-neutral-800 transition-colors outline-none dark:text-neutral-200'
+        <Select value={selectedChoice} onValueChange={setSelectedChoice}>
+          <SelectTrigger
+            aria-label='Filter by choice'
+            className='flex w-full items-center justify-between'
           >
-            <Select.Value
-              placeholder='Filter by choice'
-              className='flex w-full items-center justify-between'
-            >
+            <SelectValue>
               <div className='flex items-center gap-1'>
                 {selectedChoice === 'all' ? 'All Vote Choices' : selectedChoice}
                 <ChevronDownSvg
@@ -266,27 +386,18 @@ export function ResultsTable({
                   className='text-neutral-800 dark:text-neutral-200'
                 />
               </div>
-            </Select.Value>
-          </Select.Trigger>
+            </SelectValue>
+          </SelectTrigger>
 
-          <Select.Portal>
-            <Select.Content
-              className='w-full rounded-sm border border-neutral-200 bg-white p-1 shadow-lg
-                dark:border-neutral-700 dark:bg-neutral-800'
-              position='popper'
-              sideOffset={5}
-            >
-              <Select.Viewport className=''>
-                <SelectItem value='all'>All Choices</SelectItem>
-                {deserializedResults.choices.map((choice, index) => (
-                  <SelectItem key={index} value={choice}>
-                    {choice}
-                  </SelectItem>
-                ))}
-              </Select.Viewport>
-            </Select.Content>
-          </Select.Portal>
-        </Select.Root>
+          <SelectContent className='w-full'>
+            <SelectItem value='all'>All Choices</SelectItem>
+            {deserializedResults.choices.map((choice, index) => (
+              <SelectItem key={index} value={choice}>
+                {choice}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div
         onClick={() => handleSortChange('timestamp')}

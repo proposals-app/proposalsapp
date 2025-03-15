@@ -1,6 +1,4 @@
-import { after } from 'next/server';
 import { getGroups_cached } from './actions';
-import { getGroup_cached } from './(main_page)/[groupId]/actions';
 import { VirtualizedGroupList } from './components/VirtualizedGroupList';
 
 export default async function ListPage({
@@ -16,14 +14,6 @@ export default async function ListPage({
   }
 
   const { daoName, groups } = result;
-
-  after(async () => {
-    await Promise.all(
-      groups.map((group) => {
-        return getGroup_cached(daoSlug, group.id);
-      })
-    );
-  });
 
   return (
     <div className='flex min-h-screen w-full flex-row'>

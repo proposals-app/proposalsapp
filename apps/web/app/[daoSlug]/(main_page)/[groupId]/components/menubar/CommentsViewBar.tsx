@@ -7,11 +7,12 @@ import {
   SharedSelectItem,
   ViewEnum,
   voteFilters,
+  Select,
   SelectTrigger,
   SelectContent,
+  SelectValue,
 } from './MenuBar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
-import * as Select from '@radix-ui/react-select';
 import React from 'react';
 import { unstable_ViewTransition as ViewTransition } from 'react';
 
@@ -78,7 +79,7 @@ export const CommentsViewBar = ({
 
             <div className='flex space-x-2'>
               {includesProposals ? (
-                <Select.Root
+                <Select
                   value={feedFilter}
                   onValueChange={(value) =>
                     setFeedFilter(value as FeedFilterEnum)
@@ -86,9 +87,9 @@ export const CommentsViewBar = ({
                 >
                   <SelectTrigger
                     aria-label='Select feed filter'
-                    className='w-[200px]'
+                    className='w-48'
                   >
-                    <Select.Value>{currentFeedFilter}</Select.Value>
+                    <SelectValue>{currentFeedFilter}</SelectValue>
                   </SelectTrigger>
 
                   <SelectContent>
@@ -98,14 +99,14 @@ export const CommentsViewBar = ({
                       </SharedSelectItem>
                     ))}
                   </SelectContent>
-                </Select.Root>
+                </Select>
               ) : (
                 <div className='flex h-8 items-center justify-center rounded-xs px-3 text-sm'>
                   Comments
                 </div>
               )}
 
-              <Select.Root
+              <Select
                 value={votesFilter}
                 onValueChange={(value) =>
                   setVotesFilter(value as VotesFilterEnum)
@@ -113,9 +114,9 @@ export const CommentsViewBar = ({
               >
                 <SelectTrigger
                   aria-label='Select votes filter'
-                  className='w-[200px]'
+                  className='w-48'
                 >
-                  <Select.Value>{currentVotesFilter}</Select.Value>
+                  <SelectValue>{currentVotesFilter}</SelectValue>
                 </SelectTrigger>
 
                 <SelectContent>
@@ -125,7 +126,7 @@ export const CommentsViewBar = ({
                     </SharedSelectItem>
                   ))}
                 </SelectContent>
-              </Select.Root>
+              </Select>
             </div>
           </div>
         </div>

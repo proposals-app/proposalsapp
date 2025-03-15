@@ -2,17 +2,18 @@
 
 import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   feedFilters,
   SharedSelectItem,
   ViewEnum,
   voteFilters,
+  Select,
   SelectTrigger,
   SelectContent,
+  SelectValue,
 } from './MenuBar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
-import * as Select from '@radix-ui/react-select';
 import { unstable_ViewTransition as ViewTransition } from 'react';
 
 interface FullViewBarProps {
@@ -30,14 +31,14 @@ export const FullViewBar = ({
     'feed',
     parseAsStringEnum<FeedFilterEnum>(Object.values(FeedFilterEnum))
       .withDefault(FeedFilterEnum.COMMENTS_AND_VOTES)
-      .withOptions({ shallow: false })
+      .withOptions({ shallow: false, clearOnDefault: true })
   );
 
   const [votesFilter, setVotesFilter] = useQueryState(
     'votes',
     parseAsStringEnum<VotesFilterEnum>(Object.values(VotesFilterEnum))
       .withDefault(VotesFilterEnum.FIFTY_THOUSAND)
-      .withOptions({ shallow: false })
+      .withOptions({ shallow: false, clearOnDefault: true })
   );
 
   const [expanded, setExpanded] = useQueryState(
@@ -53,7 +54,7 @@ export const FullViewBar = ({
   const currentVotesFilter =
     voteFilters.find((filter) => filter.value === votesFilter)?.label || '';
 
-  const handleSwitchView = () => {
+  const handleSwitchView = useCallback(() => {
     if (!fullViewBarRef.current) return;
 
     const rect = fullViewBarRef.current.getBoundingClientRect();
@@ -69,19 +70,19 @@ export const FullViewBar = ({
     } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
       setView(ViewEnum.BODY);
     }
-  };
+  }, [view, setView]);
 
   useEffect(() => {
     window.addEventListener('scroll', handleSwitchView, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleSwitchView);
     };
-  }, [view, setView]);
+  }, [handleSwitchView]);
 
   useEffect(() => {
     if (expanded) setView(ViewEnum.BODY);
     else setView(ViewEnum.FULL);
-  }, [expanded]);
+  }, [expanded, setView]);
 
   return (
     <ViewTransition name='menubar'>
@@ -126,7 +127,7 @@ export const FullViewBar = ({
 
             <div className='flex space-x-2'>
               {includesProposals ? (
-                <Select.Root
+                <Select
                   value={feedFilter}
                   onValueChange={(value) =>
                     setFeedFilter(value as FeedFilterEnum)
@@ -134,9 +135,9 @@ export const FullViewBar = ({
                 >
                   <SelectTrigger
                     aria-label='Select feed filter'
-                    className='w-44'
+                    className='w-48'
                   >
-                    <Select.Value>{currentFeedFilter}</Select.Value>
+                    <SelectValue>{currentFeedFilter}</SelectValue>
                   </SelectTrigger>
 
                   <SelectContent>
@@ -146,14 +147,14 @@ export const FullViewBar = ({
                       </SharedSelectItem>
                     ))}
                   </SelectContent>
-                </Select.Root>
+                </Select>
               ) : (
                 <div className='flex h-8 items-center justify-center rounded-xs px-3 text-sm'>
                   Comments
                 </div>
               )}
 
-              <Select.Root
+              <Select
                 value={votesFilter}
                 onValueChange={(value) =>
                   setVotesFilter(value as VotesFilterEnum)
@@ -163,7 +164,7 @@ export const FullViewBar = ({
                   aria-label='Select votes filter'
                   className='w-44'
                 >
-                  <Select.Value>{currentVotesFilter}</Select.Value>
+                  <SelectValue>{currentVotesFilter}</SelectValue>
                 </SelectTrigger>
 
                 <SelectContent>
@@ -173,7 +174,7 @@ export const FullViewBar = ({
                     </SharedSelectItem>
                   ))}
                 </SelectContent>
-              </Select.Root>
+              </Select>
             </div>
           </div>
         </div>

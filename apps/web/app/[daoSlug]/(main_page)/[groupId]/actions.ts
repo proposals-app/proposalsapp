@@ -750,7 +750,11 @@ async function getFeed(
           })
         );
 
-        posts = filteredPosts.filter(Boolean) as Selectable<DiscoursePost>[];
+        if (
+          feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES ||
+          feedFilter == FeedFilterEnum.COMMENTS
+        )
+          posts = filteredPosts.filter(Boolean) as Selectable<DiscoursePost>[];
 
         const dailyPostsMap = new Map<
           string,
