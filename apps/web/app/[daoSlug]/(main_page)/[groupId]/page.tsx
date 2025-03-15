@@ -1,10 +1,8 @@
 import { searchParamsCache } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import {
-  VersionType,
   getGroup_cached,
-  getTotalVersions_cached,
-  getBodies_cached,
+  getBodyVersions_cached,
   getFeed_cached,
 } from './actions';
 import { Body, BodyLoading } from './components/body/Body';
@@ -22,15 +20,19 @@ export default async function GroupPage({
 }) {
   const { daoSlug, groupId } = await params;
 
-  const [group, totalVersions, bodies] = await Promise.all([
+  const [group, bodyVersions] = await Promise.all([
     getGroup_cached(daoSlug, groupId),
-    getTotalVersions_cached(groupId),
-    getBodies_cached(groupId),
+    getBodyVersions_cached(groupId),
   ]);
 
-  if (!group || !totalVersions || !bodies) {
+  if (!group || !bodyVersions) {
     notFound();
   }
+
+  const bodyVersionsWithoutContent = bodyVersions.map((body) => ({
+    ...body,
+    content: '',
+  }));
 
   const {
     version,
@@ -40,10 +42,7 @@ export default async function GroupPage({
   } = await searchParamsCache.parse(searchParams);
 
   // Always use the latest version if no version is specified
-  const currentVersion = version ?? totalVersions - 1;
-
-  // Extract just the version types
-  const versionTypes: VersionType[] = bodies.map((body) => body.type);
+  const currentVersion = version ?? bodyVersions.length - 1;
 
   const feed = await getFeed_cached(group.group.id, feedFilter, votesFilter);
 
@@ -53,18 +52,16 @@ export default async function GroupPage({
         <Suspense fallback={<BodyLoading />}>
           <Body
             group={group}
-            version={currentVersion}
             diff={diff}
-            bodies={bodies}
+            bodyVersions={bodyVersions}
+            currentVersion={currentVersion}
           />
         </Suspense>
 
         <Suspense>
           <MenuBar
-            totalVersions={totalVersions}
-            versionTypes={versionTypes}
+            bodyVersions={bodyVersionsWithoutContent}
             currentVersion={currentVersion}
-            includesProposals={group.proposals.length > 0}
           />
         </Suspense>
 

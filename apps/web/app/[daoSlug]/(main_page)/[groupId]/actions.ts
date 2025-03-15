@@ -114,7 +114,7 @@ async function getGroup(daoSlug: string, groupId: string) {
   });
 }
 
-export type BodyType = {
+export type BodyVersionType = {
   title: string;
   content: string;
   author_name: string;
@@ -125,10 +125,10 @@ export type BodyType = {
 
 export type VersionType = 'topic' | 'onchain' | 'offchain';
 
-async function getBodies(groupID: string) {
+async function getBodyVersions(groupID: string) {
   'use server';
   return otel('get-bodies-', async () => {
-    const bodies: BodyType[] = [];
+    const bodies: BodyVersionType[] = [];
 
     const group = await db
       .selectFrom('proposalGroup')
@@ -273,92 +273,6 @@ async function getBodies(groupID: string) {
     bodies.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
     return bodies;
-  });
-}
-
-async function getTotalVersions(groupID: string) {
-  'use server';
-  return otel('get-total-versions', async () => {
-    let totalVersions = 0;
-
-    const group = await db
-      .selectFrom('proposalGroup')
-      .selectAll()
-      .where('id', '=', groupID)
-      .executeTakeFirst();
-
-    if (!group) {
-      return null;
-    }
-
-    const items = group.items as ProposalGroupItem[];
-
-    const proposalItems = items.filter((item) => item.type === 'proposal');
-    const topicItems = items.filter((item) => item.type === 'topic');
-
-    const proposals: Selectable<Proposal>[] = [];
-    if (proposalItems.length > 0) {
-      for (const proposalItem of proposalItems) {
-        try {
-          const p = await db
-            .selectFrom('proposal')
-            .selectAll()
-            .where('externalId', '=', proposalItem.externalId)
-            .where('governorId', '=', proposalItem.governorId)
-            .executeTakeFirstOrThrow();
-
-          proposals.push(p);
-        } catch (error) {
-          console.error('Error fetching:', proposalItem, error);
-        }
-      }
-    }
-
-    const discourseTopics: Selectable<DiscourseTopic>[] = [];
-    if (topicItems.length > 0) {
-      for (const topicItem of topicItems) {
-        try {
-          const t = await db
-            .selectFrom('discourseTopic')
-            .where('externalId', '=', parseInt(topicItem.externalId, 10))
-            .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
-            .selectAll()
-            .executeTakeFirstOrThrow();
-
-          discourseTopics.push(t);
-        } catch (error) {
-          console.error('Error fetching:', topicItem, error);
-        }
-      }
-    }
-
-    totalVersions += proposals.length;
-
-    for (const discourseTopic of discourseTopics) {
-      const discourseFirstPost = await db
-        .selectFrom('discoursePost')
-        .where('discoursePost.topicId', '=', discourseTopic.externalId)
-        .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
-        .where('discoursePost.postNumber', '=', 1)
-        .selectAll()
-        .executeTakeFirstOrThrow();
-
-      totalVersions++;
-
-      const discourseFirstPostRevisions = await db
-        .selectFrom('discoursePostRevision')
-        .where(
-          'discoursePostRevision.discoursePostId',
-          '=',
-          discourseFirstPost.id
-        )
-        .selectAll()
-        .execute();
-
-      totalVersions += discourseFirstPostRevisions.length;
-    }
-
-    return totalVersions;
   });
 }
 
@@ -922,20 +836,12 @@ export const getGroup_cached = unstable_cache(
   { revalidate: 60 * 5, tags: ['get-group'] }
 );
 
-export const getBodies_cached = unstable_cache(
+export const getBodyVersions_cached = unstable_cache(
   async (groupId: string) => {
-    return await getBodies(groupId);
+    return await getBodyVersions(groupId);
   },
   ['get-bodies'],
   { revalidate: 60 * 5, tags: ['get-bodies'] }
-);
-
-export const getTotalVersions_cached = unstable_cache(
-  async (groupId: string) => {
-    return await getTotalVersions(groupId);
-  },
-  ['get-total-versions'],
-  { revalidate: 60 * 5, tags: ['get-total-versions'] }
 );
 
 export const getFeed_cached = superjson_cache(
@@ -951,5 +857,5 @@ export const getFeed_cached = superjson_cache(
 );
 
 export type GroupReturnType = AsyncReturnType<typeof getGroup>;
-export type BodiesReturnType = AsyncReturnType<typeof getBodies>;
+export type BodyVersionsReturnType = AsyncReturnType<typeof getBodyVersions>;
 export type FeedReturnType = AsyncReturnType<typeof getFeed>;

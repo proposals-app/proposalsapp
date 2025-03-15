@@ -7,7 +7,7 @@ import { FullViewBar } from './FullViewBar';
 import * as Select from '@radix-ui/react-select';
 import CheckSvg from '@/public/assets/web/check.svg';
 import React, { useState } from 'react';
-import { VersionType } from '../../actions';
+import { BodyVersionType, VersionType } from '../../actions';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 
 // Optimized SelectItem component for Safari
@@ -117,19 +117,16 @@ export enum ViewEnum {
 }
 
 interface MenuBarProps {
-  totalVersions: number;
-  versionTypes: VersionType[];
+  bodyVersions: BodyVersionType[];
   currentVersion: number;
-  includesProposals: boolean;
 }
 
-export const MenuBar = ({
-  totalVersions,
-  versionTypes,
-  currentVersion,
-  includesProposals,
-}: MenuBarProps) => {
+export const MenuBar = ({ bodyVersions, currentVersion }: MenuBarProps) => {
   const [view, setView] = useState(ViewEnum.FULL);
+
+  const includesProposals = bodyVersions.some(
+    (version) => version.type === 'onchain' || version.type === 'offchain'
+  );
 
   return (
     <div className='font-condensed flex w-full justify-center'>
@@ -140,8 +137,7 @@ export const MenuBar = ({
       />
       {view == ViewEnum.BODY && (
         <BodyViewBar
-          totalVersions={totalVersions}
-          versionTypes={versionTypes}
+          bodyVersions={bodyVersions}
           currentVersion={currentVersion}
           view={view}
           setView={setView}

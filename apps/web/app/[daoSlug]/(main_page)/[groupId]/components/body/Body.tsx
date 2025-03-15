@@ -9,7 +9,7 @@ import { JSDOM } from 'jsdom';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toHast } from 'mdast-util-to-hast';
 import { notFound } from 'next/navigation';
-import { BodyType, GroupReturnType } from '../../actions';
+import { BodyVersionType, GroupReturnType } from '../../actions';
 import { BodyContent } from './BodyContent';
 import { PostedTime } from './PostedTime';
 import {
@@ -24,36 +24,34 @@ import { getGroupAuthor_cached } from '@/app/[daoSlug]/actions';
 
 export async function Body({
   group,
-  version,
   diff,
-  bodies,
+  bodyVersions,
+  currentVersion,
 }: {
   group: GroupReturnType;
-  version: number;
   diff: boolean;
-  bodies: BodyType[];
+  bodyVersions: BodyVersionType[];
+  currentVersion: number;
 }) {
   if (!group) {
     notFound();
   }
 
-  if (!bodies || bodies.length === 0) {
+  if (!bodyVersions || bodyVersions.length === 0) {
     return <div className='w-full p-4'>No bodies found.</div>;
   }
 
-  // Replace the getBodies_cached call with the passed bodies
-  const initialBody = bodies[0];
-  const latestBody = bodies[bodies.length - 1];
+  const firstBodyVersion = bodyVersions[0];
+  const lastBodyVersion = bodyVersions[bodyVersions.length - 1];
 
-  // Use the latest version if no specific version is provided
-  const defaultVersion = bodies.length - 1;
-  const currentVersion =
-    typeof version === 'undefined' ? defaultVersion : version;
-  const visibleBody = bodies[currentVersion];
+  const visibleBody = bodyVersions[currentVersion];
 
   const processedContent =
     diff && currentVersion > 0
-      ? processDiff(visibleBody.content, bodies[currentVersion - 1].content)
+      ? processDiff(
+          visibleBody.content,
+          bodyVersions[currentVersion - 1].content
+        )
       : markdownToHtml(visibleBody.content);
 
   const { originalAuthorName, originalAuthorPicture, groupName } =
@@ -87,12 +85,12 @@ export async function Body({
                 <div className='flex flex-row gap-4'>
                   <PostedTime
                     label='initially posted'
-                    createdAt={initialBody.createdAt}
+                    createdAt={firstBodyVersion.createdAt}
                   />
 
                   <PostedTime
                     label='latest revision'
-                    createdAt={latestBody.createdAt}
+                    createdAt={lastBodyVersion.createdAt}
                     border
                   />
                 </div>

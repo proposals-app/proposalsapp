@@ -8,25 +8,28 @@ import FirstSvg from '@/public/assets/web/first.svg';
 import LastSvg from '@/public/assets/web/last.svg';
 import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
-import { VersionType } from '../../actions';
+import { BodyVersionType, VersionType } from '../../actions';
 import { ViewEnum } from './MenuBar';
 import { unstable_ViewTransition as ViewTransition } from 'react';
 
 interface BodyViewBarProps {
-  totalVersions: number;
-  versionTypes: VersionType[];
+  bodyVersions: BodyVersionType[];
+
   currentVersion: number;
   view: ViewEnum;
   setView: (view: ViewEnum) => void;
 }
 
 export const BodyViewBar = ({
-  totalVersions,
-  versionTypes,
+  bodyVersions,
+
   currentVersion,
   view,
   setView,
 }: BodyViewBarProps) => {
+  const totalVersions = bodyVersions.length;
+  const versionTypes: VersionType[] = bodyVersions.map((body) => body.type);
+
   const [expanded, setExpanded] = useQueryState(
     'expanded',
     parseAsBoolean.withDefault(false)
@@ -116,7 +119,7 @@ export const BodyViewBar = ({
                 onClick={() => setVersion(0)}
                 disabled={currentVersion === 0}
                 className={`flex h-8 items-center justify-center px-1 text-sm ${
-                  currentVersion === 0 ? 'cursor-not-allowed' : '' }`}
+                  currentVersion === 0 ? 'cursor-not-allowed' : 'cursor-pointer' }`}
               >
                 <FirstSvg
                   className={`${currentVersion === 0 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
@@ -129,7 +132,7 @@ export const BodyViewBar = ({
                 onClick={() => setVersion(Math.max(0, currentVersion - 1))}
                 disabled={currentVersion === 0}
                 className={`flex h-8 items-center justify-center px-1 text-sm ${
-                  currentVersion === 0 ? 'cursor-not-allowed' : '' }`}
+                  currentVersion === 0 ? 'cursor-not-allowed' : 'cursor-pointer' }`}
               >
                 <PreviousSvg
                   className={`${currentVersion === 0 ? 'fill-neutral-300 dark:fill-neutral-600' : ''}`}
@@ -149,7 +152,7 @@ export const BodyViewBar = ({
                 className={`flex h-8 items-center justify-center px-1 text-sm ${
                   currentVersion === totalVersions - 1
                     ? 'cursor-not-allowed'
-                    : ''
+                    : 'cursor-pointer'
                     }`}
               >
                 <NextSvg
@@ -164,7 +167,7 @@ export const BodyViewBar = ({
                 className={`flex h-8 items-center justify-center px-1 text-sm ${
                   currentVersion === totalVersions - 1
                     ? 'cursor-not-allowed'
-                    : ''
+                    : 'cursor-pointer'
                 }`}
               >
                 <LastSvg
