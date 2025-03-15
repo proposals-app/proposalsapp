@@ -29,7 +29,7 @@ export default async function GroupPage({
   return (
     <div className='flex w-full flex-col items-center pt-10 pr-96'>
       <div className='flex w-full max-w-3xl flex-col overflow-visible'>
-        <Suspense fallback={<BodyLoading />}>
+        <Suspense fallback={<BodyLoading />} key={`body-${version}-${diff}`}>
           <BodySection
             daoSlug={daoSlug}
             groupId={groupId}
@@ -38,11 +38,14 @@ export default async function GroupPage({
           />
         </Suspense>
 
-        <Suspense fallback={<LoadingMenuBar />}>
+        <Suspense fallback={<LoadingMenuBar />} key={`menu-${version}-${diff}`}>
           <MenuBarSection groupId={groupId} version={version} />
         </Suspense>
 
-        <Suspense fallback={<FeedLoading />}>
+        <Suspense
+          fallback={<FeedLoading />}
+          key={`feed-${feedFilter}-${votesFilter}`}
+        >
           <FeedSection
             daoSlug={daoSlug}
             groupId={groupId}
@@ -52,7 +55,7 @@ export default async function GroupPage({
         </Suspense>
       </div>
 
-      <Suspense>
+      <Suspense key={`timeline-${feedFilter}-${votesFilter}`}>
         <TimelineSection
           daoSlug={daoSlug}
           groupId={groupId}
