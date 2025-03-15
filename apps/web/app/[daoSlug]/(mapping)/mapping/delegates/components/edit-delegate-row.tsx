@@ -39,7 +39,6 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
     useState<Selectable<Voter>[]>(voters);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [pending, startTransition] = useTransition();
 
   const handleDeleteDelegate = async () => {
     if (

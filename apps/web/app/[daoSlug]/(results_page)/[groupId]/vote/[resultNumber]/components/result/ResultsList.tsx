@@ -88,6 +88,7 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
         <ParticipationPercentage
           percentage={participationPercentage}
           totalVotingPower={totalDelegatedVp}
+          totalDelegatedVp={totalDelegatedVp}
         />
       )}
     </div>
@@ -261,7 +262,11 @@ function MajoritySupportCheckmark({
         left: `${(results.quorum / results.totalDelegatedVp) * 100}%`,
       }}
     >
-      {hasQuorum ? <PassedIcon /> : <FailedIcon />}
+      {hasQuorum ? (
+        <PassedIcon className='fill-for-600 dark:fill-for-400' />
+      ) : (
+        <FailedIcon className='fill-against-600 dark:fill-against-400' />
+      )}
       <span>Majority support</span>
     </div>
   );
@@ -306,7 +311,11 @@ function QuorumBar({
       </div>
       {/* Quorum Text */}
       <div className='mt-2 flex items-center gap-1 text-sm'>
-        {quorumVotingPower > quorum ? <PassedIcon /> : <FailedIcon />}
+        {quorumVotingPower > quorum ? (
+          <PassedIcon className='fill-for-600 dark:fill-for-400' />
+        ) : (
+          <FailedIcon className='fill-against-600 dark:fill-against-400' />
+        )}
         <span className='font-semibold'>
           {formatNumberWithSuffix(quorumVotingPower)}
         </span>
@@ -321,9 +330,13 @@ function QuorumBar({
 interface ParticipationPercentageProps {
   percentage: number;
   totalVotingPower: number;
+  totalDelegatedVp: number;
 }
 
-function ParticipationPercentage({ percentage }: ParticipationPercentageProps) {
+function ParticipationPercentage({
+  percentage,
+  totalDelegatedVp,
+}: ParticipationPercentageProps) {
   return (
     <div>
       <div className='relative h-2 w-full border border-neutral-800 dark:border-neutral-200'>
@@ -336,7 +349,7 @@ function ParticipationPercentage({ percentage }: ParticipationPercentageProps) {
       </div>
       <div className='mt-2 text-xs'>
         <span className='font-semibold'>{percentage.toFixed(0)}%</span> of all
-        delegated ARB has voted
+        delegated ARB voted ({formatNumberWithSuffix(totalDelegatedVp)})
       </div>
     </div>
   );

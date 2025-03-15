@@ -12,7 +12,7 @@ resolver = "2"
 [workspace.dependencies]
 alloy = "0.8.3"
 anyhow = "1.0.97"
-async-trait = "0.1.87"
+async-trait = "0.1.88"
 axum = "0.7.9"
 backtrace = "0.3.74"
 chrono = "0.4.40"

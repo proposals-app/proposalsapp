@@ -145,7 +145,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
           <>
             <div className='flex items-center gap-1'>
               {winningChoice.choiceIndex === choices.indexOf('For') && (
-                <PassedSmallIcon />
+                <PassedSmallIcon className='fill-for-600 dark:fill-for-400' />
               )}
               <span className='font-bold'>For </span>
               <span>
@@ -156,7 +156,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
             </div>
             <div className='flex items-center gap-1'>
               {winningChoice.choiceIndex === choices.indexOf('Against') && (
-                <PassedSmallIcon />
+                <PassedSmallIcon className='fill-for-600 dark:fill-for-400' />
               )}
               <span>
                 {formatNumberWithSuffix(
@@ -169,7 +169,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
         ) : (
           // Show only winning choice for non-basic votes
           <div className='flex items-center gap-1'>
-            <PassedSmallIcon />
+            <PassedSmallIcon className='fill-for-600 dark:fill-for-400' />
             <span className='font-bold'>
               {choices[winningChoice.choiceIndex]}{' '}
             </span>
@@ -191,7 +191,11 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
 
           <div className='flex items-start justify-between py-1 text-xs'>
             <div className='flex items-center gap-1'>
-              {hasQuorum ? <PassedSmallIcon /> : <FailedSmallIcon />}
+              {hasQuorum ? (
+                <PassedSmallIcon className='fill-for-600 dark:fill-for-400' />
+              ) : (
+                <FailedSmallIcon className='fill-against-600 dark:fill-against-400' />
+              )}
 
               <span className='font-bold'>
                 {formatNumberWithSuffix(quorumVotingPower)}
@@ -202,7 +206,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
 
             <div>
               <span className='font-semibold'>
-                {participationPercentage.toFixed(0)}%
+                {formatNumberWithSuffix(totalVotingPower)}
               </span>{' '}
               have voted
             </div>

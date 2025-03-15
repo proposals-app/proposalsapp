@@ -509,7 +509,7 @@ export function Timeline({
       >
         <div
           ref={refs.containerRef}
-          className='relative h-full w-full overflow-hidden'
+          className='relative h-full w-full'
           data-aggregation-level={aggregationLevel}
         >
           <div
