@@ -239,13 +239,13 @@ const PostContent = ({
           </summary>
           <div
             dangerouslySetInnerHTML={{ __html: processedContent }}
-            className='prose prose-lg max-w-none'
+            className='prose prose-lg max-w-none break-words text-ellipsis'
           />
         </details>
       ) : (
         <div
           dangerouslySetInnerHTML={{ __html: processedContent }}
-          className='prose prose-lg mt-4 max-w-none'
+          className='prose prose-lg mt-4 max-w-none break-words text-ellipsis'
         />
       )}
     </>

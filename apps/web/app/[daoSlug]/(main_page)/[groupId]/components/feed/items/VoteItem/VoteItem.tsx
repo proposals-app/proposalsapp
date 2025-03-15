@@ -166,7 +166,7 @@ export async function VoteItem({
       </div>
 
       <div className='flex flex-col'>
-        <p className=''>{item.reason}</p>
+        <p className='break-words text-ellipsis'>{item.reason}</p>
         {match && (
           <p className='self-end'>
             <a
