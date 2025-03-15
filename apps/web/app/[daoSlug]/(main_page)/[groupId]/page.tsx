@@ -37,7 +37,7 @@ export default async function GroupPage({
       <div className='flex w-full max-w-3xl flex-col overflow-visible'>
         <Suspense
           fallback={<BodyLoading />}
-          key={`body-loading-${version}-${diff}`}
+          key={`body-loading-${version}-${diff}-${expanded}`}
         >
           <BodySection
             daoSlug={daoSlug}
