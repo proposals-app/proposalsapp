@@ -11,24 +11,20 @@ import { toHast } from 'mdast-util-to-hast';
 import { notFound } from 'next/navigation';
 import { BodyVersionType, GroupReturnType } from '../../actions';
 import { BodyContent } from './BodyContent';
-import { PostedTime } from './PostedTime';
 import {
   COLLAPSIBLE_STYLES,
   MARKDOWN_STYLES,
   QUOTE_STYLES,
 } from '@/lib/markdown_styles';
 import Image from 'next/image';
-import { Header } from '@/app/[daoSlug]/components/Header';
-
-import { getGroupAuthor } from '@/app/[daoSlug]/actions';
 import { Suspense } from 'react';
 
-async function processMarkdown(
+function processMarkdown(
   visibleBodyContent: string,
   previousBodyContent: string | null,
   diffEnabled: boolean,
   currentVersion: number
-): Promise<string> {
+): string {
   if (diffEnabled && currentVersion > 0 && previousBodyContent) {
     return processDiff(visibleBodyContent, previousBodyContent);
   } else {
@@ -36,7 +32,7 @@ async function processMarkdown(
   }
 }
 
-export async function Body({
+export function Body({
   group,
   diff,
   bodyVersions,
@@ -59,15 +55,20 @@ export async function Body({
   const previousBody =
     diff && currentVersion > 0 ? bodyVersions[currentVersion - 1] : null;
 
+  const processedContent = processMarkdown(
+    visibleBody.content,
+    previousBody?.content || null,
+    diff,
+    currentVersion
+  );
+
   return (
     <div className='relative'>
-      <Suspense fallback={<BodyLoadingContent />}>
-        <AsyncBodyContent
-          visibleBodyContent={visibleBody.content}
-          previousBodyContent={previousBody?.content}
-          diffEnabled={diff}
-          currentVersion={currentVersion}
-        />
+      <Suspense
+        fallback={<BodyLoadingContent />}
+        key={`async-body-content-${currentVersion}-${diff}`}
+      >
+        <BodyContent processedContent={processedContent} />
       </Suspense>
     </div>
   );
@@ -124,32 +125,12 @@ function BodyLoadingContent() {
   );
 }
 
-async function AsyncBodyContent({
-  visibleBodyContent,
-  previousBodyContent,
-  diffEnabled,
-  currentVersion,
-}: {
-  visibleBodyContent: string;
-  previousBodyContent: string | null | undefined;
-  diffEnabled: boolean;
-  currentVersion: number;
-}) {
-  const processedContent = await processMarkdown(
-    visibleBodyContent,
-    previousBodyContent || null,
-    diffEnabled,
-    currentVersion
-  );
-
-  return <BodyContent processedContent={processedContent} />;
-}
-
 export function LoadingBodyHeader() {
   return (
     <div className='flex w-full flex-col gap-6'>
       {/* Title Loading */}
       <div className='h-10 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
+
       {/* Author Info and Posted Time Loading */}
       <div className='flex flex-col'>
         <div className='flex flex-row justify-between'>
@@ -186,7 +167,7 @@ export function LoadingBodyHeader() {
             </div>
           </div>
         </div>
-      </div>{' '}
+      </div>
     </div>
   );
 }
@@ -235,11 +216,11 @@ export function BodyLoading() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Content Loading */}
-        <div className='relative'>
-          <BodyLoadingContent />
+          {/* Content Loading */}
+          <div className='relative'>
+            <BodyLoadingContent />
+          </div>
         </div>
       </div>
     </div>
@@ -356,87 +337,63 @@ function processDetails(html: string): string {
   return processedHtml;
 }
 
-export async function applyStyle(
+export function applyStyle(
   dom: Document | Element | Comment | DocumentFragment | DocumentType | Text
-): Promise<string> {
-  return new Promise<string>((resolve) => {
-    // Explicitly type Promise<string>
-    const doc = getDocument();
-    const container = doc.createElement('div');
-    if (dom.hasChildNodes()) container.appendChild(dom.cloneNode(true));
+): string {
+  const doc = getDocument();
+  const container = doc.createElement('div');
+  if (dom.hasChildNodes()) container.appendChild(dom.cloneNode(true));
 
-    Object.entries(MARKDOWN_STYLES).forEach(([tag, className]) => {
-      container.querySelectorAll(tag).forEach((element) => {
-        element.className = `${element.className} ${className}`.trim();
-      });
+  Object.entries(MARKDOWN_STYLES).forEach(([tag, className]) => {
+    container.querySelectorAll(tag).forEach((element) => {
+      element.className = `${element.className} ${className}`.trim();
     });
-    resolve(container.innerHTML);
   });
+
+  return container.innerHTML;
 }
 
-export function markdownToHtml(markdown: string): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    // Explicitly type Promise<string>
-    try {
-      // Create custom implementation of toDom that uses the server document
-      const customToDom = (node: Nodes) => {
-        const doc = getDocument();
-        return toDom(node, { document: doc });
-      };
+export function markdownToHtml(markdown: string): string {
+  // Create custom implementation of toDom that uses the server document
+  const customToDom = (node: Nodes) => {
+    const doc = getDocument();
+    return toDom(node, { document: doc });
+  };
 
-      const markdownDom = customToDom(toHast(fromMarkdown(markdown)));
-      applyStyle(markdownDom)
-        .then((html: string) => {
-          // Explicitly type html as string
-          // Process quotes and details after HTML conversion
-          html = processDetails(processQuotes(html));
-          resolve(html);
-        })
-        .catch(reject);
-    } catch (error) {
-      reject(error);
-    }
-  });
+  const markdownDom = customToDom(toHast(fromMarkdown(markdown)));
+
+  let html = applyStyle(markdownDom);
+  html = processDetails(processQuotes(html));
+
+  return html;
 }
 
 export function processDiff(
   currentContent: string,
   previousContent: string
-): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    // Explicitly type Promise<string>
-    try {
-      const customToDom = (node: Nodes) => {
-        const doc = getDocument();
-        return toDom(node, { document: doc });
-      };
+): string {
+  const customToDom = (node: Nodes) => {
+    const doc = getDocument();
+    return toDom(node, { document: doc });
+  };
 
-      // Parse both contents into DOM
-      const currentTree = customToDom(toHast(fromMarkdown(currentContent)));
-      const previousTree = customToDom(toHast(fromMarkdown(previousContent)));
+  // Parse both contents into DOM
+  const currentTree = customToDom(toHast(fromMarkdown(currentContent)));
+  const previousTree = customToDom(toHast(fromMarkdown(previousContent)));
 
-      if (!currentTree || !previousTree) {
-        throw new Error('Failed to parse markdown content');
-      }
+  if (!currentTree || !previousTree) {
+    throw new Error('Failed to parse markdown content');
+  }
 
-      // Generate the diff
-      const diffFragment = visualDomDiff(previousTree, currentTree, {
-        addedClass: 'diff-added',
-        removedClass: 'diff-deleted',
-        modifiedClass: 'diff-modified',
-        diffText: diffText_word,
-      });
-
-      applyStyle(diffFragment)
-        .then((styledHtml: string) => {
-          // Explicitly type styledHtml as string
-          resolve(styledHtml);
-        })
-        .catch(reject);
-    } catch (error) {
-      reject(error);
-    }
+  // Generate the diff
+  const diffFragment = visualDomDiff(previousTree, currentTree, {
+    addedClass: 'diff-added',
+    removedClass: 'diff-deleted',
+    modifiedClass: 'diff-modified',
+    diffText: diffText_word,
   });
+
+  return applyStyle(diffFragment);
 }
 
 export function diffText_word(oldText: string, newText: string): Diff[] {

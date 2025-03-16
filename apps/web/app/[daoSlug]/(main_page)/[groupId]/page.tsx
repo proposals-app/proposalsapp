@@ -27,33 +27,25 @@ export default async function GroupPage({
   params: Promise<{ daoSlug: string; groupId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const [{ daoSlug, groupId }, parsedParams] = await Promise.all([
-    params,
-    searchParamsCache.parse(searchParams),
-  ]);
+  const resolvedParams = await params;
+  const { daoSlug, groupId } = resolvedParams;
+  const parsedParams = await searchParamsCache.parse(searchParams);
 
-  const {
-    version,
-    expanded,
-    diff,
-    feed: feedFilter,
-    votes: votesFilter,
-  } = parsedParams;
+  const { version, diff, feed: feedFilter, votes: votesFilter } = parsedParams;
+
+  const bodyKey = `body-${groupId}-${version}-${diff ? 'diff' : 'nodiff'}`;
+  const menuBarKey = `menubar-${version}-${diff ? 'diff' : 'nodiff'}`;
+  const feedKey = `feed-${groupId}-${feedFilter}-${votesFilter}`;
+  const timelineKey = `timeline-${groupId}-${feedFilter}-${votesFilter}`;
 
   return (
     <div className='flex w-full flex-col items-center pt-10 pr-96'>
       <div className='flex w-full max-w-3xl flex-col overflow-visible'>
-        <Suspense
-          fallback={<LoadingBodyHeader />}
-          key={`body-header-${groupId}`}
-        >
+        <Suspense fallback={<LoadingBodyHeader />}>
           <BodyHeaderSection daoSlug={daoSlug} groupId={groupId} />
         </Suspense>
 
-        <Suspense
-          fallback={<BodyLoading />}
-          key={`body-loading-${version}-${diff}`}
-        >
+        <Suspense fallback={<BodyLoading />} key={bodyKey}>
           <BodySection
             daoSlug={daoSlug}
             groupId={groupId}
@@ -62,22 +54,11 @@ export default async function GroupPage({
           />
         </Suspense>
 
-        <Suspense
-          fallback={<LoadingMenuBar />}
-          key={`menu-loading-${version}-${diff}`}
-        >
-          <MenuBarSection
-            groupId={groupId}
-            version={version}
-            diff={diff}
-            expanded={expanded}
-          />
+        <Suspense fallback={<LoadingMenuBar />} key={menuBarKey}>
+          <MenuBarSection groupId={groupId} version={version} diff={diff} />
         </Suspense>
 
-        <Suspense
-          fallback={<FeedLoading />}
-          key={`feed-${feedFilter}-${votesFilter}`}
-        >
+        <Suspense fallback={<FeedLoading />} key={feedKey}>
           <FeedSection
             daoSlug={daoSlug}
             groupId={groupId}
@@ -87,7 +68,7 @@ export default async function GroupPage({
         </Suspense>
       </div>
 
-      <Suspense key={`timeline-${feedFilter}-${votesFilter}`}>
+      <Suspense key={timelineKey}>
         <TimelineSection
           daoSlug={daoSlug}
           groupId={groupId}
@@ -99,6 +80,39 @@ export default async function GroupPage({
   );
 }
 
+async function BodySection({
+  daoSlug,
+  groupId,
+  version,
+  diff,
+}: {
+  daoSlug: string;
+  groupId: string;
+  version: number | null;
+  diff: boolean;
+}) {
+  const [group, bodyVersions] = await Promise.all([
+    getGroup(daoSlug, groupId),
+    getBodyVersions(groupId, true),
+  ]);
+
+  if (!group || !bodyVersions) {
+    notFound();
+  }
+
+  // Always use the latest version if no version is specified
+  const currentVersion = version ?? bodyVersions.length - 1;
+
+  return (
+    <Body
+      group={group}
+      diff={diff}
+      bodyVersions={bodyVersions}
+      currentVersion={currentVersion}
+    />
+  );
+}
+
 async function BodyHeaderSection({
   daoSlug,
   groupId,
@@ -106,11 +120,7 @@ async function BodyHeaderSection({
   daoSlug: string;
   groupId: string;
 }) {
-  const [
-    group,
-    bodyVersions,
-    { originalAuthorName, originalAuthorPicture, groupName },
-  ] = await Promise.all([
+  const [group, bodyVersions, authorInfo] = await Promise.all([
     getGroup(daoSlug, groupId),
     getBodyVersions(groupId, true),
     getGroupAuthor(groupId),
@@ -120,6 +130,7 @@ async function BodyHeaderSection({
     notFound();
   }
 
+  const { originalAuthorName, originalAuthorPicture, groupName } = authorInfo;
   const firstBodyVersion = bodyVersions[0];
   const lastBodyVersion = bodyVersions[bodyVersions.length - 1];
 
@@ -165,48 +176,13 @@ async function BodyHeaderSection({
   );
 }
 
-async function BodySection({
-  daoSlug,
-  groupId,
-  version,
-  diff,
-}: {
-  daoSlug: string;
-  groupId: string;
-  version: number | null;
-  diff: boolean;
-}) {
-  const [group, bodyVersions] = await Promise.all([
-    getGroup(daoSlug, groupId),
-    getBodyVersions(groupId, true),
-  ]);
-
-  if (!group || !bodyVersions) {
-    notFound();
-  }
-
-  // Always use the latest version if no version is specified
-  const currentVersion = version ?? bodyVersions.length - 1;
-
-  return (
-    <Body
-      group={group}
-      diff={diff}
-      bodyVersions={bodyVersions}
-      currentVersion={currentVersion}
-    />
-  );
-}
-
 async function MenuBarSection({
   groupId,
   version,
   diff,
-  expanded,
 }: {
   groupId: string;
   version: number | null;
-  expanded: boolean;
   diff: boolean;
 }) {
   const bodyVersions = await getBodyVersions(groupId, false);
@@ -214,17 +190,13 @@ async function MenuBarSection({
   if (!bodyVersions) {
     return null;
   }
-  const bodyVersionsWithoutContent = bodyVersions.map((body) => ({
-    ...body,
-    content: '',
-  }));
 
   // Always use the latest version if no version is specified
   const currentVersion = version ?? bodyVersions.length - 1;
 
   return (
     <MenuBar
-      bodyVersions={bodyVersionsWithoutContent}
+      bodyVersions={bodyVersions}
       currentVersion={currentVersion}
       diff={diff}
     />
@@ -247,6 +219,10 @@ async function FeedSection({
     getFeed(groupId, feedFilter, votesFilter),
   ]);
 
+  if (!group) {
+    notFound();
+  }
+
   return <Feed group={group} feed={feed} />;
 }
 
@@ -265,6 +241,10 @@ async function TimelineSection({
     getGroup(daoSlug, groupId),
     getFeed(groupId, feedFilter, votesFilter),
   ]);
+
+  if (!group) {
+    notFound();
+  }
 
   return (
     <Timeline
