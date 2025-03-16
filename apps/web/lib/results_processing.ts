@@ -28,7 +28,7 @@ export interface ProcessedVote
     color: string;
   }[];
   aggregate?: boolean;
-  relativeVotingPower?: number; // Added relativeVotingPower
+  relativeVotingPower?: number;
 }
 
 export interface TimeSeriesPoint {

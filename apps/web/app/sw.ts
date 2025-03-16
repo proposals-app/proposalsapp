@@ -36,7 +36,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.message,
-      icon: '/assets/web/logo_192.png',
+      icon: '/assets/logo_192.png',
     })
   );
 });

@@ -316,7 +316,6 @@ interface VotesVolumeEvent extends BaseEvent {
 
 export interface VoteSegmentData {
   votingPower: number;
-  tooltip: string;
   isAggregated?: boolean;
 }
 
@@ -377,7 +376,6 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
         if (percentage >= MIN_VISIBLE_WIDTH_PERCENT) {
           voteSegments[choiceIndex.toString()].push({
             votingPower: proportionalVotingPower,
-            tooltip: `${formatNumberWithSuffix(proportionalVotingPower)} vote "${choices[choiceIndex]}"`,
           });
         } else {
           aggregatedVotes[choiceIndex].count += 1;
@@ -396,9 +394,6 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
     if (data.power > 0) {
       voteSegments[choice].push({
         votingPower: data.power,
-        tooltip: `${data.count} votes with ${formatNumberWithSuffix(
-          data.power
-        )} total voting power for "${choices[parseInt(choice)]}"`,
         isAggregated: true,
       });
     }
@@ -499,9 +494,6 @@ export async function getFeed(
           }
         );
 
-        if (filteredProcessedResults.votes)
-          filteredProcessedVotes.push(...filteredProcessedResults.votes);
-
         const dailyFilteredVotesMap = new Map<
           string,
           {
@@ -511,47 +503,50 @@ export async function getFeed(
           }
         >();
 
-        filteredProcessedVotes.forEach((vote) => {
-          // Get the date in locale format to use as key
-          const date = vote.createdAt.toLocaleDateString();
-          const votingPower = vote.votingPower;
+        if (filteredProcessedResults.votes) {
+          filteredProcessedVotes.push(...filteredProcessedResults.votes);
+          filteredProcessedResults.votes.forEach((vote) => {
+            // Get the date in locale format to use as key
+            const date = vote.createdAt.toLocaleDateString();
+            const votingPower = vote.votingPower;
 
-          if (dailyFilteredVotesMap.has(date)) {
-            const dailyData = dailyFilteredVotesMap.get(date)!;
-            dailyData.totalVotingPower += votingPower;
-            dailyData.lastVoteTime = vote.createdAt; // Update last vote time to the latest vote in the day
+            if (dailyFilteredVotesMap.has(date)) {
+              const dailyData = dailyFilteredVotesMap.get(date)!;
+              dailyData.totalVotingPower += votingPower;
+              dailyData.lastVoteTime = vote.createdAt; // Update last vote time to the latest vote in the day
 
-            // Add voting power to each choice based on weight
-            vote.choice.forEach((choiceItem) => {
-              const choiceIndex = choiceItem.choiceIndex;
-              const proportionalVotingPower =
-                (votingPower * choiceItem.weight) / 100;
+              // Add voting power to each choice based on weight
+              vote.choice.forEach((choiceItem) => {
+                const choiceIndex = choiceItem.choiceIndex;
+                const proportionalVotingPower =
+                  (votingPower * choiceItem.weight) / 100;
 
-              if (!dailyData.choiceVotingPower[choiceIndex]) {
-                dailyData.choiceVotingPower[choiceIndex] = 0;
-              }
-              dailyData.choiceVotingPower[choiceIndex] +=
-                proportionalVotingPower;
-            });
-          } else {
-            // Initialize a new entry
-            const choiceVotingPower: { [choice: number]: number } = {};
+                if (!dailyData.choiceVotingPower[choiceIndex]) {
+                  dailyData.choiceVotingPower[choiceIndex] = 0;
+                }
+                dailyData.choiceVotingPower[choiceIndex] +=
+                  proportionalVotingPower;
+              });
+            } else {
+              // Initialize a new entry
+              const choiceVotingPower: { [choice: number]: number } = {};
 
-            // Initialize voting power for each choice
-            vote.choice.forEach((choiceItem) => {
-              const choiceIndex = choiceItem.choiceIndex;
-              const proportionalVotingPower =
-                (votingPower * choiceItem.weight) / 100;
-              choiceVotingPower[choiceIndex] = proportionalVotingPower;
-            });
+              // Initialize voting power for each choice
+              vote.choice.forEach((choiceItem) => {
+                const choiceIndex = choiceItem.choiceIndex;
+                const proportionalVotingPower =
+                  (votingPower * choiceItem.weight) / 100;
+                choiceVotingPower[choiceIndex] = proportionalVotingPower;
+              });
 
-            dailyFilteredVotesMap.set(date, {
-              totalVotingPower: votingPower,
-              lastVoteTime: vote.createdAt,
-              choiceVotingPower,
-            });
-          }
-        });
+              dailyFilteredVotesMap.set(date, {
+                totalVotingPower: votingPower,
+                lastVoteTime: vote.createdAt,
+                choiceVotingPower,
+              });
+            }
+          });
+        }
 
         const dailyFilteredVotes = Array.from(dailyFilteredVotesMap.values());
 
