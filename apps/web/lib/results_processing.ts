@@ -706,7 +706,7 @@ async function processRankedChoiceVotes(
           choiceText: (vote.choice as number[])
             .map((c) => choices[c - 1] || 'Unknown Choice')
             .join(', '),
-          color: (vote.choice as number[]).map((c) => choiceColors[c]),
+          color: (vote.choice as number[]).map((c) => choiceColors[c - 1]),
           createdAt: new Date(vote.createdAt), // Ensure createdAt is a Date object
         }))
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())

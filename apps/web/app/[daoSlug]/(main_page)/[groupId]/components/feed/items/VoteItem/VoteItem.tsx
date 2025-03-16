@@ -160,9 +160,7 @@ export async function VoteItem({
 
       <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
         <span className=''>{formattedVotingPower} ARB </span>
-        <span className='font-bold'>
-          {((proposal?.choices ?? []) as string[])[item.choice as number]}
-        </span>
+        <span className='font-bold'>{item.choiceText}</span>
       </div>
 
       <div className='flex flex-col'>
