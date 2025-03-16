@@ -30,8 +30,8 @@ export const BodyViewBar = ({
   const totalVersions = bodyVersions.length;
   const versionTypes: VersionType[] = bodyVersions.map((body) => body.type);
 
-  const [isDiffPending, startTransitionDiff] = useTransition();
-  const [isVersionPending, startTransitionVersion] = useTransition();
+  const [, startTransitionDiff] = useTransition();
+  const [, startTransitionVersion] = useTransition();
 
   const [optimisticDiff, setOptimisticDiff] = useOptimistic(
     diff,
