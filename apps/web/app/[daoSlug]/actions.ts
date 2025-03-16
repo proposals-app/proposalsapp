@@ -285,8 +285,8 @@ export async function getGroupAuthor(groupId: string): Promise<{
 
       return {
         originalAuthorName:
-          discourseFirstPostAuthor.name?.trim() ||
           discourseFirstPostAuthor.username ||
+          discourseFirstPostAuthor.name ||
           'Unknown',
         originalAuthorPicture: discourseFirstPostAuthor.avatarTemplate.length
           ? discourseFirstPostAuthor.avatarTemplate

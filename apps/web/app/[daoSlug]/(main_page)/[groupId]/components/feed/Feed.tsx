@@ -3,6 +3,7 @@ import { PostItem } from './items/PostItem/PostItem';
 import { VoteItem } from './items/VoteItem/VoteItem';
 import { FeedReturnType, GroupReturnType } from '../../actions';
 import { AggregateVoteItem } from './items/VoteItem/AggregateVoteItem';
+import { unstable_ViewTransition as ViewTransition } from 'react';
 
 export async function Feed({
   group,
@@ -46,7 +47,9 @@ export async function Feed({
           return (
             <div key={index}>
               <div className='flex w-full flex-col p-4'>
-                <PostItem item={item} group={group} />
+                <ViewTransition name={item.id}>
+                  <PostItem item={item} group={group} />
+                </ViewTransition>
               </div>
               {index < combinedItems.length - 1 && (
                 <div className='border-b border-neutral-200 dark:border-neutral-800' />
@@ -58,9 +61,13 @@ export async function Feed({
             <div key={index}>
               <div className='flex w-full flex-col p-4'>
                 {item.aggregate ? (
-                  <AggregateVoteItem item={item} group={group} />
+                  <ViewTransition name={item.id}>
+                    <AggregateVoteItem item={item} group={group} />
+                  </ViewTransition>
                 ) : (
-                  <VoteItem item={item} group={group} />
+                  <ViewTransition name={item.id}>
+                    <VoteItem item={item} group={group} />
+                  </ViewTransition>
                 )}
               </div>
               {index < combinedItems.length - 1 && (
