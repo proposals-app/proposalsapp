@@ -34,7 +34,7 @@ export default async function GroupPage({
   const { version, diff, feed: feedFilter, votes: votesFilter } = parsedParams;
 
   const bodyKey = `body-${groupId}-${version}-${diff ? 'diff' : 'nodiff'}`;
-  const menuBarKey = `menubar-${version}-${diff ? 'diff' : 'nodiff'}`;
+  const menuBarKey = `menubar-${groupId}`;
   const feedKey = `feed-${groupId}-${feedFilter}-${votesFilter}`;
   const timelineKey = `timeline-${groupId}-${feedFilter}-${votesFilter}`;
 
