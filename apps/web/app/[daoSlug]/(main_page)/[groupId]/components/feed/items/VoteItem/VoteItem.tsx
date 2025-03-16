@@ -5,6 +5,23 @@ import { VotingPowerTag } from './../VotingPowerTag';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { getDelegateByVoterAddress } from '../../actions';
 import Image from 'next/image';
+import { ProcessedVote } from '@/lib/results_processing';
+import { ProposalMetadata } from '@/app/types';
+
+// Helper to format choice text, similar to the one in ResultsTable
+const getChoiceText = (vote: ProcessedVote, isWeighted = false): string => {
+  if (!vote.choice || vote.choice.length === 0) return 'Unknown Choice';
+
+  if (isWeighted && vote.choice.length > 1) {
+    // For weighted voting, include the weight percentage
+    return vote.choice
+      .map((choice) => `${Math.round(choice.weight)}% for ${choice.text}`)
+      .join(', ');
+  } else {
+    // For other voting types, just show the choice text
+    return vote.choice.map((choice) => choice.text).join(', ');
+  }
+};
 
 export async function VoteItem({
   item,
@@ -23,7 +40,9 @@ export async function VoteItem({
     new Set(group.topics.map((t) => t.externalId))
   );
 
-  const proposal = group.proposals.find((p) => p.id == item.proposalId);
+  const proposal = group.proposals.find((p) => p.id === item.proposalId);
+  const proposalMetadata = proposal?.metadata as ProposalMetadata;
+  const isWeightedVoting = proposalMetadata.voteType === 'weighted';
 
   const delegate = await getDelegateByVoterAddress(
     item.voterAddress,
@@ -91,27 +110,51 @@ export async function VoteItem({
     else match = null;
   }
 
+  // Get formatted choice text
+  const choiceText = getChoiceText(item as ProcessedVote, isWeightedVoting);
+
+  // Determine if this is approval voting or similar
+  const isApprovalStyle =
+    item.choice &&
+    item.choice.length > 1 &&
+    item.choice.every((c) => c.weight === 100);
+
+  // Calculate total height for the color bar based on number of choices in approval voting
+  const colorBarHeight = isApprovalStyle
+    ? `${item.choice.length * 2}px`
+    : '2px';
+
   return (
     <div className='flex w-full flex-col gap-2 p-4'>
-      <div style={{ width: barWidth }} className='opacity-30'>
-        {Array.isArray(item.color) ? (
-          <div className='flex w-full'>
-            {item.color.map((color, index) => (
-              <div
-                key={index}
-                className={'h-2'}
-                style={{
-                  width: `${(1 / item.color.length) * 100}%`,
-                  backgroundColor: color,
-                }}
-              />
-            ))}
+      {/* Updated color bar with improved weight handling */}
+      <div
+        className='mb-2 w-full opacity-30'
+        style={{
+          width: barWidth,
+          height: colorBarHeight,
+        }}
+      >
+        {item.choice && item.choice.length > 0 && (
+          <div className='flex h-full w-full flex-wrap'>
+            {item.choice.map((choiceItem, idx) => {
+              // If approval style voting (multiple 100% weights), each takes full width
+              // Otherwise, width is proportional to weight
+              const itemWidth = isApprovalStyle
+                ? '100%'
+                : `${choiceItem.weight}%`;
+
+              return (
+                <div
+                  key={idx}
+                  className='h-2'
+                  style={{
+                    width: itemWidth,
+                    backgroundColor: choiceItem.color,
+                  }}
+                />
+              );
+            })}
           </div>
-        ) : (
-          <div
-            className={'h-2 w-full'}
-            style={{ width: '100%', backgroundColor: item.color }}
-          />
         )}
       </div>
 
@@ -160,7 +203,7 @@ export async function VoteItem({
 
       <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
         <span className=''>{formattedVotingPower} ARB </span>
-        <span className='font-bold'>{item.choiceText}</span>
+        <span className='font-bold'>{choiceText}</span>
       </div>
 
       <div className='flex flex-col'>

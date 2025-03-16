@@ -355,37 +355,46 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
   const aggregatedVotes: { [key: number]: { count: number; power: number } } =
     {};
 
+  // Initialize voteSegments and aggregatedVotes for each choice
   choices.forEach((_, index) => {
     voteSegments[index.toString()] = [];
     aggregatedVotes[index] = { count: 0, power: 0 };
   });
 
+  // Process each vote and distribute its voting power according to the choices
   sortedVotes.forEach((vote) => {
-    const choice = vote.choice as number;
+    // Each vote can have multiple choices now
+    vote.choice.forEach((choiceItem) => {
+      const choiceIndex = choiceItem.choiceIndex;
 
-    // Ensure the choice is a valid index in the choices array
-    if (choice >= 0 && choice < choices.length) {
-      const percentage = (vote.votingPower / totalVotingPower) * 100;
+      // Ensure the choice is a valid index in the choices array
+      if (choiceIndex >= 0 && choiceIndex < choices.length) {
+        // Calculate the proportional voting power based on the weight
+        const proportionalVotingPower =
+          (vote.votingPower * choiceItem.weight) / 100;
+        const percentage = (proportionalVotingPower / totalVotingPower) * 100;
 
-      if (percentage >= MIN_VISIBLE_WIDTH_PERCENT) {
-        voteSegments[choice.toString()].push({
-          votingPower: vote.votingPower,
-          tooltip: `${formatNumberWithSuffix(vote.votingPower)} vote "${
-            choices[choice]
-          }"`,
-        });
+        if (percentage >= MIN_VISIBLE_WIDTH_PERCENT) {
+          voteSegments[choiceIndex.toString()].push({
+            votingPower: proportionalVotingPower,
+            tooltip: `${formatNumberWithSuffix(proportionalVotingPower)} vote "${choices[choiceIndex]}"`,
+          });
+        } else {
+          aggregatedVotes[choiceIndex].count += 1;
+          aggregatedVotes[choiceIndex].power += proportionalVotingPower;
+        }
       } else {
-        aggregatedVotes[choice].count += 1;
-        aggregatedVotes[choice].power += vote.votingPower;
+        console.warn(
+          `Invalid choice index: ${choiceIndex}. Skipping this choice.`
+        );
       }
-    } else {
-      console.warn(`Invalid choice index: ${choice}. Skipping this vote.`);
-    }
+    });
   });
 
+  // Process aggregated votes
   Object.entries(aggregatedVotes).forEach(([choice, data]) => {
     if (data.power > 0) {
-      voteSegments[choice.toString()].push({
+      voteSegments[choice].push({
         votingPower: data.power,
         tooltip: `${data.count} votes with ${formatNumberWithSuffix(
           data.power
@@ -394,6 +403,7 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
       });
     }
   });
+
   return voteSegments;
 }
 
@@ -494,11 +504,15 @@ export async function getFeed(
 
         const dailyFilteredVotesMap = new Map<
           string,
-          { totalVotingPower: number; lastVoteTime: Date }
+          {
+            totalVotingPower: number;
+            lastVoteTime: Date;
+            choiceVotingPower: { [choice: number]: number };
+          }
         >();
+
         filteredProcessedVotes.forEach((vote) => {
-          // Use allVotesForProposal here
-          // Get the date in locale format (e.g., "MM/DD/YYYY" or "DD/MM/YYYY") to use as key
+          // Get the date in locale format to use as key
           const date = vote.createdAt.toLocaleDateString();
           const votingPower = vote.votingPower;
 
@@ -506,13 +520,39 @@ export async function getFeed(
             const dailyData = dailyFilteredVotesMap.get(date)!;
             dailyData.totalVotingPower += votingPower;
             dailyData.lastVoteTime = vote.createdAt; // Update last vote time to the latest vote in the day
+
+            // Add voting power to each choice based on weight
+            vote.choice.forEach((choiceItem) => {
+              const choiceIndex = choiceItem.choiceIndex;
+              const proportionalVotingPower =
+                (votingPower * choiceItem.weight) / 100;
+
+              if (!dailyData.choiceVotingPower[choiceIndex]) {
+                dailyData.choiceVotingPower[choiceIndex] = 0;
+              }
+              dailyData.choiceVotingPower[choiceIndex] +=
+                proportionalVotingPower;
+            });
           } else {
+            // Initialize a new entry
+            const choiceVotingPower: { [choice: number]: number } = {};
+
+            // Initialize voting power for each choice
+            vote.choice.forEach((choiceItem) => {
+              const choiceIndex = choiceItem.choiceIndex;
+              const proportionalVotingPower =
+                (votingPower * choiceItem.weight) / 100;
+              choiceVotingPower[choiceIndex] = proportionalVotingPower;
+            });
+
             dailyFilteredVotesMap.set(date, {
               totalVotingPower: votingPower,
               lastVoteTime: vote.createdAt,
+              choiceVotingPower,
             });
           }
         });
+
         const dailyFilteredVotes = Array.from(dailyFilteredVotesMap.values());
 
         const maxVotes = Math.max(
@@ -520,16 +560,10 @@ export async function getFeed(
           0 // Ensure maxVotes is at least 0 if there are no votes
         );
 
+        // Create volumes entry from the daily votes
         dailyFilteredVotes.forEach((dailyVote) => {
           const dailyVotingPower = Number(dailyVote.totalVotingPower);
           const timestamp = new Date(dailyVote.lastVoteTime);
-
-          // Get votes for this day
-          const dayVotes = filteredVotesForTimeline.filter(
-            (vote) =>
-              vote.createdAt.toLocaleDateString() ===
-              dailyVote.lastVoteTime.toLocaleDateString()
-          );
 
           // Get choices from the proposal
           const choices = proposal.choices as string[];
@@ -539,16 +573,14 @@ export async function getFeed(
           const colors: string[] = [];
 
           // Fill the volumes array with voting power by choice
-          dayVotes.forEach((vote) => {
-            const choiceIndex = Number(vote.choice); // Convert from 1-based to 0-based index
-            if (
-              !isNaN(choiceIndex) &&
-              choiceIndex >= 0 &&
-              choiceIndex < volumes.length
-            ) {
-              volumes[choiceIndex] += vote.votingPower;
+          Object.entries(dailyVote.choiceVotingPower).forEach(
+            ([choiceIndex, votingPower]) => {
+              const index = parseInt(choiceIndex);
+              if (index >= 0 && index < volumes.length) {
+                volumes[index] = votingPower;
+              }
             }
-          });
+          );
 
           colors.push(...filteredProcessedResults.choiceColors);
 

@@ -6,7 +6,11 @@ import Link from 'next/link';
 import React, { useEffect, useMemo, useState, useRef, useContext } from 'react';
 import { WindowScroller, List, AutoSizer } from 'react-virtualized';
 import { DelegateInfo, DelegateVotingPower } from '../actions';
-import { ProcessedResults } from '@/lib/results_processing';
+import {
+  ProcessedResults,
+  ProcessedVote,
+  VoteType,
+} from '@/lib/results_processing';
 import CheckSvg from '@/public/assets/web/check.svg';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
@@ -166,6 +170,31 @@ const SelectItem = ({ children, value }: SelectItemProps) => {
   );
 };
 
+// Helper to get choice text from the new choice structure
+const getChoiceText = (vote: ProcessedVote, voteType: VoteType): string => {
+  if (!vote.choice || vote.choice.length === 0) return 'Unknown Choice';
+
+  if (voteType == 'weighted') {
+    // For weighted voting, include the weight percentage
+    return vote.choice
+      .map((choice) => `${Math.round(choice.weight)}% for ${choice.text}`)
+      .join(', ');
+  } else {
+    // For other voting types, just show the choice text
+    return vote.choice.map((choice) => choice.text).join(', ');
+  }
+};
+
+// Helper to check if a vote includes a specific choice text
+const voteIncludesChoiceText = (
+  vote: ProcessedVote,
+  choiceText: string
+): boolean => {
+  if (!vote.choice || vote.choice.length === 0) return false;
+
+  return vote.choice.some((choice) => choice.text.includes(choiceText));
+};
+
 export function ResultsTable({
   results,
   delegateMap,
@@ -185,7 +214,7 @@ export function ResultsTable({
     // Apply choice filter
     if (selectedChoice !== 'all') {
       filteredVotes = filteredVotes.filter((vote) =>
-        vote.choiceText.includes(selectedChoice)
+        voteIncludesChoiceText(vote, selectedChoice)
       );
     }
 
@@ -245,7 +274,11 @@ export function ResultsTable({
     const shouldHideVote =
       deserializedResults.hiddenVote &&
       deserializedResults.scoresState !== 'final';
-    const choiceText = shouldHideVote ? 'Hidden vote' : vote.choiceText;
+
+    // Get choice text using helper function
+    const choiceText = shouldHideVote
+      ? 'Hidden vote'
+      : getChoiceText(vote, deserializedResults.voteType);
     const barWidth = `${(vote.relativeVotingPower || 0) * 100}%`;
     const votingPowerInfo = votingPowerMap.get(vote.voterAddress);
 
@@ -256,24 +289,27 @@ export function ResultsTable({
           className='absolute top-0 left-0 h-2 opacity-50'
           style={{ width: barWidth }}
         >
-          {Array.isArray(vote.color) ? (
-            <div className='flex h-full w-full'>
-              {vote.color.map((color, index) => (
-                <div
-                  key={index}
-                  className='h-full'
-                  style={{
-                    width: `${(1 / vote.color.length) * 100}%`,
-                    backgroundColor: color,
-                  }}
-                />
-              ))}
+          {vote.choice.length > 0 && (
+            <div className='flex h-full w-full flex-wrap'>
+              {vote.choice.map((choiceItem, idx) => {
+                // Calculate width based on weight - if all choices have 100% weight (like in approval voting),
+                // they will wrap to new lines. If weights sum to 100%, they'll be in a single line.
+                const itemWidth = vote.choice.every((c) => c.weight === 100)
+                  ? '100%' // Each item takes full width and wraps
+                  : `${choiceItem.weight}%`; // Proportional width based on weight
+
+                return (
+                  <div
+                    key={idx}
+                    className='h-full'
+                    style={{
+                      width: itemWidth,
+                      backgroundColor: choiceItem.color,
+                    }}
+                  />
+                );
+              })}
             </div>
-          ) : (
-            <div
-              className='h-full w-full'
-              style={{ backgroundColor: vote.color }}
-            />
           )}
         </div>
 
@@ -471,6 +507,7 @@ export function ResultsTable({
 }
 
 export function LoadingTable() {
+  // Loading state remains the same
   return (
     <div className='mt-6'>
       {/* Header */}

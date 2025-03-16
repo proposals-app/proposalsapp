@@ -5,6 +5,7 @@ import OnchainIcon from '@/public/assets/web/onchain.svg';
 import OffchainIcon from '@/public/assets/web/offchain.svg';
 import { DelegateInfo } from '../actions';
 import superjson, { SuperJSONResult } from 'superjson';
+import { ProcessedResults } from '@/lib/results_processing';
 
 interface ResultsTitleProps {
   results: SuperJSONResult;
@@ -25,13 +26,7 @@ export function ResultsTitle({
   publisher,
   governor,
 }: ResultsTitleProps) {
-  const deserializedResults: {
-    proposal: {
-      name: string;
-      createdAt: Date;
-      url: string;
-    };
-  } = superjson.deserialize(results);
+  const deserializedResults: ProcessedResults = superjson.deserialize(results);
 
   return (
     <div className='flex h-28 flex-col gap-2'>

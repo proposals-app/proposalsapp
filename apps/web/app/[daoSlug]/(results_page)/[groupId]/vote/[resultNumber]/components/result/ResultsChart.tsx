@@ -263,35 +263,6 @@ export function ResultsChart({ results, delegateMap }: ResultsChartProps) {
         textStyle: {
           color: themeColors.tooltip.text,
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        formatter: (params: any) => {
-          const selectedDate = new Date(params.value[0]);
-
-          // Get the data point that contains metadata
-          const timeSeriesPoint = deserializedResults.votes?.find(
-            (point) => point.createdAt.getTime() === selectedDate.getTime()
-          );
-
-          let tooltipText = `<strong>${format(selectedDate, 'MMM d, HH:mm:ss')} UTC</strong><br/>`;
-
-          // Add large vote information if available
-          if (timeSeriesPoint) {
-            const delegate = delegateMap.get(timeSeriesPoint.voterAddress);
-            const voterName = delegate?.ens || timeSeriesPoint.voterAddress;
-
-            tooltipText += `
-              <div class='w-fit whitespace-nowrap flex flex-col'>
-                <span>Voter: ${voterName}</span>
-                <span>Power: ${formatNumberWithSuffix(timeSeriesPoint.votingPower)}</span>
-                <div class='max-w-sm break-words whitespace-normal'>
-                  <span>Choice: ${timeSeriesPoint.choiceText}</span>
-                </div>
-              </div>
-            `;
-          }
-
-          return tooltipText;
-        },
       },
       xAxis: {
         type: 'time',
