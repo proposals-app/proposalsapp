@@ -41,13 +41,11 @@ export async function Body({
   diff,
   bodyVersions,
   currentVersion,
-  expanded,
 }: {
   group: GroupReturnType;
   diff: boolean;
   bodyVersions: BodyVersionType[];
   currentVersion: number;
-  expanded: boolean;
 }) {
   if (!group) {
     notFound();
@@ -57,70 +55,20 @@ export async function Body({
     return <div className='w-full p-4'>No bodies found.</div>;
   }
 
-  const firstBodyVersion = bodyVersions[0];
-  const lastBodyVersion = bodyVersions[bodyVersions.length - 1];
-
   const visibleBody = bodyVersions[currentVersion];
   const previousBody =
     diff && currentVersion > 0 ? bodyVersions[currentVersion - 1] : null;
 
-  const { originalAuthorName, originalAuthorPicture, groupName } =
-    await getGroupAuthor(group.groupId);
-
   return (
-    <div className='w-full'>
-      <Suspense>
-        <Header
-          groupId={group.groupId}
-          withBack={false}
-          withHide={true}
-          originalAuthorName={originalAuthorName}
-          originalAuthorPicture={originalAuthorPicture}
-          groupName={groupName}
+    <div className='relative'>
+      <Suspense fallback={<BodyLoadingContent />}>
+        <AsyncBodyContent
+          visibleBodyContent={visibleBody.content}
+          previousBodyContent={previousBody?.content}
+          diffEnabled={diff}
+          currentVersion={currentVersion}
         />
       </Suspense>
-
-      <div className='flex w-full flex-col gap-6'>
-        <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-300'>
-          {groupName}
-        </h1>
-
-        <div className='flex flex-col'>
-          <div className='flex flex-row justify-between'>
-            <AuthorInfo
-              authorName={originalAuthorName}
-              authorPicture={originalAuthorPicture}
-            />
-
-            <div className='flex flex-col items-center gap-2'>
-              <div className='flex flex-row gap-4'>
-                <PostedTime
-                  label='initially posted'
-                  createdAt={firstBodyVersion.createdAt}
-                />
-
-                <PostedTime
-                  label='latest revision'
-                  createdAt={lastBodyVersion.createdAt}
-                  border
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className='relative'>
-          <Suspense fallback={<BodyLoadingContent />}>
-            <AsyncBodyContent
-              visibleBodyContent={visibleBody.content}
-              previousBodyContent={previousBody?.content}
-              diffEnabled={diff}
-              currentVersion={currentVersion}
-              expanded={expanded}
-            />
-          </Suspense>
-        </div>
-      </div>
     </div>
   );
 }
@@ -181,13 +129,11 @@ async function AsyncBodyContent({
   previousBodyContent,
   diffEnabled,
   currentVersion,
-  expanded,
 }: {
   visibleBodyContent: string;
   previousBodyContent: string | null | undefined;
   diffEnabled: boolean;
   currentVersion: number;
-  expanded: boolean;
 }) {
   const processedContent = await processMarkdown(
     visibleBodyContent,
@@ -196,8 +142,52 @@ async function AsyncBodyContent({
     currentVersion
   );
 
+  return <BodyContent processedContent={processedContent} />;
+}
+
+export function LoadingBodyHeader() {
   return (
-    <BodyContent processedContent={processedContent} expanded={expanded} />
+    <div className='flex w-full flex-col gap-6'>
+      {/* Title Loading */}
+      <div className='h-10 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
+      {/* Author Info and Posted Time Loading */}
+      <div className='flex flex-col'>
+        <div className='flex flex-row justify-between'>
+          {/* Author Info Loading */}
+          <div className='flex flex-row items-center gap-2'>
+            <div
+              className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
+                border-neutral-200 dark:border-neutral-700'
+            >
+              <div className='h-full w-full animate-pulse bg-neutral-200 dark:bg-neutral-800'></div>
+            </div>
+            <div className='h-5 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          </div>
+
+          {/* Posted Time Loading */}
+          <div className='flex flex-col items-center gap-2'>
+            <div className='flex flex-row gap-4'>
+              {/* Initially Posted */}
+              <div className='flex flex-row items-center gap-2 px-2 py-1'>
+                <div className='flex flex-col space-y-1'>
+                  <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                </div>
+              </div>
+
+              {/* Latest Revision */}
+              <div className='flex flex-row items-center gap-2 bg-white px-2 py-1 dark:bg-neutral-950'>
+                <div className='flex flex-col space-y-1'>
+                  <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                  <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                </div>
+                <div className='h-6 w-6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>{' '}
+    </div>
   );
 }
 
@@ -256,7 +246,7 @@ export function BodyLoading() {
   );
 }
 
-const AuthorInfo = ({
+export const AuthorInfo = ({
   authorName,
   authorPicture,
 }: {

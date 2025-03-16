@@ -202,14 +202,12 @@ export enum ViewEnum {
 interface MenuBarProps {
   bodyVersions: BodyVersionType[];
   currentVersion: number;
-  expanded: boolean;
   diff: boolean;
 }
 
 export const MenuBar = ({
   bodyVersions,
   currentVersion,
-  expanded,
   diff,
 }: MenuBarProps) => {
   const [view, setView] = useState(ViewEnum.FULL);
@@ -232,7 +230,6 @@ export const MenuBar = ({
           currentVersion={currentVersion}
           view={view}
           setView={setView}
-          expanded={expanded}
           diff={diff}
         />
       )}

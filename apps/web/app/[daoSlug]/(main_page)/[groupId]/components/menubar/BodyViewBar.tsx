@@ -17,7 +17,6 @@ interface BodyViewBarProps {
   currentVersion: number;
   view: ViewEnum;
   setView: (view: ViewEnum) => void;
-  expanded: boolean;
   diff: boolean;
 }
 
@@ -26,19 +25,13 @@ export const BodyViewBar = ({
   currentVersion,
   view,
   setView,
-  expanded,
   diff,
 }: BodyViewBarProps) => {
   const totalVersions = bodyVersions.length;
   const versionTypes: VersionType[] = bodyVersions.map((body) => body.type);
-  const [isExpandedPending, startTransitionExpanded] = useTransition();
+
   const [isDiffPending, startTransitionDiff] = useTransition();
   const [isVersionPending, startTransitionVersion] = useTransition();
-
-  const [optimisticExpanded, setOptimisticExpanded] = useOptimistic(
-    expanded,
-    (currentExpanded, newExpanded: boolean) => newExpanded
-  );
 
   const [optimisticDiff, setOptimisticDiff] = useOptimistic(
     diff,
@@ -50,11 +43,9 @@ export const BodyViewBar = ({
     (currentVersionOptimistic, newVersion: number) => newVersion
   );
 
-  const [, setExpandedQuery] = useQueryState(
+  const [expanded, setExpanded] = useQueryState(
     'expanded',
-    parseAsBoolean
-      .withDefault(false)
-      .withOptions({ shallow: false, startTransition: startTransitionExpanded })
+    parseAsBoolean.withDefault(false).withOptions({ shallow: true })
   );
 
   const [, setDiffQuery] = useQueryState(
@@ -95,14 +86,9 @@ export const BodyViewBar = ({
             <button
               className='flex cursor-pointer items-center gap-4 hover:underline'
               onClick={() => {
-                if (optimisticExpanded) {
-                  startTransitionExpanded(() => {
-                    setOptimisticExpanded(false);
-                    setExpandedQuery(false);
-                    setView(ViewEnum.FULL);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  });
-                }
+                setExpanded(!expanded);
+                setView(ViewEnum.FULL);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             >
               <ArrowSvg width={24} height={24} />
@@ -240,14 +226,9 @@ export const BodyViewBar = ({
           <button
             className='flex cursor-pointer items-center gap-4 hover:underline'
             onClick={() => {
-              if (optimisticExpanded) {
-                startTransitionExpanded(() => {
-                  setOptimisticExpanded(false);
-                  setExpandedQuery(false);
-                  setView(ViewEnum.FULL);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                });
-              }
+              setExpanded(!expanded);
+              setView(ViewEnum.FULL);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           >
             <ArrowSvg className='rotate-180' width={24} height={24} />

@@ -5,12 +5,20 @@ import {
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { getGroup, getBodyVersions, getFeed } from './actions';
-import { Body, BodyLoading } from './components/body/Body';
+import {
+  AuthorInfo,
+  Body,
+  BodyLoading,
+  LoadingBodyHeader,
+} from './components/body/Body';
 import { Feed, FeedLoading } from './components/feed/Feed';
 import { MenuBar } from './components/menubar/MenuBar';
 import { Timeline } from './components/timeline/Timeline';
 import { Suspense } from 'react';
 import { LoadingMenuBar } from './components/menubar/LoadingMenuBar';
+import { getGroupAuthor } from '../../actions';
+import { PostedTime } from './components/body/PostedTime';
+import { Header } from '../../components/Header';
 
 export default async function GroupPage({
   params,
@@ -36,15 +44,21 @@ export default async function GroupPage({
     <div className='flex w-full flex-col items-center pt-10 pr-96'>
       <div className='flex w-full max-w-3xl flex-col overflow-visible'>
         <Suspense
+          fallback={<LoadingBodyHeader />}
+          key={`body-header-${groupId}`}
+        >
+          <BodyHeaderSection daoSlug={daoSlug} groupId={groupId} />
+        </Suspense>
+
+        <Suspense
           fallback={<BodyLoading />}
-          key={`body-loading-${version}-${diff}-${expanded}`}
+          key={`body-loading-${version}-${diff}`}
         >
           <BodySection
             daoSlug={daoSlug}
             groupId={groupId}
             version={version}
             diff={diff}
-            expanded={expanded}
           />
         </Suspense>
 
@@ -85,18 +99,82 @@ export default async function GroupPage({
   );
 }
 
+async function BodyHeaderSection({
+  daoSlug,
+  groupId,
+}: {
+  daoSlug: string;
+  groupId: string;
+}) {
+  const [
+    group,
+    bodyVersions,
+    { originalAuthorName, originalAuthorPicture, groupName },
+  ] = await Promise.all([
+    getGroup(daoSlug, groupId),
+    getBodyVersions(groupId, true),
+    getGroupAuthor(groupId),
+  ]);
+
+  if (!group || !bodyVersions) {
+    notFound();
+  }
+
+  const firstBodyVersion = bodyVersions[0];
+  const lastBodyVersion = bodyVersions[bodyVersions.length - 1];
+
+  return (
+    <div className='flex w-full flex-col gap-6'>
+      <Header
+        groupId={group.groupId}
+        withBack={false}
+        withHide={true}
+        originalAuthorName={originalAuthorName}
+        originalAuthorPicture={originalAuthorPicture}
+        groupName={groupName}
+      />
+
+      <h1 className='text-4xl font-bold text-neutral-700 dark:text-neutral-300'>
+        {groupName}
+      </h1>
+
+      <div className='flex flex-col'>
+        <div className='flex flex-row justify-between'>
+          <AuthorInfo
+            authorName={originalAuthorName}
+            authorPicture={originalAuthorPicture}
+          />
+
+          <div className='flex flex-col items-center gap-2'>
+            <div className='flex flex-row gap-4'>
+              <PostedTime
+                label='initially posted'
+                createdAt={firstBodyVersion.createdAt}
+              />
+
+              <PostedTime
+                label='latest revision'
+                createdAt={lastBodyVersion.createdAt}
+                border
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 async function BodySection({
   daoSlug,
   groupId,
   version,
   diff,
-  expanded,
 }: {
   daoSlug: string;
   groupId: string;
   version: number | null;
   diff: boolean;
-  expanded: boolean;
 }) {
   const [group, bodyVersions] = await Promise.all([
     getGroup(daoSlug, groupId),
@@ -116,7 +194,6 @@ async function BodySection({
       diff={diff}
       bodyVersions={bodyVersions}
       currentVersion={currentVersion}
-      expanded={expanded}
     />
   );
 }
@@ -149,7 +226,6 @@ async function MenuBarSection({
     <MenuBar
       bodyVersions={bodyVersionsWithoutContent}
       currentVersion={currentVersion}
-      expanded={expanded}
       diff={diff}
     />
   );
