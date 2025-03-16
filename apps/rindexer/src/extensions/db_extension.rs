@@ -386,7 +386,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
 
         for address in addresses_chunk {
             if let Some(existing_voter) = existing_voters_map.get(address) {
-                // Voter exists, check and update ENS if needed
+                // Voter exists, check and update ENS and Avatar if needed
                 let addr_clone = address.clone();
                 let provider = get_ethereum_provider_cache().get_inner_provider();
                 let ens_result: Result<String, ProviderError> = provider
@@ -395,16 +395,56 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
 
                 match ens_result {
                     Ok(fetched_ens) => {
+                        let mut needs_update = false;
+                        let mut updated_ens: Option<String> = None;
+                        let mut updated_avatar: Option<String> = None;
+
                         if existing_voter.ens != Some(fetched_ens.clone()) {
                             debug!(
                                 "Updating ENS for address {}: old ENS: {:?}, new ENS: {:?}",
                                 address, existing_voter.ens, fetched_ens
                             );
-                            voters_to_update.push(voter::ActiveModel {
-                                id: Set(existing_voter.id),  // Use Set to update existing record
-                                address: NotSet,             // Don't update address
-                                ens: Set(Some(fetched_ens)), // Set the new ENS
-                            });
+                            updated_ens = Some(fetched_ens.clone());
+                            needs_update = true;
+                        }
+
+                        let avatar_result = provider.resolve_avatar(fetched_ens.clone().as_str()).await;
+                        match avatar_result {
+                            Ok(avatar) => {
+                                let avatar_url = avatar.to_string();
+                                if existing_voter.avatar != Some(avatar_url.clone()) {
+                                    debug!(
+                                        "Updating avatar for address {}: old avatar: {:?}, new avatar: {:?}",
+                                        address, existing_voter.avatar, avatar_url
+                                    );
+                                    updated_avatar = Some(avatar_url);
+                                    needs_update = true;
+                                }
+                            }
+                            Err(e) => {
+                                debug!(
+                                    "Avatar lookup failed for address {} (update check): ENS: {}, error: {}",
+                                    addr_clone, fetched_ens, e
+                                );
+                                // Do not update avatar if lookup fails, or handle differently if
+                                // needed
+                            }
+                        }
+
+                        if needs_update {
+                            let mut voter_active_model = voter::ActiveModel {
+                                id: Set(existing_voter.id),
+                                address: NotSet,
+                                ens: NotSet,
+                                avatar: NotSet,
+                            };
+                            if let Some(ens) = updated_ens {
+                                voter_active_model.ens = Set(Some(ens));
+                            }
+                            if let Some(avatar) = updated_avatar {
+                                voter_active_model.avatar = Set(Some(avatar));
+                            }
+                            voters_to_update.push(voter_active_model);
                         }
                     }
                     Err(e) => {
@@ -412,11 +452,11 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                             "ENS lookup failed for address {} (update check): {}",
                             addr_clone, e
                         );
-                        // Do not update ENS if lookup fails, or handle differently if needed
+                        // Do not update ENS or Avatar if ENS lookup fails
                     }
                 }
             } else {
-                // Voter does not exist, perform ENS lookup and prepare for insert
+                // Voter does not exist, perform ENS and Avatar lookup and prepare for insert
                 let addr_clone = address.clone();
                 let provider = get_ethereum_provider_cache().get_inner_provider();
                 let ens_result: Result<String, ProviderError> = provider
@@ -424,16 +464,41 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                     .await;
 
                 match ens_result {
-                    Ok(ens) => voters_to_insert.push(voter::ActiveModel {
-                        id: NotSet,
-                        address: Set(address.clone()),
-                        ens: Set(Some(ens)),
-                    }),
-                    Err(_) => voters_to_insert.push(voter::ActiveModel {
-                        id: NotSet,
-                        address: Set(address.clone()),
-                        ens: NotSet,
-                    }),
+                    Ok(ens) => {
+                        let avatar_result = provider.resolve_avatar(ens.clone().as_str()).await;
+                        match avatar_result {
+                            Ok(avatar) => voters_to_insert.push(voter::ActiveModel {
+                                id: NotSet,
+                                address: Set(address.clone()),
+                                ens: Set(Some(ens)),
+                                avatar: Set(Some(avatar.to_string())),
+                            }),
+                            Err(e) => {
+                                debug!(
+                                    "Avatar lookup failed for address {} (insert): ENS: {}, error: {}",
+                                    addr_clone, ens, e
+                                );
+                                voters_to_insert.push(voter::ActiveModel {
+                                    id: NotSet,
+                                    address: Set(address.clone()),
+                                    ens: Set(Some(ens)),
+                                    avatar: NotSet, // Do not set avatar if lookup fails
+                                })
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        debug!(
+                            "ENS lookup failed for address {} (insert): {}",
+                            addr_clone, e
+                        );
+                        voters_to_insert.push(voter::ActiveModel {
+                            id: NotSet,
+                            address: Set(address.clone()),
+                            ens: NotSet,
+                            avatar: NotSet,
+                        })
+                    }
                 };
             }
         }
@@ -445,7 +510,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                 .exec(txn)
                 .await?;
         }
-        // Perform bulk update for existing voters with new ENS
+        // Perform bulk update for existing voters with new ENS and/or Avatar
         if !voters_to_update.is_empty() {
             for voter_update in voters_to_update.into_iter() {
                 voter::Entity::update(voter_update).exec(txn).await?;

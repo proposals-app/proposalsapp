@@ -17,6 +17,7 @@ pub struct Model {
     pub id: Uuid,
     pub address: String,
     pub ens: Option<String>,
+    pub avatar: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -24,6 +25,7 @@ pub enum Column {
     Id,
     Address,
     Ens,
+    Avatar,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -51,6 +53,7 @@ impl ColumnTrait for Column {
             Self::Id => ColumnType::Uuid.def(),
             Self::Address => ColumnType::Text.def().unique(),
             Self::Ens => ColumnType::Text.def().null(),
+            Self::Avatar => ColumnType::Text.def().null(),
         }
     }
 }

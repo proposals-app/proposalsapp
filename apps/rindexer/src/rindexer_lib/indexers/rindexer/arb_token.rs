@@ -121,7 +121,7 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
 
 #[instrument(skip(manifest_path, registry))]
 pub async fn arb_token_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    delegate_changed_handler(manifest_path, registry).await;
+    // delegate_changed_handler(manifest_path, registry).await;
 
     delegate_votes_changed_handler(manifest_path, registry).await;
 }

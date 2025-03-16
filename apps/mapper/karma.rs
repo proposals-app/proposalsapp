@@ -265,6 +265,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             id: NotSet,
             address: Set(delegate_data.public_address.clone()),
             ens: Set(delegate_data.ens_name.clone()),
+            avatar: NotSet,
         };
         let last_insert_id = voter::Entity::insert(new_voter)
             .exec(DB.get().unwrap())
@@ -280,6 +281,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             id: last_insert_id,
             address: delegate_data.public_address.clone(),
             ens: delegate_data.ens_name.clone(),
+            avatar: None,
         });
         METRICS.get().unwrap().db_inserts.add(1, &[]);
     }

@@ -270,11 +270,6 @@ export interface RindexerInternalRindexerArbitrumCoreGovernorProposalExtended {
   network: string;
 }
 
-export interface RindexerInternalRindexerArbitrumCoreGovernorProposalQueued {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
 export interface RindexerInternalRindexerArbitrumCoreGovernorVoteCast {
   lastSyncedBlock: Numeric | null;
   network: string;
@@ -306,11 +301,6 @@ export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecute
 }
 
 export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalQueued {
   lastSyncedBlock: Numeric | null;
   network: string;
 }
@@ -362,6 +352,7 @@ export interface Vote {
 
 export interface Voter {
   address: string;
+  avatar: string | null;
   ens: string | null;
   id: Generated<string>;
 }
@@ -396,7 +387,6 @@ export interface DB {
   "rindexerInternal.rindexerArbitrumCoreGovernorProposalCreated": RindexerInternalRindexerArbitrumCoreGovernorProposalCreated;
   "rindexerInternal.rindexerArbitrumCoreGovernorProposalExecuted": RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted;
   "rindexerInternal.rindexerArbitrumCoreGovernorProposalExtended": RindexerInternalRindexerArbitrumCoreGovernorProposalExtended;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalQueued": RindexerInternalRindexerArbitrumCoreGovernorProposalQueued;
   "rindexerInternal.rindexerArbitrumCoreGovernorVoteCast": RindexerInternalRindexerArbitrumCoreGovernorVoteCast;
   "rindexerInternal.rindexerArbitrumCoreGovernorVoteCastWithParams": RindexerInternalRindexerArbitrumCoreGovernorVoteCastWithParams;
   "rindexerInternal.rindexerArbitrumScNominationsProposalCreated": RindexerInternalRindexerArbitrumScNominationsProposalCreated;
@@ -404,7 +394,6 @@ export interface DB {
   "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalCreated": RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated;
   "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExecuted": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted;
   "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExtended": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalQueued": RindexerInternalRindexerArbitrumTreasuryGovernorProposalQueued;
   "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCast": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast;
   "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCastWithParams": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCastWithParams;
   "rindexerInternal.rindexerArbTokenDelegateChanged": RindexerInternalRindexerArbTokenDelegateChanged;
