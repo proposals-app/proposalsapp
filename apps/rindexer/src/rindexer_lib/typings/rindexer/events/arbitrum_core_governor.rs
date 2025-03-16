@@ -501,86 +501,6 @@ where
     }
 }
 
-pub fn votecastwithparams_handler<TExtensions, F, Fut>(custom_logic: F) -> VoteCastWithParamsEventCallbackType<TExtensions>
-where
-    VoteCastWithParamsResult: Clone + 'static,
-    F: for<'a> Fn(Vec<VoteCastWithParamsResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    TExtensions: Send + Sync + 'static,
-{
-    Arc::new(move |results, context| {
-        let custom_logic = custom_logic.clone();
-        let results = results.clone();
-        let context = Arc::clone(&context);
-        async move { (custom_logic)(results, context).await }.boxed()
-    })
-}
-
-type VoteCastWithParamsEventCallbackType<TExtensions> = Arc<dyn for<'a> Fn(&'a Vec<VoteCastWithParamsResult>, Arc<EventContext<TExtensions>>) -> BoxFuture<'a, EventCallbackResult<()>> + Send + Sync>;
-
-pub struct VoteCastWithParamsEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    callback: VoteCastWithParamsEventCallbackType<TExtensions>,
-    context: Arc<EventContext<TExtensions>>,
-}
-
-impl<TExtensions> VoteCastWithParamsEvent<TExtensions>
-where
-    TExtensions: Send + Sync + 'static,
-{
-    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
-    where
-        VoteCastWithParamsResult: Clone + 'static,
-        F: for<'a> Fn(Vec<VoteCastWithParamsResult>, Arc<EventContext<TExtensions>>) -> Fut + Send + Sync + 'static + Clone,
-        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
-    {
-        Self {
-            callback: votecastwithparams_handler(closure),
-            context: Arc::new(EventContext {
-                database: get_or_init_postgres_client().await,
-
-                extensions: Arc::new(extensions),
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<TExtensions> EventCallback for VoteCastWithParamsEvent<TExtensions>
-where
-    TExtensions: Send + Sync,
-{
-    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
-        let events_len = events.len();
-
-        // note some can not downcast because it cant decode
-        // this happens on events which failed decoding due to
-        // not having the right abi for example
-        // transfer events with 2 indexed topics cant decode
-        // transfer events with 3 indexed topics
-        let result: Vec<VoteCastWithParamsResult> = events
-            .into_iter()
-            .filter_map(|item| {
-                item.decoded_data
-                    .downcast::<VoteCastWithParamsData>()
-                    .ok()
-                    .map(|arc| VoteCastWithParamsResult {
-                        event_data: (*arc).clone(),
-                        tx_information: item.tx_information,
-                    })
-            })
-            .collect();
-
-        if result.len() == events_len {
-            (self.callback)(&result, Arc::clone(&self.context)).await
-        } else {
-            panic!("VoteCastWithParamsEvent: Unexpected data type - expected: VoteCastWithParamsData")
-        }
-    }
-}
-
 pub enum ArbitrumCoreGovernorEventType<TExtensions>
 where
     TExtensions: 'static + Send + Sync,
@@ -589,7 +509,6 @@ where
     ProposalExecuted(ProposalExecutedEvent<TExtensions>),
     ProposalExtended(ProposalExtendedEvent<TExtensions>),
     VoteCast(VoteCastEvent<TExtensions>),
-    VoteCastWithParams(VoteCastWithParamsEvent<TExtensions>),
 }
 
 pub fn arbitrum_core_governor_contract(network: &str) -> RindexerArbitrumCoreGovernorGen<Arc<Provider<RetryClient<Http>>>> {
@@ -624,7 +543,6 @@ where
             ArbitrumCoreGovernorEventType::ProposalExecuted(_) => "0x712ae1383f79ac853f8d882153778e0260ef8f03b504e2866e0593e04d2b291f",
             ArbitrumCoreGovernorEventType::ProposalExtended(_) => "0x541f725fb9f7c98a30cc9c0ff32fbb14358cd7159c847a3aa20a2bdc442ba511",
             ArbitrumCoreGovernorEventType::VoteCast(_) => "0xb8e138887d0aa13bab447e82de9d5c1777041ecd21ca36ba824ff1e6c07ddda4",
-            ArbitrumCoreGovernorEventType::VoteCastWithParams(_) => "0xe2babfbac5889a709b63bb7f598b324e08bc5a4fb9ec647fb3cbc9ec07eb8712",
         }
     }
 
@@ -634,7 +552,6 @@ where
             ArbitrumCoreGovernorEventType::ProposalExecuted(_) => "ProposalExecuted",
             ArbitrumCoreGovernorEventType::ProposalExtended(_) => "ProposalExtended",
             ArbitrumCoreGovernorEventType::VoteCast(_) => "VoteCast",
-            ArbitrumCoreGovernorEventType::VoteCastWithParams(_) => "VoteCastWithParams",
         }
     }
 
@@ -696,19 +613,6 @@ where
                 }) {
                     Ok(event) => {
                         let result: VoteCastData = event;
-                        Arc::new(result) as Arc<dyn Any + Send + Sync>
-                    }
-                    Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
-                }
-            }),
-
-            ArbitrumCoreGovernorEventType::VoteCastWithParams(_) => Arc::new(move |topics: Vec<H256>, data: Bytes| {
-                match VoteCastWithParamsData::decode_log(&ethers::core::abi::RawLog {
-                    topics,
-                    data: data.to_vec(),
-                }) {
-                    Ok(event) => {
-                        let result: VoteCastWithParamsData = event;
                         Arc::new(result) as Arc<dyn Any + Send + Sync>
                     }
                     Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
@@ -792,14 +696,6 @@ where
             }
 
             ArbitrumCoreGovernorEventType::VoteCast(event) => {
-                let event = Arc::new(event);
-                Arc::new(move |result| {
-                    let event = Arc::clone(&event);
-                    async move { event.call(result).await }.boxed()
-                })
-            }
-
-            ArbitrumCoreGovernorEventType::VoteCastWithParams(event) => {
                 let event = Arc::new(event);
                 Arc::new(move |result| {
                     let event = Arc::clone(&event);

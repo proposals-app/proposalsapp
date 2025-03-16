@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::{ArbitrumTreasuryGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, VoteCastEvent, VoteCastWithParamsEvent, no_extensions};
+use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::{ArbitrumTreasuryGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, VoteCastEvent, no_extensions};
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
@@ -325,62 +325,6 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 }
 
 #[instrument(skip(manifest_path, registry))]
-async fn vote_cast_with_params_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumTreasuryGovernorEventType::VoteCastWithParams(
-        VoteCastWithParamsEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    return Ok(());
-                }
-
-                info!(
-                    event = "ArbitrumTreasuryGovernor::VoteCastWithParams",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
-                    results = results.len(),
-                );
-
-                let mut votes = vec![];
-
-                for result in results.clone() {
-                    let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
-                        .await
-                        .expect("Failed to estimate created timestamp");
-
-                    let vote = vote::ActiveModel {
-                        id: NotSet,
-                        voter_address: Set(to_checksum(&result.event_data.voter, None)),
-                        choice: Set(match result.event_data.support {
-                            0 => 1.into(),
-                            1 => 0.into(),
-                            2 => 2.into(),
-                            _ => 2.into(),
-                        }),
-                        voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
-                        reason: Set(Some(result.event_data.reason)),
-                        created_at: Set(created_at),
-                        block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
-                        txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
-                        proposal_external_id: Set(result.event_data.proposal_id.to_string()),
-                        proposal_id: NotSet,
-                        governor_id: Set(get_votes_governor_id().take().unwrap()),
-                        dao_id: Set(get_dao_id().unwrap()),
-                    };
-
-                    votes.push(vote);
-                }
-
-                store_votes(votes, get_proposals_governor_id().take().unwrap()).await;
-
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry);
-}
-
-#[instrument(skip(manifest_path, registry))]
 pub async fn arbitrum_treasury_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     proposal_created_handler(manifest_path, registry).await;
 
@@ -389,8 +333,6 @@ pub async fn arbitrum_treasury_governor_handlers(manifest_path: &PathBuf, regist
     proposal_extended_handler(manifest_path, registry).await;
 
     vote_cast_handler(manifest_path, registry).await;
-
-    vote_cast_with_params_handler(manifest_path, registry).await;
 }
 
 fn extract_title(description: &str) -> String {
