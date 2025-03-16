@@ -46,33 +46,31 @@ export async function Feed({
         if (item.type === 'post') {
           return (
             <div key={index}>
-              <div className='flex w-full flex-col p-4'>
-                <ViewTransition name={item.id}>
+              <ViewTransition name={`post-item-${item.id}`}>
+                <div className='flex w-full flex-col p-4'>
                   <PostItem item={item} group={group} />
-                </ViewTransition>
-              </div>
-              {index < combinedItems.length - 1 && (
-                <div className='border-b border-neutral-200 dark:border-neutral-800' />
-              )}
+                </div>
+                {index < combinedItems.length - 1 && (
+                  <div className='border-b border-neutral-200 dark:border-neutral-800' />
+                )}
+              </ViewTransition>
             </div>
           );
         } else {
           return (
             <div key={index}>
-              <div className='flex w-full flex-col p-4'>
-                {item.aggregate ? (
-                  <ViewTransition name={item.id}>
+              <ViewTransition name={`vote-item-${item.id}`}>
+                <div className='flex w-full flex-col p-4'>
+                  {item.aggregate ? (
                     <AggregateVoteItem item={item} group={group} />
-                  </ViewTransition>
-                ) : (
-                  <ViewTransition name={item.id}>
+                  ) : (
                     <VoteItem item={item} group={group} />
-                  </ViewTransition>
+                  )}
+                </div>
+                {index < combinedItems.length - 1 && (
+                  <div className='border-b border-neutral-200 dark:border-neutral-800' />
                 )}
-              </div>
-              {index < combinedItems.length - 1 && (
-                <div className='border-b border-neutral-200 dark:border-neutral-800' />
-              )}
+              </ViewTransition>
             </div>
           );
         }

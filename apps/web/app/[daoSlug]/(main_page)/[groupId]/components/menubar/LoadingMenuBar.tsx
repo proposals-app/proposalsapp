@@ -1,6 +1,6 @@
 export const LoadingMenuBar = () => {
   return (
-    <div className='font-condensed flex w-full justify-center'>
+    <div className='font-condensed z-[999] flex w-full justify-center'>
       <div className='mt-4 min-w-4xl self-center overflow-visible px-2 opacity-100'>
         <div
           className='dark:border-neutral-450 flex w-full items-center justify-between gap-2

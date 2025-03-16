@@ -17,7 +17,6 @@ import {
   QUOTE_STYLES,
 } from '@/lib/markdown_styles';
 import Image from 'next/image';
-import { Suspense } from 'react';
 
 function processMarkdown(
   visibleBodyContent: string,
@@ -64,12 +63,7 @@ export function Body({
 
   return (
     <div className='relative'>
-      <Suspense
-        fallback={<BodyLoadingContent />}
-        key={`async-body-content-${currentVersion}-${diff}`}
-      >
-        <BodyContent processedContent={processedContent} />
-      </Suspense>
+      <BodyContent processedContent={processedContent} />
     </div>
   );
 }
