@@ -175,53 +175,9 @@ export function LoadingBodyHeader() {
 export function BodyLoading() {
   return (
     <div className='w-full'>
-      {/* Main Content Loading */}
-      <div className='flex w-full flex-col gap-6'>
-        {/* Title Loading */}
-        <div className='h-10 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
-
-        {/* Author Info and Posted Time Loading */}
-        <div className='flex flex-col'>
-          <div className='flex flex-row justify-between'>
-            {/* Author Info Loading */}
-            <div className='flex flex-row items-center gap-2'>
-              <div
-                className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
-                  border-neutral-200 dark:border-neutral-700'
-              >
-                <div className='h-full w-full animate-pulse bg-neutral-200 dark:bg-neutral-800'></div>
-              </div>
-              <div className='h-5 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            </div>
-
-            {/* Posted Time Loading */}
-            <div className='flex flex-col items-center gap-2'>
-              <div className='flex flex-row gap-4'>
-                {/* Initially Posted */}
-                <div className='flex flex-row items-center gap-2 px-2 py-1'>
-                  <div className='flex flex-col space-y-1'>
-                    <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                    <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                  </div>
-                </div>
-
-                {/* Latest Revision */}
-                <div className='flex flex-row items-center gap-2 bg-white px-2 py-1 dark:bg-neutral-950'>
-                  <div className='flex flex-col space-y-1'>
-                    <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                    <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                  </div>
-                  <div className='h-6 w-6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Content Loading */}
-          <div className='relative'>
-            <BodyLoadingContent />
-          </div>
-        </div>
+      {/* Content Loading */}
+      <div className='relative'>
+        <BodyLoadingContent />
       </div>
     </div>
   );
