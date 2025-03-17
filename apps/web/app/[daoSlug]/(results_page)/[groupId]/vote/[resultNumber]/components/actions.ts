@@ -1,3 +1,4 @@
+import { AsyncReturnType } from '@/lib/utils';
 import { db } from '@proposalsapp/db-indexer';
 
 export async function getProposalGovernor(proposalId: string) {
@@ -28,21 +29,113 @@ export async function getProposalGovernor(proposalId: string) {
   return daoIndexer;
 }
 
-export async function getVotesAction(proposalId: string) {
+export async function getVoteWithVoter(voteId: string) {
+  const vote = await db
+    .selectFrom('vote')
+    .where('id', '=', voteId)
+    .select('daoId')
+    .executeTakeFirstOrThrow();
+
+  const voteWithVoter = await db
+    .selectFrom('vote')
+    .innerJoin('voter', 'vote.voterAddress', 'voter.address')
+    .leftJoin(
+      db
+        .selectFrom('votingPower')
+        .select([
+          'votingPower.voter',
+          'votingPower.votingPower as latestVotingPower',
+          'votingPower.timestamp',
+        ])
+        .where('votingPower.daoId', '=', vote.daoId)
+        .distinctOn(['votingPower.voter'])
+        .orderBy('votingPower.voter', 'asc')
+        .orderBy('votingPower.timestamp', 'desc')
+        .as('latestVotingPowerForVoter'),
+      (join) =>
+        join.onRef('vote.voterAddress', '=', 'latestVotingPowerForVoter.voter')
+    )
+    .select([
+      'vote.id',
+      'vote.choice',
+      'vote.createdAt',
+      'vote.proposalId',
+      'vote.reason',
+      'vote.voterAddress',
+      'vote.votingPower',
+      'voter.ens',
+      'voter.avatar',
+      'latestVotingPowerForVoter.latestVotingPower',
+    ])
+    .where('vote.id', '=', voteId)
+    .executeTakeFirstOrThrow();
+
+  return {
+    ...voteWithVoter,
+    latestVotingPower: voteWithVoter.latestVotingPower,
+    avatar:
+      voteWithVoter.avatar === null
+        ? `https://api.dicebear.com/9.x/pixel-art/png?seed=${voteWithVoter.voterAddress}`
+        : voteWithVoter.avatar,
+  };
+}
+
+export async function getVotesWithVoters(proposalId: string) {
+  // Fetch proposal to get daoId
+  const proposal = await db
+    .selectFrom('proposal')
+    .where('id', '=', proposalId)
+    .select(['daoId'])
+    .executeTakeFirst();
+
+  if (!proposal) {
+    console.warn(`Proposal with id ${proposalId} not found.`);
+    return []; // Or throw an error, depending on desired behavior
+  }
+  const daoId = proposal.daoId;
+
   const votes = await db
     .selectFrom('vote')
+    .innerJoin('voter', 'vote.voterAddress', 'voter.address')
+    .leftJoin(
+      db
+        .selectFrom('votingPower')
+        .select([
+          'votingPower.voter',
+          'votingPower.votingPower as latestVotingPower',
+          'votingPower.timestamp',
+        ])
+        .where('votingPower.daoId', '=', daoId)
+        .distinctOn(['votingPower.voter'])
+        .orderBy('votingPower.voter', 'asc')
+        .orderBy('votingPower.timestamp', 'desc')
+        .as('latestVotingPowerForVoter'),
+      (join) =>
+        join.onRef('vote.voterAddress', '=', 'latestVotingPowerForVoter.voter')
+    )
     .select([
-      'id',
-      'choice',
-      'createdAt',
-      'proposalId',
-      'reason',
-      'voterAddress',
-      'votingPower',
+      'vote.id',
+      'vote.choice',
+      'vote.createdAt',
+      'vote.proposalId',
+      'vote.reason',
+      'vote.voterAddress',
+      'vote.votingPower',
+      'voter.ens',
+      'voter.avatar',
+      'latestVotingPowerForVoter.latestVotingPower',
     ])
     .where('proposalId', '=', proposalId)
     .execute();
-  return votes;
+
+  return votes.map((vote) => ({
+    ...vote,
+    latestVotingPower: vote.latestVotingPower,
+    avatar:
+      vote.avatar === null
+        ? `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`
+        : vote.avatar,
+  }));
 }
 
 export type DelegateInfo = {
@@ -146,3 +239,6 @@ export async function getDelegateVotingPower(
     return null;
   }
 }
+
+export type VotesWithVoters = AsyncReturnType<typeof getVotesWithVoters>;
+export type VoteWithVoter = AsyncReturnType<typeof getVoteWithVoter>;

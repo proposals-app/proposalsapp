@@ -17,8 +17,7 @@ import {
   getPostLikesCount,
 } from '../../actions';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
-import { VotingPowerTag } from './../VotingPowerTag';
-import Image from 'next/image';
+import { DiscourseAuthor } from '@/app/[daoSlug]/components/DiscourseAuthor';
 
 export async function PostItem({
   item,
@@ -32,6 +31,7 @@ export async function PostItem({
   }
 
   const author = await getDiscourseUser(item.userId, item.daoDiscourseId);
+
   const likesCount = await getPostLikesCount(
     item.externalId,
     item.daoDiscourseId
@@ -159,31 +159,16 @@ const PostContent = ({
   return (
     <>
       <div className='flex cursor-default flex-row justify-between select-none'>
-        {author && (
-          <div className='flex flex-row items-center gap-2'>
-            <div
-              className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
-                border-neutral-700 dark:border-neutral-300'
-            >
-              <Image
-                src={author.avatarTemplate}
-                className='rounded-full'
-                fetchPriority='high'
-                alt={author.username}
-                width={40}
-                height={40}
-              />
-            </div>
-            <div className='flex flex-col'>
-              <div className='font-bold text-neutral-800 dark:text-neutral-200'>
-                {author.username}
-                {ens && <span className='font-normal'> from </span>}
-                {ens && <span className='font-bold'>{ens}</span>}
-              </div>
-              {currentVotingPower && <VotingPowerTag vp={currentVotingPower} />}
-            </div>
-          </div>
-        )}
+        {author ? (
+          <DiscourseAuthor
+            username={author.username}
+            ens={ens}
+            avatar={author.avatarTemplate}
+            currentVotingPower={currentVotingPower}
+            eventVotingPower={null}
+          />
+        ) : null}
+
         <div
           className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm
             text-neutral-600 select-none'

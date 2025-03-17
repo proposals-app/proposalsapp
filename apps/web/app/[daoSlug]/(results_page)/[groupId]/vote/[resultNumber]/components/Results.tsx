@@ -1,12 +1,5 @@
 import { Proposal, Selectable } from '@proposalsapp/db-indexer';
-import {
-  DelegateInfo,
-  DelegateVotingPower,
-  getVoter,
-  getDelegateVotingPower,
-  getProposalGovernor,
-  getVotesAction,
-} from './actions';
+import { getVoter, getProposalGovernor, getVotesWithVoters } from './actions';
 import { LoadingChart, ResultsChart } from './result/ResultsChart';
 import { LoadingList, ResultsList } from './result/ResultsList';
 import { LoadingTable, ResultsTable } from './result/ResultsTable';
@@ -29,28 +22,8 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 }
 
 // New component to handle the async content
-async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
-  const votes = await getVotesAction(proposal.id);
-
-  // Create maps for delegate info and voting power
-  const delegateMap = new Map<string, DelegateInfo>();
-  const votingPowerMap = new Map<string, DelegateVotingPower>();
-
-  // Fetch delegate information and voting power for all voters
-  await Promise.all(
-    votes.map(async (vote) => {
-      if (vote.votingPower > 50000) {
-        const [delegate, votingPower] = await Promise.all([
-          getVoter(vote.voterAddress),
-          getDelegateVotingPower(vote.voterAddress, daoSlug, proposal.id),
-        ]);
-        delegateMap.set(vote.voterAddress, delegate);
-        if (votingPower) {
-          votingPowerMap.set(vote.voterAddress, votingPower);
-        }
-      }
-    })
-  );
+async function ResultsContent({ proposal }: ResultsProps) {
+  const votes = await getVotesWithVoters(proposal.id);
 
   const processedResults = await processResultsAction(proposal, votes, {
     withVotes: true,
@@ -59,6 +32,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   });
 
   const serializedResults = superjson.serialize(processedResults);
+  const serializedVotes = superjson.serialize(votes);
 
   const governor = await getProposalGovernor(proposal.id);
   const publisher = await getVoter(processedResults.proposal.author ?? '');
@@ -78,15 +52,11 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
         </Suspense>
 
         <Suspense fallback={<LoadingChart />}>
-          <ResultsChart results={serializedResults} delegateMap={delegateMap} />
+          <ResultsChart results={serializedResults} />
         </Suspense>
 
         <Suspense fallback={<LoadingTable />}>
-          <ResultsTable
-            results={serializedResults}
-            delegateMap={delegateMap}
-            votingPowerMap={votingPowerMap}
-          />
+          <ResultsTable results={serializedResults} votes={serializedVotes} />
         </Suspense>
       </div>
 

@@ -2,8 +2,8 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
-import Image from 'next/image';
 import { ProposalMetadata } from '@/app/types';
+import { VoterAuthor } from '@/app/[daoSlug]/components/VoterAuthor';
 
 export async function AggregateVoteItem({
   item,
@@ -101,26 +101,13 @@ export async function AggregateVoteItem({
       </div>
 
       <div className='flex cursor-default flex-row justify-between select-none'>
-        <div className='flex items-center gap-2'>
-          <div
-            className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
-              border-neutral-700 dark:border-neutral-300'
-          >
-            <Image
-              src={`https://api.dicebear.com/9.x/pixel-art/png?seed=${item.votingPower}`}
-              className='rounded-full'
-              fetchPriority='high'
-              width={40}
-              height={40}
-              alt={'Aggregated votes'}
-            />
-          </div>
-          <div className='flex flex-col'>
-            <div className='font-bold text-neutral-800 dark:text-neutral-200'>
-              Multiple votes
-            </div>
-          </div>
-        </div>
+        <VoterAuthor
+          voterAddress={'Multiple voters'}
+          ens={'Multiple voters'}
+          avatar={`https://api.dicebear.com/9.x/pixel-art/png?seed=${item.votingPower}`}
+          currentVotingPower={null}
+          eventVotingPower={null}
+        />
 
         <div className='dark:text-neutral-350 flex flex-col items-end text-sm text-neutral-600'>
           <div className='group relative'>

@@ -1,11 +1,12 @@
 'use client';
+
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { format, toZonedTime } from 'date-fns-tz';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState, useRef, useContext } from 'react';
 import { WindowScroller, List, AutoSizer } from 'react-virtualized';
-import { DelegateInfo, DelegateVotingPower } from '../actions';
+import { VotesWithVoters } from '../actions';
 import {
   ProcessedResults,
   ProcessedVote,
@@ -14,14 +15,12 @@ import {
 import CheckSvg from '@/public/assets/web/check.svg';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
-import Image from 'next/image';
-import { VotingPowerTag } from './VotingPowerTag';
 import superjson, { SuperJSONResult } from 'superjson';
+import { VoterAuthor } from '@/app/[daoSlug]/components/VoterAuthor';
 
 interface ResultsTableProps {
   results: SuperJSONResult;
-  delegateMap: Map<string, DelegateInfo>;
-  votingPowerMap: Map<string, DelegateVotingPower>;
+  votes: SuperJSONResult;
 }
 
 // Custom Select Context
@@ -195,12 +194,9 @@ const voteIncludesChoiceText = (
   return vote.choice.some((choice) => choice.text.includes(choiceText));
 };
 
-export function ResultsTable({
-  results,
-  delegateMap,
-  votingPowerMap,
-}: ResultsTableProps) {
+export function ResultsTable({ results, votes }: ResultsTableProps) {
   const deserializedResults: ProcessedResults = superjson.deserialize(results);
+  const deserializedVotes: VotesWithVoters = superjson.deserialize(votes);
 
   const [sortColumn, setSortColumn] = useState<'timestamp' | 'votingPower'>(
     'votingPower'
@@ -267,7 +263,11 @@ export function ResultsTable({
     style: React.CSSProperties;
   }) => {
     const vote = sortedAndFilteredVotes[index];
-    const delegate = delegateMap.get(vote.voterAddress);
+
+    const voteWithVoter = deserializedVotes.find(
+      (voteWithViter) => voteWithViter.voterAddress == vote.voterAddress
+    );
+
     const votingPowerPercentage =
       (vote.votingPower / deserializedResults.totalVotingPower) * 100;
 
@@ -280,7 +280,6 @@ export function ResultsTable({
       ? 'Hidden vote'
       : getChoiceText(vote, deserializedResults.voteType);
     const barWidth = `${(vote.relativeVotingPower || 0) * 100}%`;
-    const votingPowerInfo = votingPowerMap.get(vote.voterAddress);
 
     return (
       <div key={key} style={style} className='relative'>
@@ -315,37 +314,18 @@ export function ResultsTable({
 
         {/* Existing content */}
         <div className='relative grid h-20 grid-cols-7 items-center p-2'>
-          <div className='col-span-2 flex items-center gap-2 overflow-hidden pb-2 font-bold'>
-            {delegate ? (
-              <div className='flex w-full min-w-0 items-center gap-2'>
-                <div
-                  className='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full
-                    border-2 border-neutral-700 dark:border-neutral-300'
-                >
-                  <Image
-                    src={
-                      delegate.profilePictureUrl ||
-                      `https://api.dicebear.com/9.x/pixel-art/png?seed=${delegate.ens}`
-                    }
-                    className='rounded-full'
-                    fetchPriority='high'
-                    alt={delegate.ens ?? delegate.address}
-                    width={40}
-                    height={40}
-                  />
-                </div>
-                <div className='flex min-w-0 flex-col gap-1'>
-                  <span className='truncate'>
-                    {delegate.ens ?? delegate.address}
-                  </span>
-                  {votingPowerInfo && (
-                    <VotingPowerTag votingPower={votingPowerInfo} />
-                  )}
-                </div>
-              </div>
+          <div className='col-span-2 flex items-center gap-2 overflow-hidden pb-2'>
+            {voteWithVoter ? (
+              <VoterAuthor
+                voterAddress={voteWithVoter.voterAddress}
+                ens={voteWithVoter.ens}
+                avatar={voteWithVoter.avatar}
+                currentVotingPower={voteWithVoter.latestVotingPower}
+                eventVotingPower={voteWithVoter.votingPower}
+              />
             ) : (
-              <div className='w-full truncate'>
-                <span className='font-mono'>{vote.voterAddress}</span>
+              <div className='w-full truncate font-mono font-bold'>
+                <span>{vote.voterAddress}</span>
               </div>
             )}
           </div>

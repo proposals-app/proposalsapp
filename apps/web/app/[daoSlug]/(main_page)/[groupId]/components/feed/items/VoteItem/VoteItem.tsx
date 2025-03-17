@@ -1,12 +1,11 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
-import { VotingPowerTag } from './../VotingPowerTag';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
-import { getVoteItemDelegate } from '../../actions';
-import Image from 'next/image';
 import { ProcessedVote } from '@/lib/results_processing';
 import { ProposalMetadata } from '@/app/types';
+import { VoterAuthor } from '@/app/[daoSlug]/components/VoterAuthor';
+import { getVoteWithVoter } from '@/app/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 
 // Helper to format choice text, similar to the one in ResultsTable
 const getChoiceText = (vote: ProcessedVote, isWeighted = false): string => {
@@ -34,8 +33,6 @@ export async function VoteItem({
     notFound();
   }
 
-  const proposalIds = Array.from(new Set(group.proposals.map((p) => p.id)));
-  const topicIds = Array.from(new Set(group.topics.map((t) => t.id)));
   const topicExternalIds = Array.from(
     new Set(group.topics.map((t) => t.externalId))
   );
@@ -44,38 +41,7 @@ export async function VoteItem({
   const proposalMetadata = proposal?.metadata as ProposalMetadata;
   const isWeightedVoting = proposalMetadata.voteType === 'weighted';
 
-  const delegate = await getVoteItemDelegate(
-    item.voterAddress,
-    group.daoSlug,
-    false,
-    topicIds,
-    proposalIds
-  );
-
-  const getDelegateDisplayInfo = () => {
-    if (!delegate) {
-      return {
-        displayName: formatNameOrAddress(item.voterAddress),
-        voterAddress: formatNameOrAddress(item.voterAddress),
-        avatarUrl: null,
-      };
-    }
-
-    const voter = delegate.delegatetovoter;
-
-    // Priority order: Discourse name > ENS > Shortened address
-    const displayName = voter?.ens || formatNameOrAddress(item.voterAddress);
-    const voterAddress = voter?.ens || formatNameOrAddress(item.voterAddress);
-    const avatarUrl = voter?.avatar || null;
-
-    return {
-      displayName,
-      voterAddress,
-      avatarUrl,
-    };
-  };
-
-  const { displayName, voterAddress, avatarUrl } = getDelegateDisplayInfo();
+  const voteWithVoter = await getVoteWithVoter(item.id);
 
   const relativeCreateTime = formatDistanceToNowStrict(
     new Date(item.createdAt!),
@@ -83,9 +49,6 @@ export async function VoteItem({
       addSuffix: true,
     }
   );
-
-  const currentVotingPower =
-    delegate?.delegatetovoter?.latestVotingPower?.votingPower;
 
   const formattedVotingPower = item.votingPower
     ? formatNumberWithSuffix(item.votingPower)
@@ -155,45 +118,17 @@ export async function VoteItem({
       </div>
 
       <div className='flex cursor-default flex-row justify-between select-none'>
-        <div className='flex flex-col gap-2'>
-          <div className='flex flex-row items-center gap-2'>
-            <div
-              className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
-                border-neutral-700 dark:border-neutral-300'
-            >
-              <Image
-                src={
-                  avatarUrl ??
-                  `https://api.dicebear.com/9.x/pixel-art/png?seed=${displayName}`
-                }
-                className='rounded-full'
-                fetchPriority='high'
-                alt={displayName}
-                width={40}
-                height={40}
-              />
-            </div>
-            <div className='flex flex-col'>
-              <div>
-                <span className='font-bold text-neutral-800 dark:text-neutral-200'>
-                  {displayName}
-                </span>
-                {displayName !== voterAddress && (
-                  <span className='text-neutral-450 dark:text-neutral-350 text-sm'>
-                    {' '}
-                    with <span className='font-bold'>{voterAddress}</span>
-                  </span>
-                )}
-              </div>
-              {currentVotingPower && <VotingPowerTag vp={currentVotingPower} />}
-            </div>
-          </div>
-        </div>
+        <VoterAuthor
+          voterAddress={voteWithVoter.voterAddress}
+          ens={voteWithVoter.ens}
+          avatar={voteWithVoter.avatar}
+          currentVotingPower={voteWithVoter.latestVotingPower}
+          eventVotingPower={voteWithVoter.votingPower}
+        />
 
-        <div className='dark:text-neutral-350 flex flex-col items-end text-sm text-neutral-600'>
-          <div>
-            voted <span className='font-bold'>{relativeCreateTime}</span>
-          </div>
+        <div className='dark:text-neutral-350 text-sm text-neutral-600'>
+          <span>voted </span>
+          <span className='font-bold'>{relativeCreateTime}</span>
         </div>
       </div>
 
