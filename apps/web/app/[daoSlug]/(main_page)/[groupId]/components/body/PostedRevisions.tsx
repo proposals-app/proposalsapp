@@ -195,6 +195,7 @@ export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
             <span className='font-bold'>{relativeTime}</span>
           </div>
           <Image
+            className='pl-1'
             src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/edit-icon-posted-time.svg`}
             alt={''}
             width={24}
