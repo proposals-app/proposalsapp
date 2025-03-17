@@ -114,8 +114,8 @@ export const SelectContent = ({
     <div
       ref={contentRef}
       className={`dark:border-neutral-450 absolute z-[999] mt-1 overflow-hidden rounded-xs border
-        border-neutral-800 bg-white p-1 shadow-lg will-change-transform
-        dark:bg-neutral-950 ${className}`}
+        border-neutral-800 bg-white will-change-transform dark:bg-neutral-950
+        ${className}`}
       role='listbox'
     >
       <div className='p-1'>{children}</div>
