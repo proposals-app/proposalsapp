@@ -232,16 +232,18 @@ const PostContent = ({
             />
 
             <div className='flex flex-row items-center gap-4 self-end justify-self-end'>
-              {likesCount > 0 ? (
-                <div className='flex items-center gap-1 text-sm'>
-                  <span>{likesCount}</span>
-                  <HeartIcon className='h-3 w-3 self-center' />
-                </div>
-              ) : null}
+              <div className='ml-auto flex flex-row items-center gap-2'>
+                {likesCount > 0 ? (
+                  <div className='flex items-center gap-1 text-sm'>
+                    <span>{likesCount}</span>
+                    <HeartIcon className='h-3 w-3 self-center' />
+                  </div>
+                ) : null}
 
-              <div className='flex items-center gap-1 text-sm'>
-                <span>{item.reads}</span>
-                <SeenIcon className='h-3 w-3 self-center' />
+                <div className='flex items-center gap-1 text-sm'>
+                  <span>{item.reads}</span>
+                  <SeenIcon className='h-3 w-3 self-center' />
+                </div>
               </div>
             </div>
           </div>
@@ -254,16 +256,18 @@ const PostContent = ({
           />
 
           <div className='flex flex-row items-center gap-4 self-end justify-self-end'>
-            {likesCount > 0 ? (
-              <div className='flex items-center gap-1 text-sm'>
-                <span>{likesCount}</span>
-                <HeartIcon className='h-3 w-3 self-center' />
-              </div>
-            ) : null}
+            <div className='ml-auto flex flex-row items-center gap-2'>
+              {likesCount > 0 ? (
+                <div className='flex items-center gap-1 text-sm'>
+                  <span>{likesCount}</span>
+                  <HeartIcon className='h-3 w-3 self-center' />
+                </div>
+              ) : null}
 
-            <div className='flex items-center gap-1 text-sm'>
-              <span>{item.reads}</span>
-              <SeenIcon className='h-3 w-3 self-center' />
+              <div className='flex items-center gap-1 text-sm'>
+                <span>{item.reads}</span>
+                <SeenIcon className='h-3 w-3 self-center' />
+              </div>
             </div>
           </div>
         </div>
