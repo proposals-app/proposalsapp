@@ -30,61 +30,69 @@ export async function getProposalGovernor(proposalId: string) {
 }
 
 export async function getVotesWithVoters(proposalId: string) {
-  // Fetch proposal to get daoId
-  const proposal = await db
-    .selectFrom('proposal')
-    .where('id', '=', proposalId)
-    .select(['daoId'])
-    .executeTakeFirst();
+  'use server';
 
-  if (!proposal) {
-    console.warn(`Proposal with id ${proposalId} not found.`);
-    return []; // Or throw an error, depending on desired behavior
-  }
-  const daoId = proposal.daoId;
-
+  // 1. Fetch votes, including only the necessary voter address
   const votes = await db
     .selectFrom('vote')
-    .innerJoin('voter', 'vote.voterAddress', 'voter.address')
-    .leftJoin(
-      db
-        .selectFrom('votingPower')
-        .select([
-          'votingPower.voter',
-          'votingPower.votingPower as latestVotingPower',
-          'votingPower.timestamp',
-        ])
-        .where('votingPower.daoId', '=', daoId)
-        .distinctOn(['votingPower.voter'])
-        .orderBy('votingPower.voter', 'asc')
-        .orderBy('votingPower.timestamp', 'desc')
-        .as('latestVotingPowerForVoter'),
-      (join) =>
-        join.onRef('vote.voterAddress', '=', 'latestVotingPowerForVoter.voter')
-    )
     .select([
-      'vote.id',
-      'vote.choice',
-      'vote.createdAt',
-      'vote.proposalId',
-      'vote.reason',
-      'vote.voterAddress',
-      'vote.votingPower',
-      'voter.ens',
-      'voter.avatar',
-      'latestVotingPowerForVoter.latestVotingPower',
+      'id',
+      'choice',
+      'createdAt',
+      'proposalId',
+      'reason',
+      'voterAddress',
+      'votingPower',
     ])
     .where('proposalId', '=', proposalId)
     .execute();
 
-  return votes.map((vote) => ({
-    ...vote,
-    latestVotingPower: vote.latestVotingPower,
-    avatar:
-      vote.avatar === null
-        ? `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`
-        : vote.avatar,
-  }));
+  // 2. Optimize: Fetch all unique voter addresses at once for efficient lookups
+  const voterAddresses = [...new Set(votes.map((vote) => vote.voterAddress))];
+
+  // Fetch all voters in a single query
+  const voters = await db
+    .selectFrom('voter')
+    .select(['address', 'ens', 'avatar'])
+    .where('address', 'in', voterAddresses)
+    .execute();
+
+  // Create a map for efficient voter lookup by address
+  const voterMap = new Map(voters.map((voter) => [voter.address, voter]));
+
+  // 3. Fetch latest voting power for each voter in a single query (optimized)
+  // Fetch latest voting power for all relevant voters
+  const latestVotingPowers = await db
+    .selectFrom('votingPower')
+    .select(['voter', 'votingPower'])
+    .where('voter', 'in', voterAddresses) // Filter by addresses we have votes for
+    .orderBy('voter', 'asc')
+    .orderBy('timestamp', 'desc')
+    .distinctOn('votingPower.voter')
+    .execute();
+
+  // Create a map for efficient latest voting power lookup by voter address
+  const latestVotingPowerMap = new Map(
+    latestVotingPowers.map((vp) => [vp.voter, vp.votingPower])
+  );
+
+  // 4. Combine vote data with voter and voting power information
+  const votesWithVoters = votes.map((vote) => {
+    const voter = voterMap.get(vote.voterAddress);
+    const latestVotingPower = latestVotingPowerMap.get(vote.voterAddress);
+
+    return {
+      ...vote,
+      ens: voter?.ens || null,
+      avatar:
+        voter?.avatar ??
+        `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`,
+      latestVotingPower: latestVotingPower,
+      voterAddress: vote.voterAddress,
+    };
+  });
+
+  return votesWithVoters;
 }
 
 export type DelegateInfo = {
