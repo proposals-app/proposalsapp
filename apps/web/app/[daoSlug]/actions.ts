@@ -1,6 +1,5 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { AsyncReturnType } from '@/lib/utils';
 import {
   db,
@@ -9,57 +8,6 @@ import {
   Selectable,
 } from '@proposalsapp/db-indexer';
 import { ProposalGroupItem } from '@/lib/types';
-
-const COOKIE_PREFIX = 'group_last_seen_';
-const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
-
-export async function getGroupLastSeenTimestamp(
-  groupId: string
-): Promise<number> {
-  const cookieStore = await cookies();
-  const timestamp = cookieStore.get(`${COOKIE_PREFIX}${groupId}`)?.value;
-  return timestamp ? parseInt(timestamp, 10) : 0;
-}
-
-export async function initializeGroupCookie(
-  groupId: string,
-  timestamp: number
-) {
-  'use server';
-  const cookieStore = await cookies();
-  const existingTimestamp = cookieStore.get(`${COOKIE_PREFIX}${groupId}`);
-  if (!existingTimestamp) {
-    cookieStore.set(`${COOKIE_PREFIX}${groupId}`, timestamp.toString(), {
-      maxAge: COOKIE_MAX_AGE,
-      path: '/',
-    });
-  }
-  return getGroupLastSeenTimestamp(groupId);
-}
-
-export async function setGroupLastSeenTimestamp(
-  groupId: string,
-  timestamp: number
-) {
-  const cookieStore = await cookies();
-  cookieStore.set(`${COOKIE_PREFIX}${groupId}`, timestamp.toString(), {
-    maxAge: COOKIE_MAX_AGE,
-    path: '/',
-  });
-}
-
-export async function updateLastSeenTimestampAction(
-  groupId: string,
-  timestamp: number
-) {
-  'use server';
-  const cookieStore = await cookies();
-  cookieStore.set(`${COOKIE_PREFIX}${groupId}`, timestamp.toString(), {
-    maxAge: COOKIE_MAX_AGE,
-    path: '/',
-  });
-  return timestamp;
-}
 
 export async function getGroups(daoSlug: string) {
   // Fetch the DAO based on the slug
@@ -84,99 +32,108 @@ export async function getGroups(daoSlug: string) {
     .where('daoId', '=', dao.id)
     .execute();
 
-  const getGroupTimestamps = async (
-    group: (typeof allGroups)[0]
-  ): Promise<{
-    newestItemTimestamp: number;
-  }> => {
+  // Extract all item IDs to fetch in bulk
+  const proposalItems: { externalId: string; governorId: string }[] = [];
+  const topicItems: { externalId: string; daoDiscourseId: string }[] = [];
+
+  allGroups.forEach((group) => {
     const items = group.items as ProposalGroupItem[];
+    items.forEach((item) => {
+      if (item.type === 'proposal') {
+        proposalItems.push({
+          externalId: item.externalId,
+          governorId: item.governorId,
+        });
+      } else if (item.type === 'topic') {
+        topicItems.push({
+          externalId: item.externalId,
+          daoDiscourseId: item.daoDiscourseId,
+        });
+      }
+    });
+  });
 
-    const proposals: Selectable<Proposal>[] = [];
-    const proposalItems = items.filter((item) => item.type === 'proposal');
-    if (proposalItems.length > 0) {
-      for (const proposalItem of proposalItems) {
-        try {
-          const p = await db
-            .selectFrom('proposal')
-            .selectAll()
-            .where('externalId', '=', proposalItem.externalId)
-            .where('governorId', '=', proposalItem.governorId)
-            .executeTakeFirstOrThrow();
-          proposals.push(p);
-        } catch (error) {
-          console.error('Error fetching:', proposalItem, error);
+  // Fetch proposals in bulk
+  const proposals =
+    proposalItems.length > 0
+      ? await db
+          .selectFrom('proposal')
+          .selectAll()
+          .where((eb) =>
+            eb.or(
+              proposalItems.map((item) =>
+                eb('externalId', '=', item.externalId).and(
+                  'governorId',
+                  '=',
+                  item.governorId
+                )
+              )
+            )
+          )
+          .execute()
+      : [];
+
+  // Fetch topics in bulk
+  const topics =
+    topicItems.length > 0
+      ? await db
+          .selectFrom('discourseTopic')
+          .selectAll()
+          .where((eb) =>
+            eb.or(
+              topicItems.map((item) =>
+                eb('externalId', '=', parseInt(item.externalId, 10)).and(
+                  'daoDiscourseId',
+                  '=',
+                  item.daoDiscourseId
+                )
+              )
+            )
+          )
+          .execute()
+      : [];
+
+  // Create a map for faster lookup
+  const proposalsMap = new Map<string, Selectable<Proposal>>();
+  proposals.forEach((proposal) => {
+    proposalsMap.set(`${proposal.externalId}-${proposal.governorId}`, proposal);
+  });
+  const topicsMap = new Map<string, Selectable<DiscourseTopic>>();
+  topics.forEach((topic) => {
+    topicsMap.set(`${topic.externalId}-${topic.daoDiscourseId}`, topic);
+  });
+
+  // Calculate timestamps and group data
+  const groupsWithTimestamps = allGroups.map((group) => {
+    const items = group.items as ProposalGroupItem[];
+    let newestItemTimestamp = 0;
+
+    for (const item of items) {
+      let itemTimestamp = 0;
+      if (item.type === 'proposal') {
+        const proposal = proposalsMap.get(
+          `${item.externalId}-${item.governorId}`
+        );
+        if (proposal) {
+          itemTimestamp = new Date(proposal.createdAt).getTime();
+        }
+      } else if (item.type === 'topic') {
+        const topic = topicsMap.get(
+          `${item.externalId}-${item.daoDiscourseId}`
+        );
+        if (topic) {
+          itemTimestamp = new Date(topic.createdAt).getTime();
         }
       }
+      newestItemTimestamp = Math.max(newestItemTimestamp, itemTimestamp);
     }
-    const proposalIds = proposals.map((p) => p.id);
-
-    const topics: Selectable<DiscourseTopic>[] = [];
-    const topicItems = items.filter((item) => item.type === 'topic');
-    if (topicItems.length > 0) {
-      for (const topicItem of topicItems) {
-        try {
-          const t = await db
-            .selectFrom('discourseTopic')
-            .selectAll()
-            .where('externalId', '=', parseInt(topicItem.externalId, 10))
-            .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
-            .executeTakeFirstOrThrow();
-          topics.push(t);
-        } catch (error) {
-          console.error('Error fetching:', topicItem, error);
-        }
-      }
-    }
-    const topicIds = topics.map((t) => t.id);
-
-    const [latestProposal, latestTopic] = await Promise.all([
-      // Get latest proposal
-      proposalIds.length > 0
-        ? db
-            .selectFrom('proposal')
-            .select('createdAt')
-            .where('id', 'in', proposalIds)
-            .where('daoId', '=', dao.id)
-            .orderBy('createdAt', 'desc')
-            .limit(1)
-            .executeTakeFirst()
-        : Promise.resolve(null),
-
-      // Get latest topic
-      topicIds.length > 0
-        ? db
-            .selectFrom('discourseTopic')
-            .select('createdAt')
-            .where('id', 'in', topicIds)
-            .where('daoDiscourseId', '=', daoDiscourse.id)
-            .orderBy('createdAt', 'desc')
-            .limit(1)
-            .executeTakeFirst()
-        : Promise.resolve(null),
-    ]);
 
     return {
-      newestItemTimestamp: Math.max(
-        latestProposal?.createdAt
-          ? new Date(latestProposal.createdAt).getTime()
-          : 0,
-        latestTopic?.createdAt ? new Date(latestTopic.createdAt).getTime() : 0
-      ),
+      ...group,
+      newestItemTimestamp,
+      newestActivityTimestamp: newestItemTimestamp,
     };
-  };
-
-  // Add timestamps to all groups
-  const groupsWithTimestamps = await Promise.all(
-    allGroups.map(async (group) => {
-      const timestamps = await getGroupTimestamps(group);
-      return {
-        ...group,
-        ...timestamps,
-        // Add a new field that tracks the newest timestamp across all activities
-        newestActivityTimestamp: Math.max(timestamps.newestItemTimestamp),
-      };
-    })
-  );
+  });
 
   // Sort all groups by their newest activity timestamp
   groupsWithTimestamps.sort(
@@ -227,41 +184,63 @@ export async function getGroupAuthor(groupId: string): Promise<{
       'https://api.dicebear.com/9.x/pixel-art/png?seed=proposals.app',
   };
 
-  const proposals: Selectable<Proposal>[] = [];
-  const proposalItems = items.filter((item) => item.type === 'proposal');
-  if (proposalItems.length > 0) {
-    for (const proposalItem of proposalItems) {
-      try {
-        const p = await db
+  // Extract all item IDs to fetch in bulk
+  const proposalItems: { externalId: string; governorId: string }[] = [];
+  const topicItems: { externalId: string; daoDiscourseId: string }[] = [];
+
+  items.forEach((item) => {
+    if (item.type === 'proposal') {
+      proposalItems.push({
+        externalId: item.externalId,
+        governorId: item.governorId,
+      });
+    } else if (item.type === 'topic') {
+      topicItems.push({
+        externalId: item.externalId,
+        daoDiscourseId: item.daoDiscourseId,
+      });
+    }
+  });
+
+  // Fetch proposals in bulk
+  const proposals =
+    proposalItems.length > 0
+      ? await db
           .selectFrom('proposal')
           .selectAll()
-          .where('externalId', '=', proposalItem.externalId)
-          .where('governorId', '=', proposalItem.governorId)
-          .executeTakeFirstOrThrow();
-        proposals.push(p);
-      } catch (error) {
-        console.error('Error fetching:', proposalItem, error);
-      }
-    }
-  }
+          .where((eb) =>
+            eb.or(
+              proposalItems.map((item) =>
+                eb('externalId', '=', item.externalId).and(
+                  'governorId',
+                  '=',
+                  item.governorId
+                )
+              )
+            )
+          )
+          .execute()
+      : [];
 
-  const topics: Selectable<DiscourseTopic>[] = [];
-  const topicItems = items.filter((item) => item.type === 'topic');
-  if (topicItems.length > 0) {
-    for (const topicItem of topicItems) {
-      try {
-        const t = await db
+  // Fetch topics in bulk
+  const topics =
+    topicItems.length > 0
+      ? await db
           .selectFrom('discourseTopic')
           .selectAll()
-          .where('externalId', '=', parseInt(topicItem.externalId, 10))
-          .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
-          .executeTakeFirstOrThrow();
-        topics.push(t);
-      } catch (error) {
-        console.error('Error fetching:', topicItem, error);
-      }
-    }
-  }
+          .where((eb) =>
+            eb.or(
+              topicItems.map((item) =>
+                eb('externalId', '=', parseInt(item.externalId, 10)).and(
+                  'daoDiscourseId',
+                  '=',
+                  item.daoDiscourseId
+                )
+              )
+            )
+          )
+          .execute()
+      : [];
 
   // Helper function to fetch topic and its author info
   const getTopicAuthorInfo = async (
