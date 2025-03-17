@@ -5,7 +5,7 @@ import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { ProcessedVote } from '@/lib/results_processing';
 import { ProposalMetadata } from '@/app/types';
 import { VoterAuthor } from '@/app/[daoSlug]/components/VoterAuthor';
-import { getVoteWithVoter } from '@/app/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
+import { VotesWithVoters } from '@/app/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 
 // Helper to format choice text, similar to the one in ResultsTable
 const getChoiceText = (vote: ProcessedVote, isWeighted = false): string => {
@@ -24,9 +24,11 @@ const getChoiceText = (vote: ProcessedVote, isWeighted = false): string => {
 
 export async function VoteItem({
   item,
+  voteWithVoter,
   group,
 }: {
   item: FeedReturnType['votes'][0];
+  voteWithVoter: VotesWithVoters[0];
   group: GroupReturnType;
 }) {
   if (!group) {
@@ -40,8 +42,6 @@ export async function VoteItem({
   const proposal = group.proposals.find((p) => p.id === item.proposalId);
   const proposalMetadata = proposal?.metadata as ProposalMetadata;
   const isWeightedVoting = proposalMetadata.voteType === 'weighted';
-
-  const voteWithVoter = await getVoteWithVoter(item.id);
 
   const relativeCreateTime = formatDistanceToNowStrict(
     new Date(item.createdAt!),

@@ -4,13 +4,16 @@ import { VoteItem } from './items/VoteItem/VoteItem';
 import { FeedReturnType, GroupReturnType } from '../../actions';
 import { AggregateVoteItem } from './items/VoteItem/AggregateVoteItem';
 import { unstable_ViewTransition as ViewTransition } from 'react';
+import { VotesWithVoters } from '@/app/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 
 export async function Feed({
   group,
   feed,
+  allVotesWithVoters,
 }: {
   group: GroupReturnType;
   feed: FeedReturnType;
+  allVotesWithVoters: VotesWithVoters;
 }) {
   if (!group) {
     notFound();
@@ -57,15 +60,23 @@ export async function Feed({
             </div>
           );
         } else {
+          const voteWithVoter = allVotesWithVoters.find(
+            (vote) => vote.id === item.id
+          );
+
           return (
             <div key={index}>
               <ViewTransition name={`vote-item-${item.id}`}>
                 <div className='flex w-full flex-col p-4'>
                   {item.aggregate ? (
                     <AggregateVoteItem item={item} group={group} />
-                  ) : (
-                    <VoteItem item={item} group={group} />
-                  )}
+                  ) : voteWithVoter ? (
+                    <VoteItem
+                      item={item}
+                      group={group}
+                      voteWithVoter={voteWithVoter}
+                    />
+                  ) : null}
                 </div>
                 {index < combinedItems.length - 1 && (
                   <div className='border-b border-neutral-200 dark:border-neutral-800' />

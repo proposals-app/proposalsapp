@@ -19,6 +19,7 @@ import { LoadingMenuBar } from './components/menubar/LoadingMenuBar';
 import { getGroupAuthor } from '../../actions';
 import { PostedTime } from './components/body/PostedTime';
 import { Header } from '../../components/Header';
+import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 
 export default async function GroupPage({
   params,
@@ -218,11 +219,21 @@ async function FeedSection({
     getFeed(groupId, feedFilter, votesFilter),
   ]);
 
+  const proposalIds = group?.proposals.map((p) => p.id) || [];
+  const votesWithVotersPromises = proposalIds.map(async (proposalId) => {
+    return await getVotesWithVoters(proposalId);
+  });
+  const allVotesWithVoters = await Promise.all(votesWithVotersPromises).then(
+    (results) => results.flat()
+  );
+
   if (!group) {
     notFound();
   }
 
-  return <Feed group={group} feed={feed} />;
+  return (
+    <Feed group={group} feed={feed} allVotesWithVoters={allVotesWithVoters} />
+  );
 }
 
 async function TimelineSection({
