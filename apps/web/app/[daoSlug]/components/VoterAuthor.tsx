@@ -30,7 +30,7 @@ export const VoterAuthor = ({
           height={40}
         />
       </div>
-      <div className='flex flex-col'>
+      <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>
         {ens ? (
           <span className='truncate font-bold'>{ens}</span>
         ) : (

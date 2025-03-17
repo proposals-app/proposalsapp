@@ -30,15 +30,12 @@ export const DiscourseAuthor = ({
           height={40}
         />
       </div>
-      <div className='flex flex-col'>
+      <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>
         {ens ? (
           <div>
             <span className='font-bold'>{username}</span>
-            <span className='dark:text-neutral-350 text-neutral-600'>
-              {' '}
-              from{' '}
-            </span>
-            <span className='dark:text-neutral-350 font-bold text-neutral-600'>
+            <span className='text-neutral-450'> from </span>
+            <span className='dark:text-neutral-350 text-neutral-450 font-bold'>
               {ens}
             </span>
           </div>

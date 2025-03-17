@@ -110,20 +110,8 @@ export async function AggregateVoteItem({
         />
 
         <div className='dark:text-neutral-350 flex flex-col items-end text-sm text-neutral-600'>
-          <div className='group relative'>
-            <div>
-              voted <span className='font-bold'>{relativeCreateTime}</span>
-            </div>
-            <div
-              className='absolute right-0 bottom-full z-10 mb-2 hidden max-w-44 rounded border
-                border-neutral-200 bg-white p-2 text-center text-sm text-neutral-700 shadow-lg
-                group-hover:block'
-            >
-              Voted at{' '}
-              {formatDistanceToNowStrict(new Date(item.createdAt!), {
-                addSuffix: true,
-              })}
-            </div>
+          <div>
+            voted <span className='font-bold'>{relativeCreateTime}</span>
           </div>
         </div>
       </div>

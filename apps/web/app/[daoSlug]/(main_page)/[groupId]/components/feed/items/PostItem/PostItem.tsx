@@ -1,7 +1,6 @@
 import { DiscourseUser, Selectable } from '@proposalsapp/db-indexer';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Root } from 'hast';
-import { CheckCheck, HeartIcon } from 'lucide-react';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toHast } from 'mdast-util-to-hast';
 import rehypeStringify from 'rehype-stringify';
@@ -18,6 +17,8 @@ import {
 } from '../../actions';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { DiscourseAuthor } from '@/app/[daoSlug]/components/DiscourseAuthor';
+import HeartIcon from '@/public/assets/web/heart.svg';
+import SeenIcon from '@/public/assets/web/seen.svg';
 
 export async function PostItem({
   item,
@@ -99,6 +100,7 @@ export async function PostItem({
           updatedAt={updatedAt}
           likesCount={likesCount}
           processedContent={processedContent}
+          contentLength={item.cooked?.length || 0}
           currentVotingPower={currentVotingPower}
           item={item}
         />
@@ -115,6 +117,7 @@ const PostContent = ({
   updatedAt,
   likesCount,
   processedContent,
+  contentLength,
   item,
   currentVotingPower,
 }: {
@@ -125,6 +128,7 @@ const PostContent = ({
   updatedAt: Date;
   likesCount: number;
   processedContent: string;
+  contentLength: number;
   item: FeedReturnType['posts'][0];
   currentVotingPower?: number;
 }) => {
@@ -145,9 +149,6 @@ const PostContent = ({
     // If no break point is found, return the entire content length
     return content.length;
   };
-
-  // First check if content length exceeds threshold
-  const contentLength = processedContent.length;
 
   // Only find break point if we need to collapse
   const slicePoint = findNextParagraphBreak(processedContent);
@@ -183,58 +184,89 @@ const PostContent = ({
               <span>edited {relativeUpdateTime}</span>
             </div>
           )}
-
-          <div className='flex flex-row items-center gap-4'>
-            <div className='flex items-center gap-1 text-sm'>
-              <CheckCheck className='h-4 w-4' />
-              <span>{item.reads}</span>
-            </div>
-            {likesCount > 0 ? (
-              <div className='flex items-center gap-1 text-sm'>
-                <HeartIcon className='h-4 w-4' />
-                <span>{likesCount}</span>
-              </div>
-            ) : (
-              <div className='flex items-center gap-1 text-sm'>
-                <HeartIcon className='h-4 w-4' />
-                <span>{likesCount}</span>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
       {shouldCollapse ? (
-        <details className='group mt-6'>
+        <details className='group relative mt-6'>
           <summary className='cursor-pointer list-none [&::-webkit-details-marker]:hidden'>
-            <div className='prose prose-lg max-w-none'>
+            <div className='prose prose-lg relative max-w-none'>
               <div
                 dangerouslySetInnerHTML={{
                   __html: processedContent.slice(0, slicePoint),
                 }}
                 className='group-open:hidden'
               />
-              <div className='relative my-4 flex items-center justify-center group-open:hidden'>
+              <div
+                className='absolute right-0 bottom-0 left-0 h-36 bg-gradient-to-t from-neutral-50
+                  to-transparent group-open:hidden dark:from-neutral-900'
+              />
+              <div className='relative my-4 flex items-end justify-end group-open:hidden'>
                 <div className='absolute w-full border-t border-neutral-300 dark:border-neutral-700' />
                 <span
-                  className='relative bg-neutral-50 px-4 text-sm text-neutral-500 hover:text-neutral-800
-                    dark:bg-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
+                  className='relative flex flex-row gap-4 bg-neutral-200 px-4 text-sm text-neutral-600
+                    dark:bg-neutral-600 dark:text-neutral-300'
                 >
-                  Read More
+                  <div className='flex flex-row items-center gap-2 self-end justify-self-end'>
+                    {likesCount > 0 ? (
+                      <div className='flex items-center gap-1 text-sm'>
+                        <span>{likesCount}</span>
+                        <HeartIcon className='h-3 w-3 self-center' />
+                      </div>
+                    ) : null}
+
+                    <div className='flex items-center gap-1 text-sm'>
+                      <span>{item.reads}</span>
+                      <SeenIcon className='h-3 w-3 self-center' />
+                    </div>
+                  </div>
+                  <span> Read More</span>
                 </span>
               </div>
             </div>
           </summary>
-          <div
-            dangerouslySetInnerHTML={{ __html: processedContent }}
-            className='prose prose-lg max-w-none break-words text-ellipsis'
-          />
+          <div className='w-full'>
+            <div
+              dangerouslySetInnerHTML={{ __html: processedContent }}
+              className='prose prose-lg mt-4 max-w-none break-words text-ellipsis'
+            />
+
+            <div className='flex flex-row items-center gap-4 self-end justify-self-end'>
+              {likesCount > 0 ? (
+                <div className='flex items-center gap-1 text-sm'>
+                  <span>{likesCount}</span>
+                  <HeartIcon className='h-3 w-3 self-center' />
+                </div>
+              ) : null}
+
+              <div className='flex items-center gap-1 text-sm'>
+                <span>{item.reads}</span>
+                <SeenIcon className='h-3 w-3 self-center' />
+              </div>
+            </div>
+          </div>
         </details>
       ) : (
-        <div
-          dangerouslySetInnerHTML={{ __html: processedContent }}
-          className='prose prose-lg mt-4 max-w-none break-words text-ellipsis'
-        />
+        <div className='w-full'>
+          <div
+            dangerouslySetInnerHTML={{ __html: processedContent }}
+            className='prose prose-lg mt-4 max-w-none break-words text-ellipsis'
+          />
+
+          <div className='flex flex-row items-center gap-4 self-end justify-self-end'>
+            {likesCount > 0 ? (
+              <div className='flex items-center gap-1 text-sm'>
+                <span>{likesCount}</span>
+                <HeartIcon className='h-3 w-3 self-center' />
+              </div>
+            ) : null}
+
+            <div className='flex items-center gap-1 text-sm'>
+              <span>{item.reads}</span>
+              <SeenIcon className='h-3 w-3 self-center' />
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
