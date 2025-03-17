@@ -43,13 +43,11 @@ contracts:
     include_events:
       - ProposalCreated
       - VoteCast
-      # - VoteCastWithParams
       - ProposalExtended
       - ProposalExecuted
     index_event_in_order:
       - ProposalCreated
       - VoteCast
-      # - VoteCastWithParams
       - ProposalExtended
       - ProposalExecuted
     dependency_events:
@@ -61,7 +59,6 @@ contracts:
         then:
           events:
             - VoteCast
-            # - VoteCastWithParams
           then:
             events:
               - ProposalExecuted
@@ -82,7 +79,6 @@ contracts:
     index_event_in_order:
       - ProposalCreated
       - VoteCast
-      # - VoteCastWithParams
       - ProposalExtended
       - ProposalExecuted
     dependency_events:
@@ -94,10 +90,13 @@ contracts:
         then:
           events:
             - VoteCast
-            # - VoteCastWithParams
           then:
             events:
-              # - ProposalExecuted
+              - ProposalExecuted
+            then:
+              events:
+                - contract_name: ARBToken
+                  event_name: DelegateChanged
 
   - name: ArbitrumSCNominations
     abi: ./abis/ArbitrumSCNominations.abi.json
@@ -129,3 +128,12 @@ contracts:
     include_events:
       - DelegateVotesChanged
       - DelegateChanged
+    index_event_in_order:
+      - DelegateVotesChanged
+      - DelegateChanged
+    dependency_events:
+      events:
+        - DelegateChanged
+      then:
+        events:
+          - DelegateVotesChanged
