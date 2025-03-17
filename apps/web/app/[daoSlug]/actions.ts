@@ -24,6 +24,7 @@ export async function getGroups(daoSlug: string) {
     .selectFrom('proposalGroup')
     .selectAll()
     .where('daoId', '=', dao.id)
+    .where('name', '!=', 'UNGROUPED')
     .execute();
 
   // Extract all item IDs to fetch in bulk
