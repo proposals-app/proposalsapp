@@ -1,9 +1,6 @@
 use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
 use anyhow::{Context, Result};
-use ethers::{
-    providers::{Middleware, ProviderError},
-    types::Address,
-};
+use ethers::{providers::Middleware, types::Address};
 use once_cell::sync::OnceCell;
 use proposalsapp_db_indexer::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
@@ -12,7 +9,7 @@ use std::{
     sync::Mutex,
     time::Duration,
 };
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, warn};
 use utils::types::{JobData, ProposalJobData};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
@@ -364,6 +361,9 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
 async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String>) -> Result<()> {
     const BATCH_SIZE: usize = 1000; // Adjust based on database performance
 
+    // Get the provider once at the beginning to reuse throughout the function
+    let provider = get_ethereum_provider_cache().get_inner_provider();
+
     for addresses_chunk in voter_addresses
         .into_iter()
         .collect::<Vec<_>>()
@@ -388,118 +388,177 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
             if let Some(existing_voter) = existing_voters_map.get(address) {
                 // Voter exists, check and update ENS and Avatar if needed
                 let addr_clone = address.clone();
-                let provider = get_ethereum_provider_cache().get_inner_provider();
-                let ens_result: Result<String, ProviderError> = provider
-                    .lookup_address(addr_clone.parse::<Address>()?)
-                    .await;
 
-                match ens_result {
-                    Ok(fetched_ens) => {
-                        let mut needs_update = false;
-                        let mut updated_ens: Option<String> = None;
-                        let mut updated_avatar: Option<String> = None;
+                // Safely convert address string to Address type
+                let eth_address = match addr_clone.parse::<Address>() {
+                    Ok(addr) => addr,
+                    Err(e) => {
+                        debug!("Failed to parse address {}: {}", addr_clone, e);
+                        continue; // Skip this address and move to the next one
+                    }
+                };
 
-                        if existing_voter.ens != Some(fetched_ens.clone()) {
+                // Try to do ENS lookup with timeout
+                let ens_result = match tokio::time::timeout(
+                    std::time::Duration::from_secs(5),
+                    isolated_ens_lookup(eth_address, addr_clone.clone(), provider.clone()),
+                )
+                .await
+                {
+                    Ok(result) => result,
+                    Err(_) => {
+                        debug!("ENS lookup timed out for address {}", addr_clone);
+                        continue;
+                    }
+                };
+
+                if let Ok(fetched_ens) = ens_result {
+                    let mut needs_update = false;
+                    let mut updated_ens: Option<String> = None;
+                    let mut updated_avatar: Option<String> = None;
+
+                    if existing_voter.ens != Some(fetched_ens.clone()) {
+                        debug!(
+                            "Updating ENS for address {}: old ENS: {:?}, new ENS: {:?}",
+                            address, existing_voter.ens, fetched_ens
+                        );
+                        updated_ens = Some(fetched_ens.clone());
+                        needs_update = true;
+                    }
+
+                    // Try to resolve avatar with timeout
+                    let avatar_result = match tokio::time::timeout(
+                        std::time::Duration::from_secs(5),
+                        isolated_avatar_resolve(fetched_ens.clone(), addr_clone.clone(), provider.clone()),
+                    )
+                    .await
+                    {
+                        Ok(result) => result,
+                        Err(_) => {
                             debug!(
-                                "Updating ENS for address {}: old ENS: {:?}, new ENS: {:?}",
-                                address, existing_voter.ens, fetched_ens
+                                "Avatar resolution timed out for address {} with ENS {}",
+                                addr_clone, fetched_ens
                             );
-                            updated_ens = Some(fetched_ens.clone());
+                            Err(anyhow::anyhow!("Avatar resolution timed out"))
+                        }
+                    };
+
+                    if let Ok(avatar_url) = avatar_result {
+                        if existing_voter.avatar != Some(avatar_url.clone()) {
+                            debug!(
+                                "Updating avatar for address {}: old avatar: {:?}, new avatar: {:?}",
+                                address, existing_voter.avatar, avatar_url
+                            );
+                            updated_avatar = Some(avatar_url);
                             needs_update = true;
                         }
-
-                        let avatar_result = provider.resolve_avatar(fetched_ens.clone().as_str()).await;
-                        match avatar_result {
-                            Ok(avatar) => {
-                                let avatar_url = avatar.to_string();
-                                if existing_voter.avatar != Some(avatar_url.clone()) {
-                                    debug!(
-                                        "Updating avatar for address {}: old avatar: {:?}, new avatar: {:?}",
-                                        address, existing_voter.avatar, avatar_url
-                                    );
-                                    updated_avatar = Some(avatar_url);
-                                    needs_update = true;
-                                }
-                            }
-                            Err(e) => {
-                                debug!(
-                                    "Avatar lookup failed for address {} (update check): ENS: {}, error: {}",
-                                    addr_clone, fetched_ens, e
-                                );
-                                // Do not update avatar if lookup fails, or handle differently if
-                                // needed
-                            }
-                        }
-
-                        if needs_update {
-                            let mut voter_active_model = voter::ActiveModel {
-                                id: Set(existing_voter.id),
-                                address: NotSet,
-                                ens: NotSet,
-                                avatar: NotSet,
-                            };
-                            if let Some(ens) = updated_ens {
-                                voter_active_model.ens = Set(Some(ens));
-                            }
-                            if let Some(avatar) = updated_avatar {
-                                voter_active_model.avatar = Set(Some(avatar));
-                            }
-                            voters_to_update.push(voter_active_model);
-                        }
                     }
-                    Err(e) => {
-                        debug!(
-                            "ENS lookup failed for address {} (update check): {}",
-                            addr_clone, e
-                        );
-                        // Do not update ENS or Avatar if ENS lookup fails
+
+                    if needs_update {
+                        let mut voter_active_model = voter::ActiveModel {
+                            id: Set(existing_voter.id),
+                            address: NotSet,
+                            ens: NotSet,
+                            avatar: NotSet,
+                        };
+                        if let Some(ens) = updated_ens {
+                            voter_active_model.ens = Set(Some(ens));
+                        }
+                        if let Some(avatar) = updated_avatar {
+                            voter_active_model.avatar = Set(Some(avatar));
+                        }
+                        voters_to_update.push(voter_active_model);
                     }
+                } else if let Err(e) = ens_result {
+                    debug!("ENS lookup failed for address {}: {}", addr_clone, e);
+                    // Do not update ENS or Avatar if ENS lookup fails
                 }
             } else {
                 // Voter does not exist, perform ENS and Avatar lookup and prepare for insert
                 let addr_clone = address.clone();
-                let provider = get_ethereum_provider_cache().get_inner_provider();
-                let ens_result: Result<String, ProviderError> = provider
-                    .lookup_address(addr_clone.parse::<Address>()?)
-                    .await;
 
-                match ens_result {
-                    Ok(ens) => {
-                        let avatar_result = provider.resolve_avatar(ens.clone().as_str()).await;
-                        match avatar_result {
-                            Ok(avatar) => voters_to_insert.push(voter::ActiveModel {
-                                id: NotSet,
-                                address: Set(address.clone()),
-                                ens: Set(Some(ens)),
-                                avatar: Set(Some(avatar.to_string())),
-                            }),
-                            Err(e) => {
-                                debug!(
-                                    "Avatar lookup failed for address {} (insert): ENS: {}, error: {}",
-                                    addr_clone, ens, e
-                                );
-                                voters_to_insert.push(voter::ActiveModel {
-                                    id: NotSet,
-                                    address: Set(address.clone()),
-                                    ens: Set(Some(ens)),
-                                    avatar: NotSet, // Do not set avatar if lookup fails
-                                })
-                            }
-                        }
-                    }
+                // Safely convert address string to Address type
+                let eth_address = match addr_clone.parse::<Address>() {
+                    Ok(addr) => addr,
                     Err(e) => {
-                        debug!(
-                            "ENS lookup failed for address {} (insert): {}",
-                            addr_clone, e
-                        );
+                        debug!("Failed to parse address {}: {}", addr_clone, e);
+                        // Add the voter with just the address since we couldn't resolve ENS
                         voters_to_insert.push(voter::ActiveModel {
                             id: NotSet,
                             address: Set(address.clone()),
                             ens: NotSet,
                             avatar: NotSet,
-                        })
+                        });
+                        continue; // Continue to the next address
                     }
                 };
+
+                // Try to do ENS lookup with timeout
+                let ens_result = match tokio::time::timeout(
+                    std::time::Duration::from_secs(5),
+                    isolated_ens_lookup(eth_address, addr_clone.clone(), provider.clone()),
+                )
+                .await
+                {
+                    Ok(result) => result,
+                    Err(_) => {
+                        debug!("ENS lookup timed out for address {}", addr_clone);
+                        // Just add the voter with the address
+                        voters_to_insert.push(voter::ActiveModel {
+                            id: NotSet,
+                            address: Set(address.clone()),
+                            ens: NotSet,
+                            avatar: NotSet,
+                        });
+                        continue;
+                    }
+                };
+
+                if let Ok(ens) = ens_result {
+                    // Try to resolve avatar with timeout
+                    let avatar_result = match tokio::time::timeout(
+                        std::time::Duration::from_secs(5),
+                        isolated_avatar_resolve(ens.clone(), addr_clone.clone(), provider.clone()),
+                    )
+                    .await
+                    {
+                        Ok(result) => result,
+                        Err(_) => {
+                            debug!(
+                                "Avatar resolution timed out for address {} with ENS {}",
+                                addr_clone, ens
+                            );
+                            Err(anyhow::anyhow!("Avatar resolution timed out"))
+                        }
+                    };
+
+                    let avatar = match avatar_result {
+                        Ok(avatar_url) => Some(avatar_url),
+                        Err(e) => {
+                            debug!(
+                                "Avatar resolution error for address {} with ENS {}: {}",
+                                addr_clone, ens, e
+                            );
+                            None
+                        }
+                    };
+
+                    voters_to_insert.push(voter::ActiveModel {
+                        id: NotSet,
+                        address: Set(address.clone()),
+                        ens: Set(Some(ens)),
+                        avatar: Set(avatar),
+                    });
+                } else if let Err(e) = ens_result {
+                    debug!("ENS lookup failed for address {}: {}", addr_clone, e);
+                    // Just add the voter with the address
+                    voters_to_insert.push(voter::ActiveModel {
+                        id: NotSet,
+                        address: Set(address.clone()),
+                        ens: NotSet,
+                        avatar: NotSet,
+                    });
+                }
             }
         }
 
@@ -510,6 +569,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                 .exec(txn)
                 .await?;
         }
+
         // Perform bulk update for existing voters with new ENS and/or Avatar
         if !voters_to_update.is_empty() {
             for voter_update in voters_to_update.into_iter() {
@@ -519,4 +579,45 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
     }
 
     Ok(())
+}
+
+// Run ENS lookup in an isolated task to prevent panic propagation
+async fn isolated_ens_lookup<M: Middleware + 'static>(address: Address, addr_string: String, provider: M) -> Result<String> {
+    // Spawn a task to isolate potential panics
+    match tokio::task::spawn(async move { provider.lookup_address(address).await }).await {
+        Ok(result) => match result {
+            Ok(ens) => Ok(ens),
+            Err(e) => Err(anyhow::anyhow!("ENS lookup error: {}", e)),
+        },
+        Err(e) => {
+            warn!(
+                "Task error during ENS lookup for address {}: {}",
+                addr_string, e
+            );
+            // This happens if the task panicked
+            Err(anyhow::anyhow!("Task error during ENS lookup: {}", e))
+        }
+    }
+}
+
+// Run avatar resolution in an isolated task to prevent panic propagation
+async fn isolated_avatar_resolve<M: Middleware + 'static>(ens: String, addr_string: String, provider: M) -> Result<String> {
+    // Spawn a task to isolate potential panics
+    match tokio::task::spawn(async move { provider.resolve_avatar(&ens).await }).await {
+        Ok(result) => match result {
+            Ok(avatar) => Ok(avatar.to_string()),
+            Err(e) => Err(anyhow::anyhow!("Avatar resolution error: {}", e)),
+        },
+        Err(e) => {
+            warn!(
+                "Task error during avatar resolution for address {}: {}",
+                addr_string, e
+            );
+            // This happens if the task panicked
+            Err(anyhow::anyhow!(
+                "Task error during avatar resolution: {}",
+                e
+            ))
+        }
+    }
 }

@@ -33,6 +33,20 @@ networks:
     max_block_range: 10000
 
 contracts:
+  - name: ARBToken
+    abi: ./abis/ARBToken.abi.json
+    details:
+      - network: arbitrum
+        address: "0x912CE59144191C1204E64559FE8253a0e49E6548"
+        start_block: 70398215
+    reorg_safe_distance: true
+    include_events:
+      - DelegateVotesChanged
+      - DelegateChanged
+    index_event_in_order:
+      - DelegateVotesChanged
+      - DelegateChanged
+
   - name: ArbitrumCoreGovernor
     abi: ./abis/ArbitrumCoreGovernor.abi.json
     details:
@@ -93,10 +107,6 @@ contracts:
           then:
             events:
               - ProposalExecuted
-            then:
-              events:
-                - contract_name: ARBToken
-                  event_name: DelegateChanged
 
   - name: ArbitrumSCNominations
     abi: ./abis/ArbitrumSCNominations.abi.json
@@ -117,23 +127,3 @@ contracts:
       then:
         events:
           - ProposalExecuted
-
-  - name: ARBToken
-    abi: ./abis/ARBToken.abi.json
-    details:
-      - network: arbitrum
-        address: "0x912CE59144191C1204E64559FE8253a0e49E6548"
-        start_block: 70398215
-    reorg_safe_distance: true
-    include_events:
-      - DelegateVotesChanged
-      - DelegateChanged
-    index_event_in_order:
-      - DelegateVotesChanged
-      - DelegateChanged
-    dependency_events:
-      events:
-        - DelegateChanged
-      then:
-        events:
-          - DelegateVotesChanged
