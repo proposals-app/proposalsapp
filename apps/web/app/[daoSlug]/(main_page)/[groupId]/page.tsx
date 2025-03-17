@@ -17,9 +17,10 @@ import { Timeline } from './components/timeline/Timeline';
 import { Suspense } from 'react';
 import { LoadingMenuBar } from './components/menubar/LoadingMenuBar';
 import { getGroupAuthor } from '../../actions';
-import { PostedTime } from './components/body/PostedTime';
+import { InitiallyPosted } from './components/body/InitiallyPosted';
 import { Header } from '../../components/Header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
+import { PostedRevisions } from './components/body/PostedRevisions';
 
 export default async function GroupPage({
   params,
@@ -120,19 +121,21 @@ async function BodyHeaderSection({
   daoSlug: string;
   groupId: string;
 }) {
-  const [group, bodyVersions, authorInfo] = await Promise.all([
-    getGroup(daoSlug, groupId),
-    getBodyVersions(groupId, true),
-    getGroupAuthor(groupId),
-  ]);
+  const [group, bodyVersions, bodyVersionsNoContent, authorInfo] =
+    await Promise.all([
+      getGroup(daoSlug, groupId),
+      getBodyVersions(groupId, true),
+      getBodyVersions(groupId, false),
+      getGroupAuthor(groupId),
+    ]);
 
-  if (!group || !bodyVersions) {
+  if (!group || !bodyVersions || !bodyVersionsNoContent) {
     notFound();
   }
 
   const { originalAuthorName, originalAuthorPicture, groupName } = authorInfo;
+
   const firstBodyVersion = bodyVersions[0];
-  const lastBodyVersion = bodyVersions[bodyVersions.length - 1];
 
   return (
     <div className='flex w-full flex-col gap-6'>
@@ -158,16 +161,12 @@ async function BodyHeaderSection({
 
           <div className='flex flex-col items-center gap-2'>
             <div className='flex flex-row gap-4'>
-              <PostedTime
+              <InitiallyPosted
                 label='initially posted'
                 createdAt={firstBodyVersion.createdAt}
               />
 
-              <PostedTime
-                label='latest revision'
-                createdAt={lastBodyVersion.createdAt}
-                border
-              />
+              <PostedRevisions versions={bodyVersionsNoContent} />
             </div>
           </div>
         </div>
