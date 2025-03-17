@@ -50,6 +50,16 @@ export async function getVotesWithVoters(proposalId: string) {
   // 2. Optimize: Fetch all unique voter addresses at once for efficient lookups
   const voterAddresses = [...new Set(votes.map((vote) => vote.voterAddress))];
 
+  if (voterAddresses.length === 0) {
+    return votes.map((vote) => ({
+      ...vote,
+      ens: null,
+      avatar: `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`,
+      latestVotingPower: null,
+      voterAddress: vote.voterAddress,
+    }));
+  }
+
   // Fetch all voters in a single query
   const voters = await db
     .selectFrom('voter')
