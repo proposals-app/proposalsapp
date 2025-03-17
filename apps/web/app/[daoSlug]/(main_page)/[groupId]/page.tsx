@@ -37,6 +37,7 @@ export default async function GroupPage({
 
   const bodyKey = `body-${groupId}-${version}-${diff ? 'diff' : 'nodiff'}`;
   const menuBarKey = `menubar-${groupId}`;
+  const feedKey = `feed-${groupId}-${feedFilter}-${votesFilter}`;
   const timelineKey = `timeline-${groupId}-${feedFilter}-${votesFilter}`;
 
   return (
@@ -59,7 +60,7 @@ export default async function GroupPage({
           <MenuBarSection groupId={groupId} version={version} diff={diff} />
         </Suspense>
 
-        <Suspense fallback={<FeedLoading />}>
+        <Suspense fallback={<FeedLoading />} key={feedKey}>
           <FeedSection
             daoSlug={daoSlug}
             groupId={groupId}

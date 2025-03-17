@@ -19,12 +19,6 @@ export async function getGroups(daoSlug: string) {
 
   if (!dao) return null;
 
-  const daoDiscourse = await db
-    .selectFrom('daoDiscourse')
-    .where('daoId', '=', dao.id)
-    .selectAll()
-    .executeTakeFirstOrThrow();
-
   // First, fetch all groups for the DAO
   const allGroups = await db
     .selectFrom('proposalGroup')

@@ -3,7 +3,6 @@ import { PostItem } from './items/PostItem/PostItem';
 import { VoteItem } from './items/VoteItem/VoteItem';
 import { FeedReturnType, GroupReturnType } from '../../actions';
 import { AggregateVoteItem } from './items/VoteItem/AggregateVoteItem';
-import { unstable_ViewTransition as ViewTransition } from 'react';
 import { VotesWithVoters } from '@/app/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 
 export async function Feed({
@@ -49,14 +48,12 @@ export async function Feed({
         if (item.type === 'post') {
           return (
             <div key={index}>
-              <ViewTransition name={`post-item-${item.id}`}>
-                <div className='flex w-full flex-col p-4'>
-                  <PostItem item={item} group={group} />
-                </div>
-                {index < combinedItems.length - 1 && (
-                  <div className='border-b border-neutral-200 dark:border-neutral-800' />
-                )}
-              </ViewTransition>
+              <div className='flex w-full flex-col p-4'>
+                <PostItem item={item} group={group} />
+              </div>
+              {index < combinedItems.length - 1 && (
+                <div className='border-b border-neutral-200 dark:border-neutral-800' />
+              )}
             </div>
           );
         } else {
@@ -66,22 +63,20 @@ export async function Feed({
 
           return (
             <div key={index}>
-              <ViewTransition name={`vote-item-${item.id}`}>
-                <div className='flex w-full flex-col p-4'>
-                  {item.aggregate ? (
-                    <AggregateVoteItem item={item} group={group} />
-                  ) : voteWithVoter ? (
-                    <VoteItem
-                      item={item}
-                      group={group}
-                      voteWithVoter={voteWithVoter}
-                    />
-                  ) : null}
-                </div>
-                {index < combinedItems.length - 1 && (
-                  <div className='border-b border-neutral-200 dark:border-neutral-800' />
-                )}
-              </ViewTransition>
+              <div className='flex w-full flex-col p-4'>
+                {item.aggregate ? (
+                  <AggregateVoteItem item={item} group={group} />
+                ) : voteWithVoter ? (
+                  <VoteItem
+                    item={item}
+                    group={group}
+                    voteWithVoter={voteWithVoter}
+                  />
+                ) : null}
+              </div>
+              {index < combinedItems.length - 1 && (
+                <div className='border-b border-neutral-200 dark:border-neutral-800' />
+              )}
             </div>
           );
         }

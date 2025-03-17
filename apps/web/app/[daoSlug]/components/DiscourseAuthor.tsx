@@ -87,10 +87,10 @@ export function VotingPowerTag({
           {percentageChange > 0 ? '+' : ''}
           {percentageChange.toFixed(1)}%
           {percentageChange > 0 ? (
-            <ArrowUpIcon className='inline-block h-3 w-3 text-green-500 dark:text-green-500' />
+            <ArrowUpIcon className='text-for-600 inline-block h-3 w-3' />
           ) : null}
           {percentageChange < 0 ? (
-            <ArrowDownIcon className='inline-block h-3 w-3 text-red-500 dark:text-red-500' />
+            <ArrowDownIcon className='text-against-600 inline-block h-3 w-3' />
           ) : null}
         </span>
       ) : null}
