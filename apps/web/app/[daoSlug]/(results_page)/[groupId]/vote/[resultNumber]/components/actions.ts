@@ -85,9 +85,9 @@ export async function getVotesWithVoters(proposalId: string) {
       ...vote,
       ens: voter?.ens || null,
       avatar:
-        voter?.avatar ??
+        voter?.avatar ||
         `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`,
-      latestVotingPower: latestVotingPower,
+      latestVotingPower: latestVotingPower || null,
       voterAddress: vote.voterAddress,
     };
   });
