@@ -93,6 +93,7 @@ export async function PostItem({
       ) : (
         <PostContent
           author={author}
+          ens={delegate?.delegatetovoter?.ens}
           relativeCreateTime={relativeCreateTime}
           relativeUpdateTime={relativeUpdateTime}
           updatedAt={updatedAt}
@@ -108,6 +109,7 @@ export async function PostItem({
 
 const PostContent = ({
   author,
+  ens,
   relativeCreateTime,
   relativeUpdateTime,
   updatedAt,
@@ -117,6 +119,7 @@ const PostContent = ({
   currentVotingPower,
 }: {
   author: Selectable<DiscourseUser> | undefined;
+  ens: string | undefined;
   relativeCreateTime: string;
   relativeUpdateTime: string;
   updatedAt: Date;
@@ -173,9 +176,9 @@ const PostContent = ({
             </div>
             <div className='flex flex-col'>
               <div className='font-bold text-neutral-800 dark:text-neutral-200'>
-                {author.username && author.username.length
-                  ? author.username
-                  : author.name}
+                {author.username}
+                {ens && <span className='font-normal'> from </span>}
+                {ens && <span className='font-bold'>{ens}</span>}
               </div>
               {currentVotingPower && <VotingPowerTag vp={currentVotingPower} />}
             </div>

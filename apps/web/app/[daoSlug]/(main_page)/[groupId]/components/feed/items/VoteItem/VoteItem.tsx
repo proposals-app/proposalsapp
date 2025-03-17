@@ -3,7 +3,7 @@ import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { VotingPowerTag } from './../VotingPowerTag';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
-import { getDelegateByVoterAddress } from '../../actions';
+import { getVoteItemDelegate } from '../../actions';
 import Image from 'next/image';
 import { ProcessedVote } from '@/lib/results_processing';
 import { ProposalMetadata } from '@/app/types';
@@ -44,7 +44,7 @@ export async function VoteItem({
   const proposalMetadata = proposal?.metadata as ProposalMetadata;
   const isWeightedVoting = proposalMetadata.voteType === 'weighted';
 
-  const delegate = await getDelegateByVoterAddress(
+  const delegate = await getVoteItemDelegate(
     item.voterAddress,
     group.daoSlug,
     false,
@@ -61,16 +61,12 @@ export async function VoteItem({
       };
     }
 
-    const discourseUser = delegate.delegatetodiscourseuser;
     const voter = delegate.delegatetovoter;
 
     // Priority order: Discourse name > ENS > Shortened address
-    const displayName =
-      discourseUser?.name ||
-      voter?.ens ||
-      formatNameOrAddress(item.voterAddress);
+    const displayName = voter?.ens || formatNameOrAddress(item.voterAddress);
     const voterAddress = voter?.ens || formatNameOrAddress(item.voterAddress);
-    const avatarUrl = discourseUser?.avatarTemplate || null;
+    const avatarUrl = voter?.avatar || null;
 
     return {
       displayName,

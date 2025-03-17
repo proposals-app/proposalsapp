@@ -13,7 +13,7 @@ export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   return discourseUser;
 }
 
-export async function getDelegateByVoterAddress(
+export async function getVoteItemDelegate(
   voterAddress: string,
   daoSlug: string,
   withPeriodCheck: boolean,
@@ -81,16 +81,6 @@ export async function getDelegateByVoterAddress(
   let query = db
     .selectFrom('delegate')
     .innerJoin('delegateToVoter', 'delegate.id', 'delegateToVoter.delegateId')
-    .leftJoin(
-      'delegateToDiscourseUser',
-      'delegate.id',
-      'delegateToDiscourseUser.delegateId'
-    )
-    .leftJoin(
-      'discourseUser',
-      'discourseUser.id',
-      'delegateToDiscourseUser.discourseUserId'
-    )
     .leftJoin('voter', 'voter.id', 'delegateToVoter.voterId')
     .where('delegateToVoter.voterId', '=', voter.id)
     .where('delegate.daoId', '=', dao.id);
@@ -104,11 +94,9 @@ export async function getDelegateByVoterAddress(
   const delegateData = await query
     .select([
       'delegate.id as delegateId',
-      'discourseUser.name as discourseName',
-      'discourseUser.username as discourseUsername',
-      'discourseUser.avatarTemplate as discourseAvatarTemplate',
       'voter.ens as voterEns',
       'voter.address as voterAddress',
+      'voter.avatar as voterAvatar',
     ])
     .executeTakeFirst();
 
@@ -126,16 +114,11 @@ export async function getDelegateByVoterAddress(
   // Transform the data into the expected format
   return {
     delegate: { id: delegateData.delegateId },
-    delegatetodiscourseuser: delegateData.discourseName
-      ? {
-          name: delegateData.discourseName,
-          username: delegateData.discourseUsername,
-          avatarTemplate: delegateData.discourseAvatarTemplate,
-        }
-      : null,
+
     delegatetovoter: delegateData.voterEns
       ? {
           ens: delegateData.voterEns,
+          avatar: delegateData.voterAvatar,
           address: delegateData.voterAddress,
           latestVotingPower: latestVotingPower,
         }

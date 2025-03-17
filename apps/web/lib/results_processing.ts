@@ -656,7 +656,7 @@ async function processRankedChoiceVotes(
       : [vote.choice as number];
 
     // Convert to the new format
-    const processedChoice = rankChoices.map((choice, rankIndex) => {
+    const processedChoice = rankChoices.map((choice) => {
       const choiceIndex = typeof choice === 'number' ? choice - 1 : 0; // Convert to 0-based index
       return {
         choiceIndex,

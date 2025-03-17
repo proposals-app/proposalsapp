@@ -2,7 +2,7 @@ import { Proposal, Selectable } from '@proposalsapp/db-indexer';
 import {
   DelegateInfo,
   DelegateVotingPower,
-  getDelegateForVoter,
+  getVoter,
   getDelegateVotingPower,
   getProposalGovernor,
   getVotesAction,
@@ -41,7 +41,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
     votes.map(async (vote) => {
       if (vote.votingPower > 50000) {
         const [delegate, votingPower] = await Promise.all([
-          getDelegateForVoter(vote.voterAddress, daoSlug, proposal.id),
+          getVoter(vote.voterAddress),
           getDelegateVotingPower(vote.voterAddress, daoSlug, proposal.id),
         ]);
         delegateMap.set(vote.voterAddress, delegate);
@@ -61,11 +61,7 @@ async function ResultsContent({ proposal, daoSlug }: ResultsProps) {
   const serializedResults = superjson.serialize(processedResults);
 
   const governor = await getProposalGovernor(proposal.id);
-  const publisher = await getDelegateForVoter(
-    processedResults.proposal.author ?? '',
-    daoSlug,
-    proposal.id
-  );
+  const publisher = await getVoter(processedResults.proposal.author ?? '');
 
   const onChain = !governor?.type.includes('SNAPSHOT');
 

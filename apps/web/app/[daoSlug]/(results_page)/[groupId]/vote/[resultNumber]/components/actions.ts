@@ -49,32 +49,10 @@ export type DelegateInfo = {
   id: string | null | undefined;
   address: string;
   ens: string | null;
-  discourseName: string | null;
   profilePictureUrl: string | null;
 } | null;
 
-export async function getDelegateForVoter(
-  voterAddress: string,
-  daoSlug: string,
-  proposalId: string
-): Promise<DelegateInfo> {
-  const dao = await db
-    .selectFrom('dao')
-    .where('slug', '=', daoSlug)
-    .selectAll()
-    .executeTakeFirst();
-
-  if (!dao) return null;
-
-  // Get the proposal to determine the time range
-  const proposal = await db
-    .selectFrom('proposal')
-    .selectAll()
-    .where('id', '=', proposalId)
-    .executeTakeFirst();
-
-  if (!proposal) return null;
-
+export async function getVoter(voterAddress: string): Promise<DelegateInfo> {
   // Get the voter
   const voter = await db
     .selectFrom('voter')
@@ -84,71 +62,14 @@ export async function getDelegateForVoter(
 
   if (!voter) return null;
 
-  // Try to get delegate information
-  const delegateData = await db
-    .selectFrom('delegate')
-    .innerJoin('delegateToVoter', 'delegate.id', 'delegateToVoter.delegateId')
-    .where('delegateToVoter.voterId', '=', voter.id)
-    .where('delegate.daoId', '=', dao.id)
-    .select('delegate.id')
-    .executeTakeFirst();
-
-  if (!delegateData)
-    return {
-      id: null,
-      address: voter.address,
-      ens: voter.ens?.length ? voter.ens : null,
-      discourseName: null,
-      profilePictureUrl: `https://api.dicebear.com/9.x/pixel-art/png?seed=${voterAddress}`,
-    };
-
-  // Try to get discourse user first
-  const discourseUserQuery = db
-    .selectFrom('delegateToDiscourseUser')
-    .where('delegateId', '=', delegateData.id)
-    .leftJoin(
-      'discourseUser',
-      'discourseUser.id',
-      'delegateToDiscourseUser.discourseUserId'
-    );
-
-  const discourseUser = await discourseUserQuery.selectAll().executeTakeFirst();
-
-  if (discourseUser) {
-    return {
-      id: delegateData.id,
-      address: voter.address,
-      ens: voter.ens?.length ? voter.ens : null,
-      discourseName: discourseUser.name || discourseUser.username,
-      profilePictureUrl: discourseUser.avatarTemplate,
-    };
-  }
-
-  // Fallback to ENS
-  const ensQuery = db
-    .selectFrom('delegateToVoter')
-    .where('delegateId', '=', delegateData.id)
-    .leftJoin('voter', 'voter.id', 'delegateToVoter.voterId');
-
-  const ens = await ensQuery.select('voter.ens').executeTakeFirst();
-
-  if (ens?.ens) {
-    return {
-      id: delegateData.id,
-      address: voter.address,
-      ens: voter.ens?.length ? voter.ens : null,
-      discourseName: null,
-      profilePictureUrl: `https://api.dicebear.com/9.x/pixel-art/png?seed=${voter.address}`,
-    };
-  }
-
   // Fallback to address
   return {
     id: null,
-    address: `${voterAddress}`,
-    ens: null,
-    discourseName: null,
-    profilePictureUrl: `https://api.dicebear.com/9.x/pixel-art/png?seed=${voterAddress}`,
+    address: voter.address,
+    ens: voter.ens,
+    profilePictureUrl:
+      voter.avatar ??
+      `https://api.dicebear.com/9.x/pixel-art/png?seed=${voterAddress}`,
   };
 }
 

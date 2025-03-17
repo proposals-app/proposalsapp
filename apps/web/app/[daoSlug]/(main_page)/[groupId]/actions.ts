@@ -6,7 +6,7 @@ import {
   processResultsAction,
 } from '@/lib/results_processing';
 import { ProposalGroupItem } from '@/lib/types';
-import { AsyncReturnType, formatNumberWithSuffix } from '@/lib/utils';
+import { AsyncReturnType } from '@/lib/utils';
 import {
   db,
   DiscoursePost,
