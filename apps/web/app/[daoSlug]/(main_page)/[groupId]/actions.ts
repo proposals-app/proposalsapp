@@ -402,8 +402,227 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
   return voteSegments;
 }
 
+async function getAuthor(groupId: string) {
+  'use server';
+
+  const group = await dbIndexer
+    .selectFrom('proposalGroup')
+    .selectAll()
+    .where('id', '=', groupId)
+    .executeTakeFirstOrThrow();
+
+  const items = group.items as ProposalGroupItem[];
+  const proposalItems: { externalId: string; governorId: string }[] = [];
+  const topicItems: { externalId: string; daoDiscourseId: string }[] = [];
+
+  items.forEach((item) => {
+    if (item.type === 'proposal') {
+      proposalItems.push({
+        externalId: item.externalId,
+        governorId: item.governorId,
+      });
+    } else if (item.type === 'topic') {
+      topicItems.push({
+        externalId: item.externalId,
+        daoDiscourseId: item.daoDiscourseId,
+      });
+    }
+  });
+
+  const proposals =
+    proposalItems.length > 0
+      ? await dbIndexer
+          .selectFrom('proposal')
+          .selectAll()
+          .where((eb) =>
+            eb.or(
+              proposalItems.map((item) =>
+                eb('externalId', '=', item.externalId).and(
+                  'governorId',
+                  '=',
+                  item.governorId
+                )
+              )
+            )
+          )
+          .execute()
+      : [];
+
+  const topics =
+    topicItems.length > 0
+      ? await dbIndexer
+          .selectFrom('discourseTopic')
+          .selectAll()
+          .where((eb) =>
+            eb.or(
+              topicItems.map((item) =>
+                eb('externalId', '=', parseInt(item.externalId, 10)).and(
+                  'daoDiscourseId',
+                  '=',
+                  item.daoDiscourseId
+                )
+              )
+            )
+          )
+          .execute()
+      : [];
+
+  // Sort items by creation date to find the first one
+  const sortedItems = [...proposals, ...topics].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  if (sortedItems.length === 0) return null;
+
+  const firstItem = sortedItems[0];
+
+  // Get the DAO to lookup any delegates
+  const dao = await dbIndexer
+    .selectFrom('dao')
+    .selectAll()
+    .where('id', '=', group.daoId)
+    .executeTakeFirst();
+
+  if (!dao) return null;
+
+  let delegate = null;
+
+  // If the first item is a proposal, get the voter/delegate
+  if ('governorId' in firstItem) {
+    const voter = await dbIndexer
+      .selectFrom('voter')
+      .selectAll()
+      .where('address', '=', firstItem.author)
+      .executeTakeFirst();
+
+    if (voter) {
+      // Find delegate associated with this voter
+      const delegateToVoter = await dbIndexer
+        .selectFrom('delegateToVoter')
+        .innerJoin('delegate', 'delegate.id', 'delegateToVoter.delegateId')
+        .where('delegateToVoter.voterId', '=', voter.id)
+        .where('delegate.daoId', '=', dao.id)
+        .where('delegateToVoter.periodEnd', '>=', new Date())
+        .select([
+          'delegate.id as delegateId',
+          'delegateToVoter.id as relationId',
+        ])
+        .executeTakeFirst();
+
+      if (delegateToVoter) {
+        delegate = await dbIndexer
+          .selectFrom('delegate')
+          .where('id', '=', delegateToVoter.delegateId)
+          .selectAll()
+          .executeTakeFirst();
+      }
+    }
+  }
+  // If the first item is a topic, get the discourse user/delegate
+  else if ('daoDiscourseId' in firstItem) {
+    // Get the first post of the topic
+    const firstPost = await dbIndexer
+      .selectFrom('discoursePost')
+      .where('topicId', '=', firstItem.externalId)
+      .where('daoDiscourseId', '=', firstItem.daoDiscourseId)
+      .where('postNumber', '=', 1)
+      .selectAll()
+      .executeTakeFirst();
+
+    if (firstPost) {
+      // Get the discourse user who authored the first post
+      const discourseUser = await dbIndexer
+        .selectFrom('discourseUser')
+        .where('externalId', '=', firstPost.userId)
+        .where('daoDiscourseId', '=', firstItem.daoDiscourseId)
+        .selectAll()
+        .executeTakeFirst();
+
+      if (discourseUser) {
+        // Find delegate associated with this discourse user
+        const delegateToDiscourseUser = await dbIndexer
+          .selectFrom('delegateToDiscourseUser')
+          .innerJoin(
+            'delegate',
+            'delegate.id',
+            'delegateToDiscourseUser.delegateId'
+          )
+          .where(
+            'delegateToDiscourseUser.discourseUserId',
+            '=',
+            discourseUser.id
+          )
+          .where('delegate.daoId', '=', dao.id)
+          .select([
+            'delegate.id as delegateId',
+            'delegateToDiscourseUser.id as relationId',
+          ])
+          .executeTakeFirst();
+
+        if (delegateToDiscourseUser) {
+          delegate = await dbIndexer
+            .selectFrom('delegate')
+            .where('id', '=', delegateToDiscourseUser.delegateId)
+            .selectAll()
+            .executeTakeFirst();
+        }
+      }
+    }
+  }
+
+  // If we found a delegate, fetch all related information
+  if (delegate) {
+    // Get all delegate to voter relationships
+    const delegateToVoters = await dbIndexer
+      .selectFrom('delegateToVoter')
+      .innerJoin('voter', 'voter.id', 'delegateToVoter.voterId')
+      .leftJoin('votingPower', (join) =>
+        join
+          .on('votingPower.voter', '=', 'voter.address')
+          .on('votingPower.daoId', '=', dao.id)
+      )
+      .where('delegateToVoter.delegateId', '=', delegate.id)
+      .select([
+        'delegateToVoter.id',
+        'voter.address',
+        'voter.ens',
+        'voter.avatar',
+        'votingPower.votingPower',
+        'votingPower.timestamp',
+      ])
+      .execute();
+
+    // Get all delegate to discourse user relationships
+    const delegateToDiscourseUsers = await dbIndexer
+      .selectFrom('delegateToDiscourseUser')
+      .innerJoin(
+        'discourseUser',
+        'discourseUser.id',
+        'delegateToDiscourseUser.discourseUserId'
+      )
+      .where('delegateToDiscourseUser.delegateId', '=', delegate.id)
+      .select([
+        'delegateToDiscourseUser.id',
+        'discourseUser.username',
+        'discourseUser.name',
+        'discourseUser.avatarTemplate',
+        'discourseUser.externalId',
+      ])
+      .execute();
+
+    // Return delegate with all relationships
+    return {
+      delegate,
+      voters: delegateToVoters,
+      discourseUsers: delegateToDiscourseUsers,
+    };
+  }
+
+  return null;
+}
+
 export async function getFeed(
-  groupID: string,
+  groupId: string,
   feedFilter: FeedFilterEnum,
   fromFilter: FromFilterEnum
 ): Promise<{
@@ -413,11 +632,15 @@ export async function getFeed(
 }> {
   'use server';
 
+  let author = null;
+
+  if (fromFilter === FromFilterEnum.AUTHOR) author = await getAuthor(groupId);
+
   // Fetch the proposal group
   const group = await dbIndexer
     .selectFrom('proposalGroup')
     .selectAll()
-    .where('id', '=', groupID)
+    .where('id', '=', groupId)
     .executeTakeFirstOrThrow();
 
   const dao = await dbIndexer
@@ -477,6 +700,10 @@ export async function getFeed(
             return vote.votingPower > 500000;
           } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
             return vote.votingPower > 5000000;
+          } else if (fromFilter == FromFilterEnum.AUTHOR) {
+            return author?.voters
+              .map((av) => av.address)
+              .includes(vote.voterAddress);
           }
           return true;
         });
@@ -640,6 +867,10 @@ export async function getFeed(
                   return vote.votingPower > 500000;
                 } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
                   return vote.votingPower > 5000000;
+                } else if (fromFilter == FromFilterEnum.AUTHOR) {
+                  return author?.voters
+                    .map((av) => av.address)
+                    .includes(vote.voterAddress);
                 }
                 return true;
               })
@@ -760,6 +991,14 @@ export async function getFeed(
           authorVotingPower > 5000000
         ) {
           return post;
+        } else if (fromFilter == FromFilterEnum.AUTHOR) {
+          if (
+            author?.discourseUsers
+              .map((ad) => ad.username)
+              .includes(post.username)
+          ) {
+            return post;
+          }
         }
         return null;
       })
