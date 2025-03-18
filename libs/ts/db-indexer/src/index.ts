@@ -41,10 +41,10 @@ const createDbInstance = () => {
 
 declare global {
   // eslint-disable-next-line no-var
-  var db: Kysely<DB> | undefined;
+  var dbIndexer: Kysely<DB> | undefined;
 }
 
-export const db = global.db || createDbInstance();
+export const dbIndexer = global.dbIndexer || createDbInstance();
 
 //if (process.env.NODE_ENV !== "production") global.db = db;
 

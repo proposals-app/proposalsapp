@@ -1,5 +1,5 @@
 import { ProposalGroupItem } from '@/lib/types';
-import { getGroupAuthor, getGroups } from './actions';
+import { getGroupHeader, getGroups } from './actions';
 import { GroupItem } from './components/GroupItem';
 
 export default async function ListPage({
@@ -19,7 +19,7 @@ export default async function ListPage({
   // Fetch author information for each group and transform data to match GroupItem props
   const groupsWithAuthorInfo = await Promise.all(
     groups.map(async (group) => {
-      const authorInfo = await getGroupAuthor(group.id);
+      const authorInfo = await getGroupHeader(group.id);
 
       // Count the number of proposals and comments within the group
       const items = group.items as ProposalGroupItem[];

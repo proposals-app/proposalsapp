@@ -10,7 +10,7 @@ import {
   GroupReturnType,
 } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
-import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -38,7 +38,7 @@ export async function Timeline({
   const feed = await getFeed(
     group.group.id,
     FeedFilterEnum.COMMENTS_AND_VOTES,
-    VotesFilterEnum.ALL
+    FromFilterEnum.ALL
   );
 
   // Map proposals to their chronological order

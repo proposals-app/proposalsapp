@@ -1,6 +1,6 @@
 'use client';
 
-import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { FeedEvent, GroupReturnType } from '../../actions';
 import { BasicEvent } from './BasicEvent';
@@ -165,7 +165,7 @@ function useTimelineEvents(
   events: FeedEvent[],
   group: GroupReturnType,
   feedFilter: FeedFilterEnum,
-  votesFilter: VotesFilterEnum
+  fromFilter: FromFilterEnum
 ) {
   // Refs for DOM elements and visibility checking
   const containerRef = useRef<HTMLDivElement>(null);
@@ -175,7 +175,7 @@ function useTimelineEvents(
   // Use refs for state that shouldn't trigger re-renders on their own
   const animationStartedRef = useRef(false);
   const isFullyRenderedRef = useRef(false);
-  const lastFiltersRef = useRef({ feedFilter, votesFilter });
+  const lastFiltersRef = useRef({ feedFilter, fromFilter });
 
   // State that requires re-renders
   const [aggregationLevel, setAggregationLevel] = useState(0);
@@ -208,14 +208,14 @@ function useTimelineEvents(
       ) {
         if (!event.metadata?.votingPower) return false;
 
-        switch (votesFilter) {
-          case VotesFilterEnum.ALL:
+        switch (fromFilter) {
+          case FromFilterEnum.ALL:
             return true;
-          case VotesFilterEnum.FIFTY_THOUSAND:
+          case FromFilterEnum.FIFTY_THOUSAND:
             return event.metadata.votingPower > 50000;
-          case VotesFilterEnum.FIVE_HUNDRED_THOUSAND:
+          case FromFilterEnum.FIVE_HUNDRED_THOUSAND:
             return event.metadata.votingPower > 500000;
-          case VotesFilterEnum.FIVE_MILLION:
+          case FromFilterEnum.FIVE_MILLION:
             return event.metadata.votingPower > 5000000;
           default:
             return false;
@@ -231,7 +231,7 @@ function useTimelineEvents(
         TimelineEventType.ResultEndedOtherVotes,
       ].includes(event.type);
     },
-    [feedFilter, votesFilter]
+    [feedFilter, fromFilter]
   );
 
   // Process events based on current aggregation level (memoized)
@@ -341,10 +341,10 @@ function useTimelineEvents(
     // Only perform these actions if filters have actually changed
     if (
       prevFilters.feedFilter !== feedFilter ||
-      prevFilters.votesFilter !== votesFilter
+      prevFilters.fromFilter !== fromFilter
     ) {
       // Update the stored filters
-      lastFiltersRef.current = { feedFilter, votesFilter };
+      lastFiltersRef.current = { feedFilter, fromFilter };
 
       // Reset aggregation level when filters change to prevent visual glitches
       setAggregationLevel(0);
@@ -354,7 +354,7 @@ function useTimelineEvents(
         setTimeout(checkVisibility, 100);
       }
     }
-  }, [feedFilter, votesFilter, checkVisibility]);
+  }, [feedFilter, fromFilter, checkVisibility]);
 
   return {
     displayEvents,
@@ -468,12 +468,12 @@ export function Timeline({
   events,
   group,
   feedFilter,
-  votesFilter,
+  fromFilter,
 }: {
   events: FeedEvent[];
   group: GroupReturnType;
   feedFilter: FeedFilterEnum;
-  votesFilter: VotesFilterEnum;
+  fromFilter: FromFilterEnum;
 }) {
   if (!group) {
     notFound();
@@ -487,7 +487,7 @@ export function Timeline({
     aggregationLevel,
     animationStarted,
     refs,
-  } = useTimelineEvents(events, group, feedFilter, votesFilter);
+  } = useTimelineEvents(events, group, feedFilter, fromFilter);
 
   if (!displayEvents) {
     return null;

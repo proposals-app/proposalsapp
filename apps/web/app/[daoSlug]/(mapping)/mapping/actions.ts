@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import Fuse from 'fuse.js';
-import { db } from '@proposalsapp/db-indexer';
+import { dbIndexer } from '@proposalsapp/db-indexer';
 import { AsyncReturnType } from '@/lib/utils';
 
 // Define strong types for our data structures
@@ -51,13 +51,13 @@ export interface FuzzySearchResult {
  * Fetches all proposal groups for a given DAO
  */
 export async function getGroupsData(daoSlug: string) {
-  const dao = await db
+  const dao = await dbIndexer
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
     .executeTakeFirstOrThrow();
 
-  const proposalGroups = await db
+  const proposalGroups = await dbIndexer
     .selectFrom('proposalGroup')
     .where('daoId', '=', dao.id)
     .selectAll()
@@ -72,7 +72,7 @@ export async function getGroupsData(daoSlug: string) {
           let indexerName = 'unknown';
 
           if (item.type === 'proposal') {
-            const proposal = await db
+            const proposal = await dbIndexer
               .selectFrom('proposal')
               .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
               .select('daoGovernor.name as governorName')
@@ -81,7 +81,7 @@ export async function getGroupsData(daoSlug: string) {
               .executeTakeFirst();
             indexerName = proposal?.governorName ?? 'unknown';
           } else if (item.type === 'topic') {
-            const topic = await db
+            const topic = await dbIndexer
               .selectFrom('discourseTopic')
               .leftJoin(
                 'daoDiscourse',
@@ -119,13 +119,13 @@ export async function getGroupsData(daoSlug: string) {
 export async function getUngroupedProposals(
   daoSlug: string
 ): Promise<ProposalItem[]> {
-  const dao = await db
+  const dao = await dbIndexer
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
     .executeTakeFirstOrThrow();
 
-  const allProposals = await db
+  const allProposals = await dbIndexer
     .selectFrom('proposal')
     .where('proposal.daoId', '=', dao.id)
     .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
@@ -139,7 +139,10 @@ export async function getUngroupedProposals(
     .where('markedSpam', '=', false)
     .execute();
 
-  const groups = await db.selectFrom('proposalGroup').select('items').execute();
+  const groups = await dbIndexer
+    .selectFrom('proposalGroup')
+    .select('items')
+    .execute();
 
   // Extract all proposal IDs that are already in groups
   const groupedProposalIds = (
@@ -149,7 +152,7 @@ export async function getUngroupedProposals(
         const proposalsIds = await Promise.all(
           items.map(async (item) => {
             if (item.type === 'proposal') {
-              const proposal = await db
+              const proposal = await dbIndexer
                 .selectFrom('proposal')
                 .select(['id', 'proposal.governorId'])
                 .where('proposal.externalId', '=', item.externalId)
@@ -189,13 +192,13 @@ export async function fuzzySearchItems(
   searchTerm: string,
   daoSlug: string
 ): Promise<FuzzySearchResult[]> {
-  const dao = await db
+  const dao = await dbIndexer
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
     .executeTakeFirstOrThrow();
 
-  const daoDiscourse = await db
+  const daoDiscourse = await dbIndexer
     .selectFrom('daoDiscourse')
     .where('daoId', '=', dao.id)
     .selectAll()
@@ -206,7 +209,7 @@ export async function fuzzySearchItems(
   }
 
   const [proposals, topics] = await Promise.all([
-    db
+    dbIndexer
       .selectFrom('proposal')
       .where('markedSpam', '=', false)
       .where('proposal.daoId', '=', dao.id)
@@ -219,7 +222,7 @@ export async function fuzzySearchItems(
         'daoGovernor.name as governorName',
       ])
       .execute(),
-    db
+    dbIndexer
       .selectFrom('discourseTopic')
       .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
       .leftJoin(
@@ -278,7 +281,7 @@ export async function saveGroups(groups: ProposalGroup[]) {
   await Promise.all(
     groups.map(async (group) => {
       if (group.id) {
-        await db
+        await dbIndexer
           .insertInto('proposalGroup')
           .values({
             id: group.id,
@@ -297,7 +300,7 @@ export async function saveGroups(groups: ProposalGroup[]) {
           )
           .execute();
       } else {
-        await db
+        await dbIndexer
           .insertInto('proposalGroup')
           .values({
             name: group.name,
@@ -317,7 +320,10 @@ export async function saveGroups(groups: ProposalGroup[]) {
  * Deletes a group from the database
  */
 export async function deleteGroup(groupId: string) {
-  await db.deleteFrom('proposalGroup').where('id', '=', groupId).execute();
+  await dbIndexer
+    .deleteFrom('proposalGroup')
+    .where('id', '=', groupId)
+    .execute();
   revalidatePath('/mapping');
 }
 
@@ -325,7 +331,7 @@ export async function deleteGroup(groupId: string) {
  * Fetches DAO details by slug
  */
 export async function getDao(daoSlug: string) {
-  const dao = await db
+  const dao = await dbIndexer
     .selectFrom('dao')
     .selectAll()
     .where('slug', '=', daoSlug)

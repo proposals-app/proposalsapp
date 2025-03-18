@@ -1,6 +1,6 @@
 'use client';
 
-import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { BodyViewBar } from './BodyViewBar';
 import { CommentsViewBar } from './CommentsViewBar';
 import { FullViewBar } from './FullViewBar';
@@ -159,22 +159,26 @@ export const SharedSelectItem = ({ children, value }: SelectItemProps) => {
   );
 };
 
-export const voteFilters = [
+export const fromFilters = [
   {
-    value: VotesFilterEnum.ALL,
-    label: 'with any ARB',
+    value: FromFilterEnum.ALL,
+    label: 'from everyone',
   },
   {
-    value: VotesFilterEnum.FIFTY_THOUSAND,
+    value: FromFilterEnum.FIFTY_THOUSAND,
     label: 'above 50k ARB',
   },
   {
-    value: VotesFilterEnum.FIVE_HUNDRED_THOUSAND,
+    value: FromFilterEnum.FIVE_HUNDRED_THOUSAND,
     label: 'above 500k ARB',
   },
   {
-    value: VotesFilterEnum.FIVE_MILLION,
+    value: FromFilterEnum.FIVE_MILLION,
     label: 'above 5m ARB',
+  },
+  {
+    value: FromFilterEnum.AUTHOR,
+    label: 'from the author',
   },
 ];
 

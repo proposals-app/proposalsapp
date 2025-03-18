@@ -4,7 +4,7 @@ import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
 import { getGroup } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import { Header } from '@/app/[daoSlug]/components/Header';
 import { Suspense } from 'react';
-import { getGroupAuthor } from '@/app/[daoSlug]/actions';
+import { getGroupHeader } from '@/app/[daoSlug]/actions';
 
 export default async function ResultPage({
   params,
@@ -26,7 +26,7 @@ export default async function ResultPage({
   }
 
   const { originalAuthorName, originalAuthorPicture, groupName } =
-    await getGroupAuthor(group.groupId);
+    await getGroupHeader(group.groupId);
 
   return (
     <div className='flex min-h-screen w-full flex-row'>

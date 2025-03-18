@@ -5,11 +5,12 @@ import {
   parseAsStringEnum,
 } from 'nuqs/server';
 
-export enum VotesFilterEnum {
+export enum FromFilterEnum {
   ALL = 'all',
   FIFTY_THOUSAND = '50k',
   FIVE_HUNDRED_THOUSAND = '500k',
   FIVE_MILLION = '5m',
+  AUTHOR = 'author',
 }
 
 export enum FeedFilterEnum {
@@ -25,8 +26,8 @@ export const searchParamsCache = createSearchParamsCache({
   feed: parseAsStringEnum<FeedFilterEnum>(
     Object.values(FeedFilterEnum)
   ).withDefault(FeedFilterEnum.COMMENTS_AND_VOTES),
-  votes: parseAsStringEnum<VotesFilterEnum>(
-    Object.values(VotesFilterEnum)
-  ).withDefault(VotesFilterEnum.FIFTY_THOUSAND),
+  from: parseAsStringEnum<FromFilterEnum>(
+    Object.values(FromFilterEnum)
+  ).withDefault(FromFilterEnum.FIFTY_THOUSAND),
   page: parseAsInteger,
 });

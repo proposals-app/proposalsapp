@@ -1,7 +1,7 @@
 import {
   FeedFilterEnum,
   searchParamsCache,
-  VotesFilterEnum,
+  FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { getGroup, getBodyVersions, getFeed } from './actions';
@@ -16,7 +16,7 @@ import { MenuBar } from './components/menubar/MenuBar';
 import { Timeline } from './components/timeline/Timeline';
 import { Suspense } from 'react';
 import { LoadingMenuBar } from './components/menubar/LoadingMenuBar';
-import { getGroupAuthor } from '../../actions';
+import { getGroupHeader } from '../../actions';
 import { InitiallyPosted } from './components/body/InitiallyPosted';
 import { Header } from '../../components/Header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
@@ -33,12 +33,12 @@ export default async function GroupPage({
   const { daoSlug, groupId } = resolvedParams;
   const parsedParams = await searchParamsCache.parse(searchParams);
 
-  const { version, diff, feed: feedFilter, votes: votesFilter } = parsedParams;
+  const { version, diff, feed: feedFilter, from: fromFilter } = parsedParams;
 
   const bodyKey = `body-${groupId}-${version}-${diff ? 'diff' : 'nodiff'}`;
   const menuBarKey = `menubar-${groupId}`;
-  const feedKey = `feed-${groupId}-${feedFilter}-${votesFilter}`;
-  const timelineKey = `timeline-${groupId}-${feedFilter}-${votesFilter}`;
+  const feedKey = `feed-${groupId}-${feedFilter}-${fromFilter}`;
+  const timelineKey = `timeline-${groupId}-${feedFilter}-${fromFilter}`;
 
   return (
     <div className='flex w-full flex-col items-center pt-10 pr-96'>
@@ -65,7 +65,7 @@ export default async function GroupPage({
             daoSlug={daoSlug}
             groupId={groupId}
             feedFilter={feedFilter}
-            votesFilter={votesFilter}
+            fromFilter={fromFilter}
           />
         </Suspense>
       </div>
@@ -75,7 +75,7 @@ export default async function GroupPage({
           daoSlug={daoSlug}
           groupId={groupId}
           feedFilter={feedFilter}
-          votesFilter={votesFilter}
+          fromFilter={fromFilter}
         />
       </Suspense>
     </div>
@@ -127,7 +127,7 @@ async function BodyHeaderSection({
       getGroup(daoSlug, groupId),
       getBodyVersions(groupId, true),
       getBodyVersions(groupId, false),
-      getGroupAuthor(groupId),
+      getGroupHeader(groupId),
     ]);
 
   if (!group || !bodyVersions || !bodyVersionsNoContent) {
@@ -207,16 +207,16 @@ async function FeedSection({
   daoSlug,
   groupId,
   feedFilter,
-  votesFilter,
+  fromFilter,
 }: {
   daoSlug: string;
   groupId: string;
   feedFilter: FeedFilterEnum;
-  votesFilter: VotesFilterEnum;
+  fromFilter: FromFilterEnum;
 }) {
   const [group, feed] = await Promise.all([
     getGroup(daoSlug, groupId),
-    getFeed(groupId, feedFilter, votesFilter),
+    getFeed(groupId, feedFilter, fromFilter),
   ]);
 
   const proposalIds = group?.proposals.map((p) => p.id) || [];
@@ -240,16 +240,16 @@ async function TimelineSection({
   daoSlug,
   groupId,
   feedFilter,
-  votesFilter,
+  fromFilter,
 }: {
   daoSlug: string;
   groupId: string;
   feedFilter: FeedFilterEnum;
-  votesFilter: VotesFilterEnum;
+  fromFilter: FromFilterEnum;
 }) {
   const [group, feed] = await Promise.all([
     getGroup(daoSlug, groupId),
-    getFeed(groupId, feedFilter, votesFilter),
+    getFeed(groupId, feedFilter, fromFilter),
   ]);
 
   if (!group) {
@@ -261,7 +261,7 @@ async function TimelineSection({
       events={feed.events}
       group={group}
       feedFilter={feedFilter}
-      votesFilter={votesFilter}
+      fromFilter={fromFilter}
     />
   );
 }

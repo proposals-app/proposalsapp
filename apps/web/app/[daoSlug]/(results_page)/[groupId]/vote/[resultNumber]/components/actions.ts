@@ -1,8 +1,8 @@
 import { AsyncReturnType } from '@/lib/utils';
-import { db } from '@proposalsapp/db-indexer';
+import { dbIndexer } from '@proposalsapp/db-indexer';
 
 export async function getProposalGovernor(proposalId: string) {
-  const proposal = await db
+  const proposal = await dbIndexer
     .selectFrom('proposal')
     .where('id', '=', proposalId)
     .select(['governorId'])
@@ -13,7 +13,7 @@ export async function getProposalGovernor(proposalId: string) {
     return null;
   }
 
-  const daoIndexer = await db
+  const daoIndexer = await dbIndexer
     .selectFrom('daoGovernor')
     .where('id', '=', proposal.governorId)
     .selectAll()
@@ -33,7 +33,7 @@ export async function getVotesWithVoters(proposalId: string) {
   'use server';
 
   // 1. Fetch votes, including only the necessary voter address
-  const votes = await db
+  const votes = await dbIndexer
     .selectFrom('vote')
     .select([
       'id',
@@ -61,7 +61,7 @@ export async function getVotesWithVoters(proposalId: string) {
   }
 
   // Fetch all voters in a single query
-  const voters = await db
+  const voters = await dbIndexer
     .selectFrom('voter')
     .select(['address', 'ens', 'avatar'])
     .where('address', 'in', voterAddresses)
@@ -72,7 +72,7 @@ export async function getVotesWithVoters(proposalId: string) {
 
   // 3. Fetch latest voting power for each voter in a single query (optimized)
   // Fetch latest voting power for all relevant voters
-  const latestVotingPowers = await db
+  const latestVotingPowers = await dbIndexer
     .selectFrom('votingPower')
     .select(['voter', 'votingPower'])
     .where('voter', 'in', voterAddresses) // Filter by addresses we have votes for
@@ -114,7 +114,7 @@ export type DelegateInfo = {
 
 export async function getVoter(voterAddress: string): Promise<DelegateInfo> {
   // Get the voter
-  const voter = await db
+  const voter = await dbIndexer
     .selectFrom('voter')
     .where('address', '=', voterAddress)
     .selectAll()
@@ -146,7 +146,7 @@ export async function getDelegateVotingPower(
 ): Promise<DelegateVotingPower | null> {
   try {
     // Get the proposal to determine timestamps
-    const proposal = await db
+    const proposal = await dbIndexer
       .selectFrom('proposal')
       .where('id', '=', proposalId)
       .selectAll()
@@ -155,7 +155,7 @@ export async function getDelegateVotingPower(
     if (!proposal) return null;
 
     // Get the dao
-    const dao = await db
+    const dao = await dbIndexer
       .selectFrom('dao')
       .where('slug', '=', daoSlug)
       .selectAll()
@@ -164,7 +164,7 @@ export async function getDelegateVotingPower(
     if (!dao) return null;
 
     // Get the vote
-    const vote = await db
+    const vote = await dbIndexer
       .selectFrom('vote')
       .where('voterAddress', '=', voterAddress)
       .where('proposalId', '=', proposalId)
@@ -174,7 +174,7 @@ export async function getDelegateVotingPower(
     if (!vote) return null;
 
     // Get the latest voting power
-    const latestVotingPowerRecord = await db
+    const latestVotingPowerRecord = await dbIndexer
       .selectFrom('votingPower')
       .where('voter', '=', voterAddress)
       .where('daoId', '=', dao.id)

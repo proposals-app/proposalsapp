@@ -1,7 +1,12 @@
 'use server';
 
 import { otel } from '@/lib/otel';
-import { db, DiscourseUser, Selectable, Voter } from '@proposalsapp/db-indexer';
+import {
+  dbIndexer,
+  DiscourseUser,
+  Selectable,
+  Voter,
+} from '@proposalsapp/db-indexer';
 import { revalidatePath } from 'next/cache';
 import Fuse from 'fuse.js';
 import { AsyncReturnType } from '@/lib/utils';
@@ -13,13 +18,13 @@ export type DelegatesWithMappingsReturnType = AsyncReturnType<
 export async function getDelegatesWithMappings(daoSlug: string) {
   'use server';
   return otel('get-delegates-with-mappings', async () => {
-    const dao = await db
+    const dao = await dbIndexer
       .selectFrom('dao')
       .where('slug', '=', daoSlug)
       .selectAll()
       .executeTakeFirstOrThrow();
 
-    const delegates = await db
+    const delegates = await dbIndexer
       .selectFrom('delegate')
       .where('daoId', '=', dao.id)
       .selectAll()
@@ -27,7 +32,7 @@ export async function getDelegatesWithMappings(daoSlug: string) {
 
     const delegatesWithMappings = await Promise.all(
       delegates.map(async (delegate) => {
-        const delegateToDiscourseUsers = await db
+        const delegateToDiscourseUsers = await dbIndexer
           .selectFrom('delegateToDiscourseUser')
           .innerJoin(
             'discourseUser',
@@ -41,7 +46,7 @@ export async function getDelegatesWithMappings(daoSlug: string) {
         let discourseUsers: Selectable<DiscourseUser>[] = [];
 
         if (delegateToDiscourseUsers.length) {
-          discourseUsers = await db
+          discourseUsers = await dbIndexer
             .selectFrom('discourseUser')
             .where(
               'discourseUser.id',
@@ -52,7 +57,7 @@ export async function getDelegatesWithMappings(daoSlug: string) {
             .execute();
         }
 
-        const delegateToVoters = await db
+        const delegateToVoters = await dbIndexer
           .selectFrom('delegateToVoter')
           .innerJoin('voter', 'voter.id', 'delegateToVoter.voterId')
           .where('delegateToVoter.delegateId', '=', delegate.id)
@@ -62,7 +67,7 @@ export async function getDelegatesWithMappings(daoSlug: string) {
         let voters: Selectable<Voter>[] = [];
 
         if (delegateToVoters.length) {
-          voters = await db
+          voters = await dbIndexer
             .selectFrom('voter')
             .where(
               'voter.id',
@@ -143,13 +148,13 @@ export async function fuzzySearchDiscourseUsers(
     return [];
   }
 
-  const dao = await db
+  const dao = await dbIndexer
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
     .executeTakeFirstOrThrow();
 
-  const daoDiscourse = await db
+  const daoDiscourse = await dbIndexer
     .selectFrom('daoDiscourse')
     .where('daoId', '=', dao.id)
     .selectAll()
@@ -159,7 +164,7 @@ export async function fuzzySearchDiscourseUsers(
     return [];
   }
 
-  const allDiscourseUsers = await db
+  const allDiscourseUsers = await dbIndexer
     .selectFrom('discourseUser')
     .where('daoDiscourseId', '=', daoDiscourse.id)
     .where('id', 'not in', excludeUserIds)
@@ -183,7 +188,7 @@ export async function fuzzySearchVoters(
     return [];
   }
 
-  const allVoters = await db
+  const allVoters = await dbIndexer
     .selectFrom('voter')
     .where('id', 'not in', excludeVoterIds)
     .selectAll()
@@ -203,7 +208,7 @@ export async function mapDiscourseUserToDelegate(
   discourseUserId: string
 ) {
   try {
-    await db
+    await dbIndexer
       .insertInto('delegateToDiscourseUser')
       .values({
         delegateId,
@@ -221,7 +226,7 @@ export async function mapDiscourseUserToDelegate(
 
 export async function mapVoterToDelegate(delegateId: string, voterId: string) {
   try {
-    await db
+    await dbIndexer
       .insertInto('delegateToVoter')
       .values({
         delegateId,
@@ -242,7 +247,7 @@ export async function unmapDiscourseUserFromDelegate(
   discourseUserId: string
 ) {
   try {
-    await db
+    await dbIndexer
       .deleteFrom('delegateToDiscourseUser')
       .where('delegateId', '=', delegateId)
       .where('discourseUserId', '=', discourseUserId)
@@ -259,7 +264,7 @@ export async function unmapVoterFromDelegate(
   voterId: string
 ) {
   try {
-    await db
+    await dbIndexer
       .deleteFrom('delegateToVoter')
       .where('delegateId', '=', delegateId)
       .where('voterId', '=', voterId)
@@ -273,13 +278,13 @@ export async function unmapVoterFromDelegate(
 
 export async function createDelegate(daoSlug: string) {
   try {
-    const dao = await db
+    const dao = await dbIndexer
       .selectFrom('dao')
       .where('slug', '=', daoSlug)
       .selectAll()
       .executeTakeFirstOrThrow();
 
-    await db
+    await dbIndexer
       .insertInto('delegate')
       .values({
         daoId: dao.id,
@@ -294,7 +299,7 @@ export async function createDelegate(daoSlug: string) {
 
 export async function deleteDelegate(delegateId: string) {
   try {
-    await db.transaction().execute(async (trx) => {
+    await dbIndexer.transaction().execute(async (trx) => {
       await trx
         .deleteFrom('delegateToDiscourseUser')
         .where('delegateId', '=', delegateId)

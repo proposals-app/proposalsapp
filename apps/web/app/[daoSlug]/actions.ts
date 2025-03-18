@@ -2,7 +2,7 @@
 
 import { AsyncReturnType } from '@/lib/utils';
 import {
-  db,
+  dbIndexer,
   DiscourseTopic,
   Proposal,
   Selectable,
@@ -11,7 +11,7 @@ import { ProposalGroupItem } from '@/lib/types';
 
 export async function getGroups(daoSlug: string) {
   // Fetch the DAO based on the slug
-  const dao = await db
+  const dao = await dbIndexer
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
@@ -20,7 +20,7 @@ export async function getGroups(daoSlug: string) {
   if (!dao) return null;
 
   // First, fetch all groups for the DAO
-  const allGroups = await db
+  const allGroups = await dbIndexer
     .selectFrom('proposalGroup')
     .selectAll()
     .where('daoId', '=', dao.id)
@@ -51,7 +51,7 @@ export async function getGroups(daoSlug: string) {
   // Fetch proposals in bulk
   const proposals =
     proposalItems.length > 0
-      ? await db
+      ? await dbIndexer
           .selectFrom('proposal')
           .selectAll()
           .where((eb) =>
@@ -71,7 +71,7 @@ export async function getGroups(daoSlug: string) {
   // Fetch topics in bulk
   const topics =
     topicItems.length > 0
-      ? await db
+      ? await dbIndexer
           .selectFrom('discourseTopic')
           .selectAll()
           .where((eb) =>
@@ -143,20 +143,20 @@ export async function getGroups(daoSlug: string) {
 
 export type GroupsReturnType = AsyncReturnType<typeof getGroups>;
 
-interface AuthorInfo {
-  originalAuthorName: string;
-  originalAuthorPicture: string;
-  createdAt: Date;
-}
-
-export async function getGroupAuthor(groupId: string): Promise<{
+export async function getGroupHeader(groupId: string): Promise<{
   originalAuthorName: string;
   originalAuthorPicture: string;
   groupName: string;
 }> {
   'use server';
 
-  const group = await db
+  interface AuthorInfo {
+    originalAuthorName: string;
+    originalAuthorPicture: string;
+    createdAt: Date;
+  }
+
+  const group = await dbIndexer
     .selectFrom('proposalGroup')
     .where('id', '=', groupId)
     .selectAll()
@@ -200,7 +200,7 @@ export async function getGroupAuthor(groupId: string): Promise<{
   // Fetch proposals in bulk
   const proposals =
     proposalItems.length > 0
-      ? await db
+      ? await dbIndexer
           .selectFrom('proposal')
           .selectAll()
           .where((eb) =>
@@ -220,7 +220,7 @@ export async function getGroupAuthor(groupId: string): Promise<{
   // Fetch topics in bulk
   const topics =
     topicItems.length > 0
-      ? await db
+      ? await dbIndexer
           .selectFrom('discourseTopic')
           .selectAll()
           .where((eb) =>
@@ -242,7 +242,7 @@ export async function getGroupAuthor(groupId: string): Promise<{
     topic: Selectable<DiscourseTopic>
   ): Promise<AuthorInfo | null> => {
     try {
-      const discourseFirstPost = await db
+      const discourseFirstPost = await dbIndexer
         .selectFrom('discoursePost')
         .where('discoursePost.topicId', '=', topic.externalId)
         .where('daoDiscourseId', '=', topic.daoDiscourseId)
@@ -250,7 +250,7 @@ export async function getGroupAuthor(groupId: string): Promise<{
         .selectAll()
         .executeTakeFirstOrThrow();
 
-      const discourseFirstPostAuthor = await db
+      const discourseFirstPostAuthor = await dbIndexer
         .selectFrom('discourseUser')
         .where('discourseUser.externalId', '=', discourseFirstPost.userId)
         .where('daoDiscourseId', '=', topic.daoDiscourseId)

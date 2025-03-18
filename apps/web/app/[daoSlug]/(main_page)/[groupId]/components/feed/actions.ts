@@ -1,9 +1,9 @@
-import { db, sql } from '@proposalsapp/db-indexer';
+import { dbIndexer, sql } from '@proposalsapp/db-indexer';
 
 export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   'use server';
 
-  const discourseUser = await db
+  const discourseUser = await dbIndexer
     .selectFrom('discourseUser')
     .selectAll()
     .where('daoDiscourseId', '=', daoDiscourseId)
@@ -22,20 +22,20 @@ export async function getDelegateByDiscourseUser(
 ) {
   'use server';
 
-  const dao = await db
+  const dao = await dbIndexer
     .selectFrom('dao')
     .selectAll()
     .where('dao.slug', '=', daoSlug)
     .executeTakeFirstOrThrow();
 
-  const daoDiscourse = await db
+  const daoDiscourse = await dbIndexer
     .selectFrom('daoDiscourse')
     .selectAll()
     .where('daoId', '=', dao.id)
     .executeTakeFirstOrThrow();
 
   // Fetch the discourse user
-  const discourseUser = await db
+  const discourseUser = await dbIndexer
     .selectFrom('discourseUser')
     .selectAll()
     .where('externalId', '=', discourseUserId)
@@ -45,7 +45,7 @@ export async function getDelegateByDiscourseUser(
   if (!discourseUser) return null;
 
   // Find the associated delegate via delegateToDiscourseUser
-  const delegateToDiscourseUser = await db
+  const delegateToDiscourseUser = await dbIndexer
     .selectFrom('delegateToDiscourseUser')
     .selectAll()
     .where('discourseUserId', '=', discourseUser.id)
@@ -54,7 +54,7 @@ export async function getDelegateByDiscourseUser(
   if (!delegateToDiscourseUser) return null;
 
   // Find the associated voter via delegateToVoter
-  const delegateToVoter = await db
+  const delegateToVoter = await dbIndexer
     .selectFrom('delegateToVoter')
     .selectAll()
     .where('delegateId', '=', delegateToDiscourseUser.delegateId)
@@ -63,7 +63,7 @@ export async function getDelegateByDiscourseUser(
   if (!delegateToVoter) return null;
 
   // Fetch the voter using the voter ID from delegateToVoter
-  const voter = await db
+  const voter = await dbIndexer
     .selectFrom('voter')
     .selectAll()
     .where('id', '=', delegateToVoter.voterId)
@@ -80,7 +80,7 @@ export async function getDelegateByDiscourseUser(
     let proposalEndTimes: number[] = [];
 
     if (proposalIds && proposalIds.length > 0) {
-      const proposals = await db
+      const proposals = await dbIndexer
         .selectFrom('proposal')
         .selectAll()
         .where('id', 'in', proposalIds)
@@ -96,7 +96,7 @@ export async function getDelegateByDiscourseUser(
     let topicEndTimes: number[] = [];
 
     if (topicIds && topicIds.length > 0) {
-      const topics = await db
+      const topics = await dbIndexer
         .selectFrom('discourseTopic')
         .selectAll()
         .where('id', 'in', topicIds)
@@ -113,7 +113,7 @@ export async function getDelegateByDiscourseUser(
   }
 
   // Fetch the delegate with all related data in one query
-  let query = db
+  let query = dbIndexer
     .selectFrom('delegate')
     .innerJoin('delegateToVoter', 'delegate.id', 'delegateToVoter.delegateId')
     .leftJoin(
@@ -148,7 +148,7 @@ export async function getDelegateByDiscourseUser(
 
   if (!delegateData) return null;
 
-  const latestVotingPower = await db
+  const latestVotingPower = await dbIndexer
     .selectFrom('votingPower')
     .selectAll()
     .where('voter', '=', delegateData.voterAddress)
@@ -183,7 +183,7 @@ export async function getPostLikesCount(
 ) {
   'use server';
 
-  const result = await db
+  const result = await dbIndexer
     .selectFrom('discoursePostLike')
     .select(sql<number>`count(*)`.as('count'))
     .where('externalDiscoursePostId', '=', externalPostId)
@@ -199,7 +199,7 @@ async function getPostLikedUsers(
 ) {
   'use server';
 
-  const likedUsers = await db
+  const likedUsers = await dbIndexer
     .selectFrom('discoursePostLike')
     .innerJoin(
       'discourseUser',

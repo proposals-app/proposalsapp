@@ -1,4 +1,4 @@
-import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 
 import {
   ProcessedResults,
@@ -8,7 +8,7 @@ import {
 import { ProposalGroupItem } from '@/lib/types';
 import { AsyncReturnType } from '@/lib/utils';
 import {
-  db,
+  dbIndexer,
   DiscoursePost,
   DiscourseTopic,
   Proposal,
@@ -28,7 +28,7 @@ export async function getGroup(daoSlug: string, groupId: string) {
   if (daoSlug == 'favicon.ico') return null;
 
   // Fetch the DAO based on the slug
-  const dao = await db
+  const dao = await dbIndexer
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
@@ -45,7 +45,7 @@ export async function getGroup(daoSlug: string, groupId: string) {
     try {
       // Fetch the group based on ID
       group =
-        (await db
+        (await dbIndexer
           .selectFrom('proposalGroup')
           .where('id', '=', groupId)
           .selectAll()
@@ -65,7 +65,7 @@ export async function getGroup(daoSlug: string, groupId: string) {
     if (proposalItems.length > 0) {
       for (const proposalItem of proposalItems) {
         try {
-          const p = await db
+          const p = await dbIndexer
             .selectFrom('proposal')
             .selectAll()
             .where('externalId', '=', proposalItem.externalId)
@@ -83,7 +83,7 @@ export async function getGroup(daoSlug: string, groupId: string) {
     if (topicItems.length > 0) {
       for (const topicItem of topicItems) {
         try {
-          const t = await db
+          const t = await dbIndexer
             .selectFrom('discourseTopic')
             .where('externalId', '=', parseInt(topicItem.externalId, 10))
             .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
@@ -124,7 +124,7 @@ export async function getBodyVersions(groupID: string, withContent: boolean) {
 
   const bodies: BodyVersionType[] = [];
 
-  const group = await db
+  const group = await dbIndexer
     .selectFrom('proposalGroup')
     .selectAll()
     .where('id', '=', groupID)
@@ -143,7 +143,7 @@ export async function getBodyVersions(groupID: string, withContent: boolean) {
   if (proposalItems.length > 0) {
     for (const proposalItem of proposalItems) {
       try {
-        const p = await db
+        const p = await dbIndexer
           .selectFrom('proposal')
           .selectAll()
           .where('externalId', '=', proposalItem.externalId)
@@ -172,7 +172,7 @@ export async function getBodyVersions(groupID: string, withContent: boolean) {
   if (topicItems.length > 0) {
     for (const topicItem of topicItems) {
       try {
-        const t = await db
+        const t = await dbIndexer
           .selectFrom('discourseTopic')
           .where('externalId', '=', parseInt(topicItem.externalId, 10))
           .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
@@ -187,7 +187,7 @@ export async function getBodyVersions(groupID: string, withContent: boolean) {
   }
 
   for (const discourseTopic of discourseTopics) {
-    const discourseFirstPost = await db
+    const discourseFirstPost = await dbIndexer
       .selectFrom('discoursePost')
       .where('discoursePost.topicId', '=', discourseTopic.externalId)
       .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
@@ -195,14 +195,14 @@ export async function getBodyVersions(groupID: string, withContent: boolean) {
       .selectAll()
       .executeTakeFirstOrThrow();
 
-    const discourseFirstPostAuthor = await db
+    const discourseFirstPostAuthor = await dbIndexer
       .selectFrom('discourseUser')
       .where('discourseUser.externalId', '=', discourseFirstPost.userId)
       .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
       .selectAll()
       .executeTakeFirstOrThrow();
 
-    const discourseFirstPostRevisions = await db
+    const discourseFirstPostRevisions = await dbIndexer
       .selectFrom('discoursePostRevision')
       .where(
         'discoursePostRevision.discoursePostId',
@@ -405,7 +405,7 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
 export async function getFeed(
   groupID: string,
   feedFilter: FeedFilterEnum,
-  votesFilter: VotesFilterEnum
+  fromFilter: FromFilterEnum
 ): Promise<{
   votes: ProcessedVote[];
   posts: Selectable<DiscoursePost>[];
@@ -414,19 +414,19 @@ export async function getFeed(
   'use server';
 
   // Fetch the proposal group
-  const group = await db
+  const group = await dbIndexer
     .selectFrom('proposalGroup')
     .selectAll()
     .where('id', '=', groupID)
     .executeTakeFirstOrThrow();
 
-  const dao = await db
+  const dao = await dbIndexer
     .selectFrom('dao')
     .selectAll()
     .where('dao.id', '=', group.daoId)
     .executeTakeFirstOrThrow();
 
-  const daoDiscourse = await db
+  const daoDiscourse = await dbIndexer
     .selectFrom('daoDiscourse')
     .selectAll()
     .where('daoId', '=', group.daoId)
@@ -457,25 +457,25 @@ export async function getFeed(
   if (proposalItems.length > 0) {
     for (const proposalItem of proposalItems) {
       try {
-        const proposal = await db
+        const proposal = await dbIndexer
           .selectFrom('proposal')
           .selectAll()
           .where('externalId', '=', proposalItem.externalId)
           .where('governorId', '=', proposalItem.governorId)
           .executeTakeFirstOrThrow();
 
-        const allVotesForProposal = await db
+        const allVotesForProposal = await dbIndexer
           .selectFrom('vote')
           .selectAll()
           .where('proposalId', '=', proposal.id)
           .execute();
 
         const filteredVotesForTimeline = allVotesForProposal.filter((vote) => {
-          if (votesFilter === VotesFilterEnum.FIFTY_THOUSAND) {
+          if (fromFilter === FromFilterEnum.FIFTY_THOUSAND) {
             return vote.votingPower > 50000;
-          } else if (votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND) {
+          } else if (fromFilter === FromFilterEnum.FIVE_HUNDRED_THOUSAND) {
             return vote.votingPower > 500000;
-          } else if (votesFilter === VotesFilterEnum.FIVE_MILLION) {
+          } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
             return vote.votingPower > 5000000;
           }
           return true;
@@ -594,7 +594,7 @@ export async function getFeed(
         const startedAt = new Date(proposal.startAt);
         const endedAt = new Date(proposal.endAt);
 
-        const daoGovernor = await db
+        const daoGovernor = await dbIndexer
           .selectFrom('daoGovernor')
           .selectAll()
           .where('id', '=', proposal.governorId)
@@ -632,13 +632,13 @@ export async function getFeed(
           ) {
             processedVotes.push(
               ...processedResults.votes.filter((vote) => {
-                if (votesFilter === VotesFilterEnum.FIFTY_THOUSAND) {
+                if (fromFilter === FromFilterEnum.FIFTY_THOUSAND) {
                   return vote.votingPower > 50000;
                 } else if (
-                  votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND
+                  fromFilter === FromFilterEnum.FIVE_HUNDRED_THOUSAND
                 ) {
                   return vote.votingPower > 500000;
-                } else if (votesFilter === VotesFilterEnum.FIVE_MILLION) {
+                } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
                   return vote.votingPower > 5000000;
                 }
                 return true;
@@ -694,7 +694,7 @@ export async function getFeed(
   if (topicItems.length > 0) {
     for (const topicItem of topicItems) {
       try {
-        const t = await db
+        const t = await dbIndexer
           .selectFrom('discourseTopic')
           .where('externalId', '=', parseInt(topicItem.externalId, 10))
           .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
@@ -717,7 +717,7 @@ export async function getFeed(
   });
 
   if (topics.length > 0) {
-    allPosts = await db
+    allPosts = await dbIndexer
       .selectFrom('discoursePost')
       .where(
         'topicId',
@@ -743,20 +743,20 @@ export async function getFeed(
         const authorVotingPower =
           delegate?.delegatetovoter?.latestVotingPower?.votingPower || 0;
 
-        if (votesFilter === VotesFilterEnum.ALL) {
+        if (fromFilter === FromFilterEnum.ALL) {
           return post;
         } else if (
-          votesFilter === VotesFilterEnum.FIFTY_THOUSAND &&
+          fromFilter === FromFilterEnum.FIFTY_THOUSAND &&
           authorVotingPower > 50000
         ) {
           return post;
         } else if (
-          votesFilter === VotesFilterEnum.FIVE_HUNDRED_THOUSAND &&
+          fromFilter === FromFilterEnum.FIVE_HUNDRED_THOUSAND &&
           authorVotingPower > 500000
         ) {
           return post;
         } else if (
-          votesFilter === VotesFilterEnum.FIVE_MILLION &&
+          fromFilter === FromFilterEnum.FIVE_MILLION &&
           authorVotingPower > 5000000
         ) {
           return post;

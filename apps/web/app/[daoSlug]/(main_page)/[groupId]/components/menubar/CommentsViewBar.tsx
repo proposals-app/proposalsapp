@@ -1,12 +1,12 @@
 'use client';
 
-import { FeedFilterEnum, VotesFilterEnum } from '@/app/searchParams';
+import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import {
   feedFilters,
   SharedSelectItem,
   ViewEnum,
-  voteFilters,
+  fromFilters,
   Select,
   SelectTrigger,
   SelectContent,
@@ -33,10 +33,10 @@ export const CommentsViewBar = ({
       .withOptions({ shallow: false })
   );
 
-  const [votesFilter, setVotesFilter] = useQueryState(
-    'votes',
-    parseAsStringEnum<VotesFilterEnum>(Object.values(VotesFilterEnum))
-      .withDefault(VotesFilterEnum.FIFTY_THOUSAND)
+  const [fromFilter, setFromFilter] = useQueryState(
+    'from',
+    parseAsStringEnum<FromFilterEnum>(Object.values(FromFilterEnum))
+      .withDefault(FromFilterEnum.FIFTY_THOUSAND)
       .withOptions({ shallow: false })
   );
 
@@ -48,8 +48,8 @@ export const CommentsViewBar = ({
   // Find the current filter labels
   const currentFeedFilter =
     feedFilters.find((filter) => filter.value === feedFilter)?.label || '';
-  const currentVotesFilter =
-    voteFilters.find((filter) => filter.value === votesFilter)?.label || '';
+  const currentFromFilter =
+    fromFilters.find((filter) => filter.value === fromFilter)?.label || '';
 
   return (
     <div
@@ -102,17 +102,15 @@ export const CommentsViewBar = ({
             )}
 
             <Select
-              value={votesFilter}
-              onValueChange={(value) =>
-                setVotesFilter(value as VotesFilterEnum)
-              }
+              value={fromFilter}
+              onValueChange={(value) => setFromFilter(value as FromFilterEnum)}
             >
               <SelectTrigger aria-label='Select votes filter' className='w-48'>
-                <SelectValue>{currentVotesFilter}</SelectValue>
+                <SelectValue>{currentFromFilter}</SelectValue>
               </SelectTrigger>
 
               <SelectContent>
-                {voteFilters.map((filter) => (
+                {fromFilters.map((filter) => (
                   <SharedSelectItem key={filter.value} value={filter.value}>
                     {filter.label}
                   </SharedSelectItem>
