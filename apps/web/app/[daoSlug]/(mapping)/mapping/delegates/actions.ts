@@ -164,12 +164,15 @@ export async function fuzzySearchDiscourseUsers(
     return [];
   }
 
-  const allDiscourseUsers = await dbIndexer
+  let query = dbIndexer
     .selectFrom('discourseUser')
-    .where('daoDiscourseId', '=', daoDiscourse.id)
-    .where('id', 'not in', excludeUserIds)
-    .selectAll()
-    .execute();
+    .where('daoDiscourseId', '=', daoDiscourse.id);
+
+  if (excludeUserIds.length > 0) {
+    query = query.where('id', 'not in', excludeUserIds);
+  }
+
+  const allDiscourseUsers = await query.selectAll().execute();
 
   const fuse = new Fuse(allDiscourseUsers, {
     keys: ['username', 'name'],
@@ -180,7 +183,6 @@ export async function fuzzySearchDiscourseUsers(
 }
 
 export async function fuzzySearchVoters(
-  daoSlug: string,
   searchTerm: string,
   excludeVoterIds: string[] = []
 ): Promise<Selectable<Voter>[]> {
@@ -188,15 +190,16 @@ export async function fuzzySearchVoters(
     return [];
   }
 
-  const allVoters = await dbIndexer
-    .selectFrom('voter')
-    .where('id', 'not in', excludeVoterIds)
-    .selectAll()
-    .limit(10)
-    .execute();
+  let query = dbIndexer.selectFrom('voter');
+
+  if (excludeVoterIds.length > 0) {
+    query = query.where('id', 'not in', excludeVoterIds);
+  }
+
+  const allVoters = await query.selectAll().execute();
 
   const fuse = new Fuse(allVoters, {
-    keys: ['address'],
+    keys: ['address', 'ens'],
     threshold: 0.3,
   });
 

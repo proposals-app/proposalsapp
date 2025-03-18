@@ -5,14 +5,12 @@ import { fuzzySearchVoters } from '../actions';
 import { useState, useCallback, useEffect, useRef } from 'react';
 
 interface FuzzyVoterSearchProps {
-  daoSlug: string;
   excludeVoterIds?: string[];
   onSelectVoter: (voter: Selectable<Voter>) => void;
   isLoading: boolean;
 }
 
 const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
-  daoSlug,
   excludeVoterIds = [],
   onSelectVoter,
   isLoading,
@@ -32,7 +30,7 @@ const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
 
       setSearchLoading(true);
       try {
-        const results = await fuzzySearchVoters(daoSlug, term, excludeVoterIds);
+        const results = await fuzzySearchVoters(term, excludeVoterIds);
         setSearchResults(results);
       } catch (error) {
         console.error('Voter search failed', error);
@@ -41,7 +39,7 @@ const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
         setSearchLoading(false);
       }
     },
-    [daoSlug, excludeVoterIds]
+    [excludeVoterIds]
   );
 
   // Debounce search term
@@ -100,11 +98,16 @@ const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
               {searchResults.map((voter) => (
                 <li
                   key={voter.id}
-                  className='cursor-pointer px-4 py-2 transition-colors hover:bg-neutral-100
+                  className='flex cursor-pointer flex-col px-4 py-2 transition-colors hover:bg-neutral-100
                     dark:text-neutral-100 dark:hover:bg-neutral-800'
                   onClick={() => selectVoter(voter)}
                 >
                   {voter.address}
+                  {voter.ens && (
+                    <div className='text-xs text-neutral-500 dark:text-neutral-400'>
+                      {voter.ens}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

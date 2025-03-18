@@ -175,7 +175,6 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
             </div>
           ))}
           <FuzzyVoterSearch
-            daoSlug={daoSlug}
             excludeVoterIds={currentVoters.map((voter) => voter.id)}
             onSelectVoter={handleMapVoter}
             isLoading={isSaving || isDeleting}
