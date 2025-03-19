@@ -13,12 +13,12 @@ export const LoginForm = () => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const otpInputs = useRef<(HTMLInputElement | null)[]>([]);
-  const [sentEmail, setSentEmail] = useState(false); // Track if email is sent, for UI state
+  const [sentEmail, setSentEmail] = useState(false);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignInError('');
-    setSentEmail(false); // Reset sentEmail state when resending OTP
+    setSentEmail(false);
     startTransition(async () => {
       const { error: sendOtpError } =
         await authClient.emailOtp.sendVerificationOtp({
@@ -30,8 +30,7 @@ export const LoginForm = () => {
         setSignInError('Failed to send OTP. Please check your email address.');
       } else {
         setStage('otp');
-        setSentEmail(true); // Indicate email sent for UI update
-        // Automatically focus on the first OTP input after sending OTP
+        setSentEmail(true);
         if (otpInputs.current[0]) {
           otpInputs.current[0]?.focus();
         }
@@ -62,26 +61,21 @@ export const LoginForm = () => {
     const newOtp = [...otp];
 
     if (value.length > 1) {
-      // Handle paste or autocomplete
       const pastedValues = value.split('');
       pastedValues.forEach((char, i) => {
         if (index + i < 6 && /^[0-9]$/.test(char)) {
-          // Only accept digits
           newOtp[index + i] = char;
         }
       });
       setOtp(newOtp);
 
-      // Focus on the next empty input or last input if all filled
       const nextFocusIndex = index + pastedValues.length;
       if (nextFocusIndex < 6 && otpInputs.current[nextFocusIndex]) {
         otpInputs.current[nextFocusIndex]?.focus();
       } else if (nextFocusIndex >= 6) {
-        otpInputs.current[5]?.focus(); // Focus on the last input if filled or exceeded
+        otpInputs.current[5]?.focus();
       }
     } else if (/^[0-9]$/.test(value) || value === '') {
-      // Only accept digits and empty string for single input
-      // Handle single digit input
       newOtp[index] = value;
       setOtp(newOtp);
 
@@ -215,7 +209,7 @@ export const LoginForm = () => {
                           type='text'
                           inputMode='numeric'
                           pattern='[0-9]*'
-                          maxLength={6} // Increased maxLength to allow pasting of full OTP
+                          maxLength={6}
                           ref={(el) => {
                             otpInputs.current[index] = el;
                           }}
@@ -229,7 +223,7 @@ export const LoginForm = () => {
                           }
                           onKeyDown={(e) => handleKeyDown(index, e)}
                           autoFocus={index === 0 && stage === 'otp'}
-                          autoComplete='one-time-code' // Enable OTP autocomplete
+                          autoComplete='one-time-code'
                         />
                       ))}
                     </div>

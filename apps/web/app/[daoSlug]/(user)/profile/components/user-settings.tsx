@@ -35,7 +35,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
     await saveSettings(formData);
 
     setIsSaving(false);
-    // Refresh the page to show updated settings
+
     router.refresh();
   };
 

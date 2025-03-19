@@ -10,7 +10,7 @@ processors:
     timeout: 10s
 
 exporters:
-  loki:
+  otlphttp/loki:
     endpoint: "http://loki:3100/loki/api/v1/push"
     retry_on_failure:
       enabled: true
@@ -37,7 +37,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [loki]
+      exporters: [otlphttp/loki]
     traces:
       receivers: [otlp]
       processors: [batch]
