@@ -11,7 +11,6 @@
   "packageManager": "yarn@4.6.0",
   "private": true,
   "scripts": {
-    "build-db-indexer": "yarn workspace @proposalsapp/db-indexer run db:gen:ts",
     "build-email-service": "yarn workspace @proposalsapp/email-service run build",
     "build-emails": "yarn workspace @proposalsapp/emails run build",
     "build-push-service": "yarn workspace @proposalsapp/push-service run build",

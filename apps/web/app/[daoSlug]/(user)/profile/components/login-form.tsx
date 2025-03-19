@@ -1,15 +1,11 @@
 'use client';
 
-import { authClient, Session } from '@/lib/auth-client';
+import { authClient } from '@/lib/auth-client';
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail } from 'lucide-react';
 
-interface LoginFormProps {
-  session: Session | null;
-}
-
-export const LoginForm = ({ session }: LoginFormProps) => {
+export const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [stage, setStage] = useState<'email' | 'otp'>('email');
@@ -77,7 +73,7 @@ export const LoginForm = ({ session }: LoginFormProps) => {
       setOtp(newOtp);
 
       // Focus on the next empty input or last input if all filled
-      let nextFocusIndex = index + pastedValues.length;
+      const nextFocusIndex = index + pastedValues.length;
       if (nextFocusIndex < 6 && otpInputs.current[nextFocusIndex]) {
         otpInputs.current[nextFocusIndex]?.focus();
       } else if (nextFocusIndex >= 6) {
@@ -151,9 +147,8 @@ export const LoginForm = ({ session }: LoginFormProps) => {
                       type='email'
                       placeholder='your.email@example.com'
                       className={`focus:ring-brand-accent focus:ring-opacity-50 w-full border border-neutral-300
-                      bg-white px-3 py-2 pl-10 text-sm text-neutral-900 shadow-sm focus:ring-2
+                      bg-white px-3 py-2 pl-10 text-sm text-neutral-900 focus:ring-2
                       dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
-                      dark:shadow-neutral-950
                       ${signInError ? 'border-red-500 dark:border-red-500' : ''}`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -199,8 +194,8 @@ export const LoginForm = ({ session }: LoginFormProps) => {
                     <path d='m9 12 2 2 4-4' />
                   </svg>
                   <p className='text-muted-foreground text-center text-sm'>
-                    We've sent a verification code to {email}. Please check your
-                    inbox and enter the code below to sign in.
+                    We&apos;ve sent a verification code to {email}. Please check
+                    your inbox and enter the code below to sign in.
                   </p>
                 </div>
                 <form onSubmit={handleSignIn} className='space-y-4'>
@@ -225,9 +220,8 @@ export const LoginForm = ({ session }: LoginFormProps) => {
                             otpInputs.current[index] = el;
                           }}
                           className={`focus:ring-brand-accent focus:ring-opacity-50 h-12 w-12 border
-                          border-neutral-300 bg-white text-center text-lg text-neutral-900 shadow-sm
-                          focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
-                          dark:shadow-neutral-950
+                          border-neutral-300 bg-white text-center text-lg text-neutral-900 focus:ring-2
+                          dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
                           ${signInError ? 'border-red-500 dark:border-red-500' : ''}`}
                           value={digit}
                           onChange={(e) =>

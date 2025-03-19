@@ -5,6 +5,10 @@
 
 import type { ColumnType } from "kysely";
 
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface Account {
@@ -37,6 +41,9 @@ export interface Session {
 export interface User {
   createdAt: Timestamp;
   email: string;
+  emailSettingsDailyRoundup: Generated<boolean>;
+  emailSettingsNewDiscussions: Generated<boolean>;
+  emailSettingsNewProposals: Generated<boolean>;
   emailVerified: boolean;
   id: string;
   image: string | null;

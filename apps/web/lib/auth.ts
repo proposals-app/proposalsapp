@@ -18,6 +18,23 @@ export const auth = betterAuth({
     nextCookies(),
   ],
   user: {
+    additionalFields: {
+      emailSettingsNewProposals: {
+        type: 'boolean',
+        nullable: false,
+        defaultValue: true,
+      },
+      emailSettingsNewDiscussions: {
+        type: 'boolean',
+        nullable: false,
+        defaultValue: true,
+      },
+      emailSettingsDailyRoundup: {
+        type: 'boolean',
+        nullable: false,
+        defaultValue: true,
+      },
+    },
     changeEmail: {
       enabled: true,
       sendChangeEmailVerification: async ({ user, newEmail, url, token }) => {
