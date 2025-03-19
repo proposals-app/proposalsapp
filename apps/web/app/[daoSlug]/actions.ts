@@ -117,7 +117,7 @@ export async function getGroups(daoSlug: string) {
           `${item.externalId}-${item.daoDiscourseId}`
         );
         if (topic) {
-          itemTimestamp = new Date(topic.createdAt).getTime();
+          itemTimestamp = new Date(topic.bumpedAt).getTime();
         }
       }
       newestItemTimestamp = Math.max(newestItemTimestamp, itemTimestamp);
