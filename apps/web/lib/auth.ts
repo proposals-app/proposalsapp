@@ -7,6 +7,7 @@ import { OTPEmail, resend } from '@proposalsapp/emails';
 export const auth = betterAuth({
   appName: 'proposals.app',
   database: db_pool,
+  trustedOrigins: ['https://arbitrum.proposals.app'],
   plugins: [
     emailOTP({
       otpLength: 6,
