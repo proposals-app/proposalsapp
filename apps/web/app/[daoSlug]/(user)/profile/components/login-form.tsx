@@ -27,7 +27,7 @@ export const LoginForm = () => {
         });
 
       if (sendOtpError) {
-        setSignInError('Failed to send OTP. Please check your email address.');
+        setSignInError('Failed to send OTP.');
       } else {
         setStage('otp');
         setSentEmail(true);
