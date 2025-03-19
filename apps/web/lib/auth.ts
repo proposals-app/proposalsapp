@@ -2,6 +2,7 @@ import { db_pool } from '@proposalsapp/db-web';
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 import { emailOTP } from 'better-auth/plugins';
+import { OTPEmail, resend } from '@proposalsapp/emails';
 
 export const auth = betterAuth({
   appName: 'proposals.app',
@@ -9,10 +10,18 @@ export const auth = betterAuth({
   plugins: [
     emailOTP({
       otpLength: 6,
-      expiresIn: 600,
+      expiresIn: 300,
       async sendVerificationOTP({ email, otp, type }) {
-        console.log('sendVerificationOTP', { email, otp, type });
-        // Implement the sendVerificationOTP method to send the OTP to the user's email address
+        const { data, error } = await resend.emails.send({
+          from: 'proposals.app <onboarding@proposals.app>',
+          to: [email],
+          subject: 'Welcome to proposals.app!',
+          react: OTPEmail({ verificationCode: otp }),
+        });
+
+        if (error) {
+          console.log('Error sending verification OTP:', error);
+        }
       },
     }),
     nextCookies(),
