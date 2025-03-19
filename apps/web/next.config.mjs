@@ -14,6 +14,7 @@ const withSerwist = withSerwistInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ['arbitrum.localhost'],
   rewrites: () => {
     return [
       // PostHog rewrites need to come first to ensure they're not caught by the catch-all subdomain rewrite
