@@ -155,15 +155,15 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
               </span>
             </div>
             <div className='flex items-center gap-1'>
-              {winningChoice.choiceIndex === choices.indexOf('Against') && (
-                <PassedSmallIcon className='fill-for-600 dark:fill-for-400' />
-              )}
               <span>
                 {formatNumberWithSuffix(
                   finalResults[choices.indexOf('Against')] || 0
                 )}{' '}
               </span>
               <span className='font-bold'>Against</span>
+              {winningChoice.choiceIndex === choices.indexOf('Against') && (
+                <FailedSmallIcon className='fill-against-600 dark:fill-against-400' />
+              )}
             </div>
           </>
         ) : (
