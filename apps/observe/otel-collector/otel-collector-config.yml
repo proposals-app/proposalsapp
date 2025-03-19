@@ -11,7 +11,7 @@ processors:
 
 exporters:
   otlphttp/loki:
-    endpoint: "http://loki:3100/loki/api/v1/push"
+    endpoint: "http://loki:3100/otlp/v1/logs"
     retry_on_failure:
       enabled: true
       initial_interval: 5s
