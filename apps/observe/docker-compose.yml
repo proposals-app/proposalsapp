@@ -1,27 +1,12 @@
 services:
-  nginx:
-    image: nginx:latest
-    container_name: nginx
-    restart: unless-stopped
-    ports:
-      - "4317:4317"
-      - "4318:4318"
-    volumes:
-      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template
-      - ./storage/nginx/logs:/var/log/nginx
-    environment:
-      - TOKEN=${NGINX_BEARER_TOKEN}
-    command: /bin/bash -c "envsubst '$$TOKEN' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
-    networks:
-      - observe-network
-    depends_on:
-      - otel-collector
-
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
     hostname: otel-collector
     restart: unless-stopped
+    ports:
+      - "4317:4317"
+      - "4318:4318"
     volumes:
       - ./otel-collector/otel-collector-config.yml:/etc/otel-collector-config.yml
       - ./storage/otel-collector/logs:/var/log/otel-collector
