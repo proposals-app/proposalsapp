@@ -90,14 +90,7 @@ export default function GroupingInterface({
 
         // Filter out items that are already in the group
         if (currentGroup) {
-          setSearchResults(
-            results.filter((result) => {
-              const resultIdentifier = getItemIdentifier(result);
-              return !currentGroup.items.some(
-                (item) => getItemIdentifier(item) === resultIdentifier
-              );
-            })
-          );
+          setSearchResults(results);
         } else {
           setSearchResults(results);
         }
