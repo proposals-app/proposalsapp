@@ -65,13 +65,17 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
           hasMajoritySupport={hasMajoritySupport}
         />
       </div>
-      <ChoiceList choices={sortedChoices} totalVotingPower={totalVotingPower} />
       {deserializedResults.quorum !== null && totalDelegatedVp && (
         <div className='flex flex-col gap-2'>
           <MajoritySupportCheckmark
             hasQuorum={hasMajoritySupport}
             results={{ quorum: deserializedResults.quorum, totalDelegatedVp }}
           />
+        </div>
+      )}
+      <ChoiceList choices={sortedChoices} totalVotingPower={totalVotingPower} />
+      {deserializedResults.quorum !== null && totalDelegatedVp && (
+        <div className='flex flex-col gap-2'>
           {deserializedResults.totalDelegatedVp && (
             <QuorumBar
               choices={sortedChoices.filter(
@@ -263,11 +267,16 @@ function MajoritySupportCheckmark({
       }}
     >
       {hasQuorum ? (
-        <PassedIcon className='fill-for-600 dark:fill-for-400' />
+        <div className='flex items-center justify-center gap-1'>
+          <PassedIcon className='fill-for-600 dark:fill-for-400' />
+          <span>Majority support</span>
+        </div>
       ) : (
-        <FailedIcon className='fill-against-600 dark:fill-against-400' />
+        <div className='flex items-center justify-center gap-1'>
+          <FailedIcon className='fill-against-600 dark:fill-against-400' />
+          <span>No Majority support</span>
+        </div>
       )}
-      <span>Majority support</span>
     </div>
   );
 }
