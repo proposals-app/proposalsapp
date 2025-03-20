@@ -45,6 +45,10 @@ export default async function ListPage({
     })
   );
 
+  const hasNewActivityInGroups = groupsWithAuthorInfo.some(
+    (group) => group.hasNewActivity
+  );
+
   return (
     <div className='flex min-h-screen w-full flex-row'>
       <div className='flex w-full flex-col gap-2 p-8'>
@@ -52,7 +56,7 @@ export default async function ListPage({
           {daoName || daoSlug}
         </h1>
         <div className='self-end'>
-          <MarkAllAsReadButton />
+          {hasNewActivityInGroups && <MarkAllAsReadButton />}
         </div>
         <div className='space-y-4'>
           {groupsWithAuthorInfo.map((group) => (
