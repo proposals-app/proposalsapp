@@ -26,6 +26,7 @@ import { InitiallyPosted } from './components/body/InitiallyPosted';
 import { Header } from '../../components/Header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 import { PostedRevisions } from './components/body/PostedRevisions';
+import { after } from 'next/server';
 
 export default async function GroupPage({
   params,
@@ -38,7 +39,9 @@ export default async function GroupPage({
   const { daoSlug, groupId } = resolvedParams;
   const parsedParams = await searchParamsCache.parse(searchParams);
 
-  await updateLastReadAt(groupId);
+  after(() => {
+    updateLastReadAt(groupId);
+  });
 
   const { version, diff, feed: feedFilter, from: fromFilter } = parsedParams;
 
