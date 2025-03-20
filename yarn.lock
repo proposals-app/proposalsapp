@@ -3424,7 +3424,7 @@ __metadata:
     next-themes: "npm:^0.4.6"
     nuqs: "npm:^2.4.1"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.232.0"
+    posthog-js: "npm:^1.232.2"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.7"
     prettier-plugin-merge: "npm:^0.7.2"
@@ -14001,9 +14001,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.232.0":
-  version: 1.232.0
-  resolution: "posthog-js@npm:1.232.0"
+"posthog-js@npm:^1.232.2":
+  version: 1.232.2
+  resolution: "posthog-js@npm:1.232.2"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -14017,7 +14017,7 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/3bb418f03d625c04f89f93dc8831e09acadc7baa74f41c5e8f03d96569b38e716cd4dcaa9c933642e2f8886b3680fc0beccb4364ebd854f2206509a75c19c8f2
+  checksum: 10c0/e5e6f451336d685d623fb92e68a5a39928ad11bcab15656ed8412385556f09fc3f2598e65db5205e2dfbdb7676c05fbf378e35b2491029fffe3b4d72571161ed
   languageName: node
   linkType: hard
 
