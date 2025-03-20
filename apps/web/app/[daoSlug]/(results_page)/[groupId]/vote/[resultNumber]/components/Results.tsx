@@ -1,10 +1,10 @@
 import { Proposal, Selectable } from '@proposalsapp/db-indexer';
 import { getVoter, getProposalGovernor, getVotesWithVoters } from './actions';
-import { LoadingChart, ResultsChart } from './result/ResultsChart';
-import { LoadingList, ResultsList } from './result/ResultsList';
-import { LoadingTable, ResultsTable } from './result/ResultsTable';
+import { LoadingChart, ResultsChart } from './result/results-chart';
+import { LoadingList, ResultsList } from './result/results-list';
+import { LoadingTable, ResultsTable } from './result/results-table';
 import { processResultsAction } from '@/lib/results_processing';
-import { ResultsTitle } from './result/ResultsTitle';
+import { ResultsTitle } from './result/results-title';
 import { Suspense } from 'react';
 import superjson from 'superjson';
 

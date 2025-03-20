@@ -1,6 +1,6 @@
-import { BodyLoading } from './components/body/Body';
-import { FeedLoading } from './components/feed/Feed';
-import { LoadingMenuBar } from './components/menubar/LoadingMenuBar';
+import { BodyLoading } from './components/body/body';
+import { FeedLoading } from './components/feed/feed';
+import { LoadingMenuBar } from './components/menubar/loading-menu-bar';
 
 export default function Loading() {
   return (

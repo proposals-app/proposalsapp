@@ -1,8 +1,8 @@
 import { ReactNode } from 'react';
-import { NavBar } from './components/NavBar';
+import { NavBar } from './components/nav-bar';
 import { ThemeProvider } from '../components/theme-provider';
 import { UpdateManifest } from '../components/update-manifest';
-import Banner from '../components/Banner';
+import Banner from '../components/banner';
 
 export default async function DaoLayout({
   params,

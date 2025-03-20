@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { HeaderClient } from './HeaderClient';
+import { HeaderClient } from './header-client';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 
 interface HeaderProps {

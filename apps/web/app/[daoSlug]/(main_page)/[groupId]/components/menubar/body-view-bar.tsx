@@ -9,7 +9,7 @@ import LastSvg from '@/public/assets/web/last.svg';
 import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
 import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
 import { BodyVersionType, VersionType } from '../../actions';
-import { ViewEnum } from './MenuBar';
+import { ViewEnum } from './menu-bar';
 import { useOptimistic, useTransition } from 'react';
 
 interface BodyViewBarProps {

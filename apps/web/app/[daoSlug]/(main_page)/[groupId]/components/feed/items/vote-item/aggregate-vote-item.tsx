@@ -3,7 +3,7 @@ import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { ProposalMetadata } from '@/app/types';
-import { VoterAuthor } from '@/app/[daoSlug]/components/VoterAuthor';
+import { VoterAuthor } from '@/app/[daoSlug]/components/author-voter';
 
 export async function AggregateVoteItem({
   item,

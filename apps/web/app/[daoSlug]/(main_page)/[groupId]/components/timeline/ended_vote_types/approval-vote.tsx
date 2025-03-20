@@ -1,25 +1,17 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
+import { ProcessedResults } from '@/lib/results_processing';
 import React, { useMemo } from 'react';
-import { HiddenVote } from './HiddenVote';
-import {
-  DEFAULT_CHOICE_COLOR,
-  ProcessedResults,
-} from '@/lib/results_processing';
+import { HiddenVote } from './hidden-vote';
 import { VoteSegmentData } from '../../../actions';
 
-interface WeightedVoteProps {
+interface ApprovalVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
 }
 
-export const WeightedVote = ({ result }: WeightedVoteProps) => {
-  const {
-    winningChoice,
-    winningChoiceColor,
-    winningPercentage,
-    maxVotingPower,
-  } = useMemo(() => {
+export const ApprovalVote = ({ result }: ApprovalVoteProps) => {
+  const { winningChoice, winningPercentage, maxVotingPower } = useMemo(() => {
     if (result.hiddenVote && result.scoresState !== 'final') {
       return {
         winningChoice: 'Hidden',
@@ -29,18 +21,15 @@ export const WeightedVote = ({ result }: WeightedVoteProps) => {
       };
     }
 
-    const { choices, choiceColors, finalResults } = result;
+    const { choices, finalResults } = result;
 
     let winningChoice = 'Unknown';
-    let winningChoiceColor = DEFAULT_CHOICE_COLOR;
     let maxVotingPower = 0;
 
     for (const [choiceIndex, votingPower] of Object.entries(finalResults)) {
       if (votingPower > maxVotingPower) {
         maxVotingPower = votingPower;
         winningChoice = choices[Number(choiceIndex)] || 'Unknown';
-        winningChoiceColor =
-          choiceColors[Number(choiceIndex)] || DEFAULT_CHOICE_COLOR;
       }
     }
 
@@ -53,7 +42,6 @@ export const WeightedVote = ({ result }: WeightedVoteProps) => {
 
     return {
       winningChoice,
-      winningChoiceColor,
       winningPercentage,
       maxVotingPower,
     };
@@ -67,11 +55,8 @@ export const WeightedVote = ({ result }: WeightedVoteProps) => {
     <div className='flex-col items-center justify-between space-y-1'>
       <div className='border-neutral-350 flex h-4 w-full overflow-hidden border'>
         <div
-          className='h-full'
-          style={{
-            width: `${winningPercentage}%`,
-            backgroundColor: winningChoiceColor,
-          }}
+          className='bg-for-600 h-full'
+          style={{ width: `${winningPercentage}%` }}
         />
       </div>
       <div className='flex w-full justify-between'>

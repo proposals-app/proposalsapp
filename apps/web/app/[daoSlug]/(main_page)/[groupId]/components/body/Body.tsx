@@ -10,7 +10,7 @@ import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toHast } from 'mdast-util-to-hast';
 import { notFound } from 'next/navigation';
 import { BodyVersionType, GroupReturnType } from '../../actions';
-import { BodyContent } from './BodyContent';
+import { BodyContent } from './body-content';
 import {
   COLLAPSIBLE_STYLES,
   MARKDOWN_STYLES,

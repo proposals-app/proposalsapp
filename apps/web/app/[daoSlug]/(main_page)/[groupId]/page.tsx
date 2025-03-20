@@ -15,17 +15,18 @@ import {
   Body,
   BodyLoading,
   LoadingBodyHeader,
-} from './components/body/Body';
-import { Feed, FeedLoading } from './components/feed/Feed';
-import { MenuBar } from './components/menubar/MenuBar';
-import { Timeline } from './components/timeline/Timeline';
+} from './components/body/body';
+import { Feed, FeedLoading } from './components/feed/feed';
+import { MenuBar } from './components/menubar/menu-bar';
+import { Timeline } from './components/timeline/timeline';
 import { Suspense } from 'react';
-import { LoadingMenuBar } from './components/menubar/LoadingMenuBar';
+import { LoadingMenuBar } from './components/menubar/loading-menu-bar';
 import { getGroupHeader } from '../../actions';
-import { InitiallyPosted } from './components/body/InitiallyPosted';
-import { Header } from '../../components/Header';
+import { InitiallyPosted } from './components/body/initially-posted';
+import { Header } from '../../components/header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
-import { PostedRevisions } from './components/body/PostedRevisions';
+import { PostedRevisions } from './components/body/posted-revision';
+import { LastReadUpdater } from './components/last-read-updater';
 
 export default async function GroupPage({
   params,
@@ -38,8 +39,6 @@ export default async function GroupPage({
   const { daoSlug, groupId } = resolvedParams;
   const parsedParams = await searchParamsCache.parse(searchParams);
 
-  await updateLastReadAt(groupId);
-
   const { version, diff, feed: feedFilter, from: fromFilter } = parsedParams;
 
   const bodyKey = `body-${groupId}-${version}-${diff ? 'diff' : 'nodiff'}`;
@@ -50,6 +49,10 @@ export default async function GroupPage({
   return (
     <div className='flex w-full flex-col items-center pt-10 pr-96'>
       <div className='flex w-full max-w-3xl flex-col overflow-visible'>
+        <Suspense fallback={null}>
+          <LastReadUpdater groupId={groupId} />
+        </Suspense>
+
         <Suspense fallback={<LoadingBodyHeader />}>
           <BodyHeaderSection daoSlug={daoSlug} groupId={groupId} />
         </Suspense>

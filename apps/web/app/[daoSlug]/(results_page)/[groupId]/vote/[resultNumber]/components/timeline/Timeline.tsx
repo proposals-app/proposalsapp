@@ -3,8 +3,8 @@ import {
   BasicEvent,
   CommentsVolumeEvent,
   VotesVolumeEvent,
-} from './OtherEvents';
-import { ResultEvent } from './ResultEvent';
+} from './other-events';
+import { ResultEvent } from './result-event';
 import {
   getFeed,
   GroupReturnType,

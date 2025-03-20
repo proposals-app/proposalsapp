@@ -3,10 +3,10 @@
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { FeedEvent, GroupReturnType } from '../../actions';
-import { BasicEvent } from './BasicEvent';
-import { CommentsVolumeEvent } from './CommentsVolumeEvent';
-import { ResultEvent } from './ResultEvent';
-import { VotesVolumeEvent } from './VotesVolumeEvent';
+import { BasicEvent } from './basic-event';
+import { CommentsVolumeEvent } from './comments-volume-event';
+import { ResultEvent } from './result-event';
+import { VotesVolumeEvent } from './votes-volume-event';
 import {
   useEffect,
   useRef,

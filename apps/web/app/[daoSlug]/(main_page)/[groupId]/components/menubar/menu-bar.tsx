@@ -1,9 +1,9 @@
 'use client';
 
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
-import { BodyViewBar } from './BodyViewBar';
-import { CommentsViewBar } from './CommentsViewBar';
-import { FullViewBar } from './FullViewBar';
+import { BodyViewBar } from './body-view-bar';
+import { CommentsViewBar } from './comments-view-bar';
+import { FullViewBar } from './full-view-bar';
 import CheckSvg from '@/public/assets/web/check.svg';
 import React, { useState, useRef, useEffect } from 'react';
 import { BodyVersionType } from '../../actions';

@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import Banner from './components/Banner';
+import Banner from './components/banner';
 
 export default async function Home() {
   return (

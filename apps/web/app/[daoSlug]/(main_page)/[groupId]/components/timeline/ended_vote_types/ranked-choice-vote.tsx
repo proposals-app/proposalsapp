@@ -1,19 +1,19 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import React, { useMemo } from 'react';
-import { HiddenVote } from './HiddenVote';
+import { HiddenVote } from './hidden-vote';
 import {
   DEFAULT_CHOICE_COLOR,
   ProcessedResults,
 } from '@/lib/results_processing';
 import { VoteSegmentData } from '../../../actions';
 
-interface SingleChoiceVoteProps {
+interface RankedChoiceVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
 }
 
-export const SingleChoiceVote = ({ result }: SingleChoiceVoteProps) => {
+export const RankedChoiceVote = ({ result }: RankedChoiceVoteProps) => {
   const {
     winningChoice,
     winningChoiceColor,

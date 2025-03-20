@@ -1,5 +1,5 @@
-import { ResultsLoading } from './components/Results';
-import { LoadingTimeline } from './components/timeline/Timeline';
+import { ResultsLoading } from './components/results';
+import { LoadingTimeline } from './components/timeline/timeline';
 
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 

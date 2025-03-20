@@ -1,7 +1,7 @@
 import { ProposalGroupItem } from '@/lib/types';
 import { getGroupHeader, getGroups } from './actions';
-import { GroupItem } from './components/GroupItem';
-import { MarkAllAsReadButton } from './components/MarkAllAsRead';
+import { GroupItem } from './components/group-item';
+import { MarkAllAsReadButton } from './components/mark-all-as-read';
 
 export default async function ListPage({
   params,

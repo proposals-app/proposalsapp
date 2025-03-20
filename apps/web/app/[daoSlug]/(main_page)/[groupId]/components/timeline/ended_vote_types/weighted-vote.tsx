@@ -1,19 +1,19 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import React, { useMemo } from 'react';
-import { HiddenVote } from './HiddenVote';
+import { HiddenVote } from './hidden-vote';
 import {
   DEFAULT_CHOICE_COLOR,
   ProcessedResults,
 } from '@/lib/results_processing';
 import { VoteSegmentData } from '../../../actions';
 
-interface RankedChoiceVoteProps {
+interface WeightedVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
 }
 
-export const RankedChoiceVote = ({ result }: RankedChoiceVoteProps) => {
+export const WeightedVote = ({ result }: WeightedVoteProps) => {
   const {
     winningChoice,
     winningChoiceColor,
@@ -23,7 +23,6 @@ export const RankedChoiceVote = ({ result }: RankedChoiceVoteProps) => {
     if (result.hiddenVote && result.scoresState !== 'final') {
       return {
         winningChoice: 'Hidden',
-        winningChoiceColor: DEFAULT_CHOICE_COLOR,
         totalVotingPower: 0,
         winningPercentage: 0,
         maxVotingPower: 0,

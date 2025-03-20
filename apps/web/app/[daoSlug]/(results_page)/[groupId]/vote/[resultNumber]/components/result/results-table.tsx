@@ -16,7 +16,7 @@ import CheckSvg from '@/public/assets/web/check.svg';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import superjson, { SuperJSONResult } from 'superjson';
-import { VoterAuthor } from '@/app/[daoSlug]/components/VoterAuthor';
+import { VoterAuthor } from '@/app/[daoSlug]/components/author-voter';
 
 interface ResultsTableProps {
   results: SuperJSONResult;

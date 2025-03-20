@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { ProcessedVote } from '@/lib/results_processing';
 import { ProposalMetadata } from '@/app/types';
-import { VoterAuthor } from '@/app/[daoSlug]/components/VoterAuthor';
+import { VoterAuthor } from '@/app/[daoSlug]/components/author-voter';
 import { VotesWithVoters } from '@/app/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 
 // Helper to format choice text, similar to the one in ResultsTable

@@ -1,5 +1,6 @@
-import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
+'use server';
 
+import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import {
   ProcessedResults,
   ProcessedVote,

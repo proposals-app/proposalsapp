@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectContent,
   SelectValue,
-} from './MenuBar';
+} from './menu-bar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 
 interface FullViewBarProps {

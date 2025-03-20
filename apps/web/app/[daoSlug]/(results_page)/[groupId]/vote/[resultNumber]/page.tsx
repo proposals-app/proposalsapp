@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
-import { Results, ResultsLoading } from './components/Results';
-import { LoadingTimeline, Timeline } from './components/timeline/Timeline';
+import { Results, ResultsLoading } from './components/results';
+import { LoadingTimeline, Timeline } from './components/timeline/timeline';
 import { getGroup } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
-import { Header } from '@/app/[daoSlug]/components/Header';
+import { Header } from '@/app/[daoSlug]/components/header';
 import { Suspense } from 'react';
 import { getGroupHeader } from '@/app/[daoSlug]/actions';
 
