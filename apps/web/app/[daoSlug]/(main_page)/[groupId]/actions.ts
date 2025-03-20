@@ -21,6 +21,46 @@ import { getDelegateByDiscourseUser } from './components/feed/actions';
 import { format } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
 import { ProposalMetadata } from '@/app/types';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
+import { dbWeb } from '@proposalsapp/db-web';
+
+export async function updateLastReadAt(groupId: string) {
+  'use server';
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return; // Do nothing if no user
+  }
+
+  const existingLastRead = await dbWeb
+    .selectFrom('userProposalGroupLastRead')
+    .where('userId', '=', userId)
+    .where('proposalGroupId', '=', groupId)
+    .selectAll()
+    .executeTakeFirst();
+
+  const now = new Date();
+
+  if (existingLastRead) {
+    await dbWeb
+      .updateTable('userProposalGroupLastRead')
+      .set({ lastReadAt: now })
+      .where('id', '=', existingLastRead.id)
+      .execute();
+  } else {
+    await dbWeb
+      .insertInto('userProposalGroupLastRead')
+      .values({
+        userId: userId,
+        proposalGroupId: groupId,
+        lastReadAt: now,
+      })
+      .execute();
+  }
+}
 
 export async function getGroup(daoSlug: string, groupId: string) {
   'use server';

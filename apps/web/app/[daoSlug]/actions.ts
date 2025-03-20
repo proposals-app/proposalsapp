@@ -8,6 +8,9 @@ import {
   Selectable,
 } from '@proposalsapp/db-indexer';
 import { ProposalGroupItem } from '@/lib/types';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
+import { dbWeb } from '@proposalsapp/db-web';
 
 export async function getGroups(daoSlug: string) {
   // Fetch the DAO based on the slug
@@ -98,6 +101,23 @@ export async function getGroups(daoSlug: string) {
     topicsMap.set(`${topic.externalId}-${topic.daoDiscourseId}`, topic);
   });
 
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  const userId = session?.user?.id;
+
+  const lastReadMap = new Map<string, Date | null>();
+  if (userId) {
+    const lastReads = await dbWeb
+      .selectFrom('userProposalGroupLastRead')
+      .where('userId', '=', userId)
+      .select(['proposalGroupId', 'lastReadAt'])
+      .execute();
+
+    lastReads.forEach((lr) => {
+      lastReadMap.set(lr.proposalGroupId, lr.lastReadAt);
+    });
+  }
+
   // Calculate timestamps and group data
   const groupsWithTimestamps = allGroups.map((group) => {
     const items = group.items as ProposalGroupItem[];
@@ -123,10 +143,19 @@ export async function getGroups(daoSlug: string) {
       newestItemTimestamp = Math.max(newestItemTimestamp, itemTimestamp);
     }
 
+    const groupId = group.id.toString();
+    const lastReadAt = lastReadMap.get(groupId);
+    const hasNewActivity = userId
+      ? lastReadAt
+        ? newestItemTimestamp > lastReadAt.getTime()
+        : true
+      : false;
+
     return {
       ...group,
       newestItemTimestamp,
       newestActivityTimestamp: newestItemTimestamp,
+      hasNewActivity,
     };
   });
 

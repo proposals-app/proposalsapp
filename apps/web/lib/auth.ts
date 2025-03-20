@@ -1,4 +1,4 @@
-import { db_pool } from '@proposalsapp/db-web';
+import { db_pool, dbWeb } from '@proposalsapp/db-web';
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 import { emailOTP } from 'better-auth/plugins';
@@ -8,6 +8,7 @@ import {
   DeleteAccountTemplate,
   resend,
 } from '@proposalsapp/emails';
+import { dbIndexer } from '@proposalsapp/db-indexer';
 
 export const auth = betterAuth({
   appName: 'proposals.app',
@@ -72,6 +73,9 @@ export const auth = betterAuth({
     deleteUser: {
       enabled: true,
       sendDeleteAccountVerification: async ({ user, url }) => {
+        console.log(
+          `Preparing to send account deletion verification email to ${user.email}`
+        );
         const { error } = await resend.emails.send({
           from: 'proposals.app <accounts@proposals.app>',
           to: [user.email],
@@ -87,20 +91,34 @@ export const auth = betterAuth({
         }
       },
       beforeDelete: async (user) => {
-        // Perform actions before user deletion
         console.log(`Preparing to delete user account: ${user.email}`);
-        // Here you would add cleanup tasks like:
-        // - Removing user data from other services
-        // - Canceling subscriptions
-        // - Archiving user content
       },
       afterDelete: async (user) => {
-        // Perform cleanup after user deletion
         console.log(`Successfully deleted user account: ${user.email}`);
-        // Final cleanup operations that should happen after the account is deleted:
-        // - Notify admins
-        // - Update analytics
-        // - Send final confirmation email to the user's email (optional)
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          const allGroups = await dbIndexer
+            .selectFrom('proposalGroup')
+            .selectAll()
+            .execute();
+
+          if (allGroups)
+            await dbWeb
+              .insertInto('userProposalGroupLastRead')
+              .values(
+                allGroups.map((group) => ({
+                  userId: user.id,
+                  proposalGroupId: group.id,
+                  lastReadAt: new Date(),
+                }))
+              )
+              .execute();
+        },
       },
     },
   },

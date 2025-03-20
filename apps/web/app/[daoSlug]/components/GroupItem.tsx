@@ -10,6 +10,7 @@ interface GroupItemProps {
     authorName: string;
     authorAvatarUrl: string;
     latestActivityAt: Date;
+    hasNewActivity: boolean;
     commentsCount: number;
     proposalsCount: number;
   };
@@ -46,8 +47,20 @@ export function GroupItem({ group }: GroupItemProps) {
             </div>
           </div>
         </div>
-        <ArrowRight className='h-6 w-6 text-neutral-400 dark:text-neutral-500' />
+        <div className='ml-2 flex flex-row'>
+          {group.hasNewActivity && <NewBadge />}{' '}
+          <ArrowRight className='h-6 w-6 text-neutral-400 dark:text-neutral-500' />
+        </div>
       </div>
     </Link>
   );
 }
+
+const NewBadge = () => (
+  <div
+    className='bg-brand-accent-bright ml-2 inline-flex items-center rounded-full px-2.5 py-0.5
+      text-xs font-semibold text-white'
+  >
+    New activity
+  </div>
+);

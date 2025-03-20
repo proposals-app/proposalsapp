@@ -37,6 +37,7 @@ export default async function ListPage({
         authorName: authorInfo.originalAuthorName,
         authorAvatarUrl: authorInfo.originalAuthorPicture,
         latestActivityAt: new Date(group.newestActivityTimestamp),
+        hasNewActivity: group.hasNewActivity,
         commentsCount,
         proposalsCount,
       };

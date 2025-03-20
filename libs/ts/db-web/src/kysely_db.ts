@@ -51,6 +51,13 @@ export interface User {
   updatedAt: Timestamp;
 }
 
+export interface UserProposalGroupLastRead {
+  id: Generated<string>;
+  lastReadAt: Timestamp | null;
+  proposalGroupId: string;
+  userId: string;
+}
+
 export interface Verification {
   createdAt: Timestamp | null;
   expiresAt: Timestamp;
@@ -64,5 +71,6 @@ export interface DB {
   account: Account;
   session: Session;
   user: User;
+  userProposalGroupLastRead: UserProposalGroupLastRead;
   verification: Verification;
 }

@@ -4,7 +4,12 @@ import {
   FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import { getGroup, getBodyVersions, getFeed } from './actions';
+import {
+  getGroup,
+  getBodyVersions,
+  getFeed,
+  updateLastReadAt,
+} from './actions';
 import {
   AuthorInfo,
   Body,
@@ -32,6 +37,8 @@ export default async function GroupPage({
   const resolvedParams = await params;
   const { daoSlug, groupId } = resolvedParams;
   const parsedParams = await searchParamsCache.parse(searchParams);
+
+  await updateLastReadAt(groupId);
 
   const { version, diff, feed: feedFilter, from: fromFilter } = parsedParams;
 
