@@ -128,13 +128,6 @@ export const LoginForm = () => {
             {!sentEmail && stage === 'email' && (
               <form onSubmit={handleSendOtp} className='space-y-4'>
                 <div className='space-y-2'>
-                  <label
-                    htmlFor='email'
-                    className='text-sm leading-none font-medium peer-disabled:cursor-not-allowed
-                      peer-disabled:opacity-70'
-                  >
-                    Email
-                  </label>
                   <div className='relative'>
                     <input
                       id='email'
@@ -156,9 +149,9 @@ export const LoginForm = () => {
                 </div>
                 <button
                   type='submit'
-                  className={`ring-offset-background focus-visible:ring-ring text-primary-foreground
-                  inline-flex h-10 w-full items-center justify-center bg-neutral-200 px-4 py-2
-                  text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2
+                  className={`focus-visible:ring-ring text-primary-foreground inline-flex h-10 w-full
+                  items-center justify-center bg-neutral-200 px-4 py-2 text-sm font-medium
+                  whitespace-nowrap transition-colors focus-visible:ring-2
                   focus-visible:ring-offset-2 focus-visible:outline-none
                   disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-700
                   ${isPending || !email.trim() ? 'cursor-not-allowed opacity-50' : ''}`}
@@ -194,13 +187,6 @@ export const LoginForm = () => {
                 </div>
                 <form onSubmit={handleSignIn} className='space-y-4'>
                   <div className='space-y-2'>
-                    <label
-                      htmlFor='otp-0'
-                      className='text-sm leading-none font-medium peer-disabled:cursor-not-allowed
-                        peer-disabled:opacity-70'
-                    >
-                      Verification code
-                    </label>
                     <div className='flex justify-between gap-2'>
                       {otp.map((digit, index) => (
                         <input
@@ -231,9 +217,9 @@ export const LoginForm = () => {
 
                   <button
                     type='submit'
-                    className={`ring-offset-background focus-visible:ring-ring text-primary-foreground
-                    inline-flex h-10 w-full items-center justify-center bg-neutral-200 px-4 py-2
-                    text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2
+                    className={`focus-visible:ring-ring text-primary-foreground inline-flex h-10 w-full
+                    items-center justify-center bg-neutral-200 px-4 py-2 text-sm font-medium
+                    whitespace-nowrap transition-colors focus-visible:ring-2
                     focus-visible:ring-offset-2 focus-visible:outline-none
                     disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-700
                     ${isPending || otp.some((d) => !d) ? 'cursor-not-allowed opacity-50' : ''}`}

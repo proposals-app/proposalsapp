@@ -49,7 +49,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
     );
   }
 
-  // Custom switch component
+  // Custom square switch component
   const Toggle = ({
     checked,
     onChange,
@@ -91,8 +91,8 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
       <h1 className='mb-6 text-3xl font-bold'>Notification Settings</h1>
 
       <div
-        className='border-card-foreground border-neutral-350 dark:border-neutral-650 rounded-lg
-          border bg-neutral-50 dark:bg-neutral-950'
+        className='border-card-foreground border-neutral-350 dark:border-neutral-650 border
+          bg-neutral-50 dark:bg-neutral-950'
       >
         <div className='px-6 pt-6 pb-2'>
           <h2 className='text-lg font-semibold text-neutral-900 dark:text-neutral-100'>
@@ -174,12 +174,10 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           <button
             onClick={handleSaveSettings}
             disabled={isSaving}
-            className='ring-offset-background focus-visible:ring-ring inline-flex items-center
-              justify-center rounded-md bg-neutral-200 px-4 py-2 text-sm font-medium
-              whitespace-nowrap text-neutral-900 transition-colors focus-visible:ring-2
-              focus-visible:ring-offset-2 focus-visible:outline-none
-              disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-700
-              dark:text-neutral-100'
+            className='focus:ring-ring inline-flex items-center justify-center bg-neutral-200 px-4 py-2
+              text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors
+              focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none
+              disabled:opacity-50 dark:bg-neutral-700 dark:text-neutral-100'
           >
             {isSaving && <RefreshCw className='mr-2 h-4 w-4 animate-spin' />}
             Save Settings

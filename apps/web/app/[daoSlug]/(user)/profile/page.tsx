@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { LoginForm } from './components/login-form';
 import { UserSettings } from './components/user-settings';
+import { AccountManagement } from './components/account-management';
 import { LogOutIcon } from 'lucide-react';
 
 async function signOut() {
@@ -35,16 +36,39 @@ export default async function ProfilePage() {
                   </p>
                 </div>
 
+                {/* Navigation */}
+                <nav className='mt-12'>
+                  <ul className='space-y-2'>
+                    <li>
+                      <a
+                        href='#notifications'
+                        className='block px-4 py-2 text-neutral-700 hover:bg-neutral-300 dark:text-neutral-300
+                          dark:hover:bg-neutral-700'
+                      >
+                        Notification Settings
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href='#account'
+                        className='block px-4 py-2 text-neutral-700 hover:bg-neutral-300 dark:text-neutral-300
+                          dark:hover:bg-neutral-700'
+                      >
+                        Account Management
+                      </a>
+                    </li>
+                  </ul>
+                </nav>
+
                 {/* Sign out button positioned at the bottom left */}
                 <div className='absolute bottom-4 left-4 w-auto'>
                   <form action={signOut}>
                     <button
                       type='submit'
                       className='border-input bg-background hover:bg-accent hover:text-accent-foreground
-                        focus:ring-ring data-[state=open]:bg-accent-foreground
-                        data-[state=open]:text-accent inline-flex items-center justify-center rounded-md
-                        border px-6 py-2 text-sm font-medium transition-colors focus:ring-2
-                        focus:ring-offset-2 focus:outline-none disabled:opacity-50'
+                        focus:ring-ring inline-flex items-center justify-center border px-6 py-2 text-sm
+                        font-medium transition-colors focus:ring-2 focus:ring-offset-2
+                        focus:outline-none disabled:opacity-50'
                     >
                       <LogOutIcon className='mr-2 h-4 w-4' />
                       Sign out
@@ -52,8 +76,13 @@ export default async function ProfilePage() {
                   </form>
                 </div>
               </div>
-              <div className='h-full w-3/4 p-2'>
-                <UserSettings session={session} />
+              <div className='h-full w-3/4 overflow-y-auto p-2 px-16'>
+                <div id='notifications'>
+                  <UserSettings session={session} />
+                </div>
+                <div id='account'>
+                  <AccountManagement session={session} />
+                </div>
               </div>
             </div>
           )}

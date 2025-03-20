@@ -24,13 +24,6 @@ export async function saveSettings(formData: FormData) {
     dailyRoundup,
   });
 
-  // In a real application, you would update user preferences here.
-  // For example:
-  // await prisma.userSettings.update({
-  //   where: { userId: session.user.id }, // Assuming you have user ID in session
-  //   data: { newDiscussions, newProposals, dailyRoundup },
-  // });
-
   // Return success or some data if needed
   return { success: true };
 }
