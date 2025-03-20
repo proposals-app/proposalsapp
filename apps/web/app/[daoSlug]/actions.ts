@@ -11,6 +11,54 @@ import { ProposalGroupItem } from '@/lib/types';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
+import { revalidatePath } from 'next/cache';
+
+export async function markAllAsRead(daoSlug: string) {
+  'use server';
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return;
+  }
+
+  const dao = await dbIndexer
+    .selectFrom('dao')
+    .where('slug', '=', daoSlug)
+    .selectAll()
+    .executeTakeFirst();
+
+  if (!dao) {
+    return;
+  }
+
+  const allGroups = await dbIndexer
+    .selectFrom('proposalGroup')
+    .where('daoId', '=', dao.id)
+    .selectAll()
+    .execute();
+
+  const now = new Date();
+
+  for (const group of allGroups) {
+    await dbWeb
+      .insertInto('userProposalGroupLastRead')
+      .values({
+        userId: userId,
+        proposalGroupId: group.id,
+        lastReadAt: now,
+      })
+      .onConflict((oc) =>
+        oc
+          .columns(['userId', 'proposalGroupId'])
+          .doUpdateSet({ lastReadAt: now })
+      )
+      .execute();
+  }
+
+  revalidatePath(`/app/[daoSlug]`);
+}
 
 export async function getGroups(daoSlug: string) {
   // Fetch the DAO based on the slug

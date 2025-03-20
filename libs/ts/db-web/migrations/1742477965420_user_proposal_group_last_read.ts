@@ -11,6 +11,10 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn("proposal_group_id", "uuid", (col) => col.notNull())
     .addColumn("last_read_at", "timestamp")
+    .addUniqueConstraint(
+      "user_proposal_group_last_read_user_id_proposal_group_id_unique",
+      ["user_id", "proposal_group_id"],
+    )
     .execute();
 }
 

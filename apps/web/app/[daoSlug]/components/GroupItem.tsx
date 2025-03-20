@@ -47,8 +47,8 @@ export function GroupItem({ group }: GroupItemProps) {
             </div>
           </div>
         </div>
-        <div className='ml-2 flex flex-row'>
-          {group.hasNewActivity && <NewBadge />}{' '}
+        <div className='flex flex-row gap-2'>
+          {group.hasNewActivity && <NewBadge />}
           <ArrowRight className='h-6 w-6 text-neutral-400 dark:text-neutral-500' />
         </div>
       </div>
@@ -58,8 +58,8 @@ export function GroupItem({ group }: GroupItemProps) {
 
 const NewBadge = () => (
   <div
-    className='bg-brand-accent-bright ml-2 inline-flex items-center rounded-full px-2.5 py-0.5
-      text-xs font-semibold text-white'
+    className='border-neutral-350 dark:border-neutral-650 border bg-neutral-200 px-2 py-1
+      text-sm text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
   >
     New activity
   </div>

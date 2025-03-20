@@ -39,9 +39,7 @@ export default async function GroupPage({
   const { daoSlug, groupId } = resolvedParams;
   const parsedParams = await searchParamsCache.parse(searchParams);
 
-  after(() => {
-    updateLastReadAt(groupId);
-  });
+  await updateLastReadAt(groupId);
 
   const { version, diff, feed: feedFilter, from: fromFilter } = parsedParams;
 

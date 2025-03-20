@@ -1,6 +1,7 @@
 import { ProposalGroupItem } from '@/lib/types';
 import { getGroupHeader, getGroups } from './actions';
 import { GroupItem } from './components/GroupItem';
+import { MarkAllAsReadButton } from './components/MarkAllAsRead';
 
 export default async function ListPage({
   params,
@@ -46,10 +47,13 @@ export default async function ListPage({
 
   return (
     <div className='flex min-h-screen w-full flex-row'>
-      <div className='w-full p-8'>
+      <div className='flex w-full flex-col gap-2 p-8'>
         <h1 className='mb-8 text-4xl font-bold text-neutral-700 dark:text-neutral-200'>
           {daoName || daoSlug}
         </h1>
+        <div className='self-end'>
+          <MarkAllAsReadButton />
+        </div>
         <div className='space-y-4'>
           {groupsWithAuthorInfo.map((group) => (
             <GroupItem key={group.id} group={group} />
