@@ -4,12 +4,7 @@ import {
   FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import {
-  getGroup,
-  getBodyVersions,
-  getFeed,
-  updateLastReadAt,
-} from './actions';
+import { getGroup, getBodyVersions, getFeed } from './actions';
 import {
   AuthorInfo,
   Body,
