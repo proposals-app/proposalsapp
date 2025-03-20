@@ -28,6 +28,6 @@ export const searchParamsCache = createSearchParamsCache({
   ).withDefault(FeedFilterEnum.COMMENTS_AND_VOTES),
   from: parseAsStringEnum<FromFilterEnum>(
     Object.values(FromFilterEnum)
-  ).withDefault(FromFilterEnum.FIFTY_THOUSAND),
+  ).withDefault(FromFilterEnum.ALL),
   page: parseAsInteger,
 });

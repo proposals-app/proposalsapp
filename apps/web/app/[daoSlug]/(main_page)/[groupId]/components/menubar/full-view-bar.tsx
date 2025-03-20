@@ -36,7 +36,7 @@ export const FullViewBar = ({
   const [fromFilter, setFromFilter] = useQueryState(
     'from',
     parseAsStringEnum<FromFilterEnum>(Object.values(FromFilterEnum))
-      .withDefault(FromFilterEnum.FIFTY_THOUSAND)
+      .withDefault(FromFilterEnum.ALL)
       .withOptions({ shallow: false })
   );
 
