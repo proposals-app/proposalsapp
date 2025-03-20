@@ -26,7 +26,6 @@ import { InitiallyPosted } from './components/body/InitiallyPosted';
 import { Header } from '../../components/Header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 import { PostedRevisions } from './components/body/PostedRevisions';
-import { after } from 'next/server';
 
 export default async function GroupPage({
   params,
