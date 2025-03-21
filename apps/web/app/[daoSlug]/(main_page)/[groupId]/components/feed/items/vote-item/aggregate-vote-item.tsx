@@ -67,7 +67,7 @@ export async function AggregateVoteItem({
   const barWidth = `${(item.relativeVotingPower || 0) * 100}%`;
 
   return (
-    <div className='flex w-full flex-col gap-2 p-4 opacity-50'>
+    <div className='flex w-full flex-col gap-2 opacity-50'>
       {/* Color bar implementation similar to VoteItem */}
       <div
         className='mb-2 w-full'

@@ -47,7 +47,7 @@ export function Body({
   }
 
   if (!bodyVersions || bodyVersions.length === 0) {
-    return <div className='w-full p-4'>No bodies found.</div>;
+    return <div className='w-full'>No bodies found.</div>;
   }
 
   const visibleBody = bodyVersions[currentVersion];
@@ -76,35 +76,31 @@ function BodyLoadingContent() {
         style={{ maxHeight: '25rem' }}
       >
         <div className='space-y-4'>
-          {/* Title and first paragraph */}
-          <div className='h-6 w-1/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-          <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-
-          {/* Section heading */}
-          <div className='h-5 w-1/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-
-          {/* Bullet points */}
-          <div className='ml-6 space-y-2'>
-            <div className='flex items-start gap-2'>
-              <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
+          {/* Mimic Title and first paragraph structure */}
+          <div className='h-8 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+          {/* Title line */}
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+          {/* First paragraph line 1 */}
+          <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+          {/* First paragraph line 2 */}
+          {/* Mimic Section Heading */}
+          <div className='mt-6 h-6 w-1/2 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          {/* Mimic Bullet Points */}
+          <ul className='mt-2 ml-6 list-disc space-y-2'>
+            <li>
               <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            </div>
-            <div className='flex items-start gap-2'>
-              <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
+            </li>
+            <li>
               <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            </div>
-            <div className='flex items-start gap-2'>
-              <div className='mt-2 h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700'></div>
+            </li>
+            <li>
               <div className='h-4 w-9/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            </div>
-          </div>
-
-          {/* More paragraphs */}
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            </li>
+          </ul>
+          {/* Mimic More Paragraphs */}
+          <div className='mt-6 h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
           <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-          <div className='h-5 w-1/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='mt-4 h-4 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
           <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
           <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
         </div>
@@ -122,41 +118,55 @@ function BodyLoadingContent() {
 export function LoadingBodyHeader() {
   return (
     <div className='flex w-full flex-col gap-6'>
-      {/* Title Loading */}
-      <div className='h-10 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
+      {/* Title Loading - more prominent and title-like */}
+      <div className='h-12 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
 
-      {/* Author Info and Posted Time Loading */}
+      {/* Author Info and Posted Time Loading - align structure to AuthorInfo and PostedRevisions */}
       <div className='flex flex-col'>
-        <div className='flex flex-row justify-between'>
-          {/* Author Info Loading */}
+        <div className='flex flex-row items-start justify-between md:items-center'>
+          {' '}
+          {/* Align items vertically for smaller screens */}
+          {/* Author Info Loading - same as AuthorInfo component */}
           <div className='flex flex-row items-center gap-2'>
             <div
               className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
                 border-neutral-200 dark:border-neutral-700'
             >
-              <div className='h-full w-full animate-pulse bg-neutral-200 dark:bg-neutral-800'></div>
+              <div className='h-full w-full animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+              {/* Circular Avatar Placeholder */}
             </div>
-            <div className='h-5 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            <div className='h-5 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+            {/* Author Name Placeholder */}
           </div>
-
-          {/* Posted Time Loading */}
-          <div className='flex flex-col items-center gap-2'>
+          {/* Posted Time and Revisions Loading - structure similar to PostedRevisions and InitiallyPosted */}
+          <div className='flex flex-col items-end gap-2'>
+            {' '}
+            {/* Align items to the end */}
             <div className='flex flex-row gap-4'>
-              {/* Initially Posted */}
+              {/* Initially Posted - like InitiallyPosted component */}
               <div className='flex flex-row items-center gap-2 px-2 py-1'>
-                <div className='flex flex-col space-y-1'>
-                  <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                  <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                <div className='flex flex-col items-end space-y-1'>
+                  {' '}
+                  {/* Align text to the end */}
+                  <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+                  {/* Label Placeholder */}
+                  <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+                  {/* Time Placeholder */}
                 </div>
               </div>
 
-              {/* Latest Revision */}
+              {/* Latest Revision - like PostedRevisions component structure */}
               <div className='flex flex-row items-center gap-2 bg-white px-2 py-1 dark:bg-neutral-950'>
-                <div className='flex flex-col space-y-1'>
-                  <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                  <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                <div className='flex flex-col items-end space-y-1'>
+                  {' '}
+                  {/* Align text to the end */}
+                  <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+                  {/* Revision Label Placeholder */}
+                  <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+                  {/* Revision Time Placeholder */}
                 </div>
-                <div className='h-6 w-6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
+                <div className='h-6 w-6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+                {/* Edit Icon Placeholder */}
               </div>
             </div>
           </div>

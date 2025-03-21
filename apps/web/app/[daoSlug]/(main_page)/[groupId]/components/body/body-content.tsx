@@ -16,8 +16,7 @@ const BodyContent = memo(
     return (
       <div className='relative overflow-hidden'>
         <div
-          className={`prose prose-lg max-w-none p-6
-            ${expanded ? 'overflow-visible' : 'overflow-hidden'}`}
+          className={`prose prose-lg max-w-none ${expanded ? 'overflow-visible' : 'overflow-hidden'}`}
           style={{
             maxHeight: expanded ? 'none' : COLLAPSED_HEIGHT,
           }}

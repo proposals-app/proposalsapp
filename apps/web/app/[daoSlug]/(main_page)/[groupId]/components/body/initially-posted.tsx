@@ -12,8 +12,10 @@ export async function InitiallyPosted({
   });
 
   return (
-    <div className={'flex flex-row items-center gap-2 px-2 py-1'}>
-      <div className='dark:text-neutral-350 flex flex-col text-xs text-neutral-600'>
+    <div className={'flex flex-row items-center gap-2 px-4 py-1'}>
+      <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>
+        {' '}
+        {/* Added items-start here */}
         <span className=''>{label}</span>
         <span className='font-bold'>{relativeTime}</span>
       </div>

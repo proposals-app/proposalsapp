@@ -73,7 +73,7 @@ export async function PostItem({
   const isPostDeleted = item.deleted;
 
   return (
-    <div id={postAnchorId} className='w-full scroll-mt-36 p-4'>
+    <div id={postAnchorId} className='w-full scroll-mt-36'>
       {isPostDeleted ? (
         // Show the full details/summary UI for deleted posts
         <details className='w-full'>
@@ -275,6 +275,28 @@ const PostContent = ({
     </>
   );
 };
+
+export function PostItemLoading() {
+  return (
+    <div className='flex w-full animate-pulse flex-col gap-4'>
+      <div className='flex items-center gap-4'>
+        <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
+        <div className='flex flex-col space-y-2'>
+          <div className='h-4 w-48 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='h-3 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+        </div>
+      </div>
+      <div className='flex flex-col space-y-2'>
+        <div className='h-4 w-full rounded bg-neutral-200 dark:bg-neutral-800'></div>
+        <div className='h-4 w-5/6 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+        <div className='h-4 w-3/4 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+      </div>
+      <div className='mt-2 flex justify-end'>
+        <div className='h-3 w-20 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+      </div>
+    </div>
+  );
+}
 
 type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
 

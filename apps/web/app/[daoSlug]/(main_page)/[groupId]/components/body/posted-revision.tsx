@@ -61,8 +61,8 @@ const SelectTrigger = ({
       aria-haspopup='listbox'
       aria-expanded={isOpen}
       aria-label={ariaLabel}
-      className={`flex cursor-pointer items-center justify-between rounded-xs px-3 py-1.5 text-sm
-        outline-none ${className}`}
+      className={`flex cursor-pointer items-center rounded-xs px-3 py-1.5 text-sm outline-none
+        ${className}`}
       onClick={() => setIsOpen(!isOpen)}
     >
       {children}
@@ -181,10 +181,12 @@ export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
   });
 
   return (
-    <div className='relative'>
+    <div className='relative bg-white dark:bg-neutral-950'>
       <Select value={selectedVersionIndex} onValueChange={handleVersionSelect}>
         <SelectTrigger aria-label='Select version'>
-          <div className='dark:text-neutral-350 flex flex-col text-xs text-neutral-600'>
+          <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>
+            {' '}
+            {/* Added items-start here */}
             <span>
               {latestVersion.type === 'topic'
                 ? 'discourse revision'

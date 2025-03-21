@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
-import { PostItem } from './items/post-item/post-item';
-import { VoteItem } from './items/vote-item/vote-item';
+import { PostItem, PostItemLoading } from './items/post-item/post-item';
+import { VoteItem, VoteItemLoading } from './items/vote-item/vote-item';
 import { FeedReturnType, GroupReturnType } from '../../actions';
 import { AggregateVoteItem } from './items/vote-item/aggregate-vote-item';
 import { VotesWithVoters } from '@/app/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
@@ -43,17 +43,17 @@ export async function Feed({
   });
 
   return (
-    <div className='w-full'>
+    <div className='flex w-full flex-col gap-8'>
       {combinedItems.map((item, index) => {
         if (item.type === 'post') {
           return (
-            <div key={index}>
-              <div className='flex w-full flex-col p-4'>
+            <div
+              key={index}
+              className='border-b border-neutral-200 py-4 dark:border-neutral-800'
+            >
+              <div className='flex w-full flex-col'>
                 <PostItem item={item} group={group} />
               </div>
-              {index < combinedItems.length - 1 && (
-                <div className='border-b border-neutral-200 dark:border-neutral-800' />
-              )}
             </div>
           );
         } else {
@@ -62,8 +62,11 @@ export async function Feed({
           );
 
           return (
-            <div key={index}>
-              <div className='flex w-full flex-col p-4'>
+            <div
+              key={index}
+              className='border-b border-neutral-200 py-4 dark:border-neutral-800'
+            >
+              <div className='flex w-full flex-col'>
                 {item.aggregate ? (
                   <AggregateVoteItem item={item} group={group} />
                 ) : voteWithVoter ? (
@@ -74,9 +77,6 @@ export async function Feed({
                   />
                 ) : null}
               </div>
-              {index < combinedItems.length - 1 && (
-                <div className='border-b border-neutral-200 dark:border-neutral-800' />
-              )}
             </div>
           );
         }
@@ -86,27 +86,32 @@ export async function Feed({
 }
 
 export function FeedLoading() {
-  return (
-    <div className='w-full'>
-      {[...Array(3)].map((_, i) => (
-        <div className='px-6 py-4' key={i}>
-          <div className='flex animate-pulse items-center justify-between'>
-            <div className='flex items-center gap-4'>
-              <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
-              <div className='space-y-2'>
-                <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-                <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-              </div>
-            </div>
-            <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-          </div>
+  const loadingItems = Array.from({ length: 12 }); // Adjust number of loading items as needed
 
-          <div className='mt-4 space-y-2'>
-            <div className='h-4 w-3/4 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            <div className='h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-          </div>
-        </div>
-      ))}
+  return (
+    <div className='flex w-full flex-col gap-8'>
+      {loadingItems.map((_, index) => {
+        // Alternate between PostItemLoading and VoteItemLoading for a varied feed loading state
+        if (index % 3 === 0) {
+          return (
+            <div
+              key={index}
+              className='border-b border-neutral-200 py-4 dark:border-neutral-800'
+            >
+              <PostItemLoading />
+            </div>
+          );
+        } else {
+          return (
+            <div
+              key={index}
+              className='border-b border-neutral-200 py-4 dark:border-neutral-800'
+            >
+              <VoteItemLoading />
+            </div>
+          );
+        }
+      })}
     </div>
   );
 }

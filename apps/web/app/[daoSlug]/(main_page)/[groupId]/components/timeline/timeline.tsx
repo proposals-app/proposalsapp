@@ -496,8 +496,8 @@ export function Timeline({
   return (
     <div
       ref={refs.timelineRef}
-      className='fixed top-0 right-0 flex h-full min-w-96 flex-col items-end justify-start pt-24
-        pl-4'
+      className='fixed top-0 right-0 hidden h-full min-w-96 flex-col items-end justify-start
+        pt-24 pl-4 md:flex'
     >
       <div
         ref={refs.containerRef}

@@ -84,7 +84,7 @@ export async function VoteItem({
     : '2px';
 
   return (
-    <div className='flex w-full flex-col gap-2 p-4'>
+    <div className='flex w-full flex-col gap-2'>
       {/* Updated color bar with improved weight handling */}
       <div
         className='mb-2 w-full opacity-30'
@@ -149,6 +149,31 @@ export async function VoteItem({
             </a>
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+export function VoteItemLoading() {
+  return (
+    <div className='flex w-full animate-pulse flex-col gap-4'>
+      <div className='mb-2 h-2 w-full bg-neutral-200 dark:bg-neutral-800'></div>{' '}
+      {/* Placeholder for color bar */}
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-4'>
+          <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
+          <div className='flex flex-col space-y-2'>
+            <div className='h-4 w-48 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+            <div className='h-3 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+          </div>
+        </div>
+        <div className='h-3 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+      </div>
+      <div className='flex flex-col space-y-2'>
+        <div className='h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-800'></div>
+      </div>
+      <div className='mt-2 flex justify-end'>
+        <div className='h-3 w-20 rounded bg-neutral-200 dark:bg-neutral-800'></div>
       </div>
     </div>
   );

@@ -41,8 +41,8 @@ export function HeaderClient({
   return (
     <div
       className={`border-neutral-350 dark:border-neutral-650 fixed top-0 right-0 left-0 z-50 flex
-        h-20 items-center border-b bg-neutral-50 px-4 transition-transform duration-300
-        md:left-20 md:px-6 dark:bg-neutral-900
+        h-20 items-center border-b bg-neutral-50 px-3 transition-transform duration-300
+        sm:px-4 md:left-20 md:px-6 dark:bg-neutral-900
         ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
     >
       {withBack && (
@@ -52,14 +52,16 @@ export function HeaderClient({
           prefetch={true}
         >
           <ArrowLeft size={18} className='sm:size-20' />
-          <span className='text-xs font-medium sm:text-sm'>Back</span>
+          <span className='hidden text-xs font-medium sm:inline sm:text-sm'>
+            Back
+          </span>
         </Link>
       )}
 
-      <div className='flex items-center gap-2 pl-2 sm:pl-12'>
+      <div className='flex items-center gap-2 pl-2 sm:pl-4'>
         <div
-          className='flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-2
-            border-neutral-700 sm:h-10 sm:w-10 dark:border-neutral-300'
+          className='flex min-h-8 min-w-8 items-center justify-center overflow-hidden rounded-full
+            border-2 border-neutral-700 sm:h-10 sm:w-10 dark:border-neutral-300'
         >
           <Image
             src={originalAuthorPicture}
@@ -69,7 +71,7 @@ export function HeaderClient({
             height={40}
           />
         </div>
-        <h1 className='truncate text-base font-bold sm:text-lg'>{groupName}</h1>
+        <h1 className='text-base font-bold sm:text-lg'>{groupName}</h1>
       </div>
     </div>
   );
