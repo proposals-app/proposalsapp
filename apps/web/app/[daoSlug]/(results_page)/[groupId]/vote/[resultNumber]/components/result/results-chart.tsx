@@ -12,8 +12,6 @@ interface ResultsChartProps {
   results: SuperJSONResult;
 }
 
-const ACCUMULATE_VOTING_POWER_THRESHOLD = 50000;
-
 export function ResultsChart({ results }: ResultsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
@@ -95,55 +93,54 @@ export function ResultsChart({ results }: ResultsChartProps) {
     );
 
     // Create series for each choice
-    const series: echarts.SeriesOption[] = sortedChoiceIndices.map(
-      (choiceIndex) => {
+    const series: echarts.SeriesOption[] = sortedChoiceIndices
+      .map((choiceIndex) => {
         const choice = deserializedResults.choices[choiceIndex];
         const color = deserializedResults.choiceColors[choiceIndex];
         const shouldStack =
           deserializedResults.quorumChoices.includes(choiceIndex) &&
           deserializedResults.quorum !== null;
 
-        let zIndex: number;
+        let zIndex;
         if (choice === 'Against') {
-          zIndex = 3; // Highest z-index
+          zIndex = 3;
         } else if (choice === 'For') {
-          zIndex = 2; // Middle z-index
+          zIndex = 2;
         } else if (choice === 'Abstain') {
-          zIndex = 1; // Lowest z-index
+          zIndex = 1;
         } else {
-          zIndex = 0; // Default for other choices
+          zIndex = 0;
         }
 
-        const significantPoints: [Date, number][] = [];
-        let cumulativeValue = 0;
-        deserializedResults.timeSeriesData?.forEach((point) => {
-          const value = point.values[choiceIndex] || 0;
-          cumulativeValue += value;
-          if (
-            value >= ACCUMULATE_VOTING_POWER_THRESHOLD &&
-            !significantPoints.find(
-              (sigPoint) => sigPoint[0] === point.timestamp
-            )
-          ) {
-            significantPoints.push([point.timestamp, cumulativeValue]);
-          }
-        });
+        // Get the data points for this choice with proper typing
+        const seriesData: [Date, number][] = isRankedChoice
+          ? deserializedResults.timeSeriesData?.map((point) => [
+              point.timestamp,
+              point.values[choiceIndex] || 0,
+            ]) || []
+          : cumulativeData[choiceIndex] || [];
 
-        return {
+        // Get the last value for extrapolation
+        const lastPoint =
+          seriesData.length > 0 ? seriesData[seriesData.length - 1] : null;
+        const lastValue = lastPoint ? lastPoint[1] : 0;
+        const lastTimestamp = lastPoint ? lastPoint[0] : null;
+
+        // Create main series
+        const mainSeries: echarts.SeriesOption = {
           name: choice,
           type: 'line',
           step: 'end',
           stack: shouldStack ? 'QuorumTotal' : undefined,
           lineStyle: {
-            width: shouldStack ? 0 : 2,
+            width: 2,
             color: color,
+            opacity: 1,
           },
-          showSymbol: false, // Show symbols for significant points
-
+          showSymbol: false,
           itemStyle: {
-            color: () => {
-              return color;
-            },
+            color: color,
+            opacity: 0.9,
           },
           emphasis: {
             itemStyle: {
@@ -153,20 +150,51 @@ export function ResultsChart({ results }: ResultsChartProps) {
           },
           areaStyle: shouldStack
             ? {
-                opacity: 0.8,
+                opacity: 0.9,
                 color: color,
               }
             : undefined,
-          data: isRankedChoice
-            ? deserializedResults.timeSeriesData?.map((point) => [
-                point.timestamp,
-                point.values[choiceIndex] || 0,
-              ])
-            : cumulativeData[choiceIndex],
+          data: seriesData,
           z: zIndex,
         };
-      }
-    );
+
+        // Only create extrapolated series if we have data points
+        if (lastPoint && lastTimestamp) {
+          // Create extrapolated series
+          const extrapolatedSeries: echarts.SeriesOption = {
+            name: `${choice} (projected)`,
+            type: 'line',
+            step: 'end',
+            stack: shouldStack ? 'QuorumTotalExtrapolated' : undefined,
+            lineStyle: {
+              width: 2,
+              color: color,
+              opacity: 0.5,
+            },
+            showSymbol: false,
+            itemStyle: {
+              color: color,
+              opacity: 0.5,
+            },
+            areaStyle: shouldStack
+              ? {
+                  opacity: 0.25,
+                  color: color,
+                }
+              : undefined,
+            data: [
+              [lastTimestamp, lastValue],
+              [deserializedResults.proposal.endAt, lastValue],
+            ],
+            z: zIndex - 0.1,
+          };
+
+          return [mainSeries, extrapolatedSeries];
+        }
+
+        return [mainSeries];
+      })
+      .flat();
 
     // Add the "Total" series for ranked-choice voting
     let totalSeriesMaxValue = 0;
@@ -286,7 +314,6 @@ export function ResultsChart({ results }: ResultsChartProps) {
 
             return `{bold|${formattedDate}} at\n${formattedTime} UTC`;
           },
-          hideOverlap: true,
           rich: {
             bold: {
               fontWeight: 'bold',

@@ -70,7 +70,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 );
 
                 for result in results.clone() {
-                    let arbitrum_core_governor = arbitrum_treasury_governor_contract("arbitrum");
+                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum");
 
                     let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
                         .await
@@ -93,19 +93,19 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     let choices = vec!["For", "Against", "Abstain"];
 
-                    let proposal_state = arbitrum_core_governor
+                    let proposal_state = arbitrum_treasury_governor
                         .state(result.event_data.proposal_id)
                         .call()
                         .await
                         .expect("Failed to fetch proposal state");
 
-                    let proposal_snapshot_block = arbitrum_core_governor
+                    let proposal_snapshot_block = arbitrum_treasury_governor
                         .proposal_snapshot(result.event_data.proposal_id)
                         .call()
                         .await
                         .expect("Failed to fetch proposal snapshot block");
 
-                    let quorum = match arbitrum_core_governor
+                    let quorum = match arbitrum_treasury_governor
                         .quorum(proposal_snapshot_block)
                         .call()
                         .await

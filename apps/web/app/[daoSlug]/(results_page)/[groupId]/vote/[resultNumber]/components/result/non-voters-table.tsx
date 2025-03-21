@@ -5,7 +5,7 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import { VoterAuthor } from '@/app/[daoSlug]/components/author-voter';
-import { List, AutoSizer } from 'react-virtualized';
+import { List, AutoSizer, WindowScroller } from 'react-virtualized';
 import type { NonVotersData } from '../actions';
 
 interface NonVotersTableProps {
@@ -60,9 +60,9 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
 
   const TableHeader = () => (
     <div
-      className='z-10 mb-2 grid grid-cols-12 items-center justify-between gap-2 rounded-xs border
-        border-neutral-800 bg-neutral-200 p-2 py-3 text-sm font-bold text-neutral-800
-        transition-colors dark:border-neutral-600 dark:bg-neutral-800
+      className='sticky top-[137px] z-[1999] mb-2 grid grid-cols-12 items-center justify-between
+        gap-2 border border-neutral-800 bg-neutral-200 p-2 py-3 text-sm font-bold
+        text-neutral-800 transition-colors dark:border-neutral-600 dark:bg-neutral-800
         dark:text-neutral-200'
     >
       <div className='col-span-8'>Delegate</div>
@@ -86,10 +86,14 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
 
   return (
     <div className='mt-6'>
-      <div className='rounded-xs border border-neutral-200 dark:border-neutral-700'>
+      <div
+        className='sticky top-[88px] z-[1999] border-t border-r border-l border-neutral-800
+          bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'
+      >
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className='flex w-full items-center justify-between p-3 text-left'
+          className='flex w-full items-center justify-between bg-neutral-50 p-3 text-left
+            dark:bg-neutral-900'
         >
           <div className='flex items-center gap-2'>
             <span className='text-sm font-bold'>
@@ -114,20 +118,26 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
       {isExpanded && (
         <div>
           <TableHeader />
-          <div className='h-96'>
-            <AutoSizer disableHeight>
-              {({ width }) => (
-                <List
-                  width={width}
-                  height={384}
-                  rowCount={sortedNonVoters.length}
-                  rowHeight={72}
-                  rowRenderer={rowRenderer}
-                  overscanRowCount={5}
-                />
-              )}
-            </AutoSizer>
-          </div>
+          <WindowScroller>
+            {({ height, isScrolling, onChildScroll, scrollTop }) => (
+              <AutoSizer disableHeight>
+                {({ width }) => (
+                  <List
+                    autoHeight
+                    height={height}
+                    width={width}
+                    isScrolling={isScrolling}
+                    onScroll={onChildScroll}
+                    scrollTop={scrollTop}
+                    rowCount={sortedNonVoters.length}
+                    rowHeight={72}
+                    rowRenderer={rowRenderer}
+                    overscanRowCount={5}
+                  />
+                )}
+              </AutoSizer>
+            )}
+          </WindowScroller>
         </div>
       )}
     </div>

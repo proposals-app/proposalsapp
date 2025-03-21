@@ -380,8 +380,8 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
   const TableHeader = () => (
     <div
       className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center justify-between gap-2
-        rounded-xs border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold
-        text-neutral-800 transition-colors dark:border-neutral-600 dark:bg-neutral-800
+        border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800
+        transition-colors dark:border-neutral-600 dark:bg-neutral-800
         dark:text-neutral-200'
     >
       <div className='col-span-2 flex items-center gap-1 text-left'>
