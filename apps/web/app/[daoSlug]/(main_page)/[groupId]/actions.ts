@@ -1118,7 +1118,7 @@ export async function getFeed(
       url: '',
     });
   }
-  console.log(posts.reverse());
+
   return {
     votes: processedVotes,
     posts,
