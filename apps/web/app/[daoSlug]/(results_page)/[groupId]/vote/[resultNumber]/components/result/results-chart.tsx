@@ -169,16 +169,17 @@ export function ResultsChart({ results }: ResultsChartProps) {
             lineStyle: {
               width: 2,
               color: color,
-              opacity: 0.5,
+              type: 'dashed',
+              opacity: 0.25,
             },
             showSymbol: false,
             itemStyle: {
               color: color,
-              opacity: 0.5,
+              opacity: 0.25,
             },
             areaStyle: shouldStack
               ? {
-                  opacity: 0.25,
+                  opacity: 0.175,
                   color: color,
                 }
               : undefined,
