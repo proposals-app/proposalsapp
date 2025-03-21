@@ -25,9 +25,13 @@ export default async function ProfilePage() {
           {!session && <LoginForm />}
 
           {session && (
-            <div className='flex h-full w-full'>
-              <div className='relative flex h-full w-1/4 flex-col bg-neutral-200 p-4 dark:bg-neutral-800'>
-                <div className='mt-8 w-full text-center'>
+            <div className='flex h-full w-full flex-col md:flex-row'>
+              {/* Sidebar */}
+              <aside
+                className='w-full bg-neutral-200 p-4 md:h-full md:w-1/4 md:min-w-[250px]
+                  dark:bg-neutral-800'
+              >
+                <div className='mt-4 w-full px-4 text-center md:mt-8 md:px-0'>
                   <h2 className='mb-2 text-xl font-semibold text-neutral-800 dark:text-neutral-100'>
                     Welcome back,
                   </h2>
@@ -35,33 +39,18 @@ export default async function ProfilePage() {
                     {session.user.email}
                   </p>
                 </div>
+              </aside>
 
-                {/* Navigation */}
-                <nav className='mt-12'>
-                  <ul className='space-y-2'>
-                    <li>
-                      <a
-                        href='#notifications'
-                        className='block px-4 py-2 text-neutral-700 hover:bg-neutral-300 dark:text-neutral-300
-                          dark:hover:bg-neutral-700'
-                      >
-                        Notification Settings
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href='#account'
-                        className='block px-4 py-2 text-neutral-700 hover:bg-neutral-300 dark:text-neutral-300
-                          dark:hover:bg-neutral-700'
-                      >
-                        Account Management
-                      </a>
-                    </li>
-                  </ul>
-                </nav>
+              {/* Main content area */}
+              <main className='h-full w-full overflow-y-auto p-4 pb-16 md:w-3/4 md:px-8 lg:px-16'>
+                <div id='notifications'>
+                  <UserSettings session={session} />
+                </div>
+                <div id='account'>
+                  <AccountManagement session={session} />
+                </div>
 
-                {/* Sign out button positioned at the bottom left */}
-                <div className='absolute bottom-4 left-4 w-auto'>
+                <div id='signout' className='justify-self-end'>
                   <form action={signOut}>
                     <button
                       type='submit'
@@ -75,15 +64,7 @@ export default async function ProfilePage() {
                     </button>
                   </form>
                 </div>
-              </div>
-              <div className='h-full w-3/4 overflow-y-auto p-2 px-16'>
-                <div id='notifications'>
-                  <UserSettings session={session} />
-                </div>
-                <div id='account'>
-                  <AccountManagement session={session} />
-                </div>
-              </div>
+              </main>
             </div>
           )}
         </div>

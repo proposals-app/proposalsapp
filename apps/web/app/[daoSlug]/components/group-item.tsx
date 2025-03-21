@@ -24,18 +24,18 @@ export function GroupItem({ group }: GroupItemProps) {
   return (
     <Link
       href={`/${group.slug}`}
-      className='block border border-neutral-200 bg-white p-4 dark:border-neutral-700
+      className='block border border-neutral-200 bg-white p-3 sm:p-4 dark:border-neutral-700
         dark:bg-neutral-800'
       prefetch={true}
     >
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-row justify-between gap-3 sm:items-center sm:gap-0'>
         <div>
-          <h2 className='text-xl font-bold text-neutral-800 dark:text-neutral-200'>
+          <h2 className='text-lg font-bold text-neutral-800 sm:text-xl dark:text-neutral-200'>
             {group.name}
           </h2>
           <div
-            className='mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-600
-              dark:text-neutral-400'
+            className='mt-2 flex flex-col gap-1 text-xs text-neutral-600 sm:flex-row sm:flex-wrap
+              sm:items-center sm:gap-4 sm:text-sm dark:text-neutral-400'
           >
             <span>By {group.authorName}</span>
             <span>Last activity {relativeTime}</span>
@@ -47,9 +47,9 @@ export function GroupItem({ group }: GroupItemProps) {
             </div>
           </div>
         </div>
-        <div className='flex flex-row gap-2'>
+        <div className='flex items-center justify-between sm:flex-row sm:gap-2'>
           {group.hasNewActivity && <NewBadge />}
-          <ArrowRight className='h-6 w-6 text-neutral-400 dark:text-neutral-500' />
+          <ArrowRight className='h-5 w-5 text-neutral-400 sm:h-6 sm:w-6 dark:text-neutral-500' />
         </div>
       </div>
     </Link>
@@ -59,7 +59,7 @@ export function GroupItem({ group }: GroupItemProps) {
 const NewBadge = () => (
   <div
     className='border-neutral-350 dark:border-neutral-650 border bg-neutral-200 px-2 py-1
-      text-sm text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
+      text-xs text-neutral-700 sm:text-sm dark:bg-neutral-700 dark:text-neutral-200'
   >
     New activity
   </div>
