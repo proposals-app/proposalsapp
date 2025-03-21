@@ -9,12 +9,12 @@ export function NavBar() {
   const DAO_NAME = 'Arbitrum';
 
   return (
-    <>
+    <div className='fill-neutral-800 dark:fill-neutral-200'>
       {/* Mobile navbar (top) */}
       <div
         className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 flex h-16
-          w-full items-center justify-between border-b bg-neutral-50 fill-neutral-800 px-4
-          md:hidden dark:bg-neutral-900 dark:fill-neutral-200'
+          w-full items-center justify-between border-b bg-neutral-50 px-4 md:hidden
+          dark:bg-neutral-900'
       >
         <Link href={`/`} className='flex h-10 w-10 items-center justify-center'>
           <Image
@@ -80,14 +80,14 @@ export function NavBar() {
             href={`/`}
             className='flex h-12 w-12 items-center justify-center'
           >
-            <List />
+            <List className='h-12 w-12' />
           </Link>
 
           <Link
             href={`/profile`}
             className='flex h-12 w-12 items-center justify-center'
           >
-            <Profile />
+            <Profile className='h-12 w-12' />
           </Link>
         </div>
         <div className='flex flex-col items-center gap-8'>
@@ -109,6 +109,6 @@ export function NavBar() {
           />
         </div>
       </div>
-    </>
+    </div>
   );
 }
