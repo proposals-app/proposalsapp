@@ -6,9 +6,9 @@ export default function Loading() {
         <div className='mb-8 h-12 w-80 animate-pulse rounded-md bg-neutral-200 dark:bg-neutral-700'></div>
 
         {/* Skeleton loader for MarkAllAsReadButton - align right */}
-        <div className='mb-4 self-end'>
+        {/* <div className='mb-4 self-end'>
           <div className='h-8 w-32 animate-pulse rounded-md bg-neutral-200 dark:bg-neutral-700'></div>
-        </div>
+        </div> */}
 
         {/* Skeleton loaders for the group list items, more like cards */}
         <div className='space-y-4'>

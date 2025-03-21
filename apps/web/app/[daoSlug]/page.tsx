@@ -1,7 +1,8 @@
 import { ProposalGroupItem } from '@/lib/types';
 import { getGroupHeader, getGroups } from './actions';
-import { GroupItem } from './components/group-item';
+import { GroupList, LoadingGroupList } from './components/group-list';
 import { MarkAllAsReadButton } from './components/mark-all-as-read';
+import { Suspense } from 'react';
 
 export default async function ListPage({
   params,
@@ -17,12 +18,10 @@ export default async function ListPage({
 
   const { daoName, groups } = result;
 
-  // Fetch author information for each group and transform data to match GroupItem props
+  // Fetch author information for each group and transform data
   const groupsWithAuthorInfo = await Promise.all(
     groups.map(async (group) => {
       const authorInfo = await getGroupHeader(group.id);
-
-      // Count the number of proposals and comments within the group
       const items = group.items as ProposalGroupItem[];
       const proposalsCount = items.filter(
         (item) => item.type === 'proposal'
@@ -59,16 +58,16 @@ export default async function ListPage({
         >
           {daoName || daoSlug}
         </h1>
+
         {hasNewActivityInGroups && (
           <div className='mb-4 self-end'>
             <MarkAllAsReadButton />
           </div>
         )}
-        <div className='space-y-4'>
-          {groupsWithAuthorInfo.map((group) => (
-            <GroupItem key={group.id} group={group} />
-          ))}
-        </div>
+
+        <Suspense fallback={<LoadingGroupList />}>
+          <GroupList groups={groupsWithAuthorInfo} />
+        </Suspense>
       </div>
     </div>
   );
