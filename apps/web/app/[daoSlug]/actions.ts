@@ -166,10 +166,13 @@ export async function getGroups(daoSlug: string) {
     });
   }
 
-  // Calculate timestamps and group data
+  const now = new Date().getTime();
+
   const groupsWithTimestamps = allGroups.map((group) => {
     const items = group.items as ProposalGroupItem[];
     let newestItemTimestamp = 0;
+    let hasActiveProposal = false;
+    let earliestEndTime = Infinity; // Add this to track the earliest end time
 
     for (const item of items) {
       let itemTimestamp = 0;
@@ -179,6 +182,15 @@ export async function getGroups(daoSlug: string) {
         );
         if (proposal) {
           itemTimestamp = new Date(proposal.createdAt).getTime();
+          // Check if proposal is active
+          if (proposal.endAt && new Date(proposal.endAt).getTime() > now) {
+            hasActiveProposal = true;
+            // Track the earliest end time among active proposals
+            earliestEndTime = Math.min(
+              earliestEndTime,
+              new Date(proposal.endAt).getTime()
+            );
+          }
         }
       } else if (item.type === 'topic') {
         const topic = topicsMap.get(
@@ -204,13 +216,25 @@ export async function getGroups(daoSlug: string) {
       newestItemTimestamp,
       newestActivityTimestamp: newestItemTimestamp,
       hasNewActivity,
+      hasActiveProposal,
+      earliestEndTime: hasActiveProposal ? earliestEndTime : Infinity,
     };
   });
 
-  // Sort all groups by their newest activity timestamp
-  groupsWithTimestamps.sort(
-    (a, b) => b.newestActivityTimestamp - a.newestActivityTimestamp
-  );
+  // Update the sorting logic
+  groupsWithTimestamps.sort((a, b) => {
+    // First, separate active and inactive proposals
+    if (a.hasActiveProposal && !b.hasActiveProposal) return -1;
+    if (!a.hasActiveProposal && b.hasActiveProposal) return 1;
+
+    // If both have active proposals, sort by earliest end time
+    if (a.hasActiveProposal && b.hasActiveProposal) {
+      return a.earliestEndTime - b.earliestEndTime;
+    }
+
+    // If neither has active proposals, sort by newest activity
+    return b.newestActivityTimestamp - a.newestActivityTimestamp;
+  });
 
   return {
     daoName: dao.name,

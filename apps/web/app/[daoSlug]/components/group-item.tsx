@@ -11,6 +11,7 @@ interface GroupItemProps {
     authorAvatarUrl: string;
     latestActivityAt: Date;
     hasNewActivity: boolean;
+    hasActiveProposal: boolean;
     commentsCount: number;
     proposalsCount: number;
   };
@@ -24,8 +25,9 @@ export function GroupItem({ group }: GroupItemProps) {
   return (
     <Link
       href={`/${group.slug}`}
-      className='block border border-neutral-200 bg-white p-3 sm:p-4 dark:border-neutral-700
-        dark:bg-neutral-800'
+      className={`block border
+        ${group.hasActiveProposal ? 'bg-green-200 dark:bg-green-900' : 'bg-white dark:bg-neutral-800'}
+        border-neutral-200 p-3 sm:p-4 dark:border-neutral-700`}
       prefetch={true}
     >
       <div className='flex flex-row justify-between gap-3 sm:items-center sm:gap-0'>
