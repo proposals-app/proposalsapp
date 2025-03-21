@@ -741,6 +741,8 @@ export async function getFeed(
             return vote.votingPower > 500000;
           } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
             return vote.votingPower > 5000000;
+          } else if (fromFilter === FromFilterEnum.ALL) {
+            return true;
           } else if (fromFilter == FromFilterEnum.AUTHOR) {
             return author?.voters
               .map((av) => av.address)
@@ -908,6 +910,8 @@ export async function getFeed(
                   return vote.votingPower > 500000;
                 } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
                   return vote.votingPower > 5000000;
+                } else if (fromFilter === FromFilterEnum.ALL) {
+                  return true;
                 } else if (fromFilter == FromFilterEnum.AUTHOR) {
                   return author?.voters
                     .map((av) => av.address)
@@ -1114,7 +1118,7 @@ export async function getFeed(
       url: '',
     });
   }
-
+  console.log(posts.reverse());
   return {
     votes: processedVotes,
     posts,
