@@ -13,8 +13,8 @@ export function NavBar() {
       {/* Mobile navbar (top) */}
       <div
         className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 flex h-16
-          w-full items-center justify-between border-b bg-neutral-50 px-4 md:hidden
-          dark:bg-neutral-900'
+          w-full items-center justify-between border-b bg-neutral-50 fill-neutral-800 px-4
+          md:hidden dark:bg-neutral-900 dark:fill-neutral-200'
       >
         <Link href={`/`} className='flex h-10 w-10 items-center justify-center'>
           <Image
