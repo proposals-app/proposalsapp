@@ -1,5 +1,10 @@
 import { Proposal, Selectable } from '@proposalsapp/db-indexer';
-import { getVoter, getProposalGovernor, getVotesWithVoters } from './actions';
+import {
+  getVoter,
+  getProposalGovernor,
+  getVotesWithVoters,
+  getNonVoters,
+} from './actions';
 import { LoadingChart, ResultsChart } from './result/results-chart';
 import { LoadingList, ResultsList } from './result/results-list';
 import { LoadingTable, ResultsTable } from './result/results-table';
@@ -7,6 +12,10 @@ import { processResultsAction } from '@/lib/results_processing';
 import { ResultsTitle } from './result/results-title';
 import { Suspense } from 'react';
 import superjson from 'superjson';
+import {
+  LoadingNonVotersTable,
+  NonVotersTable,
+} from './result/non-voters-table';
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
@@ -24,6 +33,7 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 // New component to handle the async content
 async function ResultsContent({ proposal }: ResultsProps) {
   const votes = await getVotesWithVoters(proposal.id);
+  const nonVoters = await getNonVoters(proposal.id);
 
   const processedResults = await processResultsAction(proposal, votes, {
     withVotes: true,
@@ -55,9 +65,15 @@ async function ResultsContent({ proposal }: ResultsProps) {
           <ResultsChart results={serializedResults} />
         </Suspense>
 
-        <Suspense fallback={<LoadingTable />}>
-          <ResultsTable results={serializedResults} votes={serializedVotes} />
-        </Suspense>
+        <div className='flex flex-col'>
+          <Suspense fallback={<LoadingNonVotersTable />}>
+            <NonVotersTable nonVoters={nonVoters} />
+          </Suspense>
+
+          <Suspense fallback={<LoadingTable />}>
+            <ResultsTable results={serializedResults} votes={serializedVotes} />
+          </Suspense>
+        </div>
       </div>
 
       <Suspense fallback={<LoadingList />}>

@@ -461,7 +461,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
   );
 
   return (
-    <div className='mt-6'>
+    <div>
       <TableHeader />
       <WindowScroller>
         {({ height, isScrolling, onChildScroll, scrollTop }) => (

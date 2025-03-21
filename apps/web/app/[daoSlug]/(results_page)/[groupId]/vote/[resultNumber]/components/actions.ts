@@ -29,6 +29,94 @@ export async function getProposalGovernor(proposalId: string) {
   return daoIndexer;
 }
 
+export async function getNonVoters(proposalId: string) {
+  'use server';
+
+  const proposal = await dbIndexer
+    .selectFrom('proposal')
+    .where('id', '=', proposalId)
+    .select(['id', 'governorId', 'daoId', 'startAt', 'endAt'])
+    .executeTakeFirst();
+
+  if (!proposal) {
+    console.warn(`Proposal with id ${proposalId} not found.`);
+    return [];
+  }
+
+  const votedAddresses = new Set(
+    (
+      await dbIndexer
+        .selectFrom('vote')
+        .where('proposalId', '=', proposalId)
+        .select('voterAddress')
+        .execute()
+    ).map((v) => v.voterAddress)
+  );
+
+  const eligibleVoters = await dbIndexer
+    .selectFrom('votingPower as vp')
+    .innerJoin('voter as v', 'v.address', 'vp.voter')
+    .where('vp.daoId', '=', proposal.daoId)
+    .where('vp.votingPower', '>', 0)
+    .where('vp.timestamp', '<=', proposal.startAt)
+    .orderBy('vp.voter', 'asc')
+    .orderBy('vp.timestamp', 'desc')
+    .distinctOn(['vp.voter'])
+    .select([
+      'vp.voter',
+      'vp.votingPower as votingPowerAtStart',
+      'v.ens',
+      'v.avatar',
+    ])
+    .execute();
+
+  if (eligibleVoters.length === 0) return [];
+
+  const currentPowers = await dbIndexer
+    .selectFrom('votingPower')
+    .where('daoId', '=', proposal.daoId)
+    .where(
+      'voter',
+      'in',
+      eligibleVoters.map((v) => v.voter)
+    )
+    .select((eb) => [
+      'voter',
+      eb.fn
+        .max('votingPower')
+        .over((ob) => ob.partitionBy('voter'))
+        .as('currentVotingPower'),
+    ])
+    .groupBy('voter')
+    .groupBy('votingPower')
+    .execute();
+
+  const currentPowerMap = new Map(
+    currentPowers.map((cp) => [cp.voter, cp.currentVotingPower])
+  );
+
+  const nonVoters = eligibleVoters
+    .filter((v) => !votedAddresses.has(v.voter))
+    .map((voter) => {
+      const currentVotingPower = currentPowerMap.get(voter.voter) ?? 0;
+
+      return {
+        voterAddress: voter.voter,
+        ens: voter.ens,
+        avatar:
+          voter.avatar ||
+          `https://api.dicebear.com/9.x/pixel-art/png?seed=${voter.voter}`,
+        votingPowerAtStart: voter.votingPowerAtStart,
+        currentVotingPower,
+      };
+    })
+    .filter((voter) => voter.votingPowerAtStart > 0);
+
+  return nonVoters;
+}
+
+export type NonVotersData = AsyncReturnType<typeof getNonVoters>;
+
 export async function getVotesWithVoters(proposalId: string) {
   'use server';
 
