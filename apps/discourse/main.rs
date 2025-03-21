@@ -78,7 +78,6 @@ async fn main() -> Result<()> {
             let start = Instant::now() + Duration::from_secs(10);
             let mut interval = interval_at(start, SLOW_INDEX);
 
-            // interval.tick().await;
             loop {
                 let category_fetcher = CategoryIndexer::new(Arc::clone(&api_handler));
                 match category_fetcher
@@ -112,7 +111,6 @@ async fn main() -> Result<()> {
             let start = Instant::now() + Duration::from_secs(10);
             let mut interval = interval_at(start, SLOW_INDEX);
 
-            interval.tick().await;
             loop {
                 let user_fetcher = UserIndexer::new(Arc::clone(&api_handler), Arc::clone(&http_client_user)); // Pass shared http_client
                 match user_fetcher
@@ -146,7 +144,6 @@ async fn main() -> Result<()> {
             let start = Instant::now() + Duration::from_secs(10);
             let mut interval = interval_at(start, SLOW_INDEX);
 
-            // interval.tick().await;
             loop {
                 let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler), Arc::clone(&http_client_topic)); // Pass shared http_client
                 match topic_fetcher
@@ -178,7 +175,7 @@ async fn main() -> Result<()> {
         let revision_handle = tokio::spawn(async move {
             let start = Instant::now() + Duration::from_secs(10);
             let mut interval = interval_at(start, SLOW_INDEX);
-            // interval.tick().await;
+
             loop {
                 let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
                 match revision_fetcher
@@ -222,7 +219,7 @@ async fn main() -> Result<()> {
 
             loop {
                 while !api_handler.is_priority_queue_empty() {
-                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    tokio::time::sleep(Duration::from_secs(100)).await;
                 }
 
                 let (user_result, topic_result, revision_result) = tokio::join!(
@@ -283,7 +280,7 @@ async fn main() -> Result<()> {
                 }
 
                 // Wait for a short duration before checking again
-                tokio::time::sleep(Duration::from_secs(1)).await;
+                tokio::time::sleep(Duration::from_secs(60)).await;
             }
         });
 
