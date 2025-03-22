@@ -1,9 +1,9 @@
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { FeedEvent, getFeed } from '../../(main_page)/[groupId]/actions';
+import { getFeed } from '../../(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import { ResultCard } from './results/result-card';
 
 enum TimelineEventType {
@@ -31,30 +31,24 @@ interface ActiveGroupItemProps {
   };
 }
 
-export function ActiveGroupItem({ group }: ActiveGroupItemProps) {
+export async function ActiveGroupItem({ group }: ActiveGroupItemProps) {
+  'use cache';
+
+  // Make ActiveGroupItem async
   const relativeTime = formatDistanceToNow(new Date(group.latestActivityAt), {
     addSuffix: true,
   });
 
-  const [result, setResult] = useState<FeedEvent | null>(null); // Initialize result to null
+  // Fetch feed data on the server
+  const feedData = await getFeed(
+    group.id,
+    FeedFilterEnum.VOTES,
+    FromFilterEnum.ALL,
+    true
+  );
 
-  useEffect(() => {
-    const fetchFeed = async () => {
-      const feedData = await getFeed(
-        group.id,
-        FeedFilterEnum.VOTES,
-        FromFilterEnum.ALL,
-        true
-      );
-      if (feedData?.events && feedData.events.length > 0) {
-        setResult(feedData.events[0]);
-      } else {
-        setResult(null);
-      }
-    };
-
-    fetchFeed();
-  }, [group.id]);
+  const result =
+    feedData?.events && feedData.events.length > 0 ? feedData.events[0] : null;
 
   return (
     <Link
@@ -62,7 +56,7 @@ export function ActiveGroupItem({ group }: ActiveGroupItemProps) {
       className={`block border border-neutral-200 bg-green-200 p-3 sm:p-4 dark:border-neutral-700 dark:bg-green-900`}
       prefetch={true}
     >
-      <div className='flex flex-row justify-between gap-3 sm:items-center sm:gap-0'>
+      <div className='flex flex-row justify-between gap-3 sm:gap-0'>
         <div>
           <h2 className='text-lg font-bold text-neutral-800 sm:text-xl dark:text-neutral-200'>
             {group.name}
