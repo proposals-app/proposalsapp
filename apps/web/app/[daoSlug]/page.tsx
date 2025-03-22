@@ -3,6 +3,8 @@ import { getGroupHeader, getGroups } from './actions';
 import { GroupList, LoadingGroupList } from './components/group-list';
 import { MarkAllAsReadButton } from './components/mark-all-as-read';
 import { Suspense } from 'react';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 
 export default async function ListPage({
   params,
@@ -10,7 +12,11 @@ export default async function ListPage({
   params: Promise<{ daoSlug: string }>;
 }) {
   const { daoSlug } = await params;
-  const result = await getGroups(daoSlug);
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  const result = await getGroups(daoSlug, userId);
 
   if (!result) {
     return null;

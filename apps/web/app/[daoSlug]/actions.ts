@@ -12,10 +12,9 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
 import { revalidatePath } from 'next/cache';
+import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function markAllAsRead(daoSlug: string) {
-  'use server';
-
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
@@ -60,7 +59,10 @@ export async function markAllAsRead(daoSlug: string) {
   revalidatePath(`/app/[daoSlug]`);
 }
 
-export async function getGroups(daoSlug: string) {
+export async function getGroups(daoSlug: string, userId?: string) {
+  'use cache';
+  cacheLife('minutes');
+
   // Fetch the DAO based on the slug
   const dao = await dbIndexer
     .selectFrom('dao')
@@ -148,10 +150,6 @@ export async function getGroups(daoSlug: string) {
   topics.forEach((topic) => {
     topicsMap.set(`${topic.externalId}-${topic.daoDiscourseId}`, topic);
   });
-
-  const session = await auth.api.getSession({ headers: await headers() });
-
-  const userId = session?.user?.id;
 
   const lastReadMap = new Map<string, Date | null>();
   if (userId) {
@@ -249,7 +247,8 @@ export async function getGroupHeader(groupId: string): Promise<{
   originalAuthorPicture: string;
   groupName: string;
 }> {
-  'use server';
+  'use cache';
+  cacheLife('minutes');
 
   interface AuthorInfo {
     originalAuthorName: string;

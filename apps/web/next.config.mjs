@@ -52,6 +52,7 @@ const nextConfig = {
   experimental: {
     reactCompiler: true,
     viewTransition: true,
+    useCache: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },
