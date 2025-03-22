@@ -77,15 +77,9 @@ export async function PostItem({
       {isPostDeleted ? (
         // Show the full details/summary UI for deleted posts
         <details className='w-full'>
-          <summary
-            className='flex h-12 cursor-default list-none items-center justify-center
-              border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'
-          >
+          <summary className='flex h-12 cursor-default list-none items-center justify-center border-neutral-400 text-neutral-500 [&::-webkit-details-marker]:hidden'>
             <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
-            <span
-              className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900
-                dark:text-neutral-400'
-            >
+            <span className='relative bg-neutral-50 px-4 text-sm text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400'>
               Deleted Post
             </span>
             <div className='grow border-t border-neutral-300 dark:border-neutral-700'></div>
@@ -170,10 +164,7 @@ const PostContent = ({
           />
         ) : null}
 
-        <div
-          className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm
-            text-neutral-600 select-none'
-        >
+        <div className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm text-neutral-600 select-none'>
           <div className='flex flex-col items-end'>
             <div>
               posted <span className='font-bold'>{relativeCreateTime}</span>
@@ -197,16 +188,10 @@ const PostContent = ({
                 }}
                 className='group-open:hidden'
               />
-              <div
-                className='absolute right-0 bottom-0 left-0 h-36 bg-gradient-to-t from-neutral-50
-                  to-transparent group-open:hidden dark:from-neutral-900'
-              />
+              <div className='absolute right-0 bottom-0 left-0 h-36 bg-gradient-to-t from-neutral-50 to-transparent group-open:hidden dark:from-neutral-900' />
               <div className='relative my-4 flex items-end justify-end group-open:hidden'>
                 <div className='absolute w-full border-t border-neutral-300 dark:border-neutral-700' />
-                <span
-                  className='relative flex flex-row gap-4 bg-neutral-200 px-4 text-sm text-neutral-600
-                    dark:bg-neutral-600 dark:text-neutral-300'
-                >
+                <span className='relative flex flex-row gap-4 bg-neutral-200 px-4 text-sm text-neutral-600 dark:bg-neutral-600 dark:text-neutral-300'>
                   <div className='flex flex-row items-center gap-2 self-end justify-self-end'>
                     {likesCount > 0 ? (
                       <div className='flex items-center gap-1 text-sm'>

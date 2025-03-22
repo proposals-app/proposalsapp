@@ -396,12 +396,10 @@ const TimelineEventItem = React.memo(
   }) {
     return (
       <div
-        className={`transition-opacity duration-200 ease-in-out
-          ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        className={`transition-opacity duration-200 ease-in-out ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       >
         <div
-          className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'}
-            transition-transform duration-500 ease-out`}
+          className={`transform ${animationStarted ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-500 ease-out`}
           style={{
             transitionDelay: `${animationDelay}ms`,
             WebkitTransitionDelay: `${animationDelay}ms`,
@@ -496,8 +494,7 @@ export function Timeline({
   return (
     <div
       ref={refs.timelineRef}
-      className='fixed top-0 right-0 hidden h-full min-w-96 flex-col items-end justify-start
-        pt-24 pl-4 md:flex'
+      className='fixed top-0 right-0 hidden h-full min-w-96 flex-col items-end justify-start pt-24 pl-4 md:flex'
     >
       <div
         ref={refs.containerRef}
@@ -505,9 +502,7 @@ export function Timeline({
         data-aggregation-level={aggregationLevel}
       >
         <div
-          className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom
-            translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out
-            ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
+          className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
         />
 
         <div className='flex h-full flex-col justify-between'>

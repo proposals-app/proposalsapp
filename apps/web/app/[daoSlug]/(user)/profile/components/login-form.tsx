@@ -106,10 +106,7 @@ export const LoginForm = () => {
   return (
     <div className='flex w-full flex-col items-center p-4 sm:p-6 md:p-8'>
       <div className='w-full max-w-sm'>
-        <div
-          className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50
-            dark:bg-neutral-950'
-        >
+        <div className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 dark:bg-neutral-950'>
           <div className='flex flex-col space-y-1.5 p-4 sm:p-6'>
             <h3 className='text-xl font-semibold tracking-tight sm:text-2xl'>
               Welcome Back
@@ -120,10 +117,7 @@ export const LoginForm = () => {
           </div>
           <div className='p-4 sm:p-6'>
             {signInError && (
-              <div
-                className='mb-4 border border-red-200 bg-red-50 p-3 text-red-600 dark:border-red-900
-                  dark:bg-red-900/20 dark:text-red-400'
-              >
+              <div className='mb-4 border border-red-200 bg-red-50 p-3 text-red-600 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400'>
                 <p className='text-xs sm:text-sm'>{signInError}</p>
               </div>
             )}
@@ -136,27 +130,17 @@ export const LoginForm = () => {
                       id='email'
                       type='email'
                       placeholder='your.email@example.com'
-                      className={`w-full border bg-white px-3 py-2 pl-10 text-xs text-neutral-900 outline-none
-                      sm:py-2.5 sm:text-sm dark:border-neutral-700 dark:bg-neutral-900
-                      dark:text-neutral-100
-                      ${signInError ? 'border-red-500 dark:border-red-500' : 'border-neutral-300'}`}
+                      className={`w-full border bg-white px-3 py-2 pl-10 text-xs text-neutral-900 outline-none sm:py-2.5 sm:text-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 ${signInError ? 'border-red-500 dark:border-red-500' : 'border-neutral-300'}`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                     />
-                    <Mail
-                      className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-500 sm:h-5 sm:w-5
-                        dark:text-neutral-400'
-                    />
+                    <Mail className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
                   </div>
                 </div>
                 <button
                   type='submit'
-                  className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2
-                  text-xs font-medium whitespace-nowrap transition-colors outline-none
-                  disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm
-                  dark:bg-neutral-700
-                  ${isPending || !email.trim() ? 'cursor-not-allowed opacity-50' : ''}`}
+                  className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2 text-xs font-medium whitespace-nowrap transition-colors outline-none disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm dark:bg-neutral-700 ${isPending || !email.trim() ? 'cursor-not-allowed opacity-50' : ''}`}
                   disabled={isPending || !email.trim()}
                 >
                   {isPending ? 'Sending...' : 'Sign in with Email'}
@@ -201,10 +185,7 @@ export const LoginForm = () => {
                           ref={(el) => {
                             otpInputs.current[index] = el;
                           }}
-                          className={`h-9 w-9 border bg-white text-center text-base text-neutral-900 outline-none
-                          sm:h-12 sm:w-12 sm:text-lg dark:border-neutral-700 dark:bg-neutral-900
-                          dark:text-neutral-100
-                          ${signInError ? 'border-red-500 dark:border-red-500' : 'border-neutral-300'}`}
+                          className={`h-9 w-9 border bg-white text-center text-base text-neutral-900 outline-none sm:h-12 sm:w-12 sm:text-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 ${signInError ? 'border-red-500 dark:border-red-500' : 'border-neutral-300'}`}
                           value={digit}
                           onChange={(e) =>
                             handleOtpChange(index, e.target.value)
@@ -219,11 +200,7 @@ export const LoginForm = () => {
 
                   <button
                     type='submit'
-                    className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2
-                    text-xs font-medium whitespace-nowrap transition-colors outline-none
-                    disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm
-                    dark:bg-neutral-700
-                    ${isPending || otp.some((d) => !d) ? 'cursor-not-allowed opacity-50' : ''}`}
+                    className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2 text-xs font-medium whitespace-nowrap transition-colors outline-none disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm dark:bg-neutral-700 ${isPending || otp.some((d) => !d) ? 'cursor-not-allowed opacity-50' : ''}`}
                     disabled={isPending || otp.some((d) => !d)}
                   >
                     {isPending ? 'Verifying...' : 'Verify Code'}
@@ -242,10 +219,7 @@ export const LoginForm = () => {
               </div>
             )}
           </div>
-          <div
-            className='border-t border-neutral-200 px-4 py-3 text-center sm:px-6 sm:py-4
-              dark:border-neutral-700'
-          >
+          <div className='border-t border-neutral-200 px-4 py-3 text-center sm:px-6 sm:py-4 dark:border-neutral-700'>
             <p className='text-xs text-neutral-500 dark:text-neutral-400'>
               By continuing, you agree to our{' '}
               <a href='#' className='underline underline-offset-2'>

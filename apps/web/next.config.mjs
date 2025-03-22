@@ -11,7 +11,7 @@ const withSerwist = withSerwistInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  allowedDevOrigins: ['arbitrum.localhost'],
+  allowedDevOrigins: ['arbitrum.localhost', 'localhost'],
   rewrites: () => {
     return [
       // PostHog rewrites need to come first to ensure they're not caught by the catch-all subdomain rewrite
@@ -31,17 +31,6 @@ const nextConfig = {
         source: '/ingest/decide',
         destination: 'https://eu.i.posthog.com/decide',
       },
-      // Subdomain rewrite comes last as it's a catch-all
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: '(?<daoSlug>.*).example.com',
-          },
-        ],
-        destination: '/:daoSlug/:path*',
-      },
     ];
   },
   skipTrailingSlashRedirect: true,
@@ -50,6 +39,7 @@ const nextConfig = {
     reactCompiler: true,
     viewTransition: true,
     useCache: true,
+    dynamicIO: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },
@@ -82,4 +72,6 @@ const nextConfig = {
   },
 };
 
-export default withSerwist(nextConfig);
+export default nextConfig;
+
+// export default withSerwist(nextConfig);

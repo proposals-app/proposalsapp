@@ -28,14 +28,10 @@ export function ResultCard({ content, result }: ResultCardProps) {
 
   return (
     <div
-      className={`relative mr-4 flex
-        ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} my-1
-        items-end`}
+      className={`relative mr-4 flex ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} my-1 items-end`}
     >
       <div
-        className={`dark:border-neutral-650 flex h-full w-full rounded-xs border border-neutral-400
-          bg-white px-4 py-1 text-neutral-800 transition-transform duration-200
-          ease-in-out dark:bg-neutral-950 dark:text-neutral-200`}
+        className={`dark:border-neutral-650 flex h-full w-full rounded-xs border border-neutral-400 bg-white px-4 py-1 text-neutral-800 transition-transform duration-200 ease-in-out dark:bg-neutral-950 dark:text-neutral-200`}
       >
         <div className='flex w-96 flex-col gap-2'>
           <div className='flex w-full items-center justify-between'>

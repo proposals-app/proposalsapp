@@ -76,8 +76,7 @@ const SelectTrigger = ({
       aria-haspopup='listbox'
       aria-expanded={isOpen}
       aria-label={ariaLabel}
-      className={`flex h-8 cursor-pointer items-center justify-between text-sm outline-none
-        ${className}`}
+      className={`flex h-8 cursor-pointer items-center justify-between text-sm outline-none ${className}`}
       onClick={() => setIsOpen(!isOpen)}
     >
       {children}
@@ -124,9 +123,7 @@ const SelectContent = ({
   return (
     <div
       ref={contentRef}
-      className={`absolute z-[999] mt-1 overflow-hidden rounded-sm border border-neutral-200
-        bg-white p-1 shadow-lg will-change-transform dark:border-neutral-700
-        dark:bg-neutral-800 ${className}`}
+      className={`absolute z-[999] mt-1 overflow-hidden rounded-sm border border-neutral-200 bg-white p-1 shadow-lg will-change-transform dark:border-neutral-700 dark:bg-neutral-800 ${className}`}
       role='listbox'
     >
       <div className='p-1'>{children}</div>
@@ -147,9 +144,7 @@ const SelectItem = ({ children, value }: SelectItemProps) => {
     <div
       role='option'
       aria-selected={isSelected}
-      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm
-        text-neutral-800 transition-colors will-change-transform outline-none
-        hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-700'
+      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm text-neutral-800 transition-colors will-change-transform outline-none hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-700'
       onClick={() => {
         onSelectValue(value);
         setIsOpen(false);
@@ -378,12 +373,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
   };
 
   const TableHeader = () => (
-    <div
-      className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center justify-between gap-2
-        border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800
-        transition-colors dark:border-neutral-600 dark:bg-neutral-800
-        dark:text-neutral-200'
-    >
+    <div className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 transition-colors dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
       <div className='col-span-2 flex items-center gap-1 text-left'>
         Delegate
       </div>
@@ -491,11 +481,7 @@ export function LoadingTable() {
   return (
     <div className='mt-6'>
       {/* Header */}
-      <div
-        className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center gap-2 border-b
-          border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-700
-          dark:bg-neutral-800'
-      >
+      <div className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center gap-2 border-b border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-700 dark:bg-neutral-800'>
         <div className='col-span-2 flex items-center'>
           <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
         </div>

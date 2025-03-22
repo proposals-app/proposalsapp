@@ -2,14 +2,13 @@ import superjson from 'superjson';
 import { getDao, getGroupsData, getUngroupedProposals } from './actions';
 import GroupingInterface from './components/proposal-group';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
-export default async function Page({
+async function MappingPage({
   params,
 }: {
   params: Promise<{ daoSlug: string }>;
 }) {
-  'use cache';
-
   const { daoSlug } = await params;
   const dao = await getDao(daoSlug);
   const { proposalGroups } = await getGroupsData(daoSlug);
@@ -37,11 +36,7 @@ export default async function Page({
         <div className='flex flex-col gap-2'>
           <Link
             href={`/mapping/delegates`}
-            className='border-brand-accent bg-brand-accent hover:bg-brand-accent-darker
-              focus:ring-brand-accent focus:ring-opacity-50 w-48 rounded-md border px-4 py-2
-              text-center text-sm font-medium text-white transition-colors focus:ring-2
-              disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
-              dark:text-neutral-100 dark:hover:bg-neutral-700'
+            className='border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-48 rounded-md border px-4 py-2 text-center text-sm font-medium text-white transition-colors focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
           >
             Delegate Mapping
           </Link>
@@ -54,29 +49,17 @@ export default async function Page({
           <h2 className='mb-4 text-xl font-semibold text-neutral-800 dark:text-neutral-200'>
             Ungrouped Proposals
           </h2>
-          <div
-            className='overflow-x-auto rounded-lg border border-neutral-200 bg-white shadow-sm
-              dark:border-neutral-700 dark:bg-neutral-800 dark:shadow-md'
-          >
+          <div className='overflow-x-auto rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800 dark:shadow-md'>
             <table className='min-w-full table-auto border-collapse'>
               <thead className='bg-neutral-100 dark:bg-neutral-800'>
                 <tr>
-                  <th
-                    className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold
-                      text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'
-                  >
+                  <th className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'>
                     Type
                   </th>
-                  <th
-                    className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold
-                      text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'
-                  >
+                  <th className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'>
                     Indexer
                   </th>
-                  <th
-                    className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold
-                      text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'
-                  >
+                  <th className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'>
                     Name
                   </th>
                 </tr>
@@ -85,21 +68,17 @@ export default async function Page({
                 {ungroupedProposals.map((proposal) => (
                   <tr
                     key={`${proposal.externalId}-${proposal.governorId}`}
-                    className='border-b border-neutral-200 transition-colors hover:bg-neutral-50
-                      dark:border-neutral-700 dark:hover:bg-neutral-700/30'
+                    className='border-b border-neutral-200 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-700/30'
                   >
                     <td className='px-6 py-4 whitespace-nowrap'>
-                      <span
-                        className='rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800
-                          dark:bg-blue-900/40 dark:text-blue-300'
-                      >
+                      <span className='rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'>
                         Proposal
                       </span>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
-                        proposal.indexerName?.includes('SNAPSHOT')
+                          proposal.indexerName?.includes('SNAPSHOT')
                             ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
                             : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
                         }`}
@@ -128,5 +107,17 @@ export default async function Page({
         <GroupingInterface serializedProps={serializedProps} />
       </section>
     </div>
+  );
+}
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ daoSlug: string }>;
+}) {
+  return (
+    <Suspense>
+      <MappingPage params={params} />
+    </Suspense>
   );
 }

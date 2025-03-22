@@ -59,8 +59,7 @@ export function ActiveGroupItem({ group }: ActiveGroupItemProps) {
   return (
     <Link
       href={`/${group.slug}`}
-      className={`block border border-neutral-200 bg-green-200 p-3 sm:p-4 dark:border-neutral-700
-        dark:bg-green-900`}
+      className={`block border border-neutral-200 bg-green-200 p-3 sm:p-4 dark:border-neutral-700 dark:bg-green-900`}
       prefetch={true}
     >
       <div className='flex flex-row justify-between gap-3 sm:items-center sm:gap-0'>
@@ -68,10 +67,7 @@ export function ActiveGroupItem({ group }: ActiveGroupItemProps) {
           <h2 className='text-lg font-bold text-neutral-800 sm:text-xl dark:text-neutral-200'>
             {group.name}
           </h2>
-          <div
-            className='mt-2 flex flex-col gap-1 text-xs text-neutral-600 sm:flex-row sm:flex-wrap
-              sm:items-center sm:gap-4 sm:text-sm dark:text-neutral-400'
-          >
+          <div className='mt-2 flex flex-col gap-1 text-xs text-neutral-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 sm:text-sm dark:text-neutral-400'>
             <span>By {group.authorName}</span>
             <span>Last activity {relativeTime}</span>
             <div className='flex items-center gap-2'>
@@ -82,7 +78,7 @@ export function ActiveGroupItem({ group }: ActiveGroupItemProps) {
             </div>
           </div>
         </div>
-        <div className='flex'>
+        <div className='flex h-32'>
           <Suspense>
             {result &&
               (result.type === TimelineEventType.ResultOngoingBasicVote ||
@@ -103,10 +99,7 @@ export function ActiveGroupItem({ group }: ActiveGroupItemProps) {
 }
 
 const NewBadge = () => (
-  <div
-    className='border-neutral-350 dark:border-neutral-650 border bg-neutral-200 px-2 py-1
-      text-xs text-neutral-700 sm:text-sm dark:bg-neutral-700 dark:text-neutral-200'
-  >
+  <div className='border-neutral-350 dark:border-neutral-650 border bg-neutral-200 px-2 py-1 text-xs text-neutral-700 sm:text-sm dark:bg-neutral-700 dark:text-neutral-200'>
     New activity
   </div>
 );

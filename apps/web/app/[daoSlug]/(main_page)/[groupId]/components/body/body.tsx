@@ -106,10 +106,7 @@ function BodyLoadingContent() {
         </div>
 
         {/* Gradient overlay */}
-        <div
-          className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-neutral-50
-            to-transparent dark:from-neutral-900'
-        ></div>
+        <div className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-neutral-50 to-transparent dark:from-neutral-900'></div>
       </div>
     </div>
   );
@@ -128,10 +125,7 @@ export function LoadingBodyHeader() {
           {/* Align items vertically for smaller screens */}
           {/* Author Info Loading - same as AuthorInfo component */}
           <div className='flex flex-row items-center gap-2'>
-            <div
-              className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
-                border-neutral-200 dark:border-neutral-700'
-            >
+            <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-200 dark:border-neutral-700'>
               <div className='h-full w-full animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800'></div>{' '}
               {/* Circular Avatar Placeholder */}
             </div>
@@ -195,10 +189,7 @@ export const AuthorInfo = ({
   authorPicture: string;
 }) => (
   <div className='flex flex-row items-center gap-2'>
-    <div
-      className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2
-        border-neutral-700 dark:border-neutral-300'
-    >
+    <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 dark:border-neutral-300'>
       <Image
         src={authorPicture}
         alt={authorName}

@@ -61,8 +61,7 @@ const SelectTrigger = ({
       aria-haspopup='listbox'
       aria-expanded={isOpen}
       aria-label={ariaLabel}
-      className={`flex cursor-pointer items-center rounded-xs px-3 py-1.5 text-sm outline-none
-        ${className}`}
+      className={`flex cursor-pointer items-center rounded-xs px-3 py-1.5 text-sm outline-none ${className}`}
       onClick={() => setIsOpen(!isOpen)}
     >
       {children}
@@ -105,9 +104,7 @@ const SelectContent = ({
   return (
     <div
       ref={contentRef}
-      className={`dark:border-neutral-450 absolute z-[1999] mt-1 overflow-hidden rounded-xs border
-        border-neutral-800 bg-white font-bold will-change-transform dark:bg-neutral-950
-        ${className}`}
+      className={`dark:border-neutral-450 absolute z-[1999] mt-1 overflow-hidden rounded-xs border border-neutral-800 bg-white font-bold will-change-transform dark:bg-neutral-950 ${className}`}
       role='listbox'
     >
       <div className='p-1'>{children}</div>
@@ -129,9 +126,7 @@ const SelectItem = ({ children, value }: SelectItemProps) => {
     <div
       role='option'
       aria-selected={isSelected}
-      className='relative flex w-48 cursor-pointer items-center py-2 pr-10 pl-2 text-sm
-        text-neutral-800 transition-colors will-change-transform outline-none
-        hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800'
+      className='relative flex w-48 cursor-pointer items-center py-2 pr-10 pl-2 text-sm text-neutral-800 transition-colors will-change-transform outline-none hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800'
       onClick={() => {
         onSelectValue(value);
         setIsOpen(false);

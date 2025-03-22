@@ -67,18 +67,13 @@ const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
         placeholder='Search Voters...'
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border
-          border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm
-          focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
-          dark:shadow-neutral-950'
+        className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:shadow-neutral-950'
         disabled={isLoading}
       />
       {searchTerm.trim() && (
         <div
           ref={dropdownRef}
-          className='absolute top-full left-0 z-10 mt-1 w-full rounded-md border border-neutral-300
-            bg-white shadow-md dark:border-neutral-700 dark:bg-neutral-900
-            dark:shadow-neutral-950' /* Absolute positioning */
+          className='absolute top-full left-0 z-10 mt-1 w-full rounded-md border border-neutral-300 bg-white shadow-md dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-neutral-950' /* Absolute positioning */
           style={{ zIndex: 10 }}
         >
           {searchLoading ? (
@@ -90,16 +85,11 @@ const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
               No voters found
             </p>
           ) : (
-            <ul
-              className='scrollbar-thin scrollbar-thumb-rounded scrollbar-track-transparent
-                scrollbar-thumb-neutral-400 dark:scrollbar-thumb-neutral-600 max-h-48
-                overflow-y-auto'
-            >
+            <ul className='scrollbar-thin scrollbar-thumb-rounded scrollbar-track-transparent scrollbar-thumb-neutral-400 dark:scrollbar-thumb-neutral-600 max-h-48 overflow-y-auto'>
               {searchResults.map((voter) => (
                 <li
                   key={voter.id}
-                  className='flex cursor-pointer flex-col px-4 py-2 transition-colors hover:bg-neutral-100
-                    dark:text-neutral-100 dark:hover:bg-neutral-800'
+                  className='flex cursor-pointer flex-col px-4 py-2 transition-colors hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-800'
                   onClick={() => selectVoter(voter)}
                 >
                   {voter.address}

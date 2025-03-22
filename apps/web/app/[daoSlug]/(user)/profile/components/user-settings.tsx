@@ -71,7 +71,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           checked
             ? 'bg-brand-accent dark:bg-brand-accent-bright'
             : 'bg-neutral-200 dark:bg-neutral-700'
-          }`}
+        }`}
         onClick={() => onChange(!checked)}
         role='switch'
         aria-checked={checked}
@@ -86,7 +86,8 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
       >
         <span
           className={`inline-block h-5 w-5 transform bg-white shadow transition-transform ${
-            checked ? 'translate-x-[22px]' : 'translate-x-[2px]' }`}
+            checked ? 'translate-x-[22px]' : 'translate-x-[2px]'
+          }`}
         />
       </div>
     );
@@ -100,10 +101,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
         </h1>
       </div>
 
-      <div
-        className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 shadow-sm
-          dark:bg-neutral-950'
-      >
+      <div className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 shadow-sm dark:bg-neutral-950'>
         <div className='px-4 pt-4 pb-2 sm:px-6 sm:pt-6'>
           <h2 className='text-base font-semibold text-neutral-900 sm:text-lg dark:text-neutral-100'>
             Email Notifications
@@ -116,10 +114,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           {/* New discussions setting */}
           <div className='sm:grid sm:grid-cols-8 sm:items-center sm:gap-4'>
             <div className='flex items-start space-x-2 sm:col-span-6 sm:space-x-3'>
-              <Bell
-                className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5
-                  dark:text-neutral-400'
-              />
+              <Bell className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
               <div>
                 <label
                   htmlFor='new-discussions'
@@ -144,10 +139,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           {/* New proposals setting */}
           <div className='sm:grid sm:grid-cols-8 sm:items-center sm:gap-4'>
             <div className='flex items-start space-x-2 sm:col-span-6 sm:space-x-3'>
-              <Bell
-                className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5
-                  dark:text-neutral-400'
-              />
+              <Bell className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
               <div>
                 <label
                   htmlFor='new-proposals'
@@ -172,10 +164,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           {/* Daily roundup setting */}
           <div className='sm:grid sm:grid-cols-8 sm:items-center sm:gap-4'>
             <div className='flex items-start space-x-2 sm:col-span-6 sm:space-x-3'>
-              <Mail
-                className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5
-                  dark:text-neutral-400'
-              />
+              <Mail className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
               <div>
                 <label
                   htmlFor='daily-roundup'
@@ -199,10 +188,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           </div>
         </div>
 
-        <div
-          className='flex justify-end border-t border-neutral-200 px-4 py-3 sm:px-6 sm:py-4
-            dark:border-neutral-700'
-        >
+        <div className='flex justify-end border-t border-neutral-200 px-4 py-3 sm:px-6 sm:py-4 dark:border-neutral-700'>
           {saveSuccess && (
             <div className='mr-3 flex items-center text-green-600 dark:text-green-400'>
               <svg
@@ -222,11 +208,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           <button
             onClick={handleSaveSettings}
             disabled={isSaving}
-            className='inline-flex items-center justify-center bg-neutral-200 px-3 py-1.5 text-sm
-              font-medium whitespace-nowrap text-neutral-900 transition-colors
-              hover:bg-neutral-300 focus:ring-2 focus:ring-offset-2 focus:outline-none
-              disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2
-              dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
+            className='inline-flex items-center justify-center bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-300 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
           >
             {isSaving && (
               <RefreshCw className='mr-2 h-3 w-3 animate-spin sm:h-4 sm:w-4' />

@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '@/styles/globals.css';
-import { PostHogProvider } from './components/posthog-provider';
+import { PHProvider } from './components/posthog-provider';
 import SuspendedPostHogPageView from './components/posthog-page-view';
 import { WebVitals } from './web-vitals';
+import { Suspense } from 'react';
+import Banner from './components/banner';
+import { ThemeProvider } from './components/theme-provider';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -35,33 +38,35 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default async function RootLayout({
+export default async function Layout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang='en'>
+    <html lang='en' suppressHydrationWarning>
       <head>
         <link rel='icon' href='/favicon.ico' />
-        <link rel='preconnect' href='https://fonts.googleapis.com' />
-        <link
-          rel='preconnect'
-          href='https://fonts.gstatic.com'
-          crossOrigin='anonymous'
-        />
-        <link
-          href='https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@300;400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&family=Fira+Mono:wght@400;500;700&display=swap'
-          rel='stylesheet'
-        />
       </head>
-      <PostHogProvider>
-        <WebVitals />
+      <body>
         <NuqsAdapter>
-          <SuspendedPostHogPageView />
-          <body>{children}</body>
+          <ThemeProvider>
+            <Suspense>
+              <WebVitals />
+            </Suspense>
+
+            <SuspendedPostHogPageView />
+
+            <Suspense>
+              <PHProvider>{children}</PHProvider>
+            </Suspense>
+
+            <Suspense>
+              <Banner />
+            </Suspense>
+          </ThemeProvider>
         </NuqsAdapter>
-      </PostHogProvider>
+      </body>
     </html>
   );
 }

@@ -44,15 +44,10 @@ export function ResultEvent({
 
   return (
     <div
-      className={`relative mr-4 flex
-        ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} group
-        my-1 w-full items-center`}
+      className={`relative mr-4 flex ${result.voteType == 'basic' && result.totalDelegatedVp ? 'h-32' : 'h-20'} group my-1 w-full items-center`}
     >
       <div
-        className={`${last ? 'dark:border-neutral-450 border-neutral-800' : 'dark:border-neutral-650 border-neutral-400'}
-          flex h-full w-full rounded-xs border bg-white px-4 py-1 text-neutral-800
-          transition-transform duration-200 ease-in-out group-hover:-translate-x-1
-          dark:bg-neutral-950 dark:text-neutral-200`}
+        className={`${last ? 'dark:border-neutral-450 border-neutral-800' : 'dark:border-neutral-650 border-neutral-400'} flex h-full w-full rounded-xs border bg-white px-4 py-1 text-neutral-800 transition-transform duration-200 ease-in-out group-hover:-translate-x-1 dark:bg-neutral-950 dark:text-neutral-200`}
       >
         {last ? (
           <TimelineEventActiveIcon
@@ -63,18 +58,14 @@ export function ResultEvent({
           />
         ) : (
           <TimelineEventIcon
-            className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800
-              transition-opacity duration-200 ease-in-out group-hover:opacity-0'
+            className='dark:fill-neutral-350 absolute top-1 left-1 z-20 fill-neutral-800 transition-opacity duration-200 ease-in-out group-hover:opacity-0'
             width={24}
             height={24}
             alt={'Timeline event'}
           />
         )}
         {!last && (
-          <div
-            className='dark:bg-neutral-350 absolute top-0 left-[15px] z-10 h-[15px] max-h-[15px] w-0.5
-              bg-neutral-800 transition-opacity duration-200 ease-in-out group-hover:opacity-0'
-          />
+          <div className='dark:bg-neutral-350 absolute top-0 left-[15px] z-10 h-[15px] max-h-[15px] w-0.5 bg-neutral-800 transition-opacity duration-200 ease-in-out group-hover:opacity-0' />
         )}
         <Link
           className='w-full'

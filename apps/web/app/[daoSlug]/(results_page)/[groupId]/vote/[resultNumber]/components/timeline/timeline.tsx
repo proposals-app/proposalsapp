@@ -60,10 +60,7 @@ export async function Timeline({
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Conditionally render the top SVG */}
         {isProposalEnded && (
-          <div
-            className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2
-              border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
-          >
+          <div className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'>
             <TimelineEventIcon
               className='dark:fill-neutral-350 fill-neutral-800'
               width={24}
@@ -73,16 +70,10 @@ export async function Timeline({
           </div>
         )}
 
-        <div
-          className='dark:bg-neutral-350 absolute top-5 bottom-5 left-[15px] z-10 w-0.5
-            bg-neutral-800'
-        />
+        <div className='dark:bg-neutral-350 absolute top-5 bottom-5 left-[15px] z-10 w-0.5 bg-neutral-800' />
 
         {/* Bottom SVG */}
-        <div
-          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2
-            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
-        >
+        <div className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'>
           <TimelineEventIcon
             className='dark:fill-neutral-350 fill-neutral-800'
             width={24}
@@ -144,10 +135,7 @@ export function LoadingTimeline() {
     <div className='fixed top-24 left-28 z-20 flex h-screen w-44 flex-col items-end justify-start'>
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
-        <div
-          className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2
-            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
-        >
+        <div className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'>
           <TimelineEventIcon
             className='dark:fill-neutral-350 fill-neutral-800'
             width={24}
@@ -157,16 +145,10 @@ export function LoadingTimeline() {
         </div>
 
         {/* Vertical Line Placeholder */}
-        <div
-          className='dark:bg-neutral-350 absolute top-2 bottom-4 left-[15px] z-10 w-0.5
-            bg-neutral-800'
-        />
+        <div className='dark:bg-neutral-350 absolute top-2 bottom-4 left-[15px] z-10 w-0.5 bg-neutral-800' />
 
         {/* Bottom SVG Placeholder */}
-        <div
-          className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2
-            border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'
-        >
+        <div className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'>
           <TimelineEventIcon
             className='dark:fill-neutral-350 fill-neutral-800'
             width={24}
@@ -184,10 +166,7 @@ export function LoadingTimeline() {
             >
               {/* Placeholder Event Content */}
 
-              <div
-                className='dark:border-neutral-650 z-20 flex h-[120px] flex-col gap-2 border
-                  border-neutral-300 bg-white px-4 py-2 dark:bg-neutral-950'
-              >
+              <div className='dark:border-neutral-650 z-20 flex h-[120px] flex-col gap-2 border border-neutral-300 bg-white px-4 py-2 dark:bg-neutral-950'>
                 <div className='h-4 w-20 rounded-sm bg-gray-300' />
                 <div className='h-4 w-16 rounded-sm bg-gray-300' />
                 <div className='h-4 w-20 rounded-sm bg-gray-300' />

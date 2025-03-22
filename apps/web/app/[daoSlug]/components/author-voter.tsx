@@ -17,10 +17,7 @@ export const VoterAuthor = ({
 }) => {
   return (
     <div className='flex items-center gap-2'>
-      <div
-        className='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full
-          border-2 border-neutral-700 dark:border-neutral-300'
-      >
+      <div className='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 dark:border-neutral-300'>
         <Image
           src={avatar}
           className='rounded-full'
@@ -69,11 +66,7 @@ export function VotingPowerTag({
 
   return (
     <div className='flex gap-1'>
-      <div
-        className='border-neutral-350 text-neutral-650 dark:text-neutral-350 flex w-fit
-          cursor-default gap-4 rounded-xs border bg-neutral-100 p-0.5 px-2 text-xs
-          font-normal dark:border-neutral-600 dark:bg-neutral-900'
-      >
+      <div className='border-neutral-350 text-neutral-650 dark:text-neutral-350 flex w-fit cursor-default gap-4 rounded-xs border bg-neutral-100 p-0.5 px-2 text-xs font-normal dark:border-neutral-600 dark:bg-neutral-900'>
         <div className='flex gap-2'>
           {formatNumberWithSuffix(currentVotingPower)} ARB
         </div>

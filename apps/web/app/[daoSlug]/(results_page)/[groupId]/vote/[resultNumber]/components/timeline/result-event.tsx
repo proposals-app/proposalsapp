@@ -67,8 +67,7 @@ export function ResultEvent({
           resultNumber == selectedResult
             ? 'w-32 border-t border-b border-l'
             : 'w-28 rounded-xs border'
-          } dark:border-neutral-650 rounded-l-xs border-neutral-800 bg-white
-          dark:bg-neutral-950 ${heightClass}`}
+        } dark:border-neutral-650 rounded-l-xs border-neutral-800 bg-white dark:bg-neutral-950 ${heightClass}`}
       >
         {isLive ? (
           <TimelineEventActiveIcon
@@ -87,10 +86,7 @@ export function ResultEvent({
         )}
 
         {!last && (
-          <div
-            className='dark:bg-neutral-350 absolute top-[7px] left-[12.5px] z-10 h-[15px] max-h-[15px]
-              w-0.5 translate-x-[2.5px] bg-neutral-800'
-          />
+          <div className='dark:bg-neutral-350 absolute top-[7px] left-[12.5px] z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px] bg-neutral-800' />
         )}
         <div className='ml-3 flex flex-col'>
           <div className='text-sm font-semibold'>{voteType}</div>

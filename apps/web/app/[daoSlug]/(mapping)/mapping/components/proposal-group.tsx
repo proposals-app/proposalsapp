@@ -342,7 +342,7 @@ export default function GroupingInterface({
         type === 'proposal'
           ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
           : 'bg-neutral-100 text-neutral-800 dark:bg-neutral-700 dark:text-neutral-300'
-        }`}
+      }`}
     >
       {type === 'proposal' ? 'Proposal' : 'Discussion'}
     </span>
@@ -351,14 +351,8 @@ export default function GroupingInterface({
   return (
     <div className='space-y-6'>
       {/* Create new group form */}
-      <div
-        className='rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-700
-          dark:bg-neutral-800 dark:shadow-md'
-      >
-        <div
-          className='flex items-center justify-between border-b border-neutral-200 p-4
-            dark:border-neutral-700'
-        >
+      <div className='rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800 dark:shadow-md'>
+        <div className='flex items-center justify-between border-b border-neutral-200 p-4 dark:border-neutral-700'>
           <h3 className='text-lg font-semibold text-neutral-900 dark:text-neutral-100'>
             Create New Group
           </h3>
@@ -370,23 +364,16 @@ export default function GroupingInterface({
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               placeholder='New group name'
-              className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border
-                border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm
-                focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
-                dark:shadow-neutral-950'
+              className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:shadow-neutral-950'
               disabled={isLoading}
             />
             <button
               onClick={createNewGroup}
-              className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker
-                focus:ring-brand-accent focus:ring-opacity-50 w-48 rounded-md border px-4 py-2
-                text-sm font-medium text-white transition-colors focus:ring-2
-                disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
-                dark:text-neutral-100 dark:hover:bg-neutral-700 ${
+              className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-48 rounded-md border px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 ${
                 isLoading || !newGroupName.trim()
-                    ? 'cursor-not-allowed opacity-50'
-                    : ''
-                }`}
+                  ? 'cursor-not-allowed opacity-50'
+                  : ''
+              }`}
               disabled={isLoading || !newGroupName.trim()}
             >
               {isLoading ? 'Creating...' : 'Create Group'}
@@ -401,29 +388,17 @@ export default function GroupingInterface({
           No groups found. Create your first group above.
         </div>
       ) : (
-        <div
-          className='overflow-x-auto rounded-lg border border-neutral-200 bg-white
-            dark:border-neutral-700 dark:bg-neutral-800'
-        >
+        <div className='overflow-x-auto rounded-lg border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800'>
           <table className='min-w-full table-auto border-collapse'>
             <thead className='bg-neutral-100 dark:bg-neutral-800'>
               <tr>
-                <th
-                  className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold
-                    text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'
-                >
+                <th className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'>
                   Group Name
                 </th>
-                <th
-                  className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold
-                    text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'
-                >
+                <th className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'>
                   Items
                 </th>
-                <th
-                  className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold
-                    text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'
-                >
+                <th className='border-b border-neutral-200 px-6 py-3 text-left text-sm font-semibold text-neutral-900 dark:border-neutral-700 dark:text-neutral-100'>
                   Actions
                 </th>
               </tr>
@@ -440,10 +415,7 @@ export default function GroupingInterface({
                         type='text'
                         value={editingGroupName}
                         onChange={(e) => setEditingGroupName(e.target.value)}
-                        className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border
-                          border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm
-                          focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
-                          dark:shadow-neutral-950'
+                        className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:shadow-neutral-950'
                         disabled={isLoading}
                       />
                     ) : (
@@ -470,8 +442,7 @@ export default function GroupingInterface({
                                 group.items.map((item) => (
                                   <li
                                     key={getItemIdentifier(item)}
-                                    className='flex items-start justify-between rounded-md border border-neutral-200
-                                      bg-neutral-100 p-2 dark:border-neutral-700 dark:bg-neutral-700'
+                                    className='flex items-start justify-between rounded-md border border-neutral-200 bg-neutral-100 p-2 dark:border-neutral-700 dark:bg-neutral-700'
                                   >
                                     <div className='flex flex-1 flex-wrap items-start gap-2 pr-2'>
                                       <div className='flex-shrink-0'>
@@ -491,13 +462,11 @@ export default function GroupingInterface({
                                           getItemIdentifier(item)
                                         )
                                       }
-                                      className={`focus:ring-opacity-50 mt-0 ml-2 flex-shrink-0 rounded-md bg-red-500 px-3 py-1
-                                        text-xs text-white transition-colors hover:bg-red-600 focus:ring-2
-                                        focus:ring-red-500 disabled:opacity-50 ${
+                                      className={`focus:ring-opacity-50 mt-0 ml-2 flex-shrink-0 rounded-md bg-red-500 px-3 py-1 text-xs text-white transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50 ${
                                         isLoading
-                                            ? 'cursor-not-allowed opacity-50'
-                                            : ''
-                                        }`}
+                                          ? 'cursor-not-allowed opacity-50'
+                                          : ''
+                                      }`}
                                       disabled={isLoading}
                                     >
                                       Remove
@@ -527,20 +496,14 @@ export default function GroupingInterface({
                             value={searchTerm}
                             onChange={(e) => handleSearch(e.target.value)}
                             placeholder='Search proposals and discussions...'
-                            className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border
-                              border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm
-                              focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100
-                              dark:shadow-neutral-950'
+                            className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:shadow-neutral-950'
                             disabled={isLoading}
                           />
                         </div>
 
                         {/* Search results */}
                         {searchTerm && (
-                          <div
-                            className='rounded-md border border-neutral-200 bg-neutral-50 dark:border-neutral-700
-                              dark:bg-neutral-800'
-                          >
+                          <div className='rounded-md border border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800'>
                             <h3 className='mb-2 px-4 pt-4 font-medium text-neutral-900 dark:text-neutral-100'>
                               Search Results
                             </h3>
@@ -555,9 +518,7 @@ export default function GroupingInterface({
                                 {searchResults.map((item) => (
                                   <li
                                     key={getItemIdentifier(item)}
-                                    className='focus:ring-opacity-50 flex cursor-pointer items-start justify-between rounded-md
-                                      p-2 transition-colors hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500
-                                      dark:hover:bg-neutral-700'
+                                    className='focus:ring-opacity-50 flex cursor-pointer items-start justify-between rounded-md p-2 transition-colors hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500 dark:hover:bg-neutral-700'
                                     onClick={() =>
                                       !isLoading &&
                                       addItemToGroup(group.id!, item)
@@ -574,10 +535,7 @@ export default function GroupingInterface({
                                         {item.name}
                                       </span>
                                     </div>
-                                    <span
-                                      className='mt-0 ml-2 flex-shrink-0 rounded-full bg-red-100 px-2 py-1 text-xs text-red-800
-                                        dark:bg-red-900/40 dark:text-red-300'
-                                    >
+                                    <span className='mt-0 ml-2 flex-shrink-0 rounded-full bg-red-100 px-2 py-1 text-xs text-red-800 dark:bg-red-900/40 dark:text-red-300'>
                                       {item.score.toFixed(2)}
                                     </span>
                                   </li>
@@ -598,8 +556,7 @@ export default function GroupingInterface({
                             {group.items.map((item) => (
                               <div
                                 key={getItemIdentifier(item)}
-                                className='flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-100 p-2
-                                  text-xs dark:border-neutral-700 dark:bg-neutral-700'
+                                className='flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-100 p-2 text-xs dark:border-neutral-700 dark:bg-neutral-700'
                               >
                                 <div className='flex-shrink-0'>
                                   {renderTypeBadge(item.type)}
@@ -625,15 +582,11 @@ export default function GroupingInterface({
                       <div className='flex gap-2'>
                         <button
                           onClick={() => editGroup(group.id!, editingGroupName)}
-                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker
-                            focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2
-                            text-sm font-medium text-white transition-colors focus:ring-2
-                            disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
-                            dark:text-neutral-100 dark:hover:bg-neutral-700 ${
+                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 ${
                             isLoading || !editingGroupName.trim()
-                                ? 'cursor-not-allowed opacity-50'
-                                : ''
-                            }`}
+                              ? 'cursor-not-allowed opacity-50'
+                              : ''
+                          }`}
                           disabled={isLoading || !editingGroupName.trim()}
                         >
                           {isLoading ? 'Saving...' : 'Save'}
@@ -645,10 +598,7 @@ export default function GroupingInterface({
                             setSearchTerm('');
                             setSearchResults([]);
                           }}
-                          className='focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4
-                            py-2 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100
-                            focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600
-                            dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+                          className='focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
                           disabled={isLoading}
                         >
                           Cancel
@@ -663,22 +613,16 @@ export default function GroupingInterface({
                             setSearchTerm('');
                             setSearchResults([]);
                           }}
-                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker
-                            focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2
-                            text-sm font-medium text-white transition-colors focus:ring-2
-                            disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800
-                            dark:text-neutral-100 dark:hover:bg-neutral-700 ${
-                            isLoading ? 'cursor-not-allowed opacity-50' : '' }`}
+                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 ${
+                            isLoading ? 'cursor-not-allowed opacity-50' : ''
+                          }`}
                           disabled={isLoading}
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteGroup(group.id!)}
-                          className={`focus:ring-opacity-50 w-full rounded-md border border-red-500 bg-red-500 px-4
-                            py-2 text-sm font-medium text-white transition-colors hover:bg-red-600
-                            focus:ring-2 focus:ring-red-500 disabled:opacity-50 dark:border-red-700
-                            dark:bg-red-500 dark:hover:bg-red-600`}
+                          className={`focus:ring-opacity-50 w-full rounded-md border border-red-500 bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50 dark:border-red-700 dark:bg-red-500 dark:hover:bg-red-600`}
                           disabled={isLoading}
                         >
                           {isLoading ? 'Deleting...' : 'Delete'}

@@ -11,11 +11,7 @@ export function NavBar() {
   return (
     <div className='fill-neutral-800 dark:fill-neutral-200'>
       {/* Mobile navbar (top) */}
-      <div
-        className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 flex h-16
-          w-full items-center justify-between border-b bg-neutral-50 px-4 md:hidden
-          dark:bg-neutral-900'
-      >
+      <div className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 flex h-16 w-full items-center justify-between border-b bg-neutral-50 px-4 md:hidden dark:bg-neutral-900'>
         <Link
           href={`/`}
           className='flex h-10 w-10 items-center justify-center'
@@ -65,11 +61,7 @@ export function NavBar() {
       </div>
 
       {/* Desktop navbar (left side) */}
-      <div
-        className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 hidden h-full
-          min-h-screen w-20 flex-col items-center justify-between border-r px-4 py-6
-          md:flex'
-      >
+      <div className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 hidden h-full min-h-screen w-20 flex-col items-center justify-between border-r px-4 py-6 md:flex'>
         <div className='flex flex-col items-center justify-center gap-8'>
           <Link href={`/`} className='mb-8 h-12 w-12' prefetch={true}>
             <Image

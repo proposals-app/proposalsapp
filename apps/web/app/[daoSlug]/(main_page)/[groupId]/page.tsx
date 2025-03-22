@@ -23,7 +23,21 @@ import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultN
 import { PostedRevisions } from './components/body/posted-revision';
 import { LastReadUpdater } from './components/last-read-updater';
 
-export default async function GroupPage({
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ daoSlug: string; groupId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  return (
+    <Suspense>
+      <GroupPage params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function GroupPage({
   params,
   searchParams,
 }: {

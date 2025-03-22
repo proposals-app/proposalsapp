@@ -29,7 +29,7 @@ function PostHogPageView() {
 // See: https://nextjs.org/docs/messages/deopted-into-client-rendering
 export default function SuspendedPostHogPageView() {
   return (
-    <Suspense fallback={null}>
+    <Suspense>
       <PostHogPageView />
     </Suspense>
   );

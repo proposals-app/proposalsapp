@@ -376,8 +376,7 @@ export function LoadingList() {
         {[...Array(3)].map((_, index) => (
           <div
             key={index}
-            className='relative h-10 w-full animate-pulse overflow-hidden border-2 border-neutral-200
-              dark:border-neutral-700'
+            className='relative h-10 w-full animate-pulse overflow-hidden border-2 border-neutral-200 dark:border-neutral-700'
           />
         ))}
         {/* Majority support placeholder */}
@@ -388,10 +387,7 @@ export function LoadingList() {
         {/* Quorum bar placeholder */}
         <div>
           <div className='mb-4'>
-            <div
-              className='relative h-4 w-full overflow-hidden border border-neutral-200
-                dark:border-neutral-700'
-            >
+            <div className='relative h-4 w-full overflow-hidden border border-neutral-200 dark:border-neutral-700'>
               <div className='h-full w-1/2 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
             </div>
             {/* Quorum text placeholder */}

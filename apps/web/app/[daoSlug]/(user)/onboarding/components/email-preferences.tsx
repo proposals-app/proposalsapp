@@ -44,7 +44,7 @@ export const EmailPreferences = () => {
           checked
             ? 'bg-brand-accent dark:bg-brand-accent-bright'
             : 'bg-neutral-200 dark:bg-neutral-700'
-          }`}
+        }`}
         onClick={() => onChange(!checked)}
         role='switch'
         aria-checked={checked}
@@ -53,7 +53,8 @@ export const EmailPreferences = () => {
       >
         <span
           className={`inline-block h-5 w-5 transform bg-white shadow transition-transform ${
-            checked ? 'translate-x-[22px]' : 'translate-x-[2px]' }`}
+            checked ? 'translate-x-[22px]' : 'translate-x-[2px]'
+          }`}
         />
       </div>
     );
@@ -70,10 +71,7 @@ export const EmailPreferences = () => {
           </p>
         </div>
 
-        <div
-          className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 shadow-lg
-            dark:bg-neutral-950'
-        >
+        <div className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 shadow-lg dark:bg-neutral-950'>
           <div className='p-6'>
             <h2 className='mb-6 text-xl font-semibold'>Email Notifications</h2>
 
@@ -138,9 +136,7 @@ export const EmailPreferences = () => {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className='flex w-full items-center justify-center space-x-2 bg-neutral-900 px-4 py-2
-                text-white transition-colors hover:bg-neutral-800 disabled:opacity-50
-                dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200'
+              className='flex w-full items-center justify-center space-x-2 bg-neutral-900 px-4 py-2 text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200'
             >
               <span>Continue</span>
               <ArrowSvg className='rotate-90' />

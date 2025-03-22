@@ -21,8 +21,7 @@ export const MarkAllAsReadButton = () => {
     <button
       onClick={handleMarkAllAsRead}
       disabled={isPending}
-      className='border-neutral-350 dark:border-neutral-650 border bg-neutral-200 px-2 py-1
-        text-sm text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
+      className='border-neutral-350 dark:border-neutral-650 border bg-neutral-200 px-2 py-1 text-sm text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
     >
       {isPending ? 'Marking all as read...' : 'Mark all as read'}
     </button>

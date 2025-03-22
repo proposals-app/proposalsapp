@@ -29,10 +29,7 @@ const BodyContent = memo(
             dangerouslySetInnerHTML={{ __html: processedContent }}
           />
           {!expanded && (
-            <div
-              className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-neutral-50
-                to-transparent dark:from-neutral-900'
-            />
+            <div className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-neutral-50 to-transparent dark:from-neutral-900' />
           )}
         </div>
       </div>

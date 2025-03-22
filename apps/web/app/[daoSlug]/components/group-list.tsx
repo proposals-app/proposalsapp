@@ -48,10 +48,7 @@ export function GroupList({ groups }: GroupListProps) {
             placeholder='Search by name or author...'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className='w-full border border-neutral-200 bg-white py-2 pr-4 pl-10 text-neutral-900
-              placeholder:text-neutral-400 focus:ring-2 focus:ring-neutral-500
-              focus:outline-none sm:w-80 dark:border-neutral-700 dark:bg-neutral-800
-              dark:text-neutral-100'
+            className='w-full border border-neutral-200 bg-white py-2 pr-4 pl-10 text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:ring-neutral-500 focus:outline-none sm:w-80 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100'
           />
         </div>
       </div>
@@ -86,8 +83,7 @@ export const LoadingGroupList = () => {
         .map((_, index) => (
           <div
             key={index}
-            className='flex space-x-4 border border-neutral-200 bg-neutral-50 p-4
-              dark:border-neutral-700 dark:bg-neutral-900'
+            className='flex space-x-4 border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-900'
           >
             {/* Avatar Skeleton */}
             <div className='h-12 w-12 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700'></div>
