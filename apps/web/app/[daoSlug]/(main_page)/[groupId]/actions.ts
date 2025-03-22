@@ -672,7 +672,7 @@ export async function getFeed(
   posts: Selectable<DiscoursePost>[];
   events: FeedEvent[];
 }> {
-  'use server';
+  'use cache';
 
   let author = null;
 

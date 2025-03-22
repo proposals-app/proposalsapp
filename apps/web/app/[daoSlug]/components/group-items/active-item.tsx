@@ -56,10 +56,6 @@ export function ActiveGroupItem({ group }: ActiveGroupItemProps) {
     fetchFeed();
   }, [group.id]);
 
-  useEffect(() => {
-    console.log(result);
-  }, [result]);
-
   return (
     <Link
       href={`/${group.slug}`}
