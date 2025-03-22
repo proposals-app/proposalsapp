@@ -1,32 +1,21 @@
-const { CacheHandler } = require('@neshca/cache-handler');
-const createRedisHandler =
-  require('@neshca/cache-handler/redis-strings').default;
-const createLruHandler = require('@neshca/cache-handler/local-lru').default;
-const { createClient } = require('redis');
-const { PHASE_PRODUCTION_BUILD } = require('next/constants');
+import { CacheHandler } from '@neshca/cache-handler';
+import { createClient } from 'redis';
+import createLruHandler from '@neshca/cache-handler/local-lru';
+import createRedisHandler from '@neshca/cache-handler/redis-stack';
 
-/* from https://caching-tools.github.io/next-shared-cache/redis */
 CacheHandler.onCreation(async () => {
   let client;
-  // use redis client during build could cause issue https://github.com/caching-tools/next-shared-cache/issues/284#issuecomment-1919145094
-  if (PHASE_PRODUCTION_BUILD !== process.env.NEXT_PHASE) {
-    try {
-      // Create a Redis client.
-      client = createClient({
-        url: process.env.REDIS_URL,
-      });
 
-      // Redis won't work without error handling.
-      // NB do not throw exceptions in the redis error listener,
-      // because it will prevent reconnection after a socket exception.
-      client.on('error', (e) => {
-        if (typeof process.env.NEXT_PRIVATE_DEBUG_CACHE !== 'undefined') {
-          console.warn('Redis error', e);
-        }
-      });
-    } catch (error) {
-      console.warn('Failed to create Redis client:', error);
-    }
+  try {
+    // Create a Redis client.
+    client = createClient({
+      url: process.env.REDIS_URL,
+    });
+
+    // Redis won't work without error handling.
+    client.on('error', () => {});
+  } catch (error) {
+    console.warn('Failed to create Redis client:', error);
   }
 
   if (client) {
@@ -57,24 +46,27 @@ CacheHandler.onCreation(async () => {
   }
 
   /** @type {import("@neshca/cache-handler").Handler | null} */
-  let redisHandler = null;
+  let handler;
+
   if (client?.isReady) {
-    redisHandler = createRedisHandler({
+    // Create the `redis-stack` Handler if the client is available and connected.
+    handler = createRedisHandler({
       client,
       keyPrefix: 'prefix:',
       timeoutMs: 1000,
     });
+  } else {
+    // Fallback to LRU handler if Redis client is not available.
+    // The application will still work, but the cache will be in memory only and not shared.
+    handler = createLruHandler();
+    console.warn(
+      'Falling back to LRU handler because Redis client is not available.'
+    );
   }
-  // Fallback to LRU handler if Redis client is not available.
-  // The application will still work, but the cache will be in memory only and not shared.
-  const LRUHandler = createLruHandler();
-  console.warn(
-    'Falling back to LRU handler because Redis client is not available.'
-  );
 
   return {
-    handlers: [redisHandler, LRUHandler],
+    handlers: [handler],
   };
 });
 
-module.exports = CacheHandler;
+export default CacheHandler;
