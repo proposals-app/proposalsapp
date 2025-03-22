@@ -74,7 +74,7 @@ const nextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['@proposalsapp/db-indexer'],
+
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
