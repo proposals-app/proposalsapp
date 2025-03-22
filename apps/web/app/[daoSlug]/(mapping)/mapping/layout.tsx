@@ -3,10 +3,12 @@ export const metadata = {
   description: 'Create and manage proposal groups for your DAO',
 };
 
-export default function GroupLayout({
+export default async function GroupLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ daoSlug: string }>;
 }) {
   return <div className='mx-auto w-full max-w-7xl'>{children}</div>;
 }

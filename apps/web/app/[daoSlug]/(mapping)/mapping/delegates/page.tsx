@@ -3,7 +3,7 @@ import { getDao } from '../actions';
 import { DelegateRow } from './components/edit-delegate-row';
 import Link from 'next/link';
 
-export default async function DelegatesMappingPage({
+export default async function Page({
   params,
 }: {
   params: Promise<{ daoSlug: string }>;

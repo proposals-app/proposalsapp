@@ -50,7 +50,6 @@ const nextConfig = {
     reactCompiler: true,
     viewTransition: true,
     useCache: true,
-    dynamicIO: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },

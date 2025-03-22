@@ -3,7 +3,7 @@ import { getDao, getGroupsData, getUngroupedProposals } from './actions';
 import GroupingInterface from './components/proposal-group';
 import Link from 'next/link';
 
-export default async function MappingPage({
+export default async function Page({
   params,
 }: {
   params: Promise<{ daoSlug: string }>;

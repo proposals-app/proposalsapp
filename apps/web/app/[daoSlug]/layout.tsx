@@ -11,6 +11,8 @@ export default async function DaoLayout({
   params: Promise<{ daoSlug: string }>;
   children: ReactNode;
 }) {
+  'use cache';
+
   const { daoSlug } = await params;
 
   return (
