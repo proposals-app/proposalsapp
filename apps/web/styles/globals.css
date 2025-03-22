@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@config '../tailwind.config.ts';
+@config '../tailwind.config.mjs';
 
 @layer utilities {
   /* Default Theme (when data-theme is null) */

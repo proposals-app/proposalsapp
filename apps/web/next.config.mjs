@@ -45,7 +45,7 @@ const nextConfig = {
     ];
   },
   skipTrailingSlashRedirect: true,
-  // cacheHandler: resolve('./cache-handler.js'),
+  cacheHandler: resolve('./cache-handler.mjs'),
   experimental: {
     reactCompiler: true,
     viewTransition: true,

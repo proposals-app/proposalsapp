@@ -72,28 +72,35 @@ export async function getNonVoters(proposalId: string) {
 
   if (eligibleVoters.length === 0) return [];
 
-  const currentPowers = await dbIndexer
-    .selectFrom('votingPower')
-    .where('daoId', '=', proposal.daoId)
-    .where(
-      'voter',
-      'in',
-      eligibleVoters.map((v) => v.voter)
-    )
-    .select((eb) => [
-      'voter',
-      eb.fn
-        .max('votingPower')
-        .over((ob) => ob.partitionBy('voter'))
-        .as('currentVotingPower'),
-    ])
-    .groupBy('voter')
-    .groupBy('votingPower')
-    .execute();
+  // Process voters in chunks to avoid parameter limit issues
+  const CHUNK_SIZE = 1000;
+  const voters = eligibleVoters.map((v) => v.voter);
+  const currentPowerMap = new Map();
 
-  const currentPowerMap = new Map(
-    currentPowers.map((cp) => [cp.voter, cp.currentVotingPower])
-  );
+  // Process in chunks
+  for (let i = 0; i < voters.length; i += CHUNK_SIZE) {
+    const chunk = voters.slice(i, i + CHUNK_SIZE);
+
+    const chunkPowers = await dbIndexer
+      .selectFrom('votingPower')
+      .where('daoId', '=', proposal.daoId)
+      .where('voter', 'in', chunk)
+      .select((eb) => [
+        'voter',
+        eb.fn
+          .max('votingPower')
+          .over((ob) => ob.partitionBy('voter'))
+          .as('currentVotingPower'),
+      ])
+      .groupBy('voter')
+      .groupBy('votingPower')
+      .execute();
+
+    // Add results to our map
+    chunkPowers.forEach((cp) => {
+      currentPowerMap.set(cp.voter, cp.currentVotingPower);
+    });
+  }
 
   const nonVoters = eligibleVoters
     .filter((v) => !votedAddresses.has(v.voter))

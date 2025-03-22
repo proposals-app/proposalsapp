@@ -25,6 +25,7 @@ import { ProposalMetadata } from '@/app/types';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
+import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function updateLastReadAt(groupId: string) {
   'use server';
@@ -673,6 +674,7 @@ export async function getFeed(
   events: FeedEvent[];
 }> {
   'use cache';
+  cacheLife('minutes');
 
   let author = null;
 

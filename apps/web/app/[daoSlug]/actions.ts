@@ -248,7 +248,7 @@ export async function getGroupHeader(groupId: string): Promise<{
   groupName: string;
 }> {
   'use cache';
-  cacheLife('minutes');
+  cacheLife('hours');
 
   interface AuthorInfo {
     originalAuthorName: string;

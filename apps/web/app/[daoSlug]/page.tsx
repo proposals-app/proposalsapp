@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
-export default async function ListPage({
+export default async function Page({
   params,
 }: {
   params: Promise<{ daoSlug: string }>;
@@ -15,6 +15,18 @@ export default async function ListPage({
 
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
+
+  return <GroupsList daoSlug={daoSlug} userId={userId} />;
+}
+
+async function GroupsList({
+  daoSlug,
+  userId,
+}: {
+  daoSlug: string;
+  userId?: string;
+}) {
+  'use cache';
 
   const result = await getGroups(daoSlug, userId);
 

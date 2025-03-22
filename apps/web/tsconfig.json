@@ -22,14 +22,16 @@
       }
     ],
     "paths": {
-      "@proposalsapp/db-indexer": ["../../libs/ts/db/src/index.ts"],
-      "@proposalsapp/emails": ["../../libs/ts/emails/src/index.ts"],
-      "@proposalsapp/visual-dom-diff": [
-        "../../libs/ts/visual-dom-diff/src/index.ts"
-      ],
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "tailwind.config.mjs",
+    "cache-handler.mjs"
+  ],
   "exclude": ["node_modules"]
 }
