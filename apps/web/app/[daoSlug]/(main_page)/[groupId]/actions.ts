@@ -28,8 +28,6 @@ import { dbWeb } from '@proposalsapp/db-web';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function updateLastReadAt(groupId: string) {
-  'use server';
-
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
@@ -65,7 +63,8 @@ export async function updateLastReadAt(groupId: string) {
 }
 
 export async function getGroup(daoSlug: string, groupId: string) {
-  'use server';
+  'use cache';
+  cacheLife('hours');
 
   if (daoSlug == 'favicon.ico') return null;
 
@@ -162,7 +161,8 @@ export type BodyVersionType = {
 export type VersionType = 'topic' | 'onchain' | 'offchain';
 
 export async function getBodyVersions(groupID: string, withContent: boolean) {
-  'use server';
+  'use cache';
+  cacheLife('minutes');
 
   const bodies: BodyVersionType[] = [];
 
@@ -445,7 +445,8 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
 }
 
 async function getAuthor(groupId: string) {
-  'use server';
+  'use cache';
+  cacheLife('hours');
 
   const group = await dbIndexer
     .selectFrom('proposalGroup')

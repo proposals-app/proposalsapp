@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import PassedIcon from '@/public/assets/web/passed.svg';
 import FailedIcon from '@/public/assets/web/failed.svg';
 import superjson, { SuperJSONResult } from 'superjson';
+import { connection } from 'next/server';
 
 interface ResultsListProps {
   results: SuperJSONResult;
@@ -154,12 +155,13 @@ interface StatusMessageProps {
   hasMajoritySupport?: boolean;
 }
 
-function StatusMessage({
+async function StatusMessage({
   endTime,
   hasQuorum,
   isOnchain,
   hasMajoritySupport,
 }: StatusMessageProps) {
+  await connection();
   const now = new Date();
   const isEnded = now > endTime;
   const voteType = isOnchain ? 'onchain' : 'offchain';

@@ -481,12 +481,12 @@ export function LoadingTable() {
   return (
     <div className='mt-6'>
       {/* Header */}
-      <div className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center gap-2 border-b border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-700 dark:bg-neutral-800'>
+      <div className='sticky top-[88px] z-10 mb-2 grid h-12 grid-cols-7 items-center gap-2 border-b border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-700 dark:bg-neutral-800'>
         <div className='col-span-2 flex items-center'>
           <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
         </div>
         <div className='col-span-3'>
-          <div className='h-8 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
         </div>
         <div className='col-span-1 flex items-center justify-end gap-2'>
           <div className='h-4 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />

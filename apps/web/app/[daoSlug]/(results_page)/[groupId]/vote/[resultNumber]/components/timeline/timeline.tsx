@@ -11,6 +11,7 @@ import {
 } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
+import { connection } from 'next/server';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -47,6 +48,7 @@ export async function Timeline({
     proposalOrderMap.set(proposal.id, index + 1); // +1 to make it 1-based
   });
 
+  await connection();
   // Get the current time
   const currentTime = new Date();
 

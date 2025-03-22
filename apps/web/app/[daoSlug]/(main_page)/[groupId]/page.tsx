@@ -22,6 +22,7 @@ import { Header } from '../../components/header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 import { PostedRevisions } from './components/body/posted-revision';
 import { LastReadUpdater } from './components/last-read-updater';
+import Loading from './loading';
 
 export default async function Page({
   params,
@@ -31,7 +32,7 @@ export default async function Page({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   return (
-    <Suspense>
+    <Suspense fallback={<Loading />}>
       <GroupPage params={params} searchParams={searchParams} />
     </Suspense>
   );

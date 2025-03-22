@@ -5,8 +5,21 @@ import { getGroup } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import { Header } from '@/app/[daoSlug]/components/header';
 import { Suspense } from 'react';
 import { getGroupHeader } from '@/app/[daoSlug]/actions';
+import Loading from './loading';
 
-export default async function ResultPage({
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
+}) {
+  return (
+    <Suspense fallback={<Loading />}>
+      <ResultPage params={params} />
+    </Suspense>
+  );
+}
+
+async function ResultPage({
   params,
 }: {
   params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;

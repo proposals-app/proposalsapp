@@ -1,7 +1,11 @@
 import { AsyncReturnType } from '@/lib/utils';
 import { dbIndexer } from '@proposalsapp/db-indexer';
+import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function getProposalGovernor(proposalId: string) {
+  'use cache';
+  cacheLife('hours');
+
   const proposal = await dbIndexer
     .selectFrom('proposal')
     .where('id', '=', proposalId)
@@ -30,7 +34,8 @@ export async function getProposalGovernor(proposalId: string) {
 }
 
 export async function getNonVoters(proposalId: string) {
-  'use server';
+  'use cache';
+  cacheLife('minutes');
 
   const proposal = await dbIndexer
     .selectFrom('proposal')
@@ -125,7 +130,8 @@ export async function getNonVoters(proposalId: string) {
 export type NonVotersData = AsyncReturnType<typeof getNonVoters>;
 
 export async function getVotesWithVoters(proposalId: string) {
-  'use server';
+  'use cache';
+  cacheLife('minutes');
 
   // 1. Fetch votes, including only the necessary voter address
   const votes = await dbIndexer
@@ -208,6 +214,9 @@ export type DelegateInfo = {
 } | null;
 
 export async function getVoter(voterAddress: string): Promise<DelegateInfo> {
+  'use cache';
+  cacheLife('hours');
+
   // Get the voter
   const voter = await dbIndexer
     .selectFrom('voter')
@@ -239,67 +248,65 @@ export async function getDelegateVotingPower(
   daoSlug: string,
   proposalId: string
 ): Promise<DelegateVotingPower | null> {
-  try {
-    // Get the proposal to determine timestamps
-    const proposal = await dbIndexer
-      .selectFrom('proposal')
-      .where('id', '=', proposalId)
-      .selectAll()
-      .executeTakeFirst();
+  'use cache';
+  cacheLife('hours');
 
-    if (!proposal) return null;
+  // Get the proposal to determine timestamps
+  const proposal = await dbIndexer
+    .selectFrom('proposal')
+    .where('id', '=', proposalId)
+    .selectAll()
+    .executeTakeFirst();
 
-    // Get the dao
-    const dao = await dbIndexer
-      .selectFrom('dao')
-      .where('slug', '=', daoSlug)
-      .selectAll()
-      .executeTakeFirst();
+  if (!proposal) return null;
 
-    if (!dao) return null;
+  // Get the dao
+  const dao = await dbIndexer
+    .selectFrom('dao')
+    .where('slug', '=', daoSlug)
+    .selectAll()
+    .executeTakeFirst();
 
-    // Get the vote
-    const vote = await dbIndexer
-      .selectFrom('vote')
-      .where('voterAddress', '=', voterAddress)
-      .where('proposalId', '=', proposalId)
-      .selectAll()
-      .executeTakeFirst();
+  if (!dao) return null;
 
-    if (!vote) return null;
+  // Get the vote
+  const vote = await dbIndexer
+    .selectFrom('vote')
+    .where('voterAddress', '=', voterAddress)
+    .where('proposalId', '=', proposalId)
+    .selectAll()
+    .executeTakeFirst();
 
-    // Get the latest voting power
-    const latestVotingPowerRecord = await dbIndexer
-      .selectFrom('votingPower')
-      .where('voter', '=', voterAddress)
-      .where('daoId', '=', dao.id)
-      .orderBy('timestamp', 'desc')
-      .limit(1)
-      .selectAll()
-      .executeTakeFirst();
+  if (!vote) return null;
 
-    const latestVotingPower = latestVotingPowerRecord?.votingPower ?? 0;
-    const votingPowerAtVote = vote.votingPower;
+  // Get the latest voting power
+  const latestVotingPowerRecord = await dbIndexer
+    .selectFrom('votingPower')
+    .where('voter', '=', voterAddress)
+    .where('daoId', '=', dao.id)
+    .orderBy('timestamp', 'desc')
+    .limit(1)
+    .selectAll()
+    .executeTakeFirst();
 
-    // Compute relative change
-    let change: number | null = null;
-    if (votingPowerAtVote !== 0) {
-      const rawChange =
-        ((latestVotingPower - votingPowerAtVote) / votingPowerAtVote) * 100;
-      if (rawChange > 0.01 || rawChange < -0.01) {
-        change = rawChange;
-      }
+  const latestVotingPower = latestVotingPowerRecord?.votingPower ?? 0;
+  const votingPowerAtVote = vote.votingPower;
+
+  // Compute relative change
+  let change: number | null = null;
+  if (votingPowerAtVote !== 0) {
+    const rawChange =
+      ((latestVotingPower - votingPowerAtVote) / votingPowerAtVote) * 100;
+    if (rawChange > 0.01 || rawChange < -0.01) {
+      change = rawChange;
     }
-
-    return {
-      votingPowerAtVote,
-      latestVotingPower,
-      change,
-    };
-  } catch (error) {
-    console.error('Error fetching delegate voting power:', error);
-    return null;
   }
+
+  return {
+    votingPowerAtVote,
+    latestVotingPower,
+    change,
+  };
 }
 
 export type VotesWithVoters = AsyncReturnType<typeof getVotesWithVoters>;

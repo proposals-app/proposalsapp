@@ -1,7 +1,10 @@
+'use server';
 import { dbIndexer, sql } from '@proposalsapp/db-indexer';
+import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
-  'use server';
+  'use cache';
+  cacheLife('hours');
 
   const discourseUser = await dbIndexer
     .selectFrom('discourseUser')
@@ -20,7 +23,8 @@ export async function getDelegateByDiscourseUser(
   topicIds?: string[],
   proposalIds?: string[]
 ) {
-  'use server';
+  'use cache';
+  cacheLife('hours');
 
   const dao = await dbIndexer
     .selectFrom('dao')
@@ -181,7 +185,8 @@ export async function getPostLikesCount(
   externalPostId: number,
   daoDiscourseId: string
 ) {
-  'use server';
+  'use cache';
+  cacheLife('minutes');
 
   const result = await dbIndexer
     .selectFrom('discoursePostLike')

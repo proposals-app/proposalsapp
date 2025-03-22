@@ -19,6 +19,7 @@ import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { DiscourseAuthor } from '@/app/[daoSlug]/components/author-discourse';
 import HeartIcon from '@/public/assets/web/heart.svg';
 import SeenIcon from '@/public/assets/web/seen.svg';
+import { connection } from 'next/server';
 
 export async function PostItem({
   item,
@@ -27,6 +28,8 @@ export async function PostItem({
   item: FeedReturnType['posts'][0];
   group: GroupReturnType;
 }) {
+  await connection();
+
   if (!group) {
     return null;
   }
@@ -128,28 +131,40 @@ const PostContent = ({
 }) => {
   const CONTENT_THRESHOLD = 400;
 
-  // Helper function to find the next paragraph break
-  const findNextParagraphBreak = (content: string): number => {
-    const breakPatterns = ['</p>', '<br>', '\n\n'];
+  // Extract a safe preview of the content
+  const extractPreview = (
+    content: string
+  ): { preview: string; hasMore: boolean } => {
+    // Match paragraphs, lists, blockquotes, and other block-level elements
+    const blocks = content.match(
+      /<(p|div|ul|ol|blockquote|h[1-6]|pre)[^>]*>.*?<\/\1>/gs
+    );
 
-    // Find the first break point after the threshold
-    for (const pattern of breakPatterns) {
-      const index = content.indexOf(pattern, CONTENT_THRESHOLD);
-      if (index !== -1) {
-        return index + pattern.length;
+    if (!blocks) return { preview: content, hasMore: false };
+
+    let preview = '';
+    let textLength = 0;
+    let blockCount = 0;
+
+    for (const block of blocks) {
+      // Calculate the approximate text length by removing HTML tags
+      const textOnlyLength = block.replace(/<[^>]*>/g, '').length;
+
+      if (textLength + textOnlyLength > CONTENT_THRESHOLD && blockCount >= 2) {
+        // We have enough content for the preview
+        return { preview, hasMore: true };
       }
+
+      preview += block;
+      textLength += textOnlyLength;
+      blockCount++;
     }
 
-    // If no break point is found, return the entire content length
-    return content.length;
+    return { preview: content, hasMore: false }; // All content fits in the preview
   };
 
-  // Only find break point if we need to collapse
-  const slicePoint = findNextParagraphBreak(processedContent);
-
-  const shouldCollapse =
-    contentLength > CONTENT_THRESHOLD &&
-    processedContent.length > processedContent.slice(0, slicePoint).length;
+  const { preview, hasMore } = extractPreview(processedContent);
+  const shouldCollapse = hasMore && contentLength > CONTENT_THRESHOLD;
 
   return (
     <>
@@ -170,7 +185,7 @@ const PostContent = ({
               posted <span className='font-bold'>{relativeCreateTime}</span>
             </div>
           </div>
-          {item.createdAt.getTime() != updatedAt.getTime() && (
+          {item.createdAt.getTime() !== updatedAt.getTime() && (
             <div>
               <span>edited {relativeUpdateTime}</span>
             </div>
@@ -183,9 +198,7 @@ const PostContent = ({
           <summary className='cursor-pointer list-none [&::-webkit-details-marker]:hidden'>
             <div className='prose prose-lg relative max-w-none'>
               <div
-                dangerouslySetInnerHTML={{
-                  __html: processedContent.slice(0, slicePoint),
-                }}
+                dangerouslySetInnerHTML={{ __html: preview }}
                 className='group-open:hidden'
               />
               <div className='absolute right-0 bottom-0 left-0 h-36 bg-gradient-to-t from-neutral-50 to-transparent group-open:hidden dark:from-neutral-900' />
