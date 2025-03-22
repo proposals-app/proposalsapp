@@ -665,7 +665,8 @@ async function getAuthor(groupId: string) {
 export async function getFeed(
   groupId: string,
   feedFilter: FeedFilterEnum,
-  fromFilter: FromFilterEnum
+  fromFilter: FromFilterEnum,
+  resultsOnly: boolean = false
 ): Promise<{
   votes: ProcessedVote[];
   posts: Selectable<DiscoursePost>[];
@@ -702,12 +703,12 @@ export async function getFeed(
 
   let allPosts: Selectable<DiscoursePost>[] = [];
   let posts: Selectable<DiscoursePost>[] = [];
+  let processedVotes: ProcessedVote[] = [];
 
   const allVotes: Selectable<Vote>[] = [];
-  const processedVotes: ProcessedVote[] = [];
   const filteredProcessedVotes: ProcessedVote[] = [];
 
-  const events: FeedEvent[] = [];
+  let events: FeedEvent[] = [];
 
   // Extract proposal and topic IDs from group items
   const items = group.items as ProposalGroupItem[];
@@ -1093,8 +1094,6 @@ export async function getFeed(
     });
   }
 
-  events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
   if (
     events[0] &&
     (events[0].type === TimelineEventType.CommentsVolume ||
@@ -1117,6 +1116,18 @@ export async function getFeed(
       timestamp: currentTimestamp,
       url: '',
     });
+  }
+
+  if (resultsOnly) {
+    posts = [];
+    processedVotes = [];
+    events = events.filter(
+      (event) =>
+        event.type === TimelineEventType.ResultOngoingBasicVote ||
+        event.type === TimelineEventType.ResultOngoingOtherVotes ||
+        event.type === TimelineEventType.ResultEndedBasicVote ||
+        event.type === TimelineEventType.ResultEndedOtherVotes
+    );
   }
 
   return {

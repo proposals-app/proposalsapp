@@ -2,7 +2,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
-interface GroupItemProps {
+interface DiscussionGroupItemProps {
   group: {
     id: string;
     name: string;
@@ -17,7 +17,7 @@ interface GroupItemProps {
   };
 }
 
-export function GroupItem({ group }: GroupItemProps) {
+export function DiscussionGroupItem({ group }: DiscussionGroupItemProps) {
   const relativeTime = formatDistanceToNow(new Date(group.latestActivityAt), {
     addSuffix: true,
   });
@@ -25,9 +25,8 @@ export function GroupItem({ group }: GroupItemProps) {
   return (
     <Link
       href={`/${group.slug}`}
-      className={`block border
-        ${group.hasActiveProposal ? 'bg-green-200 dark:bg-green-900' : 'bg-white dark:bg-neutral-800'}
-        border-neutral-200 p-3 sm:p-4 dark:border-neutral-700`}
+      className={`block border border-neutral-200 bg-white p-3 sm:p-4 dark:border-neutral-700
+        dark:bg-neutral-800`}
       prefetch={true}
     >
       <div className='flex flex-row justify-between gap-3 sm:items-center sm:gap-0'>

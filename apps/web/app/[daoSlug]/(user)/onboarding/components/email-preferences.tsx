@@ -29,7 +29,6 @@ export const EmailPreferences = () => {
     router.refresh();
   };
 
-  // Reuse the Toggle component from UserSettings
   const Toggle = ({
     checked,
     onChange,

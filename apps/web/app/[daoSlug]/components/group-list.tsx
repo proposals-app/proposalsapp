@@ -2,7 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
-import { GroupItem } from './group-item';
+import { ActiveGroupItem } from './group-items/active-item';
+import { InactiveGroupItem } from './group-items/inactive-item';
+import { DiscussionGroupItem } from './group-items/discussion-item';
 
 interface Group {
   id: string;
@@ -61,9 +63,15 @@ export function GroupList({ groups }: GroupListProps) {
         </p>
       ) : (
         <div className='space-y-4'>
-          {filteredGroups.map((group) => (
-            <GroupItem key={group.id} group={group} />
-          ))}
+          {filteredGroups.map((group) =>
+            group.hasActiveProposal ? (
+              <ActiveGroupItem key={group.id} group={group} />
+            ) : group.proposalsCount > 0 ? (
+              <InactiveGroupItem key={group.id} group={group} />
+            ) : (
+              <DiscussionGroupItem key={group.id} group={group} />
+            )
+          )}
         </div>
       )}
     </div>

@@ -56,7 +56,6 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
     );
   }
 
-  // Custom square switch component
   const Toggle = ({
     checked,
     onChange,
