@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Bell, Mail, RefreshCw } from 'lucide-react';
 import { Session } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
-import { saveSettings } from './../actions';
+import { saveSettings, SettingsData } from './../actions';
 
 interface UserSettingsProps {
   session: Session;
@@ -28,13 +28,14 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
     setIsSaving(true);
     setSaveSuccess(false);
 
-    // Create FormData to pass to the server action
-    const formData = new FormData();
-    formData.append('newDiscussions', newDiscussions ? 'on' : 'off');
-    formData.append('newProposals', newProposals ? 'on' : 'off');
-    formData.append('dailyRoundup', dailyRoundup ? 'on' : 'off');
+    const settingsData: SettingsData = {
+      newDiscussions: newDiscussions,
+      newProposals: newProposals,
+      dailyRoundup: dailyRoundup,
+      isOnboarded: true,
+    };
 
-    await saveSettings(formData);
+    await saveSettings(settingsData);
 
     setIsSaving(false);
     setSaveSuccess(true);
@@ -108,7 +109,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           <h2 className='text-base font-semibold text-neutral-900 sm:text-lg dark:text-neutral-100'>
             Email Notifications
           </h2>
-          <p className='text-xs text-neutral-500 sm:text-sm dark:text-neutral-400'>
+          <p className='text-sm text-neutral-500 dark:text-neutral-400'>
             Configure how and when you receive email notifications
           </p>
         </div>
@@ -127,7 +128,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
                 >
                   New discussions
                 </label>
-                <p className='text-xs text-neutral-500 sm:text-sm dark:text-neutral-400'>
+                <p className='text-sm text-neutral-500 dark:text-neutral-400'>
                   Receive an email when a new discussion is created
                 </p>
               </div>
@@ -155,7 +156,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
                 >
                   New proposals
                 </label>
-                <p className='text-xs text-neutral-500 sm:text-sm dark:text-neutral-400'>
+                <p className='text-sm text-neutral-500 dark:text-neutral-400'>
                   Receive an email when a new proposal is submitted
                 </p>
               </div>
@@ -183,7 +184,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
                 >
                   Daily roundup
                 </label>
-                <p className='text-xs text-neutral-500 sm:text-sm dark:text-neutral-400'>
+                <p className='text-sm text-neutral-500 dark:text-neutral-400'>
                   Receive a daily email with a summary of new discussions and
                   proposals
                 </p>
@@ -222,10 +223,10 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           <button
             onClick={handleSaveSettings}
             disabled={isSaving}
-            className='inline-flex items-center justify-center bg-neutral-200 px-3 py-1.5 text-xs
+            className='inline-flex items-center justify-center bg-neutral-200 px-3 py-1.5 text-sm
               font-medium whitespace-nowrap text-neutral-900 transition-colors
               hover:bg-neutral-300 focus:ring-2 focus:ring-offset-2 focus:outline-none
-              disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm
+              disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2
               dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
           >
             {isSaving && (

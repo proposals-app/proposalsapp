@@ -14,6 +14,7 @@ export const auth = betterAuth({
   appName: 'proposals.app',
   database: db_pool,
   trustedOrigins: ['https://arbitrum.proposals.app'],
+
   plugins: [
     emailOTP({
       otpLength: 6,
@@ -37,18 +38,23 @@ export const auth = betterAuth({
     additionalFields: {
       emailSettingsNewProposals: {
         type: 'boolean',
-        nullable: false,
+        required: true,
         defaultValue: true,
       },
       emailSettingsNewDiscussions: {
         type: 'boolean',
-        nullable: false,
+        required: true,
         defaultValue: true,
       },
       emailSettingsDailyRoundup: {
         type: 'boolean',
-        nullable: false,
+        required: true,
         defaultValue: true,
+      },
+      isOnboarded: {
+        type: 'boolean',
+        required: true,
+        defaultValue: false,
       },
     },
     changeEmail: {

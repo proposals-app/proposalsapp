@@ -3,16 +3,22 @@
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
-export async function saveSettings(formData: FormData) {
-  const newDiscussions = formData.get('newDiscussions') === 'on';
-  const newProposals = formData.get('newProposals') === 'on';
-  const dailyRoundup = formData.get('dailyRoundup') === 'on';
+export interface SettingsData {
+  newDiscussions: boolean;
+  newProposals: boolean;
+  dailyRoundup: boolean;
+  isOnboarded: boolean;
+}
+
+export async function saveSettings(settings: SettingsData) {
+  const { newDiscussions, newProposals, dailyRoundup, isOnboarded } = settings;
 
   await auth.api.updateUser({
     body: {
-      emailSettingsNewProposals: newDiscussions,
-      emailSettingsNewDiscussions: newProposals,
+      emailSettingsNewProposals: newProposals,
+      emailSettingsNewDiscussions: newDiscussions,
       emailSettingsDailyRoundup: dailyRoundup,
+      isOnboarded: isOnboarded,
     },
     headers: await headers(),
   });
@@ -22,6 +28,7 @@ export async function saveSettings(formData: FormData) {
     newDiscussions,
     newProposals,
     dailyRoundup,
+    isOnboarded,
   });
 
   // Return success or some data if needed
