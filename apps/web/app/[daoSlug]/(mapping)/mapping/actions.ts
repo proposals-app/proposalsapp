@@ -1,9 +1,11 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import Fuse from 'fuse.js';
 import { dbIndexer } from '@proposalsapp/db-indexer';
 import { AsyncReturnType } from '@/lib/utils';
+import { cacheLife } from 'next/dist/server/use-cache/cache-life';
+import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
+import { revalidateTag } from 'next/cache';
 
 // Define strong types for our data structures
 export type ProposalItem = {
@@ -51,6 +53,9 @@ export interface FuzzySearchResult {
  * Fetches all proposal groups for a given DAO
  */
 export async function getGroupsData(daoSlug: string) {
+  'use cache';
+  cacheTag('groupsData');
+
   const dao = await dbIndexer
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
@@ -119,6 +124,9 @@ export async function getGroupsData(daoSlug: string) {
 export async function getUngroupedProposals(
   daoSlug: string
 ): Promise<ProposalItem[]> {
+  'use cache';
+  cacheTag('ungroupedProposals');
+
   const dao = await dbIndexer
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
@@ -192,6 +200,9 @@ export async function fuzzySearchItems(
   searchTerm: string,
   daoSlug: string
 ): Promise<FuzzySearchResult[]> {
+  'use cache';
+  cacheTag(`fuzzy-group-${searchTerm}`);
+
   const dao = await dbIndexer
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
@@ -313,7 +324,8 @@ export async function saveGroups(groups: ProposalGroup[]) {
     })
   );
 
-  revalidatePath('/mapping');
+  revalidateTag('groupsData');
+  revalidateTag('ungroupedProposals');
 }
 
 /**
@@ -324,13 +336,18 @@ export async function deleteGroup(groupId: string) {
     .deleteFrom('proposalGroup')
     .where('id', '=', groupId)
     .execute();
-  revalidatePath('/mapping');
+
+  revalidateTag('groupsData');
+  revalidateTag('ungroupedProposals');
 }
 
 /**
  * Fetches DAO details by slug
  */
 export async function getDao(daoSlug: string) {
+  'use cache';
+  cacheLife('hours');
+
   const dao = await dbIndexer
     .selectFrom('dao')
     .selectAll()

@@ -1,13 +1,10 @@
 import withSerwistInit from '@serwist/next';
 import { resolve } from 'path';
 
-const revision = crypto.randomUUID();
-
 const withSerwist = withSerwistInit({
   cacheOnNavigation: true,
   swSrc: '/app/sw.ts',
   swDest: './public/sw.js',
-  additionalPrecacheEntries: [{ url: '/~offline', revision }],
   maximumFileSizeToCacheInBytes: 25000000,
 });
 
@@ -48,11 +45,12 @@ const nextConfig = {
     ];
   },
   skipTrailingSlashRedirect: true,
-  cacheHandler: resolve('./cache-handler.js'),
+  // cacheHandler: resolve('./cache-handler.js'),
   experimental: {
     reactCompiler: true,
     viewTransition: true,
     useCache: true,
+    dynamicIO: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },

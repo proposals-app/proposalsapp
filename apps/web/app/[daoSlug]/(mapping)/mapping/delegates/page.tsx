@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation';
 import { getDelegatesWithMappings, createDelegate } from './actions';
 import { getDao } from '../actions';
 import { DelegateRow } from './components/edit-delegate-row';
@@ -9,12 +8,10 @@ export default async function DelegatesMappingPage({
 }: {
   params: Promise<{ daoSlug: string }>;
 }) {
+  'use cache';
+
   const { daoSlug } = await params;
   const dao = await getDao(daoSlug);
-
-  if (!dao) {
-    notFound();
-  }
 
   const delegatesWithMappings = await getDelegatesWithMappings(daoSlug);
 

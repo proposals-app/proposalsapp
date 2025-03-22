@@ -15,7 +15,7 @@ async function signOut() {
 export default async function ProfilePage() {
   const session = await auth.api.getSession({ headers: await headers() });
 
-  if (!session?.user?.isOnboarded) {
+  if (session && session.user && !session.user.isOnboarded) {
     redirect(`/onboarding`);
   }
 

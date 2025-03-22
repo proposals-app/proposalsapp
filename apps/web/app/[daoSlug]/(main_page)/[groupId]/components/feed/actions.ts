@@ -192,26 +192,3 @@ export async function getPostLikesCount(
 
   return result?.count ?? 0;
 }
-
-async function getPostLikedUsers(
-  externalPostId: number,
-  daoDiscourseId: string
-) {
-  'use server';
-
-  const likedUsers = await dbIndexer
-    .selectFrom('discoursePostLike')
-    .innerJoin(
-      'discourseUser',
-      'discourseUser.externalId',
-      'discoursePostLike.externalUserId'
-    )
-    .where('discoursePostLike.externalDiscoursePostId', '=', externalPostId)
-    .where('discoursePostLike.daoDiscourseId', '=', daoDiscourseId)
-    .where('discourseUser.daoDiscourseId', '=', daoDiscourseId)
-    .select(['discourseUser.username'])
-    .distinct() // Ensure unique usernames
-    .execute();
-
-  return likedUsers.map((user) => user.username);
-}
