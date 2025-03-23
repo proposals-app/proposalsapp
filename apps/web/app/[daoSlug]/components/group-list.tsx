@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Search, Filter } from 'lucide-react';
 import { InactiveGroupItem } from './group-items/inactive-item';
 import { DiscussionGroupItem } from './group-items/discussion-item';
+import { authClient } from '@/lib/auth-client';
 
 interface Group {
   id: string;
@@ -28,6 +29,7 @@ interface GroupListProps {
 export function GroupList({ groups }: GroupListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'unread'>('all');
+  const { data: sessionData } = authClient.useSession();
 
   const filteredGroups = useMemo(() => {
     let filtered = groups;
@@ -95,16 +97,18 @@ export function GroupList({ groups }: GroupListProps) {
             Active
           </button>
 
-          <button
-            onClick={() => setFilter('unread')}
-            className={`rounded-xs px-4 py-1.5 text-sm font-medium transition-colors ${
-              filter === 'unread'
-                ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
-                : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
-            }`}
-          >
-            Unread
-          </button>
+          {sessionData?.session && (
+            <button
+              onClick={() => setFilter('unread')}
+              className={`rounded-xs px-4 py-1.5 text-sm font-medium transition-colors ${
+                filter === 'unread'
+                  ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
+                  : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
+              }`}
+            >
+              Unread
+            </button>
+          )}
         </div>
       </div>
 
