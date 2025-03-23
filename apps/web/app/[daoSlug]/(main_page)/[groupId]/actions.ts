@@ -1097,6 +1097,8 @@ export async function getFeed(
     });
   }
 
+  events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
   if (
     events[0] &&
     (events[0].type === TimelineEventType.CommentsVolume ||
