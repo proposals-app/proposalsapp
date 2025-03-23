@@ -12,7 +12,7 @@ export async function InitiallyPosted({
   });
 
   return (
-    <div className={'flex flex-row items-center gap-2 px-4 py-1'}>
+    <div className={'flex flex-row items-center gap-2 p-2'}>
       <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>
         {' '}
         {/* Added items-start here */}

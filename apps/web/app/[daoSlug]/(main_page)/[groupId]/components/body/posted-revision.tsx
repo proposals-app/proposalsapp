@@ -44,7 +44,7 @@ export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
   });
 
   return (
-    <div className='relative bg-white px-4 py-1 dark:bg-neutral-950'>
+    <div className='relative bg-white p-2 dark:bg-neutral-950'>
       <Select value={selectedVersionIndex} onValueChange={handleVersionSelect}>
         <SelectTrigger aria-label='Select version' withChevron={false}>
           <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>

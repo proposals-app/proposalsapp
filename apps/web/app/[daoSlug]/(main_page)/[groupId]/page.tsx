@@ -182,7 +182,7 @@ async function BodyHeaderSection({
             />
 
             <div className='flex flex-col items-center gap-2'>
-              <div className='flex flex-col-reverse gap-2'>
+              <div className='flex gap-2'>
                 <InitiallyPosted
                   label='initially posted'
                   createdAt={firstBodyVersion.createdAt}
