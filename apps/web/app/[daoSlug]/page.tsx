@@ -125,7 +125,7 @@ async function GroupsList({
         {/* DAO Summary Header */}
         <div className='mb-8 border border-neutral-200 bg-white p-6 dark:border-neutral-700 dark:bg-neutral-800'>
           <div className='flex flex-col items-start space-y-6 md:flex-row md:items-center md:space-y-0 md:space-x-6'>
-            <div className='flex h-16 w-16 items-center justify-center bg-neutral-100 p-2 md:h-20 md:w-20 dark:bg-neutral-700'>
+            <div className='flex h-16 w-16 items-center justify-center p-2 md:h-20 md:w-20'>
               <Image
                 src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
                 alt={daoName || daoSlug}
