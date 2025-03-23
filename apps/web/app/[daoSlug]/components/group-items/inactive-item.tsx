@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { ArrowRight, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import Image from 'next/image';
 
 interface InactiveGroupItemProps {

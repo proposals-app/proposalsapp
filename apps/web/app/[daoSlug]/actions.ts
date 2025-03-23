@@ -508,8 +508,91 @@ export const getMarketCap = async (daoSlug: string) => {
   }
 };
 
+const TREASURY_ADDRESSES = [
+  'eip155:42161:0x34d45e99f7D8c45ed05B5cA72D54bbD1fb3F98f0',
+  'eip155:42161:0xbFc1FECa8B09A5c5D3EFfE7429eBE24b9c09EF58',
+  'eip155:42161:0xF3FC178157fb3c87548bAA86F9d24BA38E649B58',
+  'eip155:42161:0x2E041280627800801E90E9Ac83532fadb6cAd99A',
+  'eip155:42161:0x32e7AF5A8151934F3787d0cD59EB6EDd0a736b1d',
+  'eip155:42161:0xbF5041Fc07E1c866D15c749156657B8eEd0fb649',
+  'eip155:42170:0x509386DbF5C0BE6fd68Df97A05fdB375136c32De',
+  'eip155:42170:0x3B68a689c929327224dBfCe31C1bf72Ffd2559Ce',
+  'eip155:42170:0x9fCB6F75D99029f28F6F4a1d277bae49c5CAC79f',
+  'eip155:42170:0xf7951d92b0c345144506576ec13ecf5103ac905a',
+];
+
+interface TokenBalance {
+  balance: string;
+  decimals: number;
+  quoteRate: number | null;
+}
+
+interface TallyResponse {
+  data: {
+    balances: TokenBalance[];
+  };
+}
+
+async function fetchBalanceForAddress(address: string): Promise<number> {
+  try {
+    const response = await fetch('https://api.tally.xyz/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Api-Key': process.env.TALLY_API_KEY ?? '',
+      },
+      body: JSON.stringify({
+        query: `
+          query TokenBalances($input: AccountID!) {
+            balances(accountID: $input) {
+              decimals
+              balance
+              quoteRate
+            }
+          }
+        `,
+        variables: {
+          input: address,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch balance for address ${address}`);
+
+      return 0;
+    }
+
+    const data: TallyResponse = await response.json();
+
+    return data.data.balances.reduce((total, token) => {
+      if (token.quoteRate && token.balance) {
+        const balance = Number(token.balance) / Math.pow(10, token.decimals);
+        return total + balance * token.quoteRate;
+      }
+      return total;
+    }, 0);
+  } catch (error) {
+    console.error(`Error fetching balance for address ${address}:`, error);
+    return 0;
+  }
+}
+
 export const getTreasuryBalance = async (daoSlug: string) => {
+  'use cache';
+  cacheLife('days');
+
   if (daoSlug !== 'arbitrum') return null; // For now, only Arbitrum
 
-  return 1048651116.24;
+  try {
+    const balances = await Promise.all(
+      TREASURY_ADDRESSES.map((address) => fetchBalanceForAddress(address))
+    );
+
+    const totalBalance = balances.reduce((sum, balance) => sum + balance, 0);
+    return totalBalance;
+  } catch (error) {
+    console.error('Error calculating total treasury balance:', error);
+    return null;
+  }
 };

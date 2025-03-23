@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { ArrowRight, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { getFeed } from '../../(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { Suspense } from 'react';
@@ -115,9 +115,3 @@ export async function ActiveGroupItem({ group }: ActiveGroupItemProps) {
     </Link>
   );
 }
-
-const NewBadge = () => (
-  <div className='animate-pulse bg-green-700 px-3 py-1 text-xs font-medium text-white sm:text-sm'>
-    New activity
-  </div>
-);
