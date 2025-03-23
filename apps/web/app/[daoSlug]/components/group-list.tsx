@@ -14,8 +14,10 @@ interface Group {
   latestActivityAt: Date;
   hasNewActivity: boolean;
   hasActiveProposal: boolean;
-  commentsCount: number;
+  topicsCount: number;
   proposalsCount: number;
+  votesCount: number;
+  postsCount: number;
   resultCard: React.ReactNode | null;
 }
 
@@ -25,9 +27,7 @@ interface GroupListProps {
 
 export function GroupList({ groups }: GroupListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<
-    'all' | 'active' | 'proposals' | 'discussions'
-  >('all');
+  const [filter, setFilter] = useState<'all' | 'active'>('all');
 
   const filteredGroups = useMemo(() => {
     let filtered = groups;
@@ -47,14 +47,6 @@ export function GroupList({ groups }: GroupListProps) {
       case 'active':
         filtered = filtered.filter((group) => group.hasActiveProposal);
         break;
-      case 'proposals':
-        filtered = filtered.filter((group) => group.proposalsCount > 0);
-        break;
-      case 'discussions':
-        filtered = filtered.filter(
-          (group) => !group.hasActiveProposal && group.proposalsCount === 0
-        );
-        break;
     }
 
     return filtered;
@@ -64,7 +56,7 @@ export function GroupList({ groups }: GroupListProps) {
     <div className='flex flex-col gap-6'>
       {/* Search and Filter Bar */}
       <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-        <div className='relative w-full sm:w-64'>
+        <div className='relative w-full sm:w-1/2'>
           <div className='relative flex items-center'>
             <Search className='absolute left-3 h-5 w-5 text-neutral-400' />
             <input
@@ -97,26 +89,6 @@ export function GroupList({ groups }: GroupListProps) {
             }`}
           >
             Active
-          </button>
-          <button
-            onClick={() => setFilter('proposals')}
-            className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-              filter === 'proposals'
-                ? 'bg-blue-700 text-white dark:bg-blue-700 dark:text-white'
-                : 'bg-neutral-100 text-blue-700 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-blue-400 dark:hover:bg-neutral-600'
-            }`}
-          >
-            Proposals
-          </button>
-          <button
-            onClick={() => setFilter('discussions')}
-            className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-              filter === 'discussions'
-                ? 'bg-neutral-800 text-white dark:bg-neutral-600 dark:text-white'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600'
-            }`}
-          >
-            Discussions
           </button>
         </div>
       </div>

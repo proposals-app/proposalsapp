@@ -37,7 +37,7 @@ async function ProfilePage() {
           {session && (
             <div className='flex h-full w-full flex-col md:flex-row'>
               {/* Sidebar */}
-              <aside className='w-full bg-neutral-200 p-4 md:h-full md:w-1/4 md:min-w-[250px] dark:bg-neutral-800'>
+              <aside className='w-full bg-neutral-200 p-4 md:h-full md:w-1/5 md:min-w-[250px] dark:bg-neutral-800'>
                 <div className='mt-4 w-full px-4 text-center md:mt-8 md:px-0'>
                   <h2 className='mb-2 text-xl font-semibold text-neutral-800 dark:text-neutral-100'>
                     Welcome back,
@@ -49,7 +49,7 @@ async function ProfilePage() {
               </aside>
 
               {/* Main content area */}
-              <main className='h-full w-full overflow-y-auto p-4 pb-16 md:w-3/4 md:px-8 lg:px-16'>
+              <main className='h-full w-full overflow-y-auto p-4 pb-16 md:w-4/5 md:px-8 lg:px-16'>
                 <div id='notifications'>
                   <UserSettings session={session} />
                 </div>

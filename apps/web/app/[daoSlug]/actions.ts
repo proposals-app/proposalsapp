@@ -13,6 +13,7 @@ import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
 import { revalidatePath } from 'next/cache';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
+import { cache } from 'react';
 
 export async function markAllAsRead(daoSlug: string) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -106,18 +107,41 @@ export async function getGroups(daoSlug: string, userId?: string) {
     proposalItems.length > 0
       ? await dbIndexer
           .selectFrom('proposal')
-          .selectAll()
+          .leftJoin('vote', 'vote.proposalId', 'proposal.id')
+          .select([
+            'proposal.id',
+            'proposal.externalId',
+            'proposal.name',
+            'proposal.body',
+            'proposal.url',
+            'proposal.discussionUrl',
+            'proposal.choices',
+            'proposal.quorum',
+            'proposal.proposalState',
+            'proposal.markedSpam',
+            'proposal.createdAt',
+            'proposal.startAt',
+            'proposal.endAt',
+            'proposal.blockCreatedAt',
+            'proposal.txid',
+            'proposal.metadata',
+            'proposal.daoId',
+            'proposal.author',
+            'proposal.governorId',
+            dbIndexer.fn.count('vote.id').as('voteCount'),
+          ])
           .where((eb) =>
             eb.or(
               proposalItems.map((item) =>
-                eb('externalId', '=', item.externalId).and(
-                  'governorId',
+                eb('vote.proposalExternalId', '=', item.externalId).and(
+                  'vote.governorId',
                   '=',
                   item.governorId
                 )
               )
             )
           )
+          .groupBy(['proposal.id'])
           .execute()
       : [];
 
@@ -142,7 +166,10 @@ export async function getGroups(daoSlug: string, userId?: string) {
       : [];
 
   // Create a map for faster lookup
-  const proposalsMap = new Map<string, Selectable<Proposal>>();
+  const proposalsMap = new Map<
+    string,
+    Selectable<Proposal> & { voteCount: string | number | bigint }
+  >();
   proposals.forEach((proposal) => {
     proposalsMap.set(`${proposal.externalId}-${proposal.governorId}`, proposal);
   });
@@ -170,7 +197,11 @@ export async function getGroups(daoSlug: string, userId?: string) {
     const items = group.items as ProposalGroupItem[];
     let newestItemTimestamp = 0;
     let hasActiveProposal = false;
-    let earliestEndTime = Infinity; // Add this to track the earliest end time
+    let earliestEndTime = Infinity;
+
+    // Initialize group-specific counters
+    let groupVotesCount = 0;
+    let groupPostsCount = 0;
 
     for (const item of items) {
       let itemTimestamp = 0;
@@ -180,6 +211,9 @@ export async function getGroups(daoSlug: string, userId?: string) {
         );
         if (proposal) {
           itemTimestamp = new Date(proposal.createdAt).getTime();
+          // Add votes for this specific proposal to the group total
+          groupVotesCount += Number(proposal.voteCount);
+
           // Check if proposal is active
           if (proposal.endAt && new Date(proposal.endAt).getTime() > now) {
             hasActiveProposal = true;
@@ -196,6 +230,8 @@ export async function getGroups(daoSlug: string, userId?: string) {
         );
         if (topic) {
           itemTimestamp = new Date(topic.bumpedAt).getTime();
+          // Add posts for this specific topic to the group total
+          groupPostsCount += Number(topic.postsCount);
         }
       }
       newestItemTimestamp = Math.max(newestItemTimestamp, itemTimestamp);
@@ -211,7 +247,8 @@ export async function getGroups(daoSlug: string, userId?: string) {
 
     return {
       ...group,
-      newestItemTimestamp,
+      votesCount: groupVotesCount,
+      postsCount: groupPostsCount,
       newestActivityTimestamp: newestItemTimestamp,
       hasNewActivity,
       hasActiveProposal,
@@ -420,3 +457,59 @@ export async function getGroupHeader(groupId: string): Promise<{
     groupName: group.name,
   };
 }
+
+const ARBITRUM_COINGECKO_ID = 'arbitrum';
+
+const fetchDataWithCache = cache(async (url: string) => {
+  const res = await fetch(url, { next: { revalidate: 3600 } }); // 1 hour cache
+  if (!res.ok) {
+    console.error('Failed to fetch data:', res.status, res.statusText, url);
+    return null; // Or throw error if you prefer
+  }
+  return res.json();
+});
+
+async function fetchTokenData(coingeckoId: string) {
+  const url = `https://api.coingecko.com/api/v3/coins/${coingeckoId}`;
+  return fetchDataWithCache(url);
+}
+
+async function fetchMarketChartData(coingeckoId: string) {
+  const url = `https://api.coingecko.com/api/v3/coins/${coingeckoId}/market_chart?vs_currency=usd&days=1`; // Just to get current price
+  return fetchDataWithCache(url);
+}
+
+export const getTokenPrice = async (daoSlug: string) => {
+  if (daoSlug !== 'arbitrum') return null; // For now, only Arbitrum
+  try {
+    const data = await fetchMarketChartData(ARBITRUM_COINGECKO_ID);
+    if (data && data.prices && data.prices.length > 0) {
+      const latestPrice = data.prices[data.prices.length - 1][1];
+      return latestPrice;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching token price:', error);
+    return null;
+  }
+};
+
+export const getMarketCap = async (daoSlug: string) => {
+  if (daoSlug !== 'arbitrum') return null; // For now, only Arbitrum
+  try {
+    const data = await fetchTokenData(ARBITRUM_COINGECKO_ID);
+    if (data && data.market_data && data.market_data.market_cap.usd) {
+      return data.market_data.market_cap.usd;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching market cap:', error);
+    return null;
+  }
+};
+
+export const getTreasuryBalance = async (daoSlug: string) => {
+  if (daoSlug !== 'arbitrum') return null; // For now, only Arbitrum
+
+  return 1048651116.24;
+};
