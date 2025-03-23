@@ -3,6 +3,7 @@
 import { markAllAsRead } from '../actions';
 import { useParams, useRouter } from 'next/navigation';
 import { useTransition } from 'react';
+import { Check } from 'lucide-react';
 
 export const MarkAllAsReadButton = () => {
   const router = useRouter();
@@ -21,9 +22,10 @@ export const MarkAllAsReadButton = () => {
     <button
       onClick={handleMarkAllAsRead}
       disabled={isPending}
-      className='border-neutral-350 dark:border-neutral-650 border bg-neutral-200 px-2 py-1 text-sm text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
+      className='flex items-center gap-2 border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600'
     >
-      {isPending ? 'Marking all as read...' : 'Mark all as read'}
+      <Check className='h-4 w-4' />
+      {isPending ? 'Marking as read...' : 'Mark all as read'}
     </button>
   );
 };
