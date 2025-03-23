@@ -13,7 +13,6 @@ import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
 import { revalidatePath } from 'next/cache';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
-import { cache } from 'react';
 
 export async function markAllAsRead(daoSlug: string) {
   const session = await auth.api.getSession({ headers: await headers() });
