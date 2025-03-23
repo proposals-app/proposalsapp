@@ -35,15 +35,15 @@ export function DaoSummaryHeader({
     {
       value: totalProposalsCount,
       label: 'Proposals',
-      colorClass: 'text-blue-700 dark:text-blue-400',
-      bgClass: 'bg-blue-50 dark:bg-blue-900/20',
+      colorClass: 'text-amber-700 dark:text-amber-400',
+      bgClass: 'bg-amber-50 dark:bg-amber-900/20',
       format: (v: number) => v,
     },
     {
       value: totalTopicsCount,
       label: 'Discussions',
-      colorClass: 'text-neutral-800 dark:text-neutral-200',
-      bgClass: 'bg-neutral-100 dark:bg-neutral-800/50',
+      colorClass: 'text-sky-800 dark:text-sky-200',
+      bgClass: 'bg-sky-100 dark:bg-sky-800/50',
       format: (v: number) => v,
     },
   ];
@@ -52,22 +52,22 @@ export function DaoSummaryHeader({
     {
       value: tokenPrice,
       label: 'Token Price',
-      colorClass: 'text-purple-700 dark:text-purple-400',
-      bgClass: 'bg-purple-50 dark:bg-purple-900/20',
+      colorClass: 'text-blue-700 dark:text-blue-400',
+      bgClass: 'bg-blue-50 dark:bg-blue-900/20',
       format: (v: number) => `$${v.toFixed(2)}`,
     },
     {
       value: marketCap,
       label: 'Market Cap',
-      colorClass: 'text-orange-700 dark:text-orange-400',
-      bgClass: 'bg-orange-50 dark:bg-orange-900/20',
+      colorClass: 'text-blue-700 dark:text-blue-400',
+      bgClass: 'bg-blue-50 dark:bg-blue-900/20',
       format: (v: number) => `$${formatNumberWithSuffix(v)}`,
     },
     {
       value: treasuryBalance,
       label: 'Treasury',
-      colorClass: 'text-teal-700 dark:text-teal-400',
-      bgClass: 'bg-teal-50 dark:bg-teal-900/20',
+      colorClass: 'text-blue-700 dark:text-blue-400',
+      bgClass: 'bg-blue-50 dark:bg-blue-900/20',
       format: (v: number) => `$${formatNumberWithSuffix(v)}`,
     },
   ];
