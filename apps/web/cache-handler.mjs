@@ -1,5 +1,9 @@
 // @ts-check
 import { createClient } from 'redis';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Configure Redis client
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
