@@ -32,7 +32,7 @@ export function DiscussionGroupItem({ group }: DiscussionGroupItemProps) {
     >
       <div className='flex flex-col gap-2 sm:gap-3'>
         <div className='flex items-start justify-between'>
-          <div className='flex max-w-[60%] items-center gap-2 sm:max-w-3/4'>
+          <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
             <div className='relative flex min-h-[32px] min-w-[32px] items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 sm:min-h-[40px] sm:min-w-[40px] dark:border-neutral-300'>
               <Image
                 src={group.authorAvatarUrl}

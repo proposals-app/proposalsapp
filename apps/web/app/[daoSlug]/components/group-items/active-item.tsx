@@ -54,9 +54,9 @@ export async function ActiveGroupItem({ group }: ActiveGroupItemProps) {
       className='group block rounded-xs border border-neutral-200 bg-white p-4 hover:bg-neutral-200/50 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800'
       prefetch={true}
     >
-      <div className='flex flex-col gap-2 sm:gap-3'>
+      <div className='flex flex-col gap-1 sm:gap-2'>
         <div className='flex items-start justify-between'>
-          <div className='flex max-w-[60%] items-center gap-2 sm:max-w-3/4'>
+          <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
             <div className='relative flex min-h-[32px] min-w-[32px] items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 sm:min-h-[40px] sm:min-w-[40px] dark:border-neutral-300'>
               <Image
                 src={group.authorAvatarUrl}

@@ -85,15 +85,16 @@ export function DaoSummaryHeader({
       className={`flex h-full flex-col items-center justify-center p-4 text-center ${metric.bgClass}`}
     >
       {metric.value !== null ? (
-        <span className={`font-bold sm:text-lg ${metric.colorClass}`}>
+        <span className={`font-semibold sm:text-lg ${metric.colorClass}`}>
           {metric.format(metric.value)}
         </span>
       ) : (
-        <span className='font-bold text-neutral-700 sm:text-lg dark:text-neutral-300'>
+        <span className='font-semibold text-neutral-700 sm:text-lg dark:text-neutral-300'>
           N/A
         </span>
       )}
-      <span className='mt-1 text-xs font-medium text-neutral-500 dark:text-neutral-400'>
+
+      <span className='dark:text-neutral-350 mt-1 text-xs font-medium text-neutral-600 sm:text-sm'>
         {metric.label}
       </span>
     </div>
