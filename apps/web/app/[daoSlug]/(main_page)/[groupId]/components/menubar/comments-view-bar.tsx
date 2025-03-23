@@ -2,18 +2,16 @@
 
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
-import {
-  feedFilters,
-  SharedSelectItem,
-  ViewEnum,
-  fromFilters,
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectValue,
-} from './menu-bar';
+import { feedFilters, ViewEnum, fromFilters } from './menu-bar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
 import React from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select';
 
 interface CommentsViewBarProps {
   view: ViewEnum;
@@ -53,24 +51,30 @@ export const CommentsViewBar = ({
 
   return (
     <div
-      className={`fixed top-0 mt-24 hidden w-full max-w-4xl self-center px-2 pb-4 sm:block ${view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed top-0 mt-24 w-full max-w-4xl self-center px-4 pb-4 sm:px-2 ${
+        view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'
+      }`}
     >
-      <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 md:flex-row md:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
-        <div className='flex w-full justify-between'>
-          <button
-            className='flex cursor-pointer items-center gap-4 hover:underline'
-            onClick={() => {
-              setView(ViewEnum.BODY);
-              setExpanded(true);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            aria-label='Read full proposal'
-          >
-            <ArrowSvg width={24} height={24} />
-            <div className='text-sm'>Read Full Proposal</div>
-          </button>
+      <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-3 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 sm:flex-row sm:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
+        <div className='flex w-full flex-col justify-between gap-3 sm:flex-row sm:items-center'>
+          {/* Read Full Proposal Button */}
+          <div className='hidden sm:flex sm:justify-start'>
+            <button
+              className='flex cursor-pointer items-center gap-4 hover:underline'
+              onClick={() => {
+                setView(ViewEnum.BODY);
+                setExpanded(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              aria-label='Read full proposal'
+            >
+              <ArrowSvg width={24} height={24} />
+              <div className='text-sm'>Read Full Proposal</div>
+            </button>
+          </div>
 
-          <div className='flex flex-row items-center space-y-0 space-x-2'>
+          {/* Filters */}
+          <div className='flex flex-row gap-2 self-center sm:items-center sm:space-x-2'>
             {includesProposals ? (
               <Select
                 value={feedFilter}
@@ -80,16 +84,16 @@ export const CommentsViewBar = ({
               >
                 <SelectTrigger
                   aria-label='Select feed filter'
-                  className='w-48 text-sm'
+                  className='w-full text-sm sm:w-48'
                 >
                   <SelectValue>{currentFeedFilter}</SelectValue>
                 </SelectTrigger>
 
                 <SelectContent>
                   {feedFilters.map((filter) => (
-                    <SharedSelectItem key={filter.value} value={filter.value}>
+                    <SelectItem key={filter.value} value={filter.value}>
                       {filter.label}
-                    </SharedSelectItem>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -105,16 +109,16 @@ export const CommentsViewBar = ({
             >
               <SelectTrigger
                 aria-label='Select votes filter'
-                className='w-48 text-sm'
+                className='w-full text-sm sm:w-44'
               >
                 <SelectValue>{currentFromFilter}</SelectValue>
               </SelectTrigger>
 
               <SelectContent>
                 {fromFilters.map((filter) => (
-                  <SharedSelectItem key={filter.value} value={filter.value}>
+                  <SelectItem key={filter.value} value={filter.value}>
                     {filter.label}
-                  </SharedSelectItem>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

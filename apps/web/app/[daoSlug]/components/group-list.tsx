@@ -110,7 +110,7 @@ export function GroupList({ groups }: GroupListProps) {
 
       {/* Groups List */}
       {filteredGroups.length === 0 ? (
-        <div className='flex flex-col items-center justify-center border border-neutral-200 bg-white p-8 text-center dark:border-neutral-700 dark:bg-neutral-800'>
+        <div className='flex flex-col items-center justify-center rounded-xs border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-800/50'>
           <Filter className='mb-2 h-10 w-10 text-neutral-400' />
           <p className='text-lg font-medium text-neutral-800 dark:text-neutral-200'>
             No results found

@@ -58,25 +58,25 @@ export function DaoSummaryHeader({
 
   const financialMetrics: MetricItem[] = [
     {
-      value: tokenPrice ?? 0,
-      label: 'Token Price',
-      colorClass: 'text-blue-700 dark:text-blue-400',
-      bgClass: 'bg-blue-50 dark:bg-blue-900/20',
-      format: (v: number) => `$${v.toFixed(2)}`,
-    },
-    {
       value: totalVp ?? 0,
       label: 'Voting Power',
-      colorClass: 'text-blue-700 dark:text-blue-400',
-      bgClass: 'bg-blue-50 dark:bg-blue-900/20',
+      colorClass: 'text-brand-accent/90',
+      bgClass: 'bg-brand-accent/5 dark:bg-brand-accent/10',
       format: (v: number) => `${formatNumberWithSuffix(v)} ARB`,
     },
     {
       value: treasuryBalance ?? 0,
       label: 'Treasury',
-      colorClass: 'text-blue-700 dark:text-blue-400',
-      bgClass: 'bg-blue-50 dark:bg-blue-900/20',
+      colorClass: 'text-brand-accent/90',
+      bgClass: 'bg-brand-accent/5 dark:bg-brand-accent/10',
       format: (v: number) => `$${formatNumberWithSuffix(v)}`,
+    },
+    {
+      value: tokenPrice ?? 0,
+      label: 'Token Price',
+      colorClass: 'text-brand-accent/90',
+      bgClass: 'bg-brand-accent/5 dark:bg-brand-accent/10',
+      format: (v: number) => `$${v.toFixed(2)}`,
     },
   ];
 

@@ -3,17 +3,15 @@
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useCallback, useEffect, useRef } from 'react';
-import {
-  feedFilters,
-  SharedSelectItem,
-  ViewEnum,
-  fromFilters,
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectValue,
-} from './menu-bar';
+import { feedFilters, ViewEnum, fromFilters } from './menu-bar';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select';
 
 interface FullViewBarProps {
   view: ViewEnum;
@@ -86,38 +84,44 @@ export const FullViewBar = ({
   return (
     <div
       ref={fullViewBarRef}
-      className={`mt-4 w-full min-w-4xl self-center overflow-visible px-2 ${view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'}`}
+      className={`mt-4 w-full min-w-full self-center overflow-visible sm:min-w-4xl sm:px-2 ${
+        view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'
+      }`}
     >
-      <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 md:flex-row md:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
-        <div className='flex w-full justify-between'>
-          {expanded ? (
-            <button
-              className='flex cursor-pointer items-center gap-4 hover:underline'
-              onClick={() => {
-                setView(ViewEnum.FULL);
-                setExpanded(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              aria-label='Collapse proposal'
-            >
-              <ArrowSvg width={24} height={24} />
-              <div className='text-sm'>Collapse Proposal</div>
-            </button>
-          ) : (
-            <button
-              className='flex cursor-pointer items-center gap-4 hover:underline'
-              onClick={() => {
-                setView(ViewEnum.BODY);
-                setExpanded(true);
-              }}
-              aria-label='Read proposal'
-            >
-              <ArrowSvg className='rotate-180' width={24} height={24} />
-              <div className='text-sm'>Read Proposal</div>
-            </button>
-          )}
+      <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-3 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 sm:flex-row sm:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
+        <div className='flex w-full flex-col justify-between gap-3 sm:flex-row sm:items-center'>
+          {/* Collapse/Expand Button */}
+          <div className='hidden justify-between sm:flex sm:justify-start'>
+            {expanded ? (
+              <button
+                className='flex cursor-pointer items-center gap-2 hover:underline sm:gap-4'
+                onClick={() => {
+                  setView(ViewEnum.FULL);
+                  setExpanded(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                aria-label='Collapse proposal'
+              >
+                <ArrowSvg width={20} height={20} />
+                <div className='text-sm'>Collapse Proposal</div>
+              </button>
+            ) : (
+              <button
+                className='flex cursor-pointer items-center gap-2 hover:underline sm:gap-4'
+                onClick={() => {
+                  setView(ViewEnum.BODY);
+                  setExpanded(true);
+                }}
+                aria-label='Read proposal'
+              >
+                <ArrowSvg className='rotate-180' width={20} height={20} />
+                <div className='text-sm'>Read Proposal</div>
+              </button>
+            )}
+          </div>
 
-          <div className='flex flex-row items-center space-y-0 space-x-2'>
+          {/* Filters */}
+          <div className='flex flex-row gap-2 self-center sm:items-center sm:space-x-2'>
             {includesProposals ? (
               <Select
                 value={feedFilter}
@@ -127,16 +131,16 @@ export const FullViewBar = ({
               >
                 <SelectTrigger
                   aria-label='Select feed filter'
-                  className='w-48 text-sm'
+                  className='w-full text-sm sm:w-48'
                 >
                   <SelectValue>{currentFeedFilter}</SelectValue>
                 </SelectTrigger>
 
                 <SelectContent>
                   {feedFilters.map((filter) => (
-                    <SharedSelectItem key={filter.value} value={filter.value}>
+                    <SelectItem key={filter.value} value={filter.value}>
                       {filter.label}
-                    </SharedSelectItem>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -152,16 +156,16 @@ export const FullViewBar = ({
             >
               <SelectTrigger
                 aria-label='Select votes filter'
-                className='w-44 text-sm'
+                className='w-full text-sm sm:w-44'
               >
                 <SelectValue>{currentFromFilter}</SelectValue>
               </SelectTrigger>
 
               <SelectContent>
                 {fromFilters.map((filter) => (
-                  <SharedSelectItem key={filter.value} value={filter.value}>
+                  <SelectItem key={filter.value} value={filter.value}>
                     {filter.label}
-                  </SharedSelectItem>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

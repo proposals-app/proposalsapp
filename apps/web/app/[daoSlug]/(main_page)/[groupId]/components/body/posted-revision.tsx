@@ -2,149 +2,16 @@
 
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useQueryState, parseAsInteger, parseAsBoolean } from 'nuqs';
 import { BodyVersionType } from '../../actions';
-import CheckSvg from '@/public/assets/web/check.svg';
 import React from 'react';
-
-// Custom SelectContext to manage state
-const SelectContext = React.createContext<{
-  isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  selectedValue: number;
-  onSelectValue: (value: number) => void;
-}>({
-  isOpen: false,
-  setIsOpen: () => {},
-  selectedValue: 0,
-  onSelectValue: () => {},
-});
-
-interface SelectProps {
-  value: number;
-  onValueChange: (value: number) => void;
-  children: React.ReactNode;
-}
-
-const Select = ({ value, onValueChange, children }: SelectProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <SelectContext.Provider
-      value={{
-        isOpen,
-        setIsOpen,
-        selectedValue: value,
-        onSelectValue: onValueChange,
-      }}
-    >
-      <div className='relative'>{children}</div>
-    </SelectContext.Provider>
-  );
-};
-
-const SelectTrigger = ({
-  children,
-  className = '',
-  'aria-label': ariaLabel,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  'aria-label'?: string;
-}) => {
-  const { isOpen, setIsOpen } = React.useContext(SelectContext);
-
-  return (
-    <button
-      type='button'
-      aria-haspopup='listbox'
-      aria-expanded={isOpen}
-      aria-label={ariaLabel}
-      className={`flex cursor-pointer items-center rounded-xs px-3 py-1.5 text-sm outline-none ${className}`}
-      onClick={() => setIsOpen(!isOpen)}
-    >
-      {children}
-    </button>
-  );
-};
-
-const SelectContent = ({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => {
-  const { isOpen, setIsOpen } = React.useContext(SelectContext);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        contentRef.current &&
-        !contentRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleOutsideClick);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    };
-  }, [isOpen, setIsOpen]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      ref={contentRef}
-      className={`dark:border-neutral-450 absolute z-[1999] mt-1 overflow-hidden rounded-xs border border-neutral-800 bg-white font-bold will-change-transform dark:bg-neutral-950 ${className}`}
-      role='listbox'
-    >
-      <div className='p-1'>{children}</div>
-    </div>
-  );
-};
-
-interface SelectItemProps {
-  children: React.ReactNode;
-  value: number;
-}
-
-const SelectItem = ({ children, value }: SelectItemProps) => {
-  const { selectedValue, onSelectValue, setIsOpen } =
-    React.useContext(SelectContext);
-  const isSelected = selectedValue === value;
-
-  return (
-    <div
-      role='option'
-      aria-selected={isSelected}
-      className='relative flex w-48 cursor-pointer items-center py-2 pr-10 pl-2 text-sm text-neutral-800 transition-colors will-change-transform outline-none hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800'
-      onClick={() => {
-        onSelectValue(value);
-        setIsOpen(false);
-      }}
-    >
-      <span>{children}</span>
-      {isSelected && (
-        <span className='absolute right-2'>
-          <CheckSvg
-            className='fill-neutral-800 dark:fill-neutral-200'
-            width={24}
-            height={24}
-          />
-        </span>
-      )}
-    </div>
-  );
-};
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from '@/app/components/ui/select';
 
 // Helper component to display the time with a tooltip
 export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
@@ -163,9 +30,10 @@ export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
     parseAsBoolean.withDefault(false)
   );
 
-  const handleVersionSelect = (index: number) => {
-    setSelectedVersionIndex(index);
-    setVersionQuery(index);
+  const handleVersionSelect = (index: string | number) => {
+    const versionIndex = Number(index);
+    setSelectedVersionIndex(versionIndex);
+    setVersionQuery(versionIndex);
     setExpanded(true);
   };
 
@@ -176,9 +44,9 @@ export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
   });
 
   return (
-    <div className='relative bg-white dark:bg-neutral-950'>
+    <div className='relative bg-white px-4 py-1 dark:bg-neutral-950'>
       <Select value={selectedVersionIndex} onValueChange={handleVersionSelect}>
-        <SelectTrigger aria-label='Select version'>
+        <SelectTrigger aria-label='Select version' withChevron={false}>
           <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>
             {' '}
             {/* Added items-start here */}

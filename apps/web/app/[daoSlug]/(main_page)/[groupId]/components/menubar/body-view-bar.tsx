@@ -126,7 +126,9 @@ export const BodyViewBar = ({
             </div>
           </div>
 
-          <div className='flex w-auto items-center justify-end'>
+          <div className='hidden w-auto items-center justify-end sm:flex'>
+            {' '}
+            {/* Hidden on small screens */}
             <div className='flex items-center gap-2'>
               <button
                 onClick={() => {
