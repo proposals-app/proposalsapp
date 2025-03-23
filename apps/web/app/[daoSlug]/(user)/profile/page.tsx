@@ -4,15 +4,8 @@ import { redirect } from 'next/navigation';
 import { LoginForm } from './components/login-form';
 import { UserSettings } from './components/user-settings';
 import { AccountManagement } from './components/account-management';
-import { LogOutIcon } from 'lucide-react';
 import { Suspense } from 'react';
 import { SignOutButton } from './components/sign-out-button';
-
-async function signOut() {
-  'use server';
-  await auth.api.signOut({ headers: await headers() });
-  redirect('/profile');
-}
 
 export default async function Page() {
   return (

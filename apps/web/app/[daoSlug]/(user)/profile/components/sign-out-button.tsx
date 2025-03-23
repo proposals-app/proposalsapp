@@ -5,7 +5,7 @@ import { usePostHog } from 'posthog-js/react';
 import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 
-export const SignOutButton = async () => {
+export const SignOutButton = () => {
   const posthog = usePostHog();
   const router = useRouter();
 
