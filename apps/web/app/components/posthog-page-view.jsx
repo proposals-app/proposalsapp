@@ -3,11 +3,19 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
 import { usePostHog } from 'posthog-js/react';
+import { authClient } from '@/lib/auth-client';
 
 function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const posthog = usePostHog();
+  const { data: session } = authClient.useSession();
+
+  useEffect(() => {
+    if (session.user && posthog) {
+      posthog.identify(session.user.id, { email: session.user.email });
+    }
+  }, [session, posthog]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && posthog && pathname) {

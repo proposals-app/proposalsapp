@@ -4,6 +4,7 @@ import { authClient } from '@/lib/auth-client';
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail } from 'lucide-react';
+import { usePostHog } from 'posthog-js/react';
 
 export const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -14,6 +15,7 @@ export const LoginForm = () => {
   const [isPending, startTransition] = useTransition();
   const otpInputs = useRef<(HTMLInputElement | null)[]>([]);
   const [sentEmail, setSentEmail] = useState(false);
+  const posthog = usePostHog();
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +45,7 @@ export const LoginForm = () => {
     setSignInError('');
     startTransition(async () => {
       const otpCode = otp.join('');
-      const { error: signInError } = await authClient.signIn.emailOtp({
+      const { data, error: signInError } = await authClient.signIn.emailOtp({
         email,
         otp: otpCode,
       });
@@ -51,6 +53,9 @@ export const LoginForm = () => {
       if (signInError) {
         setSignInError('Invalid OTP or email. Please try again.');
       } else {
+        posthog.identify(data.user.id, {
+          email: data.user.email,
+        });
         router.push('/profile');
         router.refresh();
       }

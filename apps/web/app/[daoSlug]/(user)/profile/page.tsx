@@ -6,11 +6,12 @@ import { UserSettings } from './components/user-settings';
 import { AccountManagement } from './components/account-management';
 import { LogOutIcon } from 'lucide-react';
 import { Suspense } from 'react';
+import { SignOutButton } from './components/sign-out-button';
 
 async function signOut() {
   'use server';
   await auth.api.signOut({ headers: await headers() });
-  redirect('/');
+  redirect('/profile');
 }
 
 export default async function Page() {
@@ -54,17 +55,8 @@ async function ProfilePage() {
             </div>
 
             {/* Sign Out Button (Centered) */}
-            <div id='signout' className='flex justify-end'>
-              <form action={signOut}>
-                <button
-                  type='submit'
-                  className='inline-flex items-center justify-center rounded-xs bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 hover:bg-neutral-300 disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
-                >
-                  <LogOutIcon className='mr-2 h-4 w-4' />
-                  Sign out
-                </button>
-              </form>
-            </div>
+
+            <SignOutButton />
           </main>
         )}
       </div>
