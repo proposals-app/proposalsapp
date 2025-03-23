@@ -34,12 +34,12 @@ const nextConfig = {
     ];
   },
   skipTrailingSlashRedirect: true,
-  cacheHandler: resolve('./cache-handler.mjs'),
   experimental: {
     reactCompiler: true,
     viewTransition: true,
     useCache: true,
     dynamicIO: true,
+    cacheHandlers: { default: resolve('./cache-handler.mjs') },
     serverActions: {
       bodySizeLimit: '10mb',
     },
