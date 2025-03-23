@@ -1,6 +1,6 @@
 'use client';
 
-import { authClient } from '@/lib/auth-client';
+import { signIn, emailOtp } from '@/lib/auth-client';
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail } from 'lucide-react';
@@ -22,11 +22,10 @@ export const LoginForm = () => {
     setSignInError('');
     setSentEmail(false);
     startTransition(async () => {
-      const { error: sendOtpError } =
-        await authClient.emailOtp.sendVerificationOtp({
-          email,
-          type: 'sign-in',
-        });
+      const { error: sendOtpError } = await emailOtp.sendVerificationOtp({
+        email,
+        type: 'sign-in',
+      });
 
       if (sendOtpError) {
         setSignInError('Failed to send OTP.');
@@ -45,7 +44,7 @@ export const LoginForm = () => {
     setSignInError('');
     startTransition(async () => {
       const otpCode = otp.join('');
-      const { data, error: signInError } = await authClient.signIn.emailOtp({
+      const { data, error: signInError } = await signIn.emailOtp({
         email,
         otp: otpCode,
       });

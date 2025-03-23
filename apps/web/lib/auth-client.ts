@@ -6,4 +6,4 @@ export const authClient = createAuthClient({
   plugins: [emailOTPClient()],
 });
 
-export type Session = typeof authClient.$Infer.Session;
+export const { signIn, signOut, useSession, emailOtp } = authClient;

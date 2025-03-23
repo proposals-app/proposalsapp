@@ -3,19 +3,23 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
 import { usePostHog } from 'posthog-js/react';
-import { authClient } from '@/lib/auth-client';
+import { useSession } from '@/lib/auth-client';
+
+function PostHogIdentifier() {
+  const posthog = usePostHog();
+  const { data } = useSession();
+
+  useEffect(() => {
+    if (data && data.user && !posthog._isIdentified()) {
+      posthog.identify(data.user.id, { email: data.user.email });
+    }
+  }, [data, posthog._isIdentified()]);
+}
 
 function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const posthog = usePostHog();
-  const { data: session } = authClient.useSession();
-
-  useEffect(() => {
-    if (session.user && posthog) {
-      posthog.identify(session.user.id, { email: session.user.email });
-    }
-  }, [session, posthog]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && posthog && pathname) {
@@ -33,6 +37,7 @@ function PostHogPageView() {
 export default function SuspendedPostHogPageView() {
   return (
     <Suspense>
+      <PostHogIdentifier />
       <PostHogPageView />
     </Suspense>
   );
