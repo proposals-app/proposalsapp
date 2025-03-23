@@ -179,7 +179,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
       </div>
 
       {totalDelegatedVp > 0 && (
-        <div className='mt-4'>
+        <div className='mt-4 hidden sm:block'>
           <div className='border-neutral-80 relative h-2 w-full border'>
             <div
               className='absolute top-0 left-0 h-full bg-neutral-800 dark:bg-neutral-300'

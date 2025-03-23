@@ -79,29 +79,29 @@ export function DaoSummaryHeader({
         <div className='flex w-full flex-col content-between justify-between'>
           {/* Header content */}
           <div className='p-6'>
-            <div className='flex flex-row items-center space-y-0 space-x-8'>
-              <div className='relative flex h-20 w-20 items-center justify-center rounded-full border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800'>
+            <div className='flex flex-row items-center space-y-0 space-x-4 sm:space-x-8'>
+              <div className='relative flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800'>
                 <Image
                   src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
                   alt={daoName || daoSlug}
-                  width={64}
-                  height={64}
+                  width={48}
+                  height={48}
                   className='dark:hidden'
                 />
                 <Image
                   src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}_dark.svg`}
                   alt={daoName || daoSlug}
-                  width={64}
-                  height={64}
+                  width={48}
+                  height={48}
                   className='hidden dark:block'
                 />
               </div>
 
               <div className='flex-1'>
-                <h1 className='text-2xl font-bold text-neutral-800 sm:text-3xl dark:text-neutral-100'>
+                <h1 className='text-xl font-bold text-neutral-800 sm:text-3xl dark:text-neutral-100'>
                   {daoName || daoSlug}
                 </h1>
-                <p className='mt-1.5 text-sm text-neutral-500 dark:text-neutral-400'>
+                <p className='text-xm mt-1.5 text-neutral-500 sm:text-sm dark:text-neutral-400'>
                   Governance discussions and proposals
                 </p>
               </div>

@@ -27,7 +27,7 @@ interface GroupListProps {
 
 export function GroupList({ groups }: GroupListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'active'>('all');
+  const [filter, setFilter] = useState<'all' | 'active' | 'unread'>('all');
 
   const filteredGroups = useMemo(() => {
     let filtered = groups;
@@ -46,6 +46,10 @@ export function GroupList({ groups }: GroupListProps) {
     switch (filter) {
       case 'active':
         filtered = filtered.filter((group) => group.hasActiveProposal);
+        break;
+
+      case 'unread':
+        filtered = filtered.filter((group) => group.hasNewActivity);
         break;
     }
 
@@ -69,13 +73,13 @@ export function GroupList({ groups }: GroupListProps) {
           </div>
         </div>
 
-        <div className='flex flex-wrap gap-2'>
+        <div className='flex flex-wrap gap-2 self-end'>
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-1.5 text-sm font-medium transition-colors ${
               filter === 'all'
-                ? 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-800'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600'
+                ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
+                : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600`
             }`}
           >
             All
@@ -84,11 +88,22 @@ export function GroupList({ groups }: GroupListProps) {
             onClick={() => setFilter('active')}
             className={`px-4 py-1.5 text-sm font-medium transition-colors ${
               filter === 'active'
-                ? 'bg-green-700 text-white dark:bg-green-700 dark:text-white'
-                : 'bg-neutral-100 text-green-700 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-green-400 dark:hover:bg-neutral-600'
+                ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
+                : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600`
             }`}
           >
             Active
+          </button>
+
+          <button
+            onClick={() => setFilter('unread')}
+            className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+              filter === 'unread'
+                ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
+                : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600`
+            }`}
+          >
+            Unread
           </button>
         </div>
       </div>
@@ -139,19 +154,22 @@ export const LoadingGroupList = () => {
 
 export const LoadingGroupItem = () => {
   return (
-    <div className='flex space-x-4 border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-900'>
+    <div className='flex animate-pulse space-x-4 border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-700 dark:bg-neutral-900'>
       {/* Avatar Skeleton */}
-      <div className='h-12 w-12 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
+      <div className='h-12 w-12 rounded-full bg-neutral-200 dark:bg-neutral-700'></div>
 
       <div className='flex w-full flex-col justify-center space-y-2'>
         {/* Group Name Skeleton */}
-        <div className='h-6 w-full max-w-64 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
+        <div className='h-5 w-full max-w-64 bg-neutral-200 dark:bg-neutral-700'></div>
+        {/* Author Name Skeleton */}
+        <div className='h-3 w-48 bg-neutral-200 dark:bg-neutral-700'></div>
         {/* Meta info line (Date, Counts) Skeleton */}
-        <div className='flex flex-wrap gap-2'>
-          <div className='h-4 w-24 animate-pulse bg-neutral-100 dark:bg-neutral-800'></div>
-          <div className='h-4 w-16 animate-pulse bg-neutral-100 dark:bg-neutral-800'></div>
-          <div className='h-4 w-20 animate-pulse bg-neutral-100 dark:bg-neutral-800'></div>
+        <div className='mt-2 flex flex-wrap gap-2'>
+          <div className='h-3 w-16 bg-neutral-200 dark:bg-neutral-700'></div>
+          <div className='h-3 w-16 bg-neutral-200 dark:bg-neutral-700'></div>
         </div>
+        {/* Result Card Skeleton (Optional, if you want to show a placeholder for result card) */}
+        {/* <div className='mt-2 h-8 w-full bg-neutral-200 dark:bg-neutral-700 rounded-md'></div> */}
       </div>
     </div>
   );

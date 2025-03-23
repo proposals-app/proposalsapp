@@ -8,7 +8,19 @@ export function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export const formatNumberWithSuffix = (num: number): string => {
+export const formatNumberWithSuffix = (
+  num: number,
+  compact = false
+): string => {
+  if (compact) {
+    if (num >= 1_000_000) {
+      return `${(num / 1_000_000).toFixed(1)}M`;
+    } else if (num >= 1_000) {
+      return `${(num / 1_000).toFixed(1)}K`;
+    }
+    return num.toString();
+  }
+
   if (num >= 1_000_000_000) {
     return `${(num / 1_000_000_000).toFixed(2)}B`;
   } else if (num >= 1_000_000) {

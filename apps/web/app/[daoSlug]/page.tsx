@@ -12,8 +12,6 @@ import { Suspense } from 'react';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { ActiveGroupItem } from './components/group-items/active-item';
-import Image from 'next/image';
-import { formatNumberWithSuffix } from '@/lib/utils';
 import { DaoSummaryHeader } from './components/dao-summary-header';
 
 export default async function Page({
@@ -22,6 +20,7 @@ export default async function Page({
   params: Promise<{ daoSlug: string }>;
 }) {
   return (
+    // <Loading />
     <Suspense fallback={<Loading />}>
       <DaoPage params={params} />
     </Suspense>
@@ -118,8 +117,6 @@ async function GroupsList({
   const marketCap = await getMarketCap(daoSlug);
   const treasuryBalance = await getTreasuryBalance(daoSlug);
 
-  const DAO_PICTURE_PATH = 'assets/project-logos/arbitrum';
-
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
@@ -156,22 +153,55 @@ function Loading() {
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
         {/* DAO Summary Header Skeleton */}
-        <div className='mb-8 border border-neutral-200 bg-white p-6 dark:border-neutral-700 dark:bg-neutral-800'>
-          <div className='flex flex-col items-start space-y-6 md:flex-row md:items-center md:space-y-0 md:space-x-6'>
-            <div className='h-16 w-16 animate-pulse bg-neutral-200 md:h-20 md:w-20 dark:bg-neutral-700'></div>
+        <div className='mb-8 overflow-hidden border border-neutral-200 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800/50'>
+          <div className='flex w-full flex-row'>
+            {/* Left side - Main content and primary metrics */}
+            <div className='flex w-full flex-col content-between justify-between'>
+              {/* Header content */}
+              <div className='p-6'>
+                <div className='flex flex-row items-center space-y-0 space-x-4 sm:space-x-8'>
+                  <div className='relative flex h-12 w-12 animate-pulse items-center justify-center rounded-full border border-neutral-200 bg-neutral-200 p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-700'></div>
 
-            <div className='w-full md:w-auto'>
-              <div className='h-8 w-64 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
-              <div className='mt-2 h-4 w-48 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
-
-              <div className='mt-4 flex flex-wrap gap-6'>
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div
-                    key={i}
-                    className='h-12 w-16 animate-pulse bg-neutral-200 dark:bg-neutral-700'
-                  ></div>
-                ))}
+                  <div className='flex-1'>
+                    <div className='h-6 w-32 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
+                    <div className='mt-2 h-4 w-32 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
+                    <div className='mt-2 h-4 w-32 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
+                    <div className='mt-2 h-4 w-32 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
+                  </div>
+                </div>
               </div>
+
+              {/* Primary metrics */}
+              <div className='flex w-full items-start'>
+                <div className='mt-auto border-t border-r border-neutral-200 dark:border-neutral-700'>
+                  <div className='flex divide-x divide-neutral-200 dark:divide-neutral-700'>
+                    {['Active', 'Proposals', 'Discussions'].map(
+                      (label, index) => (
+                        <div
+                          key={label}
+                          className={`flex w-1/3 flex-1 flex-col items-center justify-center p-4 text-center ${index % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/20' : 'bg-white dark:bg-neutral-800/50'} animate-pulse`}
+                        >
+                          <div className='mb-1 h-6 w-8 bg-neutral-200 dark:bg-neutral-700'></div>
+                          <div className='h-4 w-12 bg-neutral-200 dark:bg-neutral-700'></div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right side - Financial metrics */}
+            <div className='flex flex-col divide-y divide-neutral-200 border-l border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700'>
+              {['Token Price', 'Market Cap', 'Treasury'].map((label, index) => (
+                <div
+                  key={label}
+                  className={`flex h-1/3 flex-1 flex-col items-center justify-center p-4 ${index % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/20' : 'bg-white dark:bg-neutral-800/50'} animate-pulse`}
+                >
+                  <div className='mb-1 h-6 w-10 bg-neutral-200 dark:bg-neutral-700'></div>
+                  <div className='h-4 w-14 bg-neutral-200 dark:bg-neutral-700'></div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
