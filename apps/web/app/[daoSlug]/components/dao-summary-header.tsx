@@ -107,7 +107,7 @@ export function DaoSummaryHeader({
         {/* Header with profile picture */}
         <div className='p-6'>
           <div className='flex flex-row items-center space-x-4'>
-            <div className='relative flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-800'>
+            <div className='relative flex h-12 w-12 items-center justify-center rounded-full bg-white p-4 dark:bg-neutral-800'>
               <Image
                 src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
                 alt={daoName || daoSlug}

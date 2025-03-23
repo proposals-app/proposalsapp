@@ -3,7 +3,7 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface HeaderClientProps {
   originalAuthorName: string;
@@ -38,9 +38,17 @@ export function HeaderClient({
     };
   }, []);
 
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  }, []);
+
   return (
     <div
-      className={`border-neutral-350 dark:border-neutral-650 fixed top-0 right-0 left-0 z-50 flex h-20 items-center border-b bg-neutral-50 px-3 transition-transform duration-300 sm:px-4 md:left-20 md:px-6 dark:bg-neutral-900 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
+      className={`border-neutral-350 dark:border-neutral-650 fixed top-0 right-0 left-0 z-50 flex h-20 cursor-pointer items-center border-b bg-neutral-50 px-3 transition-transform duration-300 sm:px-4 md:left-20 md:px-6 dark:bg-neutral-900 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
+      onClick={scrollToTop}
     >
       {withBack && (
         <Link
