@@ -29,7 +29,9 @@ COPY libs/ts/visual-dom-diff/ libs/ts/visual-dom-diff/
 
 # Build the project
 ARG DATABASE_URL=postgres://user:password@host:5432/database
+ARG REDIS_URL=redis://default:default@100.100.100.100:6379
 
+ENV REDIS_URL=${REDIS_URL}
 ENV DATABASE_URL=${DATABASE_URL}
 RUN yarn build-web
 
