@@ -14,6 +14,7 @@ import { headers } from 'next/headers';
 import { ActiveGroupItem } from './components/group-items/active-item';
 import Image from 'next/image';
 import { formatNumberWithSuffix } from '@/lib/utils';
+import { DaoSummaryHeader } from './components/dao-summary-header';
 
 export default async function Page({
   params,
@@ -122,105 +123,16 @@ async function GroupsList({
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        {/* DAO Summary Header */}
-        <div className='mb-8 border border-neutral-200 bg-white p-6 dark:border-neutral-700 dark:bg-neutral-800'>
-          <div className='flex flex-col items-start space-y-6 md:flex-row md:items-center md:space-y-0 md:space-x-6'>
-            <div className='flex h-16 w-16 items-center justify-center p-2 md:h-20 md:w-20'>
-              <Image
-                src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
-                alt={daoName || daoSlug}
-                width={64}
-                height={64}
-                className='dark:hidden'
-              />
-              <Image
-                src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}_dark.svg`}
-                alt={daoName || daoSlug}
-                width={64}
-                height={64}
-                className='hidden dark:block'
-              />
-            </div>
-
-            <div>
-              <h1 className='text-2xl font-bold text-neutral-800 sm:text-3xl dark:text-neutral-100'>
-                {daoName || daoSlug}
-              </h1>
-              <p className='mt-1 text-sm text-neutral-500 dark:text-neutral-400'>
-                Governance discussions and proposals
-              </p>
-
-              <div className='mt-4 flex flex-wrap gap-6'>
-                <div className='flex flex-col'>
-                  <span className='text-lg font-bold text-green-700 dark:text-green-400'>
-                    {activeGroupsCount}
-                  </span>
-                  <span className='text-xs text-neutral-500 dark:text-neutral-400'>
-                    Active
-                  </span>
-                </div>
-                <div className='flex flex-col'>
-                  <span className='text-lg font-bold text-blue-700 dark:text-blue-400'>
-                    {totalProposalsCount}
-                  </span>
-                  <span className='text-xs text-neutral-500 dark:text-neutral-400'>
-                    Proposals
-                  </span>
-                </div>
-                <div className='flex flex-col'>
-                  <span className='text-lg font-bold text-neutral-800 dark:text-neutral-200'>
-                    {totalTopicsCount}
-                  </span>
-                  <span className='text-xs text-neutral-500 dark:text-neutral-400'>
-                    Discussions
-                  </span>
-                </div>
-                <div className='flex flex-col'>
-                  {tokenPrice !== null ? (
-                    <span className='text-lg font-bold text-purple-700 dark:text-purple-400'>
-                      ${tokenPrice.toFixed(2)}
-                    </span>
-                  ) : (
-                    <span className='text-lg font-bold text-neutral-700 dark:text-neutral-300'>
-                      N/A
-                    </span>
-                  )}
-                  <span className='text-xs text-neutral-500 dark:text-neutral-400'>
-                    Token Price (ARB)
-                  </span>
-                </div>
-                <div className='flex flex-col'>
-                  {marketCap !== null ? (
-                    <span className='text-lg font-bold text-orange-700 dark:text-orange-400'>
-                      ${formatNumberWithSuffix(marketCap)}
-                    </span>
-                  ) : (
-                    <span className='text-lg font-bold text-neutral-700 dark:text-neutral-300'>
-                      N/A
-                    </span>
-                  )}
-                  <span className='text-xs text-neutral-500 dark:text-neutral-400'>
-                    Market Cap
-                  </span>
-                </div>
-                <div className='flex flex-col'>
-                  {treasuryBalance !== null ? (
-                    <span className='text-lg font-bold text-teal-700 dark:text-teal-400'>
-                      {formatNumberWithSuffix(treasuryBalance)} ARB
-                    </span>
-                  ) : (
-                    <span className='text-lg font-bold text-neutral-700 dark:text-neutral-300'>
-                      N/A
-                    </span>
-                  )}
-                  <span className='text-xs text-neutral-500 dark:text-neutral-400'>
-                    Treasury Balance
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DaoSummaryHeader
+          daoName={daoName}
+          daoSlug={daoSlug}
+          activeGroupsCount={activeGroupsCount}
+          totalProposalsCount={totalProposalsCount}
+          totalTopicsCount={totalTopicsCount}
+          tokenPrice={tokenPrice}
+          marketCap={marketCap}
+          treasuryBalance={treasuryBalance}
+        />
 
         {/* Action Bar */}
         <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
