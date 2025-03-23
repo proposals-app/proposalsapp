@@ -6,13 +6,15 @@ import {
   DiscourseTopic,
   Proposal,
   Selectable,
+  sql,
 } from '@proposalsapp/db-indexer';
 import { ProposalGroupItem } from '@/lib/types';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
-import { revalidatePath } from 'next/cache';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
+import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
+import { revalidateTag } from 'next/cache';
 
 export async function markAllAsRead(daoSlug: string) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -56,12 +58,13 @@ export async function markAllAsRead(daoSlug: string) {
       .execute();
   }
 
-  revalidatePath(`/app/[daoSlug]`);
+  revalidateTag('groups');
 }
 
 export async function getGroups(daoSlug: string, userId?: string) {
   'use cache';
   cacheLife('minutes');
+  cacheTag('groups');
 
   // Fetch the DAO based on the slug
   const dao = await dbIndexer
@@ -272,6 +275,7 @@ export async function getGroups(daoSlug: string, userId?: string) {
 
   return {
     daoName: dao.name,
+    daoId: dao.id,
     groups: groupsWithTimestamps,
   };
 }
@@ -491,36 +495,37 @@ export const getTokenPrice = async (daoSlug: string) => {
   }
 };
 
-export const getMarketCap = async (daoSlug: string) => {
+export async function getTotalVotingPower(daoId: string): Promise<number> {
   'use cache';
   cacheLife('hours');
 
-  if (daoSlug !== 'arbitrum') return null;
+  const result = await dbIndexer
+    .with('latest_voting_power', (db) =>
+      db
+        .selectFrom('votingPower')
+        .select(['voter', sql<string>`MAX(timestamp)`.as('latest_timestamp')])
+        .where('daoId', '=', daoId)
+        .where(
+          'votingPower.voter',
+          '!=',
+          '0x00000000000000000000000000000000000A4B86'
+        )
+        .groupBy('voter')
+    )
+    .selectFrom('votingPower as vp')
+    .innerJoin('latest_voting_power as lvp', (join) =>
+      join
+        .onRef('vp.voter', '=', 'lvp.voter')
+        .on(sql`vp.timestamp`, '=', sql`lvp.latest_timestamp`)
+    )
+    .where('vp.daoId', '=', daoId)
+    .select(
+      sql<number>`COALESCE(SUM(vp.voting_power), 0)`.as('totalVotingPower')
+    )
+    .executeTakeFirst();
 
-  try {
-    const url = `https://api.coingecko.com/api/v3/coins/${ARBITRUM_COINGECKO_ID}`;
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      console.error(
-        'Failed to fetch market cap data:',
-        res.status,
-        res.statusText,
-        url
-      );
-      return null;
-    }
-
-    const data = await res.json();
-    if (data && data.market_data && data.market_data.market_cap.usd) {
-      return data.market_data.market_cap.usd;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error fetching market cap:', error);
-    return null;
-  }
-};
+  return result?.totalVotingPower || 0;
+}
 
 async function fetchBalanceForAddress(address: string): Promise<number> {
   interface TokenBalance {

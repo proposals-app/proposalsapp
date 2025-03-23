@@ -68,7 +68,7 @@ export function GroupList({ groups }: GroupListProps) {
               placeholder='Search by name or author...'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className='w-full border border-neutral-200 bg-white py-2 pr-4 pl-10 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-600'
+              className='w-full rounded-xs border border-neutral-200 bg-white py-2 pr-4 pl-10 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-600'
             />
           </div>
         </div>
@@ -76,7 +76,7 @@ export function GroupList({ groups }: GroupListProps) {
         <div className='flex flex-wrap gap-2 self-end'>
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-xs px-4 py-1.5 text-sm font-medium transition-colors ${
               filter === 'all'
                 ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
                 : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
@@ -86,7 +86,7 @@ export function GroupList({ groups }: GroupListProps) {
           </button>
           <button
             onClick={() => setFilter('active')}
-            className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-xs px-4 py-1.5 text-sm font-medium transition-colors ${
               filter === 'active'
                 ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
                 : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
@@ -97,7 +97,7 @@ export function GroupList({ groups }: GroupListProps) {
 
           <button
             onClick={() => setFilter('unread')}
-            className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-xs px-4 py-1.5 text-sm font-medium transition-colors ${
               filter === 'unread'
                 ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
                 : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
@@ -156,20 +156,18 @@ export const LoadingGroupItem = () => {
   return (
     <div className='flex animate-pulse space-x-4 border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-700 dark:bg-neutral-900'>
       {/* Avatar Skeleton */}
-      <div className='h-12 w-12 rounded-full bg-neutral-200 dark:bg-neutral-700'></div>
+      <div className='h-[32px] w-[32px] rounded-full bg-neutral-200 sm:h-[40px] sm:w-[40px] dark:bg-neutral-700'></div>
 
       <div className='flex w-full flex-col justify-center space-y-2'>
         {/* Group Name Skeleton */}
-        <div className='h-5 w-full max-w-64 bg-neutral-200 dark:bg-neutral-700'></div>
+        <div className='h-5 w-full max-w-[192px] bg-neutral-200 dark:bg-neutral-700'></div>
         {/* Author Name Skeleton */}
-        <div className='h-3 w-48 bg-neutral-200 dark:bg-neutral-700'></div>
+        <div className='h-3 w-4/5 max-w-[128px] bg-neutral-200 dark:bg-neutral-700'></div>
         {/* Meta info line (Date, Counts) Skeleton */}
         <div className='mt-2 flex flex-wrap gap-2'>
-          <div className='h-3 w-16 bg-neutral-200 dark:bg-neutral-700'></div>
+          <div className='h-3 w-12 bg-neutral-200 dark:bg-neutral-700'></div>
           <div className='h-3 w-16 bg-neutral-200 dark:bg-neutral-700'></div>
         </div>
-        {/* Result Card Skeleton (Optional, if you want to show a placeholder for result card) */}
-        {/* <div className='mt-2 h-8 w-full bg-neutral-200 dark:bg-neutral-700 rounded-md'></div> */}
       </div>
     </div>
   );

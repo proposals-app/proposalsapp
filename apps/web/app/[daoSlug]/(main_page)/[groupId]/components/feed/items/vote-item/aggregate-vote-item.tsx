@@ -52,54 +52,8 @@ export async function AggregateVoteItem({
 
   const choiceDisplay = getAggregatedChoiceDisplay();
 
-  // Determine if this is approval voting or similar
-  const isApprovalStyle =
-    item.choice &&
-    item.choice.length > 1 &&
-    item.choice.every((c) => c.weight === 100);
-
-  // Calculate total height for the color bar
-  const colorBarHeight = isApprovalStyle
-    ? `${item.choice.length * 2}px`
-    : '2px';
-
-  // Calculate the bar width based on relative voting power
-  const barWidth = `${(item.relativeVotingPower || 0) * 100}%`;
-
   return (
-    <div className='flex w-full flex-col gap-2 opacity-50'>
-      {/* Color bar implementation similar to VoteItem */}
-      <div
-        className='mb-2 w-full'
-        style={{
-          width: barWidth,
-          height: colorBarHeight,
-        }}
-      >
-        {item.choice && item.choice.length > 0 && (
-          <div className='flex h-full w-full flex-wrap'>
-            {item.choice.map((choiceItem, idx) => {
-              // If approval style voting (multiple 100% weights), each takes full width
-              // Otherwise, width is proportional to weight
-              const itemWidth = isApprovalStyle
-                ? '100%'
-                : `${choiceItem.weight}%`;
-
-              return (
-                <div
-                  key={idx}
-                  className='h-2'
-                  style={{
-                    width: itemWidth,
-                    backgroundColor: choiceItem.color,
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
-
+    <div className='flex w-full flex-col gap-2 py-4 opacity-50'>
       <div className='flex cursor-default flex-row justify-between select-none'>
         <VoterAuthor
           voterAddress={'Multiple voters'}

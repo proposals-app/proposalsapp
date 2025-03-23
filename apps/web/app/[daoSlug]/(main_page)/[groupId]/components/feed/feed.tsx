@@ -43,7 +43,7 @@ export async function Feed({
   });
 
   return (
-    <div className='flex w-full flex-col gap-8'>
+    <div className='flex w-full flex-col'>
       {combinedItems.map((item, index) => {
         if (item.type === 'post') {
           return (
@@ -64,7 +64,7 @@ export async function Feed({
           return (
             <div
               key={index}
-              className='border-b border-neutral-200 py-4 dark:border-neutral-800'
+              className='border-b border-neutral-200 dark:border-neutral-800'
             >
               <div className='flex w-full flex-col'>
                 {item.aggregate ? (

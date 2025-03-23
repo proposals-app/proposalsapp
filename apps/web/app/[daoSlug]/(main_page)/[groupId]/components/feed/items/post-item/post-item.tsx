@@ -76,7 +76,7 @@ export async function PostItem({
   const isPostDeleted = item.deleted;
 
   return (
-    <div id={postAnchorId} className='w-full scroll-mt-36'>
+    <div id={postAnchorId} className='w-full scroll-mt-36 py-4'>
       {isPostDeleted ? (
         // Show the full details/summary UI for deleted posts
         <details className='w-full'>

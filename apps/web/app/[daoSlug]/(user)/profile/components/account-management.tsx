@@ -69,7 +69,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
   };
 
   return (
-    <div className='w-full py-4 sm:py-6 md:py-10'>
+    <div className='w-full'>
       <h1 className='mb-4 text-2xl font-bold sm:mb-6 sm:text-3xl'>
         Account Management
       </h1>
@@ -124,7 +124,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
         </div>
       )}
 
-      <div className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 shadow-sm dark:bg-neutral-950'>
+      <div className='border-neutral-350 dark:border-neutral-650 rounded-xs border bg-neutral-50 shadow-sm dark:bg-neutral-950'>
         <div className='px-4 pt-4 pb-2 sm:px-6 sm:pt-6'>
           <h2 className='text-base font-semibold text-neutral-900 sm:text-lg dark:text-neutral-100'>
             Email Address
@@ -160,12 +160,12 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder='Enter your new email address'
-                  className='w-full border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100'
+                  className='w-full rounded-xs border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100'
                 />
                 <button
                   onClick={handleChangeEmail}
                   disabled={isChangingEmail || !newEmail.trim()}
-                  className='inline-flex items-center justify-center bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
+                  className='inline-flex items-center justify-center rounded-xs bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
                 >
                   {isChangingEmail && (
                     <RefreshCw className='mr-1 h-3 w-3 animate-spin sm:mr-2 sm:h-4 sm:w-4' />
@@ -178,7 +178,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
         </div>
       </div>
 
-      <div className='border-neutral-350 dark:border-neutral-650 mt-6 border bg-neutral-50 shadow-sm sm:mt-8 dark:bg-neutral-950'>
+      <div className='border-neutral-350 dark:border-neutral-650 mt-6 rounded-xs border bg-neutral-50 shadow-sm sm:mt-8 dark:bg-neutral-950'>
         <div className='px-4 pt-4 pb-2 sm:px-6 sm:pt-6'>
           <h2 className='text-base font-semibold text-neutral-900 sm:text-lg dark:text-neutral-100'>
             Delete Account
@@ -200,12 +200,12 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
               {!showConfirmDelete ? (
                 <button
                   onClick={() => setShowConfirmDelete(true)}
-                  className='inline-flex items-center justify-center bg-red-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-red-700 transition-colors hover:bg-red-200 focus:outline-none sm:px-4 sm:py-2 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30'
+                  className='inline-flex items-center justify-center rounded-xs bg-red-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-red-700 transition-colors hover:bg-red-200 focus:outline-none sm:px-4 sm:py-2 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30'
                 >
                   Delete Account
                 </button>
               ) : (
-                <div className='space-y-3 bg-red-50 p-3 sm:space-y-4 sm:p-4 dark:bg-red-900/10'>
+                <div className='space-y-3 rounded-xs bg-red-50 p-3 sm:space-y-4 sm:p-4 dark:bg-red-900/10'>
                   <p className='text-sm font-medium text-red-800 dark:text-red-200'>
                     Are you sure you want to delete your account? This action
                     cannot be undone.
@@ -214,7 +214,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
                     <button
                       onClick={handleDeleteAccount}
                       disabled={isDeleting}
-                      className='inline-flex items-center justify-center bg-red-600 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-red-700 focus:outline-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-red-700 dark:hover:bg-red-600'
+                      className='inline-flex items-center justify-center rounded-xs bg-red-600 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-red-700 disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-red-700 dark:hover:bg-red-600'
                     >
                       {isDeleting && (
                         <RefreshCw className='mr-1 h-3 w-3 animate-spin sm:mr-2 sm:h-4 sm:w-4' />
@@ -224,7 +224,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
                     <button
                       onClick={() => setShowConfirmDelete(false)}
                       disabled={isDeleting}
-                      className='inline-flex items-center justify-center bg-neutral-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-200 focus:outline-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+                      className='focu inline-flex items-center justify-center rounded-xs bg-neutral-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-200 disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
                     >
                       Cancel
                     </button>

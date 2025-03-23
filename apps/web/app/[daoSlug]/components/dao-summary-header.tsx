@@ -8,7 +8,7 @@ interface DaoSummaryHeaderProps {
   totalProposalsCount: number;
   totalTopicsCount: number;
   tokenPrice: number | null;
-  marketCap: number | null;
+  totalVp: number | null;
   treasuryBalance: number | null;
 }
 
@@ -19,52 +19,60 @@ export function DaoSummaryHeader({
   totalProposalsCount,
   totalTopicsCount,
   tokenPrice,
-  marketCap,
+  totalVp,
   treasuryBalance,
 }: DaoSummaryHeaderProps) {
   const DAO_PICTURE_PATH = 'assets/project-logos/arbitrum';
 
-  const primaryMetrics = [
+  interface MetricItem {
+    value: number;
+    label: string;
+    colorClass: string;
+    bgClass: string;
+    format: (v: number) => string | number;
+  }
+
+  const primaryMetrics: MetricItem[] = [
     {
       value: activeGroupsCount,
       label: 'Active',
       colorClass: 'text-green-700 dark:text-green-400',
       bgClass: 'bg-green-50 dark:bg-green-900/20',
-      format: (v: number) => v,
+      format: (v: number) => v.toString(),
     },
     {
       value: totalProposalsCount,
       label: 'Proposals',
       colorClass: 'text-amber-700 dark:text-amber-400',
       bgClass: 'bg-amber-50 dark:bg-amber-900/20',
-      format: (v: number) => v,
+      format: (v: number) => v.toString(),
     },
     {
       value: totalTopicsCount,
       label: 'Discussions',
       colorClass: 'text-sky-800 dark:text-sky-200',
       bgClass: 'bg-sky-100 dark:bg-sky-800/50',
-      format: (v: number) => v,
+      format: (v: number) => v.toString(),
     },
   ];
 
-  const financialMetrics = [
+  const financialMetrics: MetricItem[] = [
     {
-      value: tokenPrice,
+      value: tokenPrice ?? 0,
       label: 'Token Price',
       colorClass: 'text-blue-700 dark:text-blue-400',
       bgClass: 'bg-blue-50 dark:bg-blue-900/20',
       format: (v: number) => `$${v.toFixed(2)}`,
     },
     {
-      value: marketCap,
-      label: 'Market Cap',
+      value: totalVp ?? 0,
+      label: 'Voting Power',
       colorClass: 'text-blue-700 dark:text-blue-400',
       bgClass: 'bg-blue-50 dark:bg-blue-900/20',
-      format: (v: number) => `$${formatNumberWithSuffix(v)}`,
+      format: (v: number) => `${formatNumberWithSuffix(v)} ARB`,
     },
     {
-      value: treasuryBalance,
+      value: treasuryBalance ?? 0,
       label: 'Treasury',
       colorClass: 'text-blue-700 dark:text-blue-400',
       bgClass: 'bg-blue-50 dark:bg-blue-900/20',
@@ -72,93 +80,139 @@ export function DaoSummaryHeader({
     },
   ];
 
+  const renderMetric = (metric: MetricItem) => (
+    <div
+      className={`flex h-full flex-col items-center justify-center p-4 text-center ${metric.bgClass}`}
+    >
+      {metric.value !== null ? (
+        <span className={`font-bold sm:text-lg ${metric.colorClass}`}>
+          {metric.format(metric.value)}
+        </span>
+      ) : (
+        <span className='font-bold text-neutral-700 sm:text-lg dark:text-neutral-300'>
+          N/A
+        </span>
+      )}
+      <span className='mt-1 text-xs font-medium text-neutral-500 dark:text-neutral-400'>
+        {metric.label}
+      </span>
+    </div>
+  );
+
   return (
-    <div className='mb-8 overflow-hidden border border-neutral-200 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800/50'>
-      <div className='flex w-full flex-row'>
-        {/* Left side - Main content and primary metrics */}
-        <div className='flex w-full flex-col content-between justify-between'>
-          {/* Header content */}
-          <div className='p-6'>
-            <div className='flex flex-row items-center space-y-0 space-x-4 sm:space-x-8'>
-              <div className='relative flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-800'>
+    <div className='mb-8 overflow-hidden rounded-xs border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800/50'>
+      {/* Mobile layout */}
+      <div className='block md:hidden'>
+        {/* Header with profile picture */}
+        <div className='p-6'>
+          <div className='flex flex-row items-center space-x-4'>
+            <div className='relative flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-800'>
+              <Image
+                src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
+                alt={daoName || daoSlug}
+                fill={true}
+                className='dark:hidden'
+              />
+              <Image
+                src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}_dark.svg`}
+                alt={daoName || daoSlug}
+                fill={true}
+                className='hidden dark:block'
+              />
+            </div>
+
+            <div className='flex-1'>
+              <h1 className='text-xl font-bold text-neutral-800 dark:text-neutral-100'>
+                {daoName || daoSlug}
+              </h1>
+              <p className='text-xm mt-1.5 text-neutral-500 dark:text-neutral-400'>
+                Governance discussions and proposals
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Primary metrics row */}
+        <div className='grid grid-cols-3 border-t border-neutral-200 dark:border-neutral-700'>
+          {primaryMetrics.map((metric, index) => (
+            <div
+              key={metric.label}
+              className={`${index !== 0 ? 'border-l border-neutral-200 dark:border-neutral-700' : ''}`}
+            >
+              {renderMetric(metric)}
+            </div>
+          ))}
+        </div>
+
+        {/* Financial metrics row */}
+        <div className='grid grid-cols-3 border-t border-neutral-200 dark:border-neutral-700'>
+          {financialMetrics.map((metric, index) => (
+            <div
+              key={metric.label}
+              className={`${index !== 0 ? 'h-full border-l border-neutral-200 dark:border-neutral-700' : 'h-full'}`}
+            >
+              {renderMetric(metric)}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop layout (hidden on mobile) */}
+      <div className='hidden md:block'>
+        <div className='grid grid-cols-5 grid-rows-3'>
+          {/* Profile picture, name and description (spans col 1-3, rows 1-2) */}
+          <div className='col-span-3 row-span-2 p-6'>
+            <div className='flex flex-row items-center space-x-8'>
+              <div className='relative flex h-16 w-16 items-center justify-center rounded-full border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-800'>
                 <Image
                   src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
                   alt={daoName || daoSlug}
-                  width={48}
-                  height={48}
+                  fill={true}
                   className='dark:hidden'
                 />
                 <Image
                   src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}_dark.svg`}
                   alt={daoName || daoSlug}
-                  width={48}
-                  height={48}
+                  fill={true}
                   className='hidden dark:block'
                 />
               </div>
 
               <div className='flex-1'>
-                <h1 className='text-xl font-bold text-neutral-800 sm:text-3xl dark:text-neutral-100'>
+                <h1 className='text-3xl font-bold text-neutral-800 dark:text-neutral-100'>
                   {daoName || daoSlug}
                 </h1>
-                <p className='text-xm mt-1.5 text-neutral-500 sm:text-sm dark:text-neutral-400'>
+                <p className='mt-1.5 text-sm text-neutral-500 dark:text-neutral-400'>
                   Governance discussions and proposals
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Primary metrics */}
-          <div className='flex w-full items-start'>
-            <div className='mt-auto border-t border-r border-neutral-200 dark:border-neutral-700'>
-              <div className='flex divide-x divide-neutral-200 dark:divide-neutral-700'>
-                {primaryMetrics.map((metric) => (
-                  <div
-                    key={metric.label}
-                    className={`flex w-1/3 flex-1 flex-col items-center justify-center p-4 text-center ${metric.bgClass}`}
-                  >
-                    {metric.value !== null ? (
-                      <span
-                        className={`text-lg font-bold ${metric.colorClass}`}
-                      >
-                        {metric.format(metric.value)}
-                      </span>
-                    ) : (
-                      <span className='text-lg font-bold text-neutral-700 dark:text-neutral-300'>
-                        N/A
-                      </span>
-                    )}
-                    <span className='mt-1 text-center text-xs font-medium text-neutral-500 dark:text-neutral-400'>
-                      {metric.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+          {/* Column 4 is empty and auto-adjusts - no border */}
+          <div className='col-start-4 col-end-5 row-span-3'></div>
 
-        {/* Right side - Financial metrics */}
-        <div className='flex flex-col divide-y divide-neutral-200 border-l border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700'>
-          {financialMetrics.map((metric) => (
-            <div
-              key={metric.label}
-              className={`flex h-1/3 flex-1 flex-col items-center justify-center p-4 ${metric.bgClass}`}
-            >
-              {metric.value !== null ? (
-                <span className={`text-lg font-bold ${metric.colorClass}`}>
-                  {metric.format(metric.value)}
-                </span>
-              ) : (
-                <span className='text-lg font-bold text-neutral-700 dark:text-neutral-300'>
-                  N/A
-                </span>
-              )}
-              <span className='mt-1 text-center text-xs font-medium text-neutral-500 dark:text-neutral-400'>
-                {metric.label}
-              </span>
-            </div>
-          ))}
+          {/* Financial metrics in column 5 */}
+          <div className='col-start-5 col-end-6 row-start-1 row-end-2 border-b border-l border-neutral-200 dark:border-neutral-700'>
+            {renderMetric(financialMetrics[0])} {/* Token Price */}
+          </div>
+          <div className='col-start-5 col-end-6 row-start-2 row-end-3 border-b border-l border-neutral-200 dark:border-neutral-700'>
+            {renderMetric(financialMetrics[1])} {/* Voting Power */}
+          </div>
+          <div className='col-start-5 col-end-6 row-start-3 row-end-4 border-l border-neutral-200 dark:border-neutral-700'>
+            {renderMetric(financialMetrics[2])} {/* Treasury */}
+          </div>
+
+          {/* Primary metrics in row 3, columns 1-3 */}
+          <div className='col-start-1 col-end-2 row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700'>
+            {renderMetric(primaryMetrics[0])} {/* Active */}
+          </div>
+          <div className='col-start-2 col-end-3 row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700'>
+            {renderMetric(primaryMetrics[1])} {/* Proposals */}
+          </div>
+          <div className='col-start-3 col-end-4 row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700'>
+            {renderMetric(primaryMetrics[2])} {/* Discussions */}
+          </div>
         </div>
       </div>
     </div>

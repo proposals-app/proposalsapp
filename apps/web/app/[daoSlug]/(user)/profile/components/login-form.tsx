@@ -104,7 +104,7 @@ export const LoginForm = () => {
   };
 
   return (
-    <div className='flex w-full flex-col items-center p-4 sm:p-6 md:p-8'>
+    <div className='flex w-full flex-col items-center pt-24'>
       <div className='w-full max-w-sm'>
         <div className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 dark:bg-neutral-950'>
           <div className='flex flex-col space-y-1.5 p-4 sm:p-6'>

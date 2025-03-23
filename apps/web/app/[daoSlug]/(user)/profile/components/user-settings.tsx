@@ -94,14 +94,14 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
   };
 
   return (
-    <div className='w-full py-4 sm:py-6 md:py-10'>
+    <div className='w-full'>
       <div className='mb-4 flex items-center justify-between sm:mb-6'>
         <h1 className='text-2xl font-bold sm:text-3xl'>
           Notification Settings
         </h1>
       </div>
 
-      <div className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 shadow-sm dark:bg-neutral-950'>
+      <div className='border-neutral-350 dark:border-neutral-650 rounded-xs border bg-neutral-50 shadow-sm dark:bg-neutral-950'>
         <div className='px-4 pt-4 pb-2 sm:px-6 sm:pt-6'>
           <h2 className='text-base font-semibold text-neutral-900 sm:text-lg dark:text-neutral-100'>
             Email Notifications
@@ -208,7 +208,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           <button
             onClick={handleSaveSettings}
             disabled={isSaving}
-            className='inline-flex items-center justify-center bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-300 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
+            className='inline-flex items-center justify-center rounded-xs bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-300 disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
           >
             {isSaving && (
               <RefreshCw className='mr-2 h-3 w-3 animate-spin sm:h-4 sm:w-4' />

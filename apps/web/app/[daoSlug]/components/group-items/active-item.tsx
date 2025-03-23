@@ -51,7 +51,7 @@ export async function ActiveGroupItem({ group }: ActiveGroupItemProps) {
   return (
     <Link
       href={`/${group.slug}`}
-      className='group block border-2 border-neutral-200 bg-neutral-100 p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:border-neutral-600 dark:hover:bg-neutral-800'
+      className='group block rounded-xs border border-neutral-200 bg-white p-4 hover:bg-neutral-200/50 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800'
       prefetch={true}
     >
       <div className='flex flex-col gap-2 sm:gap-3'>
@@ -75,14 +75,14 @@ export async function ActiveGroupItem({ group }: ActiveGroupItemProps) {
               </p>
             </div>
           </div>
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-1'>
             {group.hasNewActivity && (
               <div className='relative flex min-h-5 min-w-5 items-center justify-center sm:min-h-6 sm:min-w-6'>
                 <span className='absolute inline-flex h-3 w-3 animate-ping rounded-full bg-green-400 opacity-75'></span>
                 <span className='relative inline-flex h-2 w-2 rounded-full bg-green-500'></span>
               </div>
             )}
-            <span className='dark:text-neutral-350 text-xs font-bold text-neutral-600 select-none sm:text-sm'>
+            <span className='dark:text-neutral-350 text-end text-xs font-bold text-neutral-600 select-none sm:text-sm'>
               {relativeTime}
             </span>
           </div>

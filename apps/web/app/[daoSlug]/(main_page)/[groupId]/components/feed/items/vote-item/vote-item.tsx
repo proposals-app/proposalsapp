@@ -84,7 +84,7 @@ export async function VoteItem({
     : '2px';
 
   return (
-    <div className='flex w-full flex-col gap-2'>
+    <div className='flex w-full flex-col gap-2 py-4'>
       {/* Updated color bar with improved weight handling */}
       <div
         className='mb-2 w-full opacity-30'
