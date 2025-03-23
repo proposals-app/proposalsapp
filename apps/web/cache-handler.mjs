@@ -1,98 +1,190 @@
-import { CacheHandler } from '@neshca/cache-handler';
+// @ts-check
 import { createClient } from 'redis';
-import createLruHandler from '@neshca/cache-handler/local-lru';
-import createRedisHandler from '@neshca/cache-handler/redis-stack';
 
-CacheHandler.onCreation(async () => {
-  const redisClient = await initRedisClient();
-  return {
-    handlers: [createCacheHandler(redisClient)],
-  };
+// Configure Redis client
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const redis = createClient({ url: redisUrl });
+
+// Connect to Redis
+(async () => {
+  await redis.connect();
+  console.log('Redis cache handler connected');
+
+  redis.on('error', (err) => {
+    console.error('Redis cache handler error:', err);
+  });
+})();
+
+// Handle process termination
+process.on('SIGTERM', async () => {
+  await redis.quit();
 });
 
+const TAG_EXPIRATION_PREFIX = 'tag-expiration:';
+const CACHE_PREFIX = 'nextjs-cache:';
+const PENDING_CACHE_PREFIX = 'nextjs-pending-cache:';
+
 /**
- * Initializes and connects to Redis with proper error handling
- * @returns {Promise<import('redis').RedisClientType|null>}
+ * Serializes a ReadableStream to a Buffer
+ * @param {ReadableStream<Uint8Array>} stream
+ * @returns {Promise<Buffer>}
  */
-async function initRedisClient() {
-  if (!process.env.REDIS_URL) {
-    console.warn('REDIS_URL not configured, skipping Redis initialization');
-    return null;
+async function streamToBuffer(stream) {
+  const chunks = [];
+  const reader = stream.getReader();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
   }
 
-  let client;
-  try {
-    client = createClient({
-      url: process.env.REDIS_URL,
-      socket: {
-        connectTimeout: 5000, // 5 second connection timeout
-        reconnectStrategy: (retries) => Math.min(retries * 100, 3000), // Exponential backoff with cap
-      },
-    });
+  return Buffer.concat(chunks);
+}
 
-    // Set up persistent error handling
-    client.on('error', (err) => {
-      console.warn('Redis error:', err.message);
-    });
+/**
+ * Converts a Buffer back to a ReadableStream
+ * @param {Buffer} buffer
+ * @returns {ReadableStream<Uint8Array>}
+ */
+function bufferToStream(buffer) {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(buffer);
+      controller.close();
+    },
+  });
+}
 
-    // Optional: Log reconnection attempts
-    client.on('reconnecting', () => {
-      console.info('Attempting to reconnect to Redis...');
-    });
+/**
+ * @type {import('next/dist/server/lib/cache-handlers/types').CacheHandlerV2}
+ */
+const cacheHandler = {
+  async get(cacheKey) {
+    // console.log('RedisCacheHandler::get', cacheKey);
 
-    console.info('Connecting to Redis...');
-    await Promise.race([
-      client.connect(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Redis connection timeout')), 10000)
-      ),
-    ]);
-
-    console.info('Redis client connected successfully');
-    return client;
-  } catch (error) {
-    console.error('Redis connection failed:', error.message);
-
-    if (client) {
-      try {
-        await client.disconnect();
-        console.info(
-          'Redis client disconnected after failed connection attempt'
-        );
-      } catch (disconnectError) {
-        console.warn(
-          'Failed to disconnect Redis client:',
-          disconnectError.message
-        );
+    // Check if there's a pending entry
+    const isPending = await redis.exists(`${PENDING_CACHE_PREFIX}${cacheKey}`);
+    if (isPending) {
+      // Wait for the pending entry to complete
+      let retries = 0;
+      while (retries < 50) {
+        // Max 5 seconds wait (50 * 100ms)
+        const exists = await redis.exists(`${PENDING_CACHE_PREFIX}${cacheKey}`);
+        if (!exists) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        retries++;
       }
     }
 
-    return null;
-  }
-}
+    const cachedData = await redis.get(`${CACHE_PREFIX}${cacheKey}`);
+    if (!cachedData) return undefined;
 
-/**
- * Creates the appropriate cache handler based on Redis availability
- * @param {import('redis').RedisClientType|null} redisClient
- * @returns {import('@neshca/cache-handler').Handler}
- */
-function createCacheHandler(redisClient) {
-  if (redisClient?.isReady) {
-    console.info('Using Redis cache handler');
-    return createRedisHandler({
-      client: redisClient,
-      keyPrefix: `cache:${process.env.NODE_ENV || 'development'}:`,
-      timeoutMs: 1000,
-      // Optional: Add fallback behavior if Redis operations fail
-      fallbackHandler: createLruHandler({ maxItems: 1000 }),
-    });
-  } else {
-    console.info('Using local LRU cache handler (Redis unavailable)');
-    return createLruHandler({
-      maxItems: 5000,
-      maxAge: 60 * 60 * 1000, // 1 hour in milliseconds
-    });
-  }
-}
+    try {
+      const entry = JSON.parse(cachedData);
+      // Convert serialized buffer back to ReadableStream
+      const valueBuffer = Buffer.from(entry.valueBuffer, 'base64');
+      entry.value = bufferToStream(valueBuffer);
+      // Use optional chaining to avoid type error with delete
+      entry.valueBuffer = undefined;
 
-export default CacheHandler;
+      return entry;
+    } catch (error) {
+      console.error('Error parsing cached data:', error);
+      return undefined;
+    }
+  },
+
+  async set(cacheKey, pendingEntry) {
+    // console.log('RedisCacheHandler::set', cacheKey);
+
+    // Mark this entry as pending
+    await redis.set(`${PENDING_CACHE_PREFIX}${cacheKey}`, '1', { EX: 60 }); // 60s timeout
+
+    try {
+      const entry = await pendingEntry;
+
+      // Serialize the ReadableStream to a buffer
+      const valueBuffer = await streamToBuffer(entry.value);
+
+      // Create a copy of the entry for storage
+      const entryCopy = {
+        ...entry,
+        valueBuffer: valueBuffer.toString('base64'),
+        // Set value to undefined instead of using delete
+        value: undefined,
+      };
+
+      // Store in Redis with expiration based on entry.expire
+      await redis.set(`${CACHE_PREFIX}${cacheKey}`, JSON.stringify(entryCopy), {
+        EX: entry.expire,
+      });
+
+      // Restore the stream in the original entry
+      entry.value = bufferToStream(valueBuffer);
+    } catch (error) {
+      console.error('Error setting cache entry:', error);
+    } finally {
+      // Remove the pending marker
+      await redis.del(`${PENDING_CACHE_PREFIX}${cacheKey}`);
+    }
+  },
+
+  async refreshTags() {
+    // console.log('RedisCacheHandler::refreshTags');
+    // No implementation needed for single-server setup
+    return;
+  },
+
+  async getExpiration(...tags) {
+    // console.log('RedisCacheHandler::getExpiration', JSON.stringify(tags));
+
+    if (tags.length === 0) return 0;
+
+    // Get all tag expiration timestamps
+    const multi = redis.multi();
+    for (const tag of tags) {
+      multi.get(`${TAG_EXPIRATION_PREFIX}${tag}`);
+    }
+
+    const results = await multi.exec();
+
+    if (!results) return 0;
+
+    // Find the maximum timestamp from all tags
+    let maxTimestamp = 0;
+    for (const value of results) {
+      // Cast the value to string to fix the type error
+      if (!value) continue;
+      const valueStr = String(value);
+      const timestamp = parseInt(valueStr, 10);
+      if (!isNaN(timestamp) && timestamp > maxTimestamp) {
+        maxTimestamp = timestamp;
+      }
+    }
+
+    return maxTimestamp;
+  },
+
+  async expireTags(...tags) {
+    // console.log('RedisCacheHandler::expireTags', JSON.stringify(tags));
+
+    if (tags.length === 0) return;
+
+    const now = Date.now();
+    const multi = redis.multi();
+
+    // Update tag expiration times
+    for (const tag of tags) {
+      multi.set(`${TAG_EXPIRATION_PREFIX}${tag}`, now.toString());
+    }
+
+    await multi.exec();
+  },
+};
+
+export default cacheHandler;
