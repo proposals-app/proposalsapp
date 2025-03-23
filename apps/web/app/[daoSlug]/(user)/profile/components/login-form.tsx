@@ -61,12 +61,12 @@ export const LoginForm = () => {
     const newOtp = [...otp];
 
     if (value.length > 1) {
-      const pastedValues = value.split('');
-      pastedValues.forEach((char, i) => {
-        if (index + i < 6 && /^[0-9]$/.test(char)) {
-          newOtp[index + i] = char;
+      const pastedValues = value.substring(0, 6).split('');
+      for (let i = 0; i < pastedValues.length && index + i < 6; i++) {
+        if (/^[0-9]$/.test(pastedValues[i])) {
+          newOtp[index + i] = pastedValues[i];
         }
-      });
+      }
       setOtp(newOtp);
 
       const nextFocusIndex = index + pastedValues.length;

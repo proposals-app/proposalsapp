@@ -53,12 +53,12 @@ export const CommentsViewBar = ({
 
   return (
     <div
-      className={`fixed top-0 mt-24 w-full self-center px-4 pb-4 md:max-w-4xl md:px-2 ${view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed top-0 mt-24 hidden w-full max-w-4xl self-center px-2 pb-4 sm:block ${view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'}`}
     >
       <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 md:flex-row md:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
         <div className='flex w-full justify-between'>
           <button
-            className='flex cursor-pointer items-center gap-2 hover:underline md:gap-4'
+            className='flex cursor-pointer items-center gap-4 hover:underline'
             onClick={() => {
               setView(ViewEnum.BODY);
               setExpanded(true);
@@ -67,10 +67,10 @@ export const CommentsViewBar = ({
             aria-label='Read full proposal'
           >
             <ArrowSvg width={24} height={24} />
-            <div className='text-xs md:text-sm'>Read Full Proposal</div>
+            <div className='text-sm'>Read Full Proposal</div>
           </button>
 
-          <div className='flex flex-col items-stretch space-y-1 md:flex-row md:items-center md:space-y-0 md:space-x-2'>
+          <div className='flex flex-row items-center space-y-0 space-x-2'>
             {includesProposals ? (
               <Select
                 value={feedFilter}
@@ -80,7 +80,7 @@ export const CommentsViewBar = ({
               >
                 <SelectTrigger
                   aria-label='Select feed filter'
-                  className='w-full text-xs md:w-48 md:text-sm'
+                  className='w-48 text-sm'
                 >
                   <SelectValue>{currentFeedFilter}</SelectValue>
                 </SelectTrigger>
@@ -94,7 +94,7 @@ export const CommentsViewBar = ({
                 </SelectContent>
               </Select>
             ) : (
-              <div className='flex h-8 items-center justify-center rounded-xs px-3 text-xs md:text-sm'>
+              <div className='flex h-8 items-center justify-center rounded-xs px-3 text-sm'>
                 Comments
               </div>
             )}
@@ -105,7 +105,7 @@ export const CommentsViewBar = ({
             >
               <SelectTrigger
                 aria-label='Select votes filter'
-                className='w-full text-xs md:w-48 md:text-sm'
+                className='w-48 text-sm'
               >
                 <SelectValue>{currentFromFilter}</SelectValue>
               </SelectTrigger>

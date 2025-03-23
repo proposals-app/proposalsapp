@@ -169,28 +169,47 @@ async function BodyHeaderSection({
         groupName={groupName}
       />
 
-      <h1 className='text-2xl font-bold text-neutral-700 md:text-4xl dark:text-neutral-300'>
-        {groupName}
-      </h1>
+      <div className='hidden flex-col gap-6 sm:flex'>
+        <h1 className='text-2xl font-bold text-neutral-700 dark:text-neutral-300'>
+          {groupName}
+        </h1>
 
-      <div className='flex flex-col'>
-        <div className='flex flex-row items-start justify-between md:items-center'>
+        <div className='flex flex-col'>
+          <div className='flex flex-row items-start justify-between'>
+            <AuthorInfo
+              authorName={originalAuthorName}
+              authorPicture={originalAuthorPicture}
+            />
+
+            <div className='flex flex-col items-center gap-2'>
+              <div className='flex flex-col-reverse gap-2'>
+                <InitiallyPosted
+                  label='initially posted'
+                  createdAt={firstBodyVersion.createdAt}
+                />
+
+                <PostedRevisions versions={bodyVersionsNoContent} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className='flex flex-col gap-2 sm:hidden'>
+        <div className='flex items-start justify-between'>
           <AuthorInfo
             authorName={originalAuthorName}
             authorPicture={originalAuthorPicture}
           />
 
-          <div className='flex flex-col items-center gap-2'>
-            <div className='flex flex-col-reverse gap-2 md:flex-row md:gap-4'>
-              <InitiallyPosted
-                label='initially posted'
-                createdAt={firstBodyVersion.createdAt}
-              />
-
-              <PostedRevisions versions={bodyVersionsNoContent} />
-            </div>
+          <div className='flex-col'>
+            <PostedRevisions versions={bodyVersionsNoContent} />
           </div>
         </div>
+
+        <h1 className='text-center text-2xl font-bold text-neutral-700 dark:text-neutral-300'>
+          {groupName}
+        </h1>
       </div>
     </div>
   );

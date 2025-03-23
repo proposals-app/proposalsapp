@@ -72,13 +72,13 @@ export const BodyViewBar = ({
 
   return (
     <div
-      className={`fixed bottom-0 mt-4 w-full self-center px-4 pb-4 md:max-w-4xl md:px-2 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed bottom-0 mt-4 w-full max-w-4xl self-center px-2 pb-4 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
     >
       <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 md:flex-row md:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
-        <div className='flex w-full flex-col justify-between gap-2 md:flex-row'>
-          <div className='flex w-full items-center justify-between md:w-auto md:justify-start'>
+        <div className='flex w-full flex-row justify-between gap-2'>
+          <div className='flex w-auto items-center justify-start'>
             <button
-              className='flex cursor-pointer items-center gap-2 hover:underline md:gap-4'
+              className='flex cursor-pointer items-center gap-4 hover:underline'
               onClick={() => {
                 setExpanded(!expanded);
                 setView(ViewEnum.FULL);
@@ -92,7 +92,7 @@ export const BodyViewBar = ({
             <div className='flex h-8 cursor-pointer items-center justify-start gap-2 px-3'>
               <label
                 htmlFor='changes'
-                className='flex cursor-pointer items-center gap-2 text-xs md:text-sm'
+                className='flex cursor-pointer items-center gap-2 text-sm'
               >
                 <div className='relative flex items-start'>
                   <input
@@ -126,7 +126,7 @@ export const BodyViewBar = ({
             </div>
           </div>
 
-          <div className='flex w-full items-center justify-center md:w-auto md:justify-end'>
+          <div className='flex w-auto items-center justify-end'>
             <div className='flex items-center gap-2'>
               <button
                 onClick={() => {
@@ -136,7 +136,7 @@ export const BodyViewBar = ({
                   });
                 }}
                 disabled={optimisticVersion === 0}
-                className={`flex h-8 items-center justify-center px-1 text-xs md:text-sm ${
+                className={`flex h-8 items-center justify-center px-1 text-sm ${
                   optimisticVersion === 0
                     ? 'cursor-not-allowed'
                     : 'cursor-pointer'
@@ -158,7 +158,7 @@ export const BodyViewBar = ({
                   });
                 }}
                 disabled={optimisticVersion === 0}
-                className={`flex h-8 items-center justify-center px-1 text-xs md:text-sm ${
+                className={`flex h-8 items-center justify-center px-1 text-sm ${
                   optimisticVersion === 0
                     ? 'cursor-not-allowed'
                     : 'cursor-pointer'
@@ -171,7 +171,7 @@ export const BodyViewBar = ({
                   height={24}
                 />
               </button>
-              <div className='flex h-8 items-center justify-center gap-2 text-xs md:text-sm'>
+              <div className='flex h-8 items-center justify-center gap-2 text-sm'>
                 {versionTypeText} {optimisticVersion + 1} of {totalVersions}
               </div>
 
@@ -187,7 +187,7 @@ export const BodyViewBar = ({
                   });
                 }}
                 disabled={optimisticVersion === totalVersions - 1}
-                className={`flex h-8 items-center justify-center px-1 text-xs md:text-sm ${
+                className={`flex h-8 items-center justify-center px-1 text-sm ${
                   optimisticVersion === totalVersions - 1
                     ? 'cursor-not-allowed'
                     : 'cursor-pointer'
@@ -208,7 +208,7 @@ export const BodyViewBar = ({
                   });
                 }}
                 disabled={optimisticVersion === totalVersions - 1}
-                className={`flex h-8 items-center justify-center px-1 text-xs md:text-sm ${
+                className={`flex h-8 items-center justify-center px-1 text-sm ${
                   optimisticVersion === totalVersions - 1
                     ? 'cursor-not-allowed'
                     : 'cursor-pointer'
@@ -225,7 +225,7 @@ export const BodyViewBar = ({
           </div>
 
           <button
-            className='order-1 flex cursor-pointer items-center gap-2 hover:underline md:order-2 md:gap-4'
+            className='order-2 flex cursor-pointer items-center gap-4 hover:underline'
             onClick={() => {
               setExpanded(!expanded);
               setView(ViewEnum.FULL);
@@ -234,7 +234,7 @@ export const BodyViewBar = ({
             aria-label='Show comments and votes'
           >
             <ArrowSvg className='rotate-180' width={24} height={24} />
-            <div className='text-xs md:text-sm'>Comments and Votes</div>
+            <div className='text-sm'>Comments and Votes</div>
           </button>
         </div>
       </div>
