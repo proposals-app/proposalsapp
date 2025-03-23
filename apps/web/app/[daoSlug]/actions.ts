@@ -460,29 +460,27 @@ export async function getGroupHeader(groupId: string): Promise<{
 
 const ARBITRUM_COINGECKO_ID = 'arbitrum';
 
-const fetchDataWithCache = cache(async (url: string) => {
-  const res = await fetch(url, { next: { revalidate: 3600 } }); // 1 hour cache
-  if (!res.ok) {
-    console.error('Failed to fetch data:', res.status, res.statusText, url);
-    return null; // Or throw error if you prefer
-  }
-  return res.json();
-});
-
-async function fetchTokenData(coingeckoId: string) {
-  const url = `https://api.coingecko.com/api/v3/coins/${coingeckoId}`;
-  return fetchDataWithCache(url);
-}
-
-async function fetchMarketChartData(coingeckoId: string) {
-  const url = `https://api.coingecko.com/api/v3/coins/${coingeckoId}/market_chart?vs_currency=usd&days=1`; // Just to get current price
-  return fetchDataWithCache(url);
-}
-
 export const getTokenPrice = async (daoSlug: string) => {
-  if (daoSlug !== 'arbitrum') return null; // For now, only Arbitrum
+  'use cache';
+  cacheLife('hours');
+
+  if (daoSlug !== 'arbitrum') return null;
+
   try {
-    const data = await fetchMarketChartData(ARBITRUM_COINGECKO_ID);
+    const url = `https://api.coingecko.com/api/v3/coins/${ARBITRUM_COINGECKO_ID}/market_chart?vs_currency=usd&days=1`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      console.error(
+        'Failed to fetch price data:',
+        res.status,
+        res.statusText,
+        url
+      );
+      return null;
+    }
+
+    const data = await res.json();
     if (data && data.prices && data.prices.length > 0) {
       const latestPrice = data.prices[data.prices.length - 1][1];
       return latestPrice;
@@ -495,9 +493,26 @@ export const getTokenPrice = async (daoSlug: string) => {
 };
 
 export const getMarketCap = async (daoSlug: string) => {
-  if (daoSlug !== 'arbitrum') return null; // For now, only Arbitrum
+  'use cache';
+  cacheLife('hours');
+
+  if (daoSlug !== 'arbitrum') return null;
+
   try {
-    const data = await fetchTokenData(ARBITRUM_COINGECKO_ID);
+    const url = `https://api.coingecko.com/api/v3/coins/${ARBITRUM_COINGECKO_ID}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      console.error(
+        'Failed to fetch market cap data:',
+        res.status,
+        res.statusText,
+        url
+      );
+      return null;
+    }
+
+    const data = await res.json();
     if (data && data.market_data && data.market_data.market_cap.usd) {
       return data.market_data.market_cap.usd;
     }
@@ -508,32 +523,19 @@ export const getMarketCap = async (daoSlug: string) => {
   }
 };
 
-const TREASURY_ADDRESSES = [
-  'eip155:42161:0x34d45e99f7D8c45ed05B5cA72D54bbD1fb3F98f0',
-  'eip155:42161:0xbFc1FECa8B09A5c5D3EFfE7429eBE24b9c09EF58',
-  'eip155:42161:0xF3FC178157fb3c87548bAA86F9d24BA38E649B58',
-  'eip155:42161:0x2E041280627800801E90E9Ac83532fadb6cAd99A',
-  'eip155:42161:0x32e7AF5A8151934F3787d0cD59EB6EDd0a736b1d',
-  'eip155:42161:0xbF5041Fc07E1c866D15c749156657B8eEd0fb649',
-  'eip155:42170:0x509386DbF5C0BE6fd68Df97A05fdB375136c32De',
-  'eip155:42170:0x3B68a689c929327224dBfCe31C1bf72Ffd2559Ce',
-  'eip155:42170:0x9fCB6F75D99029f28F6F4a1d277bae49c5CAC79f',
-  'eip155:42170:0xf7951d92b0c345144506576ec13ecf5103ac905a',
-];
-
-interface TokenBalance {
-  balance: string;
-  decimals: number;
-  quoteRate: number | null;
-}
-
-interface TallyResponse {
-  data: {
-    balances: TokenBalance[];
-  };
-}
-
 async function fetchBalanceForAddress(address: string): Promise<number> {
+  interface TokenBalance {
+    balance: string;
+    decimals: number;
+    quoteRate: number | null;
+  }
+
+  interface TallyResponse {
+    data: {
+      balances: TokenBalance[];
+    };
+  }
+
   try {
     const response = await fetch('https://api.tally.xyz/query', {
       method: 'POST',
@@ -581,6 +583,19 @@ async function fetchBalanceForAddress(address: string): Promise<number> {
 export const getTreasuryBalance = async (daoSlug: string) => {
   'use cache';
   cacheLife('days');
+
+  const TREASURY_ADDRESSES = [
+    'eip155:42161:0x34d45e99f7D8c45ed05B5cA72D54bbD1fb3F98f0',
+    'eip155:42161:0xbFc1FECa8B09A5c5D3EFfE7429eBE24b9c09EF58',
+    'eip155:42161:0xF3FC178157fb3c87548bAA86F9d24BA38E649B58',
+    'eip155:42161:0x2E041280627800801E90E9Ac83532fadb6cAd99A',
+    'eip155:42161:0x32e7AF5A8151934F3787d0cD59EB6EDd0a736b1d',
+    'eip155:42161:0xbF5041Fc07E1c866D15c749156657B8eEd0fb649',
+    'eip155:42170:0x509386DbF5C0BE6fd68Df97A05fdB375136c32De',
+    'eip155:42170:0x3B68a689c929327224dBfCe31C1bf72Ffd2559Ce',
+    'eip155:42170:0x9fCB6F75D99029f28F6F4a1d277bae49c5CAC79f',
+    'eip155:42170:0xf7951d92b0c345144506576ec13ecf5103ac905a',
+  ];
 
   if (daoSlug !== 'arbitrum') return null; // For now, only Arbitrum
 
