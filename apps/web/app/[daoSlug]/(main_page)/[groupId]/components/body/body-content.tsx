@@ -2,8 +2,6 @@
 
 import { parseAsBoolean, useQueryState } from 'nuqs';
 
-const COLLAPSED_HEIGHT = '25rem';
-
 import { memo } from 'react';
 
 const BodyContent = memo(
@@ -16,10 +14,7 @@ const BodyContent = memo(
     return (
       <div className='relative overflow-hidden'>
         <div
-          className={`prose prose-lg max-w-none break-words ${expanded ? 'overflow-visible' : 'overflow-hidden'}`}
-          style={{
-            maxHeight: expanded ? 'none' : COLLAPSED_HEIGHT,
-          }}
+          className={`prose prose-lg ${expanded ? 'none' : 'max-h-64 sm:max-h-[25rem]'} max-w-none break-words ${expanded ? 'overflow-visible' : 'overflow-hidden'}`}
           onClick={() => {
             if (!expanded) setExpanded(true);
           }}

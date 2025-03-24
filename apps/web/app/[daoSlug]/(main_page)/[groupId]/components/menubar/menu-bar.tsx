@@ -83,6 +83,7 @@ export const MenuBar = ({
           view={view}
           setView={setView}
           diff={diff}
+          includesProposals={includesProposals}
         />
       )}
       {view == ViewEnum.COMMENTS && (
