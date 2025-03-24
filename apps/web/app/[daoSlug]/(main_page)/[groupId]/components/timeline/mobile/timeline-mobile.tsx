@@ -35,7 +35,7 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setBounce(false);
-    }, 5000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);

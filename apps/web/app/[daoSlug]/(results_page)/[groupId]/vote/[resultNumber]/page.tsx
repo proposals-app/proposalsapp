@@ -59,9 +59,11 @@ async function ResultPage({
       </Suspense>
 
       <div
-        className={'flex w-full grow -translate-x-[1px] -translate-y-2 py-28'}
+        className={
+          'flex w-full grow -translate-x-[1px] py-2 sm:-translate-y-2 sm:py-28'
+        }
       >
-        <div className='h-full w-full pr-4'>
+        <div className='h-full w-full pr-2 pl-2 sm:pr-4 sm:pl-0'>
           <div className='dark:border-neutral-650 flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-r-xs border border-neutral-800 bg-white p-6 dark:bg-neutral-950'>
             <Suspense fallback={<ResultsLoading />}>
               <Results proposal={proposal} daoSlug={daoSlug} />

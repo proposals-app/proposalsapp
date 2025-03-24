@@ -75,10 +75,15 @@ export const WeightedVote = ({ result, expanded }: WeightedVoteProps) => {
           }}
         />
       </div>
-      <div className='flex w-full justify-between'>
-        <div className='truncate text-sm font-bold'>{winningChoice}</div>
-        <div className='text-sm'>{formatNumberWithSuffix(maxVotingPower)}</div>
-      </div>
+
+      {expanded && (
+        <div className='flex w-full justify-between'>
+          <div className='truncate text-sm font-bold'>{winningChoice}</div>
+          <div className='text-sm'>
+            {formatNumberWithSuffix(maxVotingPower)}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

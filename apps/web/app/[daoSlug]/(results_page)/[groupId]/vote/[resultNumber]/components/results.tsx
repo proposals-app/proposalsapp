@@ -50,16 +50,26 @@ async function ResultsContent({ proposal }: ResultsProps) {
   const onChain = !governor?.type.includes('SNAPSHOT');
 
   return (
-    <div className='flex w-full gap-2'>
-      <div className='flex w-full flex-col gap-2'>
+    <div className='flex w-full flex-col gap-2 sm:flex-row'>
+      <div className='flex w-full flex-col gap-8 sm:gap-2'>
         <Suspense>
-          <ResultsTitle
-            results={serializedResults}
-            onChain={onChain}
-            publisher={publisher}
-            governor={governor}
-          />
+          <div className='hidden lg:block'>
+            {/* Hide title on mobile */}
+            <ResultsTitle
+              results={serializedResults}
+              onChain={onChain}
+              publisher={publisher}
+              governor={governor}
+            />
+          </div>
         </Suspense>
+
+        {/* List moves to top on mobile */}
+        <div className='flex justify-center sm:hidden'>
+          <Suspense fallback={<LoadingList />}>
+            <ResultsList results={serializedResults} onchain={onChain} />
+          </Suspense>
+        </div>
 
         <Suspense fallback={<LoadingChart />}>
           <ResultsChart results={serializedResults} />
@@ -76,9 +86,12 @@ async function ResultsContent({ proposal }: ResultsProps) {
         </div>
       </div>
 
-      <Suspense fallback={<LoadingList />}>
-        <ResultsList results={serializedResults} onchain={onChain} />
-      </Suspense>
+      {/* List shown only on desktop */}
+      <div className='hidden sm:block'>
+        <Suspense fallback={<LoadingList />}>
+          <ResultsList results={serializedResults} onchain={onChain} />
+        </Suspense>
+      </div>
     </div>
   );
 }

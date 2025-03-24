@@ -57,8 +57,8 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
   const hasQuorum = quorumVotingPower > (deserializedResults.quorum || 0);
 
   return (
-    <div className='ml-6 flex w-72 flex-col gap-4 text-neutral-700 dark:text-neutral-200'>
-      <div className='flex h-28 items-center'>
+    <div className='flex w-72 flex-col gap-4 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
+      <div className='flex items-center sm:h-28'>
         <StatusMessage
           endTime={toZonedTime(deserializedResults.proposal.endAt, 'UTC')}
           hasQuorum={hasQuorum}
