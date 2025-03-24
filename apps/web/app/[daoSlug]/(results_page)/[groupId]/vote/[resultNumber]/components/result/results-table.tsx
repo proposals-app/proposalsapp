@@ -258,19 +258,14 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
     style: React.CSSProperties;
   }) => {
     const vote = sortedAndFilteredVotes[index];
-
     const voteWithVoter = deserializedVotes.find(
       (voteWithViter) => voteWithViter.voterAddress == vote.voterAddress
     );
-
     const votingPowerPercentage =
       (vote.votingPower / deserializedResults.totalVotingPower) * 100;
-
     const shouldHideVote =
       deserializedResults.hiddenVote &&
       deserializedResults.scoresState !== 'final';
-
-    // Get choice text using helper function
     const choiceText = shouldHideVote
       ? 'Hidden vote'
       : getChoiceText(vote, deserializedResults.voteType);
@@ -286,11 +281,9 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
           {vote.choice.length > 0 && (
             <div className='flex h-full w-full flex-wrap'>
               {vote.choice.map((choiceItem, idx) => {
-                // Calculate width based on weight - if all choices have 100% weight (like in approval voting),
-                // they will wrap to new lines. If weights sum to 100%, they'll be in a single line.
                 const itemWidth = vote.choice.every((c) => c.weight === 100)
-                  ? '100%' // Each item takes full width and wraps
-                  : `${choiceItem.weight}%`; // Proportional width based on weight
+                  ? '100%'
+                  : `${choiceItem.weight}%`;
 
                 return (
                   <div
@@ -307,9 +300,9 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
           )}
         </div>
 
-        {/* Existing content */}
-        <div className='relative grid h-20 grid-cols-7 items-center p-2'>
-          <div className='col-span-2 flex items-center gap-2 overflow-hidden pb-2'>
+        {/* Mobile-responsive content */}
+        <div className='relative grid min-h-[80px] grid-cols-1 gap-2 p-2 md:grid-cols-7 md:items-center'>
+          <div className='col-span-1 flex items-center gap-2 overflow-hidden md:col-span-2'>
             {voteWithVoter ? (
               <VoterAuthor
                 voterAddress={voteWithVoter.voterAddress}
@@ -324,7 +317,8 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
               </div>
             )}
           </div>
-          <div className='col-span-3 flex cursor-default flex-col truncate px-2'>
+
+          <div className='col-span-1 flex cursor-default flex-col truncate md:col-span-3 md:px-2'>
             <div className='font-bold'>
               <div className='truncate' title={choiceText}>
                 {choiceText}
@@ -338,33 +332,36 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
                     href={vote.reason}
                     target='_blank'
                     rel='noopener noreferrer'
-                    title={vote.reason} // Shows full URL on hover
+                    title={vote.reason}
                   >
                     {vote.reason}
                   </Link>
                 ) : (
                   <div className='truncate' title={vote.reason}>
-                    {/* Shows full reason on hover */}
                     {vote.reason}
                   </div>
                 )}
               </div>
             )}
           </div>
-          <div className='col-span-1 cursor-default px-2'>
-            <div className='font-bold'>
-              {formatDistanceToNow(vote.createdAt!, { addSuffix: true })}
+
+          <div className='flex justify-between md:col-span-2 md:grid md:grid-cols-2'>
+            <div className='text-sm md:px-2'>
+              <div className='font-bold'>
+                {formatDistanceToNow(vote.createdAt!, { addSuffix: true })}
+              </div>
+              <div className='hidden md:block'>
+                {format(toZonedTime(vote.createdAt!, 'UTC'), 'MMM d, yyyy')} UTC
+              </div>
             </div>
-            <div className='text-sm'>
-              {format(toZonedTime(vote.createdAt!, 'UTC'), 'MMM d, yyyy')} UTC
-            </div>
-          </div>
-          <div className='col-span-1 flex cursor-default flex-col items-end px-2'>
-            <div className='font-mono font-bold'>
-              {formatNumberWithSuffix(vote.votingPower)} ARB
-            </div>
-            <div className='font-mono text-sm'>
-              {votingPowerPercentage.toFixed(1)}%
+
+            <div className='flex flex-col items-end md:px-2'>
+              <div className='font-mono font-bold'>
+                {formatNumberWithSuffix(vote.votingPower)} ARB
+              </div>
+              <div className='font-mono text-sm'>
+                {votingPowerPercentage.toFixed(1)}%
+              </div>
             </div>
           </div>
         </div>
@@ -373,7 +370,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
   };
 
   const TableHeader = () => (
-    <div className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+    <div className='sticky top-[88px] z-10 mb-2 hidden border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 md:grid md:grid-cols-7 md:items-center md:justify-between md:gap-2 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
       <div className='col-span-2 flex items-center gap-1 text-left'>
         Delegate
       </div>
@@ -415,7 +412,9 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
             <ArrowSvg
               width={24}
               height={24}
-              className={`transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
+              className={`transition-transform ${
+                sortDirection === 'desc' ? 'rotate-180' : ''
+              }`}
             />
           ) : (
             <ArrowSvg
@@ -436,7 +435,9 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
             <ArrowSvg
               width={24}
               height={24}
-              className={`transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
+              className={`transition-transform ${
+                sortDirection === 'desc' ? 'rotate-180' : ''
+              }`}
             />
           ) : (
             <ArrowSvg
@@ -450,9 +451,42 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
     </div>
   );
 
+  // Mobile Filter Header
+  const MobileFilterHeader = () => (
+    <div className='sticky top-[88px] z-10 mb-2 block border border-neutral-800 bg-neutral-200 p-2 md:hidden dark:border-neutral-600 dark:bg-neutral-800'>
+      <Select value={selectedChoice} onValueChange={setSelectedChoice}>
+        <SelectTrigger
+          aria-label='Filter by choice'
+          className='flex w-full items-center justify-between'
+        >
+          <SelectValue>
+            <div className='flex items-center gap-1'>
+              {selectedChoice === 'all' ? 'All Vote Choices' : selectedChoice}
+              <ChevronDownSvg
+                width={24}
+                height={24}
+                className='text-neutral-800 dark:text-neutral-200'
+              />
+            </div>
+          </SelectValue>
+        </SelectTrigger>
+
+        <SelectContent className='w-full'>
+          <SelectItem value='all'>All Choices</SelectItem>
+          {deserializedResults.choices.map((choice, index) => (
+            <SelectItem key={index} value={choice}>
+              {choice}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
   return (
     <div>
       <TableHeader />
+      <MobileFilterHeader />
       <WindowScroller>
         {({ height, isScrolling, onChildScroll, scrollTop }) => (
           <AutoSizer disableHeight>
