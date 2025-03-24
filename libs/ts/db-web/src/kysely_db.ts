@@ -47,6 +47,7 @@ export interface User {
   emailVerified: boolean;
   id: string;
   image: string | null;
+  isOnboarded: Generated<boolean>;
   name: string;
   updatedAt: Timestamp;
 }
