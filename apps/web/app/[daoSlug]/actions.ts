@@ -370,7 +370,7 @@ export async function getGroups(daoSlug: string, userId?: string) {
     return {
       ...group,
       votesCount: groupVotesCount,
-      postsCount: groupPostsCount,
+      postsCount: groupPostsCount - 1,
       newestActivityTimestamp: newestItemTimestamp,
       hasNewActivity,
       hasActiveProposal,

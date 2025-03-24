@@ -66,8 +66,20 @@ export function DiscussionGroupItem({ group }: DiscussionGroupItemProps) {
 
         <div className='dark:text-neutral-350 mt-1 flex flex-col-reverse justify-between gap-2 text-xs font-bold text-neutral-600 select-none sm:mt-2 sm:flex-row sm:items-end sm:gap-0 sm:text-sm'>
           <div className='flex'>
-            <span>{group.postsCount} comments</span>&nbsp;
-            {group.votesCount > 0 && <span>and {group.votesCount} votes</span>}
+            {group.postsCount > 0 && group.votesCount == 0 && (
+              <span>{group.postsCount} comments</span>
+            )}
+            {group.postsCount == 0 && group.votesCount > 0 && (
+              <span>{group.postsCount} votes</span>
+            )}
+            {group.postsCount > 0 && group.votesCount > 0 && (
+              <span>
+                {group.postsCount} comments and {group.postsCount} votes
+              </span>
+            )}
+            {group.postsCount == 0 && group.votesCount == 0 && (
+              <span>No activity</span>
+            )}
           </div>
         </div>
       </div>
