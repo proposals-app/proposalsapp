@@ -1,6 +1,5 @@
 import { ProposalGroupItem } from '@/lib/types';
 import {
-  getGroupHeader,
   getGroups,
   getTotalVotingPower,
   getTokenPrice,
@@ -20,7 +19,6 @@ export default async function Page({
   params: Promise<{ daoSlug: string }>;
 }) {
   return (
-    // <Loading />
     <Suspense fallback={<Loading />}>
       <DaoPage params={params} />
     </Suspense>
@@ -51,63 +49,60 @@ async function GroupsList({
 
   const { daoName, groups } = result;
 
-  // Fetch author information for each group and transform data
-  const groupsWithAuthorInfo = await Promise.all(
-    groups.map(async (group) => {
-      const authorInfo = await getGroupHeader(group.id);
-      const items = group.items as ProposalGroupItem[];
-      const proposalsCount = items.filter(
-        (item) => item.type === 'proposal'
-      ).length;
-      const topicsCount = items.filter((item) => item.type === 'topic').length;
+  // Transform data
+  const groupsWithInfo = groups.map((group) => {
+    const items = group.items as ProposalGroupItem[];
+    const proposalsCount = items.filter(
+      (item) => item.type === 'proposal'
+    ).length;
+    const topicsCount = items.filter((item) => item.type === 'topic').length;
 
-      const groupItem = {
-        id: group.id,
-        name: group.name,
-        slug: `${group.id}`,
-        authorName: authorInfo.originalAuthorName,
-        authorAvatarUrl: authorInfo.originalAuthorPicture,
-        latestActivityAt: new Date(group.newestActivityTimestamp),
-        hasNewActivity: group.hasNewActivity,
-        hasActiveProposal: group.hasActiveProposal,
-        topicsCount,
-        proposalsCount,
-        votesCount: group.votesCount,
-        postsCount: group.postsCount,
-      };
-      return {
-        id: group.id,
-        name: group.name,
-        slug: `${group.id}`,
-        authorName: authorInfo.originalAuthorName,
-        authorAvatarUrl: authorInfo.originalAuthorPicture,
-        latestActivityAt: new Date(group.newestActivityTimestamp),
-        hasNewActivity: group.hasNewActivity,
-        hasActiveProposal: group.hasActiveProposal,
-        topicsCount,
-        proposalsCount,
-        votesCount: group.votesCount,
-        postsCount: group.postsCount,
-        resultCard: group.hasActiveProposal ? (
-          <ActiveGroupItem group={groupItem} />
-        ) : null,
-      };
-    })
-  );
+    const groupItem = {
+      id: group.id,
+      name: group.name,
+      slug: `${group.id}`,
+      authorName: group.originalAuthorName,
+      authorAvatarUrl: group.originalAuthorPicture,
+      latestActivityAt: new Date(group.newestActivityTimestamp),
+      hasNewActivity: group.hasNewActivity,
+      hasActiveProposal: group.hasActiveProposal,
+      topicsCount,
+      proposalsCount,
+      votesCount: group.votesCount,
+      postsCount: group.postsCount,
+    };
+    return {
+      id: group.id,
+      name: group.name,
+      slug: `${group.id}`,
+      authorName: group.originalAuthorName,
+      authorAvatarUrl: group.originalAuthorPicture,
+      latestActivityAt: new Date(group.newestActivityTimestamp),
+      hasNewActivity: group.hasNewActivity,
+      hasActiveProposal: group.hasActiveProposal,
+      topicsCount,
+      proposalsCount,
+      votesCount: group.votesCount,
+      postsCount: group.postsCount,
+      resultCard: group.hasActiveProposal ? (
+        <ActiveGroupItem group={groupItem} />
+      ) : null,
+    };
+  });
 
-  const hasNewActivityInGroups = groupsWithAuthorInfo.some(
+  const hasNewActivityInGroups = groupsWithInfo.some(
     (group) => group.hasNewActivity
   );
 
   // Get active and inactive groups counts
-  const activeGroupsCount = groupsWithAuthorInfo.filter(
+  const activeGroupsCount = groupsWithInfo.filter(
     (g) => g.hasActiveProposal
   ).length;
-  const totalProposalsCount = groupsWithAuthorInfo.reduce(
+  const totalProposalsCount = groupsWithInfo.reduce(
     (sum, group) => sum + group.proposalsCount,
     0
   );
-  const totalTopicsCount = groupsWithAuthorInfo.reduce(
+  const totalTopicsCount = groupsWithInfo.reduce(
     (sum, group) => sum + group.topicsCount,
     0
   );
@@ -143,10 +138,7 @@ async function GroupsList({
 
         {/* Groups List */}
         <Suspense fallback={<LoadingGroupList />}>
-          <GroupList
-            groups={groupsWithAuthorInfo}
-            signedIn={userId ? true : false}
-          />
+          <GroupList groups={groupsWithInfo} signedIn={userId ? true : false} />
         </Suspense>
       </div>
     </div>

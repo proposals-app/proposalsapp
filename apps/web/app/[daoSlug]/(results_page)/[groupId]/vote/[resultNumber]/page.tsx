@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation';
 import { Results, ResultsLoading } from './components/results';
 import { LoadingTimeline, Timeline } from './components/timeline/timeline';
-import { getGroup } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
+import {
+  getGroup,
+  getGroupHeader,
+} from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import { Header } from '@/app/[daoSlug]/components/header';
 import { Suspense } from 'react';
-import { getGroupHeader } from '@/app/[daoSlug]/actions';
 import Loading from './loading';
 
 export default async function Page({

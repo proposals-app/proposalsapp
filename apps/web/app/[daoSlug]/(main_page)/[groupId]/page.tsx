@@ -4,7 +4,7 @@ import {
   FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import { getGroup, getBodyVersions, getFeed } from './actions';
+import { getGroup, getBodyVersions, getFeed, getGroupHeader } from './actions';
 import {
   AuthorInfo,
   Body,
@@ -16,7 +16,6 @@ import { MenuBar } from './components/menubar/menu-bar';
 import { Timeline } from './components/timeline/timeline';
 import { Suspense } from 'react';
 import { LoadingMenuBar } from './components/menubar/loading-menu-bar';
-import { getGroupHeader } from '../../actions';
 import { InitiallyPosted } from './components/body/initially-posted';
 import { Header } from '../../components/header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';

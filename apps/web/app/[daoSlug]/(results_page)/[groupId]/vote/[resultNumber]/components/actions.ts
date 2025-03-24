@@ -71,31 +71,57 @@ export async function getNonVoters(proposalId: string) {
   const eligibleVoters = await dbIndexer
     .selectFrom('votingPower as vp')
     .innerJoin('voter as v', 'v.address', 'vp.voter')
-    .select((eb) => [
+    .where('vp.daoId', '=', proposal.daoId)
+    .where('vp.votingPower', '>', 0)
+    .where('vp.timestamp', '<=', proposal.startAt)
+    .orderBy('vp.voter', 'asc')
+    .orderBy('vp.timestamp', 'desc')
+    .distinctOn(['vp.voter'])
+    .select([
       'vp.voter',
       'vp.votingPower as votingPowerAtStart',
       'v.ens',
       'v.avatar',
-      eb.fn
-        .max('vp.votingPower')
-        .over((ob) => ob.partitionBy('vp.voter'))
-        .as('currentVotingPower'),
     ])
-    .where('vp.daoId', '=', proposal.daoId)
-    .where('vp.votingPower', '>', 0)
-    .where('vp.timestamp', '<=', proposal.startAt)
-    .groupBy('vp.voter')
-    .groupBy('vp.votingPower')
-    .groupBy('vp.timestamp')
-    .groupBy('v.ens')
-    .groupBy('v.avatar')
     .execute();
 
   if (eligibleVoters.length === 0) return [];
 
+  // Process voters in chunks to avoid parameter limit issues
+  const CHUNK_SIZE = 1000;
+  const voters = eligibleVoters.map((v) => v.voter);
+  const currentPowerMap = new Map();
+
+  // Process in chunks
+  for (let i = 0; i < voters.length; i += CHUNK_SIZE) {
+    const chunk = voters.slice(i, i + CHUNK_SIZE);
+
+    const chunkPowers = await dbIndexer
+      .selectFrom('votingPower')
+      .where('daoId', '=', proposal.daoId)
+      .where('voter', 'in', chunk)
+      .select((eb) => [
+        'voter',
+        eb.fn
+          .max('votingPower')
+          .over((ob) => ob.partitionBy('voter'))
+          .as('currentVotingPower'),
+      ])
+      .groupBy('voter')
+      .groupBy('votingPower')
+      .execute();
+
+    // Add results to our map
+    chunkPowers.forEach((cp) => {
+      currentPowerMap.set(cp.voter, cp.currentVotingPower);
+    });
+  }
+
   const nonVoters = eligibleVoters
     .filter((v) => !votedAddresses.has(v.voter))
     .map((voter) => {
+      const currentVotingPower = currentPowerMap.get(voter.voter) ?? 0;
+
       return {
         voterAddress: voter.voter,
         ens: voter.ens,
@@ -103,7 +129,7 @@ export async function getNonVoters(proposalId: string) {
           voter.avatar ||
           `https://api.dicebear.com/9.x/pixel-art/png?seed=${voter.voter}`,
         votingPowerAtStart: voter.votingPowerAtStart,
-        currentVotingPower: voter.currentVotingPower ?? 0,
+        currentVotingPower,
       };
     })
     .filter((voter) => voter.votingPowerAtStart > 0);
