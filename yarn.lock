@@ -3443,7 +3443,7 @@ __metadata:
     posthog-js: "npm:^1.232.4"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.7"
-    prettier-plugin-merge: "npm:^0.7.2"
+    prettier-plugin-merge: "npm:^0.7.3"
     prettier-plugin-organize-imports: "npm:^4.1.0"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
     prom-client: "npm:^15.1.3"
@@ -12840,13 +12840,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"npm-check-updates@npm:^17.1.15":
-  version: 17.1.15
-  resolution: "npm-check-updates@npm:17.1.15"
+"npm-check-updates@npm:^17.1.16":
+  version: 17.1.16
+  resolution: "npm-check-updates@npm:17.1.16"
   bin:
     ncu: build/cli.js
     npm-check-updates: build/cli.js
-  checksum: 10c0/c570ca9f8f8748e688b053e875d9e5381902c8e94fae8f2fb467f0ea99874ee577e5a4aa46faf31780c05d44c36cb1f8fbd89e7873d810a00411616cdf4a4c93
+  checksum: 10c0/443ca7a96a991b7c60fcc90913a685bee5c2365086773c3a0efe584b081459f46760454a4d3459627e42498120cdbd5fcc5857b0f3970c70e2a4e67adf706a77
   languageName: node
   linkType: hard
 
@@ -14165,14 +14165,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier-plugin-merge@npm:^0.7.2":
-  version: 0.7.2
-  resolution: "prettier-plugin-merge@npm:0.7.2"
+"prettier-plugin-merge@npm:^0.7.3":
+  version: 0.7.3
+  resolution: "prettier-plugin-merge@npm:0.7.3"
   dependencies:
     diff: "npm:5.1.0"
   peerDependencies:
     prettier: ^2 || ^3
-  checksum: 10c0/f78b91ad8164d365f8e088080ce59056b9ada79b0878e1f2864856ae159d39d2b4c297eeb869e6e40f0f7d02bc17cb0e32152b18918074b2aee866903f5649d2
+  checksum: 10c0/f467cdc0da3d400eb73c1004db3053c1b8ef5ca176a28c141568332cfa2d16b74e6f697f8a910b9d9cce166dab4dacac8550e03b310e31d9675db3c5644f3198
   languageName: node
   linkType: hard
 
@@ -14405,7 +14405,7 @@ __metadata:
   resolution: "proposalsapp@workspace:."
   dependencies:
     "@tsconfig/recommended": "npm:^1.0.8"
-    npm-check-updates: "npm:^17.1.15"
+    npm-check-updates: "npm:^17.1.16"
   languageName: unknown
   linkType: soft
 

@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { Search, Filter } from 'lucide-react';
 import { InactiveGroupItem } from './group-items/inactive-item';
 import { DiscussionGroupItem } from './group-items/discussion-item';
-import { authClient } from '@/lib/auth-client';
 
 interface Group {
   id: string;
@@ -24,12 +23,12 @@ interface Group {
 
 interface GroupListProps {
   groups: Group[];
+  signedIn: boolean;
 }
 
-export function GroupList({ groups }: GroupListProps) {
+export function GroupList({ groups, signedIn }: GroupListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'unread'>('all');
-  const { data: sessionData } = authClient.useSession();
 
   const filteredGroups = useMemo(() => {
     let filtered = groups;
@@ -97,7 +96,7 @@ export function GroupList({ groups }: GroupListProps) {
             Active
           </button>
 
-          {sessionData?.session && (
+          {signedIn && (
             <button
               onClick={() => setFilter('unread')}
               className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium transition-colors ${

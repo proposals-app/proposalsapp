@@ -13,7 +13,7 @@ function PostHogIdentifier() {
     if (data && data.user && !posthog._isIdentified()) {
       posthog.identify(data.user.id, { email: data.user.email });
     }
-  }, [data, posthog._isIdentified()]);
+  }, [data, posthog]);
 }
 
 function PostHogPageView() {
