@@ -67,11 +67,7 @@ export function ResultEvent({
         {!last && (
           <div className='dark:bg-neutral-350 absolute top-0 left-[15px] z-10 h-[15px] max-h-[15px] w-0.5 bg-neutral-800 transition-opacity duration-200 ease-in-out group-hover:opacity-0' />
         )}
-        <Link
-          className='w-full'
-          href={`/${groupId}/vote/${resultNumber}`}
-          prefetch={true}
-        >
+        <Link className='w-full' href={`/${groupId}/vote/${resultNumber}`}>
           <div className='flex w-full items-center justify-between pl-3'>
             <div className='text-xs'>{content}</div>
 

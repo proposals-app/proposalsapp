@@ -26,9 +26,9 @@ import { InitiallyPosted } from './components/body/initially-posted';
 import { Header } from '../../components/header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 import { PostedRevisions } from './components/body/posted-revision';
-import { LastReadUpdater } from './components/last-read-updater';
 import Loading from './loading';
 import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
+import { LastReadUpdater } from './components/last-read-updater';
 
 export default async function Page({
   params,

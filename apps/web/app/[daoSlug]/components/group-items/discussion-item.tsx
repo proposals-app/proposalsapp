@@ -28,7 +28,6 @@ export function DiscussionGroupItem({ group }: DiscussionGroupItemProps) {
     <Link
       href={`/${group.slug}`}
       className='group block rounded-xs border border-neutral-200 bg-white p-4 hover:bg-neutral-200/50 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800'
-      prefetch={true}
     >
       <div className='flex flex-col gap-1 sm:gap-2'>
         <div className='flex items-start justify-between'>

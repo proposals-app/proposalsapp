@@ -92,10 +92,7 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
                 }}
               >
                 {expanded ? (
-                  <Link
-                    href={`/${group.groupId}/vote/${resultNumber}`}
-                    prefetch={true}
-                  >
+                  <Link href={`/${group.groupId}/vote/${resultNumber}`}>
                     <ResultEventMobile
                       content={event.content}
                       timestamp={event.timestamp}

@@ -54,7 +54,6 @@ export function HeaderClient({
         <Link
           href={`/${groupId}`}
           className='flex items-center gap-1 rounded-full px-2 py-2 sm:gap-2 sm:px-3'
-          prefetch={true}
         >
           <ArrowLeft size={18} className='sm:size-20' />
           <span className='hidden text-xs font-medium sm:inline sm:text-sm'>

@@ -9,6 +9,7 @@ import { dbWeb } from '@proposalsapp/db-web';
 import { revalidateTag } from 'next/cache';
 import { daoIdSchema, daoSlugSchema } from '@/lib/validations';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
+import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 
 export async function markAllAsRead(daoSlug: string) {
   daoSlugSchema.parse(daoSlug);
@@ -52,11 +53,12 @@ export async function markAllAsRead(daoSlug: string) {
     )
     .execute();
 
-  revalidateTag('groups'); // revalidate here on change
+  revalidateTag(`groups-${userId}`);
 }
 
 export async function getGroups(daoSlug: string, userId?: string) {
   'use cache';
+  cacheTag(`groups-${userId}`);
   cacheLife('minutes');
 
   daoSlugSchema.parse(daoSlug);

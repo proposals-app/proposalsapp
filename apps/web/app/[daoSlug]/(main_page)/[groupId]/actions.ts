@@ -36,8 +36,10 @@ export async function updateLastReadAt(groupId: string) {
   const userId = session?.user?.id;
 
   if (!userId) {
-    return; // Do nothing if no user
+    return;
   }
+
+  revalidateTag(`groups-${userId}`);
 
   const now = new Date();
 
@@ -52,8 +54,6 @@ export async function updateLastReadAt(groupId: string) {
       oc.columns(['userId', 'proposalGroupId']).doUpdateSet({ lastReadAt: now })
     )
     .execute();
-
-  revalidateTag('groups'); // Revalidate to update UI
 }
 
 export async function getGroup(daoSlug: string, groupId: string) {

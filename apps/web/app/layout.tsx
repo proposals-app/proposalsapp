@@ -75,10 +75,8 @@ export default async function Layout({
               <PHProvider>{children}</PHProvider>
             </Suspense>
 
-            <Suspense>
-              <Banner />
-            </Suspense>
-          </NuqsAdapter>{' '}
+          
+          </NuqsAdapter>
         </ThemeProvider>
       </body>
     </html>
