@@ -36,7 +36,7 @@ async function MappingPage({
         <div className='flex flex-col gap-2'>
           <Link
             href={`/mapping/delegates`}
-            className='border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-48 rounded-md border px-4 py-2 text-center text-sm font-medium text-white transition-colors focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+            className='border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-48 rounded-md border px-4 py-2 text-center text-sm font-medium text-white focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
           >
             Delegate Mapping
           </Link>
@@ -68,7 +68,7 @@ async function MappingPage({
                 {ungroupedProposals.map((proposal) => (
                   <tr
                     key={`${proposal.externalId}-${proposal.governorId}`}
-                    className='border-b border-neutral-200 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-700/30'
+                    className='border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-700/30'
                   >
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <span className='rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'>

@@ -110,7 +110,7 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
   };
 
   return (
-    <tr className='border-b border-neutral-200 transition-colors dark:border-neutral-700'>
+    <tr className='border-b border-neutral-200 dark:border-neutral-700'>
       <td className='px-6 py-4 text-sm font-medium whitespace-nowrap text-neutral-900 dark:text-neutral-100'>
         {delegate.id}
       </td>
@@ -126,7 +126,7 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
               </span>{' '}
               <button
                 onClick={() => handleUnmapDiscourseUser(user.id)}
-                className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50'
+                className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50'
                 disabled={isSaving || isDeleting}
               >
                 Unmap
@@ -158,7 +158,7 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
               </div>
               <button
                 onClick={() => handleUnmapVoter(voter.id)}
-                className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50'
+                className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50'
                 disabled={isSaving || isDeleting}
               >
                 Unmap
@@ -176,14 +176,14 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
         <div className='flex gap-2'>
           <button
             onClick={onCancel}
-            className='focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+            className='focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
             disabled={isSaving || isDeleting}
           >
             Close
           </button>
           <button
             onClick={handleDeleteDelegate}
-            className='focus:ring-opacity-50 w-full rounded-md border border-red-500 bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50'
+            className='focus:ring-opacity-50 w-full rounded-md border border-red-500 bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50'
             disabled={isSaving || isDeleting}
           >
             {isDeleting ? 'Deleting...' : 'Delete'}
@@ -222,7 +222,7 @@ export const DelegateRow = ({
   return (
     <tr
       key={delegate.id}
-      className='border-b border-neutral-200 transition-colors dark:border-neutral-700'
+      className='border-b border-neutral-200 dark:border-neutral-700'
     >
       <td className='px-6 py-4 text-sm font-medium whitespace-nowrap text-neutral-900 dark:text-neutral-100'>
         {delegate.id}
@@ -259,7 +259,7 @@ export const DelegateRow = ({
       <td className='px-6 py-4 text-sm font-medium whitespace-nowrap'>
         <button
           onClick={() => setIsEditing(true)}
-          className='focus:ring-opacity-50 border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent w-full rounded-md border px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+          className='focus:ring-opacity-50 border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent w-full rounded-md border px-4 py-2 text-sm font-medium text-white focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
         >
           Edit Mappings
         </button>

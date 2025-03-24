@@ -89,7 +89,7 @@ const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
               {searchResults.map((voter) => (
                 <li
                   key={voter.id}
-                  className='flex cursor-pointer flex-col px-4 py-2 transition-colors hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-800'
+                  className='flex cursor-pointer flex-col px-4 py-2 hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-800'
                   onClick={() => selectVoter(voter)}
                 >
                   {voter.address}

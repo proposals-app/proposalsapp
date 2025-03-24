@@ -369,7 +369,7 @@ export default function GroupingInterface({
             />
             <button
               onClick={createNewGroup}
-              className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-48 rounded-md border px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 ${
+              className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-48 rounded-md border px-4 py-2 text-sm font-medium text-white focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 ${
                 isLoading || !newGroupName.trim()
                   ? 'cursor-not-allowed opacity-50'
                   : ''
@@ -462,7 +462,7 @@ export default function GroupingInterface({
                                           getItemIdentifier(item)
                                         )
                                       }
-                                      className={`focus:ring-opacity-50 mt-0 ml-2 flex-shrink-0 rounded-md bg-red-500 px-3 py-1 text-xs text-white transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50 ${
+                                      className={`focus:ring-opacity-50 mt-0 ml-2 flex-shrink-0 rounded-md bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50 ${
                                         isLoading
                                           ? 'cursor-not-allowed opacity-50'
                                           : ''
@@ -518,7 +518,7 @@ export default function GroupingInterface({
                                 {searchResults.map((item) => (
                                   <li
                                     key={getItemIdentifier(item)}
-                                    className='focus:ring-opacity-50 flex cursor-pointer items-start justify-between rounded-md p-2 transition-colors hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500 dark:hover:bg-neutral-700'
+                                    className='focus:ring-opacity-50 flex cursor-pointer items-start justify-between rounded-md p-2 hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500 dark:hover:bg-neutral-700'
                                     onClick={() =>
                                       !isLoading &&
                                       addItemToGroup(group.id!, item)
@@ -582,7 +582,7 @@ export default function GroupingInterface({
                       <div className='flex gap-2'>
                         <button
                           onClick={() => editGroup(group.id!, editingGroupName)}
-                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 ${
+                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2 text-sm font-medium text-white focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 ${
                             isLoading || !editingGroupName.trim()
                               ? 'cursor-not-allowed opacity-50'
                               : ''
@@ -598,7 +598,7 @@ export default function GroupingInterface({
                             setSearchTerm('');
                             setSearchResults([]);
                           }}
-                          className='focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+                          className='focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
                           disabled={isLoading}
                         >
                           Cancel
@@ -613,7 +613,7 @@ export default function GroupingInterface({
                             setSearchTerm('');
                             setSearchResults([]);
                           }}
-                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 ${
+                          className={`border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border px-4 py-2 text-sm font-medium text-white focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 ${
                             isLoading ? 'cursor-not-allowed opacity-50' : ''
                           }`}
                           disabled={isLoading}
@@ -622,7 +622,7 @@ export default function GroupingInterface({
                         </button>
                         <button
                           onClick={() => handleDeleteGroup(group.id!)}
-                          className={`focus:ring-opacity-50 w-full rounded-md border border-red-500 bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50 dark:border-red-700 dark:bg-red-500 dark:hover:bg-red-600`}
+                          className={`focus:ring-opacity-50 w-full rounded-md border border-red-500 bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50 dark:border-red-700 dark:bg-red-500 dark:hover:bg-red-600`}
                           disabled={isLoading}
                         >
                           {isLoading ? 'Deleting...' : 'Delete'}

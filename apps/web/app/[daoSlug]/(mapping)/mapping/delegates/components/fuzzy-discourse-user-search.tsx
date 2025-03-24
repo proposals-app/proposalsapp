@@ -97,7 +97,7 @@ const FuzzyDiscourseUserSearch: React.FC<FuzzyDiscourseUserSearchProps> = ({
               {searchResults.map((user) => (
                 <li
                   key={user.id}
-                  className='cursor-pointer px-4 py-2 transition-colors hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-800'
+                  className='cursor-pointer px-4 py-2 hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-800'
                   onClick={() => selectUser(user)}
                 >
                   {user.username}

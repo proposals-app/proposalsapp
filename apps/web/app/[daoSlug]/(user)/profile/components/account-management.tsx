@@ -165,7 +165,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
                 <button
                   onClick={handleChangeEmail}
                   disabled={isChangingEmail || !newEmail.trim()}
-                  className='inline-flex items-center justify-center rounded-xs bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
+                  className='inline-flex items-center justify-center rounded-xs bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 hover:bg-neutral-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
                 >
                   {isChangingEmail && (
                     <RefreshCw className='mr-1 h-3 w-3 animate-spin sm:mr-2 sm:h-4 sm:w-4' />
@@ -200,7 +200,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
               {!showConfirmDelete ? (
                 <button
                   onClick={() => setShowConfirmDelete(true)}
-                  className='inline-flex items-center justify-center rounded-xs bg-red-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-red-700 transition-colors hover:bg-red-200 focus:outline-none sm:px-4 sm:py-2 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30'
+                  className='inline-flex items-center justify-center rounded-xs bg-red-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-red-700 hover:bg-red-200 focus:outline-none sm:px-4 sm:py-2 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30'
                 >
                   Delete Account
                 </button>
@@ -214,7 +214,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
                     <button
                       onClick={handleDeleteAccount}
                       disabled={isDeleting}
-                      className='inline-flex items-center justify-center rounded-xs bg-red-600 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-red-700 disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-red-700 dark:hover:bg-red-600'
+                      className='inline-flex items-center justify-center rounded-xs bg-red-600 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-red-700 disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-red-700 dark:hover:bg-red-600'
                     >
                       {isDeleting && (
                         <RefreshCw className='mr-1 h-3 w-3 animate-spin sm:mr-2 sm:h-4 sm:w-4' />
@@ -224,7 +224,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
                     <button
                       onClick={() => setShowConfirmDelete(false)}
                       disabled={isDeleting}
-                      className='focu inline-flex items-center justify-center rounded-xs bg-neutral-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-200 disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+                      className='focu inline-flex items-center justify-center rounded-xs bg-neutral-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 hover:bg-neutral-200 disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
                     >
                       Cancel
                     </button>

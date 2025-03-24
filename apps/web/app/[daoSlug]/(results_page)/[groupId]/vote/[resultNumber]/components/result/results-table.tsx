@@ -144,7 +144,7 @@ const SelectItem = ({ children, value }: SelectItemProps) => {
     <div
       role='option'
       aria-selected={isSelected}
-      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm text-neutral-800 transition-colors will-change-transform outline-none hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-700'
+      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm text-neutral-800 will-change-transform outline-none hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-700'
       onClick={() => {
         onSelectValue(value);
         setIsOpen(false);
@@ -373,7 +373,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
   };
 
   const TableHeader = () => (
-    <div className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 transition-colors dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+    <div className='sticky top-[88px] z-10 mb-2 grid grid-cols-7 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
       <div className='col-span-2 flex items-center gap-1 text-left'>
         Delegate
       </div>

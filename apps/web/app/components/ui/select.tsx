@@ -165,7 +165,7 @@ export const SelectItem = ({ children, value }: SelectItemProps) => {
     <div
       role='option'
       aria-selected={isSelected}
-      className={`group relative flex cursor-pointer items-center py-3 pr-10 pl-4 text-base font-bold text-neutral-800 transition-colors will-change-transform outline-none hover:bg-neutral-100 sm:py-2 sm:pl-2 sm:text-sm dark:text-neutral-200 dark:hover:bg-neutral-800`} // Adjusted styles for mobile and desktop
+      className={`group relative flex cursor-pointer items-center py-3 pr-10 pl-4 text-base font-bold text-neutral-800 will-change-transform outline-none hover:bg-neutral-100 sm:py-2 sm:pl-2 sm:text-sm dark:text-neutral-200 dark:hover:bg-neutral-800`} // Adjusted styles for mobile and desktop
       onClick={() => {
         onSelectValue(value);
         setIsOpen(false);
@@ -175,7 +175,7 @@ export const SelectItem = ({ children, value }: SelectItemProps) => {
       {isSelected && (
         <span className='absolute right-2'>
           <CheckSvg
-            className='fill-neutral-800 transition-colors group-hover:fill-neutral-900 dark:fill-neutral-200 dark:group-hover:fill-neutral-100'
+            className='fill-neutral-800 group-hover:fill-neutral-900 dark:fill-neutral-200 dark:group-hover:fill-neutral-100'
             width={24}
             height={24}
           />

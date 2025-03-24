@@ -40,7 +40,7 @@ export const EmailPreferences = () => {
   }) => {
     return (
       <div
-        className={`relative inline-flex h-6 w-11 cursor-pointer items-center transition-colors ${
+        className={`relative inline-flex h-6 w-11 cursor-pointer items-center ${
           checked
             ? 'bg-brand-accent dark:bg-brand-accent-bright'
             : 'bg-neutral-200 dark:bg-neutral-700'
@@ -136,7 +136,7 @@ export const EmailPreferences = () => {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className='flex w-full items-center justify-center space-x-2 bg-neutral-900 px-4 py-2 text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200'
+              className='flex w-full items-center justify-center space-x-2 bg-neutral-900 px-4 py-2 text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200'
             >
               <span>Continue</span>
               <ArrowSvg className='rotate-90' />

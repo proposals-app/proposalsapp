@@ -58,14 +58,14 @@ export default function Banner() {
                 <button
                   type='button'
                   onClick={handleAcceptCookies}
-                  className='flex-1 bg-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 transition-colors duration-200 hover:bg-neutral-600 sm:flex-initial dark:bg-neutral-200 dark:text-neutral-700 dark:hover:bg-neutral-100'
+                  className='flex-1 bg-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 duration-200 hover:bg-neutral-600 sm:flex-initial dark:bg-neutral-200 dark:text-neutral-700 dark:hover:bg-neutral-100'
                 >
                   Accept cookies
                 </button>
                 <button
                   type='button'
                   onClick={handleDeclineCookies}
-                  className='flex-1 bg-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors duration-200 hover:bg-neutral-100 sm:flex-initial dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700'
+                  className='flex-1 bg-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 duration-200 hover:bg-neutral-100 sm:flex-initial dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700'
                 >
                   Decline cookies
                 </button>

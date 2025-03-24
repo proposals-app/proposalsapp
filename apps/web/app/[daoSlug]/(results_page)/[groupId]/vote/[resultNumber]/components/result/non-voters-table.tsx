@@ -59,7 +59,7 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
   };
 
   const TableHeader = () => (
-    <div className='sticky top-[137px] z-[1999] mb-2 grid grid-cols-12 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 py-3 text-sm font-bold text-neutral-800 transition-colors dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+    <div className='sticky top-[137px] z-[1999] mb-2 grid grid-cols-12 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 py-3 text-sm font-bold text-neutral-800 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
       <div className='col-span-8'>Delegate</div>
       <div className='col-span-4'>
         <button

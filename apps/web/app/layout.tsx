@@ -63,8 +63,8 @@ export default async function Layout({
         <link rel='icon' href='/favicon.ico' />
       </head>
       <body>
-        <NuqsAdapter>
-          <ThemeProvider>
+        <ThemeProvider>
+          <NuqsAdapter>
             <Suspense>
               <WebVitals />
             </Suspense>
@@ -78,8 +78,8 @@ export default async function Layout({
             <Suspense>
               <Banner />
             </Suspense>
-          </ThemeProvider>
-        </NuqsAdapter>
+          </NuqsAdapter>{' '}
+        </ThemeProvider>
       </body>
     </html>
   );

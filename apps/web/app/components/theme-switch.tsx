@@ -41,7 +41,7 @@ export function ModeToggle() {
             : 'top-0'
         }`}
       >
-        <div className='h-[16px] w-[16px] bg-neutral-700 transition-colors sm:h-[20px] sm:w-[20px] dark:bg-neutral-300'>
+        <div className='h-[16px] w-[16px] bg-neutral-700 sm:h-[20px] sm:w-[20px] dark:bg-neutral-300'>
           <div className='relative flex h-full w-full items-center justify-center'>
             <Image
               src={

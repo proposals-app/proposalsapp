@@ -77,7 +77,7 @@ export function GroupList({ groups, signedIn }: GroupListProps) {
         <div className='flex flex-wrap gap-2 self-end'>
           <button
             onClick={() => setFilter('all')}
-            className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium ${
               filter === 'all'
                 ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
                 : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
@@ -87,7 +87,7 @@ export function GroupList({ groups, signedIn }: GroupListProps) {
           </button>
           <button
             onClick={() => setFilter('active')}
-            className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium ${
               filter === 'active'
                 ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
                 : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
@@ -99,7 +99,7 @@ export function GroupList({ groups, signedIn }: GroupListProps) {
           {signedIn && (
             <button
               onClick={() => setFilter('unread')}
-              className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium ${
                 filter === 'unread'
                   ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
                   : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`

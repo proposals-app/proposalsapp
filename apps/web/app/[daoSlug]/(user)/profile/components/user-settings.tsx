@@ -67,7 +67,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
   }) => {
     return (
       <div
-        className={`relative inline-flex h-6 w-11 cursor-pointer items-center transition-colors ${
+        className={`relative inline-flex h-6 w-11 cursor-pointer items-center ${
           checked
             ? 'bg-brand-accent dark:bg-brand-accent-bright'
             : 'bg-neutral-200 dark:bg-neutral-700'
@@ -208,7 +208,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           <button
             onClick={handleSaveSettings}
             disabled={isSaving}
-            className='inline-flex items-center justify-center rounded-xs bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 transition-colors hover:bg-neutral-300 disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
+            className='inline-flex items-center justify-center rounded-xs bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 hover:bg-neutral-300 disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
           >
             {isSaving && (
               <RefreshCw className='mr-2 h-3 w-3 animate-spin sm:h-4 sm:w-4' />

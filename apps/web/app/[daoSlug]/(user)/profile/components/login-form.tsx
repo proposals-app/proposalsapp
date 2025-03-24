@@ -144,7 +144,7 @@ export const LoginForm = () => {
                 </div>
                 <button
                   type='submit'
-                  className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2 text-xs font-medium whitespace-nowrap transition-colors outline-none disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm dark:bg-neutral-700 ${isPending || !email.trim() ? 'cursor-not-allowed opacity-50' : ''}`}
+                  className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2 text-xs font-medium whitespace-nowrap outline-none disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm dark:bg-neutral-700 ${isPending || !email.trim() ? 'cursor-not-allowed opacity-50' : ''}`}
                   disabled={isPending || !email.trim()}
                 >
                   {isPending ? 'Sending...' : 'Sign in with Email'}
@@ -204,7 +204,7 @@ export const LoginForm = () => {
 
                   <button
                     type='submit'
-                    className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2 text-xs font-medium whitespace-nowrap transition-colors outline-none disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm dark:bg-neutral-700 ${isPending || otp.some((d) => !d) ? 'cursor-not-allowed opacity-50' : ''}`}
+                    className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2 text-xs font-medium whitespace-nowrap outline-none disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm dark:bg-neutral-700 ${isPending || otp.some((d) => !d) ? 'cursor-not-allowed opacity-50' : ''}`}
                     disabled={isPending || otp.some((d) => !d)}
                   >
                     {isPending ? 'Verifying...' : 'Verify Code'}
