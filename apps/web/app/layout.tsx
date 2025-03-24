@@ -74,8 +74,6 @@ export default async function Layout({
             <Suspense>
               <PHProvider>{children}</PHProvider>
             </Suspense>
-
-          
           </NuqsAdapter>
         </ThemeProvider>
       </body>
