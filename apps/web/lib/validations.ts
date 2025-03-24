@@ -12,8 +12,9 @@ export const groupIdSchema = z
   .uuid({ message: 'Must be a valid UUID.' });
 export const discourseUserIdSchema = z
   .number()
-  .min(1, { message: 'Discourse User ID must be at least 1.' })
-  .max(100000, { message: 'Discourse User ID must be no more than 100000.' });
+  .refine((value) => (value >= 1 && value <= 100000) || value === -1, {
+    message: 'Discourse User ID must be between 1 and 100000, or -1.',
+  });
 export const daoDiscourseIdSchema = z
   .string()
   .uuid({ message: 'Must be a valid UUID.' });
