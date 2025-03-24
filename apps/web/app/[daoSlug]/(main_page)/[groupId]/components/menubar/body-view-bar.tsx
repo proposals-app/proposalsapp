@@ -72,7 +72,7 @@ export const BodyViewBar = ({
 
   return (
     <div
-      className={`fixed bottom-0 mt-4 w-full max-w-4xl self-center px-4 pb-4 sm:px-2 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed bottom-20 mt-4 w-full max-w-4xl self-center px-4 pb-4 sm:bottom-0 sm:px-2 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
     >
       <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 md:flex-row md:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
         <div className='flex w-full flex-row justify-between gap-2'>

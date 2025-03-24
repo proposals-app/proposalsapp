@@ -50,7 +50,7 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
         className={`border-t border-neutral-200 bg-white p-2 shadow-md transition-all duration-300 ease-in-out dark:border-neutral-800 dark:bg-neutral-900 ${
           expanded
             ? 'max-h-[80vh] overflow-y-auto shadow-md'
-            : 'max-h-fit overflow-hidden'
+            : 'max-h-22 overflow-hidden'
         }`}
       >
         <button
