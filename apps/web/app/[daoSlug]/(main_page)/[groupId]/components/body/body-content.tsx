@@ -16,7 +16,7 @@ const BodyContent = memo(
     return (
       <div className='relative overflow-hidden'>
         <div
-          className={`prose prose-lg max-w-none ${expanded ? 'overflow-visible' : 'overflow-hidden'}`}
+          className={`prose prose-lg max-w-none break-words ${expanded ? 'overflow-visible' : 'overflow-hidden'}`}
           style={{
             maxHeight: expanded ? 'none' : COLLAPSED_HEIGHT,
           }}
@@ -25,7 +25,7 @@ const BodyContent = memo(
           }}
         >
           <div
-            className='diff-content prose prose-lg max-w-none break-words text-ellipsis'
+            className='diff-content'
             dangerouslySetInnerHTML={{ __html: processedContent }}
           />
           {!expanded && (

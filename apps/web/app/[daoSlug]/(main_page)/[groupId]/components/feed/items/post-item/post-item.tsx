@@ -199,7 +199,7 @@ const PostContent = ({
             <div className='prose prose-lg relative max-w-none'>
               <div
                 dangerouslySetInnerHTML={{ __html: preview }}
-                className='group-open:hidden'
+                className='break-words group-open:hidden'
               />
               <div className='absolute right-0 bottom-0 left-0 h-36 bg-gradient-to-t from-neutral-50 to-transparent group-open:hidden dark:from-neutral-900' />
               <div className='relative my-4 flex items-end justify-end group-open:hidden'>
