@@ -4,7 +4,7 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { format, toZonedTime } from 'date-fns-tz';
 import Link from 'next/link';
-import React, { useEffect, useMemo, useState, useRef, useContext } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { WindowScroller, List, AutoSizer } from 'react-virtualized';
 import { VotesWithVoters } from '../actions';
 import {
@@ -12,9 +12,7 @@ import {
   ProcessedVote,
   VoteType,
 } from '@/lib/results_processing';
-import CheckSvg from '@/public/assets/web/check.svg';
 import ArrowSvg from '@/public/assets/web/arrow.svg';
-import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import superjson, { SuperJSONResult } from 'superjson';
 import { VoterAuthor } from '@/app/[daoSlug]/components/author-voter';
 import {

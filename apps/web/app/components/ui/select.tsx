@@ -12,6 +12,7 @@ import React, {
   ReactNode,
   useContext,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 // Custom SelectContext to manage state
 const SelectContext = createContext<{
@@ -19,11 +20,13 @@ const SelectContext = createContext<{
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   selectedValue: string | number; // Allow both string and number values
   onSelectValue: (value: string | number) => void; // Allow both string and number values
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
 }>({
   isOpen: false,
   setIsOpen: () => {},
   selectedValue: '',
   onSelectValue: () => {},
+  triggerRef: { current: null },
 });
 
 interface SelectProps {
@@ -34,6 +37,7 @@ interface SelectProps {
 
 export const Select = ({ value, onValueChange, children }: SelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
     <SelectContext.Provider
@@ -42,6 +46,7 @@ export const Select = ({ value, onValueChange, children }: SelectProps) => {
         setIsOpen,
         selectedValue: value,
         onSelectValue: onValueChange,
+        triggerRef,
       }}
     >
       <div className='relative'>{children}</div>
@@ -62,10 +67,11 @@ export const SelectTrigger = ({
   'aria-label': ariaLabel,
   withChevron = true,
 }: SelectTriggerProps) => {
-  const { isOpen, setIsOpen } = useContext(SelectContext);
+  const { isOpen, setIsOpen, triggerRef } = useContext(SelectContext);
 
   return (
     <button
+      ref={triggerRef}
       type='button'
       aria-haspopup='listbox'
       aria-expanded={isOpen}
@@ -96,8 +102,21 @@ export const SelectContent = ({
   children,
   className = '',
 }: SelectContentProps) => {
-  const { isOpen, setIsOpen } = useContext(SelectContext);
+  const { isOpen, setIsOpen, triggerRef } = useContext(SelectContext);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  // Update position when trigger changes
+  useEffect(() => {
+    if (triggerRef.current && isOpen) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [isOpen, triggerRef]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -131,6 +150,8 @@ export const SelectContent = ({
 
   if (!isOpen) return null;
 
+  const isMobile = window.innerWidth < 768;
+
   return (
     <>
       {/* Overlay for mobile */}
@@ -139,15 +160,27 @@ export const SelectContent = ({
         onClick={() => setIsOpen(false)}
       />
 
-      <div
-        ref={contentRef}
-        className={`dark:border-neutral-450 absolute z-[1001] min-w-48 overflow-hidden border border-neutral-800 bg-white duration-200 ease-in-out will-change-transform group-hover:-translate-x-1 dark:bg-neutral-950 dark:text-neutral-200 ${className} fixed inset-x-4 bottom-4 mt-0 sm:absolute sm:inset-auto sm:bottom-auto sm:mt-1`}
-        role='listbox'
-      >
-        <div className='max-h-[50vh] overflow-auto p-1 sm:max-h-none'>
-          {children}
-        </div>
-      </div>
+      {createPortal(
+        <div
+          ref={contentRef}
+          className={`dark:border-neutral-450 z-[1001] min-w-48 overflow-hidden border border-neutral-800 bg-white dark:bg-neutral-950 dark:text-neutral-200 ${className} ${
+            isMobile ? 'fixed' : 'absolute'
+          }`}
+          style={{
+            top: isMobile ? 'auto' : position.top,
+            left: isMobile ? '1rem' : position.left,
+            bottom: isMobile ? '1rem' : 'auto',
+            right: isMobile ? '1rem' : 'auto',
+            width: isMobile ? 'calc(100% - 2rem)' : position.width,
+          }}
+          role='listbox'
+        >
+          <div className='max-h-[50vh] overflow-auto p-1 sm:max-h-none'>
+            {children}
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 };

@@ -1,12 +1,7 @@
 'use client';
 
 import { notFound } from 'next/navigation';
-import {
-  FeedEvent,
-  GroupReturnType,
-  ResultEvent,
-  ResultEvent as ResultEventType,
-} from '../../../actions';
+import { GroupReturnType, ResultEvent } from '../../../actions';
 import Link from 'next/link';
 import React, { useState, useRef, useEffect } from 'react';
 import { ResultEventMobile } from './result-event-mobile';
