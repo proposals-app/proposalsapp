@@ -25,7 +25,7 @@ const BodyContent = memo(
           }}
         >
           <div
-            className='diff-content'
+            className='diff-content prose prose-lg max-w-none break-words text-ellipsis'
             dangerouslySetInnerHTML={{ __html: processedContent }}
           />
           {!expanded && (
