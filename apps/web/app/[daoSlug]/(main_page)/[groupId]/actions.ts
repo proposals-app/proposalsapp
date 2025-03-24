@@ -27,6 +27,7 @@ import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { daoSlugSchema, groupIdSchema } from '@/lib/validations';
+import { revalidateTag } from 'next/cache';
 
 export async function updateLastReadAt(groupId: string) {
   groupIdSchema.parse(groupId);
@@ -38,31 +39,23 @@ export async function updateLastReadAt(groupId: string) {
     return; // Do nothing if no user
   }
 
-  const existingLastRead = await dbWeb
-    .selectFrom('userProposalGroupLastRead')
-    .where('userId', '=', userId)
-    .where('proposalGroupId', '=', groupId)
-    .selectAll()
-    .executeTakeFirst();
-
   const now = new Date();
 
-  if (existingLastRead) {
-    await dbWeb
-      .updateTable('userProposalGroupLastRead')
-      .set({ lastReadAt: now })
-      .where('id', '=', existingLastRead.id)
-      .execute();
-  } else {
-    await dbWeb
-      .insertInto('userProposalGroupLastRead')
-      .values({
-        userId: userId,
-        proposalGroupId: groupId,
-        lastReadAt: now,
-      })
-      .execute();
-  }
+  await dbWeb
+    .insertInto('userProposalGroupLastRead')
+    .values({
+      userId: userId,
+      proposalGroupId: groupId,
+      lastReadAt: now,
+    })
+    .onConflict((oc) =>
+      oc
+        .columns(['userId', 'proposalGroupId'])
+        .doUpdateSet({ lastReadAt: now })
+    )
+    .execute();
+
+  revalidateTag('groups'); // Revalidate to update UI
 }
 
 export async function getGroup(daoSlug: string, groupId: string) {
