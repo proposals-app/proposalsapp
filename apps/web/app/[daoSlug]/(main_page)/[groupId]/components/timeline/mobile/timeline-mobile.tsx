@@ -54,6 +54,10 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
     proposalOrderMap.set(proposal.id, index + 1); // +1 to make it 1-based
   });
 
+  if (!events.length) {
+    return null;
+  }
+
   return (
     <div className='fixed right-0 bottom-0 left-0 z-[5000] md:hidden'>
       <div
