@@ -49,9 +49,7 @@ export async function updateLastReadAt(groupId: string) {
       lastReadAt: now,
     })
     .onConflict((oc) =>
-      oc
-        .columns(['userId', 'proposalGroupId'])
-        .doUpdateSet({ lastReadAt: now })
+      oc.columns(['userId', 'proposalGroupId']).doUpdateSet({ lastReadAt: now })
     )
     .execute();
 

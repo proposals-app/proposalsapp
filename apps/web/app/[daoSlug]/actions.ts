@@ -37,7 +37,7 @@ export async function markAllAsRead(daoSlug: string) {
     .execute();
 
   const now = new Date();
-  const values = allGroups.map(group => ({
+  const values = allGroups.map((group) => ({
     userId: userId,
     proposalGroupId: group.id,
     lastReadAt: now,
@@ -48,9 +48,7 @@ export async function markAllAsRead(daoSlug: string) {
     .insertInto('userProposalGroupLastRead')
     .values(values)
     .onConflict((oc) =>
-      oc
-        .columns(['userId', 'proposalGroupId'])
-        .doUpdateSet({ lastReadAt: now })
+      oc.columns(['userId', 'proposalGroupId']).doUpdateSet({ lastReadAt: now })
     )
     .execute();
 
