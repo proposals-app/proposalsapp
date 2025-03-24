@@ -37,22 +37,22 @@ export async function markAllAsRead(daoSlug: string) {
     .execute();
 
   const now = new Date();
+  const values = allGroups.map(group => ({
+    userId: userId,
+    proposalGroupId: group.id,
+    lastReadAt: now,
+  }));
 
-  for (const group of allGroups) {
-    await dbWeb
-      .insertInto('userProposalGroupLastRead')
-      .values({
-        userId: userId,
-        proposalGroupId: group.id,
-        lastReadAt: now,
-      })
-      .onConflict((oc) =>
-        oc
-          .columns(['userId', 'proposalGroupId'])
-          .doUpdateSet({ lastReadAt: now })
-      )
-      .execute();
-  }
+  // Batch insert/update all groups at once
+  await dbWeb
+    .insertInto('userProposalGroupLastRead')
+    .values(values)
+    .onConflict((oc) =>
+      oc
+        .columns(['userId', 'proposalGroupId'])
+        .doUpdateSet({ lastReadAt: now })
+    )
+    .execute();
 
   revalidateTag('groups'); // revalidate here on change
 }
