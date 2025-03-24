@@ -1,5 +1,4 @@
 import { ProposalMetadata } from '@/app/types';
-import { otel } from '@/lib/otel';
 import { Proposal, Selectable, Vote } from '@proposalsapp/db-indexer';
 import { format, toZonedTime } from 'date-fns-tz';
 
@@ -1067,227 +1066,225 @@ export async function processResultsAction(
     aggregatedVotes = false,
   }: ProcessingConfig
 ): Promise<ProcessedResults> {
-  return otel('process-results', async () => {
-    const choices = proposal.choices as string[];
-    const metadata = proposal.metadata as ProposalMetadata;
-    const voteType = metadata.voteType || 'basic';
+  const choices = proposal.choices as string[];
+  const metadata = proposal.metadata as ProposalMetadata;
+  const voteType = metadata.voteType || 'basic';
 
-    let result: ProcessedResults;
+  let result: ProcessedResults;
 
-    switch (voteType) {
-      case 'basic':
-      case 'single-choice':
-        result = await processBasicVotes(
-          votes,
-          choices,
-          proposal,
-          withVotes,
-          withTimeseries
-        );
-        break;
-      case 'weighted':
-        result = await processWeightedVotes(
-          votes,
-          choices,
-          proposal,
-          withVotes,
-          withTimeseries
-        );
-        break;
-      case 'approval':
-        result = await processApprovalVotes(
-          votes,
-          choices,
-          proposal,
-          withVotes,
-          withTimeseries
-        );
-        break;
-      case 'ranked-choice':
-        result = await processRankedChoiceVotes(
-          votes,
-          choices,
-          proposal,
-          withVotes,
-          withTimeseries
-        );
-        break;
-      case 'quadratic':
-        result = await processQuadraticVotes(
-          votes,
-          choices,
-          proposal,
-          withVotes,
-          withTimeseries
-        );
-        break;
-      default:
-        result = await processBasicVotes(
-          votes,
-          choices,
-          proposal,
-          withVotes,
-          withTimeseries
-        );
-        break;
-    }
-
-    if (withVotes && aggregatedVotes && result.votes) {
-      const aggregatedResults: ProcessedVote[] = [];
-      let currentAggregation: { [choice: number]: number } = {};
-      let inAggregationWindow = false;
-
-      // Sort votes by timestamp
-      const sortedVotes = [...result.votes].sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+  switch (voteType) {
+    case 'basic':
+    case 'single-choice':
+      result = await processBasicVotes(
+        votes,
+        choices,
+        proposal,
+        withVotes,
+        withTimeseries
       );
+      break;
+    case 'weighted':
+      result = await processWeightedVotes(
+        votes,
+        choices,
+        proposal,
+        withVotes,
+        withTimeseries
+      );
+      break;
+    case 'approval':
+      result = await processApprovalVotes(
+        votes,
+        choices,
+        proposal,
+        withVotes,
+        withTimeseries
+      );
+      break;
+    case 'ranked-choice':
+      result = await processRankedChoiceVotes(
+        votes,
+        choices,
+        proposal,
+        withVotes,
+        withTimeseries
+      );
+      break;
+    case 'quadratic':
+      result = await processQuadraticVotes(
+        votes,
+        choices,
+        proposal,
+        withVotes,
+        withTimeseries
+      );
+      break;
+    default:
+      result = await processBasicVotes(
+        votes,
+        choices,
+        proposal,
+        withVotes,
+        withTimeseries
+      );
+      break;
+  }
 
-      for (let i = 0; i < sortedVotes.length; i++) {
-        // Using proper type declaration and separate variable to avoid self-reference error
-        const voteItem: ProcessedVote = sortedVotes[i];
+  if (withVotes && aggregatedVotes && result.votes) {
+    const aggregatedResults: ProcessedVote[] = [];
+    let currentAggregation: { [choice: number]: number } = {};
+    let inAggregationWindow = false;
 
-        if (voteItem.votingPower > ACCUMULATE_VOTING_POWER_THRESHOLD) {
-          // If we encounter a large vote, end the current aggregation window
-          if (inAggregationWindow) {
-            for (const choice in currentAggregation) {
-              const choiceIndex = Number(choice);
-              const choiceText = choices[choiceIndex] || 'Unknown Choice';
-              const choiceColor =
-                result.choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR;
+    // Sort votes by timestamp
+    const sortedVotes = [...result.votes].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+    );
 
-              aggregatedResults.push({
-                proposalId: voteItem.proposalId,
-                reason: 'Aggregated votes',
-                votingPower: currentAggregation[choiceIndex],
-                aggregate: true,
-                createdAt: voteItem.createdAt, // Use the timestamp of the last large vote
-                choice: [
-                  {
-                    choiceIndex,
-                    weight: 100,
-                    text: choiceText,
-                    color: choiceColor,
-                  },
-                ],
-                voterAddress: 'aggregated', // Mark as aggregated
-                id: `aggregated-${voteItem.id}-${choiceIndex}`,
-              });
-            }
-            inAggregationWindow = false;
-            currentAggregation = {};
+    for (let i = 0; i < sortedVotes.length; i++) {
+      // Using proper type declaration and separate variable to avoid self-reference error
+      const voteItem: ProcessedVote = sortedVotes[i];
+
+      if (voteItem.votingPower > ACCUMULATE_VOTING_POWER_THRESHOLD) {
+        // If we encounter a large vote, end the current aggregation window
+        if (inAggregationWindow) {
+          for (const choice in currentAggregation) {
+            const choiceIndex = Number(choice);
+            const choiceText = choices[choiceIndex] || 'Unknown Choice';
+            const choiceColor =
+              result.choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR;
+
+            aggregatedResults.push({
+              proposalId: voteItem.proposalId,
+              reason: 'Aggregated votes',
+              votingPower: currentAggregation[choiceIndex],
+              aggregate: true,
+              createdAt: voteItem.createdAt, // Use the timestamp of the last large vote
+              choice: [
+                {
+                  choiceIndex,
+                  weight: 100,
+                  text: choiceText,
+                  color: choiceColor,
+                },
+              ],
+              voterAddress: 'aggregated', // Mark as aggregated
+              id: `aggregated-${voteItem.id}-${choiceIndex}`,
+            });
           }
-          aggregatedResults.push({
-            ...voteItem,
-            aggregate: false,
+          inAggregationWindow = false;
+          currentAggregation = {};
+        }
+        aggregatedResults.push({
+          ...voteItem,
+          aggregate: false,
+        });
+      } else {
+        // Aggregate small votes between large ones
+        inAggregationWindow = true;
+
+        // Check if vote has choice array and it's not empty
+        if (voteItem.choice && voteItem.choice.length > 0) {
+          // Handle weighted votes by distributing the voting power according to weights
+          voteItem.choice.forEach((choiceItem) => {
+            if (choiceItem && typeof choiceItem.choiceIndex === 'number') {
+              const choiceIndex = choiceItem.choiceIndex;
+              // Calculate the proportional voting power based on weight
+              const proportionalVotingPower =
+                (voteItem.votingPower * choiceItem.weight) / 100;
+
+              if (!currentAggregation[choiceIndex]) {
+                currentAggregation[choiceIndex] = 0;
+              }
+              currentAggregation[choiceIndex] += proportionalVotingPower;
+            }
           });
         } else {
-          // Aggregate small votes between large ones
-          inAggregationWindow = true;
-
-          // Check if vote has choice array and it's not empty
-          if (voteItem.choice && voteItem.choice.length > 0) {
-            // Handle weighted votes by distributing the voting power according to weights
-            voteItem.choice.forEach((choiceItem) => {
-              if (choiceItem && typeof choiceItem.choiceIndex === 'number') {
-                const choiceIndex = choiceItem.choiceIndex;
-                // Calculate the proportional voting power based on weight
-                const proportionalVotingPower =
-                  (voteItem.votingPower * choiceItem.weight) / 100;
-
-                if (!currentAggregation[choiceIndex]) {
-                  currentAggregation[choiceIndex] = 0;
-                }
-                currentAggregation[choiceIndex] += proportionalVotingPower;
-              }
-            });
-          } else {
-            // Fallback for votes with missing or empty choice array
-            // console.warn(
-            //   `Vote ${voteItem.id} has no valid choices, skipping aggregation. ${JSON.stringify(voteItem)}`
-            // );
-          }
+          // Fallback for votes with missing or empty choice array
+          // console.warn(
+          //   `Vote ${voteItem.id} has no valid choices, skipping aggregation. ${JSON.stringify(voteItem)}`
+          // );
         }
       }
-
-      // Handle any remaining aggregated votes at the end of the list
-      if (inAggregationWindow && sortedVotes.length > 0) {
-        for (const choice in currentAggregation) {
-          const choiceIndex = Number(choice);
-          const choiceText = choices[choiceIndex] || 'Unknown Choice';
-          const choiceColor =
-            result.choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR;
-
-          const lastVote = sortedVotes[sortedVotes.length - 1];
-          aggregatedResults.push({
-            proposalId: lastVote.proposalId,
-            reason: 'Aggregated votes',
-            votingPower: currentAggregation[choiceIndex],
-            aggregate: true,
-            createdAt: lastVote.createdAt, // Use the timestamp of the last vote
-            choice: [
-              {
-                choiceIndex,
-                weight: 100,
-                text: choiceText,
-                color: choiceColor,
-              },
-            ],
-            voterAddress: 'aggregated', // Mark as aggregated
-            id: `aggregated-final-${choiceIndex}`,
-          });
-        }
-      }
-
-      result.votes = aggregatedResults;
     }
 
-    // Update relativeVotingPower based on the maximum individual vote power
-    if (result.votes) {
-      // Find the maximum individual vote power for calculating relative voting power
-      const maxIndividualVotingPower = Math.max(
-        ...result.votes.map((vote) => vote.votingPower),
+    // Handle any remaining aggregated votes at the end of the list
+    if (inAggregationWindow && sortedVotes.length > 0) {
+      for (const choice in currentAggregation) {
+        const choiceIndex = Number(choice);
+        const choiceText = choices[choiceIndex] || 'Unknown Choice';
+        const choiceColor =
+          result.choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR;
+
+        const lastVote = sortedVotes[sortedVotes.length - 1];
+        aggregatedResults.push({
+          proposalId: lastVote.proposalId,
+          reason: 'Aggregated votes',
+          votingPower: currentAggregation[choiceIndex],
+          aggregate: true,
+          createdAt: lastVote.createdAt, // Use the timestamp of the last vote
+          choice: [
+            {
+              choiceIndex,
+              weight: 100,
+              text: choiceText,
+              color: choiceColor,
+            },
+          ],
+          voterAddress: 'aggregated', // Mark as aggregated
+          id: `aggregated-final-${choiceIndex}`,
+        });
+      }
+    }
+
+    result.votes = aggregatedResults;
+  }
+
+  // Update relativeVotingPower based on the maximum individual vote power
+  if (result.votes) {
+    // Find the maximum individual vote power for calculating relative voting power
+    const maxIndividualVotingPower = Math.max(
+      ...result.votes.map((vote) => vote.votingPower),
+      0
+    );
+
+    result.votes.forEach((vote) => {
+      vote.relativeVotingPower =
+        maxIndividualVotingPower > 0
+          ? vote.votingPower / maxIndividualVotingPower
+          : 0;
+    });
+  }
+
+  // Check if hiddenVote is true and scoresState is not "final"
+  if (metadata.hiddenVote && metadata.scoresState !== 'final') {
+    // Aggregate all voting power under choice -1
+    result.timeSeriesData = result.timeSeriesData?.map((point) => {
+      const totalVotingPower = Object.values(point.values).reduce(
+        (sum, power) => sum + power,
         0
       );
+      return {
+        timestamp: point.timestamp,
+        values: { [-1]: totalVotingPower },
+      };
+    });
+  }
 
-      result.votes.forEach((vote) => {
-        vote.relativeVotingPower =
-          maxIndividualVotingPower > 0
-            ? vote.votingPower / maxIndividualVotingPower
-            : 0;
-      });
-    }
+  // Ensure proposal dates are Date objects
+  result.proposal = {
+    ...result.proposal,
+    startAt: new Date(result.proposal.startAt),
+    endAt: new Date(result.proposal.endAt),
+    createdAt: new Date(result.proposal.createdAt),
+  };
 
-    // Check if hiddenVote is true and scoresState is not "final"
-    if (metadata.hiddenVote && metadata.scoresState !== 'final') {
-      // Aggregate all voting power under choice -1
-      result.timeSeriesData = result.timeSeriesData?.map((point) => {
-        const totalVotingPower = Object.values(point.values).reduce(
-          (sum, power) => sum + power,
-          0
-        );
-        return {
-          timestamp: point.timestamp,
-          values: { [-1]: totalVotingPower },
-        };
-      });
-    }
+  // Ensure timeSeriesData timestamps are Date objects
+  if (result.timeSeriesData) {
+    result.timeSeriesData = result.timeSeriesData.map((point) => ({
+      ...point,
+      timestamp: new Date(point.timestamp),
+    }));
+  }
 
-    // Ensure proposal dates are Date objects
-    result.proposal = {
-      ...result.proposal,
-      startAt: new Date(result.proposal.startAt),
-      endAt: new Date(result.proposal.endAt),
-      createdAt: new Date(result.proposal.createdAt),
-    };
-
-    // Ensure timeSeriesData timestamps are Date objects
-    if (result.timeSeriesData) {
-      result.timeSeriesData = result.timeSeriesData.map((point) => ({
-        ...point,
-        timestamp: new Date(point.timestamp),
-      }));
-    }
-
-    return result;
-  });
+  return result;
 }
