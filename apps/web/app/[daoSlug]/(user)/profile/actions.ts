@@ -1,6 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
+import { settingsSchema } from '@/lib/validations';
 import { headers } from 'next/headers';
 
 export interface SettingsData {
@@ -11,6 +12,8 @@ export interface SettingsData {
 }
 
 export async function saveSettings(settings: SettingsData) {
+  settingsSchema.parse(settings);
+
   const { newDiscussions, newProposals, dailyRoundup, isOnboarded } = settings;
 
   await auth.api.updateUser({

@@ -15,8 +15,11 @@ import { dbWeb } from '@proposalsapp/db-web';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 import { revalidateTag } from 'next/cache';
+import { daoIdSchema, daoSlugSchema, groupIdSchema } from '@/lib/validations';
 
 export async function markAllAsRead(daoSlug: string) {
+  daoSlugSchema.parse(daoSlug);
+
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
@@ -65,6 +68,8 @@ export async function getGroups(daoSlug: string, userId?: string) {
   'use cache';
   cacheLife('minutes');
   cacheTag('groups');
+
+  daoSlugSchema.parse(daoSlug);
 
   // Fetch the DAO based on the slug
   const dao = await dbIndexer
@@ -290,6 +295,8 @@ export async function getGroupHeader(groupId: string): Promise<{
   'use cache';
   cacheLife('hours');
 
+  groupIdSchema.parse(groupId);
+
   interface AuthorInfo {
     originalAuthorName: string;
     originalAuthorPicture: string;
@@ -467,6 +474,8 @@ export const getTokenPrice = async (daoSlug: string) => {
   'use cache';
   cacheLife('hours');
 
+  daoSlugSchema.parse(daoSlug);
+
   if (daoSlug !== 'arbitrum') return null;
 
   try {
@@ -498,6 +507,8 @@ export const getTokenPrice = async (daoSlug: string) => {
 export async function getTotalVotingPower(daoId: string): Promise<number> {
   'use cache';
   cacheLife('hours');
+
+  daoIdSchema.parse(daoId);
 
   const result = await dbIndexer
     .with('latest_voting_power', (db) =>
@@ -587,6 +598,8 @@ async function fetchBalanceForAddress(address: string): Promise<number> {
 export const getTreasuryBalance = async (daoSlug: string) => {
   'use cache';
   cacheLife('days');
+
+  daoSlugSchema.parse(daoSlug);
 
   const TREASURY_ADDRESSES = [
     'eip155:42161:0x34d45e99f7D8c45ed05B5cA72D54bbD1fb3F98f0',

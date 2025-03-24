@@ -26,8 +26,11 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
+import { daoSlugSchema, groupIdSchema } from '@/lib/validations';
 
 export async function updateLastReadAt(groupId: string) {
+  groupIdSchema.parse(groupId);
+
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
@@ -65,6 +68,9 @@ export async function updateLastReadAt(groupId: string) {
 export async function getGroup(daoSlug: string, groupId: string) {
   'use cache';
   cacheLife('hours');
+
+  daoSlugSchema.parse(daoSlug);
+  groupIdSchema.parse(groupId);
 
   if (daoSlug == 'favicon.ico') return null;
 
@@ -160,16 +166,18 @@ export type BodyVersionType = {
 
 export type VersionType = 'topic' | 'onchain' | 'offchain';
 
-export async function getBodyVersions(groupID: string, withContent: boolean) {
+export async function getBodyVersions(groupId: string, withContent: boolean) {
   'use cache';
   cacheLife('minutes');
+
+  groupIdSchema.parse(groupId);
 
   const bodies: BodyVersionType[] = [];
 
   const group = await dbIndexer
     .selectFrom('proposalGroup')
     .selectAll()
-    .where('id', '=', groupID)
+    .where('id', '=', groupId)
     .executeTakeFirstOrThrow();
 
   if (!group) {
@@ -448,6 +456,8 @@ async function getAuthor(groupId: string) {
   'use cache';
   cacheLife('hours');
 
+  groupIdSchema.parse(groupId);
+
   const group = await dbIndexer
     .selectFrom('proposalGroup')
     .selectAll()
@@ -676,6 +686,8 @@ export async function getFeed(
 }> {
   'use cache';
   cacheLife('minutes');
+
+  groupIdSchema.parse(groupId);
 
   let author = null;
 

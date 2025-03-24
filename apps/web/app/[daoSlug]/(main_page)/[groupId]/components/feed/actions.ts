@@ -1,10 +1,18 @@
 'use server';
+import {
+  daoDiscourseIdSchema,
+  daoSlugSchema,
+  discourseUserIdSchema,
+} from '@/lib/validations';
 import { dbIndexer, sql } from '@proposalsapp/db-indexer';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   'use cache';
   cacheLife('hours');
+
+  discourseUserIdSchema.parse(userId);
+  daoDiscourseIdSchema.parse(daoDiscourseId);
 
   const discourseUser = await dbIndexer
     .selectFrom('discourseUser')
@@ -25,6 +33,9 @@ export async function getDelegateByDiscourseUser(
 ) {
   'use cache';
   cacheLife('hours');
+
+  discourseUserIdSchema.parse(discourseUserId);
+  daoSlugSchema.parse(daoSlug);
 
   const dao = await dbIndexer
     .selectFrom('dao')
@@ -187,6 +198,8 @@ export async function getPostLikesCount(
 ) {
   'use cache';
   cacheLife('minutes');
+
+  daoDiscourseIdSchema.parse(daoDiscourseId);
 
   const result = await dbIndexer
     .selectFrom('discoursePostLike')

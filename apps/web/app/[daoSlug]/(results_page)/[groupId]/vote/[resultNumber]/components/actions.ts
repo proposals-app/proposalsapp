@@ -1,10 +1,17 @@
 import { AsyncReturnType } from '@/lib/utils';
+import {
+  daoSlugSchema,
+  proposalIdSchema,
+  voterAddressSchema,
+} from '@/lib/validations';
 import { dbIndexer } from '@proposalsapp/db-indexer';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function getProposalGovernor(proposalId: string) {
   'use cache';
   cacheLife('hours');
+
+  proposalIdSchema.parse(proposalId);
 
   const proposal = await dbIndexer
     .selectFrom('proposal')
@@ -36,6 +43,8 @@ export async function getProposalGovernor(proposalId: string) {
 export async function getNonVoters(proposalId: string) {
   'use cache';
   cacheLife('minutes');
+
+  proposalIdSchema.parse(proposalId);
 
   const proposal = await dbIndexer
     .selectFrom('proposal')
@@ -133,6 +142,8 @@ export async function getVotesWithVoters(proposalId: string) {
   'use cache';
   cacheLife('minutes');
 
+  proposalIdSchema.parse(proposalId);
+
   // 1. Fetch votes, including only the necessary voter address
   const votes = await dbIndexer
     .selectFrom('vote')
@@ -217,6 +228,8 @@ export async function getVoter(voterAddress: string): Promise<DelegateInfo> {
   'use cache';
   cacheLife('hours');
 
+  voterAddressSchema.parse(voterAddress);
+
   // Get the voter
   const voter = await dbIndexer
     .selectFrom('voter')
@@ -250,6 +263,10 @@ export async function getDelegateVotingPower(
 ): Promise<DelegateVotingPower | null> {
   'use cache';
   cacheLife('hours');
+
+  voterAddressSchema.parse(voterAddress);
+  daoSlugSchema.parse(daoSlug);
+  proposalIdSchema.parse(proposalId);
 
   // Get the proposal to determine timestamps
   const proposal = await dbIndexer
