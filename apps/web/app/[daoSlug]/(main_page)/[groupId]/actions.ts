@@ -369,7 +369,7 @@ export interface VoteSegmentData {
   isAggregated?: boolean;
 }
 
-interface ResultEvent extends BaseEvent {
+export interface ResultEvent extends BaseEvent {
   type:
     | TimelineEventType.ResultOngoingBasicVote
     | TimelineEventType.ResultOngoingOtherVotes

@@ -1,9 +1,9 @@
-import { ApprovalVote } from './ended_vote_types/approval-vote';
-import { BasicVote } from './ended_vote_types/basic-vote';
-import { QuadraticVote } from './ended_vote_types/quadratic-vote';
-import { RankedChoiceVote } from './ended_vote_types/ranked-choice-vote';
-import { SingleChoiceVote } from './ended_vote_types/single-choice-vote';
-import { WeightedVote } from './ended_vote_types/weighted-vote';
+import { ApprovalVote } from './vote_types/approval-vote';
+import { BasicVote } from './vote_types/basic-vote';
+import { QuadraticVote } from './vote_types/quadratic-vote';
+import { RankedChoiceVote } from './vote_types/ranked-choice-vote';
+import { SingleChoiceVote } from './vote_types/single-choice-vote';
+import { WeightedVote } from './vote_types/weighted-vote';
 import { ProcessedResults } from '@/lib/results_processing';
 import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
 import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg';

@@ -22,6 +22,7 @@ import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultN
 import { PostedRevisions } from './components/body/posted-revision';
 import { LastReadUpdater } from './components/last-read-updater';
 import Loading from './loading';
+import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
 
 export default async function Page({
   params,
@@ -294,12 +295,19 @@ async function TimelineSection({
     notFound();
   }
 
+  const mobileResultEvents =
+    feed.events?.filter((event) => event.type.includes('Result')).reverse() ||
+    [];
+
   return (
-    <Timeline
-      events={feed.events}
-      group={group}
-      feedFilter={feedFilter}
-      fromFilter={fromFilter}
-    />
+    <div>
+      <ResultsMobile events={mobileResultEvents} group={group} />
+      <Timeline
+        events={feed.events}
+        group={group}
+        feedFilter={feedFilter}
+        fromFilter={fromFilter}
+      />
+    </div>
   );
 }
