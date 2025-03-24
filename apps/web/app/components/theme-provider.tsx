@@ -4,7 +4,7 @@ import { UpdateManifest } from './update-manifest';
 
 export async function ThemeProvider({ children }: { children: ReactNode }) {
   return (
-    <NextThemesProvider attribute='class' defaultTheme='light' enableSystem>
+    <NextThemesProvider attribute='class' defaultTheme='dark' enableSystem>
       <UpdateManifest daoSlug='arbitrum' />
       <div data-theme='arbitrum' className='min-h-screen'>
         {children}
