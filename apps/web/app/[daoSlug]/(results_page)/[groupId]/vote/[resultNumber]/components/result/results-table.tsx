@@ -199,6 +199,19 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedChoice, setSelectedChoice] = useState<string>('all');
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const sortedAndFilteredVotes = useMemo(() => {
     let filteredVotes = deserializedResults.votes || [];
 
@@ -272,7 +285,11 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
     const barWidth = `${(vote.relativeVotingPower || 0) * 100}%`;
 
     return (
-      <div key={key} style={style} className='relative'>
+      <div
+        key={key}
+        style={{ ...style, height: isMobile ? '160px' : '80px' }}
+        className='relative'
+      >
         {/* Color bar */}
         <div
           className='absolute top-0 left-0 h-2 opacity-50'
@@ -300,9 +317,12 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
           )}
         </div>
 
-        {/* Mobile-responsive content */}
-        <div className='relative grid min-h-[80px] grid-cols-1 gap-2 p-2 md:grid-cols-7 md:items-center'>
-          <div className='col-span-1 flex items-center gap-2 overflow-hidden md:col-span-2'>
+        {/* Row content */}
+        <div
+          className={`relative flex h-full pt-3 sm:pt-0 ${isMobile ? 'flex-col justify-between gap-1' : 'grid grid-cols-7 items-center gap-4'} px-2`}
+        >
+          {/* Voter/Delegate */}
+          <div className={isMobile ? '' : 'col-span-2'}>
             {voteWithVoter ? (
               <VoterAuthor
                 voterAddress={voteWithVoter.voterAddress}
@@ -318,14 +338,15 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
             )}
           </div>
 
-          <div className='col-span-1 flex cursor-default flex-col truncate md:col-span-3 md:px-2'>
+          {/* Vote Choice and Reason */}
+          <div className={isMobile ? '' : 'col-span-3 px-2'}>
             <div className='font-bold'>
               <div className='truncate' title={choiceText}>
                 {choiceText}
               </div>
             </div>
             {vote.reason && (
-              <div className='text-neutral-450 text-sm'>
+              <div className='text-neutral-450 mt-1 text-sm'>
                 {isUrl(vote.reason) ? (
                   <Link
                     className='block truncate underline'
@@ -345,17 +366,20 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
             )}
           </div>
 
-          <div className='flex justify-between md:col-span-2 md:grid md:grid-cols-2'>
-            <div className='text-sm md:px-2'>
+          {/* Bottom row for mobile: Date and Voting Power */}
+          <div
+            className={`flex ${isMobile ? 'items-center justify-between' : 'col-span-2 grid grid-cols-2'} text-sm`}
+          >
+            <div className={isMobile ? '' : 'px-2'}>
               <div className='font-bold'>
                 {formatDistanceToNow(vote.createdAt!, { addSuffix: true })}
               </div>
-              <div className='hidden md:block'>
+              <div className='hidden sm:block'>
                 {format(toZonedTime(vote.createdAt!, 'UTC'), 'MMM d, yyyy')} UTC
               </div>
             </div>
 
-            <div className='flex flex-col items-end md:px-2'>
+            <div className={`text-right ${isMobile ? '' : 'px-2'}`}>
               <div className='font-mono font-bold'>
                 {formatNumberWithSuffix(vote.votingPower)} ARB
               </div>
@@ -365,12 +389,17 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
             </div>
           </div>
         </div>
+
+        {/* Divider for mobile */}
+        {isMobile && (
+          <div className='absolute right-0 bottom-0 left-0 border-b border-neutral-200 dark:border-neutral-700'></div>
+        )}
       </div>
     );
   };
 
   const TableHeader = () => (
-    <div className='sticky top-[88px] z-10 mb-2 hidden border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 md:grid md:grid-cols-7 md:items-center md:justify-between md:gap-2 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+    <div className='sticky top-[88px] z-10 mb-2 hidden border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 sm:grid sm:grid-cols-7 sm:items-center sm:justify-between sm:gap-2 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
       <div className='col-span-2 flex items-center gap-1 text-left'>
         Delegate
       </div>
@@ -453,7 +482,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
 
   // Mobile Filter Header
   const MobileFilterHeader = () => (
-    <div className='sticky top-[88px] z-10 mb-2 block border border-neutral-800 bg-neutral-200 p-2 md:hidden dark:border-neutral-600 dark:bg-neutral-800'>
+    <div className='sticky top-[88px] z-10 mb-2 block border border-neutral-800 bg-neutral-200 p-2 sm:hidden dark:border-neutral-600 dark:bg-neutral-800'>
       <Select value={selectedChoice} onValueChange={setSelectedChoice}>
         <SelectTrigger
           aria-label='Filter by choice'
@@ -499,7 +528,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
                 onScroll={onChildScroll}
                 scrollTop={scrollTop}
                 rowCount={sortedAndFilteredVotes.length}
-                rowHeight={80}
+                rowHeight={isMobile ? 160 : 80}
                 rowRenderer={rowRenderer}
               />
             )}
