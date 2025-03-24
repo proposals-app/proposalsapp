@@ -4,7 +4,13 @@ import {
   FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import { getGroup, getBodyVersions, getFeed, getGroupHeader } from './actions';
+import {
+  getGroup,
+  getBodyVersions,
+  getFeed,
+  getGroupHeader,
+  ResultEvent,
+} from './actions';
 import {
   AuthorInfo,
   Body,
@@ -295,9 +301,10 @@ async function TimelineSection({
     notFound();
   }
 
-  const mobileResultEvents =
-    feed.events?.filter((event) => event.type.includes('Result')).reverse() ||
-    [];
+  const mobileResultEvents: ResultEvent[] =
+    (feed.events?.filter((event) =>
+      event.type.includes('Result')
+    ) as ResultEvent[]) || [];
 
   return (
     <div>

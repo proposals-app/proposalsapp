@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import {
   FeedEvent,
   GroupReturnType,
+  ResultEvent,
   ResultEvent as ResultEventType,
 } from '../../../actions';
 import Link from 'next/link';
@@ -22,7 +23,7 @@ enum TimelineEventType {
 }
 
 interface ResultsMobileProps {
-  events: FeedEvent[];
+  events: ResultEvent[];
   group: GroupReturnType;
 }
 
@@ -41,21 +42,6 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
 
   if (!group) {
     notFound();
-  }
-
-  // Filter for relevant events and reverse to get newest on top
-  const resultEvents = (events
-    ?.filter(
-      (event) =>
-        event.type === TimelineEventType.ResultOngoingBasicVote ||
-        event.type === TimelineEventType.ResultOngoingOtherVotes ||
-        event.type === TimelineEventType.ResultEndedBasicVote ||
-        event.type === TimelineEventType.ResultEndedOtherVotes
-    )
-    .reverse() || []) as ResultEventType[];
-
-  if (resultEvents.length === 0) {
-    return null;
   }
 
   const toggleExpanded = () => {
@@ -92,21 +78,28 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
             />
           )}
         </button>
-        <div className='flex flex-col-reverse'>
-          {resultEvents.map((event, index) => {
+        <div className='flex flex-col'>
+          {events.map((event, index) => {
             const resultNumber = proposalOrderMap.get(event.proposal.id) || 0;
-            const isFirst = index === resultEvents.length - 1;
-            const numBehind = resultEvents.length - 1 - index;
+            // correctly identify the first element after reverse (newest event)
+            const isFirst = index === 0;
+            const numBehind = index;
 
             return (
               <div
                 key={index}
                 className={`relative transition-all duration-300 ease-in-out`}
                 style={{
-                  scale: !expanded && !isFirst ? 0.95 : 1,
+                  scale:
+                    !expanded && !isFirst
+                      ? Math.max(0, 1 - numBehind * 0.05)
+                      : 1,
                   marginTop: !expanded && !isFirst ? '-20px' : 0,
-                  zIndex: index,
-                  opacity: !expanded ? Math.max(0, 1 - numBehind * 0.3) : 1,
+                  zIndex: events.length - index,
+                  opacity:
+                    !expanded && !isFirst
+                      ? Math.max(0, 1 - numBehind * 0.3)
+                      : 1,
                 }}
               >
                 {expanded ? (
