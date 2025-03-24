@@ -17,152 +17,18 @@ import ArrowSvg from '@/public/assets/web/arrow.svg';
 import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
 import superjson, { SuperJSONResult } from 'superjson';
 import { VoterAuthor } from '@/app/[daoSlug]/components/author-voter';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select';
 
 interface ResultsTableProps {
   results: SuperJSONResult;
   votes: SuperJSONResult;
 }
-
-// Custom Select Context
-const SelectContext = React.createContext<{
-  isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  selectedValue: string;
-  onSelectValue: (value: string) => void;
-}>({
-  isOpen: false,
-  setIsOpen: () => {},
-  selectedValue: '',
-  onSelectValue: () => {},
-});
-
-interface SelectProps {
-  value: string;
-  onValueChange: (value: string) => void;
-  children: React.ReactNode;
-}
-
-const Select = ({ value, onValueChange, children }: SelectProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <SelectContext.Provider
-      value={{
-        isOpen,
-        setIsOpen,
-        selectedValue: value,
-        onSelectValue: onValueChange,
-      }}
-    >
-      <div className='relative'>{children}</div>
-    </SelectContext.Provider>
-  );
-};
-
-const SelectTrigger = ({
-  children,
-  className = '',
-  'aria-label': ariaLabel,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  'aria-label'?: string;
-}) => {
-  const { isOpen, setIsOpen } = useContext(SelectContext);
-
-  return (
-    <button
-      type='button'
-      aria-haspopup='listbox'
-      aria-expanded={isOpen}
-      aria-label={ariaLabel}
-      className={`flex h-8 cursor-pointer items-center justify-between text-sm outline-none ${className}`}
-      onClick={() => setIsOpen(!isOpen)}
-    >
-      {children}
-    </button>
-  );
-};
-
-const SelectValue = ({ children }: { children: React.ReactNode }) => {
-  return <span>{children}</span>;
-};
-
-const SelectContent = ({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => {
-  const { isOpen, setIsOpen } = useContext(SelectContext);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        contentRef.current &&
-        !contentRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleOutsideClick);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    };
-  }, [isOpen, setIsOpen]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      ref={contentRef}
-      className={`absolute z-[999] mt-1 overflow-hidden rounded-sm border border-neutral-200 bg-white p-1 shadow-lg will-change-transform dark:border-neutral-700 dark:bg-neutral-800 ${className}`}
-      role='listbox'
-    >
-      <div className='p-1'>{children}</div>
-    </div>
-  );
-};
-
-interface SelectItemProps {
-  children: React.ReactNode;
-  value: string;
-}
-
-const SelectItem = ({ children, value }: SelectItemProps) => {
-  const { selectedValue, onSelectValue, setIsOpen } = useContext(SelectContext);
-  const isSelected = selectedValue === value;
-
-  return (
-    <div
-      role='option'
-      aria-selected={isSelected}
-      className='relative flex h-[35px] cursor-pointer items-center pr-10 pl-2 text-sm text-neutral-800 will-change-transform outline-none hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-700'
-      onClick={() => {
-        onSelectValue(value);
-        setIsOpen(false);
-      }}
-    >
-      <span>{children}</span>
-      {isSelected && (
-        <span className='absolute right-2'>
-          <CheckSvg
-            className='fill-neutral-800 dark:fill-neutral-200'
-            width={24}
-            height={24}
-          />
-        </span>
-      )}
-    </div>
-  );
-};
 
 // Helper to get choice text from the new choice structure
 const getChoiceText = (vote: ProcessedVote, voteType: VoteType): string => {
@@ -197,7 +63,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
     'votingPower'
   );
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [selectedChoice, setSelectedChoice] = useState<string>('all');
+  const [selectedChoice, setSelectedChoice] = useState<string | number>('all');
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -218,7 +84,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
     // Apply choice filter
     if (selectedChoice !== 'all') {
       filteredVotes = filteredVotes.filter((vote) =>
-        voteIncludesChoiceText(vote, selectedChoice)
+        voteIncludesChoiceText(vote, selectedChoice.toString())
       );
     }
 
@@ -405,23 +271,13 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
       </div>
       <div className='col-span-3'>
         <Select value={selectedChoice} onValueChange={setSelectedChoice}>
-          <SelectTrigger
-            aria-label='Filter by choice'
-            className='flex w-full items-center justify-between'
-          >
+          <SelectTrigger aria-label='Filter by choice'>
             <SelectValue>
-              <div className='flex items-center gap-1'>
-                {selectedChoice === 'all' ? 'All Vote Choices' : selectedChoice}
-                <ChevronDownSvg
-                  width={24}
-                  height={24}
-                  className='text-neutral-800 dark:text-neutral-200'
-                />
-              </div>
+              {selectedChoice === 'all' ? 'All Vote Choices' : selectedChoice}
             </SelectValue>
           </SelectTrigger>
 
-          <SelectContent className='w-full'>
+          <SelectContent>
             <SelectItem value='all'>All Choices</SelectItem>
             {deserializedResults.choices.map((choice, index) => (
               <SelectItem key={index} value={choice}>
@@ -482,25 +338,15 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
 
   // Mobile Filter Header
   const MobileFilterHeader = () => (
-    <div className='sticky top-[88px] z-10 mb-2 block border border-neutral-800 bg-neutral-200 p-2 sm:hidden dark:border-neutral-600 dark:bg-neutral-800'>
+    <div className='sticky top-[88px] z-10 mb-2 block border border-neutral-800 bg-neutral-200 p-2 font-bold sm:hidden dark:border-neutral-600 dark:bg-neutral-800'>
       <Select value={selectedChoice} onValueChange={setSelectedChoice}>
-        <SelectTrigger
-          aria-label='Filter by choice'
-          className='flex w-full items-center justify-between'
-        >
+        <SelectTrigger aria-label='Filter by choice'>
           <SelectValue>
-            <div className='flex items-center gap-1'>
-              {selectedChoice === 'all' ? 'All Vote Choices' : selectedChoice}
-              <ChevronDownSvg
-                width={24}
-                height={24}
-                className='text-neutral-800 dark:text-neutral-200'
-              />
-            </div>
+            {selectedChoice === 'all' ? 'All Vote Choices' : selectedChoice}
           </SelectValue>
         </SelectTrigger>
 
-        <SelectContent className='w-full'>
+        <SelectContent>
           <SelectItem value='all'>All Choices</SelectItem>
           {deserializedResults.choices.map((choice, index) => (
             <SelectItem key={index} value={choice}>

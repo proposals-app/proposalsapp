@@ -59,7 +59,7 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
   };
 
   const TableHeader = () => (
-    <div className='sticky top-[137px] z-[1999] mb-2 grid grid-cols-12 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 py-3 text-sm font-bold text-neutral-800 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+    <div className='sticky top-[137px] z-40 mb-2 grid grid-cols-12 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 py-3 text-sm font-bold text-neutral-800 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
       <div className='col-span-4'>Delegate</div>
       <div className='col-span-8'>
         <button
@@ -81,7 +81,7 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
 
   return (
     <div className='mt-6'>
-      <div className='sticky top-[88px] z-[1999] border-t border-r border-l border-neutral-800 bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+      <div className='sticky top-[88px] z-40 border-t border-r border-l border-neutral-800 bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className='flex w-full items-center justify-between bg-neutral-50 p-3 text-left dark:bg-neutral-900'

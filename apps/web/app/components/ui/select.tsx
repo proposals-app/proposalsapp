@@ -135,13 +135,13 @@ export const SelectContent = ({
     <>
       {/* Overlay for mobile */}
       <div
-        className='fixed inset-0 z-[2998] bg-black/50 sm:hidden'
+        className='fixed inset-0 z-[1000] bg-black/50 sm:hidden'
         onClick={() => setIsOpen(false)}
       />
 
       <div
         ref={contentRef}
-        className={`dark:border-neutral-450 absolute z-[2999] min-w-48 overflow-hidden border border-neutral-800 bg-white will-change-transform dark:bg-neutral-950 ${className} fixed inset-x-4 bottom-4 mt-0 sm:absolute sm:inset-auto sm:bottom-auto sm:mt-1`}
+        className={`dark:border-neutral-450 absolute z-[1001] min-w-48 overflow-hidden border border-neutral-800 bg-white duration-200 ease-in-out will-change-transform group-hover:-translate-x-1 dark:bg-neutral-950 dark:text-neutral-200 ${className} fixed inset-x-4 bottom-4 mt-0 sm:absolute sm:inset-auto sm:bottom-auto sm:mt-1`}
         role='listbox'
       >
         <div className='max-h-[50vh] overflow-auto p-1 sm:max-h-none'>
