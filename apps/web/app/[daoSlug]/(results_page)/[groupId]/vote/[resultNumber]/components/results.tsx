@@ -118,14 +118,27 @@ function TitleLoading() {
 
 export function ResultsLoading() {
   return (
-    <div className='flex w-full gap-2'>
-      <div className='flex w-full flex-col gap-2'>
-        <TitleLoading />
+    <div className='flex w-full flex-col gap-2 sm:flex-row'>
+      <div className='flex w-full flex-col gap-8 sm:gap-2'>
+        <div className='hidden lg:block'>
+          <TitleLoading />
+        </div>
+
+        <div className='flex justify-center sm:hidden'>
+          <LoadingList />
+        </div>
+
         <LoadingChart />
-        <LoadingTable />
+
+        <div className='flex flex-col'>
+          <LoadingNonVotersTable />
+          <LoadingTable />
+        </div>
       </div>
 
-      <LoadingList />
+      <div className='hidden sm:block'>
+        <LoadingList />
+      </div>
     </div>
   );
 }

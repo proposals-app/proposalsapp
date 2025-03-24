@@ -386,7 +386,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
 export function LoadingTable() {
   // Loading state remains the same
   return (
-    <div className='mt-6'>
+    <div>
       {/* Header */}
       <div className='sticky top-[88px] z-10 mb-2 grid h-12 grid-cols-7 items-center gap-2 border-b border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-700 dark:bg-neutral-800'>
         <div className='col-span-2 flex items-center'>

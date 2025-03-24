@@ -114,7 +114,7 @@ function BodyLoadingContent() {
 
 export function LoadingBodyHeader() {
   return (
-    <div className='flex w-full flex-col gap-6'>
+    <div className='flex w-full flex-col-reverse gap-6 sm:flex-col'>
       {/* Title Loading - more prominent and title-like */}
       <div className='h-12 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
 
@@ -138,7 +138,7 @@ export function LoadingBodyHeader() {
             {/* Align items to the end */}
             <div className='flex flex-row gap-4'>
               {/* Initially Posted - like InitiallyPosted component */}
-              <div className='flex flex-row items-center gap-2 px-2 py-1'>
+              <div className='hidden flex-row items-center gap-2 px-2 py-1 sm:flex'>
                 <div className='flex flex-col items-end space-y-1'>
                   {' '}
                   {/* Align text to the end */}

@@ -144,7 +144,7 @@ export async function Timeline({
 
 export function LoadingTimeline() {
   return (
-    <div className='fixed top-24 left-28 z-20 flex h-screen w-44 flex-col items-end justify-start'>
+    <div className='fixed top-24 left-28 z-20 hidden h-screen w-44 flex-col items-end justify-start sm:flex'>
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
         <div className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'>

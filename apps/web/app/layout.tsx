@@ -5,7 +5,6 @@ import { PHProvider } from './components/posthog-provider';
 import SuspendedPostHogPageView from './components/posthog-page-view';
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
-import Banner from './components/banner';
 import { ThemeProvider } from './components/theme-provider';
 
 export const metadata: Metadata = {

@@ -455,11 +455,11 @@ export function LoadingChart() {
         </div>
 
         {/* X-axis labels */}
-        <div className='flex justify-between px-16'>
+        <div className='flex justify-between pl-16'>
           {[...Array(5)].map((_, i) => (
             <div
               key={i}
-              className='h-4 w-20 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
+              className='h-4 w-8 animate-pulse rounded bg-neutral-200 sm:w-20 dark:bg-neutral-700'
             />
           ))}
         </div>
