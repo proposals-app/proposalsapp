@@ -72,7 +72,7 @@ function BodyLoadingContent() {
   return (
     <div className='relative overflow-hidden'>
       <div
-        className='prose prose-lg max-w-none overflow-hidden p-6'
+        className='prose prose-lg max-w-none overflow-hidden p-2 sm:p-6'
         style={{ maxHeight: '25rem' }}
       >
         <div className='space-y-4'>
@@ -116,7 +116,7 @@ export function LoadingBodyHeader() {
   return (
     <div className='flex w-full flex-col-reverse gap-6 sm:flex-col'>
       {/* Title Loading - more prominent and title-like */}
-      <div className='h-12 w-3/4 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800'></div>
+      <div className='h-98 w-3/4 animate-pulse self-center rounded-lg bg-neutral-200 sm:self-start dark:bg-neutral-800'></div>
 
       {/* Author Info and Posted Time Loading - align structure to AuthorInfo and PostedRevisions */}
       <div className='flex flex-col'>

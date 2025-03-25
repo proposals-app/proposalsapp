@@ -368,11 +368,12 @@ function ParticipationPercentage({
 
 export function LoadingList() {
   return (
-    <div className='ml-6 w-72 text-neutral-700 dark:text-neutral-200'>
+    <div className='w-72 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
       {/* Status message placeholder */}
-      <div className='mb-1 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-      <div className='mb-4 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-
+      <div className='flex flex-col justify-center sm:h-28'>
+        <div className='mb-1 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+        <div className='mb-4 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+      </div>
       <div className='space-y-2'>
         {/* Choice bars loading state */}
         {[...Array(3)].map((_, index) => (

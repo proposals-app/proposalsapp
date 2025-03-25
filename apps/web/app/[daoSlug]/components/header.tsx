@@ -36,12 +36,10 @@ export async function Header({
         {withBack && (
           <Link
             href={`/${groupId}`}
-            className='flex items-center gap-1 rounded-full px-2 py-2 sm:gap-2 sm:px-3'
+            className='flex items-center gap-2 rounded-full px-3 py-2'
           >
-            <ArrowSvg className='-rotate-90' width={20} height={20} />
-            <span className='hidden text-xs font-medium sm:inline sm:text-sm'>
-              Back
-            </span>
+            <ArrowSvg className='-rotate-90' width={24} height={24} />
+            <span className='hidden text-sm font-medium sm:block'>Back</span>
           </Link>
         )}
 
