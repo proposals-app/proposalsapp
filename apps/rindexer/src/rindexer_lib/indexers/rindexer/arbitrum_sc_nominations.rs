@@ -51,9 +51,10 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 }
 
                 info!(
-                    event = "ArbitrumSCNominations::ProposalCreated",
-                    status = "INDEXED".green().to_string(),
-                    results = results.len(),
+                    "{} - {} - {}",
+                    "ArbitrumSCNominations::ProposalCreated",
+                    results.len(),
+                    "INDEXED".green().to_string(),
                 );
 
                 for result in results.clone() {
@@ -159,9 +160,10 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                 }
 
                 info!(
-                    event = "ArbitrumSCNominations::ProposalExecuted",
-                    status = "INDEXED".green().to_string(),
-                    results = results.len(),
+                    "{} - {} - {}",
+                    "ArbitrumSCNominations::ProposalExecuted",
+                    results.len(),
+                    "INDEXED".green().to_string(),
                 );
 
                 Ok(())

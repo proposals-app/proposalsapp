@@ -64,9 +64,10 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 }
 
                 info!(
-                    event = "ArbitrumCoreGovernor::ProposalCreated",
-                    status = "INDEXED".green().to_string(),
-                    results = results.len(),
+                    "{} - {} - {}",
+                    "ArbitrumCoreGovernor::ProposalCreated",
+                    results.len(),
+                    "INDEXED".green().to_string(),
                 );
 
                 for result in results.clone() {
@@ -174,9 +175,10 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                 }
 
                 info!(
-                    event = "ArbitrumCoreGovernor::ProposalExecuted",
-                    status = "INDEXED".green().to_string(),
-                    results = results.len(),
+                    "{} - {} - {}",
+                    "ArbitrumCoreGovernor::ProposalExecuted",
+                    results.len(),
+                    "INDEXED".green().to_string(),
                 );
 
                 for result in results.clone() {
@@ -224,9 +226,10 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                 }
 
                 info!(
-                    event = "ArbitrumCoreGovernor::ProposalExtended",
-                    status = "INDEXED".green().to_string(),
-                    results = results.len(),
+                    "{} - {} - {}",
+                    "ArbitrumCoreGovernor::ProposalExtended",
+                    results.len(),
+                    "INDEXED".green().to_string(),
                 );
 
                 for result in results.clone() {
@@ -278,9 +281,10 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                 }
 
                 info!(
-                    event = "ArbitrumCoreGovernor::VoteCast",
-                    status = "INDEXED".green().to_string(),
-                    results = results.len(),
+                    "{} - {} - {}",
+                    "ArbitrumCoreGovernor::VoteCast",
+                    results.len(),
+                    "INDEXED".green().to_string(),
                 );
 
                 let mut votes = vec![];

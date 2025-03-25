@@ -37,9 +37,10 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                 }
 
                 info!(
-                    event = "ARBToken::DelegateChanged",
-                    status = "INDEXED".green().to_string(),
-                    results = results.len(),
+                    "{} - {} - {}",
+                    "ARBToken::DelegateChanged",
+                    results.len(),
+                    "INDEXED".green().to_string(),
                 );
 
                 let mut delegations = vec![];
@@ -83,9 +84,10 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                 }
 
                 info!(
-                    event = "ARBToken::DelegateVotesChanged",
-                    status = "INDEXED".green().to_string(),
-                    results = results.len(),
+                    "{} - {} - {}",
+                    "ARBToken::DelegateVotesChanged",
+                    results.len(),
+                    "INDEXED".green().to_string(),
                 );
 
                 let mut vps = vec![];
