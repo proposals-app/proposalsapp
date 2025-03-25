@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@proposalsapp/db-indexer": "1.0.0",
+    "@proposalsapp/db-web": "1.0.0",
     "@proposalsapp/emails": "1.0.0",
     "axios": "^1.8.4",
     "dotenv": "^16.4.7",
