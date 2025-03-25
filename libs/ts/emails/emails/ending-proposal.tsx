@@ -35,9 +35,9 @@ export default function EndingProposalEmailTemplate({
       <Tailwind>
         <Head />
         <Preview>Proposal ending soon in {daoName}</Preview>
-        <Body className="bg-gray-100 font-sans">
+        <Body className="bg-neutral-100 dark:bg-neutral-900 font-sans">
           <Container className="mx-auto max-w-[600px] p-2 lg:p-8">
-            <Section className="my-8 bg-white p-4 shadow-sm lg:p-8">
+            <Section className="my-8 bg-white dark:bg-neutral-800 p-4 shadow-sm lg:p-8">
               <Row className="flex items-start pb-2">
                 <Column>
                   <Img
@@ -48,42 +48,38 @@ export default function EndingProposalEmailTemplate({
                   />
                 </Column>
                 <Column>
-                  <Heading className="mb-4 text-center text-2xl font-bold text-gray-800">
+                  <Heading className="mb-4 text-center text-2xl font-bold text-neutral-800 dark:text-neutral-100">
                     Proposal Ending Soon
                   </Heading>
                 </Column>
               </Row>
 
-              <Text className="mb-4 text-gray-700">Hello,</Text>
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">Hello,</Text>
 
-              <Text className="mb-4 text-gray-700">
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
                 A proposal in {daoName} is ending in 24 hours:
               </Text>
 
-              <Text className="mb-2 text-xl font-semibold text-gray-800">
+              <Text className="mb-2 text-xl font-semibold text-neutral-800 dark:text-neutral-100">
                 {proposalName}
               </Text>
 
-              <Text className="mb-6 text-gray-700">
+              <Text className="mb-6 text-neutral-700 dark:text-neutral-300">
                 The proposal will end on {endTime}
               </Text>
 
               <Section className="mb-8 text-center">
                 <Button
-                  className="rounded-none bg-blue-600 px-6 py-3 text-center text-sm font-medium text-white hover:bg-blue-700"
+                  className="bg-neutral-900 dark:bg-neutral-100 px-5 py-3 text-center text-[12px] font-semibold text-white dark:text-neutral-900 no-underline hover:bg-neutral-800 dark:hover:bg-neutral-200"
                   href={proposalUrl}
                 >
                   View Proposal
                 </Button>
               </Section>
 
-              <Text className="mb-4 text-gray-700">
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
                 Thanks, <br />
                 The proposals.app Team
-              </Text>
-
-              <Text className="mt-8 border-t border-gray-200 pt-4 text-sm text-gray-700">
-                This is an automated message, please do not reply to this email.
               </Text>
             </Section>
 

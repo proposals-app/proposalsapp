@@ -3316,6 +3316,7 @@ __metadata:
   dependencies:
     "@react-email/components": "npm:0.0.34"
     "@react-email/render": "npm:1.0.5"
+    "@react-email/tailwind": "npm:1.0.4"
     "@tsconfig/recommended": "npm:^1.0.8"
     "@types/react": "npm:^19.0.12"
     dotenv: "npm:^16.4.7"

@@ -30,9 +30,9 @@ export default function DeleteAccountTemplate({
       <Tailwind>
         <Head />
         <Preview>Confirm your account deletion on proposals.app</Preview>
-        <Body className="bg-gray-100 font-sans">
+        <Body className="bg-neutral-100 font-sans dark:bg-neutral-900">
           <Container className="mx-auto max-w-[600px] p-2 lg:p-8">
-            <Section className="my-8 bg-white p-4 shadow-sm lg:p-8">
+            <Section className="my-8 bg-white p-4 shadow-sm lg:p-8 dark:bg-neutral-800">
               <Row className="flex items-start pb-2">
                 <Column>
                   <Img
@@ -43,54 +43,53 @@ export default function DeleteAccountTemplate({
                   />
                 </Column>
                 <Column>
-                  <Heading className="mb-4 text-center text-2xl font-bold text-gray-800">
+                  <Heading className="mb-4 text-center text-2xl font-bold text-neutral-800 dark:text-neutral-100">
                     Confirm Account Deletion
                   </Heading>
                 </Column>
               </Row>
 
-              <Text className="mb-4 text-gray-700">Hello,</Text>
+              <Text className="bold mb-4 font-bold text-neutral-700 dark:text-neutral-300">
+                Hi {email},
+              </Text>
 
-              <Text className="mb-4 text-gray-700">
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
                 We received a request to delete your account ({email}) from
                 proposals.app.
               </Text>
 
-              <Section className="mb-6 bg-red-50 p-4">
-                <Text className="font-bold text-red-700">
+              <Section className="mb-6 bg-red-50 p-4 dark:bg-red-900">
+                <Text className="font-bold text-red-700 dark:text-red-300">
                   Warning: This action cannot be undone. Once your account is
                   deleted, there is no way to restore it.
                 </Text>
               </Section>
 
-              <Text className="mb-6 text-gray-700">
+              <Text className="mb-6 text-neutral-700 dark:text-neutral-300">
                 If you still want to proceed, please click the button below to
                 confirm.
               </Text>
 
               <Section className="mb-8 text-center">
                 <Button
-                  className="rounded-none bg-red-600 px-6 py-3 text-center text-sm font-medium text-white hover:bg-red-700"
+                  className="rounded-none bg-red-600 px-5 py-3 text-center text-[12px] font-semibold text-white no-underline hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
                   href={verificationUrl}
                 >
                   Confirm Account Deletion
                 </Button>
               </Section>
 
-              <Text className="mb-4 text-gray-700">
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
                 If you did not request this deletion, please ignore this email.
               </Text>
 
-              <Text className="mb-4 text-gray-700">
-                This link will expire in 24 hours for security reasons.
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
+                This link will expire in 1 hour.
               </Text>
 
-              <Text className="mb-4 text-gray-700">
-                If you have any questions, please contact our support team.
-              </Text>
-
-              <Text className="mt-8 border-t border-gray-200 pt-4 text-sm text-gray-700">
-                This is an automated message, please do not reply to this email.
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
+                Thanks, <br />
+                The proposals.app Team
               </Text>
             </Section>
 

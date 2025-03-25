@@ -24,7 +24,7 @@ export const auth = betterAuth({
           from: 'proposals.app <noreply@proposals.app>',
           to: [email],
           subject: 'Welcome to proposals.app!',
-          react: OTPEmail({ verificationCode: otp }),
+          react: OTPEmail({ verificationCode: otp, email }),
         });
 
         if (error) {
@@ -59,6 +59,7 @@ export const auth = betterAuth({
     },
     changeEmail: {
       enabled: true,
+      expiresIn: 3600,
       sendChangeEmailVerification: async ({ user, newEmail, url }) => {
         const { error } = await resend.emails.send({
           from: 'proposals.app <accounts@proposals.app>',
@@ -78,6 +79,7 @@ export const auth = betterAuth({
     },
     deleteUser: {
       enabled: true,
+      expiresIn: 3600,
       sendDeleteAccountVerification: async ({ user, url }) => {
         console.log(
           `Preparing to send account deletion verification email to ${user.email}`

@@ -32,9 +32,9 @@ export default function ChangeEmailTemplate({
       <Tailwind>
         <Head />
         <Preview>Confirm your email address change on proposals.app</Preview>
-        <Body className="bg-gray-100 font-sans">
+        <Body className="bg-neutral-100 dark:bg-neutral-900 font-sans">
           <Container className="mx-auto max-w-[600px] p-2 lg:p-8">
-            <Section className="my-8 bg-white p-4 shadow-sm lg:p-8">
+            <Section className="my-8 bg-white dark:bg-neutral-800 p-4 shadow-sm lg:p-8">
               <Row className="flex items-start pb-2">
                 <Column>
                   <Img
@@ -45,59 +45,53 @@ export default function ChangeEmailTemplate({
                   />
                 </Column>
                 <Column>
-                  <Heading className="mb-4 text-center text-2xl font-bold text-gray-800">
+                  <Heading className="mb-4 text-center text-2xl font-bold text-neutral-800 dark:text-neutral-100">
                     Confirm Email Change
                   </Heading>
                 </Column>
               </Row>
 
-              <Text className="mb-4 text-gray-700">Hello,</Text>
+              <Text className="mb-4 font-bold text-neutral-700 dark:text-neutral-300">
+                Hi {currentEmail},
+              </Text>
 
-              <Text className="mb-4 text-gray-700">
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
                 We received a request to change your email address on
                 proposals.app.
               </Text>
 
-              <Text className="mb-4 text-gray-700">
-                Your current email address is: <strong>{currentEmail}</strong>
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
+                Your current email address is: <strong className="text-neutral-800 dark:text-neutral-100">{currentEmail}</strong>
               </Text>
 
-              <Text className="mb-6 text-gray-700">
-                You asked to change it to: <strong>{newEmail}</strong>
+              <Text className="mb-6 text-neutral-700 dark:text-neutral-300">
+                You asked to change it to: <strong className="text-neutral-800 dark:text-neutral-100">{newEmail}</strong>
               </Text>
 
-              <Text className="mb-6 text-gray-700">
+              <Text className="mb-6 text-neutral-700 dark:text-neutral-300">
                 To confirm this change, please click the button below.
               </Text>
 
               <Section className="mb-8 text-center">
                 <Button
-                  className="rounded-none bg-blue-600 px-6 py-3 text-center text-sm font-medium text-white hover:bg-blue-700"
+                  className="bg-neutral-900 dark:bg-neutral-100 px-5 py-3 text-center text-[12px] font-semibold text-white dark:text-neutral-900 no-underline hover:bg-neutral-800 dark:hover:bg-neutral-200"
                   href={verificationUrl}
                 >
                   Confirm Email Change
                 </Button>
               </Section>
 
-              <Text className="mb-4 text-gray-700">
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
                 If you did not request this change, please ignore this email.
               </Text>
 
-              <Text className="mb-4 text-gray-700">
-                This link will expire in 24 hours for security reasons.
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
+                This link will expire in 1 hour.
               </Text>
 
-              <Text className="mb-4 text-gray-700">
-                If you have any questions, please contact our support team.
-              </Text>
-
-              <Text className="mb-4 text-gray-700">
+              <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
                 Thanks, <br />
                 The proposals.app Team
-              </Text>
-
-              <Text className="mt-8 border-t border-gray-200 pt-4 text-sm text-gray-700">
-                This is an automated message, please do not reply to this email.
               </Text>
             </Section>
 
