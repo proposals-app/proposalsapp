@@ -78,7 +78,7 @@ export const BodyViewBar = ({
     >
       <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 md:flex-row md:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
         <div className='flex w-full flex-row justify-between gap-2'>
-          <div className='flex w-auto items-center justify-start'>
+          <div className='flex w-auto items-center justify-start sm:pl-2'>
             <button
               className='flex cursor-pointer items-center gap-4 hover:underline'
               onClick={() => {
@@ -229,7 +229,7 @@ export const BodyViewBar = ({
           </div>
 
           <button
-            className='order-2 flex cursor-pointer items-center gap-4 hover:underline'
+            className='order-2 flex cursor-pointer items-center gap-4 hover:underline sm:pr-2'
             onClick={() => {
               setExpanded(!expanded);
               setView(ViewEnum.FULL);

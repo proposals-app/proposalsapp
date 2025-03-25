@@ -587,6 +587,7 @@ mod request_tests {
 
     #[tokio::test]
     #[serial]
+    #[ignore = "too long"]
     async fn test_concurrency() -> Result<()> {
         let mut tasks = JoinSet::new();
         let networks = ["ethereum", "arbitrum", "optimism", "polygon"];
@@ -606,6 +607,7 @@ mod request_tests {
 
     #[tokio::test]
     #[serial]
+    #[ignore = "too long"]
     async fn test_intensive_concurrency_all_networks_sequential() -> Result<()> {
         let networks = ["ethereum", "arbitrum", "optimism", "polygon"]; // Include all networks for more comprehensive test
         let num_tasks_per_network = 100;

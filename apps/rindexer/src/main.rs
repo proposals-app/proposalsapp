@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use dotenv::dotenv;
 use extensions::{db_extension::initialize_db, snapshot_api::initialize_snapshot_api};
 use reqwest::Client;
-use rindexer::{GraphqlOverrideSettings, IndexingDetails, StartDetails, start_rindexer};
+use rindexer::{GraphqlOverrideSettings, IndexingDetails, StartDetails, event::callback_registry::TraceCallbackRegistry, start_rindexer};
 use std::{env, time::Duration};
 use tasks::{ended_onchian_proposals::run_periodic_proposal_state_update, snapshot_proposals::run_periodic_snapshot_proposals_update, snapshot_votes::run_periodic_snapshot_votes_update};
 use tracing::{error, info, instrument, warn};
@@ -68,6 +68,7 @@ async fn main() -> Result<()> {
         manifest_path: &manifest_path,
         indexing_details: Some(IndexingDetails {
             registry: register_all_handlers(&manifest_path).await,
+            trace_registry: TraceCallbackRegistry { events: vec![] },
         }),
         graphql_details: GraphqlOverrideSettings {
             enabled: false,

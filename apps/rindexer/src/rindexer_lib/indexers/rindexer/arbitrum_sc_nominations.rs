@@ -52,7 +52,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 info!(
                     event = "ArbitrumSCNominations::ProposalCreated",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    status = "INDEXED".green().to_string(),
                     results = results.len(),
                 );
 
@@ -160,7 +160,7 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
 
                 info!(
                     event = "ArbitrumSCNominations::ProposalExecuted",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    status = "INDEXED".green().to_string(),
                     results = results.len(),
                 );
 

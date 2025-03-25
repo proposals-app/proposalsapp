@@ -2986,7 +2986,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
             Self::new(contract.address(), contract.client())
         }
     }
-    ///Custom Error type `AccountInOtherCohort` with signature `AccountInOtherCohort(uint8,address)` and selector `0xc6cd9b06`
+    ///Custom Error type `AccountInOtherCohort` with signature
+    /// `AccountInOtherCohort(uint8,address)` and selector `0xc6cd9b06`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "AccountInOtherCohort",
@@ -2996,17 +2997,20 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub cohort: u8,
         pub account: ::ethers::core::types::Address,
     }
-    ///Custom Error type `AlreadyContender` with signature `AlreadyContender(address)` and selector `0x6de08710`
+    ///Custom Error type `AlreadyContender` with signature `AlreadyContender(address)` and selector
+    /// `0x6de08710`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "AlreadyContender", abi = "AlreadyContender(address)")]
     pub struct AlreadyContender {
         pub contender: ::ethers::core::types::Address,
     }
-    ///Custom Error type `CastVoteDisabled` with signature `CastVoteDisabled()` and selector `0x4009353f`
+    ///Custom Error type `CastVoteDisabled` with signature `CastVoteDisabled()` and selector
+    /// `0x4009353f`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "CastVoteDisabled", abi = "CastVoteDisabled()")]
     pub struct CastVoteDisabled;
-    ///Custom Error type `CompliantNomineeTargetHit` with signature `CompliantNomineeTargetHit(uint256,uint256)` and selector `0x7380e239`
+    ///Custom Error type `CompliantNomineeTargetHit` with signature
+    /// `CompliantNomineeTargetHit(uint256,uint256)` and selector `0x7380e239`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "CompliantNomineeTargetHit",
@@ -3016,7 +3020,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub nominee_count: ::ethers::core::types::U256,
         pub expected_count: ::ethers::core::types::U256,
     }
-    ///Custom Error type `CreateTooEarly` with signature `CreateTooEarly(uint256,uint256)` and selector `0x25446e50`
+    ///Custom Error type `CreateTooEarly` with signature `CreateTooEarly(uint256,uint256)` and
+    /// selector `0x25446e50`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "CreateTooEarly", abi = "CreateTooEarly(uint256,uint256)")]
     pub struct CreateTooEarly {
@@ -3033,7 +3038,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "Empty", abi = "Empty()")]
     pub struct Empty;
-    ///Custom Error type `InsufficientCompliantNomineeCount` with signature `InsufficientCompliantNomineeCount(uint256,uint256)` and selector `0xaa5f24ef`
+    ///Custom Error type `InsufficientCompliantNomineeCount` with signature
+    /// `InsufficientCompliantNomineeCount(uint256,uint256)` and selector `0xaa5f24ef`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "InsufficientCompliantNomineeCount",
@@ -3043,7 +3049,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub compliant_nominee_count: ::ethers::core::types::U256,
         pub expected_count: ::ethers::core::types::U256,
     }
-    ///Custom Error type `InsufficientTokens` with signature `InsufficientTokens(uint256,uint256,uint256)` and selector `0x1aefbf9e`
+    ///Custom Error type `InsufficientTokens` with signature
+    /// `InsufficientTokens(uint256,uint256,uint256)` and selector `0x1aefbf9e`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "InsufficientTokens",
@@ -3054,11 +3061,13 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub prev_votes_used: ::ethers::core::types::U256,
         pub weight: ::ethers::core::types::U256,
     }
-    ///Custom Error type `InvalidSignature` with signature `InvalidSignature()` and selector `0x8baa579f`
+    ///Custom Error type `InvalidSignature` with signature `InvalidSignature()` and selector
+    /// `0x8baa579f`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "InvalidSignature", abi = "InvalidSignature()")]
     pub struct InvalidSignature;
-    ///Custom Error type `InvalidStartDate` with signature `InvalidStartDate(uint256,uint256,uint256,uint256)` and selector `0xe687588b`
+    ///Custom Error type `InvalidStartDate` with signature
+    /// `InvalidStartDate(uint256,uint256,uint256,uint256)` and selector `0xe687588b`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "InvalidStartDate",
@@ -3070,13 +3079,15 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub day: ::ethers::core::types::U256,
         pub hour: ::ethers::core::types::U256,
     }
-    ///Custom Error type `InvalidSupport` with signature `InvalidSupport(uint8)` and selector `0xfe0e5d8b`
+    ///Custom Error type `InvalidSupport` with signature `InvalidSupport(uint8)` and selector
+    /// `0xfe0e5d8b`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "InvalidSupport", abi = "InvalidSupport(uint8)")]
     pub struct InvalidSupport {
         pub support: u8,
     }
-    ///Custom Error type `LastMemberElectionNotExecuted` with signature `LastMemberElectionNotExecuted(uint256)` and selector `0xebf0cac1`
+    ///Custom Error type `LastMemberElectionNotExecuted` with signature
+    /// `LastMemberElectionNotExecuted(uint256)` and selector `0xebf0cac1`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "LastMemberElectionNotExecuted",
@@ -3085,13 +3096,15 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
     pub struct LastMemberElectionNotExecuted {
         pub prev_proposal_id: ::ethers::core::types::U256,
     }
-    ///Custom Error type `NomineeAlreadyAdded` with signature `NomineeAlreadyAdded(address)` and selector `0xc4cffe23`
+    ///Custom Error type `NomineeAlreadyAdded` with signature `NomineeAlreadyAdded(address)` and
+    /// selector `0xc4cffe23`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "NomineeAlreadyAdded", abi = "NomineeAlreadyAdded(address)")]
     pub struct NomineeAlreadyAdded {
         pub nominee: ::ethers::core::types::Address,
     }
-    ///Custom Error type `NomineeAlreadyExcluded` with signature `NomineeAlreadyExcluded(address)` and selector `0x19c5763c`
+    ///Custom Error type `NomineeAlreadyExcluded` with signature `NomineeAlreadyExcluded(address)`
+    /// and selector `0x19c5763c`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "NomineeAlreadyExcluded",
@@ -3100,29 +3113,34 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
     pub struct NomineeAlreadyExcluded {
         pub nominee: ::ethers::core::types::Address,
     }
-    ///Custom Error type `NotAContract` with signature `NotAContract(address)` and selector `0x8a8b41ec`
+    ///Custom Error type `NotAContract` with signature `NotAContract(address)` and selector
+    /// `0x8a8b41ec`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "NotAContract", abi = "NotAContract(address)")]
     pub struct NotAContract {
         pub account: ::ethers::core::types::Address,
     }
-    ///Custom Error type `NotEligibleContender` with signature `NotEligibleContender(address)` and selector `0xa5c0125d`
+    ///Custom Error type `NotEligibleContender` with signature `NotEligibleContender(address)` and
+    /// selector `0xa5c0125d`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "NotEligibleContender", abi = "NotEligibleContender(address)")]
     pub struct NotEligibleContender {
         pub contender: ::ethers::core::types::Address,
     }
-    ///Custom Error type `NotNominee` with signature `NotNominee(address)` and selector `0xaa717320`
+    ///Custom Error type `NotNominee` with signature `NotNominee(address)` and selector
+    /// `0xaa717320`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "NotNominee", abi = "NotNominee(address)")]
     pub struct NotNominee {
         pub nominee: ::ethers::core::types::Address,
     }
-    ///Custom Error type `OnlyNomineeVetter` with signature `OnlyNomineeVetter()` and selector `0x23f283d2`
+    ///Custom Error type `OnlyNomineeVetter` with signature `OnlyNomineeVetter()` and selector
+    /// `0x23f283d2`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "OnlyNomineeVetter", abi = "OnlyNomineeVetter()")]
     pub struct OnlyNomineeVetter;
-    ///Custom Error type `ProposalIdMismatch` with signature `ProposalIdMismatch(uint256,uint256)` and selector `0x01eef61a`
+    ///Custom Error type `ProposalIdMismatch` with signature `ProposalIdMismatch(uint256,uint256)`
+    /// and selector `0x01eef61a`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "ProposalIdMismatch",
@@ -3132,7 +3150,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub nominee_proposal_id: ::ethers::core::types::U256,
         pub member_proposal_id: ::ethers::core::types::U256,
     }
-    ///Custom Error type `ProposalInVettingPeriod` with signature `ProposalInVettingPeriod(uint256,uint256)` and selector `0x992f5645`
+    ///Custom Error type `ProposalInVettingPeriod` with signature
+    /// `ProposalInVettingPeriod(uint256,uint256)` and selector `0x992f5645`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "ProposalInVettingPeriod",
@@ -3142,7 +3161,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub block_number: ::ethers::core::types::U256,
         pub vetting_deadline: ::ethers::core::types::U256,
     }
-    ///Custom Error type `ProposalNotInVettingPeriod` with signature `ProposalNotInVettingPeriod(uint256,uint256)` and selector `0x8a807f1f`
+    ///Custom Error type `ProposalNotInVettingPeriod` with signature
+    /// `ProposalNotInVettingPeriod(uint256,uint256)` and selector `0x8a807f1f`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "ProposalNotInVettingPeriod",
@@ -3152,13 +3172,15 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub block_number: ::ethers::core::types::U256,
         pub vetting_deadline: ::ethers::core::types::U256,
     }
-    ///Custom Error type `ProposalNotPending` with signature `ProposalNotPending(uint8)` and selector `0x1d24fc6a`
+    ///Custom Error type `ProposalNotPending` with signature `ProposalNotPending(uint8)` and
+    /// selector `0x1d24fc6a`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "ProposalNotPending", abi = "ProposalNotPending(uint8)")]
     pub struct ProposalNotPending {
         pub state: u8,
     }
-    ///Custom Error type `ProposalNotSucceededState` with signature `ProposalNotSucceededState(uint8)` and selector `0x7e16558b`
+    ///Custom Error type `ProposalNotSucceededState` with signature
+    /// `ProposalNotSucceededState(uint8)` and selector `0x7e16558b`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "ProposalNotSucceededState",
@@ -3167,24 +3189,28 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
     pub struct ProposalNotSucceededState {
         pub state: u8,
     }
-    ///Custom Error type `ProposeDisabled` with signature `ProposeDisabled()` and selector `0xa52710d2`
+    ///Custom Error type `ProposeDisabled` with signature `ProposeDisabled()` and selector
+    /// `0xa52710d2`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "ProposeDisabled", abi = "ProposeDisabled()")]
     pub struct ProposeDisabled;
-    ///Custom Error type `QuorumNumeratorTooLow` with signature `QuorumNumeratorTooLow(uint256)` and selector `0x16bb52f0`
+    ///Custom Error type `QuorumNumeratorTooLow` with signature `QuorumNumeratorTooLow(uint256)`
+    /// and selector `0x16bb52f0`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "QuorumNumeratorTooLow", abi = "QuorumNumeratorTooLow(uint256)")]
     pub struct QuorumNumeratorTooLow {
         pub quorum_numerator_value: ::ethers::core::types::U256,
     }
-    ///Custom Error type `StartDateTooEarly` with signature `StartDateTooEarly(uint256,uint256)` and selector `0xf179c536`
+    ///Custom Error type `StartDateTooEarly` with signature `StartDateTooEarly(uint256,uint256)`
+    /// and selector `0xf179c536`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(name = "StartDateTooEarly", abi = "StartDateTooEarly(uint256,uint256)")]
     pub struct StartDateTooEarly {
         pub start_time: ::ethers::core::types::U256,
         pub current_time: ::ethers::core::types::U256,
     }
-    ///Custom Error type `UnexpectedParamsLength` with signature `UnexpectedParamsLength(uint256)` and selector `0xb575b425`
+    ///Custom Error type `UnexpectedParamsLength` with signature `UnexpectedParamsLength(uint256)`
+    /// and selector `0xb575b425`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "UnexpectedParamsLength",
@@ -3193,7 +3219,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
     pub struct UnexpectedParamsLength {
         pub param_length: ::ethers::core::types::U256,
     }
-    ///Custom Error type `VoteAlreadyCast` with signature `VoteAlreadyCast(address,uint256,bytes32)` and selector `0x62d524b0`
+    ///Custom Error type `VoteAlreadyCast` with signature
+    /// `VoteAlreadyCast(address,uint256,bytes32)` and selector `0x62d524b0`
     #[derive(Clone, ::ethers::contract::EthError, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[etherror(
         name = "VoteAlreadyCast",
@@ -3942,38 +3969,46 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
             Self::VotingPeriodSetFilter(value)
         }
     }
-    ///Container type for all input parameters for the `BALLOT_TYPEHASH` function with signature `BALLOT_TYPEHASH()` and selector `0xdeaaa7cc`
+    ///Container type for all input parameters for the `BALLOT_TYPEHASH` function with signature
+    /// `BALLOT_TYPEHASH()` and selector `0xdeaaa7cc`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "BALLOT_TYPEHASH", abi = "BALLOT_TYPEHASH()")]
     pub struct BallotTypehashCall;
-    ///Container type for all input parameters for the `COUNTING_MODE` function with signature `COUNTING_MODE()` and selector `0xdd4e2ba5`
+    ///Container type for all input parameters for the `COUNTING_MODE` function with signature
+    /// `COUNTING_MODE()` and selector `0xdd4e2ba5`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "COUNTING_MODE", abi = "COUNTING_MODE()")]
     pub struct CountingModeCall;
-    ///Container type for all input parameters for the `EXCLUDE_ADDRESS` function with signature `EXCLUDE_ADDRESS()` and selector `0x5e12ebbd`
+    ///Container type for all input parameters for the `EXCLUDE_ADDRESS` function with signature
+    /// `EXCLUDE_ADDRESS()` and selector `0x5e12ebbd`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "EXCLUDE_ADDRESS", abi = "EXCLUDE_ADDRESS()")]
     pub struct ExcludeAddressCall;
-    ///Container type for all input parameters for the `EXTENDED_BALLOT_TYPEHASH` function with signature `EXTENDED_BALLOT_TYPEHASH()` and selector `0x2fe3e261`
+    ///Container type for all input parameters for the `EXTENDED_BALLOT_TYPEHASH` function with
+    /// signature `EXTENDED_BALLOT_TYPEHASH()` and selector `0x2fe3e261`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "EXTENDED_BALLOT_TYPEHASH", abi = "EXTENDED_BALLOT_TYPEHASH()")]
     pub struct ExtendedBallotTypehashCall;
-    ///Container type for all input parameters for the `addContender` function with signature `addContender(uint256)` and selector `0x140af012`
+    ///Container type for all input parameters for the `addContender` function with signature
+    /// `addContender(uint256)` and selector `0x140af012`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "addContender", abi = "addContender(uint256)")]
     pub struct AddContenderCall(pub ::ethers::core::types::U256);
-    ///Container type for all input parameters for the `addContender` function with signature `addContender(uint256,bytes)` and selector `0xa8f38759`
+    ///Container type for all input parameters for the `addContender` function with signature
+    /// `addContender(uint256,bytes)` and selector `0xa8f38759`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "addContender", abi = "addContender(uint256,bytes)")]
     pub struct AddContenderWithProposalIdCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub signature: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `castVote` function with signature `castVote(uint256,uint8)` and selector `0x56781388`
+    ///Container type for all input parameters for the `castVote` function with signature
+    /// `castVote(uint256,uint8)` and selector `0x56781388`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "castVote", abi = "castVote(uint256,uint8)")]
     pub struct CastVoteCall(pub ::ethers::core::types::U256, pub u8);
-    ///Container type for all input parameters for the `castVoteBySig` function with signature `castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)` and selector `0x3bccf4fd`
+    ///Container type for all input parameters for the `castVoteBySig` function with signature
+    /// `castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)` and selector `0x3bccf4fd`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "castVoteBySig",
@@ -3986,7 +4021,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub [u8; 32],
         pub [u8; 32],
     );
-    ///Container type for all input parameters for the `castVoteWithReason` function with signature `castVoteWithReason(uint256,uint8,string)` and selector `0x7b3c71d3`
+    ///Container type for all input parameters for the `castVoteWithReason` function with signature
+    /// `castVoteWithReason(uint256,uint8,string)` and selector `0x7b3c71d3`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "castVoteWithReason",
@@ -3997,7 +4033,9 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub u8,
         pub ::std::string::String,
     );
-    ///Container type for all input parameters for the `castVoteWithReasonAndParams` function with signature `castVoteWithReasonAndParams(uint256,uint8,string,bytes)` and selector `0x5f398a14`
+    ///Container type for all input parameters for the `castVoteWithReasonAndParams` function with
+    /// signature `castVoteWithReasonAndParams(uint256,uint8,string,bytes)` and selector
+    /// `0x5f398a14`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "castVoteWithReasonAndParams",
@@ -4009,7 +4047,10 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub reason: ::std::string::String,
         pub params: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `castVoteWithReasonAndParamsBySig` function with signature `castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32)` and selector `0x03420181`
+    ///Container type for all input parameters for the `castVoteWithReasonAndParamsBySig` function
+    /// with signature
+    /// `castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32)` and
+    /// selector `0x03420181`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "castVoteWithReasonAndParamsBySig",
@@ -4024,37 +4065,44 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub r: [u8; 32],
         pub s: [u8; 32],
     }
-    ///Container type for all input parameters for the `compliantNomineeCount` function with signature `compliantNomineeCount(uint256)` and selector `0xe0c11ff6`
+    ///Container type for all input parameters for the `compliantNomineeCount` function with
+    /// signature `compliantNomineeCount(uint256)` and selector `0xe0c11ff6`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "compliantNomineeCount", abi = "compliantNomineeCount(uint256)")]
     pub struct CompliantNomineeCountCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `compliantNominees` function with signature `compliantNominees(uint256)` and selector `0xf3dfd61c`
+    ///Container type for all input parameters for the `compliantNominees` function with signature
+    /// `compliantNominees(uint256)` and selector `0xf3dfd61c`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "compliantNominees", abi = "compliantNominees(uint256)")]
     pub struct CompliantNomineesCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `createElection` function with signature `createElection()` and selector `0x24c2286c`
+    ///Container type for all input parameters for the `createElection` function with signature
+    /// `createElection()` and selector `0x24c2286c`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "createElection", abi = "createElection()")]
     pub struct CreateElectionCall;
-    ///Container type for all input parameters for the `currentCohort` function with signature `currentCohort()` and selector `0xe0f9c970`
+    ///Container type for all input parameters for the `currentCohort` function with signature
+    /// `currentCohort()` and selector `0xe0f9c970`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "currentCohort", abi = "currentCohort()")]
     pub struct CurrentCohortCall;
-    ///Container type for all input parameters for the `electionCount` function with signature `electionCount()` and selector `0x997d2830`
+    ///Container type for all input parameters for the `electionCount` function with signature
+    /// `electionCount()` and selector `0x997d2830`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "electionCount", abi = "electionCount()")]
     pub struct ElectionCountCall;
-    ///Container type for all input parameters for the `electionIndexToCohort` function with signature `electionIndexToCohort(uint256)` and selector `0x33bb6f4b`
+    ///Container type for all input parameters for the `electionIndexToCohort` function with
+    /// signature `electionIndexToCohort(uint256)` and selector `0x33bb6f4b`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "electionIndexToCohort", abi = "electionIndexToCohort(uint256)")]
     pub struct ElectionIndexToCohortCall {
         pub election_index: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `electionIndexToDescription` function with signature `electionIndexToDescription(uint256)` and selector `0x276ae91a`
+    ///Container type for all input parameters for the `electionIndexToDescription` function with
+    /// signature `electionIndexToDescription(uint256)` and selector `0x276ae91a`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "electionIndexToDescription",
@@ -4063,26 +4111,30 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
     pub struct ElectionIndexToDescriptionCall {
         pub election_index: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `electionToTimestamp` function with signature `electionToTimestamp(uint256)` and selector `0xc2192dc1`
+    ///Container type for all input parameters for the `electionToTimestamp` function with
+    /// signature `electionToTimestamp(uint256)` and selector `0xc2192dc1`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "electionToTimestamp", abi = "electionToTimestamp(uint256)")]
     pub struct ElectionToTimestampCall {
         pub election_index: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `excludeNominee` function with signature `excludeNominee(uint256,address)` and selector `0xe97ada39`
+    ///Container type for all input parameters for the `excludeNominee` function with signature
+    /// `excludeNominee(uint256,address)` and selector `0xe97ada39`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "excludeNominee", abi = "excludeNominee(uint256,address)")]
     pub struct ExcludeNomineeCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub nominee: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `excludedNomineeCount` function with signature `excludedNomineeCount(uint256)` and selector `0xb0ee63f2`
+    ///Container type for all input parameters for the `excludedNomineeCount` function with
+    /// signature `excludedNomineeCount(uint256)` and selector `0xb0ee63f2`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "excludedNomineeCount", abi = "excludedNomineeCount(uint256)")]
     pub struct ExcludedNomineeCountCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `execute` function with signature `execute(address[],uint256[],bytes[],bytes32)` and selector `0x2656227d`
+    ///Container type for all input parameters for the `execute` function with signature
+    /// `execute(address[],uint256[],bytes[],bytes32)` and selector `0x2656227d`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "execute", abi = "execute(address[],uint256[],bytes[],bytes32)")]
     pub struct ExecuteCall {
@@ -4091,11 +4143,13 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
         pub description_hash: [u8; 32],
     }
-    ///Container type for all input parameters for the `firstNominationStartDate` function with signature `firstNominationStartDate()` and selector `0xbeb28536`
+    ///Container type for all input parameters for the `firstNominationStartDate` function with
+    /// signature `firstNominationStartDate()` and selector `0xbeb28536`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "firstNominationStartDate", abi = "firstNominationStartDate()")]
     pub struct FirstNominationStartDateCall;
-    ///Container type for all input parameters for the `getPastCirculatingSupply` function with signature `getPastCirculatingSupply(uint256)` and selector `0x6e462680`
+    ///Container type for all input parameters for the `getPastCirculatingSupply` function with
+    /// signature `getPastCirculatingSupply(uint256)` and selector `0x6e462680`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "getPastCirculatingSupply",
@@ -4104,20 +4158,23 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
     pub struct GetPastCirculatingSupplyCall {
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `getProposeArgs` function with signature `getProposeArgs(uint256)` and selector `0x1f0ac182`
+    ///Container type for all input parameters for the `getProposeArgs` function with signature
+    /// `getProposeArgs(uint256)` and selector `0x1f0ac182`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "getProposeArgs", abi = "getProposeArgs(uint256)")]
     pub struct GetProposeArgsCall {
         pub election_index: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `getVotes` function with signature `getVotes(address,uint256)` and selector `0xeb9019d4`
+    ///Container type for all input parameters for the `getVotes` function with signature
+    /// `getVotes(address,uint256)` and selector `0xeb9019d4`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "getVotes", abi = "getVotes(address,uint256)")]
     pub struct GetVotesCall {
         pub account: ::ethers::core::types::Address,
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `getVotesWithParams` function with signature `getVotesWithParams(address,uint256,bytes)` and selector `0x9a802a6d`
+    ///Container type for all input parameters for the `getVotesWithParams` function with signature
+    /// `getVotesWithParams(address,uint256,bytes)` and selector `0x9a802a6d`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "getVotesWithParams",
@@ -4128,14 +4185,16 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub block_number: ::ethers::core::types::U256,
         pub params: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `hasVoted` function with signature `hasVoted(uint256,address)` and selector `0x43859632`
+    ///Container type for all input parameters for the `hasVoted` function with signature
+    /// `hasVoted(uint256,address)` and selector `0x43859632`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "hasVoted", abi = "hasVoted(uint256,address)")]
     pub struct HasVotedCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `hashProposal` function with signature `hashProposal(address[],uint256[],bytes[],bytes32)` and selector `0xc59057e4`
+    ///Container type for all input parameters for the `hashProposal` function with signature
+    /// `hashProposal(address[],uint256[],bytes[],bytes32)` and selector `0xc59057e4`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "hashProposal",
@@ -4147,14 +4206,17 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub calldatas: ::std::vec::Vec<::ethers::core::types::Bytes>,
         pub description_hash: [u8; 32],
     }
-    ///Container type for all input parameters for the `includeNominee` function with signature `includeNominee(uint256,address)` and selector `0x35334628`
+    ///Container type for all input parameters for the `includeNominee` function with signature
+    /// `includeNominee(uint256,address)` and selector `0x35334628`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "includeNominee", abi = "includeNominee(uint256,address)")]
     pub struct IncludeNomineeCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `initialize` function with signature `initialize(((uint256,uint256,uint256,uint256),uint256,address,address,address,address,address,uint256,uint256))` and selector `0x40e8c5cb`
+    ///Container type for all input parameters for the `initialize` function with signature
+    /// `initialize(((uint256,uint256,uint256,uint256),uint256,address,address,address,address,
+    /// address,uint256,uint256))` and selector `0x40e8c5cb`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "initialize",
@@ -4163,7 +4225,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
     pub struct InitializeCall {
         pub params: InitParams,
     }
-    ///Container type for all input parameters for the `isCompliantNominee` function with signature `isCompliantNominee(uint256,address)` and selector `0xc16e0ec6`
+    ///Container type for all input parameters for the `isCompliantNominee` function with signature
+    /// `isCompliantNominee(uint256,address)` and selector `0xc16e0ec6`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "isCompliantNominee",
@@ -4173,52 +4236,62 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub proposal_id: ::ethers::core::types::U256,
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `isContender` function with signature `isContender(uint256,address)` and selector `0xeba4b237`
+    ///Container type for all input parameters for the `isContender` function with signature
+    /// `isContender(uint256,address)` and selector `0xeba4b237`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "isContender", abi = "isContender(uint256,address)")]
     pub struct IsContenderCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub possible_contender: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `isExcluded` function with signature `isExcluded(uint256,address)` and selector `0x3b158390`
+    ///Container type for all input parameters for the `isExcluded` function with signature
+    /// `isExcluded(uint256,address)` and selector `0x3b158390`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "isExcluded", abi = "isExcluded(uint256,address)")]
     pub struct IsExcludedCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub possible_excluded: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `isNominee` function with signature `isNominee(uint256,address)` and selector `0x7d60af91`
+    ///Container type for all input parameters for the `isNominee` function with signature
+    /// `isNominee(uint256,address)` and selector `0x7d60af91`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "isNominee", abi = "isNominee(uint256,address)")]
     pub struct IsNomineeCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub contender: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `name` function with signature `name()` and selector `0x06fdde03`
+    ///Container type for all input parameters for the `name` function with signature `name()` and
+    /// selector `0x06fdde03`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "name", abi = "name()")]
     pub struct NameCall;
-    ///Container type for all input parameters for the `nomineeCount` function with signature `nomineeCount(uint256)` and selector `0xe63f88a8`
+    ///Container type for all input parameters for the `nomineeCount` function with signature
+    /// `nomineeCount(uint256)` and selector `0xe63f88a8`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "nomineeCount", abi = "nomineeCount(uint256)")]
     pub struct NomineeCountCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `nomineeVetter` function with signature `nomineeVetter()` and selector `0x0298ad49`
+    ///Container type for all input parameters for the `nomineeVetter` function with signature
+    /// `nomineeVetter()` and selector `0x0298ad49`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "nomineeVetter", abi = "nomineeVetter()")]
     pub struct NomineeVetterCall;
-    ///Container type for all input parameters for the `nomineeVettingDuration` function with signature `nomineeVettingDuration()` and selector `0x45110965`
+    ///Container type for all input parameters for the `nomineeVettingDuration` function with
+    /// signature `nomineeVettingDuration()` and selector `0x45110965`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "nomineeVettingDuration", abi = "nomineeVettingDuration()")]
     pub struct NomineeVettingDurationCall;
-    ///Container type for all input parameters for the `nominees` function with signature `nominees(uint256)` and selector `0xeec6b91e`
+    ///Container type for all input parameters for the `nominees` function with signature
+    /// `nominees(uint256)` and selector `0xeec6b91e`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "nominees", abi = "nominees(uint256)")]
     pub struct NomineesCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `onERC1155BatchReceived` function with signature `onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)` and selector `0xbc197c81`
+    ///Container type for all input parameters for the `onERC1155BatchReceived` function with
+    /// signature `onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)` and selector
+    /// `0xbc197c81`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "onERC1155BatchReceived",
@@ -4231,7 +4304,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub ::std::vec::Vec<::ethers::core::types::U256>,
         pub ::ethers::core::types::Bytes,
     );
-    ///Container type for all input parameters for the `onERC1155Received` function with signature `onERC1155Received(address,address,uint256,uint256,bytes)` and selector `0xf23a6e61`
+    ///Container type for all input parameters for the `onERC1155Received` function with signature
+    /// `onERC1155Received(address,address,uint256,uint256,bytes)` and selector `0xf23a6e61`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "onERC1155Received",
@@ -4244,7 +4318,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::Bytes,
     );
-    ///Container type for all input parameters for the `onERC721Received` function with signature `onERC721Received(address,address,uint256,bytes)` and selector `0x150b7a02`
+    ///Container type for all input parameters for the `onERC721Received` function with signature
+    /// `onERC721Received(address,address,uint256,bytes)` and selector `0x150b7a02`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "onERC721Received",
@@ -4256,31 +4331,37 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::Bytes,
     );
-    ///Container type for all input parameters for the `otherCohort` function with signature `otherCohort()` and selector `0xcf5d27c4`
+    ///Container type for all input parameters for the `otherCohort` function with signature
+    /// `otherCohort()` and selector `0xcf5d27c4`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "otherCohort", abi = "otherCohort()")]
     pub struct OtherCohortCall;
-    ///Container type for all input parameters for the `owner` function with signature `owner()` and selector `0x8da5cb5b`
+    ///Container type for all input parameters for the `owner` function with signature `owner()`
+    /// and selector `0x8da5cb5b`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "owner", abi = "owner()")]
     pub struct OwnerCall;
-    ///Container type for all input parameters for the `proposalDeadline` function with signature `proposalDeadline(uint256)` and selector `0xc01f9e37`
+    ///Container type for all input parameters for the `proposalDeadline` function with signature
+    /// `proposalDeadline(uint256)` and selector `0xc01f9e37`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "proposalDeadline", abi = "proposalDeadline(uint256)")]
     pub struct ProposalDeadlineCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `proposalSnapshot` function with signature `proposalSnapshot(uint256)` and selector `0x2d63f693`
+    ///Container type for all input parameters for the `proposalSnapshot` function with signature
+    /// `proposalSnapshot(uint256)` and selector `0x2d63f693`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "proposalSnapshot", abi = "proposalSnapshot(uint256)")]
     pub struct ProposalSnapshotCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `proposalThreshold` function with signature `proposalThreshold()` and selector `0xb58131b0`
+    ///Container type for all input parameters for the `proposalThreshold` function with signature
+    /// `proposalThreshold()` and selector `0xb58131b0`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "proposalThreshold", abi = "proposalThreshold()")]
     pub struct ProposalThresholdCall;
-    ///Container type for all input parameters for the `proposalVettingDeadline` function with signature `proposalVettingDeadline(uint256)` and selector `0x2df2c649`
+    ///Container type for all input parameters for the `proposalVettingDeadline` function with
+    /// signature `proposalVettingDeadline(uint256)` and selector `0x2df2c649`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "proposalVettingDeadline",
@@ -4289,7 +4370,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
     pub struct ProposalVettingDeadlineCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `propose` function with signature `propose(address[],uint256[],bytes[],string)` and selector `0x7d5e81e2`
+    ///Container type for all input parameters for the `propose` function with signature
+    /// `propose(address[],uint256[],bytes[],string)` and selector `0x7d5e81e2`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "propose", abi = "propose(address[],uint256[],bytes[],string)")]
     pub struct ProposeCall(
@@ -4298,27 +4380,32 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub ::std::vec::Vec<::ethers::core::types::Bytes>,
         pub ::std::string::String,
     );
-    ///Container type for all input parameters for the `quorum` function with signature `quorum(uint256)` and selector `0xf8ce560a`
+    ///Container type for all input parameters for the `quorum` function with signature
+    /// `quorum(uint256)` and selector `0xf8ce560a`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "quorum", abi = "quorum(uint256)")]
     pub struct QuorumCall {
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `quorumDenominator` function with signature `quorumDenominator()` and selector `0x97c3d334`
+    ///Container type for all input parameters for the `quorumDenominator` function with signature
+    /// `quorumDenominator()` and selector `0x97c3d334`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "quorumDenominator", abi = "quorumDenominator()")]
     pub struct QuorumDenominatorCall;
-    ///Container type for all input parameters for the `quorumNumerator` function with signature `quorumNumerator(uint256)` and selector `0x60c4247f`
+    ///Container type for all input parameters for the `quorumNumerator` function with signature
+    /// `quorumNumerator(uint256)` and selector `0x60c4247f`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "quorumNumerator", abi = "quorumNumerator(uint256)")]
     pub struct QuorumNumeratorWithBlockNumberCall {
         pub block_number: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `quorumNumerator` function with signature `quorumNumerator()` and selector `0xa7713a70`
+    ///Container type for all input parameters for the `quorumNumerator` function with signature
+    /// `quorumNumerator()` and selector `0xa7713a70`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "quorumNumerator", abi = "quorumNumerator()")]
     pub struct QuorumNumeratorCall;
-    ///Container type for all input parameters for the `recoverAddContenderMessage` function with signature `recoverAddContenderMessage(uint256,bytes)` and selector `0x5a756eaf`
+    ///Container type for all input parameters for the `recoverAddContenderMessage` function with
+    /// signature `recoverAddContenderMessage(uint256,bytes)` and selector `0x5a756eaf`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "recoverAddContenderMessage",
@@ -4328,7 +4415,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub proposal_id: ::ethers::core::types::U256,
         pub signature: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `relay` function with signature `relay(address,uint256,bytes)` and selector `0xc28bc2fa`
+    ///Container type for all input parameters for the `relay` function with signature
+    /// `relay(address,uint256,bytes)` and selector `0xc28bc2fa`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "relay", abi = "relay(address,uint256,bytes)")]
     pub struct RelayCall {
@@ -4336,100 +4424,118 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub value: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `renounceOwnership` function with signature `renounceOwnership()` and selector `0x715018a6`
+    ///Container type for all input parameters for the `renounceOwnership` function with signature
+    /// `renounceOwnership()` and selector `0x715018a6`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "renounceOwnership", abi = "renounceOwnership()")]
     pub struct RenounceOwnershipCall;
-    ///Container type for all input parameters for the `securityCouncilManager` function with signature `securityCouncilManager()` and selector `0x03d1ce8a`
+    ///Container type for all input parameters for the `securityCouncilManager` function with
+    /// signature `securityCouncilManager()` and selector `0x03d1ce8a`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "securityCouncilManager", abi = "securityCouncilManager()")]
     pub struct SecurityCouncilManagerCall;
-    ///Container type for all input parameters for the `securityCouncilMemberElectionGovernor` function with signature `securityCouncilMemberElectionGovernor()` and selector `0x1b6a7673`
+    ///Container type for all input parameters for the `securityCouncilMemberElectionGovernor`
+    /// function with signature `securityCouncilMemberElectionGovernor()` and selector `0x1b6a7673`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(
         name = "securityCouncilMemberElectionGovernor",
         abi = "securityCouncilMemberElectionGovernor()"
     )]
     pub struct SecurityCouncilMemberElectionGovernorCall;
-    ///Container type for all input parameters for the `setNomineeVetter` function with signature `setNomineeVetter(address)` and selector `0xae8acb5e`
+    ///Container type for all input parameters for the `setNomineeVetter` function with signature
+    /// `setNomineeVetter(address)` and selector `0xae8acb5e`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "setNomineeVetter", abi = "setNomineeVetter(address)")]
     pub struct SetNomineeVetterCall {
         pub nominee_vetter: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `setProposalThreshold` function with signature `setProposalThreshold(uint256)` and selector `0xece40cc1`
+    ///Container type for all input parameters for the `setProposalThreshold` function with
+    /// signature `setProposalThreshold(uint256)` and selector `0xece40cc1`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "setProposalThreshold", abi = "setProposalThreshold(uint256)")]
     pub struct SetProposalThresholdCall {
         pub new_proposal_threshold: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `setVotingDelay` function with signature `setVotingDelay(uint256)` and selector `0x70b0f660`
+    ///Container type for all input parameters for the `setVotingDelay` function with signature
+    /// `setVotingDelay(uint256)` and selector `0x70b0f660`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "setVotingDelay", abi = "setVotingDelay(uint256)")]
     pub struct SetVotingDelayCall {
         pub new_voting_delay: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `setVotingPeriod` function with signature `setVotingPeriod(uint256)` and selector `0xea0217cf`
+    ///Container type for all input parameters for the `setVotingPeriod` function with signature
+    /// `setVotingPeriod(uint256)` and selector `0xea0217cf`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "setVotingPeriod", abi = "setVotingPeriod(uint256)")]
     pub struct SetVotingPeriodCall {
         pub new_voting_period: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `state` function with signature `state(uint256)` and selector `0x3e4f49e6`
+    ///Container type for all input parameters for the `state` function with signature
+    /// `state(uint256)` and selector `0x3e4f49e6`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "state", abi = "state(uint256)")]
     pub struct StateCall {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `supportsInterface` function with signature `supportsInterface(bytes4)` and selector `0x01ffc9a7`
+    ///Container type for all input parameters for the `supportsInterface` function with signature
+    /// `supportsInterface(bytes4)` and selector `0x01ffc9a7`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "supportsInterface", abi = "supportsInterface(bytes4)")]
     pub struct SupportsInterfaceCall {
         pub interface_id: [u8; 4],
     }
-    ///Container type for all input parameters for the `token` function with signature `token()` and selector `0xfc0c546a`
+    ///Container type for all input parameters for the `token` function with signature `token()`
+    /// and selector `0xfc0c546a`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "token", abi = "token()")]
     pub struct TokenCall;
-    ///Container type for all input parameters for the `transferOwnership` function with signature `transferOwnership(address)` and selector `0xf2fde38b`
+    ///Container type for all input parameters for the `transferOwnership` function with signature
+    /// `transferOwnership(address)` and selector `0xf2fde38b`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "transferOwnership", abi = "transferOwnership(address)")]
     pub struct TransferOwnershipCall {
         pub new_owner: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `updateQuorumNumerator` function with signature `updateQuorumNumerator(uint256)` and selector `0x06f3f9e6`
+    ///Container type for all input parameters for the `updateQuorumNumerator` function with
+    /// signature `updateQuorumNumerator(uint256)` and selector `0x06f3f9e6`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "updateQuorumNumerator", abi = "updateQuorumNumerator(uint256)")]
     pub struct UpdateQuorumNumeratorCall {
         pub new_quorum_numerator: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `usedNonces` function with signature `usedNonces(bytes32)` and selector `0xfeb61724`
+    ///Container type for all input parameters for the `usedNonces` function with signature
+    /// `usedNonces(bytes32)` and selector `0xfeb61724`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "usedNonces", abi = "usedNonces(bytes32)")]
     pub struct UsedNoncesCall(pub [u8; 32]);
-    ///Container type for all input parameters for the `version` function with signature `version()` and selector `0x54fd4d50`
+    ///Container type for all input parameters for the `version` function with signature
+    /// `version()` and selector `0x54fd4d50`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "version", abi = "version()")]
     pub struct VersionCall;
-    ///Container type for all input parameters for the `votesReceived` function with signature `votesReceived(uint256,address)` and selector `0x33dd6bed`
+    ///Container type for all input parameters for the `votesReceived` function with signature
+    /// `votesReceived(uint256,address)` and selector `0x33dd6bed`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "votesReceived", abi = "votesReceived(uint256,address)")]
     pub struct VotesReceivedCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub contender: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `votesUsed` function with signature `votesUsed(uint256,address)` and selector `0x9523730e`
+    ///Container type for all input parameters for the `votesUsed` function with signature
+    /// `votesUsed(uint256,address)` and selector `0x9523730e`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "votesUsed", abi = "votesUsed(uint256,address)")]
     pub struct VotesUsedCall {
         pub proposal_id: ::ethers::core::types::U256,
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `votingDelay` function with signature `votingDelay()` and selector `0x3932abb1`
+    ///Container type for all input parameters for the `votingDelay` function with signature
+    /// `votingDelay()` and selector `0x3932abb1`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "votingDelay", abi = "votingDelay()")]
     pub struct VotingDelayCall;
-    ///Container type for all input parameters for the `votingPeriod` function with signature `votingPeriod()` and selector `0x02a251a3`
+    ///Container type for all input parameters for the `votingPeriod` function with signature
+    /// `votingPeriod()` and selector `0x02a251a3`
     #[derive(Clone, ::ethers::contract::EthCall, ::ethers::contract::EthDisplay, Default, Debug, PartialEq, Eq, Hash)]
     #[ethcall(name = "votingPeriod", abi = "votingPeriod()")]
     pub struct VotingPeriodCall;
@@ -5269,66 +5375,89 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
             Self::VotingPeriod(value)
         }
     }
-    ///Container type for all return fields from the `BALLOT_TYPEHASH` function with signature `BALLOT_TYPEHASH()` and selector `0xdeaaa7cc`
+    ///Container type for all return fields from the `BALLOT_TYPEHASH` function with signature
+    /// `BALLOT_TYPEHASH()` and selector `0xdeaaa7cc`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct BallotTypehashReturn(pub [u8; 32]);
-    ///Container type for all return fields from the `COUNTING_MODE` function with signature `COUNTING_MODE()` and selector `0xdd4e2ba5`
+    ///Container type for all return fields from the `COUNTING_MODE` function with signature
+    /// `COUNTING_MODE()` and selector `0xdd4e2ba5`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CountingModeReturn(pub ::std::string::String);
-    ///Container type for all return fields from the `EXCLUDE_ADDRESS` function with signature `EXCLUDE_ADDRESS()` and selector `0x5e12ebbd`
+    ///Container type for all return fields from the `EXCLUDE_ADDRESS` function with signature
+    /// `EXCLUDE_ADDRESS()` and selector `0x5e12ebbd`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ExcludeAddressReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `EXTENDED_BALLOT_TYPEHASH` function with signature `EXTENDED_BALLOT_TYPEHASH()` and selector `0x2fe3e261`
+    ///Container type for all return fields from the `EXTENDED_BALLOT_TYPEHASH` function with
+    /// signature `EXTENDED_BALLOT_TYPEHASH()` and selector `0x2fe3e261`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ExtendedBallotTypehashReturn(pub [u8; 32]);
-    ///Container type for all return fields from the `castVote` function with signature `castVote(uint256,uint8)` and selector `0x56781388`
+    ///Container type for all return fields from the `castVote` function with signature
+    /// `castVote(uint256,uint8)` and selector `0x56781388`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `castVoteBySig` function with signature `castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)` and selector `0x3bccf4fd`
+    ///Container type for all return fields from the `castVoteBySig` function with signature
+    /// `castVoteBySig(uint256,uint8,uint8,bytes32,bytes32)` and selector `0x3bccf4fd`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteBySigReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `castVoteWithReason` function with signature `castVoteWithReason(uint256,uint8,string)` and selector `0x7b3c71d3`
+    ///Container type for all return fields from the `castVoteWithReason` function with signature
+    /// `castVoteWithReason(uint256,uint8,string)` and selector `0x7b3c71d3`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteWithReasonReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `castVoteWithReasonAndParams` function with signature `castVoteWithReasonAndParams(uint256,uint8,string,bytes)` and selector `0x5f398a14`
+    ///Container type for all return fields from the `castVoteWithReasonAndParams` function with
+    /// signature `castVoteWithReasonAndParams(uint256,uint8,string,bytes)` and selector
+    /// `0x5f398a14`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteWithReasonAndParamsReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `castVoteWithReasonAndParamsBySig` function with signature `castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32)` and selector `0x03420181`
+    ///Container type for all return fields from the `castVoteWithReasonAndParamsBySig` function
+    /// with signature
+    /// `castVoteWithReasonAndParamsBySig(uint256,uint8,string,bytes,uint8,bytes32,bytes32)` and
+    /// selector `0x03420181`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CastVoteWithReasonAndParamsBySigReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `compliantNomineeCount` function with signature `compliantNomineeCount(uint256)` and selector `0xe0c11ff6`
+    ///Container type for all return fields from the `compliantNomineeCount` function with
+    /// signature `compliantNomineeCount(uint256)` and selector `0xe0c11ff6`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CompliantNomineeCountReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `compliantNominees` function with signature `compliantNominees(uint256)` and selector `0xf3dfd61c`
+    ///Container type for all return fields from the `compliantNominees` function with signature
+    /// `compliantNominees(uint256)` and selector `0xf3dfd61c`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CompliantNomineesReturn(pub ::std::vec::Vec<::ethers::core::types::Address>);
-    ///Container type for all return fields from the `createElection` function with signature `createElection()` and selector `0x24c2286c`
+    ///Container type for all return fields from the `createElection` function with signature
+    /// `createElection()` and selector `0x24c2286c`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CreateElectionReturn {
         pub proposal_id: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `currentCohort` function with signature `currentCohort()` and selector `0xe0f9c970`
+    ///Container type for all return fields from the `currentCohort` function with signature
+    /// `currentCohort()` and selector `0xe0f9c970`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct CurrentCohortReturn(pub u8);
-    ///Container type for all return fields from the `electionCount` function with signature `electionCount()` and selector `0x997d2830`
+    ///Container type for all return fields from the `electionCount` function with signature
+    /// `electionCount()` and selector `0x997d2830`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ElectionCountReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `electionIndexToCohort` function with signature `electionIndexToCohort(uint256)` and selector `0x33bb6f4b`
+    ///Container type for all return fields from the `electionIndexToCohort` function with
+    /// signature `electionIndexToCohort(uint256)` and selector `0x33bb6f4b`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ElectionIndexToCohortReturn(pub u8);
-    ///Container type for all return fields from the `electionIndexToDescription` function with signature `electionIndexToDescription(uint256)` and selector `0x276ae91a`
+    ///Container type for all return fields from the `electionIndexToDescription` function with
+    /// signature `electionIndexToDescription(uint256)` and selector `0x276ae91a`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ElectionIndexToDescriptionReturn(pub ::std::string::String);
-    ///Container type for all return fields from the `electionToTimestamp` function with signature `electionToTimestamp(uint256)` and selector `0xc2192dc1`
+    ///Container type for all return fields from the `electionToTimestamp` function with signature
+    /// `electionToTimestamp(uint256)` and selector `0xc2192dc1`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ElectionToTimestampReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `excludedNomineeCount` function with signature `excludedNomineeCount(uint256)` and selector `0xb0ee63f2`
+    ///Container type for all return fields from the `excludedNomineeCount` function with signature
+    /// `excludedNomineeCount(uint256)` and selector `0xb0ee63f2`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ExcludedNomineeCountReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `execute` function with signature `execute(address[],uint256[],bytes[],bytes32)` and selector `0x2656227d`
+    ///Container type for all return fields from the `execute` function with signature
+    /// `execute(address[],uint256[],bytes[],bytes32)` and selector `0x2656227d`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ExecuteReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `firstNominationStartDate` function with signature `firstNominationStartDate()` and selector `0xbeb28536`
+    ///Container type for all return fields from the `firstNominationStartDate` function with
+    /// signature `firstNominationStartDate()` and selector `0xbeb28536`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct FirstNominationStartDateReturn {
         pub year: ::ethers::core::types::U256,
@@ -5336,10 +5465,12 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub day: ::ethers::core::types::U256,
         pub hour: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `getPastCirculatingSupply` function with signature `getPastCirculatingSupply(uint256)` and selector `0x6e462680`
+    ///Container type for all return fields from the `getPastCirculatingSupply` function with
+    /// signature `getPastCirculatingSupply(uint256)` and selector `0x6e462680`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetPastCirculatingSupplyReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `getProposeArgs` function with signature `getProposeArgs(uint256)` and selector `0x1f0ac182`
+    ///Container type for all return fields from the `getProposeArgs` function with signature
+    /// `getProposeArgs(uint256)` and selector `0x1f0ac182`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetProposeArgsReturn(
         pub ::std::vec::Vec<::ethers::core::types::Address>,
@@ -5347,121 +5478,161 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub ::std::vec::Vec<::ethers::core::types::Bytes>,
         pub ::std::string::String,
     );
-    ///Container type for all return fields from the `getVotes` function with signature `getVotes(address,uint256)` and selector `0xeb9019d4`
+    ///Container type for all return fields from the `getVotes` function with signature
+    /// `getVotes(address,uint256)` and selector `0xeb9019d4`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetVotesReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `getVotesWithParams` function with signature `getVotesWithParams(address,uint256,bytes)` and selector `0x9a802a6d`
+    ///Container type for all return fields from the `getVotesWithParams` function with signature
+    /// `getVotesWithParams(address,uint256,bytes)` and selector `0x9a802a6d`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct GetVotesWithParamsReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `hasVoted` function with signature `hasVoted(uint256,address)` and selector `0x43859632`
+    ///Container type for all return fields from the `hasVoted` function with signature
+    /// `hasVoted(uint256,address)` and selector `0x43859632`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct HasVotedReturn(pub bool);
-    ///Container type for all return fields from the `hashProposal` function with signature `hashProposal(address[],uint256[],bytes[],bytes32)` and selector `0xc59057e4`
+    ///Container type for all return fields from the `hashProposal` function with signature
+    /// `hashProposal(address[],uint256[],bytes[],bytes32)` and selector `0xc59057e4`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct HashProposalReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `isCompliantNominee` function with signature `isCompliantNominee(uint256,address)` and selector `0xc16e0ec6`
+    ///Container type for all return fields from the `isCompliantNominee` function with signature
+    /// `isCompliantNominee(uint256,address)` and selector `0xc16e0ec6`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct IsCompliantNomineeReturn(pub bool);
-    ///Container type for all return fields from the `isContender` function with signature `isContender(uint256,address)` and selector `0xeba4b237`
+    ///Container type for all return fields from the `isContender` function with signature
+    /// `isContender(uint256,address)` and selector `0xeba4b237`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct IsContenderReturn(pub bool);
-    ///Container type for all return fields from the `isExcluded` function with signature `isExcluded(uint256,address)` and selector `0x3b158390`
+    ///Container type for all return fields from the `isExcluded` function with signature
+    /// `isExcluded(uint256,address)` and selector `0x3b158390`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct IsExcludedReturn(pub bool);
-    ///Container type for all return fields from the `isNominee` function with signature `isNominee(uint256,address)` and selector `0x7d60af91`
+    ///Container type for all return fields from the `isNominee` function with signature
+    /// `isNominee(uint256,address)` and selector `0x7d60af91`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct IsNomineeReturn(pub bool);
-    ///Container type for all return fields from the `name` function with signature `name()` and selector `0x06fdde03`
+    ///Container type for all return fields from the `name` function with signature `name()` and
+    /// selector `0x06fdde03`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NameReturn(pub ::std::string::String);
-    ///Container type for all return fields from the `nomineeCount` function with signature `nomineeCount(uint256)` and selector `0xe63f88a8`
+    ///Container type for all return fields from the `nomineeCount` function with signature
+    /// `nomineeCount(uint256)` and selector `0xe63f88a8`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NomineeCountReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `nomineeVetter` function with signature `nomineeVetter()` and selector `0x0298ad49`
+    ///Container type for all return fields from the `nomineeVetter` function with signature
+    /// `nomineeVetter()` and selector `0x0298ad49`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NomineeVetterReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `nomineeVettingDuration` function with signature `nomineeVettingDuration()` and selector `0x45110965`
+    ///Container type for all return fields from the `nomineeVettingDuration` function with
+    /// signature `nomineeVettingDuration()` and selector `0x45110965`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NomineeVettingDurationReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `nominees` function with signature `nominees(uint256)` and selector `0xeec6b91e`
+    ///Container type for all return fields from the `nominees` function with signature
+    /// `nominees(uint256)` and selector `0xeec6b91e`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct NomineesReturn(pub ::std::vec::Vec<::ethers::core::types::Address>);
-    ///Container type for all return fields from the `onERC1155BatchReceived` function with signature `onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)` and selector `0xbc197c81`
+    ///Container type for all return fields from the `onERC1155BatchReceived` function with
+    /// signature `onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)` and selector
+    /// `0xbc197c81`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OnERC1155BatchReceivedReturn(pub [u8; 4]);
-    ///Container type for all return fields from the `onERC1155Received` function with signature `onERC1155Received(address,address,uint256,uint256,bytes)` and selector `0xf23a6e61`
+    ///Container type for all return fields from the `onERC1155Received` function with signature
+    /// `onERC1155Received(address,address,uint256,uint256,bytes)` and selector `0xf23a6e61`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OnERC1155ReceivedReturn(pub [u8; 4]);
-    ///Container type for all return fields from the `onERC721Received` function with signature `onERC721Received(address,address,uint256,bytes)` and selector `0x150b7a02`
+    ///Container type for all return fields from the `onERC721Received` function with signature
+    /// `onERC721Received(address,address,uint256,bytes)` and selector `0x150b7a02`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OnERC721ReceivedReturn(pub [u8; 4]);
-    ///Container type for all return fields from the `otherCohort` function with signature `otherCohort()` and selector `0xcf5d27c4`
+    ///Container type for all return fields from the `otherCohort` function with signature
+    /// `otherCohort()` and selector `0xcf5d27c4`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OtherCohortReturn(pub u8);
-    ///Container type for all return fields from the `owner` function with signature `owner()` and selector `0x8da5cb5b`
+    ///Container type for all return fields from the `owner` function with signature `owner()` and
+    /// selector `0x8da5cb5b`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct OwnerReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `proposalDeadline` function with signature `proposalDeadline(uint256)` and selector `0xc01f9e37`
+    ///Container type for all return fields from the `proposalDeadline` function with signature
+    /// `proposalDeadline(uint256)` and selector `0xc01f9e37`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposalDeadlineReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `proposalSnapshot` function with signature `proposalSnapshot(uint256)` and selector `0x2d63f693`
+    ///Container type for all return fields from the `proposalSnapshot` function with signature
+    /// `proposalSnapshot(uint256)` and selector `0x2d63f693`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposalSnapshotReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `proposalThreshold` function with signature `proposalThreshold()` and selector `0xb58131b0`
+    ///Container type for all return fields from the `proposalThreshold` function with signature
+    /// `proposalThreshold()` and selector `0xb58131b0`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposalThresholdReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `proposalVettingDeadline` function with signature `proposalVettingDeadline(uint256)` and selector `0x2df2c649`
+    ///Container type for all return fields from the `proposalVettingDeadline` function with
+    /// signature `proposalVettingDeadline(uint256)` and selector `0x2df2c649`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposalVettingDeadlineReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `propose` function with signature `propose(address[],uint256[],bytes[],string)` and selector `0x7d5e81e2`
+    ///Container type for all return fields from the `propose` function with signature
+    /// `propose(address[],uint256[],bytes[],string)` and selector `0x7d5e81e2`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct ProposeReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `quorum` function with signature `quorum(uint256)` and selector `0xf8ce560a`
+    ///Container type for all return fields from the `quorum` function with signature
+    /// `quorum(uint256)` and selector `0xf8ce560a`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct QuorumReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `quorumDenominator` function with signature `quorumDenominator()` and selector `0x97c3d334`
+    ///Container type for all return fields from the `quorumDenominator` function with signature
+    /// `quorumDenominator()` and selector `0x97c3d334`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct QuorumDenominatorReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `quorumNumerator` function with signature `quorumNumerator(uint256)` and selector `0x60c4247f`
+    ///Container type for all return fields from the `quorumNumerator` function with signature
+    /// `quorumNumerator(uint256)` and selector `0x60c4247f`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct QuorumNumeratorWithBlockNumberReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `quorumNumerator` function with signature `quorumNumerator()` and selector `0xa7713a70`
+    ///Container type for all return fields from the `quorumNumerator` function with signature
+    /// `quorumNumerator()` and selector `0xa7713a70`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct QuorumNumeratorReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `recoverAddContenderMessage` function with signature `recoverAddContenderMessage(uint256,bytes)` and selector `0x5a756eaf`
+    ///Container type for all return fields from the `recoverAddContenderMessage` function with
+    /// signature `recoverAddContenderMessage(uint256,bytes)` and selector `0x5a756eaf`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct RecoverAddContenderMessageReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `securityCouncilManager` function with signature `securityCouncilManager()` and selector `0x03d1ce8a`
+    ///Container type for all return fields from the `securityCouncilManager` function with
+    /// signature `securityCouncilManager()` and selector `0x03d1ce8a`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct SecurityCouncilManagerReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `securityCouncilMemberElectionGovernor` function with signature `securityCouncilMemberElectionGovernor()` and selector `0x1b6a7673`
+    ///Container type for all return fields from the `securityCouncilMemberElectionGovernor`
+    /// function with signature `securityCouncilMemberElectionGovernor()` and selector `0x1b6a7673`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct SecurityCouncilMemberElectionGovernorReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `state` function with signature `state(uint256)` and selector `0x3e4f49e6`
+    ///Container type for all return fields from the `state` function with signature
+    /// `state(uint256)` and selector `0x3e4f49e6`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct StateReturn(pub u8);
-    ///Container type for all return fields from the `supportsInterface` function with signature `supportsInterface(bytes4)` and selector `0x01ffc9a7`
+    ///Container type for all return fields from the `supportsInterface` function with signature
+    /// `supportsInterface(bytes4)` and selector `0x01ffc9a7`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct SupportsInterfaceReturn(pub bool);
-    ///Container type for all return fields from the `token` function with signature `token()` and selector `0xfc0c546a`
+    ///Container type for all return fields from the `token` function with signature `token()` and
+    /// selector `0xfc0c546a`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct TokenReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `usedNonces` function with signature `usedNonces(bytes32)` and selector `0xfeb61724`
+    ///Container type for all return fields from the `usedNonces` function with signature
+    /// `usedNonces(bytes32)` and selector `0xfeb61724`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct UsedNoncesReturn(pub bool);
-    ///Container type for all return fields from the `version` function with signature `version()` and selector `0x54fd4d50`
+    ///Container type for all return fields from the `version` function with signature `version()`
+    /// and selector `0x54fd4d50`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct VersionReturn(pub ::std::string::String);
-    ///Container type for all return fields from the `votesReceived` function with signature `votesReceived(uint256,address)` and selector `0x33dd6bed`
+    ///Container type for all return fields from the `votesReceived` function with signature
+    /// `votesReceived(uint256,address)` and selector `0x33dd6bed`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct VotesReceivedReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `votesUsed` function with signature `votesUsed(uint256,address)` and selector `0x9523730e`
+    ///Container type for all return fields from the `votesUsed` function with signature
+    /// `votesUsed(uint256,address)` and selector `0x9523730e`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct VotesUsedReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `votingDelay` function with signature `votingDelay()` and selector `0x3932abb1`
+    ///Container type for all return fields from the `votingDelay` function with signature
+    /// `votingDelay()` and selector `0x3932abb1`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct VotingDelayReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `votingPeriod` function with signature `votingPeriod()` and selector `0x02a251a3`
+    ///Container type for all return fields from the `votingPeriod` function with signature
+    /// `votingPeriod()` and selector `0x02a251a3`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct VotingPeriodReturn(pub ::ethers::core::types::U256);
     ///`Date(uint256,uint256,uint256,uint256)`
@@ -5472,7 +5643,8 @@ pub mod rindexer_arbitrum_sc_nominations_gen {
         pub day: ::ethers::core::types::U256,
         pub hour: ::ethers::core::types::U256,
     }
-    ///`InitParams((uint256,uint256,uint256,uint256),uint256,address,address,address,address,address,uint256,uint256)`
+    ///`InitParams((uint256,uint256,uint256,uint256),uint256,address,address,address,address,
+    /// address,uint256,uint256)`
     #[derive(Clone, ::ethers::contract::EthAbiType, ::ethers::contract::EthAbiCodec, Default, Debug, PartialEq, Eq, Hash)]
     pub struct InitParams {
         pub first_nomination_start_date: Date,

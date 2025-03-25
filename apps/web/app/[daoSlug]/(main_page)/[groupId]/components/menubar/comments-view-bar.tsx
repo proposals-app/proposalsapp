@@ -58,7 +58,7 @@ export const CommentsViewBar = ({
       <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-3 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 sm:flex-row sm:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
         <div className='flex w-full flex-col justify-between gap-3 sm:flex-row sm:items-center'>
           {/* Read Full Proposal Button */}
-          <div className='hidden sm:flex sm:justify-start'>
+          <div className='hidden sm:flex sm:justify-start sm:pl-2'>
             <button
               className='flex cursor-pointer items-center gap-4 hover:underline'
               onClick={() => {

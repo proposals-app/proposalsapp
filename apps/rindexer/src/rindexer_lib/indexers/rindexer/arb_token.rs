@@ -38,7 +38,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 info!(
                     event = "ARBToken::DelegateChanged",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    status = "INDEXED".green().to_string(),
                     results = results.len(),
                 );
 
@@ -84,7 +84,7 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
 
                 info!(
                     event = "ARBToken::DelegateVotesChanged",
-                    status = %IndexingEventProgressStatus::Indexed.log(),
+                    status = "INDEXED".green().to_string(),
                     results = results.len(),
                 );
 

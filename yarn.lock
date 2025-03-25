@@ -3294,6 +3294,7 @@ __metadata:
   resolution: "@proposalsapp/email-service@workspace:apps/email-service"
   dependencies:
     "@proposalsapp/db-indexer": "npm:1.0.0"
+    "@proposalsapp/db-web": "npm:1.0.0"
     "@proposalsapp/emails": "npm:1.0.0"
     "@tsconfig/recommended": "npm:^1.0.8"
     "@types/dotenv": "npm:^8.2.3"
