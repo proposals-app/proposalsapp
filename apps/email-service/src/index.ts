@@ -61,6 +61,14 @@ async function checkNewProposals() {
         continue;
       }
 
+      // Get the author information from the voter table
+
+      const author = await dbIndexer
+        .selectFrom("voter")
+        .selectAll()
+        .where("address", "=", proposal.author)
+        .executeTakeFirst();
+
       // Get users who have enabled new proposal notifications
       const users = await dbWeb
         .selectFrom("user")
@@ -107,6 +115,8 @@ async function checkNewProposals() {
               proposalName: proposal.name,
               proposalUrl: `https://${dao.slug}.proposals.app/${groupId}`,
               daoName: dao.name,
+              authorAddress: author?.address ?? "",
+              authorEns: author?.ens ?? "",
             }),
           });
 
@@ -161,6 +171,35 @@ async function checkNewDiscussions() {
       if (!daoDiscourse) {
         console.error(
           `DAO discourse not found for discussion ${discussion.id}`,
+        );
+        continue;
+      }
+
+      // Get the first post of the discussion to get the author
+      const firstPost = await dbIndexer
+        .selectFrom("discoursePost")
+        .selectAll()
+        .where("topicId", "=", discussion.externalId)
+        .where("daoDiscourseId", "=", discussion.daoDiscourseId)
+        .where("postNumber", "=", 1)
+        .executeTakeFirst();
+
+      if (!firstPost) {
+        console.error(`First post not found for discussion ${discussion.id}`);
+        continue;
+      }
+
+      // Get the author information from Discourse
+      const discourseUser = await dbIndexer
+        .selectFrom("discourseUser")
+        .selectAll()
+        .where("externalId", "=", firstPost.userId)
+        .where("daoDiscourseId", "=", discussion.daoDiscourseId)
+        .executeTakeFirst();
+
+      if (!discourseUser) {
+        console.error(
+          `Discourse user not found for discussion ${discussion.id}`,
         );
         continue;
       }
@@ -238,6 +277,8 @@ async function checkNewDiscussions() {
               discussionTitle: discussion.title || "New Discussion",
               discussionUrl: `https://${dao.slug}.proposals.app/${groupId}`,
               daoName: dao.name,
+              authorUsername: discourseUser.username,
+              authorProfilePicture: discourseUser.avatarTemplate,
             }),
           });
 
