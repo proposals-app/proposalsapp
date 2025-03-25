@@ -7,31 +7,24 @@ import { headers } from 'next/headers';
 export interface SettingsData {
   newDiscussions: boolean;
   newProposals: boolean;
-  dailyRoundup: boolean;
+  endingProposals: boolean;
   isOnboarded: boolean;
 }
 
 export async function saveSettings(settings: SettingsData) {
   settingsSchema.parse(settings);
 
-  const { newDiscussions, newProposals, dailyRoundup, isOnboarded } = settings;
+  const { newDiscussions, newProposals, endingProposals, isOnboarded } =
+    settings;
 
   await auth.api.updateUser({
     body: {
       emailSettingsNewProposals: newProposals,
       emailSettingsNewDiscussions: newDiscussions,
-      emailSettingsDailyRoundup: dailyRoundup,
+      emailSettingsEndingProposals: endingProposals,
       isOnboarded: isOnboarded,
     },
     headers: await headers(),
-  });
-
-  // Simulate saving settings to a database or preferences
-  console.log('Saving settings:', {
-    newDiscussions,
-    newProposals,
-    dailyRoundup,
-    isOnboarded,
   });
 
   // Return success or some data if needed

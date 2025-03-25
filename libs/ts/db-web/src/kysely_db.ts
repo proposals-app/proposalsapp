@@ -41,7 +41,7 @@ export interface Session {
 export interface User {
   createdAt: Timestamp;
   email: string;
-  emailSettingsDailyRoundup: Generated<boolean>;
+  emailSettingsEndingProposals: Generated<boolean>;
   emailSettingsNewDiscussions: Generated<boolean>;
   emailSettingsNewProposals: Generated<boolean>;
   emailVerified: boolean;

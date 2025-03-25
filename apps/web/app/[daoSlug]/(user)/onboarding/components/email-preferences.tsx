@@ -10,7 +10,7 @@ export const EmailPreferences = () => {
   const router = useRouter();
   const [newDiscussions, setNewDiscussions] = useState(true);
   const [newProposals, setNewProposals] = useState(true);
-  const [dailyRoundup, setDailyRoundup] = useState(true);
+  const [endingProposals, setEndingProposals] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -19,7 +19,7 @@ export const EmailPreferences = () => {
     const settingsData: SettingsData = {
       newDiscussions: newDiscussions,
       newProposals: newProposals,
-      dailyRoundup: dailyRoundup,
+      endingProposals: endingProposals,
       isOnboarded: true,
     };
 
@@ -112,21 +112,21 @@ export const EmailPreferences = () => {
                 />
               </div>
 
-              {/* Daily roundup setting */}
+              {/* Ending proposals setting */}
               <div className='flex items-center justify-between'>
                 <div className='flex items-start space-x-3'>
                   <Mail className='mt-1 h-5 w-5 text-neutral-500 dark:text-neutral-400' />
                   <div>
-                    <label className='font-medium'>Daily roundup</label>
+                    <label className='font-medium'>Ending proposals</label>
                     <p className='text-sm text-neutral-500 dark:text-neutral-400'>
-                      Receive a daily summary of activities
+                      Get an email 24h before a proposal ends
                     </p>
                   </div>
                 </div>
                 <Toggle
-                  id='daily-roundup'
-                  checked={dailyRoundup}
-                  onChange={setDailyRoundup}
+                  id='ending-proposals'
+                  checked={endingProposals}
+                  onChange={setEndingProposals}
                 />
               </div>
             </div>

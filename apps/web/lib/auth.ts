@@ -46,7 +46,7 @@ export const auth = betterAuth({
         required: true,
         defaultValue: true,
       },
-      emailSettingsDailyRoundup: {
+      emailSettingsEndingProposals: {
         type: 'boolean',
         required: true,
         defaultValue: true,

@@ -18,8 +18,8 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
   const [newProposals, setNewProposals] = useState(
     session.user.emailSettingsNewProposals
   );
-  const [dailyRoundup, setDailyRoundup] = useState(
-    session.user.emailSettingsDailyRoundup
+  const [endingProposals, setEndingProposals] = useState(
+    session.user.emailSettingsEndingProposals
   );
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -31,7 +31,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
     const settingsData: SettingsData = {
       newDiscussions: newDiscussions,
       newProposals: newProposals,
-      dailyRoundup: dailyRoundup,
+      endingProposals: endingProposals,
       isOnboarded: true,
     };
 
@@ -161,28 +161,27 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
             </div>
           </div>
 
-          {/* Daily roundup setting */}
+          {/* Ending proposals setting */}
           <div className='sm:grid sm:grid-cols-8 sm:items-center sm:gap-4'>
             <div className='flex items-start space-x-2 sm:col-span-6 sm:space-x-3'>
               <Mail className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
               <div>
                 <label
-                  htmlFor='daily-roundup'
+                  htmlFor='ending-proposals'
                   className='text-sm font-medium text-neutral-900 sm:text-base dark:text-neutral-100'
                 >
-                  Daily roundup
+                  Ending proposals
                 </label>
                 <p className='text-sm text-neutral-500 dark:text-neutral-400'>
-                  Receive a daily email with a summary of new discussions and
-                  proposals
+                  Get an email 24h before a proposal ends
                 </p>
               </div>
             </div>
             <div className='mt-2 flex justify-end sm:col-span-2 sm:mt-0'>
               <Toggle
-                id='daily-roundup'
-                checked={dailyRoundup}
-                onChange={setDailyRoundup}
+                id='ending-proposals'
+                checked={endingProposals}
+                onChange={setEndingProposals}
               />
             </div>
           </div>

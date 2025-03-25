@@ -34,9 +34,9 @@ export const settingsSchema = z.object({
     required_error: 'New proposals setting is required.',
     invalid_type_error: 'New proposals setting must be a boolean.',
   }),
-  dailyRoundup: z.boolean({
-    required_error: 'Daily roundup setting is required.',
-    invalid_type_error: 'Daily roundup setting must be a boolean.',
+  endingProposals: z.boolean({
+    required_error: 'Ending proposals setting is required.',
+    invalid_type_error: 'Ending proposals setting must be a boolean.',
   }),
   isOnboarded: z.boolean({
     required_error: 'Onboarded status is required.',
