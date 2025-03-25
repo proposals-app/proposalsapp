@@ -53,7 +53,9 @@ export async function Header({
               height={40}
             />
           </div>
-          <h1 className='truncate text-base font-bold sm:text-lg'>
+          <h1
+            className={`${withBack ? 'max-w-[260px]' : 'max-w-[300px]'} overflow-hidden text-base font-bold overflow-ellipsis whitespace-nowrap sm:max-w-full sm:text-lg`}
+          >
             {groupName}
           </h1>
         </div>

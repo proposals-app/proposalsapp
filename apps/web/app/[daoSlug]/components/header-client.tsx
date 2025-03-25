@@ -70,7 +70,11 @@ export function HeaderClient({
             height={40}
           />
         </div>
-        <h1 className='text-base font-bold sm:text-lg'>{groupName}</h1>
+        <h1
+          className={`${withBack ? 'max-w-[260px]' : 'max-w-[300px]'} overflow-hidden text-base font-bold overflow-ellipsis whitespace-nowrap sm:max-w-full sm:text-lg`}
+        >
+          {groupName}
+        </h1>
       </div>
     </div>
   );
