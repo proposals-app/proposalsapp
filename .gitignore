@@ -11,6 +11,7 @@ Cargo.lock
 # local env files
 .env.development
 .env
+.env.secrets
 
 .idea
 .vscode
