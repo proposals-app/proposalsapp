@@ -15,6 +15,7 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 import { Footer } from "../components/footer";
+import { Unsubscribe } from "../components/unsubscribe";
 
 interface NewProposalEmailProps {
   proposalName: string;
@@ -80,6 +81,7 @@ export default function NewProposalEmailTemplate({
               </Text>
             </Section>
 
+            <Unsubscribe />
             <Footer />
           </Container>
         </Body>

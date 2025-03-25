@@ -15,6 +15,7 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 import { Footer } from "../components/footer";
+import { Unsubscribe } from "../components/unsubscribe";
 
 interface NewDiscussionEmailProps {
   discussionTitle: string;
@@ -80,6 +81,7 @@ export default function NewDiscussionEmailTemplate({
               </Text>
             </Section>
 
+            <Unsubscribe />
             <Footer />
           </Container>
         </Body>
