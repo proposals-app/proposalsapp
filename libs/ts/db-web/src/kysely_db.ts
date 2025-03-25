@@ -52,6 +52,14 @@ export interface User {
   updatedAt: Timestamp;
 }
 
+export interface UserNotification {
+  id: Generated<string>;
+  sentAt: Generated<Timestamp>;
+  targetId: string;
+  type: string;
+  userId: string;
+}
+
 export interface UserProposalGroupLastRead {
   id: Generated<string>;
   lastReadAt: Timestamp | null;
@@ -72,6 +80,7 @@ export interface DB {
   account: Account;
   session: Session;
   user: User;
+  userNotification: UserNotification;
   userProposalGroupLastRead: UserProposalGroupLastRead;
   verification: Verification;
 }
