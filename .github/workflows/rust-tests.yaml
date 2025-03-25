@@ -47,14 +47,15 @@ jobs:
 
       - name: Run tests with coverage
         env:
-          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
-          OPTIMISTIC_SCAN_API_KEY: ${{ secrets.OPTIMISTIC_SCAN_API_KEY }}
           ARBITRUM_NODE_URL: ${{ secrets.ARBITRUM_NODE_URL }}
-          ETHEREUM_NODE_URL: ${{ secrets.ETHEREUM_NODE_URL }}
-          OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
-          POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
           AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          ETHEREUM_NODE_URL: ${{ secrets.ETHEREUM_NODE_URL }}
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
+          OPTIMISTIC_SCAN_API_KEY: ${{ secrets.OPTIMISTIC_SCAN_API_KEY }}
+          POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
         run: |
           cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
 
