@@ -6,7 +6,12 @@ import {
   ProcessedVote,
   processResultsAction,
 } from '@/lib/results_processing';
-import { ProposalGroupItem } from '@/lib/types';
+import {
+  FeedEvent,
+  ProposalGroupItem,
+  TimelineEventType,
+  VoteSegmentData,
+} from '@/lib/types';
 import { AsyncReturnType } from '@/lib/utils';
 import {
   dbIndexer,
@@ -311,73 +316,6 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
 
   return bodies;
 }
-
-enum TimelineEventType {
-  ResultOngoingBasicVote = 'ResultOngoingBasicVote',
-  ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',
-  ResultEndedBasicVote = 'ResultEndedBasicVote',
-  ResultEndedOtherVotes = 'ResultEndedOtherVotes',
-  Basic = 'Basic',
-  CommentsVolume = 'CommentsVolume',
-  VotesVolume = 'VotesVolume',
-}
-
-interface BaseEvent {
-  type: TimelineEventType;
-  timestamp: Date;
-  metadata?: {
-    votingPower?: number;
-    commentCount?: number;
-  };
-}
-
-interface BasicEvent extends BaseEvent {
-  type: TimelineEventType.Basic;
-  content: string;
-  url: string;
-}
-
-interface CommentsVolumeEvent extends BaseEvent {
-  type: TimelineEventType.CommentsVolume;
-  volume: number;
-  maxVolume: number;
-  volumeType: 'comments';
-}
-
-interface VotesVolumeEvent extends BaseEvent {
-  type: TimelineEventType.VotesVolume;
-  volumes: number[];
-  colors: string[];
-  maxVolume: number;
-  volumeType: 'votes';
-  metadata: {
-    votingPower: number;
-  };
-}
-
-export interface VoteSegmentData {
-  votingPower: number;
-  isAggregated?: boolean;
-}
-
-export interface ResultEvent extends BaseEvent {
-  type:
-    | TimelineEventType.ResultOngoingBasicVote
-    | TimelineEventType.ResultOngoingOtherVotes
-    | TimelineEventType.ResultEndedBasicVote
-    | TimelineEventType.ResultEndedOtherVotes;
-  content: string;
-  proposal: Selectable<Proposal>;
-  result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
-    voteSegments: { [key: string]: VoteSegmentData[] };
-  };
-}
-
-export type FeedEvent =
-  | BasicEvent
-  | CommentsVolumeEvent
-  | VotesVolumeEvent
-  | ResultEvent;
 
 const MIN_VISIBLE_WIDTH_PERCENT = 1;
 
@@ -886,7 +824,9 @@ export async function getFeed(
             startedAt,
             'MMM d'
           )}`,
-          type: TimelineEventType.Basic,
+          type: offchain
+            ? TimelineEventType.Offchain
+            : TimelineEventType.Onchain,
           timestamp: startedAt,
           url: proposal.url,
         });
@@ -994,7 +934,7 @@ export async function getFeed(
   const createdAt = new Date(topics[0].createdAt);
   events.push({
     content: `Proposal initially posted on ${format(createdAt, 'MMM d')}`,
-    type: TimelineEventType.Basic,
+    type: TimelineEventType.Discussion,
     timestamp: createdAt,
     url: `${daoDiscourse.discourseBaseUrl}/t/${topics[0].externalId}`,
   });

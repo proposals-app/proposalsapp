@@ -1,13 +1,13 @@
 'use client';
 
 import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
-import ArrowSvg from '@/public/assets/web/arrow.svg';
-import NextSvg from '@/public/assets/web/next.svg';
-import PreviousSvg from '@/public/assets/web/previous.svg';
-import FirstSvg from '@/public/assets/web/first.svg';
-import LastSvg from '@/public/assets/web/last.svg';
-import CheckboxCheck from '@/public/assets/web/checkbox_check.svg';
-import CheckboxNocheck from '@/public/assets/web/checkbox_nocheck.svg';
+import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
+import NextSvg from '@/public/assets/web/icons/chevron-right.svg';
+import PreviousSvg from '@/public/assets/web/icons/chevron-left.svg';
+import FirstSvg from '@/public/assets/web/icons/chevron-double-left.svg';
+import LastSvg from '@/public/assets/web/icons/chevron-double-right.svg';
+import CheckboxCheck from '@/public/assets/web/icons/checkbox-checked.svg';
+import CheckboxNocheck from '@/public/assets/web/icons/checkbox-unchecked.svg';
 import { BodyVersionType, VersionType } from '../../actions';
 import { ViewEnum } from './menu-bar';
 import { useOptimistic, useTransition } from 'react';

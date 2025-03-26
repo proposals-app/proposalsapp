@@ -2,9 +2,9 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import React, { useMemo } from 'react';
 import { HiddenVote } from './hidden-vote';
 import { ProcessedResults } from '@/lib/results_processing';
-import PassedSmallIcon from '@/public/assets/web/passed-small.svg';
-import FailedSmallIcon from '@/public/assets/web/failed-small.svg';
-import { VoteSegmentData } from '../../../actions';
+import PassedSmallIcon from '@/public/assets/web/icons/check-small.svg';
+import FailedSmallIcon from '@/public/assets/web/icons/cross-small.svg';
+import { VoteSegmentData } from '@/lib/types';
 
 interface BasicVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
@@ -107,8 +107,8 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
   const hasQuorum = quorumVotingPower > (quorum || 0);
 
   return (
-    <div className='space-y-1'>
-      <div className='flex h-4 w-full overflow-hidden'>
+    <div>
+      <div className='flex h-4 w-full overflow-hidden bg-neutral-100 dark:bg-neutral-700'>
         {isBasicVote
           ? // Order: For, Abstain, Against
             ['For', 'Abstain', 'Against'].map((choiceLabel) => {

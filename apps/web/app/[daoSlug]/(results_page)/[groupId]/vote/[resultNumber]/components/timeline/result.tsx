@@ -1,21 +1,11 @@
 import { Proposal, Selectable } from '@proposalsapp/db-indexer';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
-import TimelineEventActiveIcon from '@/public/assets/web/timeline_event_active.svg';
+import OnchainEventIcon from '@/public/assets/web/icons/onchain.svg';
+import OffchainEventIcon from '@/public/assets/web/icons/offchain.svg';
+import { TimelineEventType } from '@/lib/types';
 
-enum TimelineEventType {
-  ResultOngoingBasicVote = 'ResultOngoingBasicVote',
-  ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',
-  ResultEndedBasicVote = 'ResultEndedBasicVote',
-  ResultEndedOtherVotes = 'ResultEndedOtherVotes',
-  Basic = 'Basic',
-  CommentsVolume = 'CommentsVolume',
-  VotesVolume = 'VotesVolume',
-  Gap = 'Gap',
-}
-
-interface ResultEventProps {
+interface ResultProps {
   eventType: TimelineEventType;
   content: string;
   timestamp: Date;
@@ -36,20 +26,21 @@ const EVENT_HEIGHT = {
   [TimelineEventType.ResultOngoingOtherVotes]: 'h-[88px]',
   [TimelineEventType.CommentsVolume]: 'h-1',
   [TimelineEventType.VotesVolume]: 'h-1',
-  [TimelineEventType.Gap]: 'h-5',
+  [TimelineEventType.Discussion]: 'h-8',
+  [TimelineEventType.Offchain]: 'h-8',
+  [TimelineEventType.Onchain]: 'h-8',
 } as const;
 
-export function ResultEvent({
+export function Result({
   eventType,
-  content,
   proposal,
   resultNumber,
   selectedResult,
   groupId,
   last,
-}: ResultEventProps) {
-  const isOnchain = content.includes('Onchain vote'); // Adjust this logic based on your data model
-  const voteType = isOnchain ? 'Onchain' : 'Offchain';
+}: ResultProps) {
+  const onchain = proposal.blockCreatedAt ? true : false;
+  const voteType = onchain ? 'Onchain' : 'Offchain';
 
   // Determine if the vote is live or ended
   const isLive = new Date() < new Date(proposal.endAt);
@@ -69,15 +60,15 @@ export function ResultEvent({
             : 'w-28 rounded-xs border'
         } dark:border-neutral-650 rounded-l-xs border-neutral-800 bg-white dark:bg-neutral-950 ${heightClass}`}
       >
-        {isLive ? (
-          <TimelineEventActiveIcon
+        {onchain ? (
+          <OnchainEventIcon
             className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
             width={24}
             height={24}
             alt={'Timeline event'}
           />
         ) : (
-          <TimelineEventIcon
+          <OffchainEventIcon
             className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
             width={24}
             height={24}
@@ -85,9 +76,6 @@ export function ResultEvent({
           />
         )}
 
-        {!last && (
-          <div className='dark:bg-neutral-350 absolute top-[7px] left-[12.5px] z-10 h-[15px] max-h-[15px] w-0.5 translate-x-[2.5px] bg-neutral-800' />
-        )}
         <div className='ml-3 flex flex-col'>
           <div className='text-sm font-semibold'>{voteType}</div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import ArrowSvg from '@/public/assets/web/arrow.svg';
+import ArrowSvg from '@/public/assets/web/icons/arrow-left.svg';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
@@ -55,7 +55,7 @@ export function HeaderClient({
           href={`/${groupId}`}
           className='flex items-center gap-2 rounded-full px-3 py-2'
         >
-          <ArrowSvg className='-rotate-90' width={24} height={24} />
+          <ArrowSvg width={24} height={24} />
           <span className='hidden text-sm font-medium sm:block'>Back</span>
         </Link>
       )}

@@ -1,4 +1,4 @@
-interface VotesVolumeEventProps {
+interface VotesVolumeProps {
   timestamp: Date;
   width: number;
   last: boolean;
@@ -7,11 +7,7 @@ interface VotesVolumeEventProps {
   index: number;
 }
 
-export function VotesVolumeEvent({
-  width,
-  volumes,
-  colors,
-}: VotesVolumeEventProps) {
+export function VotesVolume({ width, volumes, colors }: VotesVolumeProps) {
   return (
     <div className='flex min-h-1 w-full items-center py-[1px]'>
       <div

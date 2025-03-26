@@ -12,7 +12,7 @@ import {
   ProcessedVote,
   VoteType,
 } from '@/lib/results_processing';
-import ArrowSvg from '@/public/assets/web/arrow.svg';
+import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import superjson, { SuperJSONResult } from 'superjson';
 import { VoterAuthor } from '@/app/[daoSlug]/components/author-voter';
 import {

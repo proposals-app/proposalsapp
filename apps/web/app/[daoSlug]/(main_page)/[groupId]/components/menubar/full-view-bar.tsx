@@ -4,7 +4,7 @@ import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useCallback, useEffect, useRef } from 'react';
 import { feedFilters, ViewEnum, fromFilters } from './menu-bar';
-import ArrowSvg from '@/public/assets/web/arrow.svg';
+import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import {
   Select,
   SelectContent,

@@ -1,30 +1,16 @@
 import { notFound } from 'next/navigation';
-import {
-  BasicEvent,
-  CommentsVolumeEvent,
-  VotesVolumeEvent,
-} from './other-events';
-import { ResultEvent } from './result-event';
+
 import {
   getFeed,
   GroupReturnType,
-  ResultEvent as ResultEventType,
 } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
-import TimelineEventIcon from '@/public/assets/web/timeline_event.svg';
+import TimelineEventIcon from '@/public/assets/web/icons/timeline-event.svg';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { connection } from 'next/server';
 import { ResultsMobile } from '@/app/[daoSlug]/(main_page)/[groupId]/components/timeline/mobile/timeline-mobile';
-
-enum TimelineEventType {
-  ResultOngoingBasicVote = 'ResultOngoingBasicVote',
-  ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',
-  ResultEndedBasicVote = 'ResultEndedBasicVote',
-  ResultEndedOtherVotes = 'ResultEndedOtherVotes',
-  Basic = 'Basic',
-  CommentsVolume = 'CommentsVolume',
-  VotesVolume = 'VotesVolume',
-  Gap = 'Gap',
-}
+import { ResultEvent, TimelineEventType } from '@/lib/types';
+import { Basic, CommentsVolume, VotesVolume } from './other';
+import { Result } from './result';
 
 export async function Timeline({
   group,
@@ -59,10 +45,10 @@ export async function Timeline({
     (proposal) => new Date(proposal.endAt) < currentTime
   );
 
-  const mobileResultEvents: ResultEventType[] =
+  const mobileResultEvents: ResultEvent[] =
     (feed.events?.filter((event) =>
       event.type.includes('Result')
-    ) as ResultEventType[]) || [];
+    ) as ResultEvent[]) || [];
 
   return (
     <div>
@@ -110,14 +96,14 @@ export async function Timeline({
                   className='relative flex w-full items-center justify-start'
                 >
                   {event.type === TimelineEventType.CommentsVolume ? (
-                    <CommentsVolumeEvent />
+                    <CommentsVolume />
                   ) : event.type === TimelineEventType.VotesVolume ? (
-                    <VotesVolumeEvent />
+                    <VotesVolume />
                   ) : event.type === TimelineEventType.ResultOngoingBasicVote ||
                     event.type === TimelineEventType.ResultOngoingOtherVotes ||
                     event.type === TimelineEventType.ResultEndedBasicVote ||
                     event.type === TimelineEventType.ResultEndedOtherVotes ? (
-                    <ResultEvent
+                    <Result
                       eventType={event.type}
                       content={event.content}
                       timestamp={event.timestamp}
@@ -129,8 +115,11 @@ export async function Timeline({
                       eventIndex={index}
                       last={index == 0}
                     />
-                  ) : event.type === TimelineEventType.Basic ? (
-                    <BasicEvent />
+                  ) : event.type === TimelineEventType.Basic ||
+                    event.type === TimelineEventType.Discussion ||
+                    event.type === TimelineEventType.Offchain ||
+                    event.type === TimelineEventType.Onchain ? (
+                    <Basic />
                   ) : null}
                 </div>
               );

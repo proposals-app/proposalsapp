@@ -2,7 +2,7 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { ProcessedResults } from '@/lib/results_processing';
 import React, { useMemo } from 'react';
 import { HiddenVote } from './hidden-vote';
-import { VoteSegmentData } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
+import { VoteSegmentData } from '@/lib/types';
 
 interface ApprovalVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {

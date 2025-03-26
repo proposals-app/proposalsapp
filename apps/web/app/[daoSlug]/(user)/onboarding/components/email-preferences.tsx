@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Bell, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { saveSettings, SettingsData } from '../../profile/actions';
-import ArrowSvg from '@/public/assets/web/arrow.svg';
+import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 
 export const EmailPreferences = () => {
   const router = useRouter();

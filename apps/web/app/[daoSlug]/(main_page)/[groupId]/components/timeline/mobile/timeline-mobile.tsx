@@ -1,11 +1,12 @@
 'use client';
 
 import { notFound } from 'next/navigation';
-import { GroupReturnType, ResultEvent } from '../../../actions';
+import { GroupReturnType } from '../../../actions';
 import Link from 'next/link';
 import React, { useState, useRef, useEffect } from 'react';
 import { ResultEventMobile } from './result-event-mobile';
 import { BiChevronsUp, BiChevronsDown } from 'react-icons/bi';
+import { ResultEvent } from '@/lib/types';
 
 interface ResultsMobileProps {
   events: ResultEvent[];

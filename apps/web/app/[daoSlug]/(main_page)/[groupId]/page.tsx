@@ -4,13 +4,7 @@ import {
   FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import {
-  getGroup,
-  getBodyVersions,
-  getFeed,
-  getGroupHeader,
-  ResultEvent,
-} from './actions';
+import { getGroup, getBodyVersions, getFeed, getGroupHeader } from './actions';
 import {
   AuthorInfo,
   Body,
@@ -30,6 +24,7 @@ import Loading from './loading';
 import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
 import { LastReadUpdater } from './components/last-read-updater';
 import AISummary from './components/ai-summary';
+import { ResultEvent } from '@/lib/types';
 
 export default async function Page({
   params,
@@ -74,11 +69,8 @@ async function GroupPage({
           <BodyHeaderSection daoSlug={daoSlug} groupId={groupId} />
         </Suspense>
 
-        <Suspense>
-          <AISummary groupId={groupId} />
-        </Suspense>
-
         <Suspense fallback={<BodyLoading />} key={bodyKey}>
+          <AISummary groupId={groupId} />
           <BodySection
             daoSlug={daoSlug}
             groupId={groupId}

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { formatNumberWithSuffix } from '@/lib/utils';
-import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
-import ArrowSvg from '@/public/assets/web/arrow.svg';
+import ChevronDownSvg from '@/public/assets/web/icons/chevron-down.svg';
+import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import { VoterAuthor } from '@/app/[daoSlug]/components/author-voter';
 import { List, AutoSizer, WindowScroller } from 'react-virtualized';
 import type { NonVotersData } from '../actions';

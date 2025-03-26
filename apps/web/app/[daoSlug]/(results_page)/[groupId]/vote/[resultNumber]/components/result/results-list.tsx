@@ -2,8 +2,8 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { ProcessedResults } from '@/lib/results_processing';
 import { toZonedTime } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
-import PassedIcon from '@/public/assets/web/passed.svg';
-import FailedIcon from '@/public/assets/web/failed.svg';
+import PassedIcon from '@/public/assets/web/icons/check.svg';
+import FailedIcon from '@/public/assets/web/icons/cross.svg';
 import superjson, { SuperJSONResult } from 'superjson';
 import { connection } from 'next/server';
 
@@ -16,7 +16,8 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
   const deserializedResults: ProcessedResults = superjson.deserialize(results);
 
   const explicitOrder = ['For', 'Abstain', 'Against'];
-  const totalVotingPower = deserializedResults.totalVotingPower;
+
+  const totalVotesCast = deserializedResults.totalVotingPower;
   const totalDelegatedVp = deserializedResults.totalDelegatedVp;
 
   // Calculate voting power for each choice using finalResults
@@ -27,12 +28,13 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
     countsTowardsQuorum: deserializedResults.quorumChoices.includes(index),
   }));
 
-  // Sort by voting power descending
+  // Sort by voting power descending, respecting explicit order if provided
   const sortedChoices = explicitOrder
     ? choicesWithPower.sort((a, b) => {
         const indexA = explicitOrder.indexOf(a.choice);
         const indexB = explicitOrder.indexOf(b.choice);
         if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        // Fallback to sorting by power if not in explicitOrder
         return b.votingPower - a.votingPower;
       })
     : choicesWithPower.sort((a, b) => b.votingPower - a.votingPower);
@@ -42,14 +44,14 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
     .reduce((sum, choice) => sum + choice.votingPower, 0);
 
   const participationPercentage = totalDelegatedVp
-    ? (totalVotingPower / totalDelegatedVp) * 100
+    ? (totalVotesCast / totalDelegatedVp) * 100
     : 0;
 
   // Determine which choices to show and the status message
   const majorityChoice = sortedChoices[0];
   const hasMajoritySupport = sortedChoices.map((c) => c.choice).includes('For')
     ? majorityChoice.choice === 'For' &&
-      majorityChoice.votingPower > totalVotingPower / 2
+      majorityChoice.votingPower > totalVotesCast / 2 // Majority based on votes cast
       ? true
       : false
     : undefined;
@@ -68,13 +70,10 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
       </div>
       {deserializedResults.quorum !== null && totalDelegatedVp && (
         <div className='flex flex-col gap-2'>
-          <MajoritySupportCheckmark
-            hasQuorum={hasMajoritySupport}
-            results={{ quorum: deserializedResults.quorum, totalDelegatedVp }}
-          />
+          <MajoritySupportCheckmark hasMajoritySupport={hasMajoritySupport} />
         </div>
       )}
-      <ChoiceList choices={sortedChoices} totalVotingPower={totalVotingPower} />
+      <ChoiceList choices={sortedChoices} totalVotingPower={totalVotesCast} />
       {deserializedResults.quorum !== null && totalDelegatedVp && (
         <div className='flex flex-col gap-2'>
           {deserializedResults.totalDelegatedVp && (
@@ -84,7 +83,7 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
               )}
               quorumVotingPower={quorumVotingPower}
               quorum={deserializedResults.quorum}
-              totalDelegatedVp={deserializedResults.totalDelegatedVp}
+              totalDelegatedVp={totalDelegatedVp}
             />
           )}
         </div>
@@ -92,8 +91,7 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
       {totalDelegatedVp && (
         <ParticipationPercentage
           percentage={participationPercentage}
-          totalVotingPower={totalDelegatedVp}
-          totalDelegatedVp={totalDelegatedVp}
+          actualVotesCast={totalVotesCast}
         />
       )}
     </div>
@@ -204,6 +202,7 @@ async function StatusMessage({
   }
 
   // Vote is still active
+  // Check for majority support only if quorum is met, otherwise it's irrelevant
   if (!hasQuorum) {
     return (
       <div className='text-sm font-medium'>
@@ -217,10 +216,14 @@ async function StatusMessage({
   return (
     <div className='text-sm font-medium'>
       This {voteType} vote ends <span className='font-bold'>{timeString}</span>{' '}
-      and is{' '}
-      <span className='font-bold'>
-        {hasMajoritySupport ? 'passing' : 'not passing'}
-      </span>
+      {hasMajoritySupport !== undefined && (
+        <>
+          and is{' '}
+          <span className='font-bold'>
+            {hasMajoritySupport ? 'passing' : 'not passing'}
+          </span>
+        </>
+      )}
       .
     </div>
   );
@@ -235,7 +238,9 @@ function ChoiceList({ choices, totalVotingPower }: ChoiceListProps) {
   return (
     <div className='space-y-2'>
       {choices.map(({ choice, votingPower, color }, index) => {
-        const percentage = (votingPower / totalVotingPower) * 100;
+        // Calculate percentage based on total votes cast for all choices
+        const percentage =
+          totalVotingPower > 0 ? (votingPower / totalVotingPower) * 100 : 0;
         return (
           <ChoiceBar
             key={index}
@@ -253,22 +258,15 @@ function ChoiceList({ choices, totalVotingPower }: ChoiceListProps) {
 }
 
 interface MajoritySupportCheckmarkProps {
-  hasQuorum: boolean | undefined;
-  results: { quorum: number; totalDelegatedVp: number };
+  hasMajoritySupport: boolean | undefined;
 }
 
 function MajoritySupportCheckmark({
-  hasQuorum,
-  results,
+  hasMajoritySupport,
 }: MajoritySupportCheckmarkProps) {
   return (
-    <div
-      className='flex w-full items-center gap-1 text-sm font-semibold'
-      style={{
-        left: `${(results.quorum / results.totalDelegatedVp) * 100}%`,
-      }}
-    >
-      {hasQuorum ? (
+    <div className='flex w-full items-center gap-1 text-sm font-semibold'>
+      {hasMajoritySupport === undefined ? null : hasMajoritySupport ? (
         <div className='flex items-center justify-center gap-1'>
           <PassedIcon className='fill-for-600 dark:fill-for-400' />
           <span>Majority support</span>
@@ -296,28 +294,42 @@ function QuorumBar({
   quorum,
   totalDelegatedVp,
 }: QuorumBarProps) {
+  const quorumPercentage =
+    totalDelegatedVp > 0 ? (quorum / totalDelegatedVp) * 100 : 0;
+
   return (
     <div>
       <div className='relative h-4 w-full'>
         {/* Quorum Line */}
-        <div
-          className='absolute -top-1 z-10 h-6 w-0.5 bg-neutral-900 dark:bg-neutral-50'
-          style={{
-            left: `${(quorum / totalDelegatedVp) * 100}%`,
-          }}
-        />
-        {/* Choices that count towards quorum */}
-        <div className='absolute inset-0 flex border border-neutral-800 dark:border-neutral-200'>
-          {choices.map((choice, index) => (
+        {quorumPercentage > 0 &&
+          quorumPercentage <= 100 && ( // Only render line if within bounds
             <div
-              key={index}
-              className='h-full'
+              className='absolute -top-1 z-10 h-6 w-0.5 bg-neutral-900 dark:bg-neutral-50'
               style={{
-                width: `${(choice.votingPower / totalDelegatedVp) * 100}%`,
-                backgroundColor: choice.color,
+                left: `${quorumPercentage}%`,
               }}
+              title={`Quorum: ${formatNumberWithSuffix(quorum)}`} // Add tooltip for clarity
             />
-          ))}
+          )}
+        {/* Choices that count towards quorum */}
+        <div className='absolute inset-0 flex overflow-hidden border border-neutral-800 dark:border-neutral-200'>
+          {choices.map((choice, index) => {
+            const choiceWidthPercentage =
+              totalDelegatedVp > 0
+                ? (choice.votingPower / totalDelegatedVp) * 100
+                : 0;
+            return (
+              <div
+                key={index}
+                className='h-full'
+                style={{
+                  width: `${choiceWidthPercentage}%`,
+                  backgroundColor: choice.color,
+                }}
+                title={`${formatNumberWithSuffix(choice.votingPower)}`} // Add tooltip for clarity
+              />
+            );
+          })}
         </div>
       </div>
       {/* Quorum Text */}
@@ -340,17 +352,16 @@ function QuorumBar({
 
 interface ParticipationPercentageProps {
   percentage: number;
-  totalVotingPower: number;
-  totalDelegatedVp: number;
+  actualVotesCast: number;
 }
 
 function ParticipationPercentage({
   percentage,
-  totalDelegatedVp,
+  actualVotesCast,
 }: ParticipationPercentageProps) {
   return (
     <div>
-      <div className='relative h-2 w-full border border-neutral-800 dark:border-neutral-200'>
+      <div className='relative h-2 w-full overflow-hidden border border-neutral-800 dark:border-neutral-200'>
         <div
           className='absolute top-0 left-0 h-full bg-neutral-800 dark:bg-neutral-200'
           style={{
@@ -358,9 +369,12 @@ function ParticipationPercentage({
           }}
         />
       </div>
+
       <div className='mt-2 text-xs'>
-        <span className='font-semibold'>{percentage.toFixed(0)}%</span> of all
-        delegated ARB voted ({formatNumberWithSuffix(totalDelegatedVp)})
+        <span className='font-semibold'>
+          {formatNumberWithSuffix(actualVotesCast)}
+        </span>{' '}
+        ARB have voted ({percentage.toFixed(0)}% participation)
       </div>
     </div>
   );
@@ -368,46 +382,51 @@ function ParticipationPercentage({
 
 export function LoadingList() {
   return (
-    <div className='w-72 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
+    <div className='w-72 animate-pulse text-neutral-700 sm:ml-6 dark:text-neutral-200'>
       {/* Status message placeholder */}
       <div className='flex flex-col justify-center sm:h-28'>
-        <div className='mb-1 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-        <div className='mb-4 h-5 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+        <div className='mb-1 h-5 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700' />
+        <div className='mb-4 h-5 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700' />
       </div>
-      <div className='space-y-2'>
-        {/* Choice bars loading state */}
+
+      {/* Majority support placeholder */}
+      <div className='mb-4 flex w-full items-center gap-1'>
+        <div className='h-4 w-4 rounded-full bg-neutral-200 dark:bg-neutral-700' />
+        <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-700' />
+      </div>
+
+      {/* Choice bars loading state */}
+      <div className='mb-4 space-y-2'>
         {[...Array(3)].map((_, index) => (
           <div
             key={index}
-            className='relative h-10 w-full animate-pulse overflow-hidden border-2 border-neutral-200 dark:border-neutral-700'
+            className='relative h-10 w-full overflow-hidden rounded border-2 border-neutral-200 dark:border-neutral-700'
           />
         ))}
-        {/* Majority support placeholder */}
-        <div className='flex w-full items-center gap-1'>
-          <div className='h-4 w-4 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-4 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+      </div>
+
+      {/* Quorum bar placeholder */}
+      <div className='mb-4'>
+        <div className='relative mb-2 h-4 w-full overflow-hidden rounded border border-neutral-200 dark:border-neutral-700'>
+          <div className='h-full w-1/2 bg-neutral-200 dark:bg-neutral-700' />
+          {/* Placeholder for quorum line */}
+          <div className='absolute top-[-4px] left-1/2 h-6 w-0.5 rounded bg-neutral-300 dark:bg-neutral-600' />
         </div>
-        {/* Quorum bar placeholder */}
-        <div>
-          <div className='mb-4'>
-            <div className='relative h-4 w-full overflow-hidden border border-neutral-200 dark:border-neutral-700'>
-              <div className='h-full w-1/2 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
-            </div>
-            {/* Quorum text placeholder */}
-            <div className='mt-2 flex items-center gap-1'>
-              <div className='h-4 w-4 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700' />
-              <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-            </div>
-          </div>
+        {/* Quorum text placeholder */}
+        <div className='flex items-center gap-1'>
+          <div className='h-4 w-4 rounded-full bg-neutral-200 dark:bg-neutral-700' />
+          <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-700' />
         </div>
-        {/* Delegated voting power placeholder */}
-        <div className='mt-4'>
-          <div className='relative h-2 w-full border border-neutral-200 dark:border-neutral-700'>
-            <div className='h-full w-1/3 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
-          </div>
-          <div className='mt-2 flex items-center gap-1'>
-            <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          </div>
+      </div>
+
+      {/* Delegated voting power placeholder */}
+      <div className='mt-4'>
+        <div className='relative mb-2 h-2 w-full overflow-hidden rounded border border-neutral-200 dark:border-neutral-700'>
+          <div className='h-full w-1/3 bg-neutral-200 dark:bg-neutral-700' />
+        </div>
+        <div className='flex items-center gap-1'>
+          <div className='h-3 w-36 rounded bg-neutral-200 dark:bg-neutral-700' />{' '}
+          {/* Adjusted width slightly */}
         </div>
       </div>
     </div>

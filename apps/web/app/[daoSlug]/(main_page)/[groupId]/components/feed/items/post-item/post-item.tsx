@@ -17,8 +17,8 @@ import {
 } from '../../actions';
 import { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { DiscourseAuthor } from '@/app/[daoSlug]/components/author-discourse';
-import HeartIcon from '@/public/assets/web/heart.svg';
-import SeenIcon from '@/public/assets/web/seen.svg';
+import HeartIcon from '@/public/assets/web/icons/like.svg';
+import SeenIcon from '@/public/assets/web/icons/views.svg';
 import { connection } from 'next/server';
 
 export async function PostItem({

@@ -2,7 +2,7 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { ProcessedResults } from '@/lib/results_processing';
 import React, { useMemo } from 'react';
 import { HiddenVote } from './hidden-vote';
-import { VoteSegmentData } from '../../../actions';
+import { VoteSegmentData } from '@/lib/types';
 
 interface ApprovalVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
@@ -52,8 +52,8 @@ export const ApprovalVote = ({ result }: ApprovalVoteProps) => {
   }
 
   return (
-    <div className='flex-col items-center justify-between space-y-1'>
-      <div className='border-neutral-350 flex h-4 w-full overflow-hidden border'>
+    <div className='flex-col items-center justify-between'>
+      <div className='flex h-4 w-full overflow-hidden bg-neutral-100 dark:bg-neutral-700'>
         <div
           className='bg-for-600 h-full'
           style={{ width: `${winningPercentage}%` }}

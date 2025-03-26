@@ -1,8 +1,9 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import Sun from '@/public/assets/web/icons/sun.svg';
+import Moon from '@/public/assets/web/icons/moon.svg';
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();
@@ -43,17 +44,11 @@ export function ModeToggle() {
       >
         <div className='h-[16px] w-[16px] bg-neutral-700 sm:h-[20px] sm:w-[20px] dark:bg-neutral-300'>
           <div className='relative flex h-full w-full items-center justify-center'>
-            <Image
-              src={
-                theme === 'dark'
-                  ? `${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/moon.svg`
-                  : `${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/sun.svg`
-              }
-              alt={theme === 'dark' ? 'Dark mode' : 'Light mode'}
-              width={10}
-              height={10}
-              className='sm:h-[12px] sm:w-[12px]'
-            />
+            {theme === 'dark' ? (
+              <Moon className='h-10px w-10px sm:h-[12px] sm:w-[12px]' />
+            ) : (
+              <Sun lassName='h-10px w-10px sm:h-[12px] sm:w-[12px]' />
+            )}
           </div>
         </div>
       </div>

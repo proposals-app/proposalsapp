@@ -1,58 +1,27 @@
 'use client';
 
-import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
-import { notFound } from 'next/navigation';
-import { FeedEvent, GroupReturnType } from '../../actions';
-import { BasicEvent } from './basic-event';
-import { CommentsVolumeEvent } from './comments-volume-event';
-import { ResultEvent } from './result-event';
-import { VotesVolumeEvent } from './votes-volume-event';
 import {
+  CommentsVolumeEvent,
+  FeedEvent,
+  TimelineEventType,
+  VotesVolumeEvent,
+} from '@/lib/types';
+import { GroupReturnType } from '../../actions';
+import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
+import {
+  RefObject,
+  useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  useMemo,
-  useCallback,
-  RefObject,
 } from 'react';
 import React from 'react';
-
-enum TimelineEventType {
-  ResultOngoingBasicVote = 'ResultOngoingBasicVote',
-  ResultOngoingOtherVotes = 'ResultOngoingOtherVotes',
-  ResultEndedBasicVote = 'ResultEndedBasicVote',
-  ResultEndedOtherVotes = 'ResultEndedOtherVotes',
-  Basic = 'Basic',
-  CommentsVolume = 'CommentsVolume',
-  VotesVolume = 'VotesVolume',
-}
-
-interface BaseEvent {
-  type: TimelineEventType;
-  timestamp: Date;
-  metadata?: {
-    votingPower?: number;
-    commentCount?: number;
-  };
-}
-
-interface CommentsVolumeEvent extends BaseEvent {
-  type: TimelineEventType.CommentsVolume;
-  volume: number;
-  maxVolume: number;
-  volumeType: 'comments';
-}
-
-interface VotesVolumeEvent extends BaseEvent {
-  type: TimelineEventType.VotesVolume;
-  volumes: number[];
-  colors: string[];
-  maxVolume: number;
-  volumeType: 'votes';
-  metadata: {
-    votingPower: number;
-  };
-}
+import { CommentsVolume } from './comments-volume';
+import { VotesVolume } from './votes-volume';
+import { Result } from './result';
+import { Basic } from './basic';
+import { notFound } from 'next/navigation';
 
 /**
  * Aggregates volume events to reduce visual clutter based on a specified level
@@ -229,6 +198,9 @@ function useTimelineEvents(
         TimelineEventType.ResultOngoingOtherVotes,
         TimelineEventType.ResultEndedBasicVote,
         TimelineEventType.ResultEndedOtherVotes,
+        TimelineEventType.Discussion,
+        TimelineEventType.Offchain,
+        TimelineEventType.Onchain,
       ].includes(event.type);
     },
     [feedFilter, fromFilter]
@@ -408,14 +380,14 @@ const TimelineEventItem = React.memo(
           ref={isLastVisible ? endRef : undefined}
         >
           {event.type === TimelineEventType.CommentsVolume ? (
-            <CommentsVolumeEvent
+            <CommentsVolume
               timestamp={event.timestamp}
               width={event.volume / event.maxVolume}
               last={index === 0}
               index={index}
             />
           ) : event.type === TimelineEventType.VotesVolume ? (
-            <VotesVolumeEvent
+            <VotesVolume
               timestamp={event.timestamp}
               width={event.maxVolume}
               volumes={event.volumes}
@@ -427,21 +399,23 @@ const TimelineEventItem = React.memo(
             event.type === TimelineEventType.ResultOngoingOtherVotes ||
             event.type === TimelineEventType.ResultEndedBasicVote ||
             event.type === TimelineEventType.ResultEndedOtherVotes ? (
-            <ResultEvent
+            <Result
               content={event.content}
               timestamp={event.timestamp}
               result={event.result}
               resultNumber={resultNumber!}
-              last={index === 0}
               daoSlug={group!.daoSlug}
               groupId={group!.group.id}
             />
-          ) : event.type === TimelineEventType.Basic ? (
-            <BasicEvent
+          ) : event.type === TimelineEventType.Basic ||
+            event.type === TimelineEventType.Discussion ||
+            event.type === TimelineEventType.Onchain ||
+            event.type === TimelineEventType.Offchain ? (
+            <Basic
               content={event.content}
               timestamp={event.timestamp}
               url={event.url}
-              last={index === 0}
+              type={event.type}
             />
           ) : null}
         </div>

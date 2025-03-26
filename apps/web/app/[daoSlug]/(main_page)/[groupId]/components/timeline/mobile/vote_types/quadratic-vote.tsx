@@ -1,5 +1,5 @@
 import { ProcessedResults } from '@/lib/results_processing';
-import { VoteSegmentData } from '../../../../actions';
+import { VoteSegmentData } from '@/lib/types';
 
 interface QuadraticVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {

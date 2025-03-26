@@ -5,7 +5,7 @@ import {
   DEFAULT_CHOICE_COLOR,
   ProcessedResults,
 } from '@/lib/results_processing';
-import { VoteSegmentData } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
+import { VoteSegmentData } from '@/lib/types';
 
 interface SingleChoiceVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {

@@ -5,7 +5,7 @@ import {
   DEFAULT_CHOICE_COLOR,
   ProcessedResults,
 } from '@/lib/results_processing';
-import { VoteSegmentData } from '../../../actions';
+import { VoteSegmentData } from '@/lib/types';
 
 interface SingleChoiceVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
@@ -65,8 +65,8 @@ export const SingleChoiceVote = ({ result }: SingleChoiceVoteProps) => {
   }
 
   return (
-    <div className='flex-col items-center justify-between space-y-1'>
-      <div className='border-neutral-350 flex h-4 w-full overflow-hidden border'>
+    <div className='flex-col items-center justify-between'>
+      <div className='flex h-4 w-full overflow-hidden bg-neutral-100 dark:bg-neutral-700'>
         <div
           className='h-full'
           style={{

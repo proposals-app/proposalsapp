@@ -1,4 +1,4 @@
-import { VoteSegmentData } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
+import { VoteSegmentData } from '@/lib/types';
 import { ProcessedResults } from '@/lib/results_processing';
 import { formatNumberWithSuffix } from '@/lib/utils';
 

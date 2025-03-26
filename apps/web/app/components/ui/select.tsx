@@ -1,7 +1,7 @@
 'use client';
 
-import CheckSvg from '@/public/assets/web/check.svg';
-import ChevronDownSvg from '@/public/assets/web/chevron_down.svg';
+import CheckSvg from '@/public/assets/web/icons/check.svg';
+import ChevronDownSvg from '@/public/assets/web/icons/chevron-down.svg';
 import React, {
   createContext,
   Dispatch,
@@ -198,7 +198,7 @@ export const SelectItem = ({ children, value }: SelectItemProps) => {
     <div
       role='option'
       aria-selected={isSelected}
-      className={`group relative flex cursor-pointer items-center py-3 pr-10 pl-4 text-base font-bold text-neutral-800 will-change-transform outline-none hover:bg-neutral-100 sm:py-2 sm:pl-2 sm:text-sm dark:text-neutral-200 dark:hover:bg-neutral-800`} // Adjusted styles for mobile and desktop
+      className={`group font-condensed relative flex cursor-pointer items-center py-3 pr-10 pl-4 text-base font-bold text-neutral-800 will-change-transform outline-none hover:bg-neutral-100 sm:py-2 sm:pl-2 sm:text-sm dark:text-neutral-200 dark:hover:bg-neutral-800`} // Adjusted styles for mobile and desktop
       onClick={() => {
         onSelectValue(value);
         setIsOpen(false);

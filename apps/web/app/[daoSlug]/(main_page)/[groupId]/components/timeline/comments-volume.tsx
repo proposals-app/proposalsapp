@@ -1,11 +1,11 @@
-interface CommentsVolumeEventProps {
+interface CommentsVolumeProps {
   timestamp: Date;
   width: number;
   last: boolean;
   index: number;
 }
 
-export function CommentsVolumeEvent({ width }: CommentsVolumeEventProps) {
+export function CommentsVolume({ width }: CommentsVolumeProps) {
   return (
     <div className='flex min-h-1 w-full items-center py-[1px]'>
       <div

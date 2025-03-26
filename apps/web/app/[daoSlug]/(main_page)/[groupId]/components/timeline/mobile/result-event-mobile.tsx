@@ -1,12 +1,12 @@
 import { ProcessedResults } from '@/lib/results_processing';
-import ArrowResultRightIcon from '@/public/assets/web/arrow_result_right.svg';
-import { VoteSegmentData } from '../../../actions';
+import ArrowResultRightIcon from '@/public/assets/web/icons/arrow-right.svg';
 import { ApprovalVote } from './vote_types/approval-vote';
 import { BasicVote } from './vote_types/basic-vote';
 import { QuadraticVote } from './vote_types/quadratic-vote';
 import { RankedChoiceVote } from './vote_types/ranked-choice-vote';
 import { SingleChoiceVote } from './vote_types/single-choice-vote';
 import { WeightedVote } from './vote_types/weighted-vote';
+import { VoteSegmentData } from '@/lib/types';
 
 interface ResultEventProps {
   content: string;

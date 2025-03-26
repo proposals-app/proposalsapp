@@ -1,7 +1,6 @@
 import { ResultsLoading } from './components/results';
 import { LoadingTimeline } from './components/timeline/timeline';
-
-import ArrowSvg from '@/public/assets/web/arrow.svg';
+import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 
 export default function Loading() {
   return (

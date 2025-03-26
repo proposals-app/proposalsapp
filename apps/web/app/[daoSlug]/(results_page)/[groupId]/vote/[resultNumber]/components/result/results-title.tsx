@@ -1,8 +1,8 @@
 import { format } from 'date-fns';
 import Link from 'next/link';
-import ExternalLinkIcon from '@/public/assets/web/arrow_external_link.svg';
-import OnchainIcon from '@/public/assets/web/onchain.svg';
-import OffchainIcon from '@/public/assets/web/offchain.svg';
+import ExternalLinkIcon from '@/public/assets/web/icons/external-link.svg';
+import OnchainIcon from '@/public/assets/web/icons/onchain.svg';
+import OffchainIcon from '@/public/assets/web/icons/offchain.svg';
 import { DelegateInfo } from '../actions';
 import superjson, { SuperJSONResult } from 'superjson';
 import { ProcessedResults } from '@/lib/results_processing';

@@ -1,8 +1,8 @@
 import { ModeToggle } from '@/app/components/theme-switch';
 import Image from 'next/image';
 import Link from 'next/link';
-import List from '@/public/assets/web/list_navbar.svg';
-import Profile from '@/public/assets/web/profile_navbar.svg';
+import List from '@/public/assets/web/icons/proposals.svg';
+import Delegate from '@/public/assets/web/icons/delegates.svg';
 
 export function NavBar() {
   const DAO_PICTURE_PATH = 'assets/project-logos/arbitrum';
@@ -38,7 +38,7 @@ export function NavBar() {
 
           <Link href={`/profile`} className='flex items-center justify-center'>
             <div className='flex h-8 w-8 items-center justify-center'>
-              <Profile className='h-8 w-8' />
+              <Delegate className='h-8 w-8' />
             </div>
           </Link>
 
@@ -79,7 +79,7 @@ export function NavBar() {
             href={`/profile`}
             className='flex h-12 w-12 items-center justify-center'
           >
-            <Profile className='h-12 w-12' />
+            <Delegate className='h-12 w-12' />
           </Link>
         </div>
         <div className='flex flex-col items-center gap-8'>

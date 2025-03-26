@@ -2,9 +2,9 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import React, { useMemo } from 'react';
 import { HiddenVote } from './hidden-vote';
 import { ProcessedResults } from '@/lib/results_processing';
-import PassedSmallIcon from '@/public/assets/web/passed-small.svg';
-import FailedSmallIcon from '@/public/assets/web/failed-small.svg';
-import { VoteSegmentData } from '../../../../actions';
+import PassedSmallIcon from '@/public/assets/web/icons/check-small.svg';
+import FailedSmallIcon from '@/public/assets/web/icons/cross-small.svg';
+import { VoteSegmentData } from '@/lib/types';
 
 interface BasicVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
