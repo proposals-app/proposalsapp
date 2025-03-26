@@ -8,7 +8,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   MessageSquareWarning,
-  Loader2,
+  Sparkles,
 } from 'lucide-react';
 
 export default function AISummary({ groupId }: { groupId: string }) {
@@ -112,9 +112,9 @@ export default function AISummary({ groupId }: { groupId: string }) {
         <div id='ai-summary-content' className='space-y-4 px-4 py-5 sm:p-6'>
           {/* Loading State */}
           {activelyLoading && (
-            <div className='flex items-center justify-center space-x-2 text-neutral-500 dark:text-neutral-400'>
-              <Loader2 className='h-4 w-4 animate-spin' />
-              <span>Generating summary...</span>
+            <div className='flex animate-pulse items-center justify-center space-x-2 text-neutral-500 dark:text-neutral-400'>
+              <Sparkles />
+              <span>Generating...</span>
             </div>
           )}
 
