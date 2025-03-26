@@ -129,7 +129,12 @@ Based *only* on the **Proposal Details** and **Discussion Comments** provided ab
       temperature: 0.2, // Lower temperature slightly for more focused output
     });
 
-    return result.toDataStreamResponse();
+    return result.toDataStreamResponse({
+      headers: {
+        'Transfer-Encoding': 'chunked',
+        Connection: 'keep-alive',
+      },
+    });
   } catch (error) {
     console.error('Error in AI summary generation:', error);
     const errorMessage =
