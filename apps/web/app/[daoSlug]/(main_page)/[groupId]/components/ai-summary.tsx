@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react'; // Import useEffect
+import { useState } from 'react';
 import { useCompletion } from '@ai-sdk/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -9,24 +9,14 @@ import {
   ChevronUpIcon,
   MessageSquareWarning,
   Sparkles,
-  RefreshCw, // Import RefreshCw for retry icon
 } from 'lucide-react';
 
 export default function AISummary({ groupId }: { groupId: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showDisclaimer, setShowDisclaimer] = useState(false); // Control disclaimer visibility.
-  const maxRetries = 3; // Set max retry attempts.
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const { completion, complete, error, isLoading } = useCompletion({
     api: '/api/summary',
-    onError: (err) => {
-      console.error('AI Completion Error:', err);
-      // Only expand if not already expanded on initial error (to avoid immediate error display)
-      if (!isExpanded) {
-        setIsExpanded(true);
-      }
-      setShowDisclaimer(false); // Hide disclaimer on error
-    },
     onFinish: () => {
       setShowDisclaimer(true); // Show disclaimer after successful completion
     },
