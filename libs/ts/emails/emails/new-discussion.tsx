@@ -79,7 +79,7 @@ export default function NewDiscussionEmailTemplate({
 
               <Section className="mb-8 text-center">
                 <Button
-                  className="bg-neutral-900 px-5 py-3 text-center text-[12px] font-semibold text-white no-underline hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+                  className="rounded-none bg-neutral-900 px-5 py-3 text-center text-[12px] font-semibold text-white no-underline hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
                   href={discussionUrl}
                 >
                   View Discussion

@@ -32,9 +32,9 @@ export default function ChangeEmailTemplate({
       <Tailwind>
         <Head />
         <Preview>Confirm your email address change on proposals.app</Preview>
-        <Body className="bg-neutral-100 dark:bg-neutral-900 font-sans">
+        <Body className="bg-neutral-100 font-sans dark:bg-neutral-900">
           <Container className="mx-auto max-w-[600px] p-2 lg:p-8">
-            <Section className="my-8 bg-white dark:bg-neutral-800 p-4 shadow-sm lg:p-8">
+            <Section className="my-8 bg-neutral-50 p-4 shadow-sm lg:p-8 dark:bg-neutral-800">
               <Row className="flex items-start pb-2">
                 <Column>
                   <Img
@@ -61,11 +61,17 @@ export default function ChangeEmailTemplate({
               </Text>
 
               <Text className="mb-4 text-neutral-700 dark:text-neutral-300">
-                Your current email address is: <strong className="text-neutral-800 dark:text-neutral-100">{currentEmail}</strong>
+                Your current email address is:{" "}
+                <strong className="text-neutral-800 dark:text-neutral-100">
+                  {currentEmail}
+                </strong>
               </Text>
 
               <Text className="mb-6 text-neutral-700 dark:text-neutral-300">
-                You asked to change it to: <strong className="text-neutral-800 dark:text-neutral-100">{newEmail}</strong>
+                You asked to change it to:{" "}
+                <strong className="text-neutral-800 dark:text-neutral-100">
+                  {newEmail}
+                </strong>
               </Text>
 
               <Text className="mb-6 text-neutral-700 dark:text-neutral-300">
@@ -74,7 +80,7 @@ export default function ChangeEmailTemplate({
 
               <Section className="mb-8 text-center">
                 <Button
-                  className="bg-neutral-900 dark:bg-neutral-100 px-5 py-3 text-center text-[12px] font-semibold text-white dark:text-neutral-900 no-underline hover:bg-neutral-800 dark:hover:bg-neutral-200"
+                  className="rounded-none bg-neutral-900 px-5 py-3 text-center text-[12px] font-semibold text-white no-underline hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
                   href={verificationUrl}
                 >
                   Confirm Email Change

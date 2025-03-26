@@ -8,14 +8,14 @@ export const Footer = () => {
       <br />
       <Link
         href="https://proposals.app/privacy"
-        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+        className="text-neutral-600 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
       >
         Privacy Policy
       </Link>{" "}
       •{" "}
       <Link
         href="https://proposals.app/terms"
-        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+        className="text-neutral-600 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
       >
         Terms of Service
       </Link>

@@ -27,7 +27,7 @@ export async function checkNewProposals() {
     const newProposals = await dbIndexer
       .selectFrom("proposal")
       .selectAll()
-      .where("createdAt", ">", new Date(Date.now() - 60 * 1000))
+      .where("createdAt", ">", new Date(Date.now() - 60 * 60 * 1000))
       .execute();
 
     for (const proposal of newProposals) {
@@ -40,22 +40,19 @@ export async function checkNewProposals() {
 
       let groupId: string | undefined;
       for (const group of proposalGroups) {
-        const items = Array.isArray(group.items) ? group.items as any[] : [];
-        const isInGroup = items.length > 0 && items.some(
-          (item) =>
-            item?.type === "proposal" &&
-            item?.externalId === proposal.externalId &&
-            item?.governorId === proposal.governorId,
-        );
+        const items = Array.isArray(group.items) ? (group.items as any[]) : [];
+        const isInGroup =
+          items.length > 0 &&
+          items.some(
+            (item) =>
+              item?.type === "proposal" &&
+              item?.externalId === proposal.externalId &&
+              item?.governorId === proposal.governorId,
+          );
         if (isInGroup) {
           groupId = group.id;
           break;
         }
-      }
-
-      // In test environment, ensure we find a group
-      if (process.env.NODE_ENV === 'test' && proposalGroups.length > 0 && !groupId) {
-        groupId = proposalGroups[0].id;
       }
 
       // If not in a group yet, wait for the next iteration
@@ -134,22 +131,16 @@ export async function checkNewProposals() {
           }
 
           // Record notification
-          try {
-            await dbWeb
-              .insertInto("userNotification")
-              .values({
-                userId: user.id,
-                type: "EMAIL_NEW_PROPOSAL",
-                targetId: proposal.id,
-                sentAt: new Date(),
-              })
-              .execute();
-          } catch (insertError) {
-            // In test environment, we can ignore this error
-            if (process.env.NODE_ENV !== 'test') {
-              console.error('Error recording notification:', insertError);
-            }
-          }
+
+          await dbWeb
+            .insertInto("userNotification")
+            .values({
+              userId: user.id,
+              type: "EMAIL_NEW_PROPOSAL",
+              targetId: proposal.id,
+              sentAt: new Date(),
+            })
+            .execute();
         } catch (error) {
           console.error(
             `Failed to send new proposal email to ${user.email}:`,
@@ -169,7 +160,7 @@ export async function checkNewDiscussions() {
     const newDiscussions = await dbIndexer
       .selectFrom("discourseTopic")
       .selectAll()
-      .where("createdAt", ">=", new Date(Date.now() - 60 * 1000))
+      .where("createdAt", ">=", new Date(Date.now() - 60 * 60 * 1000))
       .execute();
 
     for (const discussion of newDiscussions) {
@@ -191,12 +182,12 @@ export async function checkNewDiscussions() {
       const firstPost = await dbIndexer
         .selectFrom("discoursePost")
         .selectAll()
-        .where((eb) => 
+        .where((eb) =>
           eb.and([
             eb("topicId", "=", discussion.externalId),
             eb("daoDiscourseId", "=", discussion.daoDiscourseId),
-            eb("postNumber", "=", 1)
-          ])
+            eb("postNumber", "=", 1),
+          ]),
         )
         .executeTakeFirst();
 
@@ -209,11 +200,11 @@ export async function checkNewDiscussions() {
       const discourseUser = await dbIndexer
         .selectFrom("discourseUser")
         .selectAll()
-        .where((eb) => 
+        .where((eb) =>
           eb.and([
             eb("externalId", "=", firstPost.userId),
-            eb("daoDiscourseId", "=", discussion.daoDiscourseId)
-          ])
+            eb("daoDiscourseId", "=", discussion.daoDiscourseId),
+          ]),
         )
         .executeTakeFirst();
 
@@ -232,22 +223,19 @@ export async function checkNewDiscussions() {
 
       let groupId: string | undefined;
       for (const group of proposalGroups) {
-        const items = Array.isArray(group.items) ? group.items as any[] : [];
-        const isInGroup = items.length > 0 && items.some(
-          (item) =>
-            item?.type === "topic" &&
-            item?.externalId === discussion.externalId.toString() &&
-            item?.daoDiscourseId === discussion.daoDiscourseId,
-        );
+        const items = Array.isArray(group.items) ? (group.items as any[]) : [];
+        const isInGroup =
+          items.length > 0 &&
+          items.some(
+            (item) =>
+              item?.type === "topic" &&
+              item?.externalId === discussion.externalId.toString() &&
+              item?.daoDiscourseId === discussion.daoDiscourseId,
+          );
         if (isInGroup) {
           groupId = group.id;
           break;
         }
-      }
-
-      // In test environment, ensure we find a group
-      if (process.env.NODE_ENV === 'test' && proposalGroups.length > 0 && !groupId) {
-        groupId = proposalGroups[0].id;
       }
 
       // If not in a group yet, wait for the next iteration
@@ -320,22 +308,16 @@ export async function checkNewDiscussions() {
           }
 
           // Record notification
-          try {
-            await dbWeb
-              .insertInto("userNotification")
-              .values({
-                userId: user.id,
-                type: "EMAIL_NEW_DISCUSSION",
-                targetId: discussion.id,
-                sentAt: new Date(),
-              })
-              .execute();
-          } catch (insertError) {
-            // In test environment, we can ignore this error
-            if (process.env.NODE_ENV !== 'test') {
-              console.error('Error recording notification:', insertError);
-            }
-          }
+
+          await dbWeb
+            .insertInto("userNotification")
+            .values({
+              userId: user.id,
+              type: "EMAIL_NEW_DISCUSSION",
+              targetId: discussion.id,
+              sentAt: new Date(),
+            })
+            .execute();
         } catch (error) {
           console.error(
             `Failed to send new discussion email to ${user.email}:`,
@@ -373,22 +355,19 @@ export async function checkEndingProposals() {
 
       let groupId: string | undefined;
       for (const group of proposalGroups) {
-        const items = Array.isArray(group.items) ? group.items as any[] : [];
-        const isInGroup = items.length > 0 && items.some(
-          (item) =>
-            item?.type === "proposal" &&
-            item?.externalId === proposal.externalId &&
-            item?.governorId === proposal.governorId,
-        );
+        const items = Array.isArray(group.items) ? (group.items as any[]) : [];
+        const isInGroup =
+          items.length > 0 &&
+          items.some(
+            (item) =>
+              item?.type === "proposal" &&
+              item?.externalId === proposal.externalId &&
+              item?.governorId === proposal.governorId,
+          );
         if (isInGroup) {
           groupId = group.id;
           break;
         }
-      }
-
-      // In test environment, ensure we find a group
-      if (process.env.NODE_ENV === 'test' && proposalGroups.length > 0 && !groupId) {
-        groupId = proposalGroups[0].id;
       }
 
       // If not in a group yet, wait for the next iteration
@@ -458,22 +437,16 @@ export async function checkEndingProposals() {
           }
 
           // Record notification
-          try {
-            await dbWeb
-              .insertInto("userNotification")
-              .values({
-                userId: user.id,
-                type: "EMAIL_ENDING_PROPOSAL",
-                targetId: proposal.id,
-                sentAt: new Date(),
-              })
-              .execute();
-          } catch (insertError) {
-            // In test environment, we can ignore this error
-            if (process.env.NODE_ENV !== 'test') {
-              console.error('Error recording notification:', insertError);
-            }
-          }
+
+          await dbWeb
+            .insertInto("userNotification")
+            .values({
+              userId: user.id,
+              type: "EMAIL_ENDING_PROPOSAL",
+              targetId: proposal.id,
+              sentAt: new Date(),
+            })
+            .execute();
         } catch (error) {
           console.error(
             `Failed to send ending proposal email to ${user.email}:`,

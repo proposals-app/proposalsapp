@@ -27,7 +27,7 @@ export function Author({
             width="32"
             height="32"
             alt={discourseUsername}
-            className="rounded-full pr-2"
+            className="pr-2"
           />
         )}
       </Column>
