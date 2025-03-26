@@ -7,6 +7,8 @@ import {
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { Selectable, DiscoursePost } from '@proposalsapp/db-indexer';
 
+export const dynamic = 'force-dynamic';
+
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
