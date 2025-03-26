@@ -74,7 +74,10 @@ async function GroupPage({
           <BodyHeaderSection daoSlug={daoSlug} groupId={groupId} />
         </Suspense>
 
-        <AISummary groupId={groupId} />
+        <Suspense>
+          <AISummary groupId={groupId} />
+        </Suspense>
+
         <Suspense fallback={<BodyLoading />} key={bodyKey}>
           <BodySection
             daoSlug={daoSlug}
