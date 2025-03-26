@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Import useEffect
 import { useCompletion } from '@ai-sdk/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -9,28 +9,34 @@ import {
   ChevronUpIcon,
   MessageSquareWarning,
   Sparkles,
+  RefreshCw, // Import RefreshCw for retry icon
 } from 'lucide-react';
 
 export default function AISummary({ groupId }: { groupId: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [hasAttemptedGeneration, setHasAttemptedGeneration] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [showDisclaimer, setShowDisclaimer] = useState(false); // Control disclaimer visibility.
+  const maxRetries = 3; // Set max retry attempts.
 
   const { completion, complete, error, isLoading } = useCompletion({
     api: '/api/summary',
     onError: (err) => {
       console.error('AI Completion Error:', err);
-      setIsExpanded(true);
-      // Optional: allow retry after error on next expand
-      // setHasAttemptedGeneration(false);
+      // Only expand if not already expanded on initial error (to avoid immediate error display)
+      if (!isExpanded) {
+        setIsExpanded(true);
+      }
+      setShowDisclaimer(false); // Hide disclaimer on error
     },
     onFinish: () => {
-      // Note: onFinish runs *after* completion is set.
-      // We don't necessarily need to setIsExpanded(true) here if
-      // we want the user to control expansion even after generation.
-      // Keeping it for now as per original logic.
-      setIsExpanded(true);
+      setShowDisclaimer(true); // Show disclaimer after successful completion
     },
   });
+
+  useEffect(() => {
+    // Reset the retry count when group ID changes
+    setRetryCount(0);
+  }, [groupId]);
 
   const toggleExpand = async () => {
     const nextExpandedState = !isExpanded;
@@ -40,32 +46,41 @@ export default function AISummary({ groupId }: { groupId: string }) {
       nextExpandedState &&
       !isLoading &&
       !completion &&
-      !hasAttemptedGeneration
+      retryCount <= maxRetries
     ) {
       if (!groupId) {
         console.error('groupId is missing. Cannot generate summary.');
-        setHasAttemptedGeneration(true); // Mark attempt even if failed due to missing ID
         return;
       }
 
-      setHasAttemptedGeneration(true);
       try {
-        // Call complete *after* setting loading states visually if needed,
-        // though useCompletion handles isLoading.
-        await complete(groupId); // Assuming complete might be async or return a promise
+        await complete(groupId);
+        setRetryCount(0); // Reset retry count on success
       } catch (err) {
         console.error('Error initiating completion:', err);
-        // Ensure expansion on error during initiation
-        setIsExpanded(true);
-        // Allow retry if the *call* to complete failed, not the generation itself
-        // setHasAttemptedGeneration(false); // Decided against this to avoid re-request loops easily
+        // Let the `onError` handler handle the expansion and error message.
+        setRetryCount((prev) => prev + 1); // Increment retry count
       }
     }
   };
 
-  // Show content area if expanded OR if actively loading (to show loader)
+  const handleRetry = async () => {
+    if (!groupId || retryCount > maxRetries) {
+      return; // Prevent retries if group ID is missing or max retries reached
+    }
+
+    setIsExpanded(true); // Ensure the component is expanded
+    setShowDisclaimer(false);
+    try {
+      await complete(groupId);
+      setRetryCount(0); // Reset retry count on success
+    } catch (err) {
+      console.error('Retry failed:', err);
+      setRetryCount((prev) => prev + 1);
+    }
+  };
+
   const showContentArea = isExpanded || isLoading;
-  // Determine if we are *actively* loading for the loader specifically
   const activelyLoading = isLoading && !completion && !error;
 
   return (
@@ -78,23 +93,22 @@ export default function AISummary({ groupId }: { groupId: string }) {
             : ''
         }`}
         onClick={toggleExpand}
-        role='button' // Added role for semantics
-        tabIndex={0} // Make it focusable
+        role='button'
+        tabIndex={0}
         onKeyDown={(e) =>
           (e.key === 'Enter' || e.key === ' ') && toggleExpand()
-        } // Keyboard accessibility
+        }
       >
         <h3 className='text-base leading-6 font-semibold text-neutral-900 sm:text-lg dark:text-neutral-100'>
           AI-Generated Summary
         </h3>
-        {/* Button for explicit control and better accessibility */}
         <button
           className='-m-1 p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200'
           aria-expanded={isExpanded}
-          aria-controls='ai-summary-content' // Link button to content area
+          aria-controls='ai-summary-content'
           aria-label={isExpanded ? 'Collapse summary' : 'Expand summary'}
           onClick={(e) => {
-            e.stopPropagation(); // Prevent header click handler
+            e.stopPropagation();
             toggleExpand();
           }}
         >
@@ -107,7 +121,6 @@ export default function AISummary({ groupId }: { groupId: string }) {
       </div>
 
       {/* Collapsible Content Section */}
-      {/* Use Tailwind transition for height/visibility if preferred, or keep simple conditional rendering */}
       {showContentArea && (
         <div id='ai-summary-content' className='space-y-4 px-4 py-5 sm:p-6'>
           {/* Loading State */}
@@ -119,17 +132,33 @@ export default function AISummary({ groupId }: { groupId: string }) {
           )}
 
           {/* Error State */}
-          {error && !isLoading && (
+          {error && !isLoading && retryCount <= maxRetries && (
             <div className='border border-red-400 bg-red-100 p-3 text-sm text-red-700 dark:border-red-600 dark:bg-red-900/20 dark:text-red-300'>
               <p>
                 <strong>Error:</strong>{' '}
                 {error.message || 'Failed to generate summary.'}
               </p>
+              <button
+                onClick={handleRetry}
+                className='mt-2 inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
+              >
+                <RefreshCw className='mr-2 h-5 w-5' aria-hidden='true' />
+                Retry
+              </button>
+            </div>
+          )}
+
+          {error && !isLoading && retryCount > maxRetries && (
+            <div className='border border-red-400 bg-red-100 p-3 text-sm text-red-700 dark:border-red-600 dark:bg-red-900/20 dark:text-red-300'>
+              <p>
+                <strong>Error:</strong>{' '}
+                {error.message ||
+                  'Failed to generate summary after multiple attempts.'}
+              </p>
             </div>
           )}
 
           {/* Completion Result & Disclaimer Wrapper */}
-          {/* This div will appear once `completion` has data */}
           {completion && (
             <div className='space-y-4'>
               {/* Completion Text */}
@@ -140,10 +169,10 @@ export default function AISummary({ groupId }: { groupId: string }) {
               </div>
 
               {/* AI Disclaimer Warning - Fades in *after* loading stops */}
-              {/* Apply transition classes here */}
               <div
-                className={`flex items-start border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800 transition-opacity duration-500 ease-in-out dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300 ${!isLoading ? 'opacity-100' : 'opacity-0'} `}
-                // Adding aria-live for screen readers to announce the warning when it appears
+                className={`flex items-start border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800 transition-opacity duration-500 ease-in-out dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300 ${
+                  showDisclaimer ? 'opacity-100' : 'opacity-0'
+                }`}
                 aria-live='polite'
               >
                 <MessageSquareWarning
@@ -160,15 +189,11 @@ export default function AISummary({ groupId }: { groupId: string }) {
           )}
 
           {/* Message if generation attempted but failed due to missing groupId */}
-          {!isLoading &&
-            !completion &&
-            !error &&
-            hasAttemptedGeneration &&
-            !groupId && (
-              <p className='text-sm text-neutral-500 dark:text-neutral-400'>
-                Cannot generate summary: Group ID is missing.
-              </p>
-            )}
+          {!isLoading && !completion && !error && !groupId && (
+            <p className='text-sm text-neutral-500 dark:text-neutral-400'>
+              Cannot generate summary: Group ID is missing.
+            </p>
+          )}
         </div>
       )}
     </div>
