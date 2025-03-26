@@ -14,7 +14,6 @@ import {
 
 export default function AISummary({ groupId }: { groupId: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const [showDisclaimer, setShowDisclaimer] = useState(false); // Control disclaimer visibility.
   const maxRetries = 3; // Set max retry attempts.
 
@@ -33,21 +32,11 @@ export default function AISummary({ groupId }: { groupId: string }) {
     },
   });
 
-  useEffect(() => {
-    // Reset the retry count when group ID changes
-    setRetryCount(0);
-  }, [groupId]);
-
   const toggleExpand = async () => {
     const nextExpandedState = !isExpanded;
     setIsExpanded(nextExpandedState);
 
-    if (
-      nextExpandedState &&
-      !isLoading &&
-      !completion &&
-      retryCount <= maxRetries
-    ) {
+    if (nextExpandedState && !isLoading && !completion) {
       if (!groupId) {
         console.error('groupId is missing. Cannot generate summary.');
         return;
@@ -55,28 +44,9 @@ export default function AISummary({ groupId }: { groupId: string }) {
 
       try {
         await complete(groupId);
-        setRetryCount(0); // Reset retry count on success
       } catch (err) {
         console.error('Error initiating completion:', err);
-        // Let the `onError` handler handle the expansion and error message.
-        setRetryCount((prev) => prev + 1); // Increment retry count
       }
-    }
-  };
-
-  const handleRetry = async () => {
-    if (!groupId || retryCount > maxRetries) {
-      return; // Prevent retries if group ID is missing or max retries reached
-    }
-
-    setIsExpanded(true); // Ensure the component is expanded
-    setShowDisclaimer(false);
-    try {
-      await complete(groupId);
-      setRetryCount(0); // Reset retry count on success
-    } catch (err) {
-      console.error('Retry failed:', err);
-      setRetryCount((prev) => prev + 1);
     }
   };
 
@@ -132,28 +102,11 @@ export default function AISummary({ groupId }: { groupId: string }) {
           )}
 
           {/* Error State */}
-          {error && !isLoading && retryCount <= maxRetries && (
+          {error && !isLoading && (
             <div className='border border-red-400 bg-red-100 p-3 text-sm text-red-700 dark:border-red-600 dark:bg-red-900/20 dark:text-red-300'>
               <p>
                 <strong>Error:</strong>{' '}
                 {error.message || 'Failed to generate summary.'}
-              </p>
-              <button
-                onClick={handleRetry}
-                className='mt-2 inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
-              >
-                <RefreshCw className='mr-2 h-5 w-5' aria-hidden='true' />
-                Retry
-              </button>
-            </div>
-          )}
-
-          {error && !isLoading && retryCount > maxRetries && (
-            <div className='border border-red-400 bg-red-100 p-3 text-sm text-red-700 dark:border-red-600 dark:bg-red-900/20 dark:text-red-300'>
-              <p>
-                <strong>Error:</strong>{' '}
-                {error.message ||
-                  'Failed to generate summary after multiple attempts.'}
               </p>
             </div>
           )}
@@ -162,7 +115,7 @@ export default function AISummary({ groupId }: { groupId: string }) {
           {completion && (
             <div className='space-y-4'>
               {/* Completion Text */}
-              <div className='prose prose-neutral prose-sm sm:prose-base dark:prose-invert max-w-none'>
+              <div className='prose prose-neutral dark:prose-invert max-w-none'>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {completion}
                 </ReactMarkdown>
