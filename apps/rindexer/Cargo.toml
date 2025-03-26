@@ -8,6 +8,7 @@ anyhow = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
 ethers = { workspace = true, features = ["rustls", "openssl"] }
+futures = { workspace = true }
 lazy_static = { workspace = true }
 once_cell = { workspace = true }
 proposalsapp-db-indexer = { workspace = true }
