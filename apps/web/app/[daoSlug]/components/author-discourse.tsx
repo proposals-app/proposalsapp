@@ -19,7 +19,10 @@ export const DiscourseAuthor = ({
     <div className='flex items-center gap-2'>
       <div className='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 dark:border-neutral-300'>
         <Image
-          src={avatar}
+          src={
+            avatar ||
+            `https://api.dicebear.com/9.x/pixel-art/png?seed=${username}`
+          }
           className='rounded-full'
           fetchPriority='high'
           alt={username}

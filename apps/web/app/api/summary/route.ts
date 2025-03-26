@@ -14,17 +14,15 @@ const ollama = createOllama({
   baseURL: 'http://proposalsapp-ai:7869/api',
 });
 
-// --- Helper function to sanitize content (optional but recommended) ---
+// --- Helper function to sanitize content ---
 function sanitizeMarkdown(text: string | null | undefined): string {
   if (!text) return '';
   // Basic sanitization: remove excessive newlines, trim whitespace.
-  // You might want a more robust library (like DOMPurify if rendering HTML,
-  // or specific markdown cleaners) depending on the source data's cleanliness.
   return text.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 export async function POST(req: Request) {
-  const { prompt: groupId }: { prompt: string } = await req.json(); // Assuming 'prompt' is the groupId
+  const { prompt: groupId }: { prompt: string } = await req.json();
 
   if (!groupId) {
     return new Response('Missing groupId', { status: 400 });
@@ -41,24 +39,19 @@ export async function POST(req: Request) {
       FromFilterEnum.ALL
     );
 
-    // --- Build the Enhanced Prompt ---
+    // --- Build the Context ---
 
     let context = '## Context: Proposal Discussion Analysis\n\n';
     context += '### Proposal Details:\n';
 
-    // Add the latest body version
     if (bodyVersions && bodyVersions.length > 0) {
       const latestBody = bodyVersions[bodyVersions.length - 1];
       context += `- **Title:** ${latestBody.title || 'N/A'}\n`;
       context += `- **Author:** ${latestBody.author_name || 'N/A'}\n`;
       if (latestBody.content) {
-        // Limit proposal content length if it's very long to save tokens/focus
         const proposalContent = sanitizeMarkdown(latestBody.content);
-        const truncatedContent =
-          proposalContent.length > 3000
-            ? proposalContent.substring(0, 3000) + '... (truncated)'
-            : proposalContent;
-        context += `\n**Proposal Content Summary:**\n\`\`\`\n${truncatedContent}\n\`\`\`\n`;
+
+        context += `\n**Proposal Content:**\n\`\`\`\n${proposalContent}\n\`\`\`\n`;
       } else {
         context += '\n**Proposal Content:** Not available.\n';
       }
@@ -66,64 +59,58 @@ export async function POST(req: Request) {
       context += 'Proposal details not found.\n';
     }
 
-    // Add comments with usernames, sorted by createdAt
-    context += '\n### Discussion Comments:\n';
+    context += '\n### Discussion Comments (Oldest to Newest):\n';
     if (feed && feed.posts && feed.posts.length > 0) {
-      // Sort posts by createdAt in ascending order (oldest first)
       const sortedPosts = feed.posts.sort(
         (a: Selectable<DiscoursePost>, b: Selectable<DiscoursePost>) => {
           if (a.createdAt && b.createdAt) {
             return (
               new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
             );
-          } else if (a.createdAt) {
-            return 1; // a comes after b (a has createdAt, b doesn't)
-          } else if (b.createdAt) {
-            return -1; // b comes after a (b has createdAt, a doesn't)
-          } else {
-            return 0; // both don't have createdAt, keep original order.  Shouldn't happen.
           }
+          return a.createdAt ? 1 : b.createdAt ? -1 : 0;
         }
       );
 
-      sortedPosts.forEach((post: Selectable<DiscoursePost>, index: number) => {
-        // Basic check for potentially empty/low-value comments
+      let commentCount = 0;
+      sortedPosts.forEach((post: Selectable<DiscoursePost>) => {
         const commentText = sanitizeMarkdown(post.cooked);
-        if (post.username && commentText && commentText.length > 10) {
-          context += `**Comment ${index + 1} (User: ${post.username}):**\n${commentText}\n\n`;
+        // Stricter filter for TLDR relevance
+        if (post.username && commentText) {
+          context += `**Comment (User: ${post.username}):** ${commentText}\n\n`;
+          commentCount++;
         }
       });
-      // Check if all comments were filtered out
-      if (!context.includes('**Comment ')) {
+      if (commentCount === 0) {
         context += 'No substantial comments found.\n';
       }
     } else {
-      context += 'No comments have been posted yet.\n';
+      context += 'No comments posted yet.\n';
     }
 
-    // --- Define the Task for the AI ---
+    // --- Define the NEW Task for the AI (TLDR Focus) ---
 
     const taskPrompt = `
-## Task: Generate Discussion Insights
+## Task: Generate TLDR Discussion Insights
 
-Based *only* on the **Proposal Details** and **Discussion Comments** provided above, generate a concise analysis focusing on the *development* and *dynamics* of the conversation. Your output should be in Markdown format and address the following:
+Based *only* on the **Proposal Details** and **Discussion Comments** provided above, generate a highly concise summary ("TLDR") capturing the *essence* and *key insights* of the conversation. Your output must be in Markdown format using bullet points.
 
-1.  **Core Subject:** Briefly state the main topic or goal of the proposal being discussed.
-2.  **Key Discussion Threads:** Identify 1-3 primary themes, questions, or points of contention emerging from the comments.
-3.  **Discussion Flow & Evolution:**
-    *   How is the conversation progressing? Is there convergence towards agreement, divergence into debate, or are people primarily seeking clarification?
-    *   Are later comments building upon, challenging, or ignoring earlier ones? Note any significant shifts in focus or sentiment.
-    *   Mention if the author's original points are being directly addressed or if the discussion has moved to related tangents.
-4.  **Overall Impression:** Conclude with a single sentence summarizing the current state or trajectory of the discussion (e.g., "The discussion shows strong support but needs technical clarification," or "Significant disagreement exists regarding the core approach," or "Early stages, mostly clarifying questions being asked.").
+**Output Structure:**
+
+*   **Proposal Goal:** (1 sentence) What is the core objective?
+*   **Key Discussion Points:** (2-4 concise bullet points) Summarize the *most significant* reactions, questions, or concerns raised. Note sentiment briefly (e.g., support, concern, clarification needed).
+*   **Overall Sentiment/Trend:** (1-2 sentences) What's the general feeling? Agreement, disagreement, confusion, active debate? Is a clear direction emerging?
+*   **Key Insight/Takeaway:** (1 sentence) What is the single most important thing to understand about the discussion's current state or implication?
 
 **Constraints:**
-*   Be concise and analytical. Aim for insights, not just a list of comments.
-*   Focus strictly on the provided text. Do not invent information or opinions.
+*   Be extremely concise and use bullet points for clarity.
+*   Focus on *insights* and the *main message*, not just listing details.
+*   Prioritize the most impactful points and the overall trajectory.
+*   Rely strictly on the provided text. Do not add external information or opinions.
 *   Maintain a neutral, objective tone.
 *   Output MUST be in Markdown format.
-*   DO NOT wrap the output in Markdown code blocks.
-*   DO NOT MENTION ANYTHING ABOUT THE TASK INSTRUCTIONS.
-*   DO NOT MENTION THIS IS A MARKDOWN SUMMARY.
+*   DO NOT wrap the output in Markdown code blocks (e.g., \`\`\`markdown ... \`\`\`).
+*   DO NOT mention these instructions or that this is a summary.
 `;
 
     // Combine context and task
@@ -131,17 +118,18 @@ Based *only* on the **Proposal Details** and **Discussion Comments** provided ab
 
     // --- Stream the response ---
     const result = streamText({
-      model: ollama('gemma3:4b', { numCtx: fullPrompt.length + 1024 }),
+      // Consider adjusting model or context size based on performance/cost
+      // If gemma3:4b struggles with synthesis, consider a slightly larger model if available.
+      model: ollama('gemma3:4b', { numCtx: fullPrompt.length + 512 }), // Adjusted context headroom slightly
       system:
-        'You are an AI assistant skilled at analyzing discussion text and providing insightful summaries in Markdown format.',
+        'You are an AI assistant expert at analyzing discussions and extracting concise, insightful TLDR summaries in Markdown format.',
       prompt: fullPrompt,
-      temperature: 0.3,
+      temperature: 0.2, // Lower temperature slightly for more focused output
     });
 
     return result.toDataStreamResponse();
   } catch (error) {
     console.error('Error in AI summary generation:', error);
-    // Provide a more informative error response
     const errorMessage =
       error instanceof Error ? error.message : 'An unknown error occurred';
     return new Response(`Failed to generate summary: ${errorMessage}`, {

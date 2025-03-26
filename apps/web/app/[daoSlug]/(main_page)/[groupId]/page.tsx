@@ -29,6 +29,7 @@ import { PostedRevisions } from './components/body/posted-revision';
 import Loading from './loading';
 import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
 import { LastReadUpdater } from './components/last-read-updater';
+import AISummary from './components/ai-summary';
 
 export default async function Page({
   params,
@@ -73,6 +74,7 @@ async function GroupPage({
           <BodyHeaderSection daoSlug={daoSlug} groupId={groupId} />
         </Suspense>
 
+        <AISummary groupId={groupId} />
         <Suspense fallback={<BodyLoading />} key={bodyKey}>
           <BodySection
             daoSlug={daoSlug}
