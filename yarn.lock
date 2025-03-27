@@ -1647,16 +1647,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@better-auth/utils@npm:0.2.3":
-  version: 0.2.3
-  resolution: "@better-auth/utils@npm:0.2.3"
+"@better-auth/utils@npm:0.2.4":
+  version: 0.2.4
+  resolution: "@better-auth/utils@npm:0.2.4"
   dependencies:
+    typescript: "npm:^5.8.2"
     uncrypto: "npm:^0.1.3"
-  checksum: 10c0/57678bbba1f9377af660d8924e4bb19383714fcbb226aa80137ee7b9c504424b3e95191375d098c92304a0de86f0bf0bf4c589c238f8f7763f963cc815dfe6b6
+  checksum: 10c0/1e66ede79400204185a6d12e946f91ddb1307b758a64bd2d39f7f9bdc3df99a72c74a4695d82e2679e1345d2467280444e973a9fb196a3a0c2315a482d87d973
   languageName: node
   linkType: hard
 
-"@better-fetch/fetch@npm:^1.1.15, @better-fetch/fetch@npm:^1.1.4":
+"@better-fetch/fetch@npm:^1.1.17":
+  version: 1.1.18
+  resolution: "@better-fetch/fetch@npm:1.1.18"
+  checksum: 10c0/b8202e4d3dbcd52fd8b5b2f255817606c300f37c60b1d9876f560372b77f66cb6d730e72e2c9b35bca06a1e364ed9d08977c0e8c2ce0ee30fdb4c6f43aae9433
+  languageName: node
+  linkType: hard
+
+"@better-fetch/fetch@npm:^1.1.4":
   version: 1.1.15
   resolution: "@better-fetch/fetch@npm:1.1.15"
   checksum: 10c0/5ac549ba0e693e242c2f944ab2ad216004630a62f90d11833317bce90bb7895ccf6df4ac1cb4acaad13fcd25e5f51d60e088e78ae58c80315d1782ac50eb4edc
@@ -3634,7 +3642,7 @@ __metadata:
     typescript: "npm:^5.8.2"
     webpack: "npm:^5.98.0"
     webpack-cli: "npm:^6.0.1"
-    webpack-dev-server: "npm:^5.2.0"
+    webpack-dev-server: "npm:^5.2.1"
   languageName: unknown
   linkType: soft
 
@@ -3664,7 +3672,7 @@ __metadata:
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
-    "@types/node": "npm:22.13.13"
+    "@types/node": "npm:22.13.14"
     "@types/postcss-load-config": "npm:^3.0.1"
     "@types/prettier": "npm:^3.0.0"
     "@types/react": "npm:^19.0.12"
@@ -3676,7 +3684,7 @@ __metadata:
     "@vercel/otel": "npm:^1.10.4"
     ai: "npm:^4.2.6"
     babel-plugin-react-compiler: "npm:19.0.0-beta-e1e972c-20250221"
-    better-auth: "npm:^1.2.4"
+    better-auth: "npm:^1.2.5"
     date-fns: "npm:^4.1.0"
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
@@ -3697,7 +3705,7 @@ __metadata:
     nuqs: "npm:^2.4.1"
     ollama-ai-provider: "npm:^1.2.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.233.0"
+    posthog-js: "npm:^1.233.1"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.7"
     prettier-plugin-merge: "npm:^0.7.3"
@@ -3719,7 +3727,7 @@ __metadata:
     typescript: "npm:^5.8.2"
     unified: "npm:^11.0.5"
     uuid: "npm:^11.1.0"
-    viem: "npm:^2.23.15"
+    viem: "npm:^2.24.1"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.2"
   languageName: unknown
@@ -4920,7 +4928,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express-serve-static-core@npm:^4.17.33":
+"@types/express-serve-static-core@npm:^4.17.21, @types/express-serve-static-core@npm:^4.17.33":
   version: 4.19.6
   resolution: "@types/express-serve-static-core@npm:4.19.6"
   dependencies:
@@ -5140,12 +5148,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:22.13.13":
-  version: 22.13.13
-  resolution: "@types/node@npm:22.13.13"
+"@types/node@npm:22.13.14":
+  version: 22.13.14
+  resolution: "@types/node@npm:22.13.14"
   dependencies:
     undici-types: "npm:~6.20.0"
-  checksum: 10c0/daf792ba5dcff1316abf4b33680f94b792f8d54d6ae495efc8929531e0ba1284a248d29aab117d2259f9280284d986ad5799b193b0516e2b926d713aab835f7d
+  checksum: 10c0/fa2ab5b8277bfbcc86c42e46a3ea9871b0d559894cc9d955685d17178c9499f0b1bf03d1d1ea8d92ef2dda818988f4035acb8abf9dc15423a998fa56173ab804
   languageName: node
   linkType: hard
 
@@ -6599,36 +6607,36 @@ __metadata:
   languageName: node
   linkType: hard
 
-"better-auth@npm:^1.2.4":
-  version: 1.2.4
-  resolution: "better-auth@npm:1.2.4"
+"better-auth@npm:^1.2.5":
+  version: 1.2.5
+  resolution: "better-auth@npm:1.2.5"
   dependencies:
-    "@better-auth/utils": "npm:0.2.3"
-    "@better-fetch/fetch": "npm:^1.1.15"
+    "@better-auth/utils": "npm:0.2.4"
+    "@better-fetch/fetch": "npm:^1.1.17"
     "@noble/ciphers": "npm:^0.6.0"
     "@noble/hashes": "npm:^1.6.1"
     "@simplewebauthn/browser": "npm:^13.0.0"
     "@simplewebauthn/server": "npm:^13.0.0"
-    better-call: "npm:^1.0.3"
+    better-call: "npm:^1.0.5"
     defu: "npm:^6.1.4"
     jose: "npm:^5.9.6"
     kysely: "npm:^0.27.6"
     nanostores: "npm:^0.11.3"
     valibot: "npm:1.0.0-beta.15"
     zod: "npm:^3.24.1"
-  checksum: 10c0/68bfb202dd83a1c92d7a02b04bedf21d24f7f9536351dd0adb507b5add81c91838901cb5a84526b94bc524be8f2aba41baed748716718064564211292fe1b7b9
+  checksum: 10c0/0ed2b2f1261e6084764399ce2fa6a287151b2bb168a8af73a9908dd4ca43677f9bcbf8d78a0aec3c36d254a2778466f0c6a68d4cb2ad4c1380c1f4c08db8f455
   languageName: node
   linkType: hard
 
-"better-call@npm:^1.0.3":
-  version: 1.0.4
-  resolution: "better-call@npm:1.0.4"
+"better-call@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "better-call@npm:1.0.5"
   dependencies:
     "@better-fetch/fetch": "npm:^1.1.4"
     rou3: "npm:^0.5.1"
     set-cookie-parser: "npm:^2.7.1"
     uncrypto: "npm:^0.1.3"
-  checksum: 10c0/f890986745a1311a2d561b32032eeb10345816b8ac63e42554a4f2a46698ab1155e775e8ca1f1f9e5891c8599d745aa1cc75e904b7164a6838db57c5af2f91e2
+  checksum: 10c0/765d41a05bfa798b4245534c8b8ca5153a235d09af156191fcfa7c3646cc9044c52b3f73e57869992a484e5fc23e3773c23eef8d1cb20577c4387da700a5ac49
   languageName: node
   linkType: hard
 
@@ -15273,9 +15281,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.233.0":
-  version: 1.233.0
-  resolution: "posthog-js@npm:1.233.0"
+"posthog-js@npm:^1.233.1":
+  version: 1.233.1
+  resolution: "posthog-js@npm:1.233.1"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -15289,7 +15297,7 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/02d29534a9268658105cadad436f9b63e563771524ba3d3d1b9dce42c1951cc709db8adc958ab40a3d638584d1b38efd122d2fd0444beb4187c45893d761b566
+  checksum: 10c0/2cf900fca75dccb1a26357fba5ce5c9a2f2ce1739813e76cd590c4faacb5a8ddd1c809164212dd72a8d75a5cb7c3a20df629724c6a2880f0871b5e701168ca5e
   languageName: node
   linkType: hard
 
@@ -18468,9 +18476,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:^2.23.15":
-  version: 2.23.15
-  resolution: "viem@npm:2.23.15"
+"viem@npm:^2.24.1":
+  version: 2.24.1
+  resolution: "viem@npm:2.24.1"
   dependencies:
     "@noble/curves": "npm:1.8.1"
     "@noble/hashes": "npm:1.7.1"
@@ -18485,7 +18493,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/0894d0e26e8626d6db4bdb4517fce539c6d49aaa655dedb1122c66859379a674747102ba9e5c20eec60aa0b0ca928a79d90a296211c3a52a34381fb4638befaa
+  checksum: 10c0/18e228a1abc04216261c7b0b06c4c8a250fbcfd0680046547168852dfd124b3d249513ded3086d74f60a15a6936fcd865d898be8cc3348e0e6208885343c7e24
   languageName: node
   linkType: hard
 
@@ -18754,13 +18762,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack-dev-server@npm:^5.2.0":
-  version: 5.2.0
-  resolution: "webpack-dev-server@npm:5.2.0"
+"webpack-dev-server@npm:^5.2.1":
+  version: 5.2.1
+  resolution: "webpack-dev-server@npm:5.2.1"
   dependencies:
     "@types/bonjour": "npm:^3.5.13"
     "@types/connect-history-api-fallback": "npm:^1.5.4"
     "@types/express": "npm:^4.17.21"
+    "@types/express-serve-static-core": "npm:^4.17.21"
     "@types/serve-index": "npm:^1.9.4"
     "@types/serve-static": "npm:^1.15.5"
     "@types/sockjs": "npm:^0.3.36"
@@ -18794,7 +18803,7 @@ __metadata:
       optional: true
   bin:
     webpack-dev-server: bin/webpack-dev-server.js
-  checksum: 10c0/afb2e51945ac54ef3039e11e377241e1cb97a8d3f526f39f13c3fa924c530fb6063200c2c3ae4e33e6bcc110d4abed777c09ce18e2d261012853d81f3c5820ab
+  checksum: 10c0/22bcf2bcc7c72cd2065883ed4368fbcdf20078bc746b07689d10a0546ee99ea00bc50f0474112278ffd8598a5bc237df2bf7bb7f6dcda940a16b1eb91137efea
   languageName: node
   linkType: hard
 

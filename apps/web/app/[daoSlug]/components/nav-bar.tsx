@@ -31,14 +31,14 @@ export function NavBar() {
 
         <div className='flex items-center gap-6'>
           <Link href={`/`} className='flex items-center justify-center'>
-            <div className='flex h-8 w-8 items-center justify-center'>
-              <List className='h-8 w-8' />
+            <div className='flex items-center justify-center'>
+              <List className='h-12 w-12' />
             </div>
           </Link>
 
           <Link href={`/profile`} className='flex items-center justify-center'>
-            <div className='flex h-8 w-8 items-center justify-center'>
-              <Delegate className='h-8 w-8' />
+            <div className='flex items-center justify-center'>
+              <Delegate className='h-12 w-12' />
             </div>
           </Link>
 
@@ -68,17 +68,11 @@ export function NavBar() {
             />
           </Link>
 
-          <Link
-            href={`/`}
-            className='flex h-12 w-12 items-center justify-center'
-          >
+          <Link href={`/`} className='flex items-center justify-center'>
             <List className='h-12 w-12' />
           </Link>
 
-          <Link
-            href={`/profile`}
-            className='flex h-12 w-12 items-center justify-center'
-          >
+          <Link href={`/profile`} className='flex items-center justify-center'>
             <Delegate className='h-12 w-12' />
           </Link>
         </div>

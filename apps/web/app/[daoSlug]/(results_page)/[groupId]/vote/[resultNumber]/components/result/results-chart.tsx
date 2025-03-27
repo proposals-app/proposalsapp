@@ -307,19 +307,8 @@ export function ResultsChart({ results }: ResultsChartProps) {
               0.01
         ),
         axisLabel: {
-          color: themeColors.axisLabel,
-          formatter: (value: number) => {
-            const zonedDate = toZonedTime(new Date(value), 'UTC');
-            const formattedDate = format(zonedDate, 'MMM d');
-            const formattedTime = format(zonedDate, 'h:mm a').toLowerCase();
-
-            return `{bold|${formattedDate}} at\n${formattedTime} UTC`;
-          },
-          rich: {
-            bold: {
-              fontWeight: 'bold',
-            },
-          },
+          // Remove the original x-axis labels
+          show: false,
         },
         axisLine: {
           show: true,
@@ -352,7 +341,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
       grid: {
         left: '0%',
         right: '0%',
-        bottom: '0%',
+        bottom: 8,
         top: 8,
         containLabel: true,
       },
@@ -383,7 +372,55 @@ export function ResultsChart({ results }: ResultsChartProps) {
     theme,
   ]);
 
-  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+  return (
+    <div className='flex flex-col'>
+      <div ref={chartRef} className='h-[400px] w-full' />
+      <div className='flex w-full justify-between pl-2'>
+        <div className='mt-2 text-center'>
+          <p className='text-sm font-bold text-neutral-500 dark:text-neutral-300'>
+            {format(
+              toZonedTime(
+                new Date(deserializedResults.proposal.startAt),
+                Intl.DateTimeFormat().resolvedOptions().timeZone
+              ),
+              'MMM d'
+            )}
+          </p>
+          <p className='text-sm text-neutral-500 dark:text-neutral-300'>
+            at{' '}
+            {format(
+              toZonedTime(
+                new Date(deserializedResults.proposal.startAt),
+                Intl.DateTimeFormat().resolvedOptions().timeZone
+              ),
+              'h:mm a'
+            )}
+          </p>
+        </div>
+        <div className='mt-1 text-center'>
+          <p className='text-sm font-bold text-neutral-500 dark:text-neutral-300'>
+            {format(
+              toZonedTime(
+                new Date(deserializedResults.proposal.endAt),
+                Intl.DateTimeFormat().resolvedOptions().timeZone
+              ),
+              'MMM d'
+            )}
+          </p>
+          <p className='text-sm text-neutral-500 dark:text-neutral-300'>
+            at{' '}
+            {format(
+              toZonedTime(
+                new Date(deserializedResults.proposal.endAt),
+                Intl.DateTimeFormat().resolvedOptions().timeZone
+              ),
+              'h:mm a'
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // Helper function to round up to the nearest "good" value
