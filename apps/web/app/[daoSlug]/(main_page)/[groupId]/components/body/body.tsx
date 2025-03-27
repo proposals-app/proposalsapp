@@ -85,18 +85,6 @@ function BodyLoadingContent() {
           {/* First paragraph line 2 */}
           {/* Mimic Section Heading */}
           <div className='mt-6 h-6 w-1/2 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-          {/* Mimic Bullet Points */}
-          <ul className='mt-2 ml-6 list-disc space-y-2'>
-            <li>
-              <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            </li>
-            <li>
-              <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            </li>
-            <li>
-              <div className='h-4 w-9/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            </li>
-          </ul>
           {/* Mimic More Paragraphs */}
           <div className='mt-6 h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
           <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800'></div>
