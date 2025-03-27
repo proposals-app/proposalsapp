@@ -2,8 +2,15 @@
 
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
-import Sun from '@/public/assets/web/icons/sun.svg';
-import Moon from '@/public/assets/web/icons/moon.svg';
+import SunIcon from '@/public/assets/web/icons/sun.svg';
+import MoonIcon from '@/public/assets/web/icons/moon.svg';
+
+interface IconProps {
+  className?: string;
+}
+
+const Sun = ({ className }: IconProps) => <SunIcon className={className} />;
+const Moon = ({ className }: IconProps) => <MoonIcon className={className} />;
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();
@@ -22,6 +29,8 @@ export function ModeToggle() {
     return null;
   }
 
+  const isDark = theme === 'dark';
+
   return (
     <div
       onClick={toggleTheme}
@@ -37,17 +46,17 @@ export function ModeToggle() {
     >
       <div
         className={`absolute left-1/2 -translate-x-1/2 transition-all duration-300 ease-in-out ${
-          theme === 'dark'
-            ? 'top-[calc(100%-14px)] sm:top-[calc(100%-18px)]'
-            : 'top-0'
+          isDark ? 'top-[calc(100%-14px)] sm:top-[calc(100%-18px)]' : 'top-0'
         }`}
       >
-        <div className='h-[16px] w-[16px] bg-neutral-700 sm:h-[20px] sm:w-[20px] dark:bg-neutral-300'>
+        <div
+          className={`h-[16px] w-[16px] ${isDark ? 'bg-neutral-300' : 'bg-neutral-700'} sm:h-[20px] sm:w-[20px]`}
+        >
           <div className='relative flex h-full w-full items-center justify-center'>
-            {theme === 'dark' ? (
-              <Moon className='h-10px w-10px sm:h-[12px] sm:w-[12px]' />
+            {isDark ? (
+              <Moon className='h-[12px] w-[12px] text-neutral-300 dark:text-neutral-700' />
             ) : (
-              <Sun lassName='h-10px w-10px sm:h-[12px] sm:w-[12px]' />
+              <Sun className='h-[12px] w-[12px] text-neutral-300 dark:text-neutral-700' />
             )}
           </div>
         </div>
