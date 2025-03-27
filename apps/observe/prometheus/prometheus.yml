@@ -19,14 +19,3 @@ scrape_configs:
     metrics_path: /api/metrics # Specify the metrics path
     tls_config:
       insecure_skip_verify: true # Skip TLS verification if using self-signed certificates
-
-  - job_name: "postgres"
-    static_configs:
-      - targets: 
-        - "postgres-exporter-main:9187"
-        - "postgres-exporter-web:9187"
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
-        replacement: $1
-        regex: '([^:]+)'
