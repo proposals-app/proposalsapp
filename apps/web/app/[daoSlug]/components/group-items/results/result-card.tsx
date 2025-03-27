@@ -33,7 +33,7 @@ export function ResultCard({ content, result }: ResultCardProps) {
     <div className={`flex w-full items-center sm:w-96`}>
       <div className='flex w-full'>
         <div
-          className={`dark:border-neutral-650 h-full w-full flex-col rounded-l-xs border border-neutral-400 bg-white px-1 py-1 text-neutral-800 transition-all duration-200 ease-in-out dark:bg-neutral-950 dark:text-neutral-200`}
+          className={`h-full w-full flex-col rounded-l-xs text-neutral-800 transition-all duration-200 ease-in-out dark:text-neutral-200`}
         >
           <div className='flex items-center'>
             {onchain ? (

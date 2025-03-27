@@ -29,7 +29,7 @@ export function InactiveGroupItem({ group }: InactiveGroupItemProps) {
   return (
     <Link
       href={`/${group.slug}`}
-      className='group block rounded-xs border border-neutral-200 bg-white p-4 hover:bg-neutral-200/50 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800'
+      className='group block rounded-xs border border-neutral-200 bg-white p-2 hover:bg-neutral-200/50 sm:p-3 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800'
     >
       <div className='flex flex-col gap-1 sm:gap-2'>
         <div className='flex items-start justify-between'>
@@ -53,48 +53,46 @@ export function InactiveGroupItem({ group }: InactiveGroupItemProps) {
             </div>
           </div>
           <div className='flex items-center gap-1'>
+            <span className='dark:text-neutral-350 text-end text-xs font-bold text-neutral-600 select-none sm:text-sm'>
+              {relativeTime}
+            </span>
             {group.hasNewActivity && (
               <div className='relative flex min-h-5 min-w-5 items-center justify-center sm:min-h-6 sm:min-w-6'>
                 <span className='bg-for-400 dark:bg-for-600 absolute inline-flex h-3 w-3 animate-ping rounded-full opacity-75'></span>
                 <span className='bg-for-400 dark:bg-for-600 relative inline-flex h-2 w-2 rounded-full'></span>
               </div>
             )}
-            <span className='dark:text-neutral-350 text-end text-xs font-bold text-neutral-600 select-none sm:text-sm'>
-              {relativeTime}
-            </span>
           </div>
         </div>
 
-        <div className='dark:text-neutral-350 mt-1 flex flex-col-reverse justify-between gap-2 text-xs font-bold text-neutral-600 select-none sm:mt-2 sm:flex-row sm:items-end sm:gap-0 sm:text-sm'>
-          <div className='flex'>
-            {group.postsCount > 0 && group.votesCount == 0 && (
+        <div className='dark:text-neutral-350 flex flex-col justify-end gap-2 self-end text-xs font-bold text-neutral-600 select-none'>
+          {group.postsCount > 0 && group.votesCount == 0 && (
+            <span className='flex items-center gap-1'>
+              <CommentsIcon className='h-6 w-6' />
+              {group.postsCount} comments
+            </span>
+          )}
+          {group.postsCount == 0 && group.votesCount > 0 && (
+            <span className='flex items-center gap-1'>
+              <VotesIcon className='h-6 w-6' />
+              {group.votesCount} votes
+            </span>
+          )}
+          {group.postsCount > 0 && group.votesCount > 0 && (
+            <span className='flex items-center gap-4'>
               <span className='flex items-center gap-1'>
                 <CommentsIcon className='h-6 w-6' />
                 {group.postsCount} comments
               </span>
-            )}
-            {group.postsCount == 0 && group.votesCount > 0 && (
               <span className='flex items-center gap-1'>
                 <VotesIcon className='h-6 w-6' />
                 {group.votesCount} votes
               </span>
-            )}
-            {group.postsCount > 0 && group.votesCount > 0 && (
-              <span className='flex items-center gap-4'>
-                <span className='flex items-center gap-1'>
-                  <CommentsIcon className='h-6 w-6' />
-                  {group.postsCount} comments
-                </span>
-                <span className='flex items-center gap-1'>
-                  <VotesIcon className='h-6 w-6' />
-                  {group.votesCount} votes
-                </span>
-              </span>
-            )}
-            {group.postsCount == 0 && group.votesCount == 0 && (
-              <span>No activity</span>
-            )}
-          </div>
+            </span>
+          )}
+          {group.postsCount == 0 && group.votesCount == 0 && (
+            <span>No activity</span>
+          )}
         </div>
       </div>
     </Link>
