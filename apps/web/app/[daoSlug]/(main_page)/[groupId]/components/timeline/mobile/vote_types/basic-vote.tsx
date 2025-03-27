@@ -135,15 +135,6 @@ export const BasicVote = ({ result, expanded }: BasicVoteProps) => {
     };
   }, [result]);
 
-  if (result.hiddenVote && result.scoresState !== 'final') {
-    return <HiddenVote result={result} expanded={expanded} />;
-  }
-
-  // Keep the original "No votes recorded" check based on totalVotingPower
-  if (!totalVotingPower && !result.hiddenVote) {
-    return <div className='text-sm text-neutral-500'>No votes recorded</div>;
-  }
-
   const isBasicVote =
     choices.length > 0 && ['For', 'Against', 'Abstain'].includes(choices[0]); // Safer check
 
@@ -190,6 +181,14 @@ export const BasicVote = ({ result, expanded }: BasicVoteProps) => {
   const forIndex = choices.indexOf('For');
   const againstIndex = choices.indexOf('Against');
   const abstainIndex = choices.indexOf('Abstain');
+
+  if (result.hiddenVote && result.scoresState !== 'final') {
+    return <HiddenVote result={result} expanded={expanded} />;
+  }
+
+  if (!totalVotingPower && !result.hiddenVote) {
+    return <div className='text-sm text-neutral-500'>No votes recorded</div>;
+  }
 
   return (
     <div>
