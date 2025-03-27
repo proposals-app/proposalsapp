@@ -16,7 +16,7 @@
   },
   "main": "./src/index.ts",
   "scripts": {
-    "db:gen-web": "kysely-codegen --url \"env(WEB_DATABASE_URL)\" --camel-case --runtime-enums --out-file ./src/kysely_db.ts",
+    "db:gen-web": "kysely-codegen --url \"env(WEB_DATABASE_URL)\" --runtime-enums --out-file ./src/kysely_db.ts",
     "db:migrate": "kysely migrate latest",
     "db:seed": "yarn kysely seed run"
   },

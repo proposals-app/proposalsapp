@@ -258,7 +258,8 @@ describe("Email Notifications", () => {
       // Verify notification was inserted
       expect(dbWeb.insertInto).toHaveBeenCalledWith("userNotification");
       expect(
-        vi.mocked(dbWeb.insertInto("userNotification").values).mock.calls[0][0],
+        vi.mocked(dbWeb.insertInto("user_notification").values).mock
+          .calls[0][0],
       ).toEqual(
         expect.objectContaining({
           userId: mockUser.id,
@@ -362,7 +363,8 @@ describe("Email Notifications", () => {
       // Verify notification was inserted
       expect(dbWeb.insertInto).toHaveBeenCalledWith("userNotification");
       expect(
-        vi.mocked(dbWeb.insertInto("userNotification").values).mock.calls[0][0],
+        vi.mocked(dbWeb.insertInto("user_notification").values).mock
+          .calls[0][0],
       ).toEqual(
         expect.objectContaining({
           userId: mockUser.id,
@@ -439,7 +441,8 @@ describe("Email Notifications", () => {
       // Verify notification was inserted
       expect(dbWeb.insertInto).toHaveBeenCalledWith("userNotification");
       expect(
-        vi.mocked(dbWeb.insertInto("userNotification").values).mock.calls[0][0],
+        vi.mocked(dbWeb.insertInto("user_notification").values).mock
+          .calls[0][0],
       ).toEqual(
         expect.objectContaining({
           userId: mockUser.id,

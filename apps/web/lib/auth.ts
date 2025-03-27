@@ -117,12 +117,12 @@ export const auth = betterAuth({
 
           if (allGroups)
             await dbWeb
-              .insertInto('userProposalGroupLastRead')
+              .insertInto('user_proposal_group_last_read')
               .values(
                 allGroups.map((group) => ({
-                  userId: user.id,
-                  proposalGroupId: group.id,
-                  lastReadAt: new Date(),
+                  user_id: user.id,
+                  proposal_group_id: group.id,
+                  last_read_at: new Date(),
                 }))
               )
               .execute();

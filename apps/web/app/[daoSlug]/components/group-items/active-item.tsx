@@ -1,12 +1,9 @@
-import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { getFeed } from '../../(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { Suspense } from 'react';
 import { ResultCard } from './results/result-card';
 import Image from 'next/image';
-import CommentsIcon from '@/public/assets/web/icons/discussion.svg';
-import VotesIcon from '@/public/assets/web/icons/vote.svg';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -36,10 +33,6 @@ interface ActiveGroupItemProps {
 }
 
 export async function ActiveGroupItem({ group }: ActiveGroupItemProps) {
-  const relativeTime = formatDistanceToNow(new Date(group.latestActivityAt), {
-    addSuffix: true,
-  });
-
   const feedData = await getFeed(
     group.id,
     FeedFilterEnum.VOTES,

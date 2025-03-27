@@ -31,11 +31,7 @@ const createDbInstance = () => {
     dialect: new PostgresDialect({
       pool: db_pool,
     }),
-    plugins: [
-      new CamelCasePlugin(),
-      new DeduplicateJoinsPlugin(),
-      new ParseJSONResultsPlugin(),
-    ],
+    plugins: [new DeduplicateJoinsPlugin(), new ParseJSONResultsPlugin()],
   });
 };
 

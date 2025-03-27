@@ -9,6 +9,10 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+
+export type Numeric = ColumnType<string, number | string, number | string>;
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface Account {
@@ -25,6 +29,80 @@ export interface Account {
   scope: string | null;
   updatedAt: Timestamp;
   userId: string;
+}
+
+export interface PgStatMonitor {
+  application_name: string | null;
+  bucket: Int8 | null;
+  bucket_done: boolean | null;
+  bucket_start_time: Timestamp | null;
+  calls: Int8 | null;
+  client_ip: string | null;
+  cmd_type: number | null;
+  cmd_type_text: string | null;
+  comments: string | null;
+  cpu_sys_time: number | null;
+  cpu_user_time: number | null;
+  datname: string | null;
+  dbid: number | null;
+  elevel: number | null;
+  jit_deform_count: Int8 | null;
+  jit_deform_time: number | null;
+  jit_emission_count: Int8 | null;
+  jit_emission_time: number | null;
+  jit_functions: Int8 | null;
+  jit_generation_time: number | null;
+  jit_inlining_count: Int8 | null;
+  jit_inlining_time: number | null;
+  jit_optimization_count: Int8 | null;
+  jit_optimization_time: number | null;
+  local_blk_read_time: number | null;
+  local_blk_write_time: number | null;
+  local_blks_dirtied: Int8 | null;
+  local_blks_hit: Int8 | null;
+  local_blks_read: Int8 | null;
+  local_blks_written: Int8 | null;
+  max_exec_time: number | null;
+  max_plan_time: number | null;
+  mean_exec_time: number | null;
+  mean_plan_time: number | null;
+  message: string | null;
+  min_exec_time: number | null;
+  min_plan_time: number | null;
+  minmax_stats_since: Timestamp | null;
+  pgsm_query_id: Int8 | null;
+  planid: Int8 | null;
+  plans: Int8 | null;
+  query: string | null;
+  query_plan: string | null;
+  queryid: Int8 | null;
+  relations: string[] | null;
+  resp_calls: string[] | null;
+  rows: Int8 | null;
+  shared_blk_read_time: number | null;
+  shared_blk_write_time: number | null;
+  shared_blks_dirtied: Int8 | null;
+  shared_blks_hit: Int8 | null;
+  shared_blks_read: Int8 | null;
+  shared_blks_written: Int8 | null;
+  sqlcode: string | null;
+  stats_since: Timestamp | null;
+  stddev_exec_time: number | null;
+  stddev_plan_time: number | null;
+  temp_blk_read_time: number | null;
+  temp_blk_write_time: number | null;
+  temp_blks_read: Int8 | null;
+  temp_blks_written: Int8 | null;
+  top_query: string | null;
+  top_queryid: Int8 | null;
+  toplevel: boolean | null;
+  total_exec_time: number | null;
+  total_plan_time: number | null;
+  userid: number | null;
+  username: string | null;
+  wal_bytes: Numeric | null;
+  wal_fpi: Int8 | null;
+  wal_records: Int8 | null;
 }
 
 export interface Session {
@@ -62,9 +140,9 @@ export interface UserNotification {
 
 export interface UserProposalGroupLastRead {
   id: Generated<string>;
-  lastReadAt: Timestamp | null;
-  proposalGroupId: string;
-  userId: string;
+  last_read_at: Timestamp | null;
+  proposal_group_id: string;
+  user_id: string;
 }
 
 export interface Verification {
@@ -78,9 +156,10 @@ export interface Verification {
 
 export interface DB {
   account: Account;
+  pg_stat_monitor: PgStatMonitor;
   session: Session;
   user: User;
-  userNotification: UserNotification;
-  userProposalGroupLastRead: UserProposalGroupLastRead;
+  user_notification: UserNotification;
+  user_proposal_group_last_read: UserProposalGroupLastRead;
   verification: Verification;
 }

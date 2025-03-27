@@ -43,7 +43,7 @@ export async function checkNewProposals() {
     const newProposals = await dbIndexer
       .selectFrom("proposal")
       .selectAll()
-      .where("createdAt", ">", new Date(Date.now() - 60 * 60 * 1000))
+      .where("createdAt", ">", new Date(Date.now() - 3 * 60 * 60 * 1000))
       .execute();
 
     for (const proposal of newProposals) {
@@ -113,7 +113,7 @@ export async function checkNewProposals() {
 
         // Check if notification already sent
         const existingNotification = await dbWeb
-          .selectFrom("userNotification")
+          .selectFrom("user_notification")
           .selectAll()
           .where((eb) =>
             eb.and([
@@ -151,7 +151,7 @@ export async function checkNewProposals() {
           // Record notification
 
           await dbWeb
-            .insertInto("userNotification")
+            .insertInto("user_notification")
             .values({
               userId: user.id,
               type: "EMAIL_NEW_PROPOSAL",
@@ -178,7 +178,7 @@ export async function checkNewDiscussions() {
     const newDiscussions = await dbIndexer
       .selectFrom("discourseTopic")
       .selectAll()
-      .where("createdAt", ">=", new Date(Date.now() - 60 * 60 * 1000))
+      .where("createdAt", ">=", new Date(Date.now() - 3 * 60 * 60 * 1000))
       .execute();
 
     for (const discussion of newDiscussions) {
@@ -290,7 +290,7 @@ export async function checkNewDiscussions() {
 
         // Check if notification was already sent
         const existingNotification = await dbWeb
-          .selectFrom("userNotification")
+          .selectFrom("user_notification")
           .selectAll()
           .where((eb) =>
             eb.and([
@@ -330,7 +330,7 @@ export async function checkNewDiscussions() {
           // Record notification
 
           await dbWeb
-            .insertInto("userNotification")
+            .insertInto("user_notification")
             .values({
               userId: user.id,
               type: "EMAIL_NEW_DISCUSSION",
@@ -359,8 +359,8 @@ export async function checkEndingProposals() {
       .selectAll()
       .where((eb) =>
         eb.and([
-          eb("endAt", ">", new Date(Date.now() + 23 * 60 * 60 * 1000)),
-          eb("endAt", "<", new Date(Date.now() + 25 * 60 * 60 * 1000)),
+          eb("endAt", ">", new Date(Date.now() + 21 * 60 * 60 * 1000)),
+          eb("endAt", "<", new Date(Date.now() + 28 * 60 * 60 * 1000)),
         ]),
       )
       .execute();
@@ -424,7 +424,7 @@ export async function checkEndingProposals() {
 
         // Check if notification already sent
         const existingNotification = await dbWeb
-          .selectFrom("userNotification")
+          .selectFrom("user_notification")
           .selectAll()
           .where((eb) =>
             eb.and([
@@ -461,7 +461,7 @@ export async function checkEndingProposals() {
           // Record notification
 
           await dbWeb
-            .insertInto("userNotification")
+            .insertInto("user_notification")
             .values({
               userId: user.id,
               type: "EMAIL_ENDING_PROPOSAL",
@@ -482,8 +482,8 @@ export async function checkEndingProposals() {
   }
 }
 
-// Schedule jobs
-cron.schedule("* * * * *", async () => {
+// Define the scheduled job function
+async function runScheduledJobs() {
   try {
     await checkNewProposals();
     await checkNewDiscussions();
@@ -491,7 +491,13 @@ cron.schedule("* * * * *", async () => {
   } catch (error) {
     console.error("Error running scheduled jobs:", error);
   }
-});
+}
+
+// Schedule jobs to run every minute
+cron.schedule("* * * * *", runScheduledJobs);
+
+// Run jobs immediately on start
+runScheduledJobs();
 
 // Send uptime ping every 10 seconds
 const sendUptimePing = async () => {

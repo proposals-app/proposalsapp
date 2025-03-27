@@ -39,17 +39,19 @@ export async function markAllAsRead(daoSlug: string) {
 
   const now = new Date();
   const values = allGroups.map((group) => ({
-    userId: userId,
-    proposalGroupId: group.id,
-    lastReadAt: now,
+    user_id: userId,
+    proposal_group_id: group.id,
+    last_read_at: now,
   }));
 
   // Batch insert/update all groups at once
   await dbWeb
-    .insertInto('userProposalGroupLastRead')
+    .insertInto('user_proposal_group_last_read')
     .values(values)
     .onConflict((oc) =>
-      oc.columns(['userId', 'proposalGroupId']).doUpdateSet({ lastReadAt: now })
+      oc
+        .columns(['user_id', 'proposal_group_id'])
+        .doUpdateSet({ last_read_at: now })
     )
     .execute();
 
@@ -247,13 +249,13 @@ export async function getGroups(daoSlug: string, userId?: string) {
   const lastReadMap = new Map<string, Date | null>();
   if (userId) {
     const lastReads = await dbWeb
-      .selectFrom('userProposalGroupLastRead')
-      .where('userId', '=', userId)
-      .select(['proposalGroupId', 'lastReadAt'])
+      .selectFrom('user_proposal_group_last_read')
+      .where('user_id', '=', userId)
+      .select(['proposal_group_id', 'last_read_at'])
       .execute();
 
     lastReads.forEach((lr) => {
-      lastReadMap.set(lr.proposalGroupId, lr.lastReadAt);
+      lastReadMap.set(lr.proposal_group_id, lr.last_read_at);
     });
   }
 

@@ -50,14 +50,16 @@ export async function updateLastReadAt(groupId: string) {
   const now = new Date();
 
   await dbWeb
-    .insertInto('userProposalGroupLastRead')
+    .insertInto('user_proposal_group_last_read')
     .values({
-      userId: userId,
-      proposalGroupId: groupId,
-      lastReadAt: now,
+      user_id: userId,
+      proposal_group_id: groupId,
+      last_read_at: now,
     })
     .onConflict((oc) =>
-      oc.columns(['userId', 'proposalGroupId']).doUpdateSet({ lastReadAt: now })
+      oc
+        .columns(['user_id', 'proposal_group_id'])
+        .doUpdateSet({ last_read_at: now })
     )
     .execute();
 }
