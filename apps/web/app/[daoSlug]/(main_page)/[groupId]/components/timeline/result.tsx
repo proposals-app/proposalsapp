@@ -72,8 +72,8 @@ export function Result({
 
             {live && (
               <div className='relative flex min-h-5 min-w-5 items-center justify-center sm:min-h-6 sm:min-w-6'>
-                <span className='bg-for-600 absolute inline-flex h-3 w-3 animate-ping rounded-full opacity-75'></span>
-                <span className='bg-for-600 relative inline-flex h-2 w-2 rounded-full'></span>
+                <span className='bg-for-400 dark:bg-for-600 absolute inline-flex h-3 w-3 animate-ping rounded-full opacity-75'></span>
+                <span className='bg-for-400 dark:bg-for-600 relative inline-flex h-2 w-2 rounded-full'></span>
               </div>
             )}
 
