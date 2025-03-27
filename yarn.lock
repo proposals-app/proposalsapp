@@ -3705,7 +3705,7 @@ __metadata:
     nuqs: "npm:^2.4.1"
     ollama-ai-provider: "npm:^1.2.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.233.1"
+    posthog-js: "npm:^1.234.1"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.7"
     prettier-plugin-merge: "npm:^0.7.3"
@@ -15281,9 +15281,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.233.1":
-  version: 1.233.1
-  resolution: "posthog-js@npm:1.233.1"
+"posthog-js@npm:^1.234.1":
+  version: 1.234.1
+  resolution: "posthog-js@npm:1.234.1"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -15297,7 +15297,7 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/2cf900fca75dccb1a26357fba5ce5c9a2f2ce1739813e76cd590c4faacb5a8ddd1c809164212dd72a8d75a5cb7c3a20df629724c6a2880f0871b5e701168ca5e
+  checksum: 10c0/3cb7dc82667115a7dde509afd907698d65dc7a9a6ec796c6c252c91945add2e74ee89d22cfaef217714cd4d95c160b9bfa2ed678405bac7ff83d076178fbe5de
   languageName: node
   linkType: hard
 

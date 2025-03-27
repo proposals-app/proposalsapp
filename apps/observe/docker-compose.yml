@@ -149,6 +149,30 @@ services:
     depends_on:
       - loki
 
+  postgres-exporter-main:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter-main
+    hostname: postgres-exporter-main
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "${DATABASE_URL}"
+    ports:
+      - "9187:9187"
+    networks:
+      - observe-network
+
+  postgres-exporter-web:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter-web
+    hostname: postgres-exporter-web
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "${WEB_DATABASE_URL}"
+    ports:
+      - "9188:9187"
+    networks:
+      - observe-network
+
 networks:
   observe-network:
     name: observe-network
