@@ -77,8 +77,8 @@ export async function ActiveGroupItem({ group }: ActiveGroupItemProps) {
           <div className='flex items-center gap-1'>
             {group.hasNewActivity && (
               <div className='relative flex min-h-5 min-w-5 items-center justify-center sm:min-h-6 sm:min-w-6'>
-                <span className='absolute inline-flex h-3 w-3 animate-ping rounded-full bg-green-400 opacity-75'></span>
-                <span className='relative inline-flex h-2 w-2 rounded-full bg-green-500'></span>
+                <span className='bg-for-600 absolute inline-flex h-3 w-3 animate-ping rounded-full opacity-75'></span>
+                <span className='bg-for-600 relative inline-flex h-2 w-2 rounded-full'></span>
               </div>
             )}
             <span className='dark:text-neutral-350 text-end text-xs font-bold text-neutral-600 select-none sm:text-sm'>

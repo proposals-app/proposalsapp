@@ -1,6 +1,25 @@
 import { Proposal, Selectable } from '@proposalsapp/db-indexer';
 import { ProcessedResults } from './results_processing';
 
+export type ProposalMetadata = {
+  quorumChoices?: number[];
+  voteType?:
+    | 'single-choice'
+    | 'weighted'
+    | 'approval'
+    | 'basic'
+    | 'quadratic'
+    | 'ranked-choice';
+  totalDelegatedVp?: string;
+  hiddenVote: boolean;
+  scoresState: string;
+};
+
+export interface ProposalWithMetadata
+  extends Omit<Selectable<Proposal>, 'metadata'> {
+  metadata: ProposalMetadata;
+}
+
 export interface ProposalGroup {
   id: string;
   name: string;
@@ -51,6 +70,10 @@ export interface BasicEvent extends BaseEvent {
   url: string;
 }
 
+export interface BaseResultEvent extends BaseEvent {
+  live: boolean;
+}
+
 export interface OnchainEvent extends BaseEvent {
   type: TimelineEventType.Onchain;
   content: string;
@@ -92,7 +115,7 @@ export interface VoteSegmentData {
   isAggregated?: boolean;
 }
 
-export interface ResultEvent extends BaseEvent {
+export interface ResultEvent extends BaseResultEvent {
   type:
     | TimelineEventType.ResultOngoingBasicVote
     | TimelineEventType.ResultOngoingOtherVotes
@@ -103,6 +126,7 @@ export interface ResultEvent extends BaseEvent {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
+  live: boolean;
 }
 
 export type FeedEvent =

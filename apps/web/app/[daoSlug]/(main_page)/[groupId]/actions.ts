@@ -9,6 +9,7 @@ import {
 import {
   FeedEvent,
   ProposalGroupItem,
+  ProposalMetadata,
   TimelineEventType,
   VoteSegmentData,
 } from '@/lib/types';
@@ -26,7 +27,7 @@ import { validate } from 'uuid';
 import { getDelegateByDiscourseUser } from './components/feed/actions';
 import { format } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
-import { ProposalMetadata } from '@/app/types';
+
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
@@ -891,6 +892,7 @@ export async function getFeed(
               timestamp: endedAt,
               result: { ...processedResults, voteSegments },
               proposal,
+              live: false,
             });
           } else {
             events.push({
@@ -905,6 +907,7 @@ export async function getFeed(
               timestamp: endedAt,
               result: { ...processedResults, voteSegments },
               proposal,
+              live: true,
             });
           }
         }

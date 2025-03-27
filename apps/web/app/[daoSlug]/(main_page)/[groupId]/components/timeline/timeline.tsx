@@ -406,6 +406,7 @@ const TimelineEventItem = React.memo(
               resultNumber={resultNumber!}
               daoSlug={group!.daoSlug}
               groupId={group!.group.id}
+              live={event.live}
             />
           ) : event.type === TimelineEventType.Basic ||
             event.type === TimelineEventType.Discussion ||

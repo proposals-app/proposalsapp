@@ -1,4 +1,4 @@
-import { ProposalMetadata } from '@/app/types';
+import { ProposalMetadata } from '@/lib/types';
 import { Proposal, Selectable, Vote } from '@proposalsapp/db-indexer';
 import { format, toZonedTime } from 'date-fns-tz';
 

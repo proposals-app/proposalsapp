@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { GroupReturnType } from '../../../actions';
 import Link from 'next/link';
 import React, { useState, useRef, useEffect } from 'react';
-import { ResultEventMobile } from './result-event-mobile';
+import { ResultEventMobile } from './result-mobile';
 import { BiChevronsUp, BiChevronsDown } from 'react-icons/bi';
 import { ResultEvent } from '@/lib/types';
 
@@ -103,6 +103,7 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
                       daoSlug={group.daoSlug}
                       groupId={group.group.id}
                       expanded={expanded}
+                      live={event.live}
                     />
                   </Link>
                 ) : (
@@ -115,6 +116,7 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
                     daoSlug={group.daoSlug}
                     groupId={group.group.id}
                     expanded={expanded}
+                    live={event.live}
                   />
                 )}
               </div>

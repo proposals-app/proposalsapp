@@ -19,6 +19,7 @@ interface ResultEventProps {
   daoSlug: string;
   groupId: string;
   expanded: boolean;
+  live: boolean;
 }
 
 const VoteComponents = {
@@ -35,6 +36,7 @@ export function ResultEventMobile({
   result,
   last,
   expanded,
+  live,
 }: ResultEventProps) {
   const Component = result.voteType ? VoteComponents[result.voteType] : null;
 
@@ -44,12 +46,19 @@ export function ResultEventMobile({
         className={`${last ? 'dark:border-neutral-450 border-neutral-800' : 'dark:border-neutral-650 border-neutral-400'} flex h-full w-full rounded-xs border bg-white px-4 py-1 text-neutral-800 transition-transform duration-200 ease-in-out group-hover:-translate-x-1 dark:bg-neutral-950 dark:text-neutral-200`}
       >
         <div className='w-full'>
-          <div className='flex w-full items-center justify-between'>
+          <div className='flex w-full items-center'>
             {expanded && <div className='text-xs'>{content}</div>}
+
+            {expanded && live && (
+              <div className='relative flex min-h-5 min-w-5 items-center justify-center sm:min-h-6 sm:min-w-6'>
+                <span className='bg-for-600 absolute inline-flex h-3 w-3 animate-ping rounded-full opacity-75'></span>
+                <span className='bg-for-600 relative inline-flex h-2 w-2 rounded-full'></span>
+              </div>
+            )}
 
             {expanded && (
               <ArrowResultRightIcon
-                className='fill-neutral-900 dark:fill-neutral-100'
+                className='ml-auto fill-neutral-900 dark:fill-neutral-100'
                 width={24}
                 height={24}
                 alt={'Go to results'}

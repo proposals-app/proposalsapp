@@ -20,6 +20,7 @@ interface ResultProps {
   resultNumber: number;
   daoSlug: string;
   groupId: string;
+  live: boolean;
 }
 
 const VoteComponents = {
@@ -36,6 +37,7 @@ export function Result({
   result,
   resultNumber,
   groupId,
+  live,
 }: ResultProps) {
   const Component = result.voteType ? VoteComponents[result.voteType] : null;
 
@@ -67,6 +69,13 @@ export function Result({
             )}
 
             <div className='text-xs'>{content}</div>
+
+            {live && (
+              <div className='relative flex min-h-5 min-w-5 items-center justify-center sm:min-h-6 sm:min-w-6'>
+                <span className='bg-for-600 absolute inline-flex h-3 w-3 animate-ping rounded-full opacity-75'></span>
+                <span className='bg-for-600 relative inline-flex h-2 w-2 rounded-full'></span>
+              </div>
+            )}
 
             <ArrowResultRightIcon
               className='mr-4 ml-auto fill-neutral-900 dark:fill-neutral-100'
