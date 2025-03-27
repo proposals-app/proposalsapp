@@ -43,11 +43,11 @@ export function Result({
   return (
     <div className={`group flex w-full items-center`}>
       <Link
-        className='flex w-full group-hover:-translate-x-1'
+        className='flex w-full transition-all duration-200 ease-in-out group-hover:-translate-x-1'
         href={`/${groupId}/vote/${resultNumber}`}
       >
         <div
-          className={`dark:border-neutral-650 h-full w-full flex-col rounded-l-xs border-t border-b border-l border-neutral-400 bg-white px-1 py-1 text-neutral-800 transition-all duration-200 ease-in-out dark:bg-neutral-950 dark:text-neutral-200`}
+          className={`dark:border-neutral-650 h-full w-full flex-col rounded-l-xs border-t border-b border-l border-neutral-400 bg-white px-1 py-1 text-neutral-800 group-hover:min-w-[calc(100%+0.25rem)] group-hover:pr-2 dark:bg-neutral-950 dark:text-neutral-200`}
         >
           <div className='flex items-center'>
             {onchain ? (
