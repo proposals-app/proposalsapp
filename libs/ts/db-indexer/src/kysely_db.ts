@@ -225,6 +225,80 @@ export interface JobQueue {
   type: string;
 }
 
+export interface PgStatMonitor {
+  applicationName: string | null;
+  bucket: Int8 | null;
+  bucketDone: boolean | null;
+  bucketStartTime: Timestamp | null;
+  calls: Int8 | null;
+  clientIp: string | null;
+  cmdType: number | null;
+  cmdTypeText: string | null;
+  comments: string | null;
+  cpuSysTime: number | null;
+  cpuUserTime: number | null;
+  datname: string | null;
+  dbid: number | null;
+  elevel: number | null;
+  jitDeformCount: Int8 | null;
+  jitDeformTime: number | null;
+  jitEmissionCount: Int8 | null;
+  jitEmissionTime: number | null;
+  jitFunctions: Int8 | null;
+  jitGenerationTime: number | null;
+  jitInliningCount: Int8 | null;
+  jitInliningTime: number | null;
+  jitOptimizationCount: Int8 | null;
+  jitOptimizationTime: number | null;
+  localBlkReadTime: number | null;
+  localBlksDirtied: Int8 | null;
+  localBlksHit: Int8 | null;
+  localBlksRead: Int8 | null;
+  localBlksWritten: Int8 | null;
+  localBlkWriteTime: number | null;
+  maxExecTime: number | null;
+  maxPlanTime: number | null;
+  meanExecTime: number | null;
+  meanPlanTime: number | null;
+  message: string | null;
+  minExecTime: number | null;
+  minmaxStatsSince: Timestamp | null;
+  minPlanTime: number | null;
+  pgsmQueryId: Int8 | null;
+  planid: Int8 | null;
+  plans: Int8 | null;
+  query: string | null;
+  queryid: Int8 | null;
+  queryPlan: string | null;
+  relations: string[] | null;
+  respCalls: string[] | null;
+  rows: Int8 | null;
+  sharedBlkReadTime: number | null;
+  sharedBlksDirtied: Int8 | null;
+  sharedBlksHit: Int8 | null;
+  sharedBlksRead: Int8 | null;
+  sharedBlksWritten: Int8 | null;
+  sharedBlkWriteTime: number | null;
+  sqlcode: string | null;
+  statsSince: Timestamp | null;
+  stddevExecTime: number | null;
+  stddevPlanTime: number | null;
+  tempBlkReadTime: number | null;
+  tempBlksRead: Int8 | null;
+  tempBlksWritten: Int8 | null;
+  tempBlkWriteTime: number | null;
+  toplevel: boolean | null;
+  topQuery: string | null;
+  topQueryid: Int8 | null;
+  totalExecTime: number | null;
+  totalPlanTime: number | null;
+  userid: number | null;
+  username: string | null;
+  walBytes: Numeric | null;
+  walFpi: Int8 | null;
+  walRecords: Int8 | null;
+}
+
 export interface Proposal {
   author: string | null;
   blockCreatedAt: number | null;
@@ -382,6 +456,7 @@ export interface DB {
   discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;
   jobQueue: JobQueue;
+  pgStatMonitor: PgStatMonitor;
   proposal: Proposal;
   proposalGroup: ProposalGroup;
   "rindexerInternal.rindexerArbitrumCoreGovernorProposalCreated": RindexerInternalRindexerArbitrumCoreGovernorProposalCreated;
