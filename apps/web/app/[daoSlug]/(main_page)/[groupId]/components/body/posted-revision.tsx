@@ -12,6 +12,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/app/components/ui/select';
+import EditIcon from '@/public/assets/web/icons/edit.svg';
 
 // Helper component to display the time with a tooltip
 export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
@@ -59,13 +60,7 @@ export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
             </span>
             <span className='font-bold'>{relativeTime}</span>
           </div>
-          <Image
-            className='pl-1'
-            src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/web/edit-icon-posted-time.svg`}
-            alt={''}
-            width={24}
-            height={24}
-          />
+          <EditIcon className='pl-1' />
         </SelectTrigger>
         <SelectContent>
           {versions.map((version, index) => (
