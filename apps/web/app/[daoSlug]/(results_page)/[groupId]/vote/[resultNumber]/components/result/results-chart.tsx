@@ -113,16 +113,19 @@ export function ResultsChart({ results }: ResultsChartProps) {
         }
 
         // Get the data points for this choice with proper typing
-        const seriesData: [Date, number][] = isRankedChoice
+        let seriesData: [Date, number][] = isRankedChoice
           ? deserializedResults.timeSeriesData?.map((point) => [
               point.timestamp,
               point.values[choiceIndex] || 0,
             ]) || []
           : cumulativeData[choiceIndex] || [];
 
+        // Prepend the starting point at 0
+        seriesData = [[deserializedResults.proposal.startAt, 0], ...seriesData];
+
         // Get the last value for extrapolation
         const lastPoint =
-          seriesData.length > 0 ? seriesData[seriesData.length - 1] : null;
+          seriesData.length > 1 ? seriesData[seriesData.length - 1] : null; // seriesData now always has at least one point
         const lastValue = lastPoint ? lastPoint[1] : 0;
         const lastTimestamp = lastPoint ? lastPoint[0] : null;
 
@@ -158,8 +161,8 @@ export function ResultsChart({ results }: ResultsChartProps) {
           z: zIndex,
         };
 
-        // Only create extrapolated series if we have data points
-        if (lastPoint && lastTimestamp) {
+        // Only create extrapolated series if we have data points and the start point
+        if (lastPoint && lastTimestamp && seriesData.length > 1) {
           // Create extrapolated series
           const extrapolatedSeries: echarts.SeriesOption = {
             name: `${choice} (projected)`,
@@ -200,16 +203,19 @@ export function ResultsChart({ results }: ResultsChartProps) {
     // Add the "Total" series for ranked-choice voting
     let totalSeriesMaxValue = 0;
     if (isRankedChoice) {
-      const totalSeriesData = deserializedResults.timeSeriesData.map(
-        (point) => {
-          const totalValue =
-            (point.values as Record<string | number, number>)[
-              'Winning threshold'
-            ] || 0;
-          totalSeriesMaxValue = Math.max(totalSeriesMaxValue, totalValue); // Track the max value of the Total series
-          return [point.timestamp, totalValue];
-        }
-      );
+      let totalSeriesData = deserializedResults.timeSeriesData.map((point) => {
+        const totalValue =
+          (point.values as Record<string | number, number>)[
+            'Winning threshold'
+          ] || 0;
+        totalSeriesMaxValue = Math.max(totalSeriesMaxValue, totalValue); // Track the max value of the Total series
+        return [point.timestamp, totalValue];
+      });
+      // Prepend the starting point at 0 for total series
+      totalSeriesData = [
+        [deserializedResults.proposal.startAt, 0],
+        ...totalSeriesData,
+      ];
 
       const totalSeries: echarts.SeriesOption = {
         name: 'Winning threshold',
@@ -319,6 +325,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
       },
       yAxis: {
         type: 'value',
+        min: 0, // Ensure y-axis starts from 0
         max: yAxisMax,
         axisLabel: {
           color: themeColors.axisLabel,

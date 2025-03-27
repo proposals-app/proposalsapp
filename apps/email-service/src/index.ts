@@ -21,6 +21,22 @@ app.get("/health", (req, res) => {
   res.send("OK");
 });
 
+export type ProposalItem = {
+  type: "proposal";
+  name: string;
+  externalId: string;
+  governorId: string;
+};
+
+export type TopicItem = {
+  type: "topic";
+  name: string;
+  externalId: string;
+  daoDiscourseId: string;
+};
+
+export type ProposalGroupItem = ProposalItem | TopicItem;
+
 export async function checkNewProposals() {
   try {
     // Check for new proposals
@@ -40,14 +56,16 @@ export async function checkNewProposals() {
 
       let groupId: string | undefined;
       for (const group of proposalGroups) {
-        const items = Array.isArray(group.items) ? (group.items as any[]) : [];
+        const items = Array.isArray(group.items)
+          ? (group.items as ProposalGroupItem[])
+          : [];
         const isInGroup =
           items.length > 0 &&
           items.some(
             (item) =>
-              item?.type === "proposal" &&
-              item?.externalId === proposal.externalId &&
-              item?.governorId === proposal.governorId,
+              item.type === "proposal" &&
+              item.externalId === proposal.externalId &&
+              item.governorId === proposal.governorId,
           );
         if (isInGroup) {
           groupId = group.id;
@@ -223,14 +241,16 @@ export async function checkNewDiscussions() {
 
       let groupId: string | undefined;
       for (const group of proposalGroups) {
-        const items = Array.isArray(group.items) ? (group.items as any[]) : [];
+        const items = Array.isArray(group.items)
+          ? (group.items as ProposalGroupItem[])
+          : [];
         const isInGroup =
           items.length > 0 &&
           items.some(
             (item) =>
-              item?.type === "topic" &&
-              item?.externalId === discussion.externalId.toString() &&
-              item?.daoDiscourseId === discussion.daoDiscourseId,
+              item.type === "topic" &&
+              item.externalId === discussion.externalId.toString() &&
+              item.daoDiscourseId === discussion.daoDiscourseId,
           );
         if (isInGroup) {
           groupId = group.id;
@@ -355,14 +375,16 @@ export async function checkEndingProposals() {
 
       let groupId: string | undefined;
       for (const group of proposalGroups) {
-        const items = Array.isArray(group.items) ? (group.items as any[]) : [];
+        const items = Array.isArray(group.items)
+          ? (group.items as ProposalGroupItem[])
+          : [];
         const isInGroup =
           items.length > 0 &&
           items.some(
             (item) =>
-              item?.type === "proposal" &&
-              item?.externalId === proposal.externalId &&
-              item?.governorId === proposal.governorId,
+              item.type === "proposal" &&
+              item.externalId === proposal.externalId &&
+              item.governorId === proposal.governorId,
           );
         if (isInGroup) {
           groupId = group.id;
