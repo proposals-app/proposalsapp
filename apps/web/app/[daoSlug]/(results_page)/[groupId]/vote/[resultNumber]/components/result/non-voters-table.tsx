@@ -84,7 +84,7 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
       <div className='sticky top-[88px] z-40 border-t border-r border-l border-neutral-800 bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className='flex w-full items-center justify-between bg-neutral-50 p-3 text-left dark:bg-neutral-900'
+          className='flex w-full cursor-pointer items-center justify-between bg-neutral-50 p-3 text-left dark:bg-neutral-900'
         >
           <div className='flex items-center gap-2'>
             <span className='text-sm font-bold'>
@@ -142,13 +142,7 @@ export function LoadingNonVotersTable() {
         <div className='col-span-2 flex items-center'>
           <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
         </div>
-        <div className='col-span-3'>
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-        </div>
-        <div className='col-span-1 flex items-center justify-end gap-2'>
-          <div className='h-4 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-        </div>
-        <div className='col-span-1 flex items-center justify-end gap-2'>
+        <div className='col-span-5 flex items-center justify-end gap-2'>
           <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
         </div>
       </div>{' '}
