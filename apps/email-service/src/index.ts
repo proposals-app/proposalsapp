@@ -52,6 +52,7 @@ export async function checkNewProposals() {
         .selectFrom("proposalGroup")
         .selectAll()
         .where("daoId", "=", proposal.daoId)
+        .where("name", "!=", "UNGROUPED")
         .execute();
 
       let groupId: string | undefined;
@@ -237,6 +238,7 @@ export async function checkNewDiscussions() {
         .selectFrom("proposalGroup")
         .selectAll()
         .where("daoId", "=", daoDiscourse.daoId)
+        .where("name", "!=", "UNGROUPED")
         .execute();
 
       let groupId: string | undefined;
@@ -371,6 +373,7 @@ export async function checkEndingProposals() {
         .selectFrom("proposalGroup")
         .selectAll()
         .where("daoId", "=", proposal.daoId)
+        .where("name", "!=", "UNGROUPED")
         .execute();
 
       let groupId: string | undefined;
