@@ -122,6 +122,7 @@ export async function VoteItem({
           voterAddress={voteWithVoter.voterAddress}
           ens={voteWithVoter.ens}
           avatar={voteWithVoter.avatar}
+          discourseUsername={voteWithVoter.discourseUsername}
           currentVotingPower={voteWithVoter.latestVotingPower}
           eventVotingPower={voteWithVoter.votingPower}
         />

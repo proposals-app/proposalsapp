@@ -45,6 +45,7 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
             voterAddress={voter.voterAddress}
             ens={voter.ens}
             avatar={voter.avatar}
+            discourseUsername={voter.discourseUsername}
             currentVotingPower={voter.currentVotingPower}
             eventVotingPower={null}
           />

@@ -58,6 +58,7 @@ export async function AggregateVoteItem({
         <VoterAuthor
           voterAddress={'Multiple voters'}
           ens={'Multiple voters'}
+          discourseUsername={'Multiple voters'}
           avatar={`https://api.dicebear.com/9.x/pixel-art/png?seed=${item.votingPower}`}
           currentVotingPower={null}
           eventVotingPower={null}
