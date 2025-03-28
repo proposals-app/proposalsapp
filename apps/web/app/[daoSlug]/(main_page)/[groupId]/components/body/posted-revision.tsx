@@ -11,7 +11,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/app/components/ui/select';
-import EditIcon from '@/public/assets/web/icons/edit.svg';
+import ChevronDown from '@/public/assets/web/icons/chevron-down.svg';
 
 // Helper component to display the time with a tooltip
 export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
@@ -59,7 +59,7 @@ export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
             </span>
             <span className='font-bold'>{relativeTime}</span>
           </div>
-          <EditIcon className='pl-1' />
+          <ChevronDown className='pl-1' />
         </SelectTrigger>
         <SelectContent>
           {versions.map((version, index) => (
