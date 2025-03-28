@@ -67,6 +67,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
 
   useEffect(() => {
     const checkMobile = () => {
+      // Use a common breakpoint like 768px for sm
       setIsMobile(window.innerWidth < 768);
     };
     checkMobile();
@@ -148,11 +149,14 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
       : getChoiceText(vote, deserializedResults.voteType);
     const barWidth = `${(vote.relativeVotingPower || 0) * 100}%`;
 
+    // Define row height based on isMobile state
+    const rowHeight = isMobile ? 140 : 80; // Use fixed height for mobile
+
     return (
       <div
         key={key}
-        style={{ ...style, height: isMobile ? '160px' : '80px' }}
-        className='relative'
+        style={{ ...style, height: `${rowHeight}px` }} // Apply fixed height
+        className='relative border-b border-neutral-200 dark:border-neutral-700'
       >
         {/* Color bar */}
         <div
@@ -181,69 +185,101 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
           )}
         </div>
 
-        {/* Row content */}
-        <div
-          className={`relative flex h-full pt-3 sm:pt-0 ${isMobile ? 'flex-col justify-between gap-1' : 'grid grid-cols-7 items-center gap-4'} px-2`}
-        >
-          {/* Voter/Delegate */}
-          <div className={isMobile ? '' : 'col-span-2'}>
-            {voteWithVoter ? (
-              <VoterAuthor
-                voterAddress={voteWithVoter.voterAddress}
-                ens={voteWithVoter.ens}
-                avatar={voteWithVoter.avatar}
-                currentVotingPower={voteWithVoter.latestVotingPower}
-                eventVotingPower={voteWithVoter.votingPower}
-              />
-            ) : (
-              <div className='w-full truncate font-mono font-bold'>
-                <span>{vote.voterAddress}</span>
-              </div>
-            )}
-          </div>
+        {/* Row content - Conditional Rendering */}
+        {isMobile ? (
+          // === Mobile Layout ===
+          <div className='flex h-full flex-col justify-between p-3'>
+            {/* Top section: Delegate */}
+            <div>
+              {voteWithVoter ? (
+                <VoterAuthor
+                  voterAddress={voteWithVoter.voterAddress}
+                  ens={voteWithVoter.ens}
+                  avatar={voteWithVoter.avatar}
+                  // Show event VP on mobile for relevance to the vote
+                  eventVotingPower={voteWithVoter.votingPower}
+                  // Optionally hide current VP on mobile if too cluttered
+                  currentVotingPower={voteWithVoter.latestVotingPower}
+                />
+              ) : (
+                <div className='w-full truncate font-mono font-bold'>
+                  <span>{vote.voterAddress}</span>
+                </div>
+              )}
+            </div>
 
-          {/* Vote Choice and Reason */}
-          <div className={isMobile ? '' : 'col-span-3 px-2'}>
-            <div className='font-bold'>
-              <div className='truncate' title={choiceText}>
+            {/* Middle section: Choice & Reason */}
+            <div className='mt-1'>
+              <div className='font-bold' title={choiceText}>
+                {/* Allow choice text to wrap on mobile, remove truncate */}
                 {choiceText}
               </div>
+              {vote.reason && (
+                <div className='text-neutral-450 mt-0.5 hidden text-sm sm:block'>
+                  {isUrl(vote.reason) ? (
+                    <Link
+                      className='block break-all underline' // Allow URL to break
+                      href={vote.reason}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      title={vote.reason}
+                    >
+                      {vote.reason}
+                    </Link>
+                  ) : (
+                    <div className='line-clamp-1' title={vote.reason}>
+                      {' '}
+                      {/* Limit reason lines */}
+                      {vote.reason}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            {vote.reason && (
-              <div className='text-neutral-450 mt-1 text-sm'>
-                {isUrl(vote.reason) ? (
-                  <Link
-                    className='block truncate underline'
-                    href={vote.reason}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    title={vote.reason}
-                  >
-                    {vote.reason}
-                  </Link>
-                ) : (
-                  <div className='truncate' title={vote.reason}>
-                    {vote.reason}
-                  </div>
-                )}
+
+            {/* Bottom section: VP and Date */}
+            <div className='mt-1 flex items-end justify-between text-sm'>
+              {/* Voting Power (Left) */}
+              <div className=''>
+                <div className='font-mono font-bold'>
+                  {formatNumberWithSuffix(vote.votingPower)} ARB
+                </div>
+                <div className='font-mono text-xs'>
+                  {' '}
+                  {/* Smaller font for % */}
+                  {votingPowerPercentage.toFixed(1)}%
+                </div>
               </div>
-            )}
+              {/* Date (Right) */}
+              <div className='text-right'>
+                <div className='font-bold'>
+                  {formatDistanceToNow(vote.createdAt!, { addSuffix: true })}
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Bottom row for mobile: Date and Voting Power */}
-          <div
-            className={`flex ${isMobile ? 'items-center justify-between' : 'col-span-2 grid grid-cols-2'} text-sm`}
-          >
-            <div className={isMobile ? '' : 'px-2'}>
-              <div className='font-bold'>
-                {formatDistanceToNow(vote.createdAt!, { addSuffix: true })}
-              </div>
-              <div className='hidden sm:block'>
-                {format(toZonedTime(vote.createdAt!, 'UTC'), 'MMM d, yyyy')} UTC
-              </div>
+        ) : (
+          // === Desktop Layout ===
+          <div className='relative grid h-full grid-cols-7 items-center gap-4 px-2 pt-2'>
+            {/* Column 1: Delegate */}
+            <div className='col-span-2'>
+              {voteWithVoter ? (
+                <VoterAuthor
+                  voterAddress={voteWithVoter.voterAddress}
+                  ens={voteWithVoter.ens}
+                  avatar={voteWithVoter.avatar}
+                  currentVotingPower={voteWithVoter.latestVotingPower}
+                  eventVotingPower={voteWithVoter.votingPower}
+                />
+              ) : (
+                <div className='w-full truncate font-mono font-bold'>
+                  <span>{vote.voterAddress}</span>
+                </div>
+              )}
             </div>
 
-            <div className={`text-right ${isMobile ? '' : 'px-2'}`}>
+            {/* Column 2: Voting Power */}
+            <div className='col-span-1 px-2 text-right'>
               <div className='font-mono font-bold'>
                 {formatNumberWithSuffix(vote.votingPower)} ARB
               </div>
@@ -251,66 +287,63 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
                 {votingPowerPercentage.toFixed(1)}%
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Divider for mobile */}
-        {isMobile && (
-          <div className='absolute right-0 bottom-0 left-0 border-b border-neutral-200 dark:border-neutral-700'></div>
+            {/* Column 3: Vote Choice and Reason */}
+            <div className='col-span-3 px-2'>
+              <div className='font-bold'>
+                <div className='truncate' title={choiceText}>
+                  {choiceText}
+                </div>
+              </div>
+              {vote.reason && (
+                <div className='text-neutral-450 mt-1 text-sm'>
+                  {isUrl(vote.reason) ? (
+                    <Link
+                      className='block truncate underline'
+                      href={vote.reason}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      title={vote.reason}
+                    >
+                      {vote.reason}
+                    </Link>
+                  ) : (
+                    <div className='truncate' title={vote.reason}>
+                      {vote.reason}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Column 4: Date */}
+            <div className='col-span-1 px-2 text-right text-sm'>
+              <div className='font-bold'>
+                {formatDistanceToNow(vote.createdAt!, { addSuffix: true })}
+              </div>
+              <div className=''>
+                {' '}
+                {/* Removed hidden, always show */}
+                {format(toZonedTime(vote.createdAt!, 'UTC'), 'MMM d, yyyy')} UTC
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );
   };
 
   const TableHeader = () => (
+    // Desktop header remains the same structure
     <div className='sticky top-[88px] z-10 mb-2 hidden border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 sm:grid sm:grid-cols-7 sm:items-center sm:justify-between sm:gap-2 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+      {/* Col 1: Delegate */}
       <div className='col-span-2 flex items-center gap-1 text-left'>
         Delegate
       </div>
-      <div className='col-span-3'>
-        <Select value={selectedChoice} onValueChange={setSelectedChoice}>
-          <SelectTrigger aria-label='Filter by choice'>
-            <SelectValue>
-              {selectedChoice === 'all' ? 'All Vote Choices' : selectedChoice}
-            </SelectValue>
-          </SelectTrigger>
-
-          <SelectContent>
-            <SelectItem value='all'>All Choices</SelectItem>
-            {deserializedResults.choices.map((choice, index) => (
-              <SelectItem key={index} value={choice}>
-                {choice}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div
-        onClick={() => handleSortChange('timestamp')}
-        className='col-span-1 flex cursor-pointer items-center gap-1'
-      >
-        Date
-        <span className='transform'>
-          {sortColumn === 'timestamp' ? (
-            <ArrowSvg
-              width={24}
-              height={24}
-              className={`transition-transform ${
-                sortDirection === 'desc' ? 'rotate-180' : ''
-              }`}
-            />
-          ) : (
-            <ArrowSvg
-              width={24}
-              height={24}
-              className={'rotate-180 fill-neutral-400 transition-transform'}
-            />
-          )}
-        </span>
-      </div>
+      {/* Col 2: Voting Power */}
       <div
         onClick={() => handleSortChange('votingPower')}
-        className='col-span-1 flex cursor-pointer items-center justify-end gap-1 text-right'
+        className='col-span-1 flex cursor-pointer items-center justify-end gap-1'
       >
         Voting Power
         <span className='transform'>
@@ -331,10 +364,53 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
           )}
         </span>
       </div>
+      {/* Col 3: Choice Filter */}
+      <div className='col-span-3'>
+        <Select value={selectedChoice} onValueChange={setSelectedChoice}>
+          <SelectTrigger aria-label='Filter by choice'>
+            <SelectValue>
+              {selectedChoice === 'all' ? 'All Vote Choices' : selectedChoice}
+            </SelectValue>
+          </SelectTrigger>
+
+          <SelectContent>
+            <SelectItem value='all'>All Choices</SelectItem>
+            {deserializedResults.choices.map((choice, index) => (
+              <SelectItem key={index} value={choice}>
+                {choice}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {/* Col 4: Date */}
+      <div
+        onClick={() => handleSortChange('timestamp')}
+        className='col-span-1 flex cursor-pointer items-center justify-end gap-1 text-right'
+      >
+        Date
+        <span className='transform'>
+          {sortColumn === 'timestamp' ? (
+            <ArrowSvg
+              width={24}
+              height={24}
+              className={`transition-transform ${
+                sortDirection === 'desc' ? 'rotate-180' : ''
+              }`}
+            />
+          ) : (
+            <ArrowSvg
+              width={24}
+              height={24}
+              className={'rotate-180 fill-neutral-400 transition-transform'}
+            />
+          )}
+        </span>
+      </div>
     </div>
   );
 
-  // Mobile Filter Header
+  // Mobile Filter Header remains the same
   const MobileFilterHeader = () => (
     <div className='sticky top-[88px] z-10 mb-2 block border border-neutral-800 bg-neutral-200 p-2 font-bold sm:hidden dark:border-neutral-600 dark:bg-neutral-800'>
       <Select value={selectedChoice} onValueChange={setSelectedChoice}>
@@ -372,8 +448,10 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
                 onScroll={onChildScroll}
                 scrollTop={scrollTop}
                 rowCount={sortedAndFilteredVotes.length}
-                rowHeight={isMobile ? 160 : 80}
+                // Use fixed height based on isMobile
+                rowHeight={isMobile ? 140 : 80}
                 rowRenderer={rowRenderer}
+                overscanRowCount={5} // Keep overscan for smoother scroll
               />
             )}
           </AutoSizer>
@@ -384,38 +462,49 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
 }
 
 export function LoadingTable() {
-  // Loading state remains the same
+  const mobileRowHeight = 140;
+  const desktopRowHeight = 80;
+  // Loading state updated for both desktop and mobile structures
   return (
     <div>
-      {/* Header */}
-      <div className='sticky top-[88px] z-10 mb-2 grid h-12 grid-cols-7 items-center gap-2 border border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-600 dark:bg-neutral-800'>
+      {/* Desktop Header */}
+      <div className='sticky top-[88px] z-10 mb-2 hidden h-12 grid-cols-7 items-center gap-2 border border-neutral-800 bg-neutral-200 p-2 sm:grid dark:border-neutral-600 dark:bg-neutral-800'>
+        {/* Delegate */}
         <div className='col-span-2 flex items-center'>
           <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
         </div>
-        <div className='col-span-3'>
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-        </div>
+        {/* Voting Power */}
         <div className='col-span-1 flex items-center justify-end gap-2'>
           <div className='h-4 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
         </div>
+        {/* Choice */}
+        <div className='col-span-3'>
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+        </div>
+        {/* Date */}
         <div className='col-span-1 flex items-center justify-end gap-2'>
           <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
         </div>
       </div>
+      {/* Mobile Header (Filter Only) */}
+      <div className='sticky top-[88px] z-10 mb-2 block h-12 border border-neutral-800 bg-neutral-200 p-2 sm:hidden dark:border-neutral-600 dark:bg-neutral-800'>
+        <div className='h-full w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+      </div>
 
       {/* Rows */}
       {[...Array(10)].map((_, index) => (
-        <div key={index} className='relative'>
-          {/* Color bar */}
-          <div
-            className='absolute top-0 left-0 h-2 w-full opacity-50'
-            style={{ width: '10%' }} // Adjust the width as needed to match the real content
-          >
-            <div className='h-full w-full animate-pulse bg-neutral-300 dark:bg-neutral-700' />
-          </div>
+        <div
+          key={index}
+          className='relative border-b border-neutral-200 dark:border-neutral-700'
+          // Set height explicitly on the container for loading state consistency
+          style={{ height: `${desktopRowHeight}px` }}
+        >
+          {/* Color bar Skeleton */}
+          <div className='absolute top-0 left-0 h-2 w-[10%] animate-pulse bg-neutral-300 opacity-50 dark:bg-neutral-700' />
 
-          {/* Row content */}
-          <div className='relative grid h-20 grid-cols-7 items-center p-2'>
+          {/* === Desktop Loading Row Structure === */}
+          <div className='relative hidden h-full grid-cols-7 items-center p-2 sm:grid'>
+            {/* Delegate */}
             <div className='col-span-2 flex items-center gap-2'>
               <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-300 dark:bg-neutral-700' />
               <div className='flex flex-col gap-1'>
@@ -423,17 +512,47 @@ export function LoadingTable() {
                 <div className='h-3 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
               </div>
             </div>
+            {/* Voting Power */}
+            <div className='col-span-1 flex flex-col items-end gap-1 px-2'>
+              <div className='h-4 w-20 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+              <div className='h-3 w-12 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            </div>
+            {/* Choice */}
             <div className='col-span-3 flex flex-col gap-1 px-2'>
               <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
               <div className='h-3 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
             </div>
-            <div className='col-span-1 flex flex-col gap-1 px-2'>
+            {/* Date */}
+            <div className='col-span-1 flex flex-col items-end gap-1 px-2'>
               <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
               <div className='h-3 w-20 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
             </div>
-            <div className='col-span-1 flex flex-col items-end gap-1 px-2'>
-              <div className='h-4 w-28 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-              <div className='h-3 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          </div>
+          {/* === Mobile Loading Row Structure === */}
+          {/* Need to override the height inherited from the parent for mobile */}
+          <div
+            className='relative flex h-full flex-col justify-between p-3 sm:hidden'
+            style={{ height: `${mobileRowHeight}px` }}
+          >
+            {/* Delegate Skeleton */}
+            <div className='flex items-center gap-2'>
+              <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-300 dark:bg-neutral-700' />
+              <div className='h-4 w-32 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            </div>
+            {/* Choice Skeleton */}
+            <div className='flex flex-col gap-1'>
+              <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+              <div className='h-3 w-4/5 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+            </div>
+            {/* VP (Left) & Date (Right) Skeleton */}
+            <div className='flex items-end justify-between'>
+              {/* VP Skeleton */}
+              <div className='flex flex-col items-start gap-1'>
+                <div className='h-4 w-20 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+                <div className='h-3 w-12 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+              </div>
+              {/* Date Skeleton */}
+              <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
             </div>
           </div>
         </div>
