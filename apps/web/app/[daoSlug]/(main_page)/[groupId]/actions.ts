@@ -327,55 +327,71 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
 } {
   const { totalVotingPower, choices, votes } = processedResults;
 
+  // Ensure totalVotingPower is not zero to avoid division by zero errors later
+  if (!totalVotingPower || totalVotingPower <= 0) {
+    const emptySegments: { [key: string]: VoteSegmentData[] } = {};
+    choices.forEach((_, index) => {
+      emptySegments[index.toString()] = [];
+    });
+    return emptySegments;
+  }
+
   const sortedVotes =
-    votes
-      ?.filter((vote) => !vote.aggregate)
-      .sort((a, b) => b.votingPower - a.votingPower) || [];
+    votes?.sort((a, b) => b.votingPower - a.votingPower) || [];
 
   const voteSegments: { [key: string]: VoteSegmentData[] } = {};
-  const aggregatedVotes: { [key: number]: { count: number; power: number } } =
-    {};
 
-  // Initialize voteSegments and aggregatedVotes for each choice
+  const aggregatedPower: { [key: number]: number } = {};
+
   choices.forEach((_, index) => {
     voteSegments[index.toString()] = [];
-    aggregatedVotes[index] = { count: 0, power: 0 };
+    aggregatedPower[index] = 0;
   });
 
-  // Process each vote and distribute its voting power according to the choices
   sortedVotes.forEach((vote) => {
-    // Each vote can have multiple choices now
     vote.choice.forEach((choiceItem) => {
       const choiceIndex = choiceItem.choiceIndex;
 
-      // Ensure the choice is a valid index in the choices array
       if (choiceIndex >= 0 && choiceIndex < choices.length) {
-        // Calculate the proportional voting power based on the weight
-        const proportionalVotingPower =
-          (vote.votingPower * choiceItem.weight) / 100;
+        const votePower = Number(vote.votingPower) || 0;
+        const weight = Number(choiceItem.weight) || 0;
+
+        const proportionalVotingPower = (votePower * weight) / 100;
+
+        if (proportionalVotingPower <= 0) {
+          return;
+        }
+
         const percentage = (proportionalVotingPower / totalVotingPower) * 100;
 
         if (percentage >= MIN_VISIBLE_WIDTH_PERCENT) {
+          if (!voteSegments[choiceIndex.toString()]) {
+            voteSegments[choiceIndex.toString()] = [];
+          }
           voteSegments[choiceIndex.toString()].push({
             votingPower: proportionalVotingPower,
           });
         } else {
-          aggregatedVotes[choiceIndex].count += 1;
-          aggregatedVotes[choiceIndex].power += proportionalVotingPower;
+          if (aggregatedPower[choiceIndex] === undefined) {
+            aggregatedPower[choiceIndex] = 0;
+          }
+          aggregatedPower[choiceIndex] += proportionalVotingPower;
         }
       } else {
         console.warn(
-          `Invalid choice index: ${choiceIndex}. Skipping this choice.`
+          `[calculateVoteSegments] Invalid choice index: ${choiceIndex} found in vote. Skipping this choice portion.`
         );
       }
     });
   });
 
-  // Process aggregated votes
-  Object.entries(aggregatedVotes).forEach(([choice, data]) => {
-    if (data.power > 0) {
-      voteSegments[choice].push({
-        votingPower: data.power,
+  Object.entries(aggregatedPower).forEach(([choiceIndexStr, power]) => {
+    if (power > 0) {
+      if (!voteSegments[choiceIndexStr]) {
+        voteSegments[choiceIndexStr] = [];
+      }
+      voteSegments[choiceIndexStr].push({
+        votingPower: power,
         isAggregated: true,
       });
     }

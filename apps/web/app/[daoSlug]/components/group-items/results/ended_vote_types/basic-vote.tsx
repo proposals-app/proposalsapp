@@ -188,6 +188,7 @@ export const BasicVote = ({ result }: BasicVoteProps) => {
   if (!totalVotingPower && !result.hiddenVote) {
     return <div className='text-sm text-neutral-500'>No votes recorded</div>;
   }
+
   return (
     <div>
       {/* Top Bar (Vote Distribution) */}
