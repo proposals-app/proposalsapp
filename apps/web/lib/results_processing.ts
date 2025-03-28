@@ -108,14 +108,21 @@ function getTotalDelegatedVp(
 
 const ACCUMULATE_VOTING_POWER_THRESHOLD = 50000;
 
+// Internal result structure returned by specific processors
+interface IntermediateProcessingResult {
+    processedVotes: ProcessedVote[];
+    finalResults: { [choice: number]: number };
+    timeSeriesData?: TimeSeriesPoint[];
+    totalVotingPower: number;
+}
+
 /**
  * Process basic (single-choice) votes.
  * @param votes - The list of votes to process.
  * @param choices - The list of possible choices for the proposal.
- * @param proposal - The proposal object.
- * @param withVotes - Whether to include processed votes in the result.
+ * @param choiceColors - The array of choice colors.
  * @param withTimeseries - Whether to include time series data in the result.
- * @returns A promise that resolves to the processed results.
+ * @returns An object containing the processed votes, final results, time series data, and total voting power.
  */
 async function processBasicVotes(
   votes: Pick<
@@ -129,12 +136,9 @@ async function processBasicVotes(
     | 'id'
   >[],
   choices: string[],
-  proposal: Selectable<Proposal>,
-  withVotes: boolean,
+  choiceColors: string[],
   withTimeseries: boolean
-): Promise<ProcessedResults> {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice));
-
+): Promise<IntermediateProcessingResult> {
   const processedVotes: ProcessedVote[] = votes.map((vote) => {
     const choiceIndex = typeof vote.choice === 'number' ? vote.choice : 0;
     return {
@@ -224,30 +228,17 @@ async function processBasicVotes(
       finalResults[vote.choice[0].choiceIndex] + vote.votingPower;
   });
 
-  const processedProposal = {
-    ...proposal,
-    startAt: new Date(proposal.startAt),
-    endAt: new Date(proposal.endAt),
-    createdAt: new Date(proposal.createdAt),
-  };
+  // Calculate total voting power from *processed* valid votes
+  const totalVotingPower = processedVotes.reduce(
+    (sum, vote) => sum + vote.votingPower,
+    0
+  );
 
   return {
-    proposal: processedProposal,
-    choices,
-    choiceColors,
-    totalVotingPower: processedVotes.reduce(
-      (sum, vote) => sum + vote.votingPower,
-      0
-    ),
-    quorum: proposal.quorum ? Number(proposal.quorum) : null,
-    quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-    voteType: 'basic',
-    votes: withVotes ? processedVotes : undefined,
-    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
+    processedVotes,
     finalResults,
-    totalDelegatedVp: getTotalDelegatedVp(proposal),
-    hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
-    scoresState: (proposal.metadata as ProposalMetadata).scoresState,
+    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
+    totalVotingPower,
   };
 }
 
@@ -255,10 +246,9 @@ async function processBasicVotes(
  * Process weighted votes.
  * @param votes - The list of votes to process.
  * @param choices - The list of possible choices for the proposal.
- * @param proposal - The proposal object.
- * @param withVotes - Whether to include processed votes in the result.
+ * @param choiceColors - The array of choice colors.
  * @param withTimeseries - Whether to include time series data in the result.
- * @returns A promise that resolves to the processed results.
+ * @returns An object containing the processed votes, final results, time series data, and total voting power.
  */
 async function processWeightedVotes(
   votes: Pick<
@@ -272,12 +262,9 @@ async function processWeightedVotes(
     | 'id'
   >[],
   choices: string[],
-  proposal: Selectable<Proposal>,
-  withVotes: boolean,
+  choiceColors: string[],
   withTimeseries: boolean
-): Promise<ProcessedResults> {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice));
-
+): Promise<IntermediateProcessingResult> {
   const processedVotes: ProcessedVote[] = [];
 
   votes.forEach((vote) => {
@@ -429,30 +416,17 @@ async function processWeightedVotes(
     });
   });
 
-  const processedProposal = {
-    ...proposal,
-    startAt: new Date(proposal.startAt),
-    endAt: new Date(proposal.endAt),
-    createdAt: new Date(proposal.createdAt),
-  };
+  // Calculate total voting power from *processed* valid votes
+  const totalVotingPower = processedVotes.reduce(
+    (sum, vote) => sum + vote.votingPower,
+    0
+  );
 
   return {
-    proposal: processedProposal,
-    choices,
-    choiceColors,
-    totalVotingPower: processedVotes.reduce(
-      (sum, vote) => sum + vote.votingPower,
-      0
-    ),
-    quorum: proposal.quorum ? Number(proposal.quorum) : null,
-    quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-    voteType: 'weighted',
-    votes: withVotes ? processedVotes : undefined,
-    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
+    processedVotes,
     finalResults,
-    totalDelegatedVp: getTotalDelegatedVp(proposal),
-    hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
-    scoresState: (proposal.metadata as ProposalMetadata).scoresState,
+    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
+    totalVotingPower,
   };
 }
 
@@ -460,10 +434,9 @@ async function processWeightedVotes(
  * Process approval votes.
  * @param votes - The list of votes to process.
  * @param choices - The list of possible choices for the proposal.
- * @param proposal - The proposal object.
- * @param withVotes - Whether to include processed votes in the result.
+ * @param choiceColors - The array of choice colors.
  * @param withTimeseries - Whether to include time series data in the result.
- * @returns A promise that resolves to the processed results.
+ * @returns An object containing the processed votes, final results, time series data, and total voting power.
  */
 async function processApprovalVotes(
   votes: Pick<
@@ -477,12 +450,9 @@ async function processApprovalVotes(
     | 'id'
   >[],
   choices: string[],
-  proposal: Selectable<Proposal>,
-  withVotes: boolean,
+  choiceColors: string[],
   withTimeseries: boolean
-): Promise<ProcessedResults> {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice));
-
+): Promise<IntermediateProcessingResult> {
   const processedVotes: ProcessedVote[] = [];
 
   votes.forEach((vote) => {
@@ -607,36 +577,26 @@ async function processApprovalVotes(
 
   processedVotes.forEach((vote) => {
     vote.choice.forEach((choice) => {
-      // Choice index already validated
-      finalResults[choice.choiceIndex] =
-        (finalResults[choice.choiceIndex] || 0) + vote.votingPower; // Initialize if needed
+      // Ensure choiceIndex is valid before adding to results
+      if (choice.choiceIndex >= 0 && choice.choiceIndex < choices.length) {
+        const normalizedPower = (vote.votingPower * choice.weight) / 100;
+        finalResults[choice.choiceIndex] =
+          (finalResults[choice.choiceIndex] || 0) + normalizedPower; // Initialize if needed
+      }
     });
   });
 
-  const processedProposal = {
-    ...proposal,
-    startAt: new Date(proposal.startAt),
-    endAt: new Date(proposal.endAt),
-    createdAt: new Date(proposal.createdAt),
-  };
+  // Calculate total voting power from *processed* valid votes
+  const totalVotingPower = processedVotes.reduce(
+    (sum, vote) => sum + vote.votingPower,
+    0
+  );
 
   return {
-    proposal: processedProposal,
-    choices,
-    choiceColors,
-    totalVotingPower: processedVotes.reduce(
-      (sum, vote) => sum + vote.votingPower,
-      0
-    ),
-    quorum: proposal.quorum ? Number(proposal.quorum) : null,
-    quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-    voteType: 'approval',
-    votes: withVotes ? processedVotes : undefined,
-    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
+    processedVotes,
     finalResults,
-    totalDelegatedVp: getTotalDelegatedVp(proposal),
-    hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
-    scoresState: (proposal.metadata as ProposalMetadata).scoresState,
+    timeSeriesData: withTimeseries ? timeSeriesData : undefined,
+    totalVotingPower,
   };
 }
 
@@ -800,10 +760,9 @@ const calculateIRVSync = (
  * Process ranked-choice votes using the Instant Runoff Voting (IRV) method.
  * @param votes - The list of votes to process.
  * @param choices - The list of possible choices for the proposal.
- * @param proposal - The proposal object.
- * @param withVotes - Whether to include processed votes in the result.
+ * @param choiceColors - The array of choice colors.
  * @param withTimeseries - Whether to include time series data in the result.
- * @returns A promise that resolves to the processed results.
+ * @returns An object containing the processed votes, final results, time series data, and total voting power.
  */
 async function processRankedChoiceVotes(
   votes: Pick<
@@ -817,44 +776,10 @@ async function processRankedChoiceVotes(
     | 'id'
   >[],
   choices: string[],
-  proposal: Selectable<Proposal>,
-  withVotes: boolean,
+  choiceColors: string[],
   withTimeseries: boolean
-): Promise<ProcessedResults> {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice));
+): Promise<IntermediateProcessingResult> {
   const numChoices = choices.length;
-
-  // Early return for empty votes or no choices
-  if (!votes.length || numChoices === 0) {
-    const processedProposalDates = {
-      ...proposal,
-      startAt: new Date(proposal.startAt),
-      endAt: new Date(proposal.endAt),
-      createdAt: new Date(proposal.createdAt),
-    };
-    return {
-      proposal: processedProposalDates,
-      choices,
-      choiceColors,
-      totalVotingPower: 0,
-      quorum: proposal.quorum ? Number(proposal.quorum) : null,
-      quorumChoices:
-        (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-      voteType: 'ranked-choice',
-      votes: withVotes ? [] : undefined,
-      timeSeriesData: withTimeseries ? [] : undefined,
-      finalResults: choices.reduce(
-        (acc, _, index) => {
-          acc[index] = 0;
-          return acc;
-        },
-        {} as Record<number, number>
-      ),
-      totalDelegatedVp: getTotalDelegatedVp(proposal),
-      hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
-      scoresState: (proposal.metadata as ProposalMetadata).scoresState,
-    };
-  }
 
   // Process votes: Ensure choice indices are valid (0-based) and filter invalid ranks
   const processedVotes: ProcessedVote[] = votes
@@ -910,7 +835,7 @@ async function processRankedChoiceVotes(
     .filter((v): v is ProcessedVote => v !== null); // Filter out invalid votes
 
   let timeSeriesData: TimeSeriesPoint[] = [];
-  if (withTimeseries) {
+  if (withTimeseries && processedVotes.length > 0) {
     const timeSeriesMap = new Map<string, TimeSeriesPoint>();
     const runningVotes: ProcessedVote[] = [];
     let accumulatedVotingPower = 0; // Track total VP added since last point
@@ -989,31 +914,17 @@ async function processRankedChoiceVotes(
   // This assignment is now type-correct
   finalResults['Winning threshold'] = totalVotesInVeryFinalRound / 2;
 
-  const processedProposal = {
-    ...proposal,
-    startAt: new Date(proposal.startAt),
-    endAt: new Date(proposal.endAt),
-    createdAt: new Date(proposal.createdAt),
-  };
+  // Calculate total voting power from *processed* valid votes
+  const totalVotingPower = processedVotes.reduce(
+    (sum, vote) => sum + vote.votingPower,
+    0
+  );
 
   return {
-    proposal: processedProposal,
-    choices,
-    choiceColors,
-    totalVotingPower: processedVotes.reduce(
-      // Use processedVotes for accurate total VP
-      (sum, vote) => sum + vote.votingPower,
-      0
-    ),
-    quorum: proposal.quorum ? Number(proposal.quorum) : null,
-    quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-    voteType: 'ranked-choice',
-    votes: withVotes ? processedVotes : undefined, // Return the cleaned/validated votes
+    processedVotes,
+    finalResults,
     timeSeriesData: withTimeseries ? timeSeriesData : undefined,
-    finalResults, // Reflects the vote counts in the decisive round
-    totalDelegatedVp: getTotalDelegatedVp(proposal),
-    hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
-    scoresState: (proposal.metadata as ProposalMetadata).scoresState,
+    totalVotingPower,
   };
 }
 
@@ -1021,10 +932,9 @@ async function processRankedChoiceVotes(
  * Process quadratic votes.
  * @param votes - The list of votes to process.
  * @param choices - The list of possible choices for the proposal.
- * @param proposal - The proposal object.
- * @param withVotes - Whether to include processed votes in the result.
+ * @param choiceColors - The array of choice colors.
  * @param withTimeseries - Whether to include time series data in the result.
- * @returns A promise that resolves to the processed results.
+ * @returns An object containing the processed votes, final results, time series data, and total voting power.
  */
 async function processQuadraticVotes(
   votes: Pick<
@@ -1038,14 +948,9 @@ async function processQuadraticVotes(
     | 'id'
   >[],
   choices: string[],
-  proposal: Selectable<Proposal>,
-  withVotes: boolean,
+  choiceColors: string[],
   withTimeseries: boolean
-): Promise<ProcessedResults> {
-  const choiceColors = choices.map((choice) => getColorForChoice(choice));
-
-  // For quadratic voting, each vote's contribution to the *score* is sqrt(votingPower).
-  // The `ProcessedVote` still stores the original `votingPower`.
+): Promise<IntermediateProcessingResult> {
   const processedVotes: ProcessedVote[] = votes.map((vote) => {
     // Quadratic voting usually implies multiple choices with credits,
     // but snapshot's implementation often simplifies it to single choice
@@ -1176,31 +1081,17 @@ async function processQuadraticVotes(
     }
   });
 
-  const processedProposal = {
-    ...proposal,
-    startAt: new Date(proposal.startAt),
-    endAt: new Date(proposal.endAt),
-    createdAt: new Date(proposal.createdAt),
-  };
+  // Calculate total voting power from *processed* valid votes
+  const totalVotingPower = processedVotes.reduce(
+    (sum, vote) => sum + vote.votingPower,
+    0
+  );
 
   return {
-    proposal: processedProposal,
-    choices,
-    choiceColors,
-    // totalVotingPower still represents the sum of original VP cast
-    totalVotingPower: processedVotes.reduce(
-      (sum, vote) => sum + vote.votingPower,
-      0
-    ),
-    quorum: proposal.quorum ? Number(proposal.quorum) : null, // Quorum definition might need adjustment for QV
-    quorumChoices: (proposal.metadata as ProposalMetadata).quorumChoices ?? [],
-    voteType: 'quadratic',
-    votes: withVotes ? processedVotes : undefined,
+    processedVotes,
+    finalResults,
     timeSeriesData: withTimeseries ? timeSeriesData : undefined,
-    finalResults, // These are the quadratic scores
-    totalDelegatedVp: getTotalDelegatedVp(proposal),
-    hiddenVote: (proposal.metadata as ProposalMetadata).hiddenVote,
-    scoresState: (proposal.metadata as ProposalMetadata).scoresState,
+    totalVotingPower,
   };
 }
 
@@ -1237,92 +1128,94 @@ export async function processResultsAction(
     aggregatedVotes = false,
   }: ProcessingConfig
 ): Promise<ProcessedResults> {
+  // --- Common Setup ---
+  const processedProposal = {
+    ...proposal,
+    startAt: new Date(proposal.startAt),
+    endAt: new Date(proposal.endAt),
+    createdAt: new Date(proposal.createdAt),
+  };
+
   // Ensure choices is always an array of strings, provide default if necessary
   const choices = Array.isArray(proposal.choices)
     ? (proposal.choices as string[]).map(String) // Ensure all elements are strings
     : [];
 
-  // Handle cases where choices might be missing or malformed
+  const metadata = (proposal.metadata || {}) as ProposalMetadata; // Use default empty object
+  const voteType = (metadata.voteType || 'basic') as VoteType;
+  const quorum = proposal.quorum ? Number(proposal.quorum) : null;
+  const quorumChoices = metadata.quorumChoices ?? [];
+  const totalDelegatedVp = getTotalDelegatedVp(proposal);
+  const hiddenVote = metadata.hiddenVote ?? false;
+  const scoresState = metadata.scoresState ?? 'unknown';
+
+  // Handle cases where choices might be missing or malformed early
   if (choices.length === 0) {
     console.warn(`Proposal ${proposal.id} has no valid choices defined.`);
-    // Depending on requirements, either return an error state or a default structure
-    // Returning a default structure for now:
-    const processedProposalDates = {
-      ...proposal,
-      startAt: new Date(proposal.startAt),
-      endAt: new Date(proposal.endAt),
-      createdAt: new Date(proposal.createdAt),
-    };
     return {
-      proposal: processedProposalDates,
+      proposal: processedProposal,
       choices: [],
       choiceColors: [],
       totalVotingPower: 0,
-      quorum: proposal.quorum ? Number(proposal.quorum) : null,
-      quorumChoices: [],
+      quorum,
+      quorumChoices,
       voteType: 'basic', // Default type
       votes: withVotes ? [] : undefined,
       timeSeriesData: withTimeseries ? [] : undefined,
       finalResults: {},
-      totalDelegatedVp: getTotalDelegatedVp(proposal),
-      hiddenVote: (proposal.metadata as ProposalMetadata)?.hiddenVote ?? false,
-      scoresState:
-        (proposal.metadata as ProposalMetadata)?.scoresState ?? 'unknown',
+      totalDelegatedVp,
+      hiddenVote,
+      scoresState,
     };
   }
 
-  const metadata = proposal.metadata as ProposalMetadata;
-  const voteType = metadata.voteType || 'basic';
-
-  let result: ProcessedResults;
+  const choiceColors = choices.map((choice) => getColorForChoice(choice));
 
   // Filter out votes with non-positive voting power before processing
   const validVotes = votes.filter((vote) => vote.votingPower > 0);
 
+  // --- Type-Specific Processing ---
+  let intermediateResult: IntermediateProcessingResult;
+
   switch (voteType) {
     case 'basic':
     case 'single-choice':
-      result = await processBasicVotes(
+      intermediateResult = await processBasicVotes(
         validVotes,
         choices,
-        proposal,
-        withVotes,
+        choiceColors, // Pass colors
         withTimeseries
       );
       break;
     case 'weighted':
-      result = await processWeightedVotes(
+      intermediateResult = await processWeightedVotes(
         validVotes,
         choices,
-        proposal,
-        withVotes,
+        choiceColors, // Pass colors
         withTimeseries
       );
       break;
     case 'approval':
-      result = await processApprovalVotes(
+      intermediateResult = await processApprovalVotes(
         validVotes,
         choices,
-        proposal,
-        withVotes,
+        choiceColors, // Pass colors
         withTimeseries
       );
       break;
     case 'ranked-choice':
-      result = await processRankedChoiceVotes(
+      intermediateResult = await processRankedChoiceVotes(
         validVotes,
         choices,
-        proposal,
-        withVotes,
+        choiceColors, // Pass colors
         withTimeseries
       );
       break;
     case 'quadratic':
-      result = await processQuadraticVotes(
+      intermediateResult = await processQuadraticVotes(
         validVotes,
         choices,
-        proposal,
-        withVotes,
+        choiceColors, // Pass colors
         withTimeseries
       );
       break;
@@ -1330,18 +1223,23 @@ export async function processResultsAction(
       console.warn(
         `Unknown vote type "${voteType}" for proposal ${proposal.id}. Defaulting to basic.`
       );
-      result = await processBasicVotes(
+      intermediateResult = await processBasicVotes(
         validVotes,
         choices,
-        proposal,
-        withVotes,
+        choiceColors, // Pass colors
         withTimeseries
       );
       break;
   }
 
-  // Aggregation logic (applies after specific vote type processing)
-  if (withVotes && aggregatedVotes && result.votes && result.votes.length > 0) {
+  // --- Post-Processing & Final Structure ---
+  let finalProcessedVotes = intermediateResult.processedVotes;
+  let finalTimeSeriesData = intermediateResult.timeSeriesData;
+  let finalResults = intermediateResult.finalResults;
+  const totalVotingPower = intermediateResult.totalVotingPower;
+
+  // Aggregation logic
+  if (withVotes && aggregatedVotes && finalProcessedVotes.length > 0) {
     const aggregatedResults: ProcessedVote[] = [];
     let currentAggregation: {
       [choice: number]: { power: number; count: number };
@@ -1349,7 +1247,7 @@ export async function processResultsAction(
     let aggregationStartTime: Date | null = null;
 
     // Ensure votes are sorted by time for aggregation logic
-    const sortedVotes = [...result.votes].sort(
+    const sortedVotes = [...finalProcessedVotes].sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
     );
 
@@ -1368,19 +1266,18 @@ export async function processResultsAction(
 
             if (aggregatedData.power > 0) {
               aggregatedResults.push({
-                proposalId: voteItem.proposalId,
+                proposalId: processedProposal.id,
                 reason: `Aggregated ${aggregatedData.count} votes`,
                 votingPower: aggregatedData.power,
                 aggregate: true,
-                // Use midpoint or end time? Using end time (time of the significant vote)
                 createdAt: voteItem.createdAt,
                 choice: [
                   {
                     choiceIndex,
                     weight: 100,
-                    text: result.choices[choiceIndex] || 'Unknown Choice',
+                    text: choices[choiceIndex] || 'Unknown Choice',
                     color:
-                      result.choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR,
+                      choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR,
                   },
                 ],
                 voterAddress: 'aggregated',
@@ -1403,7 +1300,7 @@ export async function processResultsAction(
         // Distribute voting power based on choices and weights
         voteItem.choice.forEach((choiceItem) => {
           const choiceIndex = choiceItem.choiceIndex;
-          if (choiceIndex >= 0 && choiceIndex < result.choices.length) {
+          if (choiceIndex >= 0 && choiceIndex < choices.length) {
             const proportionalPower =
               (voteItem.votingPower * choiceItem.weight) / 100;
             if (!currentAggregation[choiceIndex]) {
@@ -1426,7 +1323,7 @@ export async function processResultsAction(
 
         if (aggregatedData.power > 0) {
           aggregatedResults.push({
-            proposalId: proposal.id,
+            proposalId: processedProposal.id,
             reason: `Aggregated ${aggregatedData.count} votes (final)`,
             votingPower: aggregatedData.power,
             aggregate: true,
@@ -1435,8 +1332,8 @@ export async function processResultsAction(
               {
                 choiceIndex,
                 weight: 100,
-                text: result.choices[choiceIndex] || 'Unknown Choice',
-                color: result.choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR,
+                text: choices[choiceIndex] || 'Unknown Choice',
+                color: choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR,
               },
             ],
             voterAddress: 'aggregated',
@@ -1446,21 +1343,21 @@ export async function processResultsAction(
       }
     }
 
-    result.votes = aggregatedResults;
+    finalProcessedVotes = aggregatedResults;
   }
 
-  // Update relativeVotingPower based on the maximum individual vote power *before* aggregation
-  if (result.votes) {
+  // Calculate relativeVotingPower
+  if (withVotes && finalProcessedVotes) {
     // Find max power among non-aggregated votes if aggregation happened, otherwise all votes
     const relevantVotes = aggregatedVotes
-      ? result.votes.filter((v) => !v.aggregate)
-      : result.votes;
+      ? finalProcessedVotes.filter((v) => !v.aggregate)
+      : finalProcessedVotes;
     const maxIndividualVotingPower = Math.max(
       ...relevantVotes.map((vote) => vote.votingPower),
       0
     );
 
-    result.votes.forEach((vote) => {
+    finalProcessedVotes.forEach((vote) => {
       vote.relativeVotingPower =
         maxIndividualVotingPower > 0
           ? vote.votingPower / maxIndividualVotingPower
@@ -1472,19 +1369,19 @@ export async function processResultsAction(
     });
   }
 
-  // Check if hiddenVote is true and scoresState is not "final"
-  if (metadata.hiddenVote && metadata.scoresState !== 'final') {
+  // Handle hidden votes
+  if (hiddenVote && scoresState !== 'final') {
     // Invalidate final results
-    result.finalResults = choices.reduce(
+    finalResults = choices.reduce(
       (acc, _, index) => {
         acc[index] = 0;
         return acc;
       },
-      { [-1]: result.totalVotingPower } as Record<number, number>
+      { [-1]: totalVotingPower } as Record<number, number> // Use calculated total VP
     ); // Assign all power to choice -1
 
     // Invalidate timeseries
-    result.timeSeriesData = result.timeSeriesData?.map((point) => {
+    finalTimeSeriesData = finalTimeSeriesData?.map((point) => {
       const totalPowerInPoint = Object.values(point.values).reduce(
         (sum, power) => sum + power,
         0
@@ -1496,32 +1393,42 @@ export async function processResultsAction(
     });
 
     // Add a placeholder color for the hidden choice if needed
-    result.choiceColors[-1] = DEFAULT_CHOICE_COLOR;
-    // Optionally add a placeholder choice text
-    // result.choices[-1] = "Results Hidden"; // This might break components expecting array indices
+    // We need to make sure choiceColors is mutable or handled correctly if accessed by index -1 elsewhere
+    // For simplicity, let's assume components handle missing colors.
+    // choiceColors[-1] = DEFAULT_CHOICE_COLOR; // Avoid modifying array with negative index directly
   }
 
-  // Final data type consistency checks
-  result.proposal = {
-    ...result.proposal,
-    startAt: new Date(result.proposal.startAt),
-    endAt: new Date(result.proposal.endAt),
-    createdAt: new Date(result.proposal.createdAt),
-  };
-
-  if (result.timeSeriesData) {
-    result.timeSeriesData = result.timeSeriesData.map((point) => ({
+  // Final data type consistency checks (Dates)
+  if (finalTimeSeriesData) {
+    finalTimeSeriesData = finalTimeSeriesData.map((point) => ({
       ...point,
-      timestamp: new Date(point.timestamp),
+      timestamp: new Date(point.timestamp), // Ensure Date object
     }));
   }
 
-  if (result.votes) {
-    result.votes = result.votes.map((vote) => ({
+  if (finalProcessedVotes) {
+    finalProcessedVotes = finalProcessedVotes.map((vote) => ({
       ...vote,
-      createdAt: new Date(vote.createdAt),
+      createdAt: new Date(vote.createdAt), // Ensure Date object
     }));
   }
+
+  // Construct the final ProcessedResults object
+  const result: ProcessedResults = {
+    proposal: processedProposal,
+    choices,
+    choiceColors,
+    totalVotingPower, // Use the value calculated by the specific processor
+    quorum,
+    quorumChoices,
+    voteType,
+    votes: withVotes ? finalProcessedVotes : undefined,
+    timeSeriesData: withTimeseries ? finalTimeSeriesData : undefined,
+    finalResults,
+    totalDelegatedVp,
+    hiddenVote,
+    scoresState,
+  };
 
   return result;
 }
