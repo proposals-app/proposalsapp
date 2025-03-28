@@ -68,30 +68,21 @@ export async function getNonVoters(proposalId: string) {
   );
 
   const eligibleVoters = await dbIndexer
-    .with(
-      'latestVotingPowerAtStart',
-      (db) =>
-        db
-          .selectFrom('votingPower as vp')
-          .select(['vp.voter', 'vp.votingPower'])
-          .where('vp.daoId', '=', proposal.daoId)
-          .where('vp.votingPower', '>', 0) // Ensure they had power
-          .where('vp.timestamp', '<=', proposal.startAt) // At or before start
-          .orderBy('vp.voter', 'asc')
-          .orderBy('vp.timestamp', 'desc')
-          .distinctOn('vp.voter') // Get the latest record per voter matching criteria
-    )
-    // Now, join the results of the CTE with the voter table
-    .selectFrom('latestVotingPowerAtStart as lvp')
-    .innerJoin('voter as v', 'v.address', 'lvp.voter')
+    .selectFrom('votingPower as vp')
+    .innerJoin('voter as v', 'v.address', 'vp.voter')
+    .where('vp.daoId', '=', proposal.daoId)
+    .where('vp.votingPower', '>', 0)
+    .where('vp.timestamp', '<=', proposal.startAt)
+    .orderBy('vp.voter', 'asc')
+    .orderBy('vp.timestamp', 'desc')
+    .distinctOn(['vp.voter'])
     .select([
-      'lvp.voter',
-      'lvp.votingPower as votingPowerAtStart', // Select from the CTE result
+      'vp.voter',
+      'vp.votingPower as votingPowerAtStart',
       'v.ens',
       'v.avatar',
     ])
     .execute();
-
   if (eligibleVoters.length === 0) return [];
 
   // Process voters in chunks to avoid parameter limit issues
