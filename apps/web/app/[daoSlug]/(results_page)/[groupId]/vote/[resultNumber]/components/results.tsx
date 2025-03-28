@@ -19,13 +19,12 @@ import {
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
-  daoSlug: string;
 }
 
-export function Results({ proposal, daoSlug }: ResultsProps) {
+export function Results({ proposal }: ResultsProps) {
   return (
     <div className='flex w-full'>
-      <ResultsContent proposal={proposal} daoSlug={daoSlug} />
+      <ResultsContent proposal={proposal} />
     </div>
   );
 }
@@ -51,7 +50,7 @@ async function ResultsContent({ proposal }: ResultsProps) {
   return (
     <div className='flex w-full flex-col gap-2 sm:flex-row'>
       <div className='flex w-full flex-col gap-8 sm:gap-2'>
-        <Suspense>
+        <Suspense fallback={<TitleLoading />}>
           <div className='hidden lg:block'>
             {/* Hide title on mobile */}
             <ResultsTitle
