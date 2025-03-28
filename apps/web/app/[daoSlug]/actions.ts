@@ -117,16 +117,14 @@ export async function getGroups(daoSlug: string, userId?: string) {
             'proposal.endAt',
             dbIndexer.fn.count('vote.id').as('voteCount'),
           ])
-          .where((eb) =>
-            eb.or(
-              proposalItems.map((item) =>
-                eb('proposal.externalId', '=', item.externalId).and(
-                  'proposal.governorId',
-                  '=',
-                  item.governorId
-                )
+          .where(
+            sql`(proposal."external_id", proposal."governor_id")`,
+            'in',
+            sql`(${sql.join(
+              proposalItems.map(
+                (item) => sql`(${item.externalId}, ${item.governorId})`
               )
-            )
+            )})`
           )
           .groupBy(['proposal.id'])
           .execute()
