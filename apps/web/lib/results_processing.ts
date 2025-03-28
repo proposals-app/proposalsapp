@@ -221,7 +221,7 @@ async function processBasicVotes(
 
   processedVotes.forEach((vote) => {
     finalResults[vote.choice[0].choiceIndex] =
-      (finalResults[vote.choice[0].choiceIndex] || 0) + vote.votingPower;
+      finalResults[vote.choice[0].choiceIndex] + vote.votingPower;
   });
 
   const processedProposal = {
@@ -313,7 +313,8 @@ async function processWeightedVotes(
       });
     } else {
       // Fallback for non-object choices (should be rare in weighted voting)
-      const choiceIndex = typeof vote.choice === 'number' ? vote.choice - 1 : 0;
+      const choiceIndex =
+        typeof vote.choice === 'number' ? vote.choice - 1 : -1;
       processedVotes.push({
         ...vote,
         choice: [
@@ -408,7 +409,7 @@ async function processWeightedVotes(
     vote.choice.forEach((choice) => {
       const normalizedPower = (vote.votingPower * choice.weight) / 100;
       finalResults[choice.choiceIndex] =
-        (finalResults[choice.choiceIndex] || 0) + normalizedPower;
+        finalResults[choice.choiceIndex] + normalizedPower;
     });
   });
 
@@ -418,6 +419,8 @@ async function processWeightedVotes(
     endAt: new Date(proposal.endAt),
     createdAt: new Date(proposal.createdAt),
   };
+
+  choiceColors[-1] = DEFAULT_CHOICE_COLOR;
 
   return {
     proposal: processedProposal,
@@ -570,7 +573,7 @@ async function processApprovalVotes(
   processedVotes.forEach((vote) => {
     vote.choice.forEach((choice) => {
       finalResults[choice.choiceIndex] =
-        (finalResults[choice.choiceIndex] || 0) + vote.votingPower;
+        finalResults[choice.choiceIndex] + vote.votingPower;
     });
   });
 
@@ -1003,7 +1006,7 @@ async function processQuadraticVotes(
     // Use quadratic voting formula: power = sqrt(tokens)
     const quadraticPower = Math.sqrt(vote.votingPower);
     finalResults[vote.choice[0].choiceIndex] =
-      (finalResults[vote.choice[0].choiceIndex] || 0) + quadraticPower;
+      finalResults[vote.choice[0].choiceIndex] + quadraticPower;
   });
 
   const processedProposal = {

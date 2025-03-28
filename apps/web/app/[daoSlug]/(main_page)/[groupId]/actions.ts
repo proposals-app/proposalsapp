@@ -2,6 +2,7 @@
 
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import {
+  DEFAULT_CHOICE_COLOR,
   ProcessedResults,
   ProcessedVote,
   processResultsAction,
@@ -789,29 +790,41 @@ export async function getFeed(
           0 // Ensure maxVotes is at least 0 if there are no votes
         );
 
+        const isHiddenAndNotFinal =
+          filteredProcessedResults.hiddenVote &&
+          filteredProcessedResults.scoresState !== 'final';
+
         // Create volumes entry from the daily votes
         dailyFilteredVotes.forEach((dailyVote) => {
           const dailyVotingPower = Number(dailyVote.totalVotingPower);
           const timestamp = new Date(dailyVote.lastVoteTime);
 
-          // Get choices from the proposal
-          const choices = proposal.choices as string[];
+          let volumes: number[];
+          let colors: string[];
 
-          // Initialize volumes array with one element per choice, all set to 0
-          const volumes: number[] = Array(choices.length).fill(0);
-          const colors: string[] = [];
+          if (isHiddenAndNotFinal) {
+            volumes = [dailyVotingPower];
+            colors = [DEFAULT_CHOICE_COLOR];
+          } else {
+            // Get choices from the proposal
+            const choices = proposal.choices as string[];
 
-          // Fill the volumes array with voting power by choice
-          Object.entries(dailyVote.choiceVotingPower).forEach(
-            ([choiceIndex, votingPower]) => {
-              const index = parseInt(choiceIndex);
-              if (index >= 0 && index < volumes.length) {
-                volumes[index] = votingPower;
+            // Initialize volumes array with one element per choice, all set to 0
+            volumes = Array(choices.length).fill(0);
+            colors = [];
+
+            // Fill the volumes array with voting power by choice
+            Object.entries(dailyVote.choiceVotingPower).forEach(
+              ([choiceIndex, votingPower]) => {
+                const index = parseInt(choiceIndex);
+                if (index >= 0 && index < volumes.length) {
+                  volumes[index] = votingPower;
+                }
               }
-            }
-          );
+            );
 
-          colors.push(...filteredProcessedResults.choiceColors);
+            colors.push(...filteredProcessedResults.choiceColors);
+          }
 
           events.push({
             type: TimelineEventType.VotesVolume,
