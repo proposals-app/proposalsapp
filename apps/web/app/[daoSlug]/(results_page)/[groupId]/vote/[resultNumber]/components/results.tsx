@@ -33,7 +33,6 @@ export function Results({ proposal, daoSlug }: ResultsProps) {
 // New component to handle the async content
 async function ResultsContent({ proposal }: ResultsProps) {
   const votes = await getVotesWithVoters(proposal.id);
-  const nonVoters = await getNonVoters(proposal.id);
 
   const processedResults = await processResultsAction(proposal, votes, {
     withVotes: true,
@@ -77,7 +76,7 @@ async function ResultsContent({ proposal }: ResultsProps) {
 
         <div className='flex flex-col'>
           <Suspense fallback={<LoadingNonVotersTable />}>
-            <NonVotersTable nonVoters={nonVoters} />
+            <NonVotersTableLazy proposalId={proposal.id} />
           </Suspense>
 
           <Suspense fallback={<LoadingTable />}>
@@ -94,6 +93,11 @@ async function ResultsContent({ proposal }: ResultsProps) {
       </div>
     </div>
   );
+}
+
+async function NonVotersTableLazy({ proposalId }: { proposalId: string }) {
+  const nonVoters = await getNonVoters(proposalId);
+  return <NonVotersTable nonVoters={nonVoters} />;
 }
 
 function TitleLoading() {

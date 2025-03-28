@@ -137,19 +137,21 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
 
 export function LoadingNonVotersTable() {
   return (
-    <div className='sticky z-10 grid h-12 grid-cols-7 items-center gap-2 border-b border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-700 dark:bg-neutral-800'>
-      <div className='col-span-2 flex items-center'>
-        <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-      </div>
-      <div className='col-span-3'>
-        <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-      </div>
-      <div className='col-span-1 flex items-center justify-end gap-2'>
-        <div className='h-4 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-      </div>
-      <div className='col-span-1 flex items-center justify-end gap-2'>
-        <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-      </div>
+    <div className='mt-6'>
+      <div className='sticky z-10 grid h-12 grid-cols-7 items-center gap-2 border-t border-r border-l border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-600 dark:bg-neutral-800'>
+        <div className='col-span-2 flex items-center'>
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+        </div>
+        <div className='col-span-3'>
+          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+        </div>
+        <div className='col-span-1 flex items-center justify-end gap-2'>
+          <div className='h-4 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+        </div>
+        <div className='col-span-1 flex items-center justify-end gap-2'>
+          <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+        </div>
+      </div>{' '}
     </div>
   );
 }
