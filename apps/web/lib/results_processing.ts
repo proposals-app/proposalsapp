@@ -110,10 +110,10 @@ const ACCUMULATE_VOTING_POWER_THRESHOLD = 50000;
 
 // Internal result structure returned by specific processors
 interface IntermediateProcessingResult {
-    processedVotes: ProcessedVote[];
-    finalResults: { [choice: number]: number };
-    timeSeriesData?: TimeSeriesPoint[];
-    totalVotingPower: number;
+  processedVotes: ProcessedVote[];
+  finalResults: { [choice: number]: number };
+  timeSeriesData?: TimeSeriesPoint[];
+  totalVotingPower: number;
 }
 
 /**
@@ -1276,8 +1276,7 @@ export async function processResultsAction(
                     choiceIndex,
                     weight: 100,
                     text: choices[choiceIndex] || 'Unknown Choice',
-                    color:
-                      choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR,
+                    color: choiceColors[choiceIndex] || DEFAULT_CHOICE_COLOR,
                   },
                 ],
                 voterAddress: 'aggregated',
