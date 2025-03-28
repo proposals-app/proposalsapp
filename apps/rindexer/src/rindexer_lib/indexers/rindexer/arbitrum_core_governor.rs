@@ -13,6 +13,7 @@ use ethers::{
     types::{U64, U256},
     utils::{hex::ToHex, to_checksum},
 };
+use futures::{StreamExt, stream};
 use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use rindexer::{EthereumSqlTypeWrapper, PgType, PostgresClient, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};
 use sea_orm::{
@@ -53,6 +54,8 @@ fn get_dao_id() -> Option<Uuid> {
         .get("arbitrum")
         .copied()
 }
+
+const CONCURRENCY_LIMIT: usize = 100;
 
 #[instrument(skip(manifest_path, registry))]
 async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
@@ -280,44 +283,46 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     return Ok(());
                 }
 
+                let results_len = results.len();
+
+                let votes: Vec<vote::ActiveModel> = stream::iter(results)
+                    .map(|result| async move {
+                        let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
+                            .await
+                            .expect("Failed to estimate created timestamp");
+
+                        vote::ActiveModel {
+                            id: NotSet,
+                            voter_address: Set(to_checksum(&result.event_data.voter, None)),
+                            choice: Set(match result.event_data.support {
+                                0 => 1.into(),
+                                1 => 0.into(),
+                                2 => 2.into(),
+                                _ => 2.into(),
+                            }),
+                            voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
+                            reason: Set(Some(result.event_data.reason)),
+                            created_at: Set(created_at),
+                            block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
+                            txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
+                            proposal_external_id: Set(result.event_data.proposal_id.to_string()),
+                            proposal_id: NotSet,
+                            governor_id: Set(get_votes_governor_id().take().unwrap()),
+                            dao_id: Set(get_dao_id().unwrap()),
+                        }
+                    })
+                    .buffer_unordered(CONCURRENCY_LIMIT)
+                    .collect::<Vec<_>>()
+                    .await;
+
+                store_votes(votes, get_proposals_governor_id().take().unwrap()).await;
+
                 info!(
                     "{} - {} - {}",
                     "ArbitrumCoreGovernor::VoteCast",
-                    results.len(),
+                    results_len,
                     "INDEXED".green().to_string(),
                 );
-
-                let mut votes = vec![];
-
-                for result in results.clone() {
-                    let created_at = estimate_timestamp("arbitrum", result.tx_information.block_number.as_u64())
-                        .await
-                        .expect("Failed to estimate created timestamp");
-
-                    let vote = vote::ActiveModel {
-                        id: NotSet,
-                        voter_address: Set(to_checksum(&result.event_data.voter, None)),
-                        choice: Set(match result.event_data.support {
-                            0 => 1.into(),
-                            1 => 0.into(),
-                            2 => 2.into(),
-                            _ => 2.into(),
-                        }),
-                        voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
-                        reason: Set(Some(result.event_data.reason)),
-                        created_at: Set(created_at),
-                        block_created_at: Set(Some(result.tx_information.block_number.as_u64() as i32)),
-                        txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
-                        proposal_external_id: Set(result.event_data.proposal_id.to_string()),
-                        proposal_id: NotSet,
-                        governor_id: Set(get_votes_governor_id().take().unwrap()),
-                        dao_id: Set(get_dao_id().unwrap()),
-                    };
-
-                    votes.push(vote);
-                }
-
-                store_votes(votes, get_proposals_governor_id().take().unwrap()).await;
 
                 Ok(())
             },
