@@ -4,7 +4,7 @@ import {
   proposalIdSchema,
   voterAddressSchema,
 } from '@/lib/validations';
-import { dbIndexer } from '@proposalsapp/db-indexer';
+import { dbIndexer, DiscourseUser, Selectable } from '@proposalsapp/db-indexer';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function getProposalGovernor(proposalId: string) {
@@ -143,6 +143,19 @@ export async function getVotesWithVoters(proposalId: string) {
 
   proposalIdSchema.parse(proposalId);
 
+  // 0. Fetch proposal to get daoId
+  const proposal = await dbIndexer
+    .selectFrom('proposal')
+    .where('id', '=', proposalId)
+    .select(['id', 'daoId'])
+    .executeTakeFirst();
+
+  if (!proposal) {
+    console.warn(`Proposal with id ${proposalId} not found.`);
+    return []; // Return empty array if proposal doesn't exist
+  }
+  const { daoId } = proposal;
+
   // 1. Fetch votes, including only the necessary voter address
   const votes = await dbIndexer
     .selectFrom('vote')
@@ -156,60 +169,156 @@ export async function getVotesWithVoters(proposalId: string) {
       'votingPower',
     ])
     .where('proposalId', '=', proposalId)
+    .orderBy('createdAt', 'desc') // Often useful to order votes
     .execute();
 
-  // 2. Optimize: Fetch all unique voter addresses at once for efficient lookups
+  // 2. Optimize: Fetch all unique voter addresses at once
   const voterAddresses = [...new Set(votes.map((vote) => vote.voterAddress))];
 
   if (voterAddresses.length === 0) {
+    // If no voters, map votes and add default/null values
     return votes.map((vote) => ({
       ...vote,
       ens: null,
       avatar: `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`,
       latestVotingPower: null,
-      voterAddress: vote.voterAddress,
+      discourseUsername: null,
+      voterAddress: vote.voterAddress, // Ensure voterAddress is present
     }));
   }
 
-  // Fetch all voters in a single query
+  // 3. Fetch all voters in a single query, including their ID
   const voters = await dbIndexer
     .selectFrom('voter')
-    .select(['address', 'ens', 'avatar'])
+    .select(['id', 'address', 'ens', 'avatar'])
     .where('address', 'in', voterAddresses)
     .execute();
 
-  // Create a map for efficient voter lookup by address
+  // Create maps for efficient voter lookup by address and ID
   const voterMap = new Map(voters.map((voter) => [voter.address, voter]));
+  const voterIds = voters.map((v) => v.id);
 
-  // 3. Fetch latest voting power for each voter in a single query (optimized)
-  // Fetch latest voting power for all relevant voters
+  // 4. Fetch latest voting power for each voter (optimized)
   const latestVotingPowers = await dbIndexer
     .selectFrom('votingPower')
     .select(['voter', 'votingPower'])
-    .where('voter', 'in', voterAddresses) // Filter by addresses we have votes for
+    .where('voter', 'in', voterAddresses)
+    .where('daoId', '=', daoId) // Ensure VP is for the correct DAO
     .orderBy('voter', 'asc')
     .orderBy('timestamp', 'desc')
-    .distinctOn('votingPower.voter')
+    .distinctOn('voter') // Corrected: Use 'voter' here, not 'votingPower.voter'
     .execute();
 
-  // Create a map for efficient latest voting power lookup by voter address
+  // Create a map for efficient latest voting power lookup
   const latestVotingPowerMap = new Map(
     latestVotingPowers.map((vp) => [vp.voter, vp.votingPower])
   );
 
-  // 4. Combine vote data with voter and voting power information
+  // --- New Steps for Discourse User ---
+
+  // 5. Find the delegate link for each voter (most recent verified link)
+  const delegateToVoterLinks = await dbIndexer
+    .selectFrom('delegateToVoter as dtv')
+    .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
+    .where('dtv.voterId', 'in', voterIds)
+    .where('d.daoId', '=', daoId) // Ensure delegate belongs to the DAO
+    .orderBy('dtv.voterId', 'asc')
+    .orderBy('dtv.createdAt', 'desc') // Or periodStart/End depending on desired logic
+    .distinctOn('dtv.voterId')
+    .select(['dtv.voterId', 'dtv.delegateId'])
+    .execute();
+
+  const delegateIdByVoterId = new Map(
+    delegateToVoterLinks.map((link) => [link.voterId, link.delegateId])
+  );
+  const delegateIds = delegateToVoterLinks.map((link) => link.delegateId);
+
+  // 6. Get the daoDiscourseId for the current DAO
+  const daoDiscourse = await dbIndexer
+    .selectFrom('daoDiscourse')
+    .where('daoId', '=', daoId)
+    .where('enabled', '=', true)
+    .select('id')
+    .executeTakeFirst();
+
+  // Initialize maps needed later
+  let discourseUserMap = new Map<string, Selectable<DiscourseUser>>();
+  // *** Declare the map that was missing population ***
+  let discourseUserIdByDelegateId = new Map<string, string>();
+
+  // Only proceed if there are delegates and a discourse setup for the DAO
+  if (delegateIds.length > 0 && daoDiscourse) {
+    const daoDiscourseId = daoDiscourse.id;
+
+    // 7. Find the discourse user link for each delegate (most recent verified link)
+    const delegateToDiscourseLinks = await dbIndexer
+      .selectFrom('delegateToDiscourseUser as dtdu')
+      .where('dtdu.delegateId', 'in', delegateIds)
+      // .where('dtdu.verified', '=', true) // Optional: only consider verified links
+      .orderBy('dtdu.delegateId', 'asc')
+      .orderBy('dtdu.createdAt', 'desc') // Or periodStart/End
+      .distinctOn('dtdu.delegateId')
+      .select(['dtdu.delegateId', 'dtdu.discourseUserId'])
+      .execute();
+
+    // *** FIX: Populate the map here ***
+    discourseUserIdByDelegateId = new Map(
+      delegateToDiscourseLinks.map((link) => [
+        link.delegateId,
+        link.discourseUserId,
+      ])
+    );
+
+    const discourseUserIds = delegateToDiscourseLinks.map(
+      (link) => link.discourseUserId
+    );
+
+    // 8. Fetch the actual Discourse User details for the linked users
+    if (discourseUserIds.length > 0) {
+      const discourseUsers = await dbIndexer
+        .selectFrom('discourseUser')
+        .where('id', 'in', discourseUserIds)
+        .where('daoDiscourseId', '=', daoDiscourseId) // Ensure the discourse user belongs to the correct discourse instance
+        .selectAll()
+        .execute();
+
+      // Map discourse users by their ID for lookup
+      discourseUserMap = new Map(discourseUsers.map((du) => [du.id, du]));
+    }
+  }
+
+  // --- Combine all data ---
+
+  // 9. Combine vote data with voter, voting power, and discourse user info
   const votesWithVoters = votes.map((vote) => {
     const voter = voterMap.get(vote.voterAddress);
     const latestVotingPower = latestVotingPowerMap.get(vote.voterAddress);
 
+    // Find the discourse user
+    let discourseUser: Selectable<DiscourseUser> | null = null;
+    if (voter) {
+      const delegateId = delegateIdByVoterId.get(voter.id);
+      if (delegateId) {
+        // *** Now this lookup should work ***
+        const discourseUserId = discourseUserIdByDelegateId.get(delegateId);
+        if (discourseUserId) {
+          discourseUser = discourseUserMap.get(discourseUserId) || null;
+        }
+      }
+    }
+
+    // Construct the final object for this vote
     return {
       ...vote,
       ens: voter?.ens || null,
       avatar:
         voter?.avatar ||
+        discourseUser?.avatarTemplate ||
         `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`,
-      latestVotingPower: latestVotingPower || null,
-      voterAddress: vote.voterAddress,
+      latestVotingPower: latestVotingPower ?? null, // Use nullish coalescing for clarity
+      discourseUsername: discourseUser?.username || null,
+      discourseAvatarUrl: discourseUser?.avatarTemplate || null,
+      voterAddress: vote.voterAddress, // Explicitly ensure voterAddress is included
     };
   });
 

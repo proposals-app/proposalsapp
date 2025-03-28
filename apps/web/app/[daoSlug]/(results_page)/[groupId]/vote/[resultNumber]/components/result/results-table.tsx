@@ -196,6 +196,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
                   voterAddress={voteWithVoter.voterAddress}
                   ens={voteWithVoter.ens}
                   avatar={voteWithVoter.avatar}
+                  discourseUsername={voteWithVoter.discourseUsername}
                   // Show event VP on mobile for relevance to the vote
                   eventVotingPower={voteWithVoter.votingPower}
                   // Optionally hide current VP on mobile if too cluttered
@@ -267,6 +268,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
                 <VoterAuthor
                   voterAddress={voteWithVoter.voterAddress}
                   ens={voteWithVoter.ens}
+                  discourseUsername={voteWithVoter.discourseUsername}
                   avatar={voteWithVoter.avatar}
                   currentVotingPower={voteWithVoter.latestVotingPower}
                   eventVotingPower={voteWithVoter.votingPower}

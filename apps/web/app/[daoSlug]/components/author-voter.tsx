@@ -5,12 +5,14 @@ import Image from 'next/image';
 export const VoterAuthor = ({
   voterAddress,
   ens,
+  discourseUsername,
   avatar,
   currentVotingPower,
   eventVotingPower,
 }: {
   voterAddress: string;
   ens: string | null;
+  discourseUsername: string | null;
   avatar: string;
   currentVotingPower: number | null;
   eventVotingPower: number | null;
@@ -30,6 +32,8 @@ export const VoterAuthor = ({
       <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>
         {ens ? (
           <span className='truncate font-bold'>{ens}</span>
+        ) : discourseUsername ? (
+          <span className='truncate font-bold'>{discourseUsername}</span>
         ) : (
           <span className='truncate font-mono font-bold'>
             {voterAddress.slice(0, 6)}...{voterAddress.slice(-4)}
