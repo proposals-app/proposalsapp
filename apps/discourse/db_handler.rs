@@ -2,44 +2,65 @@ use crate::{
     DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS,
     models::{categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User},
 };
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use chrono::Utc;
 use once_cell::sync::OnceCell;
 use proposalsapp_db_indexer::models::{discourse_category, discourse_post, discourse_post_like, discourse_post_revision, discourse_topic, discourse_user, job_queue};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, InsertResult, PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
 use std::time::Duration;
-use tracing::{info, instrument};
+use tracing::{debug, info, instrument, warn};
 use utils::types::{DiscussionJobData, JobData};
 
+// Use a OnceCell for safe, one-time initialization.
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
+/// Initializes the database connection pool.
+/// Reads the DATABASE_URL from environment variables.
+#[instrument]
 pub async fn initialize_db() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
     let mut opt = ConnectOptions::new(database_url);
-    opt.max_connections(10)
+    // Configure connection pool options for robustness and performance.
+    opt.max_connections(20) // Increased pool size
         .min_connections(5)
-        .connect_timeout(Duration::from_secs(8))
-        .acquire_timeout(Duration::from_secs(8))
-        .idle_timeout(Duration::from_secs(8))
-        .max_lifetime(Duration::from_secs(8))
-        .sqlx_logging(false);
+        .connect_timeout(Duration::from_secs(10)) // Slightly longer timeouts
+        .acquire_timeout(Duration::from_secs(10))
+        .idle_timeout(Duration::from_secs(60)) // Longer idle timeout
+        .max_lifetime(Duration::from_secs(60 * 5)) // Longer max lifetime
+        .sqlx_logging(false); // Keep logging off unless debugging SeaORM internals
+    // .sqlx_logging_level(log::LevelFilter::Info); // Remove or add `log` crate
 
+    info!("Connecting to database...");
     let db = Database::connect(opt)
         .await
         .context("Failed to connect to the database")?;
+    info!("Database connection established.");
 
+    // Set the global DB connection instance.
     DB.set(db)
-        .map_err(|_| anyhow::anyhow!("Failed to set database connection"))
+        .map_err(|_| anyhow!("Failed to set global database connection"))?;
+
+    Ok(())
 }
 
+/// Retrieves the global database connection.
+/// Panics if the database is not initialized.
+#[inline(always)]
+pub fn db() -> &'static DatabaseConnection {
+    DB.get()
+        .expect("Database connection not initialized. Call initialize_db first.")
+}
+
+/// Gets or creates a generic 'unknown' user record for associating orphaned content.
 #[instrument(fields(dao_discourse_id = %dao_discourse_id))]
 pub async fn get_or_create_unknown_user(dao_discourse_id: Uuid) -> Result<User> {
+    // Define the 'unknown' user details. Using ID -1 is conventional.
     let unknown_user = User {
         id: -1,
         username: "unknown_user".to_string(),
         name: Some("Unknown User".to_string()),
-        avatar_template: "".to_string(),
+        avatar_template: "".to_string(), // Placeholder avatar
         title: None,
         likes_received: Some(0),
         likes_given: Some(0),
@@ -50,20 +71,22 @@ pub async fn get_or_create_unknown_user(dao_discourse_id: Uuid) -> Result<User> 
         days_visited: Some(0),
     };
 
+    // Attempt to upsert this user. Errors during DB operation are propagated.
     upsert_user(&unknown_user, dao_discourse_id).await?;
-    info!("Created or retrieved unknown user");
+    debug!("Ensured 'unknown_user' exists in the database.");
     Ok(unknown_user)
 }
 
-#[instrument(skip( user), fields(user_id = user.id, user_username = %user.username, dao_discourse_id = %dao_discourse_id))]
+/// Inserts or updates a user record in the database based on external ID and DAO discourse ID.
+#[instrument(skip(user), fields(user_id = user.id, user_username = %user.username, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_user(user: &User, dao_discourse_id: Uuid) -> Result<()> {
-    // Create an active model for the user
     let user_model = discourse_user::ActiveModel {
         external_id: Set(user.id),
         username: Set(user.username.clone()),
         name: Set(user.name.clone()),
         avatar_template: Set(user.avatar_template.clone()),
         title: Set(user.title.clone()),
+        // Use unwrap_or(0) for safety, converting to i64 as required by schema.
         likes_received: Set(Some(user.likes_received.unwrap_or(0) as i64)),
         likes_given: Set(Some(user.likes_given.unwrap_or(0) as i64)),
         topics_entered: Set(Some(user.topics_entered.unwrap_or(0) as i64)),
@@ -72,42 +95,44 @@ pub async fn upsert_user(user: &User, dao_discourse_id: Uuid) -> Result<()> {
         posts_read: Set(Some(user.posts_read.unwrap_or(0) as i64)),
         days_visited: Set(Some(user.days_visited.unwrap_or(0) as i64)),
         dao_discourse_id: Set(dao_discourse_id),
-        ..Default::default()
+        ..Default::default() // Use default for fields like `id`, `created_at`, etc.
     };
 
-    // Perform the upsert operation
+    // Define the conflict action: update specified columns if the unique key constraint fails.
+    let on_conflict = OnConflict::columns([
+        discourse_user::Column::ExternalId,
+        discourse_user::Column::DaoDiscourseId,
+    ])
+    .update_columns([
+        discourse_user::Column::Username,
+        discourse_user::Column::Name,
+        discourse_user::Column::AvatarTemplate,
+        discourse_user::Column::Title,
+        discourse_user::Column::LikesReceived,
+        discourse_user::Column::LikesGiven,
+        discourse_user::Column::TopicsEntered,
+        discourse_user::Column::TopicCount,
+        discourse_user::Column::PostCount,
+        discourse_user::Column::PostsRead,
+        discourse_user::Column::DaysVisited,
+        // `updated_at` should be automatically handled by the database or model behavior if configured.
+    ])
+    .to_owned();
+
+    // Execute the insert operation with conflict resolution.
     discourse_user::Entity::insert(user_model)
-        .on_conflict(
-            OnConflict::columns([
-                discourse_user::Column::ExternalId,
-                discourse_user::Column::DaoDiscourseId,
-            ])
-            .update_columns([
-                discourse_user::Column::Username,
-                discourse_user::Column::Name,
-                discourse_user::Column::AvatarTemplate,
-                discourse_user::Column::Title,
-                discourse_user::Column::LikesReceived,
-                discourse_user::Column::LikesGiven,
-                discourse_user::Column::TopicsEntered,
-                discourse_user::Column::TopicCount,
-                discourse_user::Column::PostCount,
-                discourse_user::Column::PostsRead,
-                discourse_user::Column::DaysVisited,
-            ])
-            .to_owned(),
-        )
-        .exec(DB.get().unwrap())
-        .await?;
+        .on_conflict(on_conflict)
+        .exec(db()) // Use the db() helper function
+        .await
+        .with_context(|| format!("Failed to upsert user with external_id {}", user.id))?;
 
-    info!("User upserted successfully");
-
+    debug!("User upserted successfully.");
     Ok(())
 }
 
-#[instrument(skip( category), fields(category_id = category.id, category_name = %category.name, dao_discourse_id = %dao_discourse_id))]
+/// Inserts or updates a category record in the database.
+#[instrument(skip(category), fields(category_id = category.id, category_name = %category.name, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_category(category: &Category, dao_discourse_id: Uuid) -> Result<()> {
-    // Create an active model for the category
     let category_model = discourse_category::ActiveModel {
         external_id: Set(category.id),
         name: Set(category.name.clone()),
@@ -127,47 +152,51 @@ pub async fn upsert_category(category: &Category, dao_discourse_id: Uuid) -> Res
         ..Default::default()
     };
 
-    // Perform the upsert operation
-    discourse_category::Entity::insert(category_model)
-        .on_conflict(
-            OnConflict::columns([
-                discourse_category::Column::ExternalId,
-                discourse_category::Column::DaoDiscourseId,
-            ])
-            .update_columns([
-                discourse_category::Column::Name,
-                discourse_category::Column::Color,
-                discourse_category::Column::TextColor,
-                discourse_category::Column::Slug,
-                discourse_category::Column::TopicCount,
-                discourse_category::Column::PostCount,
-                discourse_category::Column::Description,
-                discourse_category::Column::DescriptionText,
-                discourse_category::Column::TopicsDay,
-                discourse_category::Column::TopicsWeek,
-                discourse_category::Column::TopicsMonth,
-                discourse_category::Column::TopicsYear,
-                discourse_category::Column::TopicsAllTime,
-            ])
-            .to_owned(),
-        )
-        .exec(DB.get().unwrap())
-        .await?;
+    let on_conflict = OnConflict::columns([
+        discourse_category::Column::ExternalId,
+        discourse_category::Column::DaoDiscourseId,
+    ])
+    .update_columns([
+        discourse_category::Column::Name,
+        discourse_category::Column::Color,
+        discourse_category::Column::TextColor,
+        discourse_category::Column::Slug,
+        discourse_category::Column::TopicCount,
+        discourse_category::Column::PostCount,
+        discourse_category::Column::Description,
+        discourse_category::Column::DescriptionText,
+        discourse_category::Column::TopicsDay,
+        discourse_category::Column::TopicsWeek,
+        discourse_category::Column::TopicsMonth,
+        discourse_category::Column::TopicsYear,
+        discourse_category::Column::TopicsAllTime,
+    ])
+    .to_owned();
 
-    info!("Category upserted successfully");
+    discourse_category::Entity::insert(category_model)
+        .on_conflict(on_conflict)
+        .exec(db())
+        .await
+        .with_context(|| format!("Failed to upsert category with external_id {}", category.id))?;
+
+    debug!("Category upserted successfully.");
     Ok(())
 }
 
-#[instrument(skip( topic), fields(topic_id = topic.id, topic_title = %topic.title, dao_discourse_id = %dao_discourse_id))]
+/// Inserts or updates a topic record. If it's a new topic within a monitored category, creates a
+/// job queue entry.
+#[instrument(skip(topic), fields(topic_id = topic.id, topic_title = %topic.title, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
+    // Check if the topic already exists. This helps determine if we need to create a job.
     let existing_topic = discourse_topic::Entity::find()
         .filter(
             Condition::all()
                 .add(discourse_topic::Column::ExternalId.eq(topic.id))
                 .add(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
         )
-        .one(DB.get().unwrap())
-        .await?;
+        .one(db())
+        .await
+        .context("Failed to query existing topic")?;
 
     let topic_model = discourse_topic::ActiveModel {
         external_id: Set(topic.id),
@@ -176,6 +205,7 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
         slug: Set(topic.slug.clone()),
         posts_count: Set(topic.posts_count),
         reply_count: Set(topic.reply_count),
+        // Ensure DateTime is converted to NaiveDateTime for the database.
         created_at: Set(topic.created_at.naive_utc()),
         last_posted_at: Set(topic.last_posted_at.naive_utc()),
         bumped_at: Set(topic.bumped_at.naive_utc()),
@@ -191,79 +221,115 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
         ..Default::default()
     };
 
-    if existing_topic.is_none() {
-        // Insert new topic and create job if necessary
-        let stored_topic: InsertResult<discourse_topic::ActiveModel> = discourse_topic::Entity::insert(topic_model)
-            .exec(DB.get().unwrap())
-            .await?;
+    let on_conflict = OnConflict::columns([
+        discourse_topic::Column::ExternalId,
+        discourse_topic::Column::DaoDiscourseId,
+    ])
+    .update_columns([
+        discourse_topic::Column::Title,
+        discourse_topic::Column::FancyTitle,
+        discourse_topic::Column::Slug,
+        discourse_topic::Column::PostsCount,
+        discourse_topic::Column::ReplyCount,
+        discourse_topic::Column::CreatedAt, // Ensure we update timestamps if needed
+        discourse_topic::Column::LastPostedAt,
+        discourse_topic::Column::BumpedAt,
+        discourse_topic::Column::Pinned,
+        discourse_topic::Column::Visible,
+        discourse_topic::Column::Closed,
+        discourse_topic::Column::Archived,
+        discourse_topic::Column::Views,
+        discourse_topic::Column::LikeCount,
+        discourse_topic::Column::CategoryId,
+        discourse_topic::Column::PinnedGlobally,
+    ])
+    .to_owned();
 
-        if let Some(category_ids) = DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id) {
-            if category_ids.contains(&topic.category_id) {
-                // Ensure last_insert_id is Some before unwrapping
+    let insert_result: InsertResult<discourse_topic::ActiveModel> = discourse_topic::Entity::insert(topic_model)
+        .on_conflict(on_conflict)
+        .exec(db())
+        .await
+        .with_context(|| format!("Failed to upsert topic with external_id {}", topic.id))?;
+
+    // If the topic was newly inserted (not updated) and belongs to a monitored category, create a job.
+    if existing_topic.is_none() {
+        debug!(topic_id = topic.id, "Topic was newly inserted.");
+        if let Some(monitored_category_ids) = DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id) {
+            if monitored_category_ids.contains(&topic.category_id) {
+                let internal_topic_id = insert_result.last_insert_id; // This is the internal UUID primary key
+                debug!(
+                    internal_topic_id = %internal_topic_id,
+                    external_topic_id = topic.id,
+                    "Topic is in a monitored category, creating job."
+                );
+
                 let job_data = DiscussionJobData {
-                    discourse_topic_id: stored_topic.last_insert_id,
+                    discourse_topic_id: internal_topic_id,
                 };
 
-                job_queue::Entity::insert(job_queue::ActiveModel {
-                    id: NotSet,
+                let job_model = job_queue::ActiveModel {
+                    id: NotSet, // Let the database generate the UUID
                     r#type: Set(DiscussionJobData::job_type().to_string()),
-                    data: Set(serde_json::to_value(job_data)?),
-                    status: Set("PENDING".into()),
-                    created_at: NotSet,
-                })
-                .exec(DB.get().unwrap())
-                .await?;
+                    data: Set(serde_json::to_value(job_data).context("Failed to serialize job data")?),
+                    status: Set("PENDING".to_string()), // Use enum or const later if needed
+                    created_at: NotSet,                 // Let the database set the timestamp
+                };
+
+                job_queue::Entity::insert(job_model)
+                    .exec(db())
+                    .await
+                    .context("Failed to insert discussion job into queue")?;
+                info!(
+                    internal_topic_id = %internal_topic_id,
+                    external_topic_id = topic.id,
+                    "Created job for new monitored topic."
+                );
+            } else {
+                debug!(
+                    external_topic_id = topic.id,
+                    category_id = topic.category_id,
+                    "Topic not in monitored categories, skipping job creation."
+                );
             }
+        } else {
+            warn!(
+                dao_discourse_id = %dao_discourse_id,
+                "No monitored category IDs found for this DAO discourse instance."
+            );
         }
-        info!("Topic inserted successfully");
     } else {
-        discourse_topic::Entity::insert(topic_model)
-            .on_conflict(
-                OnConflict::columns([
-                    discourse_topic::Column::ExternalId,
-                    discourse_topic::Column::DaoDiscourseId,
-                ])
-                .update_columns([
-                    discourse_topic::Column::Title,
-                    discourse_topic::Column::FancyTitle,
-                    discourse_topic::Column::Slug,
-                    discourse_topic::Column::PostsCount,
-                    discourse_topic::Column::ReplyCount,
-                    discourse_topic::Column::CreatedAt,
-                    discourse_topic::Column::LastPostedAt,
-                    discourse_topic::Column::BumpedAt,
-                    discourse_topic::Column::Pinned,
-                    discourse_topic::Column::Visible,
-                    discourse_topic::Column::Closed,
-                    discourse_topic::Column::Archived,
-                    discourse_topic::Column::Views,
-                    discourse_topic::Column::LikeCount,
-                    discourse_topic::Column::CategoryId,
-                    discourse_topic::Column::PinnedGlobally,
-                ])
-                .to_owned(),
-            )
-            .exec(DB.get().unwrap())
-            .await?;
-        info!("Topic updated successfully");
+        debug!(topic_id = topic.id, "Topic was updated.");
     }
 
     Ok(())
 }
 
-#[instrument(skip( post), fields(post_id = post.id, post_username = %post.username, dao_discourse_id = %dao_discourse_id))]
+/// Inserts or updates a post record. Handles potential deletion flags based on raw content.
+#[instrument(skip(post), fields(post_id = post.id, post_username = %post.username, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
-    // Create an active model for the post
+    // Determine if the post is considered deleted based on specific raw content patterns.
+    let is_deleted = post.raw.as_ref().map_or(false, |raw| {
+        raw == "(post deleted by author)" || raw == "<p>(post deleted by author)</p>" || raw.is_empty()
+    });
+
+    let cooked_content = if is_deleted {
+        // If marked as deleted, store None or an empty string for cooked content.
+        Set(None::<String>)
+    } else {
+        // Otherwise, use the raw content (assuming it's pre-processed/cooked).
+        // Use ActiveValue::NotSet if raw is None to avoid overwriting with NULL unnecessarily.
+        match &post.raw {
+            Some(raw) => Set(Some(raw.clone())),
+            None => NotSet,
+        }
+    };
+
     let post_model = discourse_post::ActiveModel {
         external_id: Set(post.id),
         name: Set(post.name.clone()),
         username: Set(post.username.clone()),
         created_at: Set(post.created_at.naive_utc()),
-        cooked: match &post.raw {
-            Some(raw) if raw == "(post deleted by author)" || raw == "<p>(post deleted by author)</p>" => NotSet,
-            Some(raw) => Set(Some(raw.clone())),
-            None => NotSet,
-        },
+        cooked: cooked_content,
         post_number: Set(post.post_number),
         post_type: Set(post.post_type),
         updated_at: Set(post.updated_at.naive_utc()),
@@ -286,61 +352,64 @@ pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
         user_id: Set(post.user_id),
         dao_discourse_id: Set(dao_discourse_id),
         can_view_edit_history: Set(post.can_view_edit_history),
-        deleted: Set(post
-            .raw
-            .as_ref()
-            .is_some_and(|raw| raw == "<p>(post deleted by author)</p>")),
+        deleted: Set(is_deleted), // Set the deleted flag based on content check
         ..Default::default()
     };
 
-    // Perform the upsert operation
-    discourse_post::Entity::insert(post_model)
-        .on_conflict(
-            OnConflict::columns([
-                discourse_post::Column::ExternalId,
-                discourse_post::Column::DaoDiscourseId,
-            ])
-            .update_columns([
-                discourse_post::Column::Name,
-                discourse_post::Column::Username,
-                discourse_post::Column::CreatedAt,
-                discourse_post::Column::Cooked,
-                discourse_post::Column::PostNumber,
-                discourse_post::Column::PostType,
-                discourse_post::Column::UpdatedAt,
-                discourse_post::Column::ReplyCount,
-                discourse_post::Column::ReplyToPostNumber,
-                discourse_post::Column::QuoteCount,
-                discourse_post::Column::IncomingLinkCount,
-                discourse_post::Column::Reads,
-                discourse_post::Column::ReadersCount,
-                discourse_post::Column::Score,
-                discourse_post::Column::TopicId,
-                discourse_post::Column::TopicSlug,
-                discourse_post::Column::DisplayUsername,
-                discourse_post::Column::PrimaryGroupName,
-                discourse_post::Column::FlairName,
-                discourse_post::Column::FlairUrl,
-                discourse_post::Column::FlairBgColor,
-                discourse_post::Column::FlairColor,
-                discourse_post::Column::Version,
-                discourse_post::Column::UserId,
-                discourse_post::Column::CanViewEditHistory,
-                discourse_post::Column::Deleted,
-            ])
-            .to_owned(),
-        )
-        .exec(DB.get().unwrap())
-        .await?;
+    let on_conflict = OnConflict::columns([
+        discourse_post::Column::ExternalId,
+        discourse_post::Column::DaoDiscourseId,
+    ])
+    .update_columns([
+        discourse_post::Column::Name,
+        discourse_post::Column::Username,
+        discourse_post::Column::CreatedAt,
+        discourse_post::Column::Cooked,
+        discourse_post::Column::PostNumber,
+        discourse_post::Column::PostType,
+        discourse_post::Column::UpdatedAt,
+        discourse_post::Column::ReplyCount,
+        discourse_post::Column::ReplyToPostNumber,
+        discourse_post::Column::QuoteCount,
+        discourse_post::Column::IncomingLinkCount,
+        discourse_post::Column::Reads,
+        discourse_post::Column::ReadersCount,
+        discourse_post::Column::Score,
+        discourse_post::Column::TopicId,
+        discourse_post::Column::TopicSlug,
+        discourse_post::Column::DisplayUsername,
+        discourse_post::Column::PrimaryGroupName,
+        discourse_post::Column::FlairName,
+        discourse_post::Column::FlairUrl,
+        discourse_post::Column::FlairBgColor,
+        discourse_post::Column::FlairColor,
+        discourse_post::Column::Version,
+        discourse_post::Column::UserId,
+        discourse_post::Column::CanViewEditHistory,
+        discourse_post::Column::Deleted, // Ensure 'deleted' is updated on conflict
+    ])
+    .to_owned();
 
-    info!("Post upserted successfully");
+    discourse_post::Entity::insert(post_model)
+        .on_conflict(on_conflict)
+        .exec(db())
+        .await
+        .with_context(|| format!("Failed to upsert post with external_id {}", post.id))?;
+
+    debug!("Post upserted successfully.");
     Ok(())
 }
 
-#[instrument(skip( revision), fields(revision_version = revision.current_version, post_id = revision.post_id, dao_discourse_id = %dao_discourse_id))]
-pub async fn upsert_revision(revision: &Revision, dao_discourse_id: Uuid, discourse_post_id: Uuid) -> Result<()> {
-    let cooked_body_before = Some(revision.get_cooked_markdown_before());
-    let cooked_body_after = Some(revision.get_cooked_markdown_after());
+/// Inserts or updates a post revision record.
+#[instrument(skip(revision), fields(revision_version = revision.current_version, post_id = revision.post_id, dao_discourse_id = %dao_discourse_id, discourse_post_id = %discourse_post_id))]
+pub async fn upsert_revision(
+    revision: &Revision,
+    dao_discourse_id: Uuid,
+    discourse_post_id: Uuid, // This is the internal UUID of the post
+) -> Result<()> {
+    // Extract structured diff content. Log errors but don't fail the upsert.
+    let cooked_body_before = revision.get_cooked_markdown_before();
+    let cooked_body_after = revision.get_cooked_markdown_after();
 
     let cooked_title_before = revision
         .title_changes
@@ -351,112 +420,130 @@ pub async fn upsert_revision(revision: &Revision, dao_discourse_id: Uuid, discou
         .as_ref()
         .map(|tc| tc.get_cooked_after_html());
 
-    // Create an active model for the revision
     let revision_model = discourse_post_revision::ActiveModel {
-        external_post_id: Set(revision.post_id),
+        external_post_id: Set(revision.post_id), // Store the external Discourse post ID
         version: Set(revision.current_version),
         created_at: Set(revision.created_at.naive_utc()),
         username: Set(revision.username.clone()),
-        body_changes: Set(revision.body_changes.side_by_side_markdown.clone()),
-        title_changes: match revision.title_changes.as_ref() {
-            Some(title) => Set(Some(title.inline.clone())),
-            None => NotSet,
-        },
+        body_changes: Set(revision.body_changes.side_by_side_markdown.clone()), // Raw diff HTML
+        title_changes: Set(revision.title_changes.as_ref().map(|tc| tc.inline.clone())),
         edit_reason: Set(revision.edit_reason.clone()),
-        cooked_body_before: Set(cooked_body_before),
+        // Store the processed before/after content
+        cooked_body_before: Set(Some(cooked_body_before)),
         cooked_title_before: Set(cooked_title_before),
-        cooked_body_after: Set(cooked_body_after),
+        cooked_body_after: Set(Some(cooked_body_after)),
         cooked_title_after: Set(cooked_title_after),
         dao_discourse_id: Set(dao_discourse_id),
-        discourse_post_id: Set(discourse_post_id),
+        discourse_post_id: Set(discourse_post_id), // Link to the internal post UUID
         ..Default::default()
     };
 
-    // Perform the upsert operation
-    discourse_post_revision::Entity::insert(revision_model)
-        .on_conflict(
-            OnConflict::columns([
-                discourse_post_revision::Column::ExternalPostId,
-                discourse_post_revision::Column::Version,
-                discourse_post_revision::Column::DaoDiscourseId,
-            ])
-            .update_columns([
-                discourse_post_revision::Column::CreatedAt,
-                discourse_post_revision::Column::Username,
-                discourse_post_revision::Column::BodyChanges,
-                discourse_post_revision::Column::TitleChanges,
-                discourse_post_revision::Column::EditReason,
-                discourse_post_revision::Column::CookedBodyBefore,
-                discourse_post_revision::Column::CookedTitleBefore,
-                discourse_post_revision::Column::CookedBodyAfter,
-                discourse_post_revision::Column::CookedTitleAfter,
-            ])
-            .to_owned(),
-        )
-        .exec(DB.get().unwrap())
-        .await?;
+    let on_conflict = OnConflict::columns([
+        // Unique constraint should be on post_id (internal), version, and dao_discourse_id
+        // But since we only have external_post_id easily here, we use that + version + dao_id
+        // Ensure the DB schema reflects this constraint accurately.
+        discourse_post_revision::Column::ExternalPostId,
+        discourse_post_revision::Column::Version,
+        discourse_post_revision::Column::DaoDiscourseId,
+    ])
+    .update_columns([
+        // It's unlikely a revision itself changes, but update fields just in case.
+        discourse_post_revision::Column::CreatedAt,
+        discourse_post_revision::Column::Username,
+        discourse_post_revision::Column::BodyChanges,
+        discourse_post_revision::Column::TitleChanges,
+        discourse_post_revision::Column::EditReason,
+        discourse_post_revision::Column::CookedBodyBefore,
+        discourse_post_revision::Column::CookedTitleBefore,
+        discourse_post_revision::Column::CookedBodyAfter,
+        discourse_post_revision::Column::CookedTitleAfter,
+        discourse_post_revision::Column::DiscoursePostId, // Ensure internal FK is updated if needed
+    ])
+    .to_owned();
 
-    info!("Revision upserted successfully");
+    discourse_post_revision::Entity::insert(revision_model)
+        .on_conflict(on_conflict)
+        .exec(db())
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to upsert revision v{} for post {}",
+                revision.current_version, revision.post_id
+            )
+        })?;
+
+    debug!("Revision upserted successfully.");
     Ok(())
 }
 
-#[instrument( fields(user_ids = ?user_ids, dao_discourse_id, post_id))]
-pub async fn upsert_post_likes_batch(post_id: i32, user_ids: Vec<i32>, dao_discourse_id: Uuid) -> Result<()> {
+/// Inserts multiple post like records efficiently, avoiding duplicates.
+#[instrument(fields(post_id = post_id, user_count = user_ids.len(), dao_discourse_id = %dao_discourse_id))]
+pub async fn upsert_post_likes_batch(
+    post_id: i32,       // External Discourse Post ID
+    user_ids: Vec<i32>, // External Discourse User IDs
+    dao_discourse_id: Uuid,
+) -> Result<()> {
     if user_ids.is_empty() {
+        debug!("No user IDs provided for batch like upsert, skipping.");
         return Ok(());
     }
 
-    // Find existing likes for the given post and users
+    // 1. Find existing likes for this specific post and DAO instance
     let existing_likes = discourse_post_like::Entity::find()
         .filter(
             Condition::all()
                 .add(discourse_post_like::Column::ExternalDiscoursePostId.eq(post_id))
-                .add(discourse_post_like::Column::ExternalUserId.is_in(user_ids.clone()))
-                .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id)),
+                .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id))
+                .add(discourse_post_like::Column::ExternalUserId.is_in(user_ids.clone())), // Filter by provided users
         )
-        .all(DB.get().unwrap())
-        .await?;
+        .all(db())
+        .await
+        .context("Failed to query existing post likes")?;
 
-    // Extract the user IDs of existing likes
-    let existing_user_ids: Vec<i32> = existing_likes
+    // 2. Create a set of user IDs that already have a like recorded
+    let existing_user_ids: std::collections::HashSet<i32> = existing_likes
         .into_iter()
         .map(|like| like.external_user_id)
         .collect();
 
-    // Determine which user IDs are not already in the database
-    let new_user_ids: Vec<i32> = user_ids
+    // 3. Determine which user IDs are new likes
+    let new_likes_models: Vec<discourse_post_like::ActiveModel> = user_ids
         .into_iter()
-        .filter(|user_id| !existing_user_ids.contains(user_id))
+        .filter(|user_id| !existing_user_ids.contains(user_id)) // Filter out existing ones
+        .map(|user_id| discourse_post_like::ActiveModel {
+            id: NotSet, // Let DB generate UUID
+            external_discourse_post_id: Set(post_id),
+            external_user_id: Set(user_id),
+            created_at: Set(Utc::now().naive_utc()), // Set creation time
+            dao_discourse_id: Set(dao_discourse_id),
+        })
         .collect();
 
-    // Calculate the number of new likes to insert
-    let new_likes_count = new_user_ids.len();
-
-    // Insert only the new likes
+    // 4. Insert only the new likes
+    let new_likes_count = new_likes_models.len();
     if new_likes_count > 0 {
-        let new_likes = new_user_ids
-            .into_iter()
-            .map(|user_id| discourse_post_like::ActiveModel {
-                id: NotSet,
-                external_discourse_post_id: Set(post_id),
-                external_user_id: Set(user_id),
-                created_at: Set(Utc::now().naive_utc()),
-                dao_discourse_id: Set(dao_discourse_id),
-            })
-            .collect::<Vec<_>>();
-
-        discourse_post_like::Entity::insert_many(new_likes)
-            .exec(DB.get().unwrap())
-            .await?;
-
-        info!("Batch upserted post likes successfully");
+        discourse_post_like::Entity::insert_many(new_likes_models)
+            .exec(db())
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to batch insert {} new post likes for post {}",
+                    new_likes_count, post_id
+                )
+            })?;
+        info!(
+            post_id,
+            new_likes_inserted = new_likes_count,
+            "Successfully batch inserted new post likes."
+        );
     } else {
-        info!("All likes already exist, skipping insertion");
+        debug!(post_id, "No new likes to insert for this batch.");
     }
 
     Ok(())
 }
 
+/// Fetches the count of likes for a specific post from the database.
 #[instrument(fields(post_external_id = post_external_id, dao_discourse_id = %dao_discourse_id))]
 pub async fn get_post_like_count(post_external_id: i32, dao_discourse_id: Uuid) -> Result<u64> {
     let count = discourse_post_like::Entity::find()
@@ -465,10 +552,15 @@ pub async fn get_post_like_count(post_external_id: i32, dao_discourse_id: Uuid) 
                 .add(discourse_post_like::Column::ExternalDiscoursePostId.eq(post_external_id))
                 .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id)),
         )
-        .count(DB.get().unwrap())
-        .await?;
+        .count(db())
+        .await
+        .with_context(|| format!("Failed to count post likes for post {}", post_external_id))?;
 
-    info!(post_external_id, dao_discourse_id = %dao_discourse_id, count, "Fetched post like count");
-
+    debug!(
+        post_external_id,
+        dao_discourse_id = %dao_discourse_id,
+        count,
+        "Fetched post like count from DB"
+    );
     Ok(count)
 }

@@ -1,551 +1,733 @@
-use crate::metrics::METRICS;
-use anyhow::{anyhow, Result};
-use opentelemetry::KeyValue;
+use anyhow::{Context, Result, anyhow};
+use once_cell::sync::Lazy;
 use rand::{seq::SliceRandom, thread_rng};
 use regex::Regex;
 use reqwest::{
+    Client, StatusCode,
     cookie::Jar,
     header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT},
-    Client, StatusCode,
 };
 use serde::de::DeserializeOwned;
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, VecDeque},
     sync::{Arc, Mutex},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime},
 };
 use tokio::{
     sync::{mpsc, oneshot},
     time::sleep,
 };
-use tracing::{error, info, instrument, warn};
+use tracing::{Instrument, debug, error, info, instrument, warn};
 
+// --- Constants ---
 const DEFAULT_QUEUE_SIZE: usize = 100_000;
 const DEFAULT_MAX_RETRIES: usize = 5;
 const DEFAULT_INITIAL_BACKOFF: Duration = Duration::from_secs(2);
-const NORMAL_JOBS_BATCH_SIZE: usize = 10;
+const MAX_BACKOFF: Duration = Duration::from_secs(60); // Cap backoff to prevent excessive waits
+const FORBIDDEN_CACHE_DURATION: Duration = Duration::from_secs(3600); // 1 hour
+const NORMAL_JOBS_BATCH_SIZE: usize = 10; // Process normal jobs in batches
+const WORKER_YIELD_DURATION: Duration = Duration::from_millis(10); // Small sleep to yield control
 
 const USER_AGENTS: [&str; 5] = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) \
-     Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) \
-     Version/14.1.1 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-    "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) \
-     Chrome/91.0.4472.120 Mobile Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like \
-     Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",
+    "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1",
 ];
 
+// Compile regex once using Lazy for efficiency.
+static RE_UPLOAD_URL: Lazy<Regex> = Lazy::new(|| Regex::new(r"upload:\/\/([a-zA-Z0-9\-_]+)(?:\.([a-zA-Z0-9]+))?").expect("Failed to compile upload URL regex"));
+
+// --- Structs ---
+
+/// Represents a job to be processed by the API worker.
+struct Job {
+    url: String, // Full URL to fetch
+    priority: bool,
+    endpoint_key: String, // Key used for deduplication in pending_requests
+    span: tracing::Span,  // Span to link worker processing to the original request
+}
+
+/// Tracks requests currently being processed to avoid duplicates.
+struct PendingRequest {
+    response_senders: Vec<oneshot::Sender<Result<Arc<String>>>>,
+    priority: bool, // Tracks if any waiter requested priority
+}
+
+/// A rate-limited, retrying, and prioritizing client for interacting with a Discourse API.
 #[derive(Clone)]
 pub struct DiscourseApi {
     client: Client,
     max_retries: usize,
     sender: mpsc::Sender<Job>,
     pub base_url: String,
-    forbidden_urls: Arc<Mutex<HashSet<(String, u64)>>>,
+    // Cache for URLs that returned 403 Forbidden. Uses SystemTime for expiry.
+    forbidden_urls: Arc<Mutex<HashMap<String, SystemTime>>>,
+    // Tracks ongoing requests to prevent duplicate fetches for the same endpoint.
     pending_requests: Arc<Mutex<HashMap<String, PendingRequest>>>,
+    // Internal queues managed by the worker task.
     priority_queue: Arc<Mutex<VecDeque<Job>>>,
     normal_queue: Arc<Mutex<VecDeque<Job>>>,
 }
 
-struct PendingRequest {
-    response_senders: Vec<oneshot::Sender<Result<Arc<String>>>>,
-    priority: bool,
-}
-
-struct Job {
-    url: String,
-    priority: bool,
-    response_sender: String,
-}
+// --- Implementation ---
 
 impl DiscourseApi {
-    #[instrument]
+    /// Creates a new Discourse API client and starts its background worker task.
+    #[instrument(skip(base_url, with_user_agent), fields(base_url = %base_url))]
     pub fn new(base_url: String, with_user_agent: bool) -> Self {
+        info!("Initializing Discourse API client");
         let (headers, cookie_jar) = Self::default_headers_with_cookies(with_user_agent);
 
         let client = Client::builder()
             .default_headers(headers)
             .cookie_provider(cookie_jar)
+            .timeout(Duration::from_secs(60)) // Add a general request timeout
+            .connect_timeout(Duration::from_secs(20)) // Timeout for establishing connection
             .build()
-            .expect("Failed to build HTTP client");
+            .expect("Failed to build HTTP client"); // Panic is acceptable during initialization
 
+        // Use a bounded channel to prevent unbounded memory growth if the worker falls behind.
         let (sender, receiver) = mpsc::channel(DEFAULT_QUEUE_SIZE);
-        let priority_queue = Arc::new(Mutex::new(VecDeque::with_capacity(DEFAULT_QUEUE_SIZE)));
-        let normal_queue = Arc::new(Mutex::new(VecDeque::with_capacity(DEFAULT_QUEUE_SIZE)));
+
+        let priority_queue = Arc::new(Mutex::new(VecDeque::with_capacity(DEFAULT_QUEUE_SIZE / 2))); // Smaller capacity hints
+        let normal_queue = Arc::new(Mutex::new(VecDeque::with_capacity(DEFAULT_QUEUE_SIZE / 2)));
 
         let api_handler = Self {
             client,
             max_retries: DEFAULT_MAX_RETRIES,
             sender,
             base_url: base_url.clone(),
-            forbidden_urls: Arc::new(Mutex::new(HashSet::new())),
+            forbidden_urls: Arc::new(Mutex::new(HashMap::new())),
             pending_requests: Arc::new(Mutex::new(HashMap::new())),
             priority_queue: priority_queue.clone(),
             normal_queue: normal_queue.clone(),
         };
 
-        // Spawn the queue runner
-        tokio::spawn(api_handler.clone().run_queue(receiver));
+        // Spawn the queue runner task.
+        tokio::spawn(
+            api_handler
+                .clone()
+                .run_queue(receiver)
+                .instrument(tracing::info_span!("discourse_api_worker", base_url = %base_url)),
+        );
 
-        // Spawn the cache-clearing task
-        tokio::spawn(clear_forbidden_urls_cache(
-            api_handler.forbidden_urls.clone(),
-        ));
-
+        info!("Discourse API client initialized and worker task started.");
         api_handler
     }
 
-    #[instrument]
+    /// Selects a random user agent string.
     fn get_random_user_agent() -> &'static str {
         let mut rng = thread_rng();
-        USER_AGENTS.choose(&mut rng).unwrap_or(&USER_AGENTS[0])
+        USER_AGENTS
+            .choose(&mut rng)
+            .expect("USER_AGENTS array should not be empty")
     }
 
-    #[instrument]
+    /// Configures default HTTP headers and cookie jar.
     fn default_headers_with_cookies(with_user_agent: bool) -> (HeaderMap, Arc<Jar>) {
         let mut headers = HeaderMap::new();
         let cookie_jar = Arc::new(Jar::default());
 
-        if with_user_agent {
-            headers.insert(
-                USER_AGENT,
-                HeaderValue::from_static(Self::get_random_user_agent()),
-            );
+        let user_agent = if with_user_agent {
+            Self::get_random_user_agent()
         } else {
-            headers.insert(
-                USER_AGENT,
-                HeaderValue::from_static(
-                    "proposals.app Discourse Indexer/1.0 (https://proposals.app; \
-                     contact@proposals.app) reqwest/0.12",
-                ),
-            );
-        }
+            // Standard user agent if randomization is disabled.
+            "proposals.app Discourse Indexer/1.0 (https://proposals.app; contact@proposals.app) reqwest/0.12"
+        };
+        headers.insert(USER_AGENT, HeaderValue::from_static(user_agent));
 
-        headers.insert("Referer", HeaderValue::from_static("https://proposals.app"));
+        // Common browser headers to mimic regular traffic.
+        headers.insert("Referer", HeaderValue::from_static("https://proposals.app")); // Set a referer
         headers.insert(
             "Accept",
-            HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"),
+            HeaderValue::from_static("application/json, text/html, */*"), // Prioritize JSON
         );
         headers.insert(
             "Accept-Language",
-            HeaderValue::from_static("en-US,en;q=0.5"),
+            HeaderValue::from_static("en-US,en;q=0.9"),
         );
         headers.insert("Connection", HeaderValue::from_static("keep-alive"));
-        headers.insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1"));
+        headers.insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1")); // Common browser header
 
         (headers, cookie_jar)
     }
 
+    /// Checks if both internal processing queues (priority and normal) are empty.
+    /// Primarily used for graceful shutdown or pausing logic.
     #[instrument(skip(self))]
-    pub fn is_priority_queue_empty(&self) -> bool {
-        self.priority_queue.lock().unwrap().is_empty()
+    pub fn are_queues_empty(&self) -> bool {
+        let pq_empty = self
+            .priority_queue
+            .lock()
+            .expect("Priority queue lock poisoned")
+            .is_empty();
+        let nq_empty = self
+            .normal_queue
+            .lock()
+            .expect("Normal queue lock poisoned")
+            .is_empty();
+        pq_empty && nq_empty
     }
 
+    /// Queues an API request for a given endpoint.
+    /// Handles deduplication of identical pending requests.
+    /// Returns a future that resolves with the deserialized response or an error.
     #[instrument(skip(self), fields(endpoint = %endpoint, priority = priority))]
     pub async fn queue<T>(&self, endpoint: &str, priority: bool) -> Result<T>
     where
-        T: DeserializeOwned,
+        T: DeserializeOwned + Send + 'static, // Ensure T is Send + 'static for async blocks
     {
-        info!("Fetching data from endpoint");
-
         let (response_sender, response_receiver) = oneshot::channel();
         let url = format!("{}{}", self.base_url, endpoint);
+        // Use endpoint itself as the key for deduplication.
+        let endpoint_key = endpoint.to_string();
 
-        // Check if there's already a pending request for this endpoint
+        // Check for pending requests and decide whether to send a new job.
         let should_send_new_request = {
-            let mut pending_requests = self.pending_requests.lock().unwrap();
+            let mut pending = self
+                .pending_requests
+                .lock()
+                .expect("Pending requests lock poisoned"); // Use expect for poisoned mutexes
 
-            if let Some(pending_request) = pending_requests.get_mut(endpoint) {
-                // If the new request is priority and the existing one isn't, upgrade it
+            if let Some(pending_request) = pending.get_mut(&endpoint_key) {
+                debug!(endpoint, "Request already pending, adding receiver.");
+                // If a new request is priority, upgrade the pending request's status.
                 if priority && !pending_request.priority {
                     pending_request.priority = true;
+                    // Note: This doesn't re-prioritize an already *sent* job in the worker queue.
+                    // It mainly affects subsequent identical queue calls before the first finishes.
+                    debug!(endpoint, "Upgraded pending request to priority.");
                 }
-                // Add this sender to the list of receivers
                 pending_request.response_senders.push(response_sender);
-                false
+                false // Don't send a new job to the worker.
             } else {
-                // No pending request, create a new one
-                pending_requests.insert(
-                    endpoint.to_string(),
+                debug!(endpoint, "No pending request found, creating new entry.");
+                pending.insert(
+                    endpoint_key.clone(),
                     PendingRequest {
                         response_senders: vec![response_sender],
                         priority,
                     },
                 );
-
-                true
+                true // Send a new job to the worker.
             }
         };
 
         if should_send_new_request {
-            if priority {
-                METRICS
-                    .get()
-                    .unwrap()
-                    .queue_size_priority
-                    .add(1, &[KeyValue::new("url", url.clone())]);
-            } else {
-                METRICS
-                    .get()
-                    .unwrap()
-                    .queue_size_normal
-                    .add(1, &[KeyValue::new("url", url.clone())]);
-            }
-
             let job = Job {
-                url,
+                url, // Full URL
                 priority,
-                response_sender: endpoint.to_string(),
+                endpoint_key: endpoint_key.clone(), // Pass the key
+                span: tracing::Span::current(),     // Capture current span
             };
 
-            self.sender
-                .send(job)
-                .await
-                .map_err(|e| anyhow!("Failed to send job: {}", e))?;
+            debug!(endpoint = %job.endpoint_key, priority = job.priority, "Sending job to worker channel");
+            // Send the job to the worker task via the mpsc channel.
+            if let Err(e) = self.sender.send(job).await {
+                // If sending fails, immediately remove the pending request entry to allow retries.
+                error!(endpoint = %endpoint_key, error = %e, "Failed to send job to worker channel. Removing pending request.");
+                self.pending_requests
+                    .lock()
+                    .expect("Pending requests lock poisoned")
+                    .remove(&endpoint_key);
+                // Propagate the error back to the caller.
+                return Err(anyhow!("Failed to send job to worker channel: {}", e));
+            }
+        } else {
+            debug!(endpoint, "Skipped sending duplicate job to worker channel.");
         }
 
-        let response = response_receiver
+        // Await the response from the worker task.
+        let response_result = response_receiver
             .await
-            .map_err(|e| anyhow!("Failed to receive response: {}", e))??;
-        serde_json::from_str(&response).map_err(|e| anyhow!("Failed to parse response: {}", e))
+            .context("Response channel closed unexpectedly. Worker task might have panicked.")?;
+
+        // Handle potential errors returned from the worker (e.g., network errors, parsing errors).
+        let shared_response = response_result.with_context(|| {
+            format!(
+                "Worker task failed processing request for endpoint: {}",
+                endpoint
+            )
+        })?;
+
+        // Deserialize the successful JSON response.
+        serde_json::from_str::<T>(&shared_response).with_context(|| {
+            format!(
+                "Failed to parse JSON response for endpoint: {} | Response: {:.100}",
+                endpoint,
+                shared_response.as_ref()
+            )
+        })
     }
 
-    #[instrument(skip(self, receiver))]
+    /// The main loop for the background worker task. Receives jobs and processes them.
     async fn run_queue(self, mut receiver: mpsc::Receiver<Job>) {
-        while let Some(job) = receiver.recv().await {
-            if job.priority {
-                let mut pq = self.priority_queue.lock().unwrap();
-                pq.push_back(job);
-            } else {
-                let mut nq = self.normal_queue.lock().unwrap();
-                nq.push_back(job);
-            }
+        info!("Starting Discourse API queue runner worker.");
+        loop {
+            tokio::select! {
+                Some(job) = receiver.recv() => {
+                    // Create logging info before moving job
+                    let url_log = job.url.clone();
+                    let endpoint_key_log = job.endpoint_key.clone();
+                    let job_priority = job.priority;
+                    let span = job.span.clone(); // Clone the span
 
-            // Process all priority jobs first
-            while let Some(priority_job) = {
-                let mut pq = self.priority_queue.lock().unwrap();
-                pq.pop_front()
-            } {
-                self.process_job(&priority_job, true).await;
-                METRICS
-                    .get()
-                    .unwrap()
-                    .queue_size_priority
-                    .add(-1, &[KeyValue::new("url", priority_job.url)]);
-            }
+                    // Enter span for proper tracing context
+                    let _enter = span.enter();
+                    debug!(url = %url_log, priority = job_priority, endpoint_key = %endpoint_key_log, "Received job, adding to internal queue.");
 
-            // Process a batch of normal jobs
-            for _ in 0..NORMAL_JOBS_BATCH_SIZE {
-                if let Some(normal_job) = {
-                    let mut nq = self.normal_queue.lock().unwrap();
-                    nq.pop_front()
-                } {
-                    self.process_job(&normal_job, false).await;
-                    METRICS
-                        .get()
-                        .unwrap()
-                        .queue_size_normal
-                        .add(-1, &[KeyValue::new("url", normal_job.url)]);
-                } else {
+                    // Add job to appropriate queue
+                    if job_priority {
+                        let mut pq = self.priority_queue.lock().expect("Priority queue lock poisoned");
+                        pq.push_back(job); // Now safe to move job
+                        drop(pq); // Release lock promptly
+                    } else {
+                        let mut nq = self.normal_queue.lock().expect("Normal queue lock poisoned");
+                        nq.push_back(job); // Now safe to move job
+                        drop(nq); // Release lock promptly
+                    }
+
+                    // Process queued jobs after receiving a new one
+                    self.process_queued_jobs().await;
+                },
+                else => {
+                    info!("Job channel closed. Starting shutdown sequence.");
+                    while !self.are_queues_empty() {
+                        warn!("Processing remaining jobs during shutdown...");
+                        self.process_queued_jobs().await;
+                        sleep(WORKER_YIELD_DURATION).await;
+                    }
+                    info!("All queues processed. Shutting down queue runner worker.");
                     break;
                 }
             }
+            sleep(WORKER_YIELD_DURATION).await;
+        }
+        info!("Discourse API queue runner worker finished.");
+    }
 
-            // Sleep for a short duration to avoid busy-waiting
-            tokio::time::sleep(Duration::from_millis(50)).await;
+    /// Processes jobs from the internal priority and normal queues.
+    #[instrument(skip(self), name = "process_queued_jobs")]
+    async fn process_queued_jobs(&self) {
+        let mut processed_count = 0;
+
+        // --- Process Priority Queue ---
+        loop {
+            let job_opt = {
+                let mut pq = self
+                    .priority_queue
+                    .lock()
+                    .expect("Priority queue lock poisoned");
+                pq.pop_front()
+            };
+
+            if let Some(job) = job_opt {
+                // Clone needed values for logging before moving job
+                let url_log = job.url.clone();
+                let endpoint_key_log = job.endpoint_key.clone();
+                let span = job.span.clone();
+
+                // Enter the job's span before processing
+                let _enter = span.enter();
+                debug!(url = %url_log, endpoint_key = %endpoint_key_log, "Processing priority job");
+
+                self.process_job(job, true).await;
+                processed_count += 1;
+            } else {
+                break;
+            }
+        }
+
+        // --- Process Normal Queue ---
+        for _ in 0..NORMAL_JOBS_BATCH_SIZE {
+            let job_opt = {
+                let mut nq = self
+                    .normal_queue
+                    .lock()
+                    .expect("Normal queue lock poisoned");
+                nq.pop_front()
+            };
+
+            if let Some(job) = job_opt {
+                // Clone needed values for logging before moving job
+                let url_log = job.url.clone();
+                let endpoint_key_log = job.endpoint_key.clone();
+                let span = job.span.clone();
+
+                // Enter the job's span before processing
+                let _enter = span.enter();
+                debug!(url = %url_log, endpoint_key = %endpoint_key_log, "Processing normal job");
+
+                self.process_job(job, false).await;
+                processed_count += 1;
+            } else {
+                break;
+            }
+        }
+
+        if processed_count > 0 {
+            debug!("Processed {} jobs in this cycle", processed_count);
         }
     }
 
-    #[instrument(skip(self, job), fields(url = %job.url, priority = is_priority))]
-    async fn process_job(&self, job: &Job, is_priority: bool) {
-        let start_time = std::time::Instant::now();
+    /// Executes a single job: performs the HTTP request and broadcasts the result.
+    #[instrument(
+        skip(self, job),
+        fields(url = %job.url, priority = is_priority, endpoint_key = %job.endpoint_key),
+        name = "process_job" // Explicit span name
+    )]
+    async fn process_job(&self, job: Job, is_priority: bool) {
+        let start_time = Instant::now();
 
-        // Record total requests metric
-        METRICS.get().unwrap().api_total_requests.add(
-            1,
-            &[
-                KeyValue::new("url", job.url.clone()),
-                KeyValue::new("priority", is_priority.to_string()),
-            ],
-        );
+        let endpoint_key_clone = job.endpoint_key.clone(); // Clone for metrics
 
-        let result = self.execute_request(&job.url).await;
+        info!(url = %job.url, "Executing request");
+        // Execute the actual HTTP request with retries/backoff.
+        let result: Result<String> = self.execute_request(&job.url).await;
+        let request_duration = start_time.elapsed();
 
-        // Record the duration of the request
-        let duration = start_time.elapsed().as_secs_f64();
-        METRICS.get().unwrap().api_request_duration.record(
-            duration,
-            &[
-                KeyValue::new("url", job.url.clone()),
-                KeyValue::new("priority", is_priority.to_string()),
-            ],
-        );
+        debug!(url = %job.url, ?request_duration, "Request execution finished.");
 
-        // Get all the senders for this endpoint and remove the pending request
+        // --- Broadcast Result ---
+        // Retrieve all waiting senders and remove the pending request entry *atomically*.
         let senders = {
-            let mut pending_requests = self.pending_requests.lock().unwrap();
-            pending_requests
-                .remove(&job.response_sender)
-                .expect("Pending request should exist")
-                .response_senders
+            let mut pending = self
+                .pending_requests
+                .lock()
+                .expect("Pending requests lock poisoned");
+            // Remove the entry using the endpoint_key from the job.
+            pending
+                .remove(&job.endpoint_key)
+                .map(|p| p.response_senders) // Get the senders if entry existed
+                .unwrap_or_else(|| {
+                    // Handle case where entry might already be removed (e.g., send error)
+                    warn!(endpoint_key = %job.endpoint_key, "Pending request entry was already removed before broadcasting result.");
+                    Vec::new() // Return empty vec, nothing to broadcast
+                })
         };
 
-        // Send the result to all waiting receivers
-        match result {
-            Ok(response_text) => {
-                let shared_response = Arc::new(response_text);
-                for sender in senders {
-                    let _ = sender.send(Ok(shared_response.clone()));
+        let receiver_count = senders.len();
+        if receiver_count > 0 {
+            debug!(url = %job.url, receiver_count, "Broadcasting result to waiters.");
+            match result {
+                Ok(response_text) => {
+                    let shared_response = Arc::new(response_text); // Share successful response
+                    for sender in senders {
+                        // Ignore error if receiver was dropped (client timed out/cancelled).
+                        let _ = sender.send(Ok(shared_response.clone()));
+                    }
+                }
+                Err(e) => {
+                    // Log the final error that prevented a successful response.
+                    error!(url = %job.url, error = ?e, "Request ultimately failed, notifying waiters with error.");
+                    // Send owned error to each waiter.
+                    // We need to capture the error before the loop as `e` is moved into the first `context` call.
+                    let error_message = format!(
+                        "Discourse API request failed for {}: {:?}",
+                        endpoint_key_clone, e
+                    );
+                    for sender in senders {
+                        // Create a fresh anyhow::Error for each sender with the captured message.
+                        let err_to_send = anyhow!(error_message.clone());
+                        let _ = sender.send(Err(err_to_send));
+                    }
                 }
             }
-            Err(e) => {
-                let error_msg = e.to_string();
-                for sender in senders {
-                    let _ = sender.send(Err(anyhow!(error_msg.clone())));
-                }
-
-                // Record the error
-                METRICS.get().unwrap().api_request_errors.add(
-                    1,
-                    &[
-                        KeyValue::new("url", job.url.clone()),
-                        KeyValue::new("priority", is_priority.to_string()),
-                        KeyValue::new("error", error_msg),
-                    ],
-                );
-
-                // // Record queue errors
-                METRICS
-                    .get()
-                    .unwrap()
-                    .queue_errors
-                    .add(1, &[KeyValue::new("url", job.url.clone())]);
-            }
+        } else {
+            debug!(url = %job.url, "No waiters found for this request result.");
         }
 
-        // Record queue processing time
-        METRICS.get().unwrap().queue_processing_time.record(
-            start_time.elapsed().as_secs_f64(),
-            &[KeyValue::new("url", job.url.clone())],
-        );
+        // Record overall job processing time (includes request execution + broadcasting logic).
+        let total_job_duration = start_time.elapsed();
+
+        info!(url = %job.url, ?total_job_duration, "Finished processing job.");
     }
 
+    /// Executes the HTTP GET request with retry logic and forbidden URL caching.
     #[instrument(skip(self), fields(url = %url))]
     async fn execute_request(&self, url: &str) -> Result<String> {
-        // Check if the URL is in the forbidden cache
+        // --- Forbidden URL Check ---
         {
-            let mut forbidden_urls = self.forbidden_urls.lock().unwrap();
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
+            // Scope for the lock guard
+            let mut forbidden_urls = self
+                .forbidden_urls
+                .lock()
+                .expect("Forbidden URLs lock poisoned");
+            let now = SystemTime::now();
 
-            // Clean up expired entries
-            forbidden_urls.retain(|(_, timestamp)| now - *timestamp < 3600);
+            // Clean up expired entries before checking.
+            forbidden_urls.retain(|_url, timestamp| {
+                now.duration_since(*timestamp)
+                    .map_or(false, |age| age < FORBIDDEN_CACHE_DURATION)
+            });
 
-            if forbidden_urls.iter().any(|(u, _)| u == url) {
-                return Err(anyhow!("URL is cached forbidden: {}", url));
+            // Check if URL is still forbidden after cleanup.
+            if forbidden_urls.contains_key(url) {
+                warn!(url, "Request blocked by forbidden cache.");
+
+                return Err(anyhow!("URL is cached as forbidden: {}", url));
             }
-        }
+        } // Lock released here
 
+        // --- Retry Loop ---
         let mut attempt = 0;
         let mut delay = DEFAULT_INITIAL_BACKOFF;
 
         loop {
-            match self.client.get(url).send().await {
+            attempt += 1;
+            let request_start = Instant::now(); // Use Instant for duration measurement
+            debug!(url, attempt, "Sending HTTP GET request attempt.");
+
+            // Clone client for the request (reqwest::Client is Arc-based internally)
+            let request = self.client.get(url).build()?; // Build request first
+
+            match self.client.execute(request).await {
                 Ok(response) => {
                     let status = response.status();
+                    let response_time = request_start.elapsed();
+                    debug!(url, attempt, %status, ?response_time, "Received response.");
+
+                    // --- Handle Status Codes ---
                     match status {
                         StatusCode::OK => {
-                            info!(url, "Request successful");
+                            info!(url, attempt, ?response_time, "Request successful (200 OK)");
+                            // Read body text - potential point of failure
                             return response
                                 .text()
                                 .await
-                                .map_err(|e| anyhow!("Failed to get response text: {}", e));
+                                .with_context(|| format!("Failed to read response body text for {}", url));
                         }
                         StatusCode::TOO_MANY_REQUESTS => {
-                            attempt += 1;
                             if attempt > self.max_retries {
                                 error!(
                                     url,
                                     attempt,
                                     max_retries = self.max_retries,
-                                    "Max retries reached. Last error: HTTP 429"
+                                    "Max retries reached after 429 Too Many Requests"
                                 );
-                                return Err(anyhow!("Max retries reached. Last error: HTTP 429"));
+                                return Err(anyhow!(
+                                    "Max retries ({}) reached for {}: Last error HTTP 429",
+                                    self.max_retries,
+                                    url
+                                ));
                             }
-
+                            // Calculate delay respecting Retry-After header, apply exponential backoff.
                             let retry_after = Self::get_retry_after(&response, delay);
-                            warn!(url, attempt, retry_after = ?retry_after, "Rate limited, retrying");
-                            sleep(retry_after).await;
-                            delay = delay.max(retry_after) * 2;
+                            delay = (delay * 2).min(MAX_BACKOFF).max(retry_after); // Exponential backoff with ceiling and floor
+                            warn!(url, attempt, ?retry_after, effective_delay = ?delay, "Rate limited (429), retrying...");
 
-                            // Record retry metrics
-                            METRICS.get().unwrap().api_request_errors.add(
-                                1,
-                                &[
-                                    KeyValue::new("url", url.to_string()),
-                                    KeyValue::new("status", "429"),
-                                    KeyValue::new("attempt", attempt.to_string()),
-                                ],
-                            );
+                            sleep(delay).await; // Wait before retrying
                         }
-                        status if status.is_server_error() => {
-                            attempt += 1;
+                        s if s.is_server_error() => {
+                            // 5xx errors
                             if attempt > self.max_retries {
-                                error!(url, status = %status, attempt, max_retries = self.max_retries, "Max retries reached. Server error");
-                                return Err(anyhow!("Max retries reached. Last error: HTTP {}", status));
+                                error!(url, status = %s, attempt, max_retries = self.max_retries, "Max retries reached after server error");
+                                return Err(anyhow!(
+                                    "Max retries ({}) reached for {}: Last error HTTP {}",
+                                    self.max_retries,
+                                    url,
+                                    s
+                                ));
                             }
+                            warn!(url, status = %s, attempt, ?delay, "Server error, retrying...");
 
-                            warn!(url, status = %status, attempt, delay = ?delay, "Server error, retrying");
                             sleep(delay).await;
-                            delay *= 2;
-
-                            // Record retry metrics
-                            METRICS.get().unwrap().api_request_errors.add(
-                                1,
-                                &[
-                                    KeyValue::new("url", url.to_string()),
-                                    KeyValue::new("status", status.to_string()),
-                                    KeyValue::new("attempt", attempt.to_string()),
-                                ],
-                            );
+                            delay = (delay * 2).min(MAX_BACKOFF); // Exponential backoff with ceiling
                         }
                         StatusCode::FORBIDDEN => {
-                            let body = response.text().await.unwrap_or_default();
+                            // 403 Forbidden
+                            let body_preview = match response.text().await {
+                                Ok(text) => text.chars().take(100).collect::<String>(),
+                                Err(_) => "[failed to read body]".to_string(),
+                            };
+                            error!(url, status = %status, body_preview, "Request forbidden (403), caching URL and failing permanently.");
 
-                            // Add the URL to the forbidden cache
-                            let now = SystemTime::now()
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap()
-                                .as_secs();
-                            let mut forbidden_urls = self.forbidden_urls.lock().unwrap();
-                            forbidden_urls.insert((url.to_string(), now));
+                            // Add to forbidden cache
+                            {
+                                // Scope for lock guard
+                                let mut forbidden_urls = self
+                                    .forbidden_urls
+                                    .lock()
+                                    .expect("Forbidden URLs lock poisoned");
+                                forbidden_urls.insert(url.to_string(), SystemTime::now());
+                                debug!(url, "Added URL to forbidden cache.");
+                            } // Lock released
 
-                            error!(url, status = %status, body, "Request failed");
-                            return Err(anyhow!("Request failed with status {}: {}", status, body));
+                            return Err(anyhow!(
+                                "Request failed with status {}: {}",
+                                status,
+                                body_preview
+                            ));
                         }
-                        status if status.is_client_error() => {
-                            let body = response.text().await.unwrap_or_default();
-                            error!(url, status = %status, body, "Client error, skipping retries");
-                            return Err(anyhow!("Client error: HTTP {}: {}", status, body));
+                        s if s.is_client_error() => {
+                            // Other 4xx errors (e.g., 404 Not Found)
+                            let body_preview = match response.text().await {
+                                Ok(text) => text.chars().take(100).collect::<String>(),
+                                Err(_) => "[failed to read body]".to_string(),
+                            };
+                            error!(url, status = %s, body_preview, "Client error, failing permanently.");
+                            return Err(anyhow!(
+                                "Client error for {}: HTTP {}: {}",
+                                url,
+                                s,
+                                body_preview
+                            ));
                         }
-                        status => {
-                            let body = response.text().await.unwrap_or_default();
-                            error!(url, status = %status, body, "Request failed");
-                            return Err(anyhow!("Request failed with status {}: {}", status, body));
+                        // Handle unexpected non-success statuses
+                        s => {
+                            let body_preview = match response.text().await {
+                                Ok(text) => text.chars().take(100).collect::<String>(),
+                                Err(_) => "[failed to read body]".to_string(),
+                            };
+                            error!(url, status = %s, body_preview, "Unexpected status, failing permanently.");
+                            return Err(anyhow!(
+                                "Request failed for {}: Unexpected status {}: {}",
+                                url,
+                                s,
+                                body_preview
+                            ));
                         }
                     }
                 }
+                // Handle network or reqwest-level errors
                 Err(e) => {
-                    attempt += 1;
+                    let error_string = e.to_string();
                     if attempt > self.max_retries {
-                        error!(url, error = ?e, attempt, max_retries = self.max_retries, "Max retries reached");
-                        return Err(anyhow!("Max retries reached. Last error: {}", e));
+                        error!(url, error = %error_string, attempt, max_retries = self.max_retries, "Max retries reached after request error.");
+                        return Err(anyhow!(
+                            "Max retries ({}) reached for {}. Last error: {}",
+                            self.max_retries,
+                            url,
+                            e
+                        ))
+                        .context("Request failed after multiple retries");
                     }
-                    warn!(url, error = ?e, attempt, delay = ?delay, "Request error, retrying");
-                    sleep(delay).await;
-                    delay *= 2; // Exponential backoff
+                    warn!(url, error = %error_string, attempt, ?delay, "Request error, retrying...");
 
-                    // Record retry metrics
-                    METRICS.get().unwrap().api_request_errors.add(
-                        1,
-                        &[
-                            KeyValue::new("url", url.to_string()),
-                            KeyValue::new("error", e.to_string()),
-                            KeyValue::new("attempt", attempt.to_string()),
-                        ],
-                    );
+                    sleep(delay).await;
+                    delay = (delay * 2).min(MAX_BACKOFF); // Exponential backoff with ceiling
                 }
             }
-        }
+        } // End retry loop
     }
 
-    #[instrument]
+    /// Parses the Retry-After header, returning a Duration.
+    /// Handles second-based values. Assumes HTTP-date format is less common here.
     fn get_retry_after(response: &reqwest::Response, default: Duration) -> Duration {
         response
             .headers()
             .get(RETRY_AFTER)
             .and_then(|h| h.to_str().ok())
-            .and_then(|s| s.parse::<u64>().ok())
+            .and_then(|s| s.parse::<u64>().ok()) // Attempt to parse as seconds
             .map(Duration::from_secs)
-            .unwrap_or(default)
+            .unwrap_or(default) // Fallback to default backoff
     }
 }
 
-/// Background task to periodically clear the forbidden URLs cache.
-async fn clear_forbidden_urls_cache(forbidden_urls: Arc<Mutex<HashSet<(String, u64)>>>) {
-    loop {
-        tokio::time::sleep(Duration::from_secs(3600)).await; // Clear cache every hour
-        let mut forbidden_urls = forbidden_urls.lock().unwrap();
-        forbidden_urls.clear();
-    }
-}
-
-#[instrument(skip(discourse_api))]
-pub async fn process_upload_urls(raw_content: &str, discourse_api: Arc<DiscourseApi>) -> Result<String> {
-    let re_upload = Regex::new(r"upload:\/\/([a-zA-Z0-9\-_]+)(?:\.([a-zA-Z0-9]+))?").unwrap();
-    let replaced_content = re_upload.replace_all(raw_content, |caps: &regex::Captures| {
+/// Replaces Discourse `upload://` URLs with full HTTP URLs based on the API's base URL.
+// This function doesn't need to be async anymore.
+#[instrument(skip(discourse_api, raw_content))] // Skip raw_content to avoid large logs
+pub fn process_upload_urls(raw_content: &str, discourse_api: Arc<DiscourseApi>) -> String {
+    // Return String directly
+    // Use the statically compiled regex for performance.
+    let replaced_content = RE_UPLOAD_URL.replace_all(raw_content, |caps: &regex::Captures| {
         let base_url = &discourse_api.base_url;
-        let file_name = &caps[1]; // Capture group 1: filename without extension
-                                  // If there's a file extension (capture group 2), use it; otherwise, don't add a period.
-        if let Some(ext) = caps.get(2) {
-            format!(
+        // Capture group 1: file identifier (guaranteed to exist by regex structure)
+        let file_id = &caps[1];
+        match caps.get(2) {
+            // Capture group 2: optional extension
+            Some(ext) => format!(
                 "{}/uploads/short-url/{}.{}",
-                base_url,
-                file_name,
+                base_url.trim_end_matches('/'), // Ensure no double slash
+                file_id,
                 ext.as_str()
-            )
-        } else {
-            format!("{}/uploads/short-url/{}", base_url, file_name)
+            ),
+            None => format!(
+                "{}/uploads/short-url/{}",
+                base_url.trim_end_matches('/'),
+                file_id
+            ),
         }
     });
-    Ok(replaced_content.to_string())
+    replaced_content.into_owned() // Convert Cow<str> to String
 }
 
-#[tokio::test]
-async fn test_process_post_raw_content() {
-    // Create real API client instances
-    let discourse_api = Arc::new(DiscourseApi::new(
-        "https://forum.arbitrum.foundation".to_string(),
-        true,
-    ));
+// --- Tests ---
+#[cfg(test)]
+mod tests {
+    use super::*; // Import items from parent module
+    // use std::time::Duration; // Removed unused Duration
 
-    let raw_content = r#"Yes, both Arbitrum DAO governors count the **Abstain** vote choice towards quorum.
+    // Helper to create a simple API instance for tests that don't need a real server.
+    fn create_test_api() -> Arc<DiscourseApi> {
+        Arc::new(DiscourseApi::new(
+            "https://test.forum.local".to_string(),
+            false,
+        ))
+    }
+
+    #[tokio::test]
+    async fn test_process_upload_urls_basic() {
+        let api = create_test_api();
+        let raw = "Some text with upload://file123.png and upload://anotherfile without extension.";
+        let expected = "Some text with https://test.forum.local/uploads/short-url/file123.png and https://test.forum.local/uploads/short-url/anotherfile without extension.";
+        let processed = process_upload_urls(raw, api); // No await needed
+        assert_eq!(processed, expected);
+    }
+
+    #[tokio::test]
+    async fn test_process_upload_urls_trailing_slash() {
+        let api = Arc::new(DiscourseApi::new(
+            "https://test.forum.local/".to_string(),
+            false,
+        ));
+        let raw = "Text upload://file.jpg";
+        let expected = "Text https://test.forum.local/uploads/short-url/file.jpg"; // No double slash
+        let processed = process_upload_urls(raw, api); // No await needed
+        assert_eq!(processed, expected);
+    }
+
+    // --- Keep Existing Tests ---
+
+    #[tokio::test]
+    async fn test_process_post_raw_content() {
+        // Use a real-looking URL even if the test doesn't hit the network for this function
+        let discourse_api = Arc::new(DiscourseApi::new(
+            "https://forum.arbitrum.foundation".to_string(),
+            true,
+        ));
+
+        let raw_content = r#"Yes, both Arbitrum DAO governors count the **Abstain** vote choice towards quorum.
 
 And for example, in the OpCo onchain vote, if **Abstain** wouldn't count towards quorum the proposal would have just very very barely passed, with **122.4M ARB** voting **For** and the 3% Quorum threshold being **121.8M ARB**.
 
 ![soon on arbitrum.proposals.app|690x234](upload://dL6cgekakAbqqmWl7b2EWSlhidB.png)
 "#;
 
-    // Process the raw content
-    // Use a placeholder for http_client since it is no longer used in process_post_raw_content.
-    let processed_content = process_upload_urls(raw_content, discourse_api)
-        .await
-        .unwrap();
+        // Process the raw content
+        let processed_content = process_upload_urls(raw_content, discourse_api); // No await needed
 
-    assert_eq!(
-        processed_content,
-        r#"Yes, both Arbitrum DAO governors count the **Abstain** vote choice towards quorum.
+        assert_eq!(
+            processed_content,
+            r#"Yes, both Arbitrum DAO governors count the **Abstain** vote choice towards quorum.
 
 And for example, in the OpCo onchain vote, if **Abstain** wouldn't count towards quorum the proposal would have just very very barely passed, with **122.4M ARB** voting **For** and the 3% Quorum threshold being **121.8M ARB**.
 
 ![soon on arbitrum.proposals.app|690x234](https://forum.arbitrum.foundation/uploads/short-url/dL6cgekakAbqqmWl7b2EWSlhidB.png)
 "#
-    );
-}
+        );
+    }
 
-#[tokio::test]
-async fn test_process_post_raw_content_revision() {
-    // Create a DiscourseApi instance with a test base URL
-    let discourse_api = Arc::new(DiscourseApi::new(
-        "https://forum.arbitrum.foundation".to_string(),
-        true,
-    ));
+    #[tokio::test]
+    async fn test_process_post_raw_content_revision() {
+        let discourse_api = Arc::new(DiscourseApi::new(
+            "https://forum.arbitrum.foundation".to_string(),
+            true,
+        ));
 
-    let raw_content = r#"## Constitutional / Non-Constitutional
+        let raw_content = r#"## Constitutional / Non-Constitutional
 
 Constitutional
 
@@ -679,12 +861,10 @@ Separately, we will submit an onchain proposal with the full ARB Staking impleme
 
 This proposal should not be relied on as legal, tax, or investment advice. Any projections included here are based on our best estimates and presented for informational purposes only."#;
 
-    // Process the raw content
-    let processed_content = process_upload_urls(raw_content, discourse_api)
-        .await
-        .unwrap();
+        // Process the raw content
+        let processed_content = process_upload_urls(raw_content, discourse_api); // No await needed
 
-    let expected_content = r#"## Constitutional / Non-Constitutional
+        let expected_content = r#"## Constitutional / Non-Constitutional
 
 Constitutional
 
@@ -818,5 +998,6 @@ Separately, we will submit an onchain proposal with the full ARB Staking impleme
 
 This proposal should not be relied on as legal, tax, or investment advice. Any projections included here are based on our best estimates and presented for informational purposes only."#;
 
-    assert_eq!(processed_content, expected_content);
+        assert_eq!(processed_content, expected_content);
+    }
 }
