@@ -1,25 +1,24 @@
 #![warn(unused_extern_crates)]
+#![feature(duration_constructors)]
 
 use crate::{
-    db_handler::{db, initialize_db}, // Use db() helper
+    db_handler::{db, initialize_db},
     discourse_api::DiscourseApi,
     indexers::{categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer, users::UserIndexer},
 };
 use anyhow::{Context, Result};
 use axum::{Router, routing::get};
 use dotenv::dotenv;
-use proposalsapp_db_indexer::models::dao_discourse; // Import only necessary model
+use proposalsapp_db_indexer::models::dao_discourse;
 use reqwest::Client;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, prelude::Uuid}; // Use prelude Uuid
-use std::time::Instant; // Use std::time::Instant
-use std::{collections::HashMap, sync::Arc, time::Duration};
-use tokio::{
-    signal,
-    sync::watch,
-    task::JoinSet,
-    time::interval_at, // Use interval_at from tokio::time
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, prelude::Uuid};
+use std::{
+    collections::HashMap,
+    sync::Arc,
+    time::{Duration, Instant},
 };
-use tracing::{Instrument, debug, error, info, instrument, warn}; // Import necessary macros and Instrument trait
+use tokio::{signal, sync::watch, task::JoinSet, time::interval_at};
+use tracing::{Instrument, debug, error, info, instrument, warn};
 use utils::tracing::setup_otel;
 
 mod db_handler;
@@ -28,11 +27,17 @@ mod indexers;
 mod models;
 
 // --- Configuration Constants ---
-const FULL_REFRESH_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60); // 6 hours
-const RECENT_UPDATE_INTERVAL: Duration = Duration::from_secs(60); // 1 minute
-const INITIAL_TASK_DELAY: Duration = Duration::from_secs(15);
+const FULL_REFRESH_INTERVAL: Duration = Duration::from_hours(6);
+const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_hours(1);
+
+const RECENT_UPDATE_INTERVAL: Duration = Duration::from_mins(1);
+const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);
+
 const HEALTH_CHECK_PORT: u16 = 3000;
 const BETTERSTACK_HEARTBEAT_ENV: &str = "BETTERSTACK_KEY";
+
+pub const MAX_PAGES_PER_RUN: u32 = 1000; // Safety break for pagination loops
+pub const RECENT_LOOKBACK_HOURS: i64 = 2; // How far back to look for "recent" items
 
 lazy_static::lazy_static! {
     static ref DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS: HashMap<Uuid, Vec<i32>> = {
@@ -93,7 +98,7 @@ async fn main() -> Result<()> {
     // --- Initialize API Clients and Indexers ---
     let dao_discourses = dao_discourse::Entity::find()
         .filter(dao_discourse::Column::Enabled.eq(true))
-        .find_with_related(proposalsapp_db_indexer::models::dao::Entity) // Fetch related DAO for name
+        .find_with_related(proposalsapp_db_indexer::models::dao::Entity)
         .all(db())
         .await
         .context("Failed to fetch enabled DAO Discourse configurations with DAO names")?;
@@ -153,7 +158,7 @@ async fn main() -> Result<()> {
             async move {
                 let task_name = format!("full_refresh_{}", dao_name_full);
                 info!(task = %task_name, "Starting full refresh task loop");
-                let start_delay = tokio::time::Instant::now() + INITIAL_TASK_DELAY; // Use tokio::time::Instant for interval_at
+                let start_delay = tokio::time::Instant::now() + INITIAL_FULL_REFRESH_TASK_DELAY;
                 let mut interval = interval_at(start_delay, FULL_REFRESH_INTERVAL);
                 interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
@@ -166,7 +171,7 @@ async fn main() -> Result<()> {
                         }
                         _ = interval.tick() => {
                              info!(task = %task_name, "Running full refresh cycle...");
-                             let cycle_start = Instant::now(); // Use std::time::Instant for duration measurement
+                             let cycle_start = Instant::now();
 
                              // Define indexer futures
                              let cat_fut = cat_idx_full.update_all_categories(dao_id_full);
@@ -192,12 +197,13 @@ async fn main() -> Result<()> {
                     }
                 }
             }
-            .instrument(tracing::info_span!("full_refresh_task", dao = %dao_name)), // Instrument the future before spawning
+            .instrument(tracing::info_span!("full_refresh_task", dao = %dao_name)),
         );
 
         // --- Spawn Recent Updates Task ---
         let dao_id_recent = dao_config.id;
         let dao_name_recent = dao_name.clone();
+        let cat_idx_recent = category_indexer.clone();
         let user_idx_recent = user_indexer.clone();
         let topic_idx_recent = topic_indexer.clone();
         let rev_idx_recent = revision_indexer.clone();
@@ -207,7 +213,7 @@ async fn main() -> Result<()> {
             async move {
                 let task_name = format!("recent_updates_{}", dao_name_recent);
                 info!(task = %task_name, "Starting recent updates task loop");
-                let start_delay = tokio::time::Instant::now() + INITIAL_TASK_DELAY + Duration::from_secs(5); // Further stagger
+                let start_delay = tokio::time::Instant::now() + INITIAL_RECENT_UPDATE_TASK_DELAY;
                 let mut interval = interval_at(start_delay, RECENT_UPDATE_INTERVAL);
                 interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
@@ -220,18 +226,21 @@ async fn main() -> Result<()> {
                          }
                         _ = interval.tick() => {
                              info!(task = %task_name, "Running recent updates cycle...");
-                             let cycle_start = Instant::now(); // Use std::time::Instant
+                             let cycle_start = Instant::now();
 
                              // Define futures
+                             let cat_fut = cat_idx_recent.update_all_categories(dao_id_recent);
                              let user_fut = user_idx_recent.update_recent_users(dao_id_recent);
                              let topic_fut = topic_idx_recent.update_recent_topics(dao_id_recent);
                              let rev_fut = rev_idx_recent.update_recent_revisions(dao_id_recent);
 
                              // Run recent updates concurrently
-                            let (user_res, topic_res, rev_res): (Result<()>, Result<()>, Result<()>) =
-                                 tokio::join!(user_fut, topic_fut, rev_fut);
+                             let (cat_res,user_res, topic_res, rev_res): (Result<()>, Result<()>, Result<()>, Result<()>) =
+                                 tokio::join!(cat_fut,user_fut, topic_fut, rev_fut);
 
                              // Record metrics and log results
+                             log_indexer_result("Full Categories", &cat_res);
+
                              log_indexer_result("Recent Users", &user_res);
 
                              log_indexer_result("Recent Topics/Posts", &topic_res);
@@ -243,7 +252,7 @@ async fn main() -> Result<()> {
                     }
                 }
             }
-            .instrument(tracing::info_span!("recent_updates_task", dao = %dao_name)), // Instrument the future before spawning
+            .instrument(tracing::info_span!("recent_updates_task", dao = %dao_name)),
         );
     } // End loop through DAO configs
 
@@ -251,7 +260,7 @@ async fn main() -> Result<()> {
     if let Ok(heartbeat_url) = std::env::var(BETTERSTACK_HEARTBEAT_ENV) {
         if !heartbeat_url.is_empty() {
             info!(url = %heartbeat_url, "Starting Better Uptime heartbeat task.");
-            let heartbeat_client = shared_http_client.clone(); // Reuse the client
+            let heartbeat_client = shared_http_client.clone();
             let mut shutdown_rx_heartbeat = shutdown_rx.clone();
             indexer_tasks.spawn(
                 async move {
@@ -281,7 +290,7 @@ async fn main() -> Result<()> {
                         }
                     }
                 }
-                .instrument(tracing::info_span!("heartbeat_task")), // Instrument future before spawn
+                .instrument(tracing::info_span!("heartbeat_task")),
             );
         } else {
             warn!(

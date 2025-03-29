@@ -1,7 +1,8 @@
 use crate::{
+    MAX_PAGES_PER_RUN,
     db_handler::{db, get_or_create_unknown_user, get_post_like_count, upsert_post},
     discourse_api::{DiscourseApi, process_upload_urls},
-    indexers::{MAX_PAGES_PER_RUN, likes::LikesIndexer, users::UserIndexer},
+    indexers::{likes::LikesIndexer, users::UserIndexer},
     models::posts::{Post, PostResponse},
 };
 use anyhow::{Context, Result};

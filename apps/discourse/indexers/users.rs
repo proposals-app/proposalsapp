@@ -1,7 +1,7 @@
 use crate::{
+    MAX_PAGES_PER_RUN,
     db_handler::upsert_user,
     discourse_api::DiscourseApi,
-    indexers::MAX_PAGES_PER_RUN,
     models::users::{User, UserDetailResponse, UserResponse},
 };
 use anyhow::{Context, Result};

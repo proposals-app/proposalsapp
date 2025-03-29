@@ -1,9 +1,4 @@
-use crate::{
-    db_handler::upsert_topic,
-    discourse_api::DiscourseApi,
-    indexers::{MAX_PAGES_PER_RUN, RECENT_LOOKBACK_HOURS, posts::PostIndexer},
-    models::topics::TopicResponse,
-};
+use crate::{MAX_PAGES_PER_RUN, RECENT_LOOKBACK_HOURS, db_handler::upsert_topic, discourse_api::DiscourseApi, indexers::posts::PostIndexer, models::topics::TopicResponse};
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use reqwest::Client;
@@ -104,7 +99,7 @@ impl TopicIndexer {
                 .await
             {
                 Ok(response) => {
-                    let topics_on_page = response.topic_list.topics;
+                    let mut topics_on_page = response.topic_list.topics; // Make mutable to sort
                     let num_topics_on_page = topics_on_page.len();
                     let per_page_api = response.topic_list.per_page; // Use this to detect last page more reliably
 
@@ -112,6 +107,11 @@ impl TopicIndexer {
                         info!(page, "Received empty topic list. Stopping pagination.");
                         stop_pagination = true; // Signal to break outer loop
                         continue; // Skip processing this empty page
+                    }
+
+                    if !fetch_all {
+                        // Sort topics by bumped_at DESC for recent updates before applying lookback
+                        topics_on_page.sort_by(|a, b| b.bumped_at.cmp(&a.bumped_at));
                     }
 
                     let mut topics_to_process_posts = Vec::new();
@@ -144,11 +144,6 @@ impl TopicIndexer {
                             }
                         }
                     } // End loop through topics on page
-
-                    // If lookback cutoff was hit, we don't need to spawn tasks for this page
-                    if stop_pagination {
-                        continue;
-                    }
 
                     // Spawn tasks to update posts for the selected topics
                     for topic_to_update in topics_to_process_posts {

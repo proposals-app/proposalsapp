@@ -11,9 +11,9 @@ use opentelemetry_sdk::{
     runtime,
     trace::{RandomIdGenerator, Sampler, TracerProvider},
 };
-use pyroscope::{pyroscope::PyroscopeAgentRunning, PyroscopeAgent};
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
-use tracing::{info, Level};
+use pyroscope::{PyroscopeAgent, pyroscope::PyroscopeAgentRunning};
+use pyroscope_pprofrs::{PprofConfig, pprof_backend};
+use tracing::{Level, info};
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -85,7 +85,7 @@ fn init_otel() -> OtelGuard {
 
     tracing_subscriber::registry()
         .with(tracing_subscriber::filter::LevelFilter::from_level(
-            Level::INFO,
+            Level::DEBUG,
         ))
         .with(tracing_subscriber::fmt::layer())
         .with(MetricsLayer::new(meter_provider.clone()))
