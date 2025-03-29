@@ -131,6 +131,7 @@ Based *only* on the **Proposal Details** and **Discussion Comments** provided ab
 
     return result.toDataStreamResponse({
       headers: {
+        'Content-Encoding': 'none',
         'Transfer-Encoding': 'chunked',
         Connection: 'keep-alive',
       },
