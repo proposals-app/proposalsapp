@@ -6,6 +6,7 @@ import {
 } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { Selectable, DiscoursePost } from '@proposalsapp/db-indexer';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,7 @@ function sanitizeMarkdown(text: string | null | undefined): string {
 }
 
 export async function POST(req: Request) {
+  noStore();
   const { prompt: groupId }: { prompt: string } = await req.json();
 
   if (!groupId) {
@@ -120,9 +122,7 @@ Based *only* on the **Proposal Details** and **Discussion Comments** provided ab
 
     // --- Stream the response ---
     const result = streamText({
-      // Consider adjusting model or context size based on performance/cost
-      // If gemma3:4b struggles with synthesis, consider a slightly larger model if available.
-      model: ollama('gemma3:4b', { numCtx: fullPrompt.length + 512 }), // Adjusted context headroom slightly
+      model: ollama('gemma3:4b', { numCtx: fullPrompt.length + 512 }),
       system:
         'You are an AI assistant expert at analyzing discussions and extracting concise, insightful TLDR summaries in Markdown format.',
       prompt: fullPrompt,
@@ -131,8 +131,14 @@ Based *only* on the **Proposal Details** and **Discussion Comments** provided ab
 
     return result.toDataStreamResponse({
       headers: {
-        'Transfer-Encoding': 'chunked',
+        // Instruct proxies (especially Nginx) not to buffer
+        'X-Accel-Buffering': 'no',
+        // Explicitly prevent caching at all levels
+        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+        // Keep previous headers that might help
+        'Transfer-Encoding': 'chunked', // Should be handled by streamText/toDataStreamResponse automatically, but explicit might not hurt
         Connection: 'keep-alive',
+        'Content-Encoding': 'none', // Prevent upstream compression interference
       },
     });
   } catch (error) {

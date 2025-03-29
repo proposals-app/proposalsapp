@@ -1,14 +1,14 @@
 ARG APP_NAME=discourse
 
 # Stage 1: Planner
-FROM rust:slim-bookworm AS planner
+FROM rustlang/rust:nightly-bookworm-slim AS planner
 WORKDIR /app
 RUN cargo install cargo-chef
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Stage 2: Cacher
-FROM rust:slim-bookworm AS cacher
+FROM rustlang/rust:nightly-bookworm-slim AS cacher
 WORKDIR /app
 ARG APP_NAME
 
@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # Stage 3: Builder
-FROM rust:slim-bookworm AS builder
+FROM rustlang/rust:nightly-bookworm-slim AS builder
 WORKDIR /app
 ARG APP_NAME
 

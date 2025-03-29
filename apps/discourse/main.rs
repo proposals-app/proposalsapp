@@ -1,336 +1,389 @@
 #![warn(unused_extern_crates)]
+#![feature(duration_constructors)]
 
-use crate::metrics::Metrics;
-use anyhow::Result;
+use crate::{
+    db_handler::{db, initialize_db},
+    discourse_api::DiscourseApi,
+    indexers::{categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer, users::UserIndexer},
+};
+use anyhow::{Context, Result};
 use axum::{Router, routing::get};
-use db_handler::{DB, initialize_db};
-use discourse_api::DiscourseApi;
 use dotenv::dotenv;
-use indexers::{categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer, users::UserIndexer};
 use proposalsapp_db_indexer::models::dao_discourse;
 use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, prelude::Uuid};
-use std::{collections::HashMap, sync::Arc, time::Duration};
-use tokio::time::{Instant, interval_at};
-use tracing::{error, info, warn};
+use std::{
+    collections::HashMap,
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use tokio::{signal, sync::watch, task::JoinSet, time::interval_at};
+use tracing::{Instrument, debug, error, info, instrument, warn};
 use utils::tracing::setup_otel;
 
 mod db_handler;
 mod discourse_api;
 mod indexers;
-mod metrics;
 mod models;
 
-const SLOW_INDEX: Duration = Duration::from_secs(6 * 60 * 60);
+// --- Configuration Constants ---
+const FULL_REFRESH_INTERVAL: Duration = Duration::from_hours(6);
+const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_hours(1);
+
+const RECENT_UPDATE_INTERVAL: Duration = Duration::from_mins(1);
+const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);
+
+const HEALTH_CHECK_PORT: u16 = 3000;
+const BETTERSTACK_HEARTBEAT_ENV: &str = "BETTERSTACK_KEY";
+
+pub const MAX_PAGES_PER_RUN: u32 = 1000; // Safety break for pagination loops
+pub const RECENT_LOOKBACK_HOURS: i64 = 2; // How far back to look for "recent" items
 
 lazy_static::lazy_static! {
     static ref DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS: HashMap<Uuid, Vec<i32>> = {
         let mut m = HashMap::new();
-
-        //forum.arbitrum.foundation
-        m.insert(Uuid::parse_str("099352eb-b859-44ff-acbc-76806d304086").unwrap(), vec![7,8,9]);
-        // Add more mappings as needed
+        m.insert(Uuid::parse_str("099352eb-b859-44ff-acbc-76806d304086").unwrap(), vec![7, 8, 9]);
         m
     };
 }
 
 #[tokio::main]
+#[instrument]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let _otel = setup_otel().await?;
+    let _otel_guard = setup_otel()
+        .await
+        .context("Failed to setup OpenTelemetry")?;
 
-    info!("Application starting up");
+    info!("Discourse Indexer application starting up...");
 
-    initialize_db().await?;
-    Metrics::init();
+    initialize_db()
+        .await
+        .context("Database initialization failed")?;
 
-    let app = Router::new().route("/", get(|| async { "OK" }));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    let server_handle = tokio::spawn(async move {
-        info!(address = %addr, "Starting health check server");
-        if let Err(e) = axum::serve(listener, app).await {
-            error!(error = ?e, "Health check server error");
+    info!("Database initialized.");
+
+    // --- Shutdown Signal Handling ---
+    let (shutdown_tx, shutdown_rx) = watch::channel(());
+    let mut shutdown_rx_clone = shutdown_rx.clone();
+
+    // --- Start Health Check Server ---
+    let server_handle = tokio::spawn(
+        async move {
+            let app = Router::new().route("/", get(|| async { "OK" }));
+            let bind_addr = format!("0.0.0.0:{}", HEALTH_CHECK_PORT);
+            info!(address = %bind_addr, "Starting health check server");
+
+            let listener = match tokio::net::TcpListener::bind(&bind_addr).await {
+                Ok(l) => l,
+                Err(e) => {
+                    error!(error = ?e, address = %bind_addr, "Failed to bind health check server");
+                    return; // Exit task if binding fails
+                }
+            };
+
+            let server = axum::serve(listener, app).with_graceful_shutdown(async move {
+                shutdown_rx_clone.changed().await.ok();
+                info!("Health check server received shutdown signal.");
+            });
+
+            if let Err(e) = server.await {
+                error!(error = ?e, "Health check server error occurred");
+            }
+            info!("Health check server shut down.");
         }
-    });
-    info!(port = 3000, address = %addr, "Health check server initialized and listening");
+        .instrument(tracing::info_span!("health_check_server")),
+    );
 
+    // --- Initialize API Clients and Indexers ---
     let dao_discourses = dao_discourse::Entity::find()
         .filter(dao_discourse::Column::Enabled.eq(true))
-        .all(DB.get().unwrap())
-        .await?;
+        .find_with_related(proposalsapp_db_indexer::models::dao::Entity)
+        .all(db())
+        .await
+        .context("Failed to fetch enabled DAO Discourse configurations with DAO names")?;
 
-    let mut handles = vec![];
-    let mut discourse_apis = HashMap::new();
-    let http_client = Arc::new(Client::new()); // Create http_client here and share it
+    if dao_discourses.is_empty() {
+        warn!("No enabled DAO Discourse configurations found. Indexer will idle.");
+        // Wait for shutdown signal if no DAOs are configured
+        tokio::select! {
+             _ = signal::ctrl_c() => { info!("Received Ctrl+C signal while idle."); },
+             res = wait_for_sigterm() => { if res.is_ok() { info!("Received SIGTERM signal while idle."); } }
+        }
+        shutdown_tx.send(()).ok(); // Notify server to shutdown
+        // Wait for server task completion
+        if let Err(e) = server_handle.await {
+            error!(error = ?e, "Error joining health check server task during idle shutdown");
+        }
+        // No need for double question mark '??' here
+        return Ok(());
+    }
 
-    for dao_discourse in dao_discourses {
-        let discourse_api = Arc::new(DiscourseApi::new(
-            dao_discourse.discourse_base_url.clone(),
-            dao_discourse.with_user_agent,
+    let shared_http_client = Arc::new(Client::new());
+    let mut indexer_tasks = JoinSet::new();
+
+    for (dao_config, dao_details_vec) in dao_discourses {
+        // Assuming one DAO per dao_discourse record
+        let dao_name = dao_details_vec
+            .first()
+            .map(|d| d.name.clone())
+            .unwrap_or_else(|| {
+                warn!(dao_discourse_id = %dao_config.id, "Missing DAO details for dao_discourse record. Using ID as name.");
+                dao_config.id.to_string()
+            });
+
+        info!(%dao_name, dao_id = %dao_config.id, base_url = %dao_config.discourse_base_url, "Initializing indexer tasks for DAO");
+
+        let api_client = Arc::new(DiscourseApi::new(
+            dao_config.discourse_base_url.clone(),
+            dao_config.with_user_agent,
         ));
-        discourse_apis.insert(dao_discourse.id, Arc::clone(&discourse_api));
 
-        // Spawn category fetcher thread
-        let dao_discourse_category_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
-        let category_handle = tokio::spawn(async move {
-            let start = Instant::now() + Duration::from_secs(10);
-            let mut interval = interval_at(start, SLOW_INDEX);
+        // Create indexer instances
+        let category_indexer = CategoryIndexer::new(Arc::clone(&api_client));
+        let user_indexer = UserIndexer::new(Arc::clone(&api_client), Arc::clone(&shared_http_client));
+        let topic_indexer = TopicIndexer::new(Arc::clone(&api_client), Arc::clone(&shared_http_client));
+        let revision_indexer = RevisionIndexer::new(Arc::clone(&api_client));
 
-            loop {
-                let category_fetcher = CategoryIndexer::new(Arc::clone(&api_handler));
-                match category_fetcher
-                    .update_all_categories(dao_discourse_category_clone.id)
-                    .await
-                {
-                    Ok(_) => {
-                        info!(
-                            discourse_url = %dao_discourse_category_clone.discourse_base_url,
-                            "Successfully updated categories"
-                        );
-                    }
-                    Err(e) => {
-                        error!(
-                            error = ?e,
-                            discourse_url = %dao_discourse_category_clone.discourse_base_url,
-                            discourse_id = %dao_discourse_category_clone.id,
-                            "Error updating categories"
-                        );
-                    }
-                }
-                interval.tick().await;
-            }
-        });
+        // --- Spawn Full Refresh Task ---
+        let dao_id_full = dao_config.id;
+        let dao_name_full = dao_name.clone();
+        let cat_idx_full = category_indexer.clone();
+        let user_idx_full = user_indexer.clone();
+        let topic_idx_full = topic_indexer.clone();
+        let rev_idx_full = revision_indexer.clone();
+        let mut shutdown_rx_full = shutdown_rx.clone();
 
-        // Spawn user fetcher thread
-        let dao_discourse_users_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
-        let http_client_user = Arc::clone(&http_client); // Clone for user fetcher
-        let user_handle = tokio::spawn(async move {
-            let start = Instant::now() + Duration::from_secs(10);
-            let mut interval = interval_at(start, SLOW_INDEX);
+        indexer_tasks.spawn(
+            async move {
+                let task_name = format!("full_refresh_{}", dao_name_full);
+                info!(task = %task_name, "Starting full refresh task loop");
+                let start_delay = tokio::time::Instant::now() + INITIAL_FULL_REFRESH_TASK_DELAY;
+                let mut interval = interval_at(start_delay, FULL_REFRESH_INTERVAL);
+                interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
-            loop {
-                let user_fetcher = UserIndexer::new(Arc::clone(&api_handler), Arc::clone(&http_client_user)); // Pass shared http_client
-                match user_fetcher
-                    .update_all_users(dao_discourse_users_clone.id)
-                    .await
-                {
-                    Ok(_) => {
-                        info!(
-                            discourse_url = %dao_discourse_users_clone.discourse_base_url,
-                            "Successfully updated users"
-                        );
-                    }
-                    Err(e) => {
-                        error!(
-                            error = ?e,
-                            discourse_url = %dao_discourse_users_clone.discourse_base_url,
-                            discourse_id = %dao_discourse_users_clone.id,
-                            "Error updating users"
-                        );
+                loop {
+                    tokio::select! {
+                        biased; // Prioritize shutdown check
+                        _ = shutdown_rx_full.changed() => {
+                             info!(task = %task_name, "Received shutdown signal. Exiting full refresh loop.");
+                             break;
+                        }
+                        _ = interval.tick() => {
+                             info!(task = %task_name, "Running full refresh cycle...");
+                             let cycle_start = Instant::now();
+
+                             // Define indexer futures
+                             let cat_fut = cat_idx_full.update_all_categories(dao_id_full);
+                             let user_fut = user_idx_full.update_all_users(dao_id_full);
+                             let topic_fut = topic_idx_full.update_all_topics(dao_id_full);
+                             let rev_fut = rev_idx_full.update_all_revisions(dao_id_full);
+
+                             // Run indexers concurrently
+                             let (cat_res, user_res, topic_res, rev_res): (Result<()>, Result<()>, Result<()>, Result<()>) =
+                                 tokio::join!(cat_fut, user_fut, topic_fut, rev_fut);
+
+                             // Record metrics and log results
+                             log_indexer_result("Full Categories", &cat_res);
+
+                             log_indexer_result("Full Users", &user_res);
+
+                             log_indexer_result("Full Topics/Posts", &topic_res);
+
+                             log_indexer_result("Full Revisions", &rev_res);
+
+                             info!(task = %task_name, duration = ?cycle_start.elapsed(), "Full refresh cycle finished.");
+                        }
                     }
                 }
-                interval.tick().await;
             }
-        });
+            .instrument(tracing::info_span!("full_refresh_task", dao = %dao_name)),
+        );
 
-        // Spawn topic fetcher thread
-        let dao_discourse_topic_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
-        let http_client_topic = Arc::clone(&http_client);
-        let topic_handle = tokio::spawn(async move {
-            let start = Instant::now() + Duration::from_secs(10);
-            let mut interval = interval_at(start, SLOW_INDEX);
+        // --- Spawn Recent Updates Task ---
+        let dao_id_recent = dao_config.id;
+        let dao_name_recent = dao_name.clone();
+        let cat_idx_recent = category_indexer.clone();
+        let user_idx_recent = user_indexer.clone();
+        let topic_idx_recent = topic_indexer.clone();
+        let rev_idx_recent = revision_indexer.clone();
+        let mut shutdown_rx_recent = shutdown_rx.clone();
 
-            loop {
-                let topic_fetcher = TopicIndexer::new(Arc::clone(&api_handler), Arc::clone(&http_client_topic)); // Pass shared http_client
-                match topic_fetcher
-                    .update_all_topics(dao_discourse_topic_clone.id)
-                    .await
-                {
-                    Ok(_) => {
-                        info!(
-                            discourse_url = %dao_discourse_topic_clone.discourse_base_url,
-                            "Successfully updated topics"
-                        );
-                    }
-                    Err(e) => {
-                        error!(
-                            error = ?e,
-                            discourse_url = %dao_discourse_topic_clone.discourse_base_url,
-                            discourse_id = %dao_discourse_topic_clone.id,
-                            "Error updating topics"
-                        );
+        indexer_tasks.spawn(
+            async move {
+                let task_name = format!("recent_updates_{}", dao_name_recent);
+                info!(task = %task_name, "Starting recent updates task loop");
+                let start_delay = tokio::time::Instant::now() + INITIAL_RECENT_UPDATE_TASK_DELAY;
+                let mut interval = interval_at(start_delay, RECENT_UPDATE_INTERVAL);
+                interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+                loop {
+                    tokio::select! {
+                         biased;
+                         _ = shutdown_rx_recent.changed() => {
+                             info!(task = %task_name, "Received shutdown signal. Exiting recent updates loop.");
+                             break;
+                         }
+                        _ = interval.tick() => {
+                             info!(task = %task_name, "Running recent updates cycle...");
+                             let cycle_start = Instant::now();
+
+                             // Define futures
+                             let cat_fut = cat_idx_recent.update_all_categories(dao_id_recent);
+                             let user_fut = user_idx_recent.update_recent_users(dao_id_recent);
+                             let topic_fut = topic_idx_recent.update_recent_topics(dao_id_recent);
+                             let rev_fut = rev_idx_recent.update_recent_revisions(dao_id_recent);
+
+                             // Run recent updates concurrently
+                             let (cat_res,user_res, topic_res, rev_res): (Result<()>, Result<()>, Result<()>, Result<()>) =
+                                 tokio::join!(cat_fut,user_fut, topic_fut, rev_fut);
+
+                             // Record metrics and log results
+                             log_indexer_result("Full Categories", &cat_res);
+
+                             log_indexer_result("Recent Users", &user_res);
+
+                             log_indexer_result("Recent Topics/Posts", &topic_res);
+
+                             log_indexer_result("Recent Revisions", &rev_res);
+
+                             info!(task = %task_name, duration = ?cycle_start.elapsed(), "Recent updates cycle finished.");
+                        }
                     }
                 }
-                interval.tick().await;
             }
-        });
+            .instrument(tracing::info_span!("recent_updates_task", dao = %dao_name)),
+        );
+    } // End loop through DAO configs
 
-        // Spawn revision fetcher thread
-        let dao_discourse_revision_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
-        let revision_handle = tokio::spawn(async move {
-            let start = Instant::now() + Duration::from_secs(10);
-            let mut interval = interval_at(start, SLOW_INDEX);
-
-            loop {
-                let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
-                match revision_fetcher
-                    .update_all_revisions(dao_discourse_revision_clone.id)
-                    .await
-                {
-                    Ok(_) => {
-                        info!(
-                            discourse_url = %dao_discourse_revision_clone.discourse_base_url,
-                            "Successfully updated revisions"
-                        );
-                    }
-                    Err(e) => {
-                        error!(
-                            error = ?e,
-                            discourse_url = %dao_discourse_revision_clone.discourse_base_url,
-                            discourse_id = %dao_discourse_revision_clone.id,
-                            "Error updating revisions"
-                        );
+    // --- Spawn Uptime Heartbeat Task ---
+    if let Ok(heartbeat_url) = std::env::var(BETTERSTACK_HEARTBEAT_ENV) {
+        if !heartbeat_url.is_empty() {
+            info!(url = %heartbeat_url, "Starting Better Uptime heartbeat task.");
+            let heartbeat_client = shared_http_client.clone();
+            let mut shutdown_rx_heartbeat = shutdown_rx.clone();
+            indexer_tasks.spawn(
+                async move {
+                    let start_delay = tokio::time::Instant::now() + Duration::from_secs(5);
+                    let mut interval = interval_at(start_delay, Duration::from_secs(30)); // Send every 30s
+                    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+                    loop {
+                        tokio::select! {
+                             biased;
+                             _ = shutdown_rx_heartbeat.changed() => {
+                                  info!("Received shutdown signal. Exiting heartbeat loop.");
+                                  break;
+                             }
+                             _ = interval.tick() => {
+                                   match heartbeat_client.get(&heartbeat_url).send().await {
+                                        Ok(response) if response.status().is_success() => {
+                                             debug!("Uptime heartbeat sent successfully.");
+                                        }
+                                        Ok(response) => {
+                                             warn!(status = %response.status(), "Uptime heartbeat request failed with unexpected status.");
+                                        }
+                                        Err(e) => {
+                                             warn!(error = ?e, "Failed to send uptime heartbeat.");
+                                        }
+                                   }
+                             }
+                        }
                     }
                 }
-                interval.tick().await;
-            }
-        });
-
-        // Spawn new content fetcher thread
-        let dao_discourse_newcontent_clone = dao_discourse.clone();
-        let api_handler = Arc::clone(&discourse_apis[&dao_discourse.id]);
-        let http_client_newcontent = Arc::clone(&http_client); // Clone for new content fetcher
-        let newcontent_handle = tokio::spawn(async move {
-            // Create fetcher instances once, outside the loop
-            let user_fetcher = UserIndexer::new(
-                Arc::clone(&api_handler),
-                Arc::clone(&http_client_newcontent),
+                .instrument(tracing::info_span!("heartbeat_task")),
             );
-            let topic_fetcher = TopicIndexer::new(
-                Arc::clone(&api_handler),
-                Arc::clone(&http_client_newcontent),
+        } else {
+            warn!(
+                "{} environment variable is set but empty. Skipping uptime heartbeat task.",
+                BETTERSTACK_HEARTBEAT_ENV
             );
-            let revision_fetcher = RevisionIndexer::new(Arc::clone(&api_handler));
-
-            loop {
-                while !api_handler.is_priority_queue_empty() {
-                    tokio::time::sleep(Duration::from_secs(100)).await;
-                }
-
-                let (user_result, topic_result, revision_result) = tokio::join!(
-                    user_fetcher.update_recent_users(dao_discourse_newcontent_clone.id),
-                    topic_fetcher.update_recent_topics(dao_discourse_newcontent_clone.id),
-                    revision_fetcher.update_recent_revisions(dao_discourse_newcontent_clone.id)
-                );
-
-                match user_result {
-                    Ok(_) => {
-                        info!(
-                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
-                            "Successfully updated new users"
-                        );
-                    }
-                    Err(e) => {
-                        error!(
-                            error = ?e,
-                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
-                            discourse_id = %dao_discourse_newcontent_clone.id,
-                            "Error updating new users"
-                        );
-                    }
-                }
-
-                match topic_result {
-                    Ok(_) => {
-                        info!(
-                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
-                            "Successfully updated new topics"
-                        );
-                    }
-                    Err(e) => {
-                        error!(
-                            error = ?e,
-                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
-                            discourse_id = %dao_discourse_newcontent_clone.id,
-                            "Error updating new topics"
-                        );
-                    }
-                }
-
-                match revision_result {
-                    Ok(_) => {
-                        info!(
-                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
-                            "Successfully updated new revisions"
-                        );
-                    }
-                    Err(e) => {
-                        error!(
-                            error = ?e,
-                            discourse_url = %dao_discourse_newcontent_clone.discourse_base_url,
-                            discourse_id = %dao_discourse_newcontent_clone.id,
-                            "Error updating new revisions"
-                        );
-                    }
-                }
-
-                // Wait for a short duration before checking again
-                tokio::time::sleep(Duration::from_secs(60)).await;
-            }
-        });
-
-        handles.push(category_handle);
-        handles.push(user_handle);
-        handles.push(topic_handle);
-        handles.push(revision_handle);
-        handles.push(newcontent_handle);
+        }
+    } else {
+        warn!(
+            "{} environment variable not set. Skipping uptime heartbeat task.",
+            BETTERSTACK_HEARTBEAT_ENV
+        );
     }
 
-    // Spawn uptime ping thread
-    let uptime_handle = tokio::spawn(async move {
-        let client = Client::new();
-        loop {
-            match client
-                .get(
-                    std::env::var("BETTERSTACK_KEY")
-                        .expect("BETTERSTACK_KEY missing")
-                        .to_string(),
-                )
-                .send()
-                .await
-            {
-                Ok(_) => info!("Uptime ping sent successfully"),
-                Err(e) => warn!(error = ?e, "Failed to send uptime ping"),
-            }
-            tokio::time::sleep(Duration::from_secs(10)).await;
-        }
-    });
-
-    handles.push(uptime_handle);
-
-    // Wait for Ctrl+C or SIGTERM
-    let ctrl_c = tokio::signal::ctrl_c();
-    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).expect("Failed to set up SIGTERM handler");
-
+    // --- Wait for Shutdown Signal ---
+    info!("All indexer tasks initialized. Waiting for shutdown signal (Ctrl+C or SIGTERM)...");
     tokio::select! {
-        _ = ctrl_c => {
-            info!("Received Ctrl+C, shutting down...");
-        }
-        _ = sigterm.recv() => {
-            info!("Received SIGTERM, shutting down...");
+         res = signal::ctrl_c() => {
+            if let Err(e) = res {
+                error!(error = ?e, "Failed to listen for Ctrl+C signal");
+            } else {
+                info!("Received Ctrl+C signal.");
+            }
+         },
+         res = wait_for_sigterm() => {
+             if res.is_ok() {
+                 info!("Received SIGTERM signal.");
+             }
+             // Error already logged in wait_for_sigterm
+         }
+    }
+
+    // --- Initiate Graceful Shutdown ---
+    info!("Initiating graceful shutdown...");
+    // Send shutdown signal to all tasks
+    shutdown_tx
+        .send(())
+        .expect("Failed to send shutdown signal");
+
+    // Wait for the health check server to shut down
+    info!("Waiting for health check server to shut down...");
+    if let Err(e) = server_handle.await {
+        error!(error = ?e, "Error waiting for health check server task.");
+    } else {
+        info!("Health check server task completed.");
+    }
+
+    // Wait for all indexer tasks to complete
+    info!("Waiting for indexer tasks to complete...");
+    while let Some(result) = indexer_tasks.join_next().await {
+        match result {
+            Ok(_) => debug!("Indexer task completed successfully."),
+            Err(e) => error!(error = ?e, "Indexer task failed (panic or cancellation)."),
         }
     }
 
-    // Clean up tasks
-    for handle in handles {
-        handle.abort();
-    }
-    server_handle.abort();
-
+    info!("All tasks finished. Discourse Indexer application shut down gracefully.");
+    opentelemetry::global::shutdown_tracer_provider(); // Ensure tracer provider shuts down
     Ok(())
+}
+
+/// Helper function to log the result of an indexer operation.
+fn log_indexer_result(task_description: &str, result: &Result<()>) {
+    match result {
+        Ok(_) => {
+            info!("{} update finished successfully.", task_description);
+        }
+        Err(e) => {
+            // Log the full error chain using `{:?}`
+            error!(error = ?e, "{} update failed.", task_description);
+        }
+    }
+}
+
+// Helper function to wait for SIGTERM signal
+async fn wait_for_sigterm() -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        match signal::unix::signal(signal::unix::SignalKind::terminate()) {
+            Ok(mut stream) => {
+                stream.recv().await;
+                Ok(())
+            }
+            Err(e) => {
+                error!(error = ?e, "Failed to listen for SIGTERM signal.");
+                Err(e)
+            }
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        // On non-Unix platforms, SIGTERM doesn't exist, wait indefinitely
+        std::future::pending::<()>().await; // Wait forever
+        Ok(())
+    }
 }
