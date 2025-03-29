@@ -32,7 +32,7 @@ const FULL_REFRESH_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60); // 6 h
 const RECENT_UPDATE_INTERVAL: Duration = Duration::from_secs(60); // 1 minute
 const INITIAL_TASK_DELAY: Duration = Duration::from_secs(15);
 const HEALTH_CHECK_PORT: u16 = 3000;
-const BETTERSTACK_HEARTBEAT_ENV: &str = "BETTERSTACK_HEARTBEAT_URL";
+const BETTERSTACK_HEARTBEAT_ENV: &str = "BETTERSTACK_KEY";
 
 lazy_static::lazy_static! {
     static ref DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS: HashMap<Uuid, Vec<i32>> = {
