@@ -1,4 +1,5 @@
 use crate::{
+    RECENT_LOOKBACK_HOURS,
     db_handler::{db, upsert_revision},
     discourse_api::{DiscourseApi, process_upload_urls},
     models::revisions::Revision,
@@ -11,8 +12,6 @@ use sea_orm::{ColumnTrait, Condition, EntityTrait, FromQueryResult, QueryFilter,
 use std::{collections::HashSet, sync::Arc};
 use tokio::task::JoinSet;
 use tracing::{debug, error, info, instrument, warn};
-
-const RECENT_REVISION_LOOKBACK: Duration = Duration::hours(2); // How far back to check for recently updated posts
 
 #[derive(Clone)] // Add Clone derive
 pub struct RevisionIndexer {
@@ -140,7 +139,7 @@ impl RevisionIndexer {
         );
 
         if recent_only {
-            let lookback_time = Utc::now() - RECENT_REVISION_LOOKBACK;
+            let lookback_time = Utc::now() - Duration::hours(RECENT_LOOKBACK_HOURS);
             debug!(?lookback_time, "Filtering for posts updated recently");
             query = query.filter(discourse_post::Column::UpdatedAt.gte(lookback_time.naive_utc()));
         }
