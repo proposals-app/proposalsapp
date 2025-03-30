@@ -31,7 +31,11 @@ async function DaoPage({ params }: { params: Promise<{ daoSlug: string }> }) {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
-  return <GroupsList daoSlug={daoSlug} userId={userId} />;
+  return (
+    <Suspense fallback={<Loading />}>
+      <GroupsList daoSlug={daoSlug} userId={userId} />
+    </Suspense>
+  );
 }
 
 async function GroupsList({
