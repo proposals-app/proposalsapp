@@ -12,6 +12,7 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { ActiveGroupItem } from './components/group-items/active-item';
 import { DaoSummaryHeader } from './components/dao-summary-header';
+import { Loading } from './loading';
 
 export default async function Page({
   params,
@@ -20,31 +21,21 @@ export default async function Page({
 }) {
   return (
     <Suspense fallback={<Loading />}>
-      <DaoPage params={params} />
-    </Suspense>
-  );
-}
-
-async function DaoPage({ params }: { params: Promise<{ daoSlug: string }> }) {
-  const { daoSlug } = await params;
-
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-
-  return (
-    <Suspense fallback={<Loading />}>
-      <GroupsList daoSlug={daoSlug} userId={userId} />
+      <GroupsList params={params} />
     </Suspense>
   );
 }
 
 async function GroupsList({
-  daoSlug,
-  userId,
+  params,
 }: {
-  daoSlug: string;
-  userId?: string;
+  params: Promise<{ daoSlug: string }>;
 }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  const { daoSlug } = await params;
+
   const result = await getGroups(daoSlug, userId);
 
   if (!result) {
@@ -149,24 +140,7 @@ async function GroupsList({
   );
 }
 
-function Loading() {
-  return (
-    <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
-      <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        <LoadingHeader />
-        {/* Action Bar Skeleton */}
-        <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-          <div className='h-8 w-48 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
-          <div className='h-8 w-32 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
-        </div>
-        {/* Groups List Skeleton */}
-        <LoadingGroupList />
-      </div>{' '}
-    </div>
-  );
-}
-
-function LoadingHeader() {
+export function LoadingHeader() {
   return (
     <div className='mb-8 overflow-hidden rounded-xs border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800/50'>
       {/* Mobile layout skeleton */}
