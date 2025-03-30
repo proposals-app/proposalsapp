@@ -35,6 +35,7 @@ const nextConfig = {
   },
   skipTrailingSlashRedirect: true,
   experimental: {
+    ppr: true,
     reactCompiler: true,
     viewTransition: true,
     useCache: true,
