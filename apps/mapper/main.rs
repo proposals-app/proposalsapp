@@ -6,7 +6,7 @@ use dotenv::dotenv;
 use metrics::Metrics;
 use once_cell::sync::OnceCell;
 use reqwest::Client;
-use sea_orm::{ConnectOptions, DatabaseConnection};
+use sea_orm::DatabaseConnection;
 use tokio::time::Duration;
 use tracing::{error, info, warn};
 use utils::tracing::setup_otel;
