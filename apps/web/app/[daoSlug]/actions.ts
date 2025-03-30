@@ -1,7 +1,7 @@
 'use server';
 
 import { AsyncReturnType } from '@/lib/utils';
-import { dbIndexer, sql, Selectable } from '@proposalsapp/db-indexer';
+import { dbIndexer, sql } from '@proposalsapp/db-indexer';
 import { ProposalGroupItem } from '@/lib/types';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';

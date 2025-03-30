@@ -18,7 +18,7 @@ export const LastReadUpdater: React.FC<LastReadUpdaterProps> = ({
     };
 
     updateLastRead();
-  }, [groupId]);
+  }, [groupId, daoSlug]);
 
   return null;
 };

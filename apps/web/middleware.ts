@@ -8,9 +8,10 @@ export const config = {
      * 1. /api routes
      * 2. /_next (Next.js internals)
      * 3. /static (inside /public)
-     * 4. all root files inside /public (e.g. /favicon.ico)
+     * 4. /assets (inside /public)
+     * 5. all root files inside /public (e.g. /favicon.ico)
      */
-    '/((?!api|_next|static|[\\w-]+\\.\\w+).*)',
+    '/((?!api|_next|static|assets|[\\w-]+\\.\\w+).*)',
   ],
 };
 
