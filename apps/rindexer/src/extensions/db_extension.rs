@@ -9,14 +9,14 @@ use std::{
     sync::Mutex,
     time::Duration,
 };
-use tracing::{debug, instrument, warn};
+use tracing::{debug, error, info, instrument, warn};
 use utils::types::{JobData, ProposalJobData};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static DAO_GOVERNOR_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
 pub static DAO_ID_SLUG_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
 
-#[instrument]
+#[instrument(name = "db_initialize_db", skip_all)]
 pub async fn initialize_db() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
@@ -35,6 +35,7 @@ pub async fn initialize_db() -> Result<()> {
 
     DB.set(db)
         .map_err(|_| anyhow::anyhow!("Failed to set database connection"))?;
+    info!("Database connection initialized successfully.");
 
     // Initialize and populate DAO_INDEXER_ID_MAP
     let governors_map = Mutex::new(HashMap::new());
@@ -44,15 +45,20 @@ pub async fn initialize_db() -> Result<()> {
                 .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?,
         )
         .await?;
-    for governor in governors {
+    for governor in governors.clone() {
         governors_map
             .lock()
             .unwrap()
-            .insert(governor.r#type, governor.id);
+            .insert(governor.r#type.clone(), governor.id);
+        debug!(governor_type = governor.r#type, governor_id = %governor.id, "Loaded DAO Governor");
     }
     DAO_GOVERNOR_ID_MAP
         .set(governors_map)
         .map_err(|_| anyhow::anyhow!("Failed to set DAO_GOVERNOR_ID_MAP"))?;
+    info!(
+        "DAO_GOVERNOR_ID_MAP initialized with {} entries.",
+        governors.len()
+    );
 
     // Initialize and populate DAO_ID_SLUG_MAP
     let dao_slug_map = Mutex::new(HashMap::new());
@@ -62,20 +68,22 @@ pub async fn initialize_db() -> Result<()> {
                 .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?,
         )
         .await?;
-    for dao_model in daos {
+    for dao_model in daos.clone() {
         dao_slug_map
             .lock()
             .unwrap()
-            .insert(dao_model.slug, dao_model.id);
+            .insert(dao_model.slug.clone(), dao_model.id);
+        debug!(dao_slug = dao_model.slug, dao_id = %dao_model.id, "Loaded DAO");
     }
     DAO_ID_SLUG_MAP
         .set(dao_slug_map)
         .map_err(|_| anyhow::anyhow!("Failed to set DAO_ID_SLUG_MAP"))?;
 
+    info!("DAO_ID_SLUG_MAP initialized with {} entries.", daos.len());
     Ok(())
 }
 
-#[instrument(skip(proposal))]
+#[instrument(name = "db_store_proposal", skip(proposal))]
 pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
     let db = DB
         .get()
@@ -105,6 +113,7 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
 
     if let Some(existing) = existing_proposal {
         // Update existing proposal
+        debug!(proposal_id = %existing.id, external_id = %external_id, "Updating existing proposal");
         let active_model = proposal::ActiveModel {
             id: Set(existing.id),
             external_id: Set(proposal
@@ -184,11 +193,14 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
         };
 
         proposal::Entity::update(active_model).exec(&txn).await?;
+        info!(proposal_id = %existing.id, external_id = %external_id, "Proposal updated successfully");
     } else {
         // Insert new proposal
+        debug!(external_id = %external_id, "Inserting new proposal");
         let inserted_proposal = proposal::Entity::insert(proposal.clone())
             .exec(&txn)
             .await?;
+        info!(proposal_id = %inserted_proposal.last_insert_id, external_id = %external_id, "Proposal inserted successfully");
 
         // Fetch governor to check its type
         let governor_id_to_find = proposal
@@ -217,6 +229,7 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
             })
             .exec(&txn)
             .await?;
+            debug!("Snapshot discussion details job enqueued");
         }
     }
 
@@ -224,7 +237,7 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip(votes))]
+#[instrument(name = "db_store_votes", skip(votes), fields(vote_count = votes.len()))]
 pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Result<()> {
     let db = DB
         .get()
@@ -268,7 +281,7 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
     store_voters(&txn, voter_address_set).await?;
 
     let mut vote_active_models = Vec::new();
-    for vote in votes {
+    for vote in votes.clone() {
         let proposal_external_id = vote
             .proposal_external_id
             .clone()
@@ -321,43 +334,47 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
 
         if let Err(err) = result {
             txn.rollback().await?;
+            error!(error = %err, "Failed to insert vote chunk, transaction rolled back.");
             return Err(err.into());
         }
     }
 
     txn.commit().await?;
+    info!("Successfully stored {} votes in chunk.", votes.len());
     Ok(())
 }
 
-#[instrument]
+#[instrument(name = "db_store_delegations", skip(delegations), fields(delegation_count = delegations.len()))]
 pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Result<()> {
     let db = DB.get().unwrap();
     let txn = db.begin().await?;
 
-    delegation::Entity::insert_many(delegations)
+    delegation::Entity::insert_many(delegations.clone())
         .on_conflict(OnConflict::new().do_nothing().to_owned())
         .exec(&txn)
         .await?;
 
     txn.commit().await?;
+    info!("Stored {} delegations.", delegations.len());
     Ok(())
 }
 
-#[instrument]
+#[instrument(name = "db_store_voting_powers", skip(voting_powers), fields(voting_power_count = voting_powers.len()))]
 pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) -> Result<()> {
     let db = DB.get().unwrap();
     let txn = db.begin().await?;
 
-    voting_power::Entity::insert_many(voting_powers)
+    voting_power::Entity::insert_many(voting_powers.clone())
         .on_conflict(OnConflict::new().do_nothing().to_owned())
         .exec(&txn)
         .await?;
 
     txn.commit().await?;
+    info!("Stored {} voting powers.", voting_powers.len());
     Ok(())
 }
 
-#[instrument(skip(txn, voter_addresses))]
+#[instrument(name = "db_store_voters", skip(txn, voter_addresses), fields(voter_address_count = voter_addresses.len()))]
 async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String>) -> Result<()> {
     const BATCH_SIZE: usize = 1000; // Adjust based on database performance
 
@@ -393,7 +410,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                 let eth_address = match addr_clone.parse::<Address>() {
                     Ok(addr) => addr,
                     Err(e) => {
-                        debug!("Failed to parse address {}: {}", addr_clone, e);
+                        debug!(address = addr_clone, error = %e, "Failed to parse address");
                         continue; // Skip this address and move to the next one
                     }
                 };
@@ -407,7 +424,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                 {
                     Ok(result) => result,
                     Err(_) => {
-                        debug!("ENS lookup timed out for address {}", addr_clone);
+                        debug!(address = addr_clone, "ENS lookup timed out");
                         continue;
                     }
                 };
@@ -419,8 +436,10 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
 
                     if existing_voter.ens != Some(fetched_ens.clone()) {
                         debug!(
-                            "Updating ENS for address {}: old ENS: {:?}, new ENS: {:?}",
-                            address, existing_voter.ens, fetched_ens
+                            address = address,
+                            old_ens = existing_voter.ens,
+                            new_ens = fetched_ens,
+                            "Updating ENS for address"
                         );
                         updated_ens = Some(fetched_ens.clone());
                         needs_update = true;
@@ -436,8 +455,9 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                         Ok(result) => result,
                         Err(_) => {
                             debug!(
-                                "Avatar resolution timed out for address {} with ENS {}",
-                                addr_clone, fetched_ens
+                                address = addr_clone,
+                                ens = fetched_ens,
+                                "Avatar resolution timed out"
                             );
                             Err(anyhow::anyhow!("Avatar resolution timed out"))
                         }
@@ -446,8 +466,10 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                     if let Ok(avatar_url) = avatar_result {
                         if existing_voter.avatar != Some(avatar_url.clone()) {
                             debug!(
-                                "Updating avatar for address {}: old avatar: {:?}, new avatar: {:?}",
-                                address, existing_voter.avatar, avatar_url
+                                address = address,
+                                old_avatar = existing_voter.avatar,
+                                new_avatar = avatar_url,
+                                "Updating avatar for address"
                             );
                             updated_avatar = Some(avatar_url);
                             needs_update = true;
@@ -470,7 +492,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                         voters_to_update.push(voter_active_model);
                     }
                 } else if let Err(e) = ens_result {
-                    debug!("ENS lookup failed for address {}: {}", addr_clone, e);
+                    debug!(address = addr_clone, error = %e, "ENS lookup failed");
                     // Do not update ENS or Avatar if ENS lookup fails
                 }
             } else {
@@ -481,7 +503,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                 let eth_address = match addr_clone.parse::<Address>() {
                     Ok(addr) => addr,
                     Err(e) => {
-                        debug!("Failed to parse address {}: {}", addr_clone, e);
+                        debug!(address = addr_clone, error = %e, "Failed to parse address for new voter");
                         // Add the voter with just the address since we couldn't resolve ENS
                         voters_to_insert.push(voter::ActiveModel {
                             id: NotSet,
@@ -502,7 +524,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                 {
                     Ok(result) => result,
                     Err(_) => {
-                        debug!("ENS lookup timed out for address {}", addr_clone);
+                        debug!(address = addr_clone, "ENS lookup timed out for new voter");
                         // Just add the voter with the address
                         voters_to_insert.push(voter::ActiveModel {
                             id: NotSet,
@@ -525,8 +547,9 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                         Ok(result) => result,
                         Err(_) => {
                             debug!(
-                                "Avatar resolution timed out for address {} with ENS {}",
-                                addr_clone, ens
+                                address = addr_clone,
+                                ens = ens,
+                                "Avatar resolution timed out for new voter"
                             );
                             Err(anyhow::anyhow!("Avatar resolution timed out"))
                         }
@@ -535,10 +558,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                     let avatar = match avatar_result {
                         Ok(avatar_url) => Some(avatar_url),
                         Err(e) => {
-                            debug!(
-                                "Avatar resolution error for address {} with ENS {}: {}",
-                                addr_clone, ens, e
-                            );
+                            debug!(address = addr_clone, ens = ens, error = %e, "Avatar resolution error for new voter");
                             None
                         }
                     };
@@ -550,7 +570,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                         avatar: Set(avatar),
                     });
                 } else if let Err(e) = ens_result {
-                    debug!("ENS lookup failed for address {}: {}", addr_clone, e);
+                    debug!(address = addr_clone, error = %e, "ENS lookup failed for new voter");
                     // Just add the voter with the address
                     voters_to_insert.push(voter::ActiveModel {
                         id: NotSet,
@@ -564,16 +584,26 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
 
         // Perform bulk insert for new voters
         if !voters_to_insert.is_empty() {
-            voter::Entity::insert_many(voters_to_insert)
+            let insert_result = voter::Entity::insert_many(voters_to_insert)
                 .on_conflict(OnConflict::new().do_nothing().to_owned())
                 .exec(txn)
-                .await?;
+                .await;
+            if let Err(e) = insert_result {
+                error!(error = %e, "Bulk insert of new voters failed");
+            } else {
+                debug!(count = ?insert_result.as_ref().map(|res| res), "Bulk insert of new voters completed");
+            }
         }
 
         // Perform bulk update for existing voters with new ENS and/or Avatar
         if !voters_to_update.is_empty() {
             for voter_update in voters_to_update.into_iter() {
-                voter::Entity::update(voter_update).exec(txn).await?;
+                let update_result = voter::Entity::update(voter_update).exec(txn).await;
+                if let Err(e) = update_result {
+                    error!(error = %e, "Failed to update voter ENS/Avatar");
+                } else {
+                    debug!("Voter ENS/Avatar updated");
+                }
             }
         }
     }
@@ -581,18 +611,25 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
     Ok(())
 }
 
-// Run ENS lookup in an isolated task to prevent panic propagation
+#[instrument(name = "db_isolated_ens_lookup", skip(address, provider, addr_string), fields(address = %address))]
 async fn isolated_ens_lookup<M: Middleware + 'static>(address: Address, addr_string: String, provider: M) -> Result<String> {
     // Spawn a task to isolate potential panics
     match tokio::task::spawn(async move { provider.lookup_address(address).await }).await {
         Ok(result) => match result {
-            Ok(ens) => Ok(ens),
-            Err(e) => Err(anyhow::anyhow!("ENS lookup error: {}", e)),
+            Ok(ens) => {
+                debug!(ens_name = ens, "ENS lookup successful");
+                Ok(ens)
+            }
+            Err(e) => {
+                debug!(error = %e, "ENS lookup error");
+                Err(anyhow::anyhow!("ENS lookup error: {}", e))
+            }
         },
         Err(e) => {
             warn!(
-                "Task error during ENS lookup for address {}: {}",
-                addr_string, e
+                address = addr_string,
+                error = %e,
+                "Task error during ENS lookup"
             );
             // This happens if the task panicked
             Err(anyhow::anyhow!("Task error during ENS lookup: {}", e))
@@ -600,18 +637,25 @@ async fn isolated_ens_lookup<M: Middleware + 'static>(address: Address, addr_str
     }
 }
 
-// Run avatar resolution in an isolated task to prevent panic propagation
+#[instrument(name = "db_isolated_avatar_resolve", skip(ens, provider, addr_string), fields(ens_name = ens))]
 async fn isolated_avatar_resolve<M: Middleware + 'static>(ens: String, addr_string: String, provider: M) -> Result<String> {
     // Spawn a task to isolate potential panics
     match tokio::task::spawn(async move { provider.resolve_avatar(&ens).await }).await {
         Ok(result) => match result {
-            Ok(avatar) => Ok(avatar.to_string()),
-            Err(e) => Err(anyhow::anyhow!("Avatar resolution error: {}", e)),
+            Ok(avatar) => {
+                debug!(avatar_url = %avatar, "Avatar resolution successful");
+                Ok(avatar.to_string())
+            }
+            Err(e) => {
+                debug!(error = %e, "Avatar resolution error");
+                Err(anyhow::anyhow!("Avatar resolution error: {}", e))
+            }
         },
         Err(e) => {
             warn!(
-                "Task error during avatar resolution for address {}: {}",
-                addr_string, e
+                address = addr_string,
+                error = %e,
+                "Task error during avatar resolution"
             );
             // This happens if the task panicked
             Err(anyhow::anyhow!(

@@ -5,11 +5,11 @@ use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalSt
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::collections::HashMap;
 use tokio::time;
-use tracing::{error, info, instrument, warn};
+use tracing::{debug, error, info, instrument, warn};
 
-#[instrument]
+#[instrument(name = "tasks_update_ended_proposals_state", skip_all)]
 pub async fn update_ended_proposals_state() -> Result<()> {
-    info!("Running task to update ended proposals state");
+    info!("Running task to update ended on-chain proposals state.");
     let db: &DatabaseConnection = DB.get().context("DB not initialized")?;
 
     let active_proposals = proposal::Entity::find()
@@ -22,11 +22,17 @@ pub async fn update_ended_proposals_state() -> Result<()> {
         return Ok(());
     }
 
+    info!(
+        proposal_count = active_proposals.len(),
+        "Checking active proposals for end time."
+    );
+
     for proposal in active_proposals {
         if proposal.end_at <= Utc::now().naive_utc() {
             info!(
                 proposal_id = proposal.external_id,
                 proposal_name = proposal.name,
+                proposal_end_at = ?proposal.end_at,
                 "Proposal end time reached. Calculating final state."
             );
 
@@ -37,11 +43,26 @@ pub async fn update_ended_proposals_state() -> Result<()> {
 
             let final_state = calculate_final_proposal_state(&proposal, &votes).await?;
 
-            let mut proposal_active_model: proposal::ActiveModel = proposal.into();
-            proposal_active_model.proposal_state = Set(final_state);
+            let mut proposal_active_model: proposal::ActiveModel = proposal.clone().into();
+            proposal_active_model.proposal_state = Set(final_state.clone());
             proposal::Entity::update(proposal_active_model)
                 .exec(db)
                 .await?;
+
+            info!(
+                proposal_id = proposal.external_id,
+                proposal_name = proposal.name,
+                final_state = ?final_state,
+                "Proposal state updated to final state."
+            );
+        } else {
+            debug!(
+                proposal_id = proposal.external_id,
+                proposal_name = proposal.name,
+                proposal_end_at = ?proposal.end_at,
+                current_time = ?Utc::now().naive_utc(),
+                "Proposal end time not yet reached."
+            );
         }
     }
 
@@ -49,7 +70,7 @@ pub async fn update_ended_proposals_state() -> Result<()> {
     Ok(())
 }
 
-#[instrument(skip(proposal, votes))]
+#[instrument(name = "tasks_calculate_final_proposal_state", skip(proposal, votes), fields(proposal_id = proposal.external_id))]
 /// Calculates the final state of a proposal based on votes and quorum, considering configured
 /// quorum choices.
 async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<vote::Model>) -> Result<ProposalState> {
@@ -79,20 +100,27 @@ async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<
                 Some("for") => for_votes += vote.voting_power,
                 Some("against") => against_votes += vote.voting_power,
                 Some(_) | None => {
-                    info!(
-                        "Unknown choice type at index {} for proposal {}",
-                        choice_index, proposal.external_id
+                    warn!(
+                        proposal_id = proposal.external_id,
+                        choice_index = choice_index,
+                        "Unknown choice type at index for proposal"
                     );
                 }
             },
             None => {
                 error!(
-                    "Vote choice is not a valid u64 for proposal {}",
-                    proposal.external_id
+                    proposal_id = proposal.external_id,
+                    "Vote choice is not a valid u64 for proposal"
                 );
             }
         }
     }
+    debug!(
+        proposal_id = proposal.external_id,
+        for_votes = for_votes,
+        against_votes = against_votes,
+        "Vote counts aggregated."
+    );
 
     let mut quorum_votes = 0.0;
     let metadata_value = proposal.metadata.clone();
@@ -122,23 +150,37 @@ async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<
     }
 
     let quorum = proposal.quorum;
+    debug!(
+        proposal_id = proposal.external_id,
+        quorum_votes = quorum_votes,
+        required_quorum = quorum,
+        "Quorum votes calculated."
+    );
 
     if quorum_votes >= quorum && for_votes > against_votes {
         info!(
             proposal_id = proposal.external_id,
+            for_votes = for_votes,
+            against_votes = against_votes,
+            quorum_votes = quorum_votes,
+            required_quorum = quorum,
             "Proposal Succeeded: For votes exceed against votes and quorum is met."
         );
         Ok(ProposalState::Succeeded)
     } else {
         info!(
             proposal_id = proposal.external_id,
+            for_votes = for_votes,
+            against_votes = against_votes,
+            quorum_votes = quorum_votes,
+            required_quorum = quorum,
             "Proposal Defeated: For votes did not exceed against votes or quorum not met."
         );
         Ok(ProposalState::Defeated)
     }
 }
 
-#[instrument]
+#[instrument(name = "tasks_run_periodic_proposal_state_update", skip_all)]
 pub async fn run_periodic_proposal_state_update() -> Result<()> {
     info!("Starting periodic task for proposal state updates.");
     let mut interval = time::interval(time::Duration::from_secs(60));
@@ -151,8 +193,8 @@ pub async fn run_periodic_proposal_state_update() -> Result<()> {
             }
             Err(e) => {
                 error!(
-                    "Failed to update ended proposals state in periodic task: {:?}",
-                    e
+                    error = %e,
+                    "Failed to update ended proposals state in periodic task"
                 );
             }
         }

@@ -16,7 +16,7 @@ use sea_orm::{
     prelude::Uuid,
 };
 use std::{path::PathBuf, sync::Arc};
-use tracing::{info, instrument};
+use tracing::{debug, error, info, instrument};
 
 const CONCURRENCY_LIMIT: usize = 100;
 
@@ -30,16 +30,25 @@ fn get_dao_id() -> Option<Uuid> {
         .copied()
 }
 
-#[instrument(skip(manifest_path, registry))]
+#[instrument(
+    name = "arb_token_delegate_changed_handler",
+    skip(manifest_path, registry)
+)]
 async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ARBTokenEventType::DelegateChanged(
         DelegateChangedEvent::handler(
             |results, context| async move {
                 if results.is_empty() {
+                    debug!("No DelegateChanged events to process in this batch.");
                     return Ok(());
                 }
 
                 let results_len = results.len();
+                debug!(
+                    event_count = results_len,
+                    event_name = "DelegateChanged",
+                    "Processing events"
+                );
 
                 let dao_id = get_dao_id()
                     .ok_or_else(|| rindexer_error!("Failed to get DAO ID for 'arbitrum'"))
@@ -53,11 +62,22 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                         let delegate_addr = result.event_data.to_delegate;
                         let tx_hash = result.tx_information.transaction_hash;
 
-                        let created_at = estimate_timestamp("arbitrum", block_number)
-                            .await
-                            .expect("Failed to estimate created timestamp");
+                        let created_at = match estimate_timestamp("arbitrum", block_number).await {
+                            Ok(ts) => ts,
+                            Err(e) => {
+                                error!(
+                                    block_number = block_number,
+                                    error = %e,
+                                    "Failed to estimate timestamp for DelegateChanged event"
+                                );
+                                // Returning `Err` here will stop processing the batch.
+                                // Depending on your error handling strategy, you might want to handle this differently,
+                                // e.g., skip this event and continue with others, or retry.
+                                return None; // Skip this delegation if timestamp estimation fails
+                            }
+                        };
 
-                        delegation::ActiveModel {
+                        Some(delegation::ActiveModel {
                             id: NotSet,
                             delegator: Set(to_checksum(&delegator_addr, None)),
                             delegate: Set(to_checksum(&delegate_addr, None)),
@@ -65,9 +85,10 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                             block: Set(block_number as i32),
                             timestamp: Set(created_at),
                             txid: Set(Some(tx_hash.encode_hex())),
-                        }
+                        })
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)
+                    .filter_map(|delegation_opt| async { delegation_opt }) // Filter out None values
                     .collect::<Vec<_>>()
                     .await;
 
@@ -76,10 +97,10 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                 }
 
                 info!(
-                    "{} - {} - {}",
-                    "ARBToken::DelegateChanged",
-                    results_len,
-                    "INDEXED".green().to_string(),
+                    event_name = "ARBToken::DelegateChanged",
+                    indexed_event_count = results_len,
+                    status = "INDEXED",
+                    "ARBToken::DelegateChanged - INDEXED"
                 );
 
                 Ok(())
@@ -91,16 +112,24 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
     .register(manifest_path, registry);
 }
 
-#[instrument(skip(manifest_path, registry))]
+#[instrument(
+    name = "arb_token_delegate_votes_changed_handler",
+    skip(manifest_path, registry)
+)]
 async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     ARBTokenEventType::DelegateVotesChanged(
         DelegateVotesChangedEvent::handler(
             |results, context| async move {
                 if results.is_empty() {
+                    debug!("No DelegateVotesChanged events to process in this batch.");
                     return Ok(());
                 }
-
                 let results_len = results.len();
+                debug!(
+                    event_count = results_len,
+                    event_name = "DelegateVotesChanged",
+                    "Processing events"
+                );
 
                 let dao_id = get_dao_id()
                     .ok_or_else(|| rindexer_error!("Failed to get DAO ID for 'arbitrum'"))
@@ -114,11 +143,19 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                         let new_balance = result.event_data.new_balance;
                         let tx_hash = result.tx_information.transaction_hash;
 
-                        let created_at = estimate_timestamp("arbitrum", block_number)
-                            .await
-                            .expect("Failed to estimate created timestamp");
+                        let created_at = match estimate_timestamp("arbitrum", block_number).await {
+                            Ok(ts) => ts,
+                            Err(e) => {
+                                error!(
+                                    block_number = block_number,
+                                    error = %e,
+                                    "Failed to estimate timestamp for DelegateVotesChanged event"
+                                );
+                                return None; // Skip this voting power update if timestamp estimation fails
+                            }
+                        };
 
-                        voting_power::ActiveModel {
+                        Some(voting_power::ActiveModel {
                             id: NotSet,
                             voter: Set(to_checksum(&delegate_addr, None)),
                             voting_power: Set(new_balance.as_u128() as f64 / (10.0f64.powi(18))),
@@ -126,9 +163,10 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                             block: Set(block_number as i32),
                             timestamp: Set(created_at),
                             txid: Set(Some(tx_hash.encode_hex())),
-                        }
+                        })
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)
+                    .filter_map(|vp_opt| async { vp_opt }) // Filter out None values
                     .collect::<Vec<_>>()
                     .await;
 
@@ -137,10 +175,10 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                 }
 
                 info!(
-                    "{} - {} - {}",
-                    "ARBToken::DelegateVotesChanged",
-                    results_len,
-                    "INDEXED".green().to_string(),
+                    event_name = "ARBToken::DelegateVotesChanged",
+                    indexed_event_count = results_len,
+                    status = "INDEXED",
+                    "ARBToken::DelegateVotesChanged - INDEXED"
                 );
 
                 Ok(())
@@ -152,8 +190,9 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
     .register(manifest_path, registry);
 }
 
-#[instrument(skip(manifest_path, registry))]
+#[instrument(name = "arb_token_handlers", skip(manifest_path, registry))]
 pub async fn arb_token_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     delegate_changed_handler(manifest_path, registry).await;
     delegate_votes_changed_handler(manifest_path, registry).await;
+    info!("ARB Token handlers registered.");
 }

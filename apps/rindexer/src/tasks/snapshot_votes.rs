@@ -36,9 +36,9 @@ struct SnapshotProposalRef {
     id: String,
 }
 
-#[instrument]
+#[instrument(name = "tasks_update_snapshot_votes", skip_all)]
 pub async fn update_snapshot_votes() -> Result<()> {
-    info!("Running task to fetch latest snapshot votes");
+    info!("Running task to fetch latest snapshot votes for arbitrumfoundation.eth space.");
 
     let dao_id = DAO_ID_SLUG_MAP
         .get()
@@ -73,11 +73,17 @@ pub async fn update_snapshot_votes() -> Result<()> {
     let mut loop_count = 0;
     let max_loops = 10;
 
+    info!(
+        proposal_count = relevant_proposals_vec.len(),
+        "Fetching votes for relevant snapshot proposals."
+    );
+
     loop {
         if loop_count >= max_loops {
             info!(
-                "Reached maximum loop count of {}, exiting snapshot votes update loop.",
-                max_loops
+                loop_count = loop_count,
+                max_loops = max_loops,
+                "Reached maximum loop count, exiting snapshot votes update loop."
             );
             break;
         }
@@ -110,6 +116,8 @@ pub async fn update_snapshot_votes() -> Result<()> {
             last_vote_created, relevant_proposals_str
         );
 
+        debug!(query = graphql_query, "Fetching snapshot votes with query");
+
         let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
             .get()
             .context("Snapshot API handler not initialized")?
@@ -120,11 +128,15 @@ pub async fn update_snapshot_votes() -> Result<()> {
         let votes_data = response.data.map(|d| d.votes).unwrap_or_default();
 
         if votes_data.is_empty() {
-            info!("No new snapshot votes to process");
+            info!("No new snapshot votes to process from snapshot API, task completed for this cycle.");
             break; // No more new votes, exit loop
         }
 
-        info!("Processing batch of {} snapshot votes", votes_data.len());
+        info!(
+            batch_size = votes_data.len(),
+            vote_created_gt = last_vote_created,
+            "Processing batch of snapshot votes"
+        );
 
         let mut votes = vec![];
 
@@ -133,6 +145,17 @@ pub async fn update_snapshot_votes() -> Result<()> {
                 .context("Invalid created timestamp")?
                 .naive_utc();
 
+            let choice_value = if vote_data.choice.is_number() {
+                (vote_data
+                    .choice
+                    .as_i64()
+                    .ok_or_else(|| anyhow::anyhow!("Invalid choice value"))?
+                    - 1)
+                .into()
+            } else {
+                vote_data.choice.clone()
+            };
+
             let vote_model = vote::ActiveModel {
                 id: NotSet,
                 governor_id: Set(governor_id),
@@ -140,16 +163,7 @@ pub async fn update_snapshot_votes() -> Result<()> {
                 proposal_external_id: Set(vote_data.proposal.id.clone()),
                 voter_address: Set(vote_data.voter.clone()),
                 voting_power: Set(vote_data.vp),
-                choice: Set(if vote_data.choice.is_number() {
-                    (vote_data
-                        .choice
-                        .as_i64()
-                        .ok_or_else(|| anyhow::anyhow!("Invalid choice value"))?
-                        - 1)
-                    .into()
-                } else {
-                    vote_data.choice.clone()
-                }),
+                choice: Set(choice_value),
                 reason: Set(vote_data.reason.clone()),
                 created_at: Set(created_at),
                 block_created_at: NotSet, // Block number is not relevant for snapshot votes
@@ -158,27 +172,29 @@ pub async fn update_snapshot_votes() -> Result<()> {
             };
 
             votes.push(vote_model);
+            debug!(voter = vote_data.voter, proposal_id = vote_data.proposal.id, created_at = ?created_at, "Snapshot vote created");
 
             last_vote_created = vote_data.created; // Update last created timestamp
         }
 
         store_votes(votes, governor_id).await?;
+        info!("Batch of snapshot votes stored.");
 
         loop_count += 1;
     }
 
-    info!("Successfully updated snapshot votes");
+    info!("Successfully updated snapshot votes from snapshot API.");
     Ok(())
 }
 
-#[instrument]
+#[instrument(name = "tasks_run_periodic_snapshot_votes_update", skip_all)]
 pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
-    info!("Starting periodic task for fetching latest snapshot votes");
+    info!("Starting periodic task for fetching latest snapshot votes.");
 
     loop {
         match update_snapshot_votes().await {
-            Ok(_) => debug!("Successfully updated snapshot votes"),
-            Err(e) => error!("Failed to update snapshot votes: {:?}", e),
+            Ok(_) => debug!("Successfully updated snapshot votes in periodic task."),
+            Err(e) => error!(error = %e, "Failed to update snapshot votes in periodic task: {:?}", e),
         }
 
         tokio::time::sleep(Duration::from_secs(5)).await;
@@ -190,6 +206,7 @@ struct LastCreatedValue {
     last_created: Option<NaiveDateTime>,
 }
 
+#[instrument(name = "tasks_get_latest_vote_created", skip_all)]
 async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64> {
     let db = DB.get().context("DB not initialized")?;
 
@@ -207,9 +224,14 @@ async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64>
         .map(|dt| dt.and_utc().timestamp())
         .unwrap_or(0);
 
+    debug!(
+        last_created_timestamp = timestamp,
+        "Latest vote created timestamp retrieved from DB."
+    );
     Ok(timestamp)
 }
 
+#[instrument(name = "tasks_get_relevant_proposals", skip_all)]
 async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_created: i64) -> Result<Vec<String>> {
     let db = DB.get().context("DB not initialized")?;
 
@@ -227,10 +249,14 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
         .all(db)
         .await?;
 
-    let ids = relevant_proposals
+    let ids: Vec<String> = relevant_proposals
         .iter()
         .map(|rp| rp.external_id.clone())
         .collect();
 
+    debug!(
+        proposal_ids_count = ids.len(),
+        "Relevant proposals retrieved from DB."
+    );
     Ok(ids)
 }

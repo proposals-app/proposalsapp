@@ -9,7 +9,7 @@ use sea_orm::{ActiveValue::NotSet, Set, prelude::Uuid};
 use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
-use tracing::{error, info, instrument};
+use tracing::{debug, error, info, instrument};
 
 #[derive(Deserialize)]
 struct SnapshotProposalsResponse {
@@ -43,9 +43,9 @@ struct SnapshotProposal {
     ipfs: String,
 }
 
-#[instrument]
+#[instrument(name = "tasks_update_snapshot_proposals", skip_all)]
 pub async fn update_snapshot_proposals() -> Result<()> {
-    info!("Running task to fetch latest snapshot proposals");
+    info!("Running task to fetch latest snapshot proposals for arbitrumfoundation.eth space.");
 
     let dao_id = DAO_ID_SLUG_MAP
         .get()
@@ -106,6 +106,11 @@ pub async fn update_snapshot_proposals() -> Result<()> {
             BATCH_SIZE, current_skip,
         );
 
+        debug!(
+            query = graphql_query,
+            "Fetching snapshot proposals with query"
+        );
+
         let response: SnapshotProposalsResponse = SNAPSHOT_API_HANDLER
             .get()
             .context("Snapshot API handler not initialized")?
@@ -116,21 +121,26 @@ pub async fn update_snapshot_proposals() -> Result<()> {
         let proposals_data = response.data.map(|d| d.proposals).unwrap_or_default();
 
         if proposals_data.is_empty() {
-            info!("No more proposals to process");
+            info!("No more proposals to process from snapshot API, task completed for this cycle.");
             break;
         }
 
-        info!("Processing batch of {} proposals", proposals_data.len());
+        info!(
+            batch_size = proposals_data.len(),
+            skip = current_skip,
+            "Processing batch of snapshot proposals"
+        );
 
         for proposal_data in proposals_data {
             let proposal_model = proposal_data.to_active_model(governor_id, dao_id)?;
             store_proposal(proposal_model).await?;
+            debug!(proposal_id = proposal_data.id, "Snapshot proposal stored");
         }
 
         current_skip += BATCH_SIZE;
     }
 
-    info!("Successfully updated all snapshot proposals");
+    info!("Successfully updated all snapshot proposals from snapshot API.");
     Ok(())
 }
 
@@ -202,14 +212,14 @@ impl SnapshotProposal {
     }
 }
 
-#[instrument]
+#[instrument(name = "tasks_run_periodic_snapshot_proposals_update", skip_all)]
 pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
-    info!("Starting periodic task for fetching latest snapshot proposals");
+    info!("Starting periodic task for fetching latest snapshot proposals.");
 
     loop {
         match update_snapshot_proposals().await {
-            Ok(_) => info!("Successfully updated proposals"),
-            Err(e) => error!("Failed to update proposals: {:?}", e),
+            Ok(_) => info!("Successfully updated snapshot proposals in periodic task."),
+            Err(e) => error!(error = %e, "Failed to update snapshot proposals in periodic task"),
         }
 
         tokio::time::sleep(Duration::from_secs(60)).await;

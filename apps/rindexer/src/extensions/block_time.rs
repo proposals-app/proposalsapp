@@ -12,7 +12,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::{Mutex, OnceCell};
-use tracing::{error, instrument, warn};
+use tracing::{debug, error, instrument, warn};
 
 #[derive(Clone)]
 struct ChainConfig {
@@ -87,6 +87,7 @@ struct TimestampJob {
     retry_count: u64,
 }
 
+#[instrument(name = "block_time_job_processor", skip_all)]
 async fn job_processor() {
     loop {
         let mut job_queue = JOBS_QUEUE.lock().await;
@@ -97,8 +98,9 @@ async fn job_processor() {
                 Ok(config) => config,
                 Err(e) => {
                     error!(
-                        "Failed to get chain config for network {}: {}",
-                        job.network, e
+                        network = job.network,
+                        error = %e,
+                        "Failed to get chain config for network"
                     );
                     let _ = job.sender.send(Err(e));
                     continue;
@@ -109,15 +111,17 @@ async fn job_processor() {
                 Ok(result) => {
                     if job.sender.send(Ok(result)).is_err() {
                         error!(
-                            "Failed to send timestamp estimation result back to sender for block {}",
-                            job.block_number
+                            block_number = job.block_number,
+                            "Failed to send timestamp estimation result back to sender"
                         );
                     }
                 }
                 Err(e) => {
                     warn!(
-                        "Pushing back to queue. Failed to process timestamp estimation for block {}: {}",
-                        job.block_number, e
+                        block_number = job.block_number,
+                        error = %e,
+                        retry_count = job.retry_count,
+                        "Pushing back to queue. Failed to process timestamp estimation"
                     );
                     // Re-enqueue the job for retry with backoff
                     job.retry_count += 1;
@@ -130,10 +134,12 @@ async fn job_processor() {
         } else {
             // Queue is empty, sleep for a short duration before checking again
             tokio::time::sleep(Duration::from_millis(100)).await;
+            debug!("Job queue is empty, checking again.");
         }
     }
 }
 
+#[instrument(name = "block_time_process_request_inner", skip_all, fields(block_number = block_number))]
 async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result<NaiveDateTime> {
     let provider_result = async {
         let provider = config.provider.clone();
@@ -143,6 +149,10 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
             .get_block_number()
             .await
             .context("Failed to get current block number from provider")?;
+        debug!(
+            current_block = current_block.as_u64(),
+            "Current block number from provider"
+        );
 
         if block_number <= current_block.as_u64() {
             let block = provider
@@ -155,6 +165,7 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
 
             if let Some(block) = block {
                 let timestamp = block.timestamp.as_u64() as i64;
+                debug!(block_timestamp = timestamp, block_hash = ?block.hash, "Block found from provider");
                 return DateTime::<Utc>::from_timestamp(timestamp, 0)
                     .map(|dt| dt.naive_utc())
                     .context("Timestamp from provider out of range");
@@ -168,7 +179,10 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
     .await;
 
     if let Ok(timestamp) = provider_result {
+        debug!("Timestamp obtained from provider");
         return Ok(timestamp);
+    } else {
+        warn!(error = ?provider_result.as_ref().err(), "Failed to get timestamp from provider, trying scan API");
     }
 
     let past_scan_api_result = async {
@@ -183,23 +197,21 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                             .timestamp
                             .parse()
                             .context("Failed to parse timestamp from past scan API response")?;
+                        debug!(scan_api = %scan_api_url, block_number = block_number, timestamp = timestamp, "Timestamp obtained from past scan API");
                         return DateTime::<Utc>::from_timestamp(timestamp, 0)
                             .map(|dt| dt.naive_utc())
                             .context("Timestamp from past scan api out of range");
                     } else if let Some(BlockRewardResult::Error(err_msg)) = response.result {
-                        error!("Past scan API error: {}", err_msg);
+                        error!(scan_api = %scan_api_url, block_number = block_number, error_message = err_msg, "Past scan API returned an error");
                         return Err(anyhow::anyhow!("Past scan API error: {}", err_msg));
                     } else {
-                        error!("Past scan API response result is None but status is success");
+                        error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, "Past scan API response result is None but status is success");
                         return Err(anyhow::anyhow!(
                             "Past scan API response result is None but status is success"
                         ));
                     }
                 } else {
-                    error!(
-                        "Past scan API request failed with status: {}, message: {}",
-                        response.status, response.message
-                    );
+                    error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, response_message = response.message, "Past scan API request failed with status");
                     return Err(anyhow::anyhow!(
                         "Past scan API request failed with status: {}, message: {}",
                         response.status,
@@ -207,11 +219,11 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                     ));
                 }
             } else {
-                error!("Past scan API request returned None");
+                error!(scan_api = %scan_api_url, block_number = block_number, "Past scan API request returned None");
                 return Err(anyhow::anyhow!("Past scan API request returned None"));
             }
         }
-        error!("Past scan API not configured for this chain");
+        warn!("Past scan API not configured for this chain");
         Err(anyhow::anyhow!(
             "Past scan API not configured for this chain"
         ))
@@ -219,7 +231,10 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
     .await;
 
     if let Ok(timestamp) = past_scan_api_result {
+        debug!("Timestamp obtained from past scan API");
         return Ok(timestamp);
+    } else {
+        warn!(error = ?past_scan_api_result.as_ref().err(), "Failed to get timestamp from past scan API, trying future scan API");
     }
 
     let future_scan_api_result = async {
@@ -234,24 +249,22 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                             .estimate_time_in_sec
                             .parse()
                             .context("Failed to parse estimate_time_in_sec from future scan API response")?;
+                        debug!(scan_api = %scan_api_url, block_number = block_number, estimate_seconds = estimate_time_in_sec, "Timestamp estimated from future scan API");
                         return Utc::now()
                             .checked_add_signed(chrono::Duration::seconds(estimate_time_in_sec as i64))
                             .context("Failed to add duration to current time from future scan api")
                             .map(|dt| dt.naive_utc());
                     } else if let Some(EstimateTimestampResult::Error(err_msg)) = response.result {
-                        error!("Future scan API error: {}", err_msg);
+                        error!(scan_api = %scan_api_url, block_number = block_number, error_message = err_msg, "Future scan API returned an error");
                         return Err(anyhow::anyhow!("Future scan API error: {}", err_msg));
                     } else {
-                        error!("Future scan API response result is None but status is success");
+                        error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, "Future scan API response result is None but status is success");
                         return Err(anyhow::anyhow!(
                             "Future scan API response result is None but status is success"
                         ));
                     }
                 } else {
-                    error!(
-                        "Future scan API request failed with status: {}, message: {}",
-                        response.status, response.message
-                    );
+                    error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, response_message = response.message, "Future scan API request failed with status");
                     return Err(anyhow::anyhow!(
                         "Future scan API request failed with status: {}, message: {}",
                         response.status,
@@ -259,11 +272,11 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                     ));
                 }
             } else {
-                error!("Future scan API request returned None");
+                error!(scan_api = %scan_api_url, block_number = block_number, "Future scan API request returned None");
                 return Err(anyhow::anyhow!("Future scan API request returned None"));
             }
         }
-        error!("Future scan API not configured for this chain");
+        warn!("Future scan API not configured for this chain");
         Err(anyhow::anyhow!(
             "Future scan API not configured for this chain"
         ))
@@ -271,10 +284,19 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
     .await;
 
     if let Ok(timestamp) = future_scan_api_result {
+        debug!("Timestamp obtained from future scan API");
         return Ok(timestamp);
+    } else {
+        warn!(error = ?future_scan_api_result.as_ref().err(), "Failed to get timestamp from future scan API");
     }
 
-    error!("All methods failed to estimate timestamp.",);
+    error!(
+        provider_error = ?provider_result.as_ref().err(),
+        past_scan_api_error = ?past_scan_api_result.as_ref().err(),
+        future_scan_api_error = ?future_scan_api_result.as_ref().err(),
+        block_number = block_number,
+        "All methods failed to estimate timestamp."
+    );
     Err(anyhow::anyhow!(
         "All methods failed to estimate timestamp. \nProvider error: {:?}\nPast scan API error: {:?}\nFuture scan API error: {:?}",
         provider_result.err(),
@@ -283,6 +305,7 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
     ))
 }
 
+#[instrument(name = "block_time_get_chain_config", skip_all, fields(network = network))]
 fn get_chain_config(network: &'static str) -> Result<ChainConfig> {
     CHAIN_CONFIG_MAP
         .get(network)
@@ -290,7 +313,7 @@ fn get_chain_config(network: &'static str) -> Result<ChainConfig> {
         .context(format!("Unsupported network: {}", network))
 }
 
-#[instrument]
+#[instrument(name = "block_time_estimate_timestamp", skip(network), fields(network = network, block_number = block_number))]
 pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Result<NaiveDateTime> {
     let (sender, receiver) = tokio::sync::oneshot::channel();
     let job = TimestampJob {
@@ -303,6 +326,7 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
     {
         let mut job_queue = JOBS_QUEUE.lock().await;
         job_queue.push_back(job);
+        debug!(queue_size = job_queue.len(), "Job enqueued");
     }
 
     // Ensure job processor is running as a singleton using OnceCell
@@ -341,12 +365,13 @@ struct EstimateTimestamp {
     result: Option<EstimateTimestampResult>,
 }
 
-#[instrument(skip(api_url, api_key))]
+#[instrument(name = "block_time_future_scan_api_request", skip(api_url, api_key), fields(api_url = api_url, block_number = block_number))]
 async fn future_scan_api_request(api_url: &str, api_key: &str, block_number: u64) -> Result<Option<EstimateTimestamp>> {
     let url = format!(
         "{}?module=block&action=getblockcountdown&blockno={}&apikey={}",
         api_url, block_number, api_key
     );
+    debug!(request_url = %url, "Sending future scan API request");
 
     let response = HTTP_CLIENT
         .get(&url)
@@ -360,16 +385,24 @@ async fn future_scan_api_request(api_url: &str, api_key: &str, block_number: u64
             .text()
             .await
             .unwrap_or_else(|_| "Failed to read response".into());
+        error!(status_code = status.as_u16(), response_body = %text, "Future scan API request failed");
         return Err(anyhow::anyhow!(
             "API request failed with status {}: {}",
             status,
             text
         ));
     }
+    let status = response.status();
     let response_text = response
         .text()
         .await
         .context("Failed to get response text from future scan API request")?;
+    debug!(
+        response_status = status.as_u16(),
+        response_body_len = response_text.len(),
+        "Future scan API request successful"
+    );
+
     serde_json::from_str::<EstimateTimestamp>(&response_text)
         .map(Some)
         .map_err(|e| anyhow::anyhow!(e).context("Failed to deserialize future scan API response"))
@@ -395,12 +428,13 @@ struct BlockRewardResponse {
     result: Option<BlockRewardResult>,
 }
 
-#[instrument(skip(api_url, api_key))]
+#[instrument(name = "block_time_past_scan_api_request", skip(api_url, api_key), fields(api_url = api_url, block_number = block_number))]
 async fn past_scan_api_request(api_url: &str, api_key: &str, block_number: u64) -> Result<Option<BlockRewardResponse>> {
     let url = format!(
         "{}?module=block&action=getblockreward&blockno={}&apikey={}",
         api_url, block_number, api_key
     );
+    debug!(request_url = %url, "Sending past scan API request");
 
     let response = HTTP_CLIENT
         .get(&url)
@@ -414,6 +448,7 @@ async fn past_scan_api_request(api_url: &str, api_key: &str, block_number: u64) 
             .text()
             .await
             .unwrap_or_else(|_| "Failed to read response".into());
+        error!(status_code = status.as_u16(), response_body = %text, "Past scan API request failed");
         return Err(anyhow::anyhow!(
             "Block reward API request failed with status {}: {}",
             status,
@@ -421,11 +456,17 @@ async fn past_scan_api_request(api_url: &str, api_key: &str, block_number: u64) 
         ));
     }
 
+    let status = response.status();
     let response_text = response
         .text()
         .await
         .context("Failed to get response text from past scan API request")?;
 
+    debug!(
+        response_status = status.as_u16(),
+        response_body_len = response_text.len(),
+        "Past scan API request successful"
+    );
     serde_json::from_str::<BlockRewardResponse>(&response_text)
         .map(Some)
         .map_err(|e| anyhow::anyhow!(e).context("Failed to deserialize past scan API response"))
@@ -440,6 +481,12 @@ mod request_tests {
     use serial_test::serial;
     use std::time::Instant;
     use tokio::task::JoinSet;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_estimate_timestamp_scenario_tracing() -> Result<()> {
+        test_estimate_timestamp_scenario("ethereum", 100).await
+    }
 
     async fn test_estimate_timestamp_scenario(
         network: &'static str,
