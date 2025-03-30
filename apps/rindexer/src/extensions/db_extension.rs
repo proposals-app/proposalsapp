@@ -16,6 +16,8 @@ pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static DAO_GOVERNOR_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
 pub static DAO_ID_SLUG_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
 
+const BATCH_SIZE: usize = 100;
+
 #[instrument(name = "db_initialize_db", skip_all)]
 pub async fn initialize_db() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
@@ -311,7 +313,7 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
         vote_active_models.push(vote_active_model);
     }
 
-    for chunk in vote_active_models.chunks(100) {
+    for chunk in vote_active_models.chunks(BATCH_SIZE) {
         let result: Result<InsertResult<vote::ActiveModel>, sea_orm::DbErr> = vote::Entity::insert_many(chunk.to_vec())
             .on_conflict(
                 OnConflict::columns([
@@ -346,38 +348,81 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
 
 #[instrument(name = "db_store_delegations", skip(delegations), fields(delegation_count = delegations.len()))]
 pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Result<()> {
-    let db = DB.get().unwrap();
+    if delegations.is_empty() {
+        info!("No delegations provided to store.");
+        return Ok(());
+    }
+    let total_delegations = delegations.len();
+
+    let db = DB
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
     let txn = db.begin().await?;
 
-    delegation::Entity::insert_many(delegations.clone())
-        .on_conflict(OnConflict::new().do_nothing().to_owned())
-        .exec(&txn)
-        .await?;
+    for chunk in delegations.chunks(BATCH_SIZE) {
+        let result = delegation::Entity::insert_many(chunk.to_vec())
+            .on_conflict(OnConflict::new().do_nothing().to_owned())
+            .exec(&txn)
+            .await;
+
+        if let Err(err) = result {
+            error!(error = %err, count = chunk.len(), "Failed to insert delegation chunk, rolling back transaction.");
+            txn.rollback().await?;
+            return Err(err.into());
+        } else {
+            debug!(
+                count = chunk.len(),
+                "Delegation chunk inserted successfully."
+            );
+        }
+    }
 
     txn.commit().await?;
-    info!("Stored {} delegations.", delegations.len());
+    info!("Successfully processed {} delegations.", total_delegations);
     Ok(())
 }
 
 #[instrument(name = "db_store_voting_powers", skip(voting_powers), fields(voting_power_count = voting_powers.len()))]
 pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) -> Result<()> {
-    let db = DB.get().unwrap();
+    if voting_powers.is_empty() {
+        info!("No voting powers provided to store.");
+        return Ok(());
+    }
+    let total_voting_powers = voting_powers.len();
+
+    let db = DB
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
     let txn = db.begin().await?;
 
-    voting_power::Entity::insert_many(voting_powers.clone())
-        .on_conflict(OnConflict::new().do_nothing().to_owned())
-        .exec(&txn)
-        .await?;
+    for chunk in voting_powers.chunks(BATCH_SIZE) {
+        let result = voting_power::Entity::insert_many(chunk.to_vec())
+            .on_conflict(OnConflict::new().do_nothing().to_owned())
+            .exec(&txn)
+            .await;
+
+        if let Err(err) = result {
+            error!(error = %err, count = chunk.len(), "Failed to insert/update voting power chunk, rolling back transaction.");
+            txn.rollback().await?;
+            return Err(err.into());
+        } else {
+            debug!(
+                count = chunk.len(),
+                "Voting power chunk processed successfully."
+            );
+        }
+    }
 
     txn.commit().await?;
-    info!("Stored {} voting powers.", voting_powers.len());
+    info!(
+        "Successfully processed {} voting powers.",
+        total_voting_powers
+    );
     Ok(())
 }
 
 #[instrument(name = "db_store_voters", skip(txn, voter_addresses), fields(voter_address_count = voter_addresses.len()))]
 async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String>) -> Result<()> {
-    const BATCH_SIZE: usize = 1000; // Adjust based on database performance
-
     // Get the provider once at the beginning to reuse throughout the function
     let provider = get_ethereum_provider_cache().get_inner_provider();
 
