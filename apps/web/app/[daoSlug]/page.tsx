@@ -11,21 +11,9 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { ActiveGroupItem } from './components/group-items/active-item';
 import { DaoSummaryHeader } from './components/dao-summary-header';
-import Loading, { LoadingGroupList, LoadingHeader } from './loading';
+import { LoadingGroupList, LoadingHeader } from './loading';
 
 export default async function Page({
-  params,
-}: {
-  params: Promise<{ daoSlug: string }>;
-}) {
-  return (
-    <Suspense fallback={<Loading />}>
-      <GroupsList params={params} />
-    </Suspense>
-  );
-}
-
-async function GroupsList({
   params,
 }: {
   params: Promise<{ daoSlug: string }>;
