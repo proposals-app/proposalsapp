@@ -4,10 +4,16 @@ import Link from 'next/link';
 import List from '@/public/assets/web/icons/proposals.svg';
 import Delegate from '@/public/assets/web/icons/delegates.svg';
 import { Suspense } from 'react';
+import { cookies } from 'next/headers';
 
-export function NavBar() {
+export async function NavBar() {
   const DAO_PICTURE_PATH = 'assets/project-logos/arbitrum';
   const DAO_NAME = 'Arbitrum';
+
+  const cookieStore = await cookies();
+
+  const theme =
+    (cookieStore.get('theme-mode')?.value as 'light' | 'dark') ?? 'dark';
 
   return (
     <div className='fill-neutral-800 dark:fill-neutral-200'>
@@ -57,7 +63,7 @@ export function NavBar() {
 
           <div className='flex h-10 items-center justify-center'>
             <Suspense>
-              <ModeToggle />
+              <ModeToggle initialTheme={theme} />
             </Suspense>
           </div>
         </div>
@@ -101,7 +107,7 @@ export function NavBar() {
         </div>
         <div className='flex flex-col items-center gap-8'>
           <Suspense>
-            <ModeToggle />
+            <ModeToggle initialTheme={theme} />
           </Suspense>
 
           <Image

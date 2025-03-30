@@ -1,10 +1,25 @@
 import { cookies } from 'next/headers';
-import { ReactNode } from 'react';
+import { ReactNode, Suspense } from 'react';
 
-export async function ThemeProvider({ children }: { children: ReactNode }) {
-  const themeMode = (await cookies()).get('theme-mode')?.value ?? 'dark';
-  const themeVariant =
-    (await cookies()).get('theme-variant')?.value ?? 'arbitrum';
+export default async function SuspendedThemeProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <Suspense>
+      <ThemeProvider>{children}</ThemeProvider>
+    </Suspense>
+  );
+}
+
+async function ThemeProvider({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+
+  const themeMode =
+    (cookieStore.get('theme-mode')?.value as 'light' | 'dark') ?? 'dark';
+
+  const themeVariant = cookieStore.get('theme-variant')?.value ?? 'arbitrum';
 
   return (
     <div className={themeMode} data-theme={themeVariant}>

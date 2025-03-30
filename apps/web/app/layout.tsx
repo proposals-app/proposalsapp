@@ -5,7 +5,7 @@ import { PHProvider } from './components/posthog-provider';
 import SuspendedPostHogPageView from './components/posthog-page-view';
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
-import { ThemeProvider } from './components/theme-provider';
+import SuspendedThemeProvider from './components/theme-provider';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -63,19 +63,17 @@ export default async function Layout({
         <link rel='manifest' href='/manifest.json' />
       </head>
       <body>
-        <Suspense>
-          <ThemeProvider>
-            <NuqsAdapter>
-              <Suspense>
-                <WebVitals />
-              </Suspense>
-              <SuspendedPostHogPageView />
-              <Suspense>
-                <PHProvider>{children}</PHProvider>
-              </Suspense>
-            </NuqsAdapter>
-          </ThemeProvider>
-        </Suspense>
+        <SuspendedThemeProvider>
+          <NuqsAdapter>
+            <Suspense>
+              <WebVitals />
+            </Suspense>
+            <SuspendedPostHogPageView />
+            <Suspense>
+              <PHProvider>{children}</PHProvider>
+            </Suspense>
+          </NuqsAdapter>
+        </SuspendedThemeProvider>
       </body>
     </html>
   );
