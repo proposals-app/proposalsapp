@@ -4,9 +4,15 @@ use crate::extensions::{
 };
 use anyhow::{Context, Result, anyhow};
 use chrono::{DateTime, NaiveDateTime, Utc};
+use futures::{StreamExt, stream};
 use proposalsapp_db_indexer::models::{proposal, vote};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityOrSelect, EntityTrait, FromQueryResult, Order, QueryFilter, QueryOrder, QuerySelect, Set, prelude::Uuid};
+use sea_orm::{
+    ActiveValue::NotSet,
+    ColumnTrait, Condition, EntityOrSelect, EntityTrait, FromQueryResult, Order, QueryFilter, QueryOrder, QuerySelect, Set, Value,
+    prelude::{Expr, Uuid},
+};
 use serde::Deserialize;
+use serde_json::json;
 use std::time::Duration;
 use tracing::{debug, error, info, instrument};
 
@@ -17,7 +23,7 @@ struct SnapshotVotesResponse {
 
 #[derive(Deserialize, Debug)]
 struct SnapshotVoteData {
-    votes: Vec<SnapshotVote>,
+    votes: Option<Vec<SnapshotVote>>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -125,7 +131,7 @@ pub async fn update_snapshot_votes() -> Result<()> {
             .await
             .context("Failed to fetch votes from Snapshot API")?;
 
-        let votes_data = response.data.map(|d| d.votes).unwrap_or_default();
+        let votes_data: Vec<SnapshotVote> = response.data.and_then(|d| d.votes).unwrap_or_default();
 
         if votes_data.is_empty() {
             info!("No new snapshot votes to process from snapshot API, task completed for this cycle.");
@@ -197,6 +203,11 @@ pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
             Err(e) => error!(error = %e, "Failed to update snapshot votes in periodic task: {:?}", e),
         }
 
+        match refresh_closed_shutter_votes().await {
+            Ok(_) => debug!("Successfully refreshed shutter proposal votes."),
+            Err(e) => error!(error = %e, "Failed to refresh shutter proposal votes in periodic task"),
+        }
+
         tokio::time::sleep(Duration::from_secs(5)).await;
     }
 }
@@ -259,4 +270,206 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
         "Relevant proposals retrieved from DB."
     );
     Ok(ids)
+}
+
+#[instrument(name = "tasks_refresh_shutter_votes", skip_all)]
+async fn refresh_closed_shutter_votes() -> Result<()> {
+    info!("Running task to refresh votes for closed shutter proposals.");
+
+    let dao_id = DAO_ID_SLUG_MAP
+        .get()
+        .context("DAO_ID_SLUG_MAP not initialized")?
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire DAO_ID_SLUG_MAP lock"))?
+        .get("arbitrum")
+        .copied()
+        .context("DAO not found for slug 'arbitrum'")?;
+
+    let governor_id = DAO_GOVERNOR_ID_MAP
+        .get()
+        .context("DAO_GOVERNOR_ID_MAP not initialized")?
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire DAO_GOVERNOR_ID_MAP lock"))?
+        .get("SNAPSHOT")
+        .copied()
+        .context("Governor not found for type 'SNAPSHOT'")?;
+
+    let db = DB.get().context("DB not initialized")?;
+
+    let now = Utc::now();
+    let one_hour_ago = now - Duration::from_secs(60 * 60);
+
+    let shutter_condition = Condition::all()
+        .add(Expr::cust_with_values(
+            r#""proposal"."metadata" @> $1::jsonb"#,
+            [Value::Json(Some(Box::new(json!({"hidden_vote": true}))))],
+        ))
+        .add(Expr::cust_with_values(
+            r#""proposal"."metadata" @> $1::jsonb"#,
+            [Value::Json(Some(Box::new(
+                json!({"scores_state": "final"}),
+            )))],
+        ));
+
+    // Find closed proposals that used shutter privacy AND ended in the last hour
+    let shutter_proposals = proposal::Entity::find()
+        .filter(proposal::Column::GovernorId.eq(governor_id))
+        .filter(proposal::Column::DaoId.eq(dao_id))
+        .filter(shutter_condition)
+        .filter(proposal::Column::EndAt.gt(one_hour_ago.naive_utc()))
+        .filter(proposal::Column::EndAt.lte(now.naive_utc()))
+        .all(db)
+        .await?;
+
+    if shutter_proposals.is_empty() {
+        info!("No closed shutter proposals found needing vote refresh.");
+        return Ok(());
+    }
+
+    info!(
+        count = shutter_proposals.len(),
+        "Found closed shutter proposals to refresh votes for."
+    );
+
+    const SHUTTER_PROPOSAL_FETCH_CONCURRENCY: usize = 10;
+
+    // Process proposals concurrently
+    stream::iter(shutter_proposals)
+        .map(|proposal_to_refresh| async move {
+            info!(
+                proposal_id = proposal_to_refresh.external_id,
+                "Refreshing votes for shutter proposal."
+            );
+            match refresh_votes_for_proposal(&proposal_to_refresh.external_id, governor_id, dao_id).await {
+                Ok(_) => {
+                    info!(
+                        proposal_id = proposal_to_refresh.external_id,
+                        "Successfully refreshed votes."
+                    );
+                }
+                Err(e) => {
+                    error!(proposal_id = proposal_to_refresh.external_id, error = %e, "Failed to refresh votes for shutter proposal.");
+                }
+            }
+        })
+        .buffer_unordered(SHUTTER_PROPOSAL_FETCH_CONCURRENCY) // Limit concurrency
+        .collect::<()>()
+        .await;
+
+    info!("Finished refreshing votes for closed shutter proposals.");
+    Ok(())
+}
+
+#[instrument(
+    name = "tasks_refresh_votes_for_proposal",
+    skip(governor_id, dao_id),
+    fields(proposal_external_id)
+)]
+async fn refresh_votes_for_proposal(proposal_external_id: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
+    info!("Fetching all votes for proposal.");
+    let mut current_skip = 0;
+    const BATCH_SIZE: usize = 1000;
+    let mut all_votes_data: Vec<SnapshotVote> = Vec::new();
+
+    loop {
+        let graphql_query = format!(
+            r#"
+            {{
+                votes(
+                    first: {},
+                    skip: {},
+                    orderBy: "created",
+                    orderDirection: asc,
+                    where: {{
+                        proposal: "{}"
+                    }}
+                ) {{
+                    voter
+                    reason
+                    choice
+                    vp
+                    created
+                    ipfs
+                    proposal {{
+                        id
+                    }}
+                }}
+            }}"#,
+            BATCH_SIZE, current_skip, proposal_external_id
+        );
+
+        debug!(query = graphql_query, "Fetching vote batch for proposal");
+
+        let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
+            .get()
+            .context("Snapshot API handler not initialized")?
+            .fetch("https://hub.snapshot.org/graphql", graphql_query)
+            .await
+            .context(format!(
+                "Failed to fetch votes from Snapshot API for proposal {}",
+                proposal_external_id
+            ))?;
+
+        let mut votes_data: Vec<SnapshotVote> = response.data.and_then(|d| d.votes).unwrap_or_default();
+
+        if votes_data.is_empty() {
+            debug!("No more votes found for proposal, finished fetching.");
+            break; // No more votes for this proposal
+        }
+
+        info!(
+            batch_size = votes_data.len(),
+            skip = current_skip,
+            "Processing batch of votes for proposal."
+        );
+        all_votes_data.append(&mut votes_data);
+        current_skip += BATCH_SIZE;
+    }
+
+    if !all_votes_data.is_empty() {
+        let mut votes_to_store = vec![];
+        for vote_data in &all_votes_data {
+            let created_at = DateTime::from_timestamp(vote_data.created, 0)
+                .context("Invalid created timestamp")?
+                .naive_utc();
+
+            let choice_value = if vote_data.choice.is_number() {
+                (vote_data
+                    .choice
+                    .as_i64()
+                    .ok_or_else(|| anyhow::anyhow!("Invalid choice value"))?
+                    - 1)
+                .into()
+            } else {
+                vote_data.choice.clone()
+            };
+
+            let vote_model = vote::ActiveModel {
+                id: NotSet,
+                governor_id: Set(governor_id),
+                dao_id: Set(dao_id),
+                proposal_external_id: Set(vote_data.proposal.id.clone()),
+                voter_address: Set(vote_data.voter.clone()),
+                voting_power: Set(vote_data.vp),
+                choice: Set(choice_value),
+                reason: Set(vote_data.reason.clone()),
+                created_at: Set(created_at),
+                block_created_at: NotSet,
+                txid: Set(Some(vote_data.ipfs.clone())),
+                proposal_id: NotSet,
+            };
+
+            votes_to_store.push(vote_model);
+            debug!(voter = vote_data.voter, proposal_id = vote_data.proposal.id, created_at = ?created_at, "Snapshot vote created");
+        }
+
+        if !votes_to_store.is_empty() {
+            store_votes(votes_to_store, governor_id).await?;
+            info!("Stored/Updated votes for proposal.");
+        }
+    } else {
+        info!("No votes found in total for proposal.");
+    }
+
+    Ok(())
 }
