@@ -142,36 +142,3 @@ export function GroupList({ groups, signedIn }: GroupListProps) {
     </div>
   );
 }
-
-export const LoadingGroupList = () => {
-  return (
-    <div className='space-y-4'>
-      {Array(6)
-        .fill(0)
-        .map((_, index) => (
-          <LoadingGroupItem key={index} />
-        ))}
-    </div>
-  );
-};
-
-export const LoadingGroupItem = () => {
-  return (
-    <div className='flex animate-pulse space-x-4 border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-700 dark:bg-neutral-900'>
-      {/* Avatar Skeleton */}
-      <div className='h-[32px] w-[32px] rounded-full bg-neutral-200 sm:h-[40px] sm:w-[40px] dark:bg-neutral-700'></div>
-
-      <div className='flex w-full flex-col justify-center space-y-2'>
-        {/* Group Name Skeleton */}
-        <div className='h-5 w-full max-w-[192px] bg-neutral-200 dark:bg-neutral-700'></div>
-        {/* Author Name Skeleton */}
-        <div className='h-3 w-4/5 max-w-[128px] bg-neutral-200 dark:bg-neutral-700'></div>
-        {/* Meta info line (Date, Counts) Skeleton */}
-        <div className='mt-2 flex flex-wrap gap-2'>
-          <div className='h-3 w-12 bg-neutral-200 dark:bg-neutral-700'></div>
-          <div className='h-3 w-16 bg-neutral-200 dark:bg-neutral-700'></div>
-        </div>
-      </div>
-    </div>
-  );
-};
