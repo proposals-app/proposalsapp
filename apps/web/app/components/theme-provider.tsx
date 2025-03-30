@@ -1,20 +1,14 @@
-'use client';
-
-import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import { cookies } from 'next/headers';
 import { ReactNode } from 'react';
-import { UpdateManifest } from './update-manifest';
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export async function ThemeProvider({ children }: { children: ReactNode }) {
+  const themeMode = (await cookies()).get('theme-mode')?.value ?? 'dark';
+  const themeVariant =
+    (await cookies()).get('theme-variant')?.value ?? 'arbitrum';
+
   return (
-    <NextThemesProvider
-      attribute='class'
-      defaultTheme='dark'
-      enableSystem={false} // Disable system preference if default is hardcoded
-    >
-      <div data-theme='arbitrum' className='min-h-screen'>
-        <UpdateManifest daoSlug='arbitrum' />
-        {children}{' '}
-      </div>
-    </NextThemesProvider>
+    <div className={themeMode} data-theme={themeVariant}>
+      {children}{' '}
+    </div>
   );
 }

@@ -1,31 +1,30 @@
 'use client';
 
 import { updateManifest } from '@/lib/update_manifest';
-import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useParams } from 'next/navigation'; // Use useParams for daoSlug
 
-export const UpdateManifest = ({ daoSlug }: { daoSlug: string }) => {
-  const [mounted, setMounted] = useState(false);
-  const { resolvedTheme } = useTheme();
+// Renamed prop for clarity
+export const UpdateManifest = ({
+  themeMode,
+}: {
+  themeMode: 'light' | 'dark';
+}) => {
+  const params = useParams();
+  const daoSlug = params?.daoSlug as string; // Get daoSlug from route params
 
-  // Handle initial mount
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    // No need for 'mounted' state here as themeMode is passed as a prop
+    const isDark = themeMode === 'dark';
 
-  useEffect(() => {
-    if (!mounted) return;
+    // Update manifest whenever themeMode changes
+    // Add a small delay to ensure DOM is ready if needed, though likely not necessary here
+    const timeoutId = setTimeout(() => {
+      updateManifest(isDark);
+    }, 50); // Reduced delay
 
-    if (resolvedTheme) {
-      const isDark = resolvedTheme === 'dark';
+    return () => clearTimeout(timeoutId);
+  }, [daoSlug, themeMode]); // Rerun when daoSlug or themeMode changes
 
-      const timeoutId = setTimeout(() => {
-        updateManifest(isDark);
-      }, 100);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [mounted, daoSlug, resolvedTheme]);
-
-  return null;
+  return null; // This component doesn't render anything itself
 };

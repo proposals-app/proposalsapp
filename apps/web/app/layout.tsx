@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: 'light',
+  themeColor: 'dark',
   minimumScale: 1,
   initialScale: 1,
   width: 'device-width',
@@ -60,21 +60,22 @@ export default async function Layout({
           rel='stylesheet'
         />
         <link rel='icon' href='/favicon.ico' />
+        <link rel='manifest' href='/manifest.json' />
       </head>
       <body>
-        <ThemeProvider>
-          <NuqsAdapter>
-            <Suspense>
-              <WebVitals />
-            </Suspense>
-
-            <SuspendedPostHogPageView />
-
-            <Suspense>
-              <PHProvider>{children}</PHProvider>
-            </Suspense>
-          </NuqsAdapter>
-        </ThemeProvider>
+        <Suspense>
+          <ThemeProvider>
+            <NuqsAdapter>
+              <Suspense>
+                <WebVitals />
+              </Suspense>
+              <SuspendedPostHogPageView />
+              <Suspense>
+                <PHProvider>{children}</PHProvider>
+              </Suspense>
+            </NuqsAdapter>
+          </ThemeProvider>
+        </Suspense>
       </body>
     </html>
   );

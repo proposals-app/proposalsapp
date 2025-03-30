@@ -5,7 +5,6 @@ import { format, toZonedTime } from 'date-fns-tz';
 import * as echarts from 'echarts';
 import { useEffect, useRef } from 'react';
 import { ProcessedResults } from '@/lib/results_processing';
-import { useTheme } from 'next-themes';
 import superjson, { SuperJSONResult } from 'superjson';
 
 interface ResultsChartProps {
@@ -14,11 +13,14 @@ interface ResultsChartProps {
 
 export function ResultsChart({ results }: ResultsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const { theme } = useTheme();
 
   const deserializedResults: ProcessedResults = superjson.deserialize(results);
 
   useEffect(() => {
+    const theme = document.documentElement.classList.contains('dark')
+      ? 'dark'
+      : 'light';
+
     if (!chartRef.current) return;
     if (!deserializedResults.timeSeriesData) return;
 
@@ -376,7 +378,6 @@ export function ResultsChart({ results }: ResultsChartProps) {
     deserializedResults.quorumChoices,
     deserializedResults.voteType,
     deserializedResults.votes,
-    theme,
   ]);
 
   return (
