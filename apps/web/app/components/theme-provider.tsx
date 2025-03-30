@@ -1,17 +1,19 @@
+'use client';
+
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { ReactNode } from 'react';
 import { UpdateManifest } from './update-manifest';
 
-export async function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <NextThemesProvider
       attribute='class'
       defaultTheme='dark'
-      enableSystem={false}
+      enableSystem={false} // Disable system preference if default is hardcoded
     >
-      <UpdateManifest daoSlug='arbitrum' />
       <div data-theme='arbitrum' className='min-h-screen'>
-        {children}
+        <UpdateManifest daoSlug='arbitrum' />
+        {children}{' '}
       </div>
     </NextThemesProvider>
   );
