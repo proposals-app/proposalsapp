@@ -36,7 +36,7 @@ import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { daoSlugSchema, groupIdSchema } from '@/lib/validations';
 import { revalidateTag } from 'next/cache';
 
-export async function updateLastReadAt(groupId: string) {
+export async function updateLastReadAt(groupId: string, daoSlug: string) {
   groupIdSchema.parse(groupId);
 
   const session = await auth.api.getSession({ headers: await headers() });
@@ -45,8 +45,6 @@ export async function updateLastReadAt(groupId: string) {
   if (!userId) {
     return;
   }
-
-  revalidateTag(`groups-${userId}`);
 
   const now = new Date();
 
@@ -63,6 +61,8 @@ export async function updateLastReadAt(groupId: string) {
         .doUpdateSet({ last_read_at: now })
     )
     .execute();
+
+  revalidateTag(`groups-user-${userId}-${daoSlug}`);
 }
 
 export async function getGroup(daoSlug: string, groupId: string) {

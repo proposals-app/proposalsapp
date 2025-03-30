@@ -1,4 +1,3 @@
-import { ProposalGroupItem } from '@/lib/types';
 import {
   getGroups,
   getTotalVotingPower,
@@ -44,14 +43,8 @@ async function GroupsList({
 
   const { daoName, groups } = result;
 
-  // Transform data
+  // Transform data - items no longer needed here
   const groupsWithInfo = groups.map((group) => {
-    const items = group.items as ProposalGroupItem[];
-    const proposalsCount = items.filter(
-      (item) => item.type === 'proposal'
-    ).length;
-    const topicsCount = items.filter((item) => item.type === 'topic').length;
-
     const groupItem = {
       id: group.id,
       name: group.name,
@@ -61,24 +54,13 @@ async function GroupsList({
       latestActivityAt: new Date(group.newestActivityTimestamp),
       hasNewActivity: group.hasNewActivity,
       hasActiveProposal: group.hasActiveProposal,
-      topicsCount,
-      proposalsCount,
+      topicsCount: group.topicsCount,
+      proposalsCount: group.proposalsCount,
       votesCount: group.votesCount,
       postsCount: group.postsCount,
     };
     return {
-      id: group.id,
-      name: group.name,
-      slug: `${group.id}`,
-      authorName: group.originalAuthorName,
-      authorAvatarUrl: group.originalAuthorPicture,
-      latestActivityAt: new Date(group.newestActivityTimestamp),
-      hasNewActivity: group.hasNewActivity,
-      hasActiveProposal: group.hasActiveProposal,
-      topicsCount,
-      proposalsCount,
-      votesCount: group.votesCount,
-      postsCount: group.postsCount,
+      ...groupItem,
       resultCard: group.hasActiveProposal ? (
         <ActiveGroupItem group={groupItem} />
       ) : null,

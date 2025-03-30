@@ -64,7 +64,7 @@ async function GroupPage({
     <div className='flex w-full flex-col items-center px-4 md:pt-10 md:pr-96'>
       <div className='flex w-full max-w-3xl flex-col gap-4 overflow-visible'>
         <Suspense fallback={null}>
-          <LastReadUpdater groupId={groupId} />
+          <LastReadUpdater groupId={groupId} daoSlug={daoSlug} />
         </Suspense>
 
         <Suspense fallback={<LoadingBodyHeader />}>

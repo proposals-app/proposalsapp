@@ -5,14 +5,16 @@ import { updateLastReadAt } from '../actions';
 
 interface LastReadUpdaterProps {
   groupId: string;
+  daoSlug: string;
 }
 
 export const LastReadUpdater: React.FC<LastReadUpdaterProps> = ({
   groupId,
+  daoSlug,
 }) => {
   useEffect(() => {
     const updateLastRead = async () => {
-      await updateLastReadAt(groupId);
+      await updateLastReadAt(groupId, daoSlug);
     };
 
     updateLastRead();
