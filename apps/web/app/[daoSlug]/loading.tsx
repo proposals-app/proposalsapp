@@ -123,7 +123,7 @@ export function LoadingHeader() {
 export function LoadingGroupList() {
   return (
     <div className='space-y-4'>
-      {Array(6)
+      {Array(24)
         .fill(0)
         .map((_, index) => (
           <LoadingGroupItem key={index} />
