@@ -2,11 +2,11 @@ use crate::{
     DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS,
     models::{categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User},
 };
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::OnceCell;
 use proposalsapp_db_indexer::models::{discourse_category, discourse_post, discourse_post_like, discourse_post_revision, discourse_topic, discourse_user, job_queue};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, ConnectOptions, Database, DatabaseConnection, EntityTrait, InsertResult, PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult, PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
 use std::time::Duration;
 use tracing::{debug, info, instrument, warn};
 use utils::types::{DiscussionJobData, JobData};
@@ -20,28 +20,21 @@ pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub async fn initialize_db() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
-    let mut opt = ConnectOptions::new(database_url);
-    // Configure connection pool options for robustness and performance.
-    opt.max_connections(20) // Increased pool size
+    let mut opt = sea_orm::ConnectOptions::new(database_url);
+    opt.max_connections(25)
         .min_connections(5)
-        .connect_timeout(Duration::from_secs(10)) // Slightly longer timeouts
-        .acquire_timeout(Duration::from_secs(10))
-        .idle_timeout(Duration::from_secs(60)) // Longer idle timeout
-        .max_lifetime(Duration::from_secs(60 * 5)) // Longer max lifetime
-        .sqlx_logging(false); // Keep logging off unless debugging SeaORM internals
-    // .sqlx_logging_level(log::LevelFilter::Info); // Remove or add `log` crate
+        .connect_timeout(Duration::from_secs(5))
+        .acquire_timeout(Duration::from_secs(8))
+        .idle_timeout(Duration::from_secs(10 * 60))
+        .max_lifetime(Duration::from_secs(30 * 60))
+        .sqlx_logging(false);
 
-    info!("Connecting to database...");
-    let db = Database::connect(opt)
+    let db = sea_orm::Database::connect(opt)
         .await
         .context("Failed to connect to the database")?;
-    info!("Database connection established.");
 
-    // Set the global DB connection instance.
     DB.set(db)
-        .map_err(|_| anyhow!("Failed to set global database connection"))?;
-
-    Ok(())
+        .map_err(|_| anyhow::anyhow!("Failed to set database connection"))
 }
 
 /// Retrieves the global database connection.
