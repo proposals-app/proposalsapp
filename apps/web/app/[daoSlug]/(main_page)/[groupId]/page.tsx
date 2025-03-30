@@ -47,11 +47,13 @@ async function GroupPage({
   params: Promise<{ daoSlug: string; groupId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const resolvedParams = await params;
-  const { daoSlug, groupId } = resolvedParams;
-  const parsedParams = await searchParamsCache.parse(searchParams);
-
-  const { version, diff, feed: feedFilter, from: fromFilter } = parsedParams;
+  const { daoSlug, groupId } = await params;
+  const {
+    version,
+    diff,
+    feed: feedFilter,
+    from: fromFilter,
+  } = await searchParamsCache.parse(searchParams);
 
   const bodyKey = `body-${groupId}-${version}-${diff ? 'diff' : 'nodiff'}`;
   const menuBarKey = `menubar-${groupId}`;

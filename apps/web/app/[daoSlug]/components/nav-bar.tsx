@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import List from '@/public/assets/web/icons/proposals.svg';
 import Delegate from '@/public/assets/web/icons/delegates.svg';
+import { Suspense } from 'react';
 
 export function NavBar() {
   const DAO_PICTURE_PATH = 'assets/project-logos/arbitrum';
@@ -55,7 +56,9 @@ export function NavBar() {
           </Link>
 
           <div className='flex h-10 items-center justify-center'>
-            <ModeToggle />
+            <Suspense>
+              <ModeToggle />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -97,7 +100,9 @@ export function NavBar() {
           </Link>
         </div>
         <div className='flex flex-col items-center gap-8'>
-          <ModeToggle />
+          <Suspense>
+            <ModeToggle />
+          </Suspense>
 
           <Image
             src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/logo.svg`}
