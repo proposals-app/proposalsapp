@@ -171,6 +171,16 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
                 .clone()
                 .take()
                 .unwrap_or(existing.block_created_at)),
+            block_start_at: Set(proposal
+                .block_start_at
+                .clone()
+                .take()
+                .unwrap_or(existing.block_start_at)),
+            block_end_at: Set(proposal
+                .block_end_at
+                .clone()
+                .take()
+                .unwrap_or(existing.block_end_at)),
             txid: Set(proposal
                 .txid
                 .clone()

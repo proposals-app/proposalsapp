@@ -197,6 +197,8 @@ impl SnapshotProposal {
             start_at: Set(start_at),
             end_at: Set(end_at),
             block_created_at: NotSet,
+            block_start_at: NotSet,
+            block_end_at: NotSet,
             txid: Set(Some(self.ipfs.clone())),
             metadata: Set(metadata.into()),
             author: Set(Some(self.author.clone())),

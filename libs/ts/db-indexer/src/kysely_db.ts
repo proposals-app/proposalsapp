@@ -302,6 +302,8 @@ export interface PgStatMonitor {
 export interface Proposal {
   author: string | null;
   blockCreatedAt: number | null;
+  blockEndAt: number | null;
+  blockStartAt: number | null;
   body: string;
   choices: Generated<Json>;
   createdAt: Timestamp;

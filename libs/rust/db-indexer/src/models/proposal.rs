@@ -34,6 +34,8 @@ pub struct Model {
     pub dao_id: Uuid,
     pub author: Option<String>,
     pub governor_id: Uuid,
+    pub block_start_at: Option<i32>,
+    pub block_end_at: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -57,6 +59,8 @@ pub enum Column {
     DaoId,
     Author,
     GovernorId,
+    BlockStartAt,
+    BlockEndAt,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -101,6 +105,8 @@ impl ColumnTrait for Column {
             Self::DaoId => ColumnType::Uuid.def(),
             Self::Author => ColumnType::Text.def().null(),
             Self::GovernorId => ColumnType::Uuid.def(),
+            Self::BlockStartAt => ColumnType::Integer.def().null(),
+            Self::BlockEndAt => ColumnType::Integer.def().null(),
         }
     }
 }
