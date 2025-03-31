@@ -24,8 +24,23 @@ import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
 import { LastReadUpdater } from './components/last-read-updater';
 import AISummary from './components/ai-summary';
 import { ResultEvent } from '@/lib/types';
+import Loading from './loading';
 
 export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ daoSlug: string; groupId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  return (
+    <Suspense fallback={<Loading />}>
+      <GroupPage params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function GroupPage({
   params,
   searchParams,
 }: {

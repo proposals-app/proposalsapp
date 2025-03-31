@@ -7,8 +7,21 @@ import {
 } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import { Header } from '@/app/[daoSlug]/components/header';
 import { Suspense } from 'react';
+import Loading from './loading';
 
 export default async function Page({
+  params,
+}: {
+  params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
+}) {
+  return (
+    <Suspense fallback={<Loading />}>
+      <ResultsPage params={params} />
+    </Suspense>
+  );
+}
+
+async function ResultsPage({
   params,
 }: {
   params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
