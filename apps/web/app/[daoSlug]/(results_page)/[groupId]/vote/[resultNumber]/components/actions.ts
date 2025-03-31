@@ -303,7 +303,11 @@ export async function getVotesWithVoters(proposalId: string) {
       'votingPower',
     ])
     .where('proposalId', '=', proposalId)
-    .orderBy('createdAt', 'desc') // Often useful to order votes
+    // Order by voter first, then by time descending to pick the latest
+    .orderBy('voterAddress', 'asc')
+    .orderBy('createdAt', 'desc')
+    // Select only the first row encountered for each voterAddress (which is the latest due to ordering)
+    .distinctOn('voterAddress')
     .execute();
 
   // 2. Optimize: Fetch all unique voter addresses at once
