@@ -48,7 +48,7 @@ export default async function Page({
   return (
     <div className='flex w-full flex-col items-center px-4 md:pt-10 md:pr-96'>
       <div className='flex w-full max-w-3xl flex-col gap-4 overflow-visible'>
-        <Suspense fallback={null}>
+        <Suspense>
           <LastReadUpdater groupId={groupId} daoSlug={daoSlug} />
         </Suspense>
 
