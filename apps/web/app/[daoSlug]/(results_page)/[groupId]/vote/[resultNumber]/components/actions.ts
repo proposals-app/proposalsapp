@@ -290,9 +290,9 @@ export async function getVotesWithVoters(proposalId: string) {
   }
   const { daoId } = proposal;
 
-  // 1. Fetch votes, including only the necessary voter address
-  const allVotes = await dbIndexer
+  const votes = await dbIndexer
     .selectFrom('vote')
+    .distinctOn('voterAddress')
     .select([
       'id',
       'choice',
@@ -306,15 +306,6 @@ export async function getVotesWithVoters(proposalId: string) {
     .orderBy('voterAddress', 'asc')
     .orderBy('createdAt', 'desc')
     .execute();
-
-  // 2. Filter to get the latest vote per voterAddress in memory
-  const latestVotesMap: Map<string, (typeof allVotes)[number]> = new Map();
-  for (const vote of allVotes) {
-    if (!latestVotesMap.has(vote.voterAddress)) {
-      latestVotesMap.set(vote.voterAddress, vote);
-    }
-  }
-  const votes = Array.from(latestVotesMap.values());
 
   // 2. Optimize: Fetch all unique voter addresses at once
   const voterAddresses = [...new Set(votes.map((vote) => vote.voterAddress))];

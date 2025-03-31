@@ -33,7 +33,6 @@ const nextConfig = {
   },
   skipTrailingSlashRedirect: true,
   experimental: {
-    ppr: true,
     reactCompiler: true,
     viewTransition: true,
     useCache: true,
@@ -71,6 +70,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
-
-// export default withSerwist(nextConfig);
+export default withSerwist(nextConfig);

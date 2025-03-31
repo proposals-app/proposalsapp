@@ -3729,7 +3729,7 @@ __metadata:
     lucide-react: "npm:0.486.0"
     mdast-util-from-markdown: "npm:^2.0.2"
     mdast-util-to-hast: "npm:^13.2.0"
-    next: "npm:^15.3.0-canary.24"
+    next: "npm:^15.3.0-canary.26"
     nuqs: "npm:^2.4.1"
     ollama-ai-provider: "npm:^1.2.0"
     postcss: "npm:^8.5.3"
@@ -13903,7 +13903,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:^15.3.0-canary.24":
+"next@npm:^15.3.0-canary.26":
   version: 15.3.0-canary.26
   resolution: "next@npm:15.3.0-canary.26"
   dependencies:

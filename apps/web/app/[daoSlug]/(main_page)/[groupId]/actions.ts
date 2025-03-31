@@ -693,31 +693,14 @@ export async function getFeed(
           .where('governorId', '=', proposalItem.governorId)
           .executeTakeFirstOrThrow();
 
-        const allVotes = await dbIndexer
+        const allVotesForProposal = await dbIndexer
           .selectFrom('vote')
-          .select([
-            'id',
-            'choice',
-            'createdAt',
-            'proposalId',
-            'reason',
-            'voterAddress',
-            'votingPower',
-          ])
+          .distinctOn('voterAddress')
+          .selectAll()
           .where('proposalId', '=', proposal.id)
           .orderBy('voterAddress', 'asc')
-          .orderBy('createdAt', 'desc') // Order by createdAt to easily pick the latest
+          .orderBy('createdAt', 'desc')
           .execute();
-
-        // 2. Filter to get the latest vote per voterAddress in memory
-        const latestVotesMap: Map<string, (typeof allVotes)[number]> =
-          new Map();
-        for (const vote of allVotes) {
-          if (!latestVotesMap.has(vote.voterAddress)) {
-            latestVotesMap.set(vote.voterAddress, vote);
-          }
-        }
-        const allVotesForProposal = Array.from(latestVotesMap.values());
 
         const filteredVotesForTimeline = allVotesForProposal.filter((vote) => {
           if (fromFilter === FromFilterEnum.FIFTY_THOUSAND) {
