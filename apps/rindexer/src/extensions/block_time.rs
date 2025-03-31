@@ -143,7 +143,7 @@ async fn job_processor() {
 async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result<NaiveDateTime> {
     let provider_result = async {
         let provider = config.provider.clone();
-        let provider = provider.get_inner_provider();
+        let inner_provider = provider.get_inner_provider();
 
         let current_block = provider
             .get_block_number()
@@ -155,7 +155,7 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
         );
 
         if block_number <= current_block.as_u64() {
-            let block = provider
+            let block = inner_provider
                 .get_block(BlockId::Number(block_number.into()))
                 .await
                 .context(format!(
