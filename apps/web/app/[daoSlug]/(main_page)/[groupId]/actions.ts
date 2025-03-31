@@ -695,13 +695,19 @@ export async function getFeed(
 
         const allVotesForProposal = await dbIndexer
           .selectFrom('vote')
-          .selectAll()
+          .distinctOn('voterAddress')
+          .select([
+            'id',
+            'choice',
+            'createdAt',
+            'proposalId',
+            'reason',
+            'voterAddress',
+            'votingPower',
+          ])
           .where('proposalId', '=', proposal.id)
-          // Order by voter first, then by time descending to pick the latest
           .orderBy('voterAddress', 'asc')
           .orderBy('createdAt', 'desc')
-          // Select only the first row encountered for each voterAddress (which is the latest due to ordering)
-          .distinctOn('voterAddress')
           .execute();
 
         const filteredVotesForTimeline = allVotesForProposal.filter((vote) => {

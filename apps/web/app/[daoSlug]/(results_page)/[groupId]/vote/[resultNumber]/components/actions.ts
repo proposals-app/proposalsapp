@@ -293,6 +293,7 @@ export async function getVotesWithVoters(proposalId: string) {
   // 1. Fetch votes, including only the necessary voter address
   const votes = await dbIndexer
     .selectFrom('vote')
+    .distinctOn('voterAddress')
     .select([
       'id',
       'choice',
@@ -303,11 +304,8 @@ export async function getVotesWithVoters(proposalId: string) {
       'votingPower',
     ])
     .where('proposalId', '=', proposalId)
-    // Order by voter first, then by time descending to pick the latest
     .orderBy('voterAddress', 'asc')
     .orderBy('createdAt', 'desc')
-    // Select only the first row encountered for each voterAddress (which is the latest due to ordering)
-    .distinctOn('voterAddress')
     .execute();
 
   // 2. Optimize: Fetch all unique voter addresses at once
