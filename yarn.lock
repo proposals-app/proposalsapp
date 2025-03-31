@@ -12,7 +12,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:2.2.1, @ai-sdk/provider-utils@npm:^2.0.0":
+"@ai-sdk/provider-utils@npm:2.2.2":
+  version: 2.2.2
+  resolution: "@ai-sdk/provider-utils@npm:2.2.2"
+  dependencies:
+    "@ai-sdk/provider": "npm:1.1.0"
+    nanoid: "npm:^3.3.8"
+    secure-json-parse: "npm:^2.7.0"
+  peerDependencies:
+    zod: ^3.23.8
+  checksum: 10c0/83b5b8cc0f455822b737e9590dd39bd67a7bfb035c67a33d3be00f1ac69c4c3a0f1d9f73122c5ad167d32c9a5b4a5c3c4bd48343892954d1347071e3d13615eb
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/provider-utils@npm:^2.0.0":
   version: 2.2.1
   resolution: "@ai-sdk/provider-utils@npm:2.2.1"
   dependencies:
@@ -34,12 +47,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/react@npm:1.2.3, @ai-sdk/react@npm:^1.2.3":
-  version: 1.2.3
-  resolution: "@ai-sdk/react@npm:1.2.3"
+"@ai-sdk/react@npm:1.2.4, @ai-sdk/react@npm:^1.2.4":
+  version: 1.2.4
+  resolution: "@ai-sdk/react@npm:1.2.4"
   dependencies:
-    "@ai-sdk/provider-utils": "npm:2.2.1"
-    "@ai-sdk/ui-utils": "npm:1.2.2"
+    "@ai-sdk/provider-utils": "npm:2.2.2"
+    "@ai-sdk/ui-utils": "npm:1.2.3"
     swr: "npm:^2.2.5"
     throttleit: "npm:2.1.0"
   peerDependencies:
@@ -48,20 +61,20 @@ __metadata:
   peerDependenciesMeta:
     zod:
       optional: true
-  checksum: 10c0/621e312a483ca6a9a3b27ff4cc16275426c1ee2562a82670b25d59970e30f9e44872d73bdd214f8904c1ab5938bb39d043461b68233ad3734d6fb3e30b75f875
+  checksum: 10c0/9c5f2302b5d2135bfe6e7d5895856c3e74d428513a4c805966c5ad011366bf3bda1e770c8ec25d9b9dde72c6413f55f11ccc5057c6c925f611618a06ec22efe3
   languageName: node
   linkType: hard
 
-"@ai-sdk/ui-utils@npm:1.2.2":
-  version: 1.2.2
-  resolution: "@ai-sdk/ui-utils@npm:1.2.2"
+"@ai-sdk/ui-utils@npm:1.2.3":
+  version: 1.2.3
+  resolution: "@ai-sdk/ui-utils@npm:1.2.3"
   dependencies:
     "@ai-sdk/provider": "npm:1.1.0"
-    "@ai-sdk/provider-utils": "npm:2.2.1"
+    "@ai-sdk/provider-utils": "npm:2.2.2"
     zod-to-json-schema: "npm:^3.24.1"
   peerDependencies:
     zod: ^3.23.8
-  checksum: 10c0/e765374a87316fa87da1bf9f5c60a83343de3f638983c2cd05ef26dbe97101e931368f8d936289feaf0fa8c05c737cc5875ba91a5ff525105ba7dedf7eb8a8ed
+  checksum: 10c0/8610f10e5993d40f33441191c3ddc896bfe5c22d9cfb0f2791ca56112338a6d06884ec137056ffca69fe410f752f49de9412ac24fe1a25f9160718642545f2d1
   languageName: node
   linkType: hard
 
@@ -1629,7 +1642,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/types@npm:^7.19.0, @babel/types@npm:^7.21.3, @babel/types@npm:^7.26.5, @babel/types@npm:^7.26.7, @babel/types@npm:^7.4.4":
+"@babel/types@npm:^7.21.3, @babel/types@npm:^7.26.5, @babel/types@npm:^7.26.7, @babel/types@npm:^7.4.4":
   version: 7.26.7
   resolution: "@babel/types@npm:7.26.7"
   dependencies:
@@ -3666,7 +3679,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/web@workspace:apps/web"
   dependencies:
-    "@ai-sdk/react": "npm:^1.2.3"
+    "@ai-sdk/react": "npm:^1.2.4"
     "@eslint/eslintrc": "npm:^3.3.1"
     "@eslint/js": "npm:^9.23.0"
     "@neshca/cache-handler": "npm:^1.9.0"
@@ -3698,8 +3711,8 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.28.0"
     "@typescript-eslint/parser": "npm:^8.28.0"
     "@vercel/otel": "npm:^1.10.4"
-    ai: "npm:^4.2.8"
-    babel-plugin-react-compiler: "npm:19.0.0-beta-e1e972c-20250221"
+    ai: "npm:^4.2.9"
+    babel-plugin-react-compiler: "npm:19.0.0-beta-e993439-20250328"
     better-auth: "npm:^1.2.5"
     date-fns: "npm:^4.1.0"
     date-fns-tz: "npm:^3.2.0"
@@ -6034,14 +6047,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^4.2.8":
-  version: 4.2.8
-  resolution: "ai@npm:4.2.8"
+"ai@npm:^4.2.9":
+  version: 4.2.9
+  resolution: "ai@npm:4.2.9"
   dependencies:
     "@ai-sdk/provider": "npm:1.1.0"
-    "@ai-sdk/provider-utils": "npm:2.2.1"
-    "@ai-sdk/react": "npm:1.2.3"
-    "@ai-sdk/ui-utils": "npm:1.2.2"
+    "@ai-sdk/provider-utils": "npm:2.2.2"
+    "@ai-sdk/react": "npm:1.2.4"
+    "@ai-sdk/ui-utils": "npm:1.2.3"
     "@opentelemetry/api": "npm:1.9.0"
     jsondiffpatch: "npm:0.6.0"
   peerDependencies:
@@ -6050,7 +6063,7 @@ __metadata:
   peerDependenciesMeta:
     react:
       optional: true
-  checksum: 10c0/df1e7cfae16c1802aa9a1320442f54835e21e65017bd629b7bbc8b3782c154bdf8e54148c2c2fedced2e2ede4b56d968503401a76f3d13a6f8e3083f2f46da01
+  checksum: 10c0/2a84586e447e33ea129a2bd5a76326ca87ca757f530dbfc5961d97768317aaa8678d28dec9af87383b300b735002bf6e32f7f620414cc6f95e8abf7da55a3c4f
   languageName: node
   linkType: hard
 
@@ -6531,12 +6544,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-plugin-react-compiler@npm:19.0.0-beta-e1e972c-20250221":
-  version: 19.0.0-beta-e1e972c-20250221
-  resolution: "babel-plugin-react-compiler@npm:19.0.0-beta-e1e972c-20250221"
+"babel-plugin-react-compiler@npm:19.0.0-beta-e993439-20250328":
+  version: 19.0.0-beta-e993439-20250328
+  resolution: "babel-plugin-react-compiler@npm:19.0.0-beta-e993439-20250328"
   dependencies:
-    "@babel/types": "npm:^7.19.0"
-  checksum: 10c0/9a05a92fc27445c81b3d817258edde563e97975b765476178df29eafb99f3d62c9e1674e0e6bbec13fb0709c29bc464d99a83bd971b4b20f37c929e5866ebb5b
+    "@babel/types": "npm:^7.26.0"
+  checksum: 10c0/ab87aeb3dab8f92aad325a21f92594899b4c92a238121c1587f3a832df7a5b0f86785750db45e0f5c93729ba0a71896a62d95fa5a47699f5f3fe9c335b99ea49
   languageName: node
   linkType: hard
 
