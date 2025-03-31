@@ -39,5 +39,5 @@
     "tailwind.config.mjs",
     "cache-handler.mjs"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "public/sw.js"]
 }

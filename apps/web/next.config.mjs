@@ -2,10 +2,8 @@ import withSerwistInit from '@serwist/next';
 import { resolve } from 'path';
 
 const withSerwist = withSerwistInit({
-  cacheOnNavigation: true,
-  swSrc: '/app/sw.ts',
-  swDest: './public/sw.js',
-  maximumFileSizeToCacheInBytes: 25000000,
+  swSrc: 'app/sw.ts',
+  swDest: 'public/sw.js',
 });
 
 /** @type {import('next').NextConfig} */
