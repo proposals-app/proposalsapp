@@ -696,15 +696,7 @@ export async function getFeed(
         const allVotesForProposal = await dbIndexer
           .selectFrom('vote')
           .distinctOn('voterAddress')
-          .select([
-            'id',
-            'choice',
-            'createdAt',
-            'proposalId',
-            'reason',
-            'voterAddress',
-            'votingPower',
-          ])
+          .selectAll()
           .where('proposalId', '=', proposal.id)
           .orderBy('voterAddress', 'asc')
           .orderBy('createdAt', 'desc')
