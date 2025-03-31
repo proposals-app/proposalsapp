@@ -18,7 +18,7 @@ import { Footer } from "../components/footer";
 import { Unsubscribe } from "../components/unsubscribe";
 import { Author } from "../components/author";
 
-interface NewProposalEmailProps {
+export interface NewProposalEmailProps {
   proposalName: string;
   proposalUrl: string;
   daoName: string;

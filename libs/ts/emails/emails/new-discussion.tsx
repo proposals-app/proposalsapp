@@ -18,7 +18,7 @@ import { Footer } from "../components/footer";
 import { Unsubscribe } from "../components/unsubscribe";
 import { Author } from "../components/author";
 
-interface NewDiscussionEmailProps {
+export interface NewDiscussionEmailProps {
   discussionTitle: string;
   discussionUrl: string;
   daoName: string;

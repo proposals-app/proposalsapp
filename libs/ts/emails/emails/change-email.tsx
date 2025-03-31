@@ -16,7 +16,7 @@ import {
 import * as React from "react";
 import { Footer } from "../components/footer";
 
-interface ChangeEmailProps {
+export interface ChangeEmailProps {
   currentEmail?: string;
   newEmail?: string;
   verificationUrl?: string;

@@ -1,10 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { dbIndexer } from "@proposalsapp/db-indexer";
 import { dbWeb } from "@proposalsapp/db-web";
-import { NewProposalEmailTemplate, resend } from "@proposalsapp/emails";
+// Import the *types* for props
+import type { NewProposalEmailProps } from "@proposalsapp/emails/emails/new-proposal";
+import type { NewDiscussionEmailProps } from "@proposalsapp/emails/emails/new-discussion";
+import type { EndingProposalEmailProps } from "@proposalsapp/emails/emails/ending-proposal";
+// Import the mocked implementations
+import {
+  resend,
+  NewProposalEmailTemplate,
+  NewDiscussionEmailTemplate,
+  EndingProposalEmailTemplate,
+} from "@proposalsapp/emails";
 import request from "supertest";
 
-// Mock additional modules
+// --- Mock Dependencies ---
+
 vi.mock("node-cron", () => ({
   default: { schedule: vi.fn() },
   schedule: vi.fn(),
@@ -15,7 +26,6 @@ vi.mock("axios", () => ({
   get: vi.fn().mockResolvedValue({ status: 200 }),
 }));
 
-// Mock the database modules using mockImplementation for granular control
 vi.mock("@proposalsapp/db-indexer", () => ({
   dbIndexer: {
     selectFrom: vi.fn(),
@@ -25,113 +35,95 @@ vi.mock("@proposalsapp/db-indexer", () => ({
 vi.mock("@proposalsapp/db-web", () => ({
   dbWeb: {
     selectFrom: vi.fn(),
-    insertInto: vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        execute: vi.fn().mockResolvedValue({}), // Default mock for insert
-      }),
-    }),
+    insertInto: vi.fn(),
   },
 }));
 
+// --- Corrected Mock for @proposalsapp/emails ---
+// Define the mock structure directly, avoiding importOriginal()
+// Add ': any' return type to template mocks to satisfy Element type check
 vi.mock("@proposalsapp/emails", () => ({
   resend: {
     emails: {
-      send: vi.fn().mockResolvedValue({ data: {}, error: null }), // Default success
+      send: vi.fn(),
     },
   },
-  NewProposalEmailTemplate: vi
-    .fn()
-    .mockReturnValue("<div>New Proposal Email</div>"), // Use simple string for template mock
-  NewDiscussionEmailTemplate: vi
-    .fn()
-    .mockReturnValue("<div>New Discussion Email</div>"),
-  EndingProposalEmailTemplate: vi
-    .fn()
-    .mockReturnValue("<div>Ending Proposal Email</div>"),
+  NewProposalEmailTemplate: vi.fn(
+    (
+      props: NewProposalEmailProps,
+    ): any => // Fix: Return type any
+      `<div>Mock New Proposal Email: ${props.proposalName}</div>`,
+  ),
+  NewDiscussionEmailTemplate: vi.fn(
+    (
+      props: NewDiscussionEmailProps,
+    ): any => // Fix: Return type any
+      `<div>Mock New Discussion Email: ${props.discussionTitle}</div>`,
+  ),
+  EndingProposalEmailTemplate: vi.fn(
+    (
+      props: EndingProposalEmailProps,
+    ): any => // Fix: Return type any
+      `<div>Mock Ending Proposal Email: ${props.proposalName}</div>`,
+  ),
 }));
 
-// --- Helper Function for Mocking DB Calls ---
-// This simplifies setting up mocks for specific table queries
-const mockDbQuery = (
-  db: "indexer" | "web",
-  table: string,
-  method: "execute" | "executeTakeFirst",
-  result: any,
-) => {
-  const dbMock =
-    db === "indexer"
-      ? vi.mocked(dbIndexer.selectFrom)
-      : vi.mocked(dbWeb.selectFrom);
-  const mockChain = {
-    select: vi.fn().mockReturnThis(),
-    selectAll: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(), // Allow multiple where clauses
-    values: vi.fn().mockReturnThis(), // For inserts (though handled globally above for now)
-    [method]: vi.fn().mockResolvedValue(result),
+// --- Prevent Initial Run in index.ts ---
+vi.mock("../index", async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
+  return {
+    ...actual,
+    runScheduledJobs: vi.fn(),
+    sendUptimePing: vi.fn(),
   };
-  dbMock.mockImplementation((tableName) => {
-    if (tableName === table) {
-      // Return the specific mock chain for this table query
-      // We need to return a *new* object each time for chain integrity if called multiple times
-      return {
-        select: vi.fn().mockReturnThis(),
-        selectAll: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        [method]: vi.fn().mockResolvedValue(result),
-      } as any; // Use 'as any' to bypass complex type checking for mocks
-    }
-    // If it's a different table, return the previous implementation or a default mock
-    // This requires careful chaining or more complex mock management if multiple tables are queried in one test
-    // For simplicity here, we often overwrite, assuming one primary query per table type per test step
-    return {
-      select: vi.fn().mockReturnThis(),
-      selectAll: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      execute: vi.fn().mockResolvedValue([]), // Default empty array
-      executeTakeFirst: vi.fn().mockResolvedValue(null), // Default null
-    } as any;
-  });
-  return mockChain[method]; // Return the final method mock for potential assertions
-};
+});
 
-// --- Test Setup ---
+// --- Test Suite ---
 
 describe("Email Notifications", () => {
+  // Define consistent mock data
   const mockDao = { id: "dao1", name: "Test DAO", slug: "test-dao" };
   const mockProposal = {
     id: "prop1",
     daoId: "dao1",
     externalId: "externalProp1",
     governorId: "gov1",
-    createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 mins ago
+    createdAt: new Date(Date.now() - 30 * 60 * 1000),
     name: "Test Proposal",
-    title: "Test Proposal Title", // Added for ending proposals
-    endAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+    title: "Test Proposal Title",
+    endAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     author: "0xAuthorAddress",
   };
   const mockProposalGroup = {
     id: "group1",
     daoId: "dao1",
+    name: "Valid Group",
     items: [
       { type: "proposal", externalId: "externalProp1", governorId: "gov1" },
     ],
   };
   const mockAuthorVoter = { address: "0xAuthorAddress", ens: "author.eth" };
-  const mockUser = { id: "user1", email: "test@example.com" };
+  const mockUser = {
+    id: "user1",
+    email: "test@example.com",
+    emailSettingsNewProposals: true,
+    emailSettingsNewDiscussions: true,
+    emailSettingsEndingProposals: true,
+  };
   const mockDiscussion = {
     id: "disc1",
     proposalId: "prop1",
-    createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 mins ago
+    createdAt: new Date(Date.now() - 30 * 60 * 1000),
     title: "Test Discussion",
     daoDiscourseId: "discourse1",
-    externalId: "123", // Discourse topic ID
+    externalId: 123,
   };
   const mockDaoDiscourse = { id: "discourse1", daoId: "dao1" };
   const mockFirstPost = {
     topicId: 123,
     daoDiscourseId: "discourse1",
     postNumber: 1,
-    userId: 999 /* Discourse User ID */,
+    userId: 999,
   };
   const mockDiscourseUser = {
     externalId: 999,
@@ -142,125 +134,123 @@ describe("Email Notifications", () => {
   const mockDiscussionGroup = {
     id: "group2",
     daoId: "dao1",
+    name: "Discussion Group",
     items: [{ type: "topic", externalId: "123", daoDiscourseId: "discourse1" }],
   };
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Reset mocks to default behavior before each test
-    vi.mocked(dbIndexer.selectFrom).mockImplementation(
-      () =>
-        ({
-          select: vi.fn().mockReturnThis(),
-          selectAll: vi.fn().mockReturnThis(),
-          where: vi.fn().mockReturnThis(),
-          execute: vi.fn().mockResolvedValue([]),
-          executeTakeFirst: vi.fn().mockResolvedValue(null),
-        }) as any,
-    );
-    vi.mocked(dbWeb.selectFrom).mockImplementation(
-      () =>
-        ({
-          select: vi.fn().mockReturnThis(),
-          selectAll: vi.fn().mockReturnThis(),
-          where: vi.fn().mockReturnThis(),
-          execute: vi.fn().mockResolvedValue([]),
-          executeTakeFirst: vi.fn().mockResolvedValue(null),
-        }) as any,
-    );
-    vi.mocked(dbWeb.insertInto).mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        execute: vi.fn().mockResolvedValue({}),
-      }),
-    } as any);
+  // Mock Kysely chain helper
+  const createMockKyselyChain = (
+    result: any,
+    method: "execute" | "executeTakeFirst" = "execute",
+  ) =>
+    ({
+      select: vi.fn().mockReturnThis(),
+      selectAll: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      offset: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      innerJoin: vi.fn().mockReturnThis(),
+      [method]: vi.fn().mockResolvedValue(result),
+    }) as any;
+
+  // Variables for imported functions/app
+  let checkNewProposals: typeof import("../index").checkNewProposals;
+  let checkNewDiscussions: typeof import("../index").checkNewDiscussions;
+  let checkEndingProposals: typeof import("../index").checkEndingProposals;
+  let app: typeof import("../index").app;
+
+  beforeEach(async () => {
+    vi.clearAllMocks(); // Clear calls and reset mocks defined with vi.fn()
+
+    // Re-import the mocked index module
+    const indexModule = await import("../index");
+    checkNewProposals = indexModule.checkNewProposals;
+    checkNewDiscussions = indexModule.checkNewDiscussions;
+    checkEndingProposals = indexModule.checkEndingProposals;
+    app = indexModule.app;
+
+    // Reset mocks to default states
     vi.mocked(resend.emails.send).mockResolvedValue({
-      data: {
-        id: "",
-      },
+      data: { id: "email-id-123" },
       error: null,
-    }); // Reset email mock
+    });
+
+    vi.mocked(dbWeb.insertInto).mockReturnValue({
+      values: vi.fn().mockReturnThis(),
+      execute: vi.fn().mockResolvedValue({}),
+    } as any);
+
+    vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+      return createMockKyselyChain([], "execute");
+    });
+    vi.mocked(dbWeb.selectFrom).mockImplementation((from: any) => {
+      return createMockKyselyChain([], "execute");
+    });
+
+    // Template mocks are now fully defined in the top-level vi.mock,
+    // no need to reset implementations here, clearAllMocks handles call clearing.
   });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // --- Test Cases ---
+  // (Assertions remain the same, checking the string output of the mocks)
 
   describe("checkNewProposals", () => {
     it("should send email for new proposals", async () => {
-      // Setup specific mocks for this test using mockImplementation
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 1. Fetch new proposals
-          expect(table).toBe("proposal");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposal]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 2. Fetch proposal groups (inside loop)
-          expect(table).toBe("proposalGroup");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposalGroup]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 3. Fetch author (inside loop)
-          expect(table).toBe("voter");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockAuthorVoter),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 4. Fetch users (inside loop) - actually dbWeb
-          expect(table).toBe("dao"); // 4. Fetch DAO (inside loop)
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDao),
-          } as any;
-        });
+      // Setup specific mocks for this test
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from); // Convert to string for comparison
+        switch (tableName) {
+          case "proposal":
+            return createMockKyselyChain([mockProposal]);
+          case "proposalGroup":
+            return createMockKyselyChain([mockProposalGroup]);
+          case "voter":
+            return createMockKyselyChain(mockAuthorVoter, "executeTakeFirst");
+          case "dao":
+            return createMockKyselyChain(mockDao, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      vi.mocked(dbWeb.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 5. Fetch users (inside loop)
-          expect(table).toBe("user");
-          return {
-            select: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockUser]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 6. Check existing notification (inside user loop)
-          expect(table).toBe("userNotification");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(null),
-          } as any;
-        });
+      vi.mocked(dbWeb.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from); // Convert to string for comparison
+        switch (tableName) {
+          case "user":
+            return createMockKyselyChain([mockUser]);
+          case "user_notification":
+            return createMockKyselyChain(null, "executeTakeFirst"); // No existing notification
+          default:
+            console.warn(`UNEXPECTED dbWeb call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
+      // Run the actual function from the imported module
       await checkNewProposals();
 
-      // Verify email was sent
+      // Verify email was sent ONCE
       expect(resend.emails.send).toHaveBeenCalledTimes(1);
       expect(resend.emails.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: [mockUser.email],
           subject: `New proposal in ${mockDao.name}`,
-          react: expect.anything(), // React component mock
+          // Check against the new mock template output
+          react: `<div>Mock New Proposal Email: ${mockProposal.name}</div>`,
         }),
       );
+
       // Verify notification was inserted
-      expect(dbWeb.insertInto).toHaveBeenCalledWith("userNotification");
-      expect(
-        vi.mocked(dbWeb.insertInto("user_notification").values).mock
-          .calls[0][0],
-      ).toEqual(
+      expect(dbWeb.insertInto).toHaveBeenCalledWith("user_notification");
+      const insertArgs = vi.mocked(dbWeb.insertInto("user_notification").values)
+        .mock.calls[0][0];
+      expect(insertArgs).toEqual(
         expect.objectContaining({
           userId: mockUser.id,
           type: "EMAIL_NEW_PROPOSAL",
@@ -272,100 +262,54 @@ describe("Email Notifications", () => {
 
   describe("checkNewDiscussions", () => {
     it("should send email for new discussions", async () => {
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 1. Fetch new discussions
-          expect(table).toBe("discourseTopic");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockDiscussion]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 2. Fetch daoDiscourse (inside loop)
-          expect(table).toBe("daoDiscourse");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDaoDiscourse),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 3. Fetch first post (inside loop)
-          expect(table).toBe("discoursePost");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockFirstPost),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 4. Fetch discourse user (inside loop)
-          expect(table).toBe("discourseUser");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDiscourseUser),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 5. Fetch proposal groups (inside loop)
-          expect(table).toBe("proposalGroup");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockDiscussionGroup]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 6. Fetch DAO (inside loop)
-          expect(table).toBe("dao");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDao),
-          } as any;
-        });
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "discourseTopic":
+            return createMockKyselyChain([mockDiscussion]);
+          case "daoDiscourse":
+            return createMockKyselyChain(mockDaoDiscourse, "executeTakeFirst");
+          case "discoursePost":
+            return createMockKyselyChain(mockFirstPost, "executeTakeFirst");
+          case "discourseUser":
+            return createMockKyselyChain(mockDiscourseUser, "executeTakeFirst");
+          case "proposalGroup":
+            return createMockKyselyChain([mockDiscussionGroup]);
+          case "dao":
+            return createMockKyselyChain(mockDao, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      vi.mocked(dbWeb.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 7. Fetch users (inside loop)
-          expect(table).toBe("user");
-          return {
-            select: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockUser]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 8. Check existing notification (inside user loop)
-          expect(table).toBe("userNotification");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(null),
-          } as any;
-        });
+      vi.mocked(dbWeb.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "user":
+            return createMockKyselyChain([mockUser]);
+          case "user_notification":
+            return createMockKyselyChain(null, "executeTakeFirst"); // No existing notification
+          default:
+            console.warn(`UNEXPECTED dbWeb call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      // Import and run the function
-      const { checkNewDiscussions } = await import("../index");
       await checkNewDiscussions();
 
-      // Verify email was sent
       expect(resend.emails.send).toHaveBeenCalledTimes(1);
       expect(resend.emails.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: [mockUser.email],
           subject: `New Discussion in ${mockDao.name}`,
+          react: `<div>Mock New Discussion Email: ${mockDiscussion.title}</div>`,
         }),
       );
-      // Verify notification was inserted
-      expect(dbWeb.insertInto).toHaveBeenCalledWith("userNotification");
-      expect(
-        vi.mocked(dbWeb.insertInto("user_notification").values).mock
-          .calls[0][0],
-      ).toEqual(
+      expect(dbWeb.insertInto).toHaveBeenCalledWith("user_notification");
+      const insertArgs = vi.mocked(dbWeb.insertInto("user_notification").values)
+        .mock.calls[0][0];
+      expect(insertArgs).toEqual(
         expect.objectContaining({
           userId: mockUser.id,
           type: "EMAIL_NEW_DISCUSSION",
@@ -377,77 +321,57 @@ describe("Email Notifications", () => {
 
   describe("checkEndingProposals", () => {
     it("should send email for ending proposals", async () => {
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 1. Fetch ending proposals
-          expect(table).toBe("proposal");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposal]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 2. Fetch proposal groups (inside loop)
-          expect(table).toBe("proposalGroup");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposalGroup]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 3. Fetch DAO (inside loop)
-          expect(table).toBe("dao");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDao),
-          } as any;
-        });
+      const endingSoonProposal = {
+        ...mockProposal,
+        endAt: new Date(Date.now() + 23 * 60 * 60 * 1000), // ~23 hours from now
+      };
 
-      vi.mocked(dbWeb.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 4. Fetch users (inside loop)
-          expect(table).toBe("user");
-          return {
-            select: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockUser]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 5. Check existing notification (inside user loop)
-          expect(table).toBe("userNotification");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(null),
-          } as any;
-        });
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "proposal":
+            return createMockKyselyChain([endingSoonProposal]);
+          case "proposalGroup":
+            return createMockKyselyChain([mockProposalGroup]);
+          case "dao":
+            return createMockKyselyChain(mockDao, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      // Import and run the function
-      const { checkEndingProposals } = await import("../index");
+      vi.mocked(dbWeb.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "user":
+            return createMockKyselyChain([mockUser]);
+          case "user_notification":
+            return createMockKyselyChain(null, "executeTakeFirst"); // No existing notification
+          default:
+            console.warn(`UNEXPECTED dbWeb call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
+
       await checkEndingProposals();
 
-      // Verify email was sent
       expect(resend.emails.send).toHaveBeenCalledTimes(1);
       expect(resend.emails.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: [mockUser.email],
           subject: `Proposal ending soon in ${mockDao.name}`,
+          react: `<div>Mock Ending Proposal Email: ${endingSoonProposal.name}</div>`,
         }),
       );
-      // Verify notification was inserted
-      expect(dbWeb.insertInto).toHaveBeenCalledWith("userNotification");
-      expect(
-        vi.mocked(dbWeb.insertInto("user_notification").values).mock
-          .calls[0][0],
-      ).toEqual(
+      expect(dbWeb.insertInto).toHaveBeenCalledWith("user_notification");
+      const insertArgs = vi.mocked(dbWeb.insertInto("user_notification").values)
+        .mock.calls[0][0];
+      expect(insertArgs).toEqual(
         expect.objectContaining({
           userId: mockUser.id,
           type: "EMAIL_ENDING_PROPOSAL",
-          targetId: mockProposal.id,
+          targetId: endingSoonProposal.id,
         }),
       );
     });
@@ -455,269 +379,189 @@ describe("Email Notifications", () => {
 
   describe("Edge Cases", () => {
     it("should handle empty proposal list gracefully", async () => {
-      vi.mocked(dbIndexer.selectFrom).mockImplementationOnce((table) => {
-        // 1. Fetch new proposals -> returns empty
-        expect(table).toBe("proposal");
-        return {
-          selectAll: vi.fn().mockReturnThis(),
-          where: vi.fn().mockReturnThis(),
-          execute: vi.fn().mockResolvedValue([]),
-        } as any;
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        if (tableName === "proposal") {
+          return createMockKyselyChain([]); // Return empty list
+        }
+        console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+        return createMockKyselyChain([]);
       });
 
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
       await checkNewProposals();
 
-      // Verify email was not sent
       expect(resend.emails.send).not.toHaveBeenCalled();
-      expect(dbIndexer.selectFrom).toHaveBeenCalledTimes(1); // Only the first call happened
+      expect(dbIndexer.selectFrom).toHaveBeenCalledWith("proposal");
       expect(dbWeb.selectFrom).not.toHaveBeenCalled();
     });
 
     it("should skip proposal if not found in any group", async () => {
-      // Mocks: proposal exists, but group lookup returns empty or non-matching groups
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 1. Fetch new proposals
-          expect(table).toBe("proposal");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposal]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 2. Fetch proposal groups -> returns empty
-          expect(table).toBe("proposalGroup");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([]),
-          } as any;
-        });
-      // No further dbIndexer calls should happen for this proposal
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "proposal":
+            return createMockKyselyChain([mockProposal]);
+          case "proposalGroup":
+            return createMockKyselyChain([]); // No groups found
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
       const consoleLogSpy = vi.spyOn(console, "log");
-
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
       await checkNewProposals();
 
-      // Verify email was not sent and correct log message appeared
       expect(resend.emails.send).not.toHaveBeenCalled();
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining(
           `Proposal ${mockProposal.id} is not part of a group yet`,
         ),
       );
-      expect(dbIndexer.selectFrom).toHaveBeenCalledTimes(2); // proposal + proposalGroup
+      expect(dbIndexer.selectFrom).toHaveBeenCalledWith("proposal");
+      expect(dbIndexer.selectFrom).toHaveBeenCalledWith("proposalGroup");
       expect(dbWeb.selectFrom).not.toHaveBeenCalled();
       consoleLogSpy.mockRestore();
     });
 
     it("should handle malformed items in proposal groups but still find valid ones", async () => {
-      // Setup: One valid group, one malformed group. The code should find the valid one.
       const malformedGroup = {
         id: "groupMalformed",
         daoId: "dao1",
+        name: "Malformed Group",
         items: null,
-      }; // simulate null items
-      const validGroup = {
-        id: "groupValid",
-        daoId: "dao1",
-        items: mockProposalGroup.items,
       };
+      const validGroup = { ...mockProposalGroup, id: "groupValid" };
 
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 1. Fetch new proposals
-          expect(table).toBe("proposal");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposal]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 2. Fetch proposal groups (returns both)
-          expect(table).toBe("proposalGroup");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([malformedGroup, validGroup]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 3. Fetch author
-          expect(table).toBe("voter");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockAuthorVoter),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 4. Fetch DAO
-          expect(table).toBe("dao");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDao),
-          } as any;
-        });
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "proposal":
+            return createMockKyselyChain([mockProposal]);
+          case "proposalGroup":
+            return createMockKyselyChain([malformedGroup, validGroup]);
+          case "voter":
+            return createMockKyselyChain(mockAuthorVoter, "executeTakeFirst");
+          case "dao":
+            return createMockKyselyChain(mockDao, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      vi.mocked(dbWeb.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 5. Fetch users
-          expect(table).toBe("user");
-          return {
-            select: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockUser]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 6. Check existing notification
-          expect(table).toBe("userNotification");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(null),
-          } as any;
-        });
+      vi.mocked(dbWeb.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "user":
+            return createMockKyselyChain([mockUser]);
+          case "user_notification":
+            return createMockKyselyChain(null, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbWeb call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
       await checkNewProposals();
 
-      // Email should be sent because the valid group was found
       expect(resend.emails.send).toHaveBeenCalledTimes(1);
-      // Notification should be recorded for the *valid* group found
-      expect(dbWeb.insertInto).toHaveBeenCalledWith("userNotification");
+      expect(dbWeb.insertInto).toHaveBeenCalledWith("user_notification");
+      const insertArgs = vi.mocked(dbWeb.insertInto("user_notification").values)
+        .mock.calls[0][0];
+      expect(insertArgs).toEqual(
+        expect.objectContaining({ targetId: mockProposal.id }),
+      );
     });
   });
 
   describe("Error Handling", () => {
     it("should handle database errors gracefully when fetching proposals", async () => {
-      const dbError = new Error("Database error");
-      vi.mocked(dbIndexer.selectFrom).mockImplementationOnce((table) => {
-        // 1. Fetch new proposals -> throws error
-        expect(table).toBe("proposal");
-        return {
-          selectAll: vi.fn().mockReturnThis(),
-          where: vi.fn().mockReturnThis(),
-          execute: vi.fn().mockRejectedValue(dbError),
-        } as any;
+      const dbError = new Error("Database connection lost");
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        if (tableName === "proposal") {
+          return {
+            ...createMockKyselyChain([]),
+            execute: vi.fn().mockRejectedValue(dbError),
+          } as any;
+        }
+        console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+        return createMockKyselyChain([]);
       });
 
       const consoleErrorSpy = vi.spyOn(console, "error");
+      await checkNewProposals();
 
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
-
-      // Should not throw
-      await expect(checkNewProposals()).resolves.not.toThrow();
-
-      // No email should be sent
       expect(resend.emails.send).not.toHaveBeenCalled();
-      // Error should be logged
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Error checking new proposals:",
         dbError,
       );
       consoleErrorSpy.mockRestore();
+      await expect(checkNewProposals()).resolves.not.toThrow();
     });
 
-    it("should handle database errors gracefully when fetching groups", async () => {
+    it("should handle database errors gracefully when fetching groups inside the loop", async () => {
       const dbError = new Error("Group Database error");
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          // 1. Fetch new proposals (succeeds)
-          expect(table).toBe("proposal");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposal]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 2. Fetch proposal groups -> throws error
-          expect(table).toBe("proposalGroup");
-          // NOTE: The error happens *inside* the loop, so the outer function's catch block handles it.
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockRejectedValue(dbError),
-          } as any;
-        });
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "proposal":
+            return createMockKyselyChain([mockProposal]);
+          case "proposalGroup":
+            return {
+              ...createMockKyselyChain([]),
+              execute: vi.fn().mockRejectedValue(dbError),
+            } as any;
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
       const consoleErrorSpy = vi.spyOn(console, "error");
+      await checkNewProposals();
 
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
-
-      // Should not throw out of the main function
-      await expect(checkNewProposals()).resolves.not.toThrow();
-
-      // No email should be sent
       expect(resend.emails.send).not.toHaveBeenCalled();
-      // Error should be logged by the outer catch block
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Error checking new proposals:", // The outer catch block logs this
+        "Error checking new proposals:",
         dbError,
       );
       consoleErrorSpy.mockRestore();
+      await expect(checkNewProposals()).resolves.not.toThrow();
     });
 
     it("should handle email sending errors gracefully", async () => {
-      // Setup mocks to allow reaching the email send part
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          /* proposals */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposal]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* groups */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposalGroup]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* author */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockAuthorVoter),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* dao */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDao),
-          } as any;
-        });
-      vi.mocked(dbWeb.selectFrom)
-        .mockImplementationOnce((table) => {
-          /* users */ return {
-            select: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockUser]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* notification check */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(null),
-          } as any;
-        });
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "proposal":
+            return createMockKyselyChain([mockProposal]);
+          case "proposalGroup":
+            return createMockKyselyChain([mockProposalGroup]);
+          case "voter":
+            return createMockKyselyChain(mockAuthorVoter, "executeTakeFirst");
+          case "dao":
+            return createMockKyselyChain(mockDao, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
+      vi.mocked(dbWeb.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "user":
+            return createMockKyselyChain([mockUser]);
+          case "user_notification":
+            return createMockKyselyChain(null, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbWeb call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      // Mock email sending to return an error
       const emailError = {
         name: "application_error" as const,
         message: "Email provider unavailable",
@@ -728,232 +572,155 @@ describe("Email Notifications", () => {
       });
 
       const consoleErrorSpy = vi.spyOn(console, "error");
-
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
       await checkNewProposals();
 
-      // Function should complete without throwing
       expect(resend.emails.send).toHaveBeenCalledTimes(1);
-      // Error should be logged
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         `Failed to send new proposal email to ${mockUser.email}:`,
         emailError,
       );
-      // Notification should *not* be inserted because email failed
       expect(dbWeb.insertInto).not.toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
   });
 
   describe("Duplicate Prevention", () => {
-    it("should not send duplicate emails", async () => {
-      // Setup mocks to allow reaching the notification check
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          /* proposals */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposal]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* groups */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposalGroup]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* author */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockAuthorVoter),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* dao */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDao),
-          } as any;
-        });
-      vi.mocked(dbWeb.selectFrom)
-        .mockImplementationOnce((table) => {
-          /* users */ return {
-            select: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockUser]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 6. Check existing notification -> FOUND
-          expect(table).toBe("userNotification");
-          const mockExistingNotification = {
-            id: "notif1",
-            userId: mockUser.id,
-            type: "EMAIL_NEW_PROPOSAL",
-            targetId: mockProposal.id,
-            sentAt: new Date(),
-          };
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi
-              .fn()
-              .mockResolvedValue(mockExistingNotification),
-          } as any;
-        });
+    it("should not send duplicate emails for new proposals", async () => {
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "proposal":
+            return createMockKyselyChain([mockProposal]);
+          case "proposalGroup":
+            return createMockKyselyChain([mockProposalGroup]);
+          case "voter":
+            return createMockKyselyChain(mockAuthorVoter, "executeTakeFirst");
+          case "dao":
+            return createMockKyselyChain(mockDao, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
+      const mockExistingNotification = {
+        id: "notif1",
+        userId: mockUser.id,
+        type: "EMAIL_NEW_PROPOSAL",
+        targetId: mockProposal.id,
+        sentAt: new Date(),
+      };
+      vi.mocked(dbWeb.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "user":
+            return createMockKyselyChain([mockUser]);
+          case "user_notification":
+            return createMockKyselyChain(
+              mockExistingNotification,
+              "executeTakeFirst",
+            );
+          default:
+            console.warn(`UNEXPECTED dbWeb call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
+
       await checkNewProposals();
 
-      // Email should not be sent
       expect(resend.emails.send).not.toHaveBeenCalled();
-      // Notification should not be inserted again
       expect(dbWeb.insertInto).not.toHaveBeenCalled();
     });
   });
 
   describe("HTTP Endpoints", () => {
     it("health endpoint should return OK", async () => {
-      // Need to ensure the app instance is available. Import might trigger server start.
-      // If tests run in parallel or sequence matters, this needs careful handling.
-      // Assuming import is safe here for simplicity.
-      const { app } = await import("../index");
       const response = await request(app).get("/health");
       expect(response.status).toBe(200);
       expect(response.text).toBe("OK");
-      // We might need to close the server instance if it was started during import, depending on test runner behavior.
     });
   });
 
   describe("Additional Edge Cases for Coverage", () => {
-    // Test for database error handling covered in Error Handling section
+    it("should use empty strings for author info when author (voter) is not found", async () => {
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "proposal":
+            return createMockKyselyChain([mockProposal]);
+          case "proposalGroup":
+            return createMockKyselyChain([mockProposalGroup]);
+          case "voter":
+            return createMockKyselyChain(null, "executeTakeFirst"); // Author not found
+          case "dao":
+            return createMockKyselyChain(mockDao, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
+      vi.mocked(dbWeb.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "user":
+            return createMockKyselyChain([mockUser]);
+          case "user_notification":
+            return createMockKyselyChain(null, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbWeb call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-    it("should use empty strings for author info when author is not found", async () => {
-      // Setup specific mocks, author lookup returns null
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          /* proposals */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposal]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* groups */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposalGroup]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          // 3. Fetch author -> returns null
-          expect(table).toBe("voter");
-          return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(null),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* dao */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDao),
-          } as any;
-        });
-      vi.mocked(dbWeb.selectFrom)
-        .mockImplementationOnce((table) => {
-          /* users */ return {
-            select: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockUser]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* notification check */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(null),
-          } as any;
-        });
-
-      // Mock the template to check props
-      const mockTemplate = vi.mocked(NewProposalEmailTemplate);
-
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
+      const templateSpy = vi.mocked(NewProposalEmailTemplate);
       await checkNewProposals();
 
-      // Verify email was sent
       expect(resend.emails.send).toHaveBeenCalledTimes(1);
-      // Verify template received empty strings for author
-      expect(mockTemplate).toHaveBeenCalledWith(
+      expect(templateSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           authorAddress: "",
           authorEns: "",
+          proposalName: mockProposal.name,
         }),
       );
-      // Verify notification was inserted
       expect(dbWeb.insertInto).toHaveBeenCalledTimes(1);
     });
 
     it("should skip sending email to users without an email address", async () => {
-      const userWithoutEmail = { id: "user2", email: null }; // User with null email
-      // Setup mocks
-      vi.mocked(dbIndexer.selectFrom)
-        .mockImplementationOnce((table) => {
-          /* proposals */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposal]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* groups */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            execute: vi.fn().mockResolvedValue([mockProposalGroup]),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* author */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockAuthorVoter),
-          } as any;
-        })
-        .mockImplementationOnce((table) => {
-          /* dao */ return {
-            selectAll: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
-            executeTakeFirst: vi.fn().mockResolvedValue(mockDao),
-          } as any;
-        });
-      vi.mocked(dbWeb.selectFrom).mockImplementationOnce((table) => {
-        // 5. Fetch users -> returns user without email
-        expect(table).toBe("user");
-        return {
-          select: vi.fn().mockReturnThis(),
-          where: vi.fn().mockReturnThis(),
-          execute: vi.fn().mockResolvedValue([userWithoutEmail]),
-        } as any;
+      const userWithoutEmail = { ...mockUser, id: "user2", email: null };
+      vi.mocked(dbIndexer.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "proposal":
+            return createMockKyselyChain([mockProposal]);
+          case "proposalGroup":
+            return createMockKyselyChain([mockProposalGroup]);
+          case "voter":
+            return createMockKyselyChain(mockAuthorVoter, "executeTakeFirst");
+          case "dao":
+            return createMockKyselyChain(mockDao, "executeTakeFirst");
+          default:
+            console.warn(`UNEXPECTED dbIndexer call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
       });
-      // No notification check should happen for this user
+      vi.mocked(dbWeb.selectFrom).mockImplementation((from: any) => {
+        const tableName = String(from);
+        switch (tableName) {
+          case "user":
+            return createMockKyselyChain([userWithoutEmail]);
+          default:
+            console.warn(`UNEXPECTED dbWeb call in test: ${tableName}`);
+            return createMockKyselyChain([]);
+        }
+      });
 
-      // Import and run the function
-      const { checkNewProposals } = await import("../index");
       await checkNewProposals();
 
-      // No email should be sent
       expect(resend.emails.send).not.toHaveBeenCalled();
-      // No notification should be recorded
       expect(dbWeb.insertInto).not.toHaveBeenCalled();
-      // Ensure the user query happened
-      expect(vi.mocked(dbWeb.selectFrom)).toHaveBeenCalledTimes(1);
+      expect(dbWeb.selectFrom).toHaveBeenCalledWith("user");
+      expect(dbWeb.selectFrom).not.toHaveBeenCalledWith("user_notification");
     });
   });
-});
+}); // End describe("Email Notifications")

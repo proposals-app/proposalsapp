@@ -16,7 +16,7 @@ import {
 import * as React from "react";
 import { Footer } from "../components/footer";
 
-interface DeleteAccountProps {
+export interface DeleteAccountProps {
   email?: string;
   verificationUrl?: string;
 }

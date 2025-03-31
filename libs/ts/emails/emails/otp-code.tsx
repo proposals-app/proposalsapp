@@ -15,7 +15,7 @@ import {
 import * as React from "react";
 import { Footer } from "../components/footer";
 
-interface OTPEmailProps {
+export interface OTPEmailProps {
   verificationCode: string;
   email: string;
 }
@@ -29,9 +29,9 @@ export default function OTPEmail({
       <Tailwind>
         <Head />
         <Preview>Your verification code for proposals.app</Preview>
-        <Body className="bg-neutral-100 dark:bg-neutral-900 font-sans">
+        <Body className="bg-neutral-100 font-sans dark:bg-neutral-900">
           <Container className="mx-auto max-w-[600px] p-2 lg:p-8">
-            <Section className="my-8 bg-white dark:bg-neutral-800 p-4 shadow-sm lg:p-8">
+            <Section className="my-8 bg-white p-4 shadow-sm lg:p-8 dark:bg-neutral-800">
               <Row className="flex items-start pb-2">
                 <Column>
                   <Img
@@ -48,7 +48,9 @@ export default function OTPEmail({
                 </Column>
               </Row>
 
-              <Text className="mb-6 font-bold text-neutral-700 dark:text-neutral-200">Hi, {email}!</Text>
+              <Text className="mb-6 font-bold text-neutral-700 dark:text-neutral-200">
+                Hi, {email}!
+              </Text>
 
               <Text className="mb-6 text-neutral-700 dark:text-neutral-300">
                 We noticed someone just tried to log in to your proposals.app
@@ -56,7 +58,7 @@ export default function OTPEmail({
                 confirm it:
               </Text>
 
-              <Section className="mb-6 border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-700 p-4 text-center">
+              <Section className="mb-6 border border-neutral-200 bg-neutral-50 p-4 text-center dark:border-neutral-700 dark:bg-neutral-700">
                 <Text className="font-mono text-3xl font-bold tracking-widest text-neutral-800 dark:text-neutral-100">
                   {verificationCode}
                 </Text>
