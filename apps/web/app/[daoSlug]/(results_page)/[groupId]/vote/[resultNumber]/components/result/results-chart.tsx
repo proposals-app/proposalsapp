@@ -17,12 +17,31 @@ export function ResultsChart({ results }: ResultsChartProps) {
   const deserializedResults: ProcessedResults = superjson.deserialize(results);
 
   useEffect(() => {
-    const theme = document.documentElement.classList.contains('dark')
-      ? 'dark'
-      : 'light';
-
     if (!chartRef.current) return;
     if (!deserializedResults.timeSeriesData) return;
+
+    // Function to get cookie value by name
+    const getCookie = (name: string): string | undefined => {
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [cookieName, cookieValue] = cookie.trim().split('=');
+        if (cookieName === name) {
+          return cookieValue;
+        }
+      }
+      return undefined;
+    };
+
+    const themeModeCookie = getCookie('theme-mode');
+    const theme: 'dark' | 'light' =
+      themeModeCookie === 'light' ? 'light' : 'dark';
+
+    // Helper function to get computed style
+    const getStyle = (property: string) => {
+      return getComputedStyle(document.documentElement)
+        .getPropertyValue(property)
+        .trim();
+    };
 
     const themeColors = {
       axisLabel: theme == 'dark' ? 'var(--neutral-300)' : 'var(--neutral-500)',
@@ -224,14 +243,23 @@ export function ResultsChart({ results }: ResultsChartProps) {
         type: 'line',
         lineStyle: {
           width: 2,
-          color: '#6B7280', // Grey color for the total series
+          color:
+            theme === 'dark'
+              ? getStyle('--neutral-400')
+              : getStyle('--neutral-700'), // Grey color for the total series - themed and resolved
           type: 'dashed', // Make the line dashed
         },
         showSymbol: false,
         emphasis: {
           itemStyle: {
-            color: '#6B7280',
-            borderColor: '#6B7280',
+            color:
+              theme === 'dark'
+                ? getStyle('--neutral-400')
+                : getStyle('--neutral-700'), // Grey color for the total series - themed and resolved
+            borderColor:
+              theme === 'dark'
+                ? getStyle('--neutral-400')
+                : getStyle('--neutral-700'), // Grey color for the total series - themed and resolved
           },
         },
         data: totalSeriesData,
@@ -302,18 +330,6 @@ export function ResultsChart({ results }: ResultsChartProps) {
       },
       xAxis: {
         type: 'time',
-        min: new Date(
-          deserializedResults.proposal.startAt.getTime() -
-            (deserializedResults.proposal.endAt.getTime() -
-              deserializedResults.proposal.startAt.getTime()) *
-              0.01
-        ),
-        max: new Date(
-          deserializedResults.proposal.endAt.getTime() +
-            (deserializedResults.proposal.endAt.getTime() -
-              deserializedResults.proposal.startAt.getTime()) *
-              0.01
-        ),
         axisLabel: {
           // Remove the original x-axis labels
           show: false,
