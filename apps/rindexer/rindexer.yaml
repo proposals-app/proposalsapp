@@ -43,9 +43,6 @@ contracts:
     include_events:
       - DelegateVotesChanged
       - DelegateChanged
-    index_event_in_order:
-      - DelegateVotesChanged
-      - DelegateChanged
 
   - name: ArbitrumCoreGovernor
     abi: ./abis/ArbitrumCoreGovernor.abi.json
