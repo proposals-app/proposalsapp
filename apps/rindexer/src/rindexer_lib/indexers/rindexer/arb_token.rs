@@ -46,7 +46,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                 let results_len = results.len();
                 debug!(
                     event_count = results_len,
-                    event_name = "DelegateChanged",
+                    event_name = "ARBToken::DelegateChanged",
                     "Processing events"
                 );
 
@@ -76,6 +76,12 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                                 return None; // Skip this delegation if timestamp estimation fails
                             }
                         };
+
+                        debug!(
+                            event_name = "ARBToken::DelegateChanged",
+                            block_number = block_number,
+                            "Processed single event within batch"
+                        );
 
                         Some(delegation::ActiveModel {
                             id: NotSet,
@@ -127,7 +133,7 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                 let results_len = results.len();
                 debug!(
                     event_count = results_len,
-                    event_name = "DelegateVotesChanged",
+                    event_name = "ARBToken::DelegateVotesChanged",
                     "Processing events"
                 );
 
@@ -154,6 +160,12 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                                 return None; // Skip this voting power update if timestamp estimation fails
                             }
                         };
+
+                        debug!(
+                            event_name = "ARBToken::DelegateVotesChanged",
+                            block_number = block_number,
+                            "Processed single event within batch"
+                        );
 
                         Some(voting_power::ActiveModel {
                             id: NotSet,
