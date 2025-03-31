@@ -1,5 +1,4 @@
 #![warn(unused_extern_crates)]
-#![feature(duration_constructors)]
 
 use crate::{
     db_handler::{db, initialize_db},
@@ -27,10 +26,10 @@ mod indexers;
 mod models;
 
 // --- Configuration Constants ---
-const FULL_REFRESH_INTERVAL: Duration = Duration::from_hours(6);
-const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_hours(1);
+const FULL_REFRESH_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
+const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_secs(1 * 60 * 60);
 
-const RECENT_UPDATE_INTERVAL: Duration = Duration::from_mins(1);
+const RECENT_UPDATE_INTERVAL: Duration = Duration::from_secs(60);
 const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);
 
 const HEALTH_CHECK_PORT: u16 = 3000;
