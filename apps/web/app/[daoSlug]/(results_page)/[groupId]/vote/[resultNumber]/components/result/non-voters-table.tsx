@@ -16,9 +16,9 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  if (nonVoters.length === 0) return null;
+  if (nonVoters.nonVoters.length === 0) return null;
 
-  const sortedNonVoters = [...nonVoters].sort((a, b) => {
+  const sortedNonVoters = [...nonVoters.nonVoters].sort((a, b) => {
     const comparison = b.votingPowerAtStart - a.votingPowerAtStart;
     return sortDirection === 'asc' ? -comparison : comparison;
   });
@@ -89,14 +89,8 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
         >
           <div className='flex items-center gap-2'>
             <span className='text-sm font-bold'>
-              {nonVoters.length} Non-Voters -{' '}
-              {formatNumberWithSuffix(
-                nonVoters.reduce(
-                  (sum, voter) => sum + voter.votingPowerAtStart,
-                  0
-                )
-              )}{' '}
-              ARB
+              {nonVoters.totalNumberOfNonVoters} Non-Voters -{' '}
+              {formatNumberWithSuffix(nonVoters.totalVotingPower)} ARB
             </span>
           </div>
           <ChevronDownSvg

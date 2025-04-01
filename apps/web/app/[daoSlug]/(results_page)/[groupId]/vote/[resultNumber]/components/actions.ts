@@ -66,7 +66,7 @@ export async function getNonVoters(proposalId: string) {
     console.warn(
       `Proposal with id ${proposalId} not found for non-voters query.`
     );
-    return [];
+    return { nonVoters: [], totalNumberOfNonVoters: 0, totalVotingPower: 0 };
   }
   const { daoId, startAt } = proposal;
 
@@ -87,7 +87,7 @@ export async function getNonVoters(proposalId: string) {
     .selectFrom('votingPower as vp')
     .innerJoin('voter as v', 'v.address', 'vp.voter')
     .where('vp.daoId', '=', daoId)
-    .where('vp.votingPower', '>', 5000)
+    .where('vp.votingPower', '>', 0)
     .where('vp.timestamp', '<=', startAt)
     .orderBy('vp.voter', 'asc')
     .orderBy('vp.timestamp', 'desc')
@@ -103,7 +103,7 @@ export async function getNonVoters(proposalId: string) {
 
   if (eligibleVoters.length === 0) {
     console.log(`No eligible voters found for proposal ${proposalId}`);
-    return [];
+    return { nonVoters: [], totalNumberOfNonVoters: 0, totalVotingPower: 0 };
   }
 
   const eligibleVoterAddresses = eligibleVoters.map((v) => v.voter);
@@ -235,11 +235,13 @@ export async function getNonVoters(proposalId: string) {
 
   // --- Combine and Filter ---
 
+  let totalVotingPower = 0;
   // 8. Filter eligible voters who didn't vote and map to the final structure
   const nonVoters = eligibleVoters
     .filter((v) => !votedAddressesSet.has(v.voter))
     .map((voter) => {
       const currentVotingPower = currentPowerMap.get(voter.voter) ?? 0;
+      totalVotingPower += voter.votingPowerAtStart;
 
       // Find associated discourse user, if any (using the maps populated after chunking)
       let discourseUser: Selectable<DiscourseUser> | null = null;
@@ -266,7 +268,11 @@ export async function getNonVoters(proposalId: string) {
     })
     .filter((voter) => voter.votingPowerAtStart > 0);
 
-  return nonVoters;
+  return {
+    totalNumberOfNonVoters: nonVoters.length,
+    totalVotingPower,
+    nonVoters: nonVoters.filter((nv) => nv.votingPowerAtStart > 5000),
+  };
 }
 
 export type NonVotersData = AsyncReturnType<typeof getNonVoters>;
