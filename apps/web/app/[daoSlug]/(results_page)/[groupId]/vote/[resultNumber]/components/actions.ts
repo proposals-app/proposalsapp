@@ -87,7 +87,7 @@ export async function getNonVoters(proposalId: string) {
     .selectFrom('votingPower as vp')
     .innerJoin('voter as v', 'v.address', 'vp.voter')
     .where('vp.daoId', '=', daoId)
-    .where('vp.votingPower', '>', 0)
+    .where('vp.votingPower', '>', 5000)
     .where('vp.timestamp', '<=', startAt)
     .orderBy('vp.voter', 'asc')
     .orderBy('vp.timestamp', 'desc')
