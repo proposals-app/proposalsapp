@@ -110,27 +110,6 @@ export function VpChart({ chartData }: VpChartProps) {
           color: themeColors.textStyle,
         },
       },
-      tooltip: {
-        trigger: 'item',
-        formatter: (params: any) => {
-          const voterIndex = params.seriesIndex;
-          const dataIndex = params.data[0]; // Index for timestamp/rank
-          const rank = params.data[1];
-          const voter = deserializedData.voters[voterIndex];
-          const date = formattedTimestamps[dataIndex];
-
-          if (rank === null) {
-            return `${formatVoterName(voter)}<br/>${date}: Not in top 10`;
-          }
-
-          return `${formatVoterName(voter)}<br/>${date}: Rank #${rank}`;
-        },
-        backgroundColor: themeColors.tooltip.background,
-        borderColor: themeColors.tooltip.border,
-        textStyle: {
-          color: themeColors.tooltip.text,
-        },
-      },
       grid: {
         left: 40, // Increased left margin for rank labels
         right: 140, // Increased right margin for end labels
