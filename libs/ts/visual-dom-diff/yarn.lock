@@ -868,7 +868,7 @@ __metadata:
     tslint: "npm:^6.1.3"
     tslint-config-prettier: "npm:^1.18.0"
     typescript: "npm:^5.8.3"
-    webpack: "npm:^5.99.0"
+    webpack: "npm:^5.99.3"
     webpack-cli: "npm:^6.0.1"
     webpack-dev-server: "npm:^5.2.1"
   languageName: unknown
@@ -7814,9 +7814,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack@npm:^5.99.0":
-  version: 5.99.0
-  resolution: "webpack@npm:5.99.0"
+"webpack@npm:^5.99.3":
+  version: 5.99.3
+  resolution: "webpack@npm:5.99.3"
   dependencies:
     "@types/eslint-scope": "npm:^3.7.7"
     "@types/estree": "npm:^1.0.6"
@@ -7846,7 +7846,7 @@ __metadata:
       optional: true
   bin:
     webpack: bin/webpack.js
-  checksum: 10c0/1f2d9222b0fa17418ae49f5eae25af0e12e3a9ec1f508d2d9d99ab39e8f5a6cdf5d3cd8b85b706799214f970d998af6b4c41f940163ef979820cac8d13740369
+  checksum: 10c0/3d4f258755fa94835614ec1609d6c41c260b614c34d9bc9d96af9908dbecc0a9d0ee8437248b1d729fa3f73a646c11c93cdb1af081b0603389653ccbb0e70c69
   languageName: node
   linkType: hard
 
