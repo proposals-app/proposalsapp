@@ -100,6 +100,7 @@ export async function PostItem({
           contentLength={item.cooked?.length || 0}
           currentVotingPower={currentVotingPower}
           item={item}
+          discourseBaseUrl={group.daoDiscourse.discourseBaseUrl}
         />
       )}
     </div>
@@ -117,6 +118,7 @@ const PostContent = ({
   contentLength,
   item,
   currentVotingPower,
+  discourseBaseUrl,
 }: {
   author: Selectable<DiscourseUser> | undefined;
   ens: string | undefined;
@@ -128,6 +130,7 @@ const PostContent = ({
   contentLength: number;
   item: FeedReturnType['posts'][0];
   currentVotingPower?: number;
+  discourseBaseUrl: string;
 }) => {
   const CONTENT_THRESHOLD = 400;
 
@@ -176,6 +179,7 @@ const PostContent = ({
             avatar={author.avatarTemplate}
             currentVotingPower={currentVotingPower}
             eventVotingPower={null}
+            discourseBaseUrl={discourseBaseUrl}
           />
         ) : null}
 

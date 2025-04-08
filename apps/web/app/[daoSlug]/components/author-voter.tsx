@@ -1,6 +1,7 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export const VoterAuthor = ({
   voterAddress,
@@ -18,7 +19,11 @@ export const VoterAuthor = ({
   eventVotingPower: number | null;
 }) => {
   return (
-    <div className='flex items-center gap-2'>
+    <Link
+      href={`https://dune.com/entropy_advisors/arbitrum-dao-delegates?Delegate_t7d9d1=${voterAddress}#5-deep-dive-on-delegates`}
+      target='_blank'
+      className='flex items-center gap-2'
+    >
       <div className='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 dark:border-neutral-300'>
         <Image
           src={avatar}
@@ -47,7 +52,7 @@ export const VoterAuthor = ({
           />
         ) : null}
       </div>
-    </div>
+    </Link>
   );
 };
 

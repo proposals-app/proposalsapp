@@ -85,6 +85,12 @@ export async function getGroup(daoSlug: string, groupId: string) {
     return null;
   }
 
+  const daoDiscourse = await dbIndexer
+    .selectFrom('daoDiscourse')
+    .where('daoId', '=', dao.id)
+    .selectAll()
+    .executeTakeFirstOrThrow();
+
   let group: Selectable<ProposalGroup> | null = null;
 
   // Check if proposalOrGroupId is a UUIDv4
@@ -146,6 +152,7 @@ export async function getGroup(daoSlug: string, groupId: string) {
 
     return {
       dao,
+      daoDiscourse,
       group,
       proposals,
       topics,
@@ -751,7 +758,8 @@ export async function getFeed(
             if (dailyFilteredVotesMap.has(date)) {
               const dailyData = dailyFilteredVotesMap.get(date)!;
               dailyData.totalVotingPower += votingPower;
-              dailyData.lastVoteTime = vote.createdAt; // Update last vote time to the latest vote in the day
+              if (vote.createdAt.getTime() > dailyData.lastVoteTime.getTime())
+                dailyData.lastVoteTime = vote.createdAt; // Update last vote time to the latest vote in the day
 
               // Add voting power to each choice based on weight
               vote.choice.forEach((choiceItem) => {
