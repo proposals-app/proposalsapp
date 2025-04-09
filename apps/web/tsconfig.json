@@ -37,7 +37,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "tailwind.config.mjs",
-    "cache-handler.mjs"
+    "cache-handler.mjs",
+    ".ladle"
   ],
   "exclude": ["node_modules", "public/sw.js"]
 }
