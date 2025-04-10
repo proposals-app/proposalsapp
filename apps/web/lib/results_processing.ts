@@ -3,12 +3,13 @@ import { Proposal, Selectable, Vote } from '@proposalsapp/db-indexer';
 import { format, toZonedTime } from 'date-fns-tz';
 
 export type VoteType =
-  | 'single-choice'
-  | 'weighted'
-  | 'approval'
-  | 'basic'
-  | 'quadratic'
-  | 'ranked-choice';
+  | 'offchain-single-choice'
+  | 'offchain-weighted'
+  | 'offchain-approval'
+  | 'offchain-basic'
+  | 'offchain-quadratic'
+  | 'offchain-ranked-choice'
+  | 'onchain-basic';
 
 export interface ProcessedVote
   extends Pick<
@@ -1159,7 +1160,7 @@ export async function processResultsAction(
       totalVotingPower: 0,
       quorum,
       quorumChoices,
-      voteType: 'basic', // Default type
+      voteType: 'offchain-basic', // Default type
       votes: withVotes ? [] : undefined,
       timeSeriesData: withTimeseries ? [] : undefined,
       finalResults: {},
@@ -1178,8 +1179,9 @@ export async function processResultsAction(
   let intermediateResult: IntermediateProcessingResult;
 
   switch (voteType) {
-    case 'basic':
-    case 'single-choice':
+    case 'onchain-basic':
+    case 'offchain-basic':
+    case 'offchain-single-choice':
       intermediateResult = await processBasicVotes(
         validVotes,
         choices,
@@ -1187,7 +1189,7 @@ export async function processResultsAction(
         withTimeseries
       );
       break;
-    case 'weighted':
+    case 'offchain-weighted':
       intermediateResult = await processWeightedVotes(
         validVotes,
         choices,
@@ -1195,7 +1197,7 @@ export async function processResultsAction(
         withTimeseries
       );
       break;
-    case 'approval':
+    case 'offchain-approval':
       intermediateResult = await processApprovalVotes(
         validVotes,
         choices,
@@ -1203,7 +1205,7 @@ export async function processResultsAction(
         withTimeseries
       );
       break;
-    case 'ranked-choice':
+    case 'offchain-ranked-choice':
       intermediateResult = await processRankedChoiceVotes(
         validVotes,
         choices,
@@ -1211,7 +1213,7 @@ export async function processResultsAction(
         withTimeseries
       );
       break;
-    case 'quadratic':
+    case 'offchain-quadratic':
       intermediateResult = await processQuadraticVotes(
         validVotes,
         choices,

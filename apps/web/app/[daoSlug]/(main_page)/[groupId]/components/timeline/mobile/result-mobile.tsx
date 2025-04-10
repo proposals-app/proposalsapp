@@ -23,12 +23,13 @@ interface ResultEventProps {
 }
 
 const VoteComponents = {
-  'single-choice': SingleChoiceVote,
-  weighted: WeightedVote,
-  approval: ApprovalVote,
-  basic: BasicVote,
-  quadratic: QuadraticVote,
-  'ranked-choice': RankedChoiceVote,
+  'offchain-single-choice': SingleChoiceVote,
+  'offchain-weighted': WeightedVote,
+  'offchain-approval': ApprovalVote,
+  'offchain-basic': BasicVote,
+  'offchain-quadratic': QuadraticVote,
+  'offchain-ranked-choice': RankedChoiceVote,
+  'onchain-basic': BasicVote,
 } as const;
 
 export function ResultEventMobile({
