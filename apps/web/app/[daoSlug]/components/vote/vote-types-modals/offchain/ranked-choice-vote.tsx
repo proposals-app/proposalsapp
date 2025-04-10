@@ -36,7 +36,7 @@ interface RankedChoiceItem {
   content: string;
 }
 
-interface RankedChoiceVoteModalContentProps {
+interface OffchainRankedChoiceVoteModalContentProps {
   proposal: Selectable<Proposal>;
   choices: string[];
   onVoteSubmit: (voteData: {
@@ -114,12 +114,12 @@ function RankedChoiceSortableItem({
 }
 
 // Main Modal Content Component
-export function RankedChoiceVoteModalContent({
+export function OffchainRankedChoiceVoteModalContent({
   proposal,
   choices,
   onVoteSubmit,
   onClose,
-}: RankedChoiceVoteModalContentProps) {
+}: OffchainRankedChoiceVoteModalContentProps) {
   const [rankedItems, setRankedItems] = React.useState<RankedChoiceItem[]>([]);
   const [activeItem, setActiveItem] = React.useState<RankedChoiceItem | null>(
     null

@@ -1,55 +1,48 @@
 'use client';
 
-// NOTE: Snapshot's standard Quadratic Voting UI often simplifies to single-choice
-// selection, as the quadratic calculation happens based on the voter's VP, not
-// user-inputted "credits". This implementation reflects that common pattern.
-// If a credit-based system is needed, this component would require significant changes
-// (e.g., sliders, input validation).
-
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'; // Assuming RadioGroup components exist
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 
-interface QuadraticVoteModalContentProps {
+interface OnchainBasicVoteModalContentProps {
   proposal: Selectable<Proposal>;
   choices: string[];
   onVoteSubmit: (voteData: {
     proposalId: string;
-    choice: number; // Or potentially Record<string, number> if credit-based
+    choice: number;
     reason: string;
   }) => Promise<void>;
   onClose: () => void;
 }
 
-export function QuadraticVoteModalContent({
+export function OnchainBasicVoteModalContent({
   proposal,
   choices,
   onVoteSubmit,
   onClose,
-}: QuadraticVoteModalContentProps) {
-  // Assuming single choice selection for simplicity, mirroring 'basic' vote UI
-  const [selectedChoice, setSelectedChoice] = React.useState<string>('');
+}: OnchainBasicVoteModalContentProps) {
+  const [selectedChoice, setSelectedChoice] = React.useState<string>(''); // Store the 1-based index as string
   const [reason, setReason] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const handleSubmit = async () => {
-    if (!selectedChoice) return;
+    if (!selectedChoice) return; // Ensure a choice is made
 
     setIsSubmitting(true);
     try {
-      // The backend/snapshot client handles the sqrt(vp) calculation.
-      // We just send the selected choice index (1-based).
       await onVoteSubmit({
         proposalId: proposal.id,
-        choice: parseInt(selectedChoice, 10),
+        choice: parseInt(selectedChoice, 10), // Send the 1-based index as number
         reason: reason,
       });
+      // onSuccess handled by parent (closing modal)
     } catch (error) {
-      console.error('Failed to submit quadratic vote:', error);
+      console.error('Failed to submit basic vote:', error);
+      // TODO: Add user feedback for error
     } finally {
       setIsSubmitting(false);
     }
@@ -60,8 +53,7 @@ export function QuadraticVoteModalContent({
       <div className='space-y-2'>
         <Label className='text-base font-semibold'>Select Choice</Label>
         <p className='text-sm text-neutral-500 dark:text-neutral-400'>
-          Select one option. Your vote&apos;s influence will be calculated
-          quadratically based on your voting power.
+          Select only one option.
         </p>
         <RadioGroup
           value={selectedChoice}

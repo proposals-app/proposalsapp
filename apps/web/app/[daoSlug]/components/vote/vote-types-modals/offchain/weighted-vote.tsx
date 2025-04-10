@@ -9,7 +9,7 @@ import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { cn } from '@/lib/utils';
 
-interface WeightedVoteModalContentProps {
+interface OffchainWeightedVoteModalContentProps {
   proposal: Selectable<Proposal>;
   choices: string[];
   onVoteSubmit: (voteData: {
@@ -20,12 +20,12 @@ interface WeightedVoteModalContentProps {
   onClose: () => void;
 }
 
-export function WeightedVoteModalContent({
+export function OffchainWeightedVoteModalContent({
   proposal,
   choices,
   onVoteSubmit,
   onClose,
-}: WeightedVoteModalContentProps) {
+}: OffchainWeightedVoteModalContentProps) {
   // Initialize weights state { '1': 0, '2': 0, ... }
   const initialWeights = choices.reduce(
     (acc, _, index) => {

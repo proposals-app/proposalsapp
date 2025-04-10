@@ -3,6 +3,16 @@ import '@/styles/globals.css';
 import { Story } from '@ladle/react';
 import { JsonValue } from '@proposalsapp/db-indexer';
 
+// Define possible vote types based on voteModalComponents keys
+type VoteType =
+  | 'offchain-approval'
+  | 'offchain-basic'
+  | 'offchain-quadratic'
+  | 'offchain-ranked-choice'
+  | 'offchain-single-choice'
+  | 'offchain-weighted'
+  | 'onchain-basic';
+
 enum ProposalState {
   ACTIVE = 'ACTIVE',
   CANCELED = 'CANCELED',
@@ -16,17 +26,11 @@ enum ProposalState {
   UNKNOWN = 'UNKNOWN',
 }
 
-// Corrected MockProposalMetadata to include index signature
+// Corrected MockProposalMetadata to include specific voteType and index signature
 interface MockProposalMetadata {
-  voteType?:
-    | 'single-choice'
-    | 'weighted'
-    | 'approval'
-    | 'basic'
-    | 'quadratic'
-    | 'ranked-choice';
+  voteType?: VoteType;
   hiddenVote?: boolean;
-  scoresState?: 'pending' | 'final'; // Simplified
+  scoresState?: 'pending' | 'final';
   totalDelegatedVp?: string;
   quorumChoices?: number[];
   // Add index signature to match JsonObject
@@ -50,11 +54,11 @@ interface MockProposal {
   quorum: number;
   blockStartAt: number | null;
   blockEndAt: number | null;
-  proposalState: ProposalState; // Use mock state type
+  proposalState: ProposalState;
   discussionUrl: string | null;
   txid: string | null;
-  choices: string[] | JsonValue; // Allow string array or JsonValue for flexibility
-  metadata: MockProposalMetadata | JsonValue | null; // Allow mock type or JsonValue
+  choices: string[] | JsonValue;
+  metadata: MockProposalMetadata | JsonValue | null;
 }
 
 // --- Mock Data Generation Function using Mock Types ---
@@ -82,20 +86,18 @@ const baseProposal: Omit<
 
 const createMockProposal = (
   id: string,
-  voteType: MockProposalMetadata['voteType'],
+  voteType: VoteType, // Use the specific VoteType
   choices: string[],
   ended = false
 ): MockProposal => ({
   ...baseProposal,
   id: `prop-${id}`,
-  // Kysely expects 'choices' to potentially be JSON, but VoteButton logic uses string[].
-  // We cast here, assuming the logic inside VoteButton handles string[] correctly.
-  choices: choices as string[],
+  choices: choices as string[], // Assume VoteButton handles string[]
   metadata: {
     voteType: voteType,
     hiddenVote: false,
     scoresState: ended ? 'final' : 'pending',
-  } as MockProposalMetadata, // Cast to our mock type which now fits JsonObject
+  } as MockProposalMetadata, // Cast to our mock type
   endAt: ended
     ? new Date(Date.now() - 1000) // Ended 1 second ago
     : new Date(Date.now() + 86400000 * 2), // Ends in 2 days
@@ -103,65 +105,83 @@ const createMockProposal = (
 });
 
 // --- Mock Proposals for Stories ---
-const basicProposal = createMockProposal('basic', 'basic', [
+const offchainBasicProposal = createMockProposal('123', 'offchain-basic', [
   'For',
   'Against',
   'Abstain',
 ]);
-const approvalProposal = createMockProposal('approval', 'approval', [
-  'Approve Project X',
-  'Approve Project Y',
-  'Approve Project Z',
+const offchainApprovalProposal = createMockProposal(
+  '123',
+  'offchain-approval',
+  ['Approve Project X', 'Approve Project Y', 'Approve Project Z']
+);
+const offchainWeightedProposal = createMockProposal(
+  '123',
+  'offchain-weighted',
+  ['Option 1 (weighted)', 'Option 2 (weighted)', 'Option 3 (weighted)']
+);
+const offchainRankedProposal = createMockProposal(
+  '123',
+  'offchain-ranked-choice',
+  ['Option 1 (Rank)', 'Option 2 (Rank)', 'Option 3 (Rank)']
+);
+const offchainQuadraticProposal = createMockProposal(
+  '123',
+  'offchain-quadratic',
+  ['Fund Initiative', 'Do Not Fund']
+);
+const offchainSingleChoiceProposal = createMockProposal(
+  '123',
+  'offchain-single-choice',
+  ['Choice A', 'Choice B', 'Choice C']
+);
+const onchainBasicProposal = createMockProposal('123', 'onchain-basic', [
+  'Yes (Onchain)',
+  'No (Onchain)',
+  'Abstain (Onchain)',
 ]);
-const weightedProposal = createMockProposal('weighted', 'weighted', [
-  'Option 1 (weighted)',
-  'Option 2 (weighted)',
-  'Option 3 (weighted)',
-]);
-const rankedProposal = createMockProposal('ranked-choice', 'ranked-choice', [
-  'Option 1 (Rank)',
-  'Option 2 (Rank)',
-  'Option 3 (Rank)',
-]);
-const quadraticProposal = createMockProposal('quadratic', 'quadratic', [
-  'Fund Initiative',
-  'Do Not Fund',
-]);
+
+// Edge Case Proposals
 const endedProposal = createMockProposal(
-  'ended',
-  'basic',
+  '123',
+  'offchain-basic', // Vote type doesn't matter as much when ended
   ['Passed', 'Failed'],
   true
 );
-const noChoicesProposal = createMockProposal('no-choices', 'basic', []);
-const singleChoiceProposal = createMockProposal('single-choice', 'basic', [
-  'Choice A',
-  'Choice B',
-  'Choice C',
-]);
+const noChoicesProposal = createMockProposal(
+  '123',
+  'offchain-basic', // Vote type doesn't matter as much when no choices
+  []
+);
 
 // --- Ladle Stories ---
 
-// Pass the mock proposal directly. Assuming VoteButton props are compatible
-// with the MockProposal type or a structurally compatible subset.
-// This avoids the `any` type and satisfies the ESLint rule.
-
-export const Basic: Story = () => <VoteButton proposal={basicProposal} />;
-
-export const Approval: Story = () => <VoteButton proposal={approvalProposal} />;
-
-export const Weighted: Story = () => <VoteButton proposal={weightedProposal} />;
-
-export const RankedChoice: Story = () => (
-  <VoteButton proposal={rankedProposal} />
+export const OffchainBasic: Story = () => (
+  <VoteButton proposal={offchainBasicProposal} />
 );
 
-export const Quadratic: Story = () => (
-  <VoteButton proposal={quadraticProposal} />
+export const OffchainApproval: Story = () => (
+  <VoteButton proposal={offchainApprovalProposal} />
 );
 
-export const SingleChoice: Story = () => (
-  <VoteButton proposal={singleChoiceProposal} />
+export const OffchainWeighted: Story = () => (
+  <VoteButton proposal={offchainWeightedProposal} />
+);
+
+export const OffchainRankedChoice: Story = () => (
+  <VoteButton proposal={offchainRankedProposal} />
+);
+
+export const OffchainQuadratic: Story = () => (
+  <VoteButton proposal={offchainQuadraticProposal} />
+);
+
+export const OffchainSingleChoice: Story = () => (
+  <VoteButton proposal={offchainSingleChoiceProposal} />
+);
+
+export const OnchainBasic: Story = () => (
+  <VoteButton proposal={onchainBasicProposal} />
 );
 
 export const VotingEnded: Story = () => <VoteButton proposal={endedProposal} />;

@@ -4,12 +4,13 @@ import { ProcessedResults } from './results_processing';
 export type ProposalMetadata = {
   quorumChoices?: number[];
   voteType?:
-    | 'single-choice'
-    | 'weighted'
-    | 'approval'
-    | 'basic'
-    | 'quadratic'
-    | 'ranked-choice';
+    | 'offchain-single-choice'
+    | 'offchain-weighted'
+    | 'offchain-approval'
+    | 'offchain-basic'
+    | 'offchain-quadratic'
+    | 'offchain-ranked-choice'
+    | 'onchain-basic';
   totalDelegatedVp?: string;
   hiddenVote: boolean;
   scoresState: string;

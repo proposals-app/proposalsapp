@@ -2,46 +2,52 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'; // Assuming RadioGroup components exist
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox'; // Assuming a Checkbox component exists
+import { Textarea } from '@/components/ui/textarea'; // Assuming a Textarea component exists
+import { Label } from '@/components/ui/label'; // Assuming a Label component exists
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 
-interface BasicVoteModalContentProps {
+interface OffchainApprovalVoteModalContentProps {
   proposal: Selectable<Proposal>;
   choices: string[];
   onVoteSubmit: (voteData: {
     proposalId: string;
-    choice: number;
+    choice: number[];
     reason: string;
   }) => Promise<void>;
   onClose: () => void;
 }
 
-export function BasicVoteModalContent({
+export function OffchainApprovalVoteModalContent({
   proposal,
   choices,
   onVoteSubmit,
   onClose,
-}: BasicVoteModalContentProps) {
-  const [selectedChoice, setSelectedChoice] = React.useState<string>(''); // Store the 1-based index as string
+}: OffchainApprovalVoteModalContentProps) {
+  const [selectedChoices, setSelectedChoices] = React.useState<number[]>([]);
   const [reason, setReason] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const handleSubmit = async () => {
-    if (!selectedChoice) return; // Ensure a choice is made
+  const handleCheckboxChange = (choiceIndex: number, checked: boolean) => {
+    setSelectedChoices((prev) =>
+      checked
+        ? [...prev, choiceIndex + 1] // Snapshot uses 1-based indexing for choices
+        : prev.filter((index) => index !== choiceIndex + 1)
+    );
+  };
 
+  const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
       await onVoteSubmit({
         proposalId: proposal.id,
-        choice: parseInt(selectedChoice, 10), // Send the 1-based index as number
+        choice: selectedChoices, // Send array of 1-based indices
         reason: reason,
       });
       // onSuccess handled by parent (closing modal)
     } catch (error) {
-      console.error('Failed to submit basic vote:', error);
+      console.error('Failed to submit approval vote:', error);
       // TODO: Add user feedback for error
     } finally {
       setIsSubmitting(false);
@@ -51,18 +57,20 @@ export function BasicVoteModalContent({
   return (
     <div className='space-y-4 py-4'>
       <div className='space-y-2'>
-        <Label className='text-base font-semibold'>Select Choice</Label>
+        <Label className='text-base font-semibold'>Select Choices</Label>
         <p className='text-sm text-neutral-500 dark:text-neutral-400'>
-          Select only one option.
+          Select one or more options you approve of.
         </p>
-        <RadioGroup
-          value={selectedChoice}
-          onValueChange={setSelectedChoice}
-          className='space-y-2 pt-2'
-        >
+        <div className='space-y-2 pt-2'>
           {choices.map((choice, index) => (
             <div key={index} className='flex items-center space-x-2'>
-              <RadioGroupItem value={`${index + 1}`} id={`choice-${index}`} />
+              <Checkbox
+                id={`choice-${index}`}
+                checked={selectedChoices.includes(index + 1)}
+                onCheckedChange={(checked) =>
+                  handleCheckboxChange(index, !!checked)
+                }
+              />
               <Label
                 htmlFor={`choice-${index}`}
                 className='flex-1 cursor-pointer text-sm'
@@ -71,7 +79,7 @@ export function BasicVoteModalContent({
               </Label>
             </div>
           ))}
-        </RadioGroup>
+        </div>
       </div>
 
       <div className='space-y-2'>
@@ -96,7 +104,7 @@ export function BasicVoteModalContent({
         <Button
           type='button'
           onClick={handleSubmit}
-          disabled={isSubmitting || !selectedChoice}
+          disabled={isSubmitting || selectedChoices.length === 0}
         >
           {isSubmitting ? 'Submitting...' : 'Submit Vote'}
         </Button>

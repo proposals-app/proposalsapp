@@ -41,7 +41,7 @@ export async function VoteItem({
 
   const proposal = group.proposals.find((p) => p.id === item.proposalId);
   const proposalMetadata = proposal?.metadata as ProposalMetadata;
-  const isWeightedVoting = proposalMetadata.voteType === 'weighted';
+  const isWeightedVoting = proposalMetadata.voteType === 'offchain-weighted';
 
   const relativeCreateTime = formatDistanceToNowStrict(
     new Date(item.createdAt!),

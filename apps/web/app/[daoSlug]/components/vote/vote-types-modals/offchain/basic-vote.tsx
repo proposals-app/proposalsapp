@@ -2,52 +2,46 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox'; // Assuming a Checkbox component exists
-import { Textarea } from '@/components/ui/textarea'; // Assuming a Textarea component exists
-import { Label } from '@/components/ui/label'; // Assuming a Label component exists
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'; // Assuming RadioGroup components exist
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 
-interface ApprovalVoteModalContentProps {
+interface OffchainBasicVoteModalContentProps {
   proposal: Selectable<Proposal>;
   choices: string[];
   onVoteSubmit: (voteData: {
     proposalId: string;
-    choice: number[];
+    choice: number;
     reason: string;
   }) => Promise<void>;
   onClose: () => void;
 }
 
-export function ApprovalVoteModalContent({
+export function OffchainBasicVoteModalContent({
   proposal,
   choices,
   onVoteSubmit,
   onClose,
-}: ApprovalVoteModalContentProps) {
-  const [selectedChoices, setSelectedChoices] = React.useState<number[]>([]);
+}: OffchainBasicVoteModalContentProps) {
+  const [selectedChoice, setSelectedChoice] = React.useState<string>(''); // Store the 1-based index as string
   const [reason, setReason] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const handleCheckboxChange = (choiceIndex: number, checked: boolean) => {
-    setSelectedChoices((prev) =>
-      checked
-        ? [...prev, choiceIndex + 1] // Snapshot uses 1-based indexing for choices
-        : prev.filter((index) => index !== choiceIndex + 1)
-    );
-  };
-
   const handleSubmit = async () => {
+    if (!selectedChoice) return; // Ensure a choice is made
+
     setIsSubmitting(true);
     try {
       await onVoteSubmit({
         proposalId: proposal.id,
-        choice: selectedChoices, // Send array of 1-based indices
+        choice: parseInt(selectedChoice, 10), // Send the 1-based index as number
         reason: reason,
       });
       // onSuccess handled by parent (closing modal)
     } catch (error) {
-      console.error('Failed to submit approval vote:', error);
+      console.error('Failed to submit basic vote:', error);
       // TODO: Add user feedback for error
     } finally {
       setIsSubmitting(false);
@@ -57,20 +51,18 @@ export function ApprovalVoteModalContent({
   return (
     <div className='space-y-4 py-4'>
       <div className='space-y-2'>
-        <Label className='text-base font-semibold'>Select Choices</Label>
+        <Label className='text-base font-semibold'>Select Choice</Label>
         <p className='text-sm text-neutral-500 dark:text-neutral-400'>
-          Select one or more options you approve of.
+          Select only one option.
         </p>
-        <div className='space-y-2 pt-2'>
+        <RadioGroup
+          value={selectedChoice}
+          onValueChange={setSelectedChoice}
+          className='space-y-2 pt-2'
+        >
           {choices.map((choice, index) => (
             <div key={index} className='flex items-center space-x-2'>
-              <Checkbox
-                id={`choice-${index}`}
-                checked={selectedChoices.includes(index + 1)}
-                onCheckedChange={(checked) =>
-                  handleCheckboxChange(index, !!checked)
-                }
-              />
+              <RadioGroupItem value={`${index + 1}`} id={`choice-${index}`} />
               <Label
                 htmlFor={`choice-${index}`}
                 className='flex-1 cursor-pointer text-sm'
@@ -79,7 +71,7 @@ export function ApprovalVoteModalContent({
               </Label>
             </div>
           ))}
-        </div>
+        </RadioGroup>
       </div>
 
       <div className='space-y-2'>
@@ -104,7 +96,7 @@ export function ApprovalVoteModalContent({
         <Button
           type='button'
           onClick={handleSubmit}
-          disabled={isSubmitting || selectedChoices.length === 0}
+          disabled={isSubmitting || !selectedChoice}
         >
           {isSubmitting ? 'Submitting...' : 'Submit Vote'}
         </Button>

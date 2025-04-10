@@ -171,7 +171,7 @@ impl SnapshotProposal {
             .naive_utc();
 
         let mut metadata = json!({
-            "vote_type": self.proposal_type,
+            "vote_type": format!("offchain-{}", self.proposal_type),
             "quorum_choices": self.get_quorum_choices(),
             "scores_state": self.scores_state
         });

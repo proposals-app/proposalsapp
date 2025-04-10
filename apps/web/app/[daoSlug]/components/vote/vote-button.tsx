@@ -11,13 +11,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { ProposalMetadata } from '@/lib/types';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
-import { ApprovalVoteModalContent } from './vote-types-modals/approval-vote';
-import { BasicVoteModalContent } from './vote-types-modals/basic-vote';
-import { QuadraticVoteModalContent } from './vote-types-modals/quadratic-vote';
-import { RankedChoiceVoteModalContent } from './vote-types-modals/ranked-choice-vote';
-import { SingleChoiceVoteModalContent } from './vote-types-modals/single-choice-vote';
-import { WeightedVoteModalContent } from './vote-types-modals/weighted-vote';
 import { Vote } from 'lucide-react';
+import { OffchainApprovalVoteModalContent } from './vote-types-modals/offchain/approval-vote';
+import { OffchainBasicVoteModalContent } from './vote-types-modals/offchain/basic-vote';
+import { OffchainQuadraticVoteModalContent } from './vote-types-modals/offchain/quadratic-vote';
+import { OffchainRankedChoiceVoteModalContent } from './vote-types-modals/offchain/ranked-choice-vote';
+import { OffchainSingleChoiceVoteModalContent } from './vote-types-modals/offchain/single-choice-vote';
+import { OffchainWeightedVoteModalContent } from './vote-types-modals/offchain/weighted-vote';
+import { OnchainBasicVoteModalContent } from './vote-types-modals/onchain/basic-vote';
 
 interface VoteButtonProps {
   proposal: Selectable<Proposal>;
@@ -25,21 +26,21 @@ interface VoteButtonProps {
 }
 
 const voteModalComponents = {
-  approval: ApprovalVoteModalContent,
-  basic: BasicVoteModalContent,
-  quadratic: QuadraticVoteModalContent, // Assuming Quadratic uses basic selection UI for now
-  'ranked-choice': RankedChoiceVoteModalContent,
-  'single-choice': SingleChoiceVoteModalContent, // Often same as basic
-  weighted: WeightedVoteModalContent,
+  'offchain-approval': OffchainApprovalVoteModalContent,
+  'offchain-basic': OffchainBasicVoteModalContent,
+  'offchain-quadratic': OffchainQuadraticVoteModalContent,
+  'offchain-ranked-choice': OffchainRankedChoiceVoteModalContent,
+  'offchain-single-choice': OffchainSingleChoiceVoteModalContent,
+  'offchain-weighted': OffchainWeightedVoteModalContent,
+  'onchain-basic': OnchainBasicVoteModalContent,
 };
 
 export function VoteButton({ proposal }: VoteButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
 
   const metadata = proposal.metadata as ProposalMetadata;
-  const voteType = metadata?.voteType || 'basic'; // Default to basic if undefined
+  const voteType = metadata?.voteType || 'offchain-basic';
 
-  // Ensure choices is an array of strings
   const choices = Array.isArray(proposal.choices)
     ? (proposal.choices as string[])
     : [];
@@ -56,7 +57,7 @@ export function VoteButton({ proposal }: VoteButtonProps) {
   }
 
   const ModalContentComponent =
-    voteModalComponents[voteType] || BasicVoteModalContent; // Fallback to basic
+    voteModalComponents[voteType] || OffchainBasicVoteModalContent; // Fallback to basic
 
   const handleVoteSubmit = async (voteData: unknown) => {
     console.log('Submitting vote:', voteData);
