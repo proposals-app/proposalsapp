@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
-    "npm-check-updates": "^17.1.16"
+    "npm-check-updates": "^17.1.18"
   },
   "engines": {
     "node": "20"

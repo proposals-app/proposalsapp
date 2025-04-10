@@ -9,6 +9,14 @@ const withSerwist = withSerwistInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
   allowedDevOrigins: ['arbitrum.localhost', 'localhost'],
   rewrites: () => {
     return [
@@ -40,14 +48,6 @@ const nextConfig = {
     cacheHandlers: { default: resolve('./cache-handler.mjs') },
     serverActions: {
       bodySizeLimit: '10mb',
-    },
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
     },
   },
   images: {
