@@ -2,7 +2,7 @@
   "name": "@proposalsapp/db-web",
   "version": "1.0.0",
   "dependencies": {
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.5.0",
     "kysely": "0.27.6",
     "pg": "8.14.1"
   },
