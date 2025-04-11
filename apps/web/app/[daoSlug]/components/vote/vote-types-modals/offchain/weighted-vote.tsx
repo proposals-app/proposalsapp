@@ -1,44 +1,65 @@
 'use client';
 
 import * as React from 'react';
+import snapshot from '@snapshot-labs/snapshot.js';
+import { Web3Provider } from '@ethersproject/providers';
+import { useAccount, useWalletClient } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import {
+  ATTRIBUTION_TEXT,
+  SNAPSHOT_APP_NAME,
+  SNAPSHOT_HUB_URL,
+} from '../../vote-button';
 
 interface OffchainWeightedVoteModalContentProps {
   proposal: Selectable<Proposal>;
+  space: string;
   choices: string[];
-  onVoteSubmit: (voteData: {
-    proposalId: string;
-    choice: Record<string, number>; // Send { "1": weight1, "2": weight2, ... }
-    reason: string;
-  }) => Promise<void>;
+  onVoteSubmit: () => Promise<void>; // Simplified: Parent handles success
   onClose: () => void;
 }
 
 export function OffchainWeightedVoteModalContent({
   proposal,
+  space,
   choices,
   onVoteSubmit,
   onClose,
 }: OffchainWeightedVoteModalContentProps) {
   // Initialize weights state { '1': 0, '2': 0, ... }
-  const initialWeights = choices.reduce(
-    (acc, _, index) => {
-      acc[index + 1] = 0; // Use 1-based index as key
-      return acc;
-    },
-    {} as Record<string, number>
+  const initialWeights = React.useMemo(
+    () =>
+      choices.reduce(
+        (acc, _, index) => {
+          acc[index + 1] = 0; // Use 1-based index as key
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
+    [choices] // Depend on choices array
   );
+
   const [weights, setWeights] =
     React.useState<Record<string, number>>(initialWeights);
   const [reason, setReason] = React.useState('');
+  const [addAttribution, setAddAttribution] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const { data: walletClient } = useWalletClient();
+  const { address } = useAccount();
+
+  // Reset weights when choices change (e.g., modal re-renders with different prop)
+  React.useEffect(() => {
+    setWeights(initialWeights);
+  }, [initialWeights]);
 
   const totalWeight = React.useMemo(() => {
     return Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -55,57 +76,109 @@ export function OffchainWeightedVoteModalContent({
     }));
   };
 
+  // Dynamic validation for exceeding 100%
   React.useEffect(() => {
-    // Validate total weight dynamically
     if (totalWeight > 100) {
       setError('Total weight cannot exceed 100%.');
     } else {
-      setError(null);
+      // Clear the error only if it was the "exceed 100%" error
+      if (error === 'Total weight cannot exceed 100%.') {
+        setError(null);
+      }
     }
-  }, [totalWeight]);
+  }, [totalWeight, error]); // Added error dependency to avoid clearing other errors
 
   const handleSubmit = async () => {
-    if (error) return; // Don't submit if there's an error
-    if (totalWeight === 0) {
-      setError('You must allocate some voting power.');
+    if (!walletClient || !address) {
+      toast.error('Wallet not connected.', { position: 'top-right' });
       return;
     }
-    // Optional: enforce total weight must be exactly 100%
-    // if (totalWeight !== 100) {
-    //   setError('Total weight must add up to exactly 100%.');
-    //   return;
-    // }
+    // Explicitly check for exactly 100% on submit
+    if (totalWeight !== 100) {
+      const newError = 'Total weight must be exactly 100%.';
+      setError(newError);
+      toast.error(newError, { position: 'top-right' });
+      return;
+    }
+    // Clear any previous errors if validation passes now
+    setError(null);
 
     setIsSubmitting(true);
-    setError(null);
+    const client = new snapshot.Client712(SNAPSHOT_HUB_URL);
+
+    // Construct final reason
+    const finalReason = addAttribution
+      ? reason.trim()
+        ? `${reason.trim()}\n${ATTRIBUTION_TEXT}`
+        : ATTRIBUTION_TEXT.trim() // Use only attribution if reason is empty
+      : reason;
+
     try {
-      // Filter out choices with 0 weight before submitting
+      // Filter out choices with 0 weight before submitting (Snapshot might handle this, but explicit is safer)
       const votePayload: Record<string, number> = {};
       for (const key in weights) {
         if (weights[key] > 0) {
+          // Snapshot expects integer weights (representing percentages)
           votePayload[key] = weights[key];
         }
       }
 
-      await onVoteSubmit({
-        proposalId: proposal.id,
+      const web3Provider = new Web3Provider(
+        walletClient.transport,
+        walletClient.chain.id
+      );
+
+      const receipt = await client.vote(web3Provider, address, {
+        space,
+        proposal: proposal.externalId, // Use externalId for Snapshot
+        type: 'weighted',
         choice: votePayload, // Send object with 1-based index keys and weights
-        reason: reason,
+        reason: finalReason,
+        app: SNAPSHOT_APP_NAME,
       });
-    } catch (err) {
-      console.error('Failed to submit weighted vote:', err);
-      setError('Failed to submit vote. Please try again.');
+
+      console.log('Snapshot vote receipt:', receipt);
+      toast.success('Vote submitted successfully!', { position: 'top-right' });
+      await onVoteSubmit(); // Notify parent of success
+    } catch (error: unknown) {
+      console.error('Failed to submit weighted vote via Snapshot:', error);
+      let message = 'Unknown error';
+      if (typeof error === 'object' && error !== null) {
+        // Attempt to access Snapshot's specific error field first
+        if (
+          'error_description' in error &&
+          typeof error.error_description === 'string'
+        ) {
+          message = error.error_description;
+        }
+        // Fallback to standard Error message
+        else if ('message' in error && typeof error.message === 'string') {
+          message = error.message;
+        }
+      } else if (typeof error === 'string') {
+        message = error; // Handle plain string errors
+      }
+      setError('Failed to submit vote. Please try again.'); // Set state error
+      toast.error(`Failed to submit vote: ${message}`, {
+        position: 'top-right',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Determine if the button should be disabled
+  const isSubmitDisabled =
+    isSubmitting ||
+    totalWeight !== 100 || // Must be exactly 100
+    !walletClient;
 
   return (
     <div className='space-y-4 py-4'>
       <div className='space-y-2'>
         <Label className='text-base font-semibold'>Allocate Voting Power</Label>
         <p className='text-sm text-neutral-500 dark:text-neutral-400'>
-          Distribute 100% of your voting power across the options below.
+          Distribute exactly 100% of your voting power across the options below.
         </p>
         <div className='space-y-3 pt-2'>
           {choices.map((choice, index) => {
@@ -126,12 +199,13 @@ export function OffchainWeightedVoteModalContent({
                     id={`choice-weight-${choiceIndexKey}`}
                     type='number'
                     min='0'
-                    max='100' // Technically can be > 100 initially, validation checks total
+                    max='100'
                     step='1'
-                    value={weights[choiceIndexKey]}
+                    value={weights[choiceIndexKey] || '0'} // Ensure controlled input, default to '0'
                     onChange={(e) =>
                       handleWeightChange(choiceIndexKey, e.target.value)
                     }
+                    disabled={isSubmitting}
                     className={cn(
                       'h-8 w-full appearance-none text-right text-sm',
                       '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none' // Hide number input spinners
@@ -146,15 +220,27 @@ export function OffchainWeightedVoteModalContent({
       </div>
 
       {/* Total Weight Display and Error */}
-      <div className='flex items-center justify-end space-x-2 pt-2'>
+      <div className='flex min-h-[20px] items-center justify-end space-x-2 pt-2'>
+        {' '}
+        {/* Added min-h */}
         {error && (
-          <p className='text-sm text-red-600 dark:text-red-400'>{error}</p>
+          <p className='flex-1 text-right text-sm text-red-600 dark:text-red-400'>
+            {' '}
+            {/* Adjusted alignment */}
+            {error}
+          </p>
         )}
+        {!error && <div className='flex-1'></div>}{' '}
+        {/* Placeholder to maintain layout */}
         <Label className='text-sm font-medium'>Total:</Label>
         <span
           className={cn(
-            'text-sm font-semibold',
-            totalWeight > 100 ? 'text-red-600 dark:text-red-400' : ''
+            'w-[45px] text-right text-sm font-semibold', // Added width and text-align
+            totalWeight > 100 || (error && totalWeight !== 100) // Highlight red if > 100 or if error is set and not 100
+              ? 'text-red-600 dark:text-red-400'
+              : totalWeight === 100
+                ? 'text-green-600 dark:text-green-400' // Highlight green if exactly 100
+                : ''
           )}
         >
           {totalWeight}%
@@ -171,19 +257,35 @@ export function OffchainWeightedVoteModalContent({
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           className='min-h-[80px]'
+          disabled={isSubmitting}
         />
+      </div>
+
+      <div className='flex items-center space-x-2'>
+        <Checkbox
+          id='attribution'
+          checked={addAttribution}
+          onCheckedChange={(checked) => setAddAttribution(!!checked)}
+          disabled={isSubmitting}
+        />
+        <Label
+          htmlFor='attribution'
+          className='cursor-pointer text-xs text-neutral-600 dark:text-neutral-400'
+        >
+          Append &quot;voted via proposals.app&quot; to the reason
+        </Label>
       </div>
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button type='button' variant='outline'>
+          <Button type='button' variant='outline' onClick={onClose}>
             Cancel
           </Button>
         </DialogClose>
         <Button
           type='button'
           onClick={handleSubmit}
-          disabled={isSubmitting || !!error || totalWeight === 0}
+          disabled={isSubmitDisabled}
         >
           {isSubmitting ? 'Submitting...' : 'Submit Vote'}
         </Button>

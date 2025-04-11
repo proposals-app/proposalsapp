@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { ProposalMetadata } from '@/lib/types';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { Vote } from 'lucide-react';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { OffchainApprovalVoteModalContent } from './vote-types-modals/offchain/approval-vote';
 import { OffchainBasicVoteModalContent } from './vote-types-modals/offchain/basic-vote';
 import { OffchainQuadraticVoteModalContent } from './vote-types-modals/offchain/quadratic-vote';
@@ -20,9 +22,14 @@ import { OffchainSingleChoiceVoteModalContent } from './vote-types-modals/offcha
 import { OffchainWeightedVoteModalContent } from './vote-types-modals/offchain/weighted-vote';
 import { OnchainBasicVoteModalContent } from './vote-types-modals/onchain/basic-vote';
 
+export const SNAPSHOT_HUB_URL = 'https://hub.snapshot.org';
+export const SNAPSHOT_SPACE = 'arbitrumfoundation.eth';
+export const SNAPSHOT_APP_NAME = 'proposalsapp';
+export const ATTRIBUTION_TEXT = 'voted via proposals.app';
+
 interface VoteButtonProps {
   proposal: Selectable<Proposal>;
-  // TODO: Add onVoteSubmit callback prop: (voteData: any) => Promise<void>;
+  space?: string;
 }
 
 const voteModalComponents = {
@@ -35,11 +42,37 @@ const voteModalComponents = {
   'onchain-basic': OnchainBasicVoteModalContent,
 };
 
-export function VoteButton({ proposal }: VoteButtonProps) {
+export function VoteButton({
+  proposal,
+  space = SNAPSHOT_SPACE,
+}: VoteButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
+  const { isConnected } = useAccount();
 
-  const metadata = proposal.metadata as ProposalMetadata;
-  const voteType = metadata?.voteType || 'offchain-basic';
+  // --- Wallet connection check ---
+  if (!isConnected) {
+    // Show ConnectButton centered or aligned as needed
+    return (
+      <div className='flex w-full justify-center'>
+        <ConnectButton />
+      </div>
+    );
+  }
+
+  // --- Wallet is connected, proceed with vote button logic ---
+
+  const metadata = proposal.metadata as ProposalMetadata | null;
+  const voteType = metadata?.voteType;
+
+  if (!voteType) {
+    console.warn(`VoteButton: Proposal ${proposal.id} has no valid vote type.`);
+    return (
+      <Button disabled variant='outline' className='w-full'>
+        <Vote className='mr-2 h-4 w-4' />
+        Unknown Vote Type
+      </Button>
+    );
+  }
 
   const choices = Array.isArray(proposal.choices)
     ? (proposal.choices as string[])
@@ -49,22 +82,12 @@ export function VoteButton({ proposal }: VoteButtonProps) {
   if (choices.length === 0) {
     console.warn(`VoteButton: Proposal ${proposal.id} has no valid choices.`);
     return (
-      <Button disabled variant='outline'>
+      <Button disabled variant='outline' className='w-full'>
         <Vote className='mr-2 h-4 w-4' />
-        Vote (No Choices)
+        Unknown Vote Choices
       </Button>
     );
   }
-
-  const ModalContentComponent =
-    voteModalComponents[voteType] || OffchainBasicVoteModalContent; // Fallback to basic
-
-  const handleVoteSubmit = async (voteData: unknown) => {
-    console.log('Submitting vote:', voteData);
-    // TODO: Implement actual vote submission logic using a server action
-    // await onVoteSubmit(voteData);
-    setIsOpen(false); // Close modal on submit
-  };
 
   // Check if voting period has ended
   const now = new Date();
@@ -73,12 +96,19 @@ export function VoteButton({ proposal }: VoteButtonProps) {
 
   if (isVotingEnded) {
     return (
-      <Button disabled variant='outline'>
+      <Button disabled variant='outline' className='w-full'>
         <Vote className='mr-2 h-4 w-4' />
         Voting Ended
       </Button>
     );
   }
+
+  const ModalContentComponent =
+    voteModalComponents[voteType] || OffchainBasicVoteModalContent;
+
+  const handleSuccessfulVote = async () => {
+    setIsOpen(false);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -91,15 +121,15 @@ export function VoteButton({ proposal }: VoteButtonProps) {
       <DialogContent className='sm:max-w-[525px]'>
         <DialogHeader>
           <DialogTitle>Cast Your Vote</DialogTitle>
-          {/* Optional: Add DialogDescription here */}
         </DialogHeader>
+        {/* Render the selected modal content, passing necessary props */}
         <ModalContentComponent
           proposal={proposal}
+          space={space}
           choices={choices}
-          onVoteSubmit={handleVoteSubmit}
-          onClose={() => setIsOpen(false)}
+          onVoteSubmit={handleSuccessfulVote} // Pass the success handler
+          onClose={() => setIsOpen(false)} // Pass the close handler for cancellation
         />
-        {/* Footer might be rendered within ModalContentComponent for flexibility */}
       </DialogContent>
     </Dialog>
   );

@@ -1,54 +1,109 @@
 'use client';
 
 import * as React from 'react';
+import snapshot from '@snapshot-labs/snapshot.js';
+import { Web3Provider } from '@ethersproject/providers';
+import { useAccount, useWalletClient } from 'wagmi';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox'; // Assuming a Checkbox component exists
-import { Textarea } from '@/components/ui/textarea'; // Assuming a Textarea component exists
-import { Label } from '@/components/ui/label'; // Assuming a Label component exists
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
+import { toast } from 'sonner';
+import {
+  ATTRIBUTION_TEXT,
+  SNAPSHOT_APP_NAME,
+  SNAPSHOT_HUB_URL,
+} from '../../vote-button';
 
 interface OffchainApprovalVoteModalContentProps {
   proposal: Selectable<Proposal>;
+  space: string;
   choices: string[];
-  onVoteSubmit: (voteData: {
-    proposalId: string;
-    choice: number[];
-    reason: string;
-  }) => Promise<void>;
+  onVoteSubmit: () => Promise<void>;
   onClose: () => void;
 }
 
 export function OffchainApprovalVoteModalContent({
   proposal,
+  space,
   choices,
   onVoteSubmit,
   onClose,
 }: OffchainApprovalVoteModalContentProps) {
   const [selectedChoices, setSelectedChoices] = React.useState<number[]>([]);
   const [reason, setReason] = React.useState('');
+  const [addAttribution, setAddAttribution] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const { data: walletClient } = useWalletClient();
+  const { address } = useAccount();
 
   const handleCheckboxChange = (choiceIndex: number, checked: boolean) => {
     setSelectedChoices((prev) =>
       checked
-        ? [...prev, choiceIndex + 1] // Snapshot uses 1-based indexing for choices
+        ? [...prev, choiceIndex + 1] // Snapshot uses 1-based indexing
         : prev.filter((index) => index !== choiceIndex + 1)
     );
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      await onVoteSubmit({
-        proposalId: proposal.id,
-        choice: selectedChoices, // Send array of 1-based indices
-        reason: reason,
+    if (!walletClient || !address || selectedChoices.length === 0) {
+      toast.error('Wallet not connected or no choice selected.', {
+        position: 'top-right',
       });
-      // onSuccess handled by parent (closing modal)
-    } catch (error) {
-      console.error('Failed to submit approval vote:', error);
-      // TODO: Add user feedback for error
+      return;
+    }
+
+    setIsSubmitting(true);
+    const client = new snapshot.Client712(SNAPSHOT_HUB_URL);
+
+    // Construct final reason
+    const finalReason = addAttribution
+      ? reason.trim()
+        ? `${reason.trim()}\n${ATTRIBUTION_TEXT}`
+        : ATTRIBUTION_TEXT.trim() // Use only attribution if reason is empty
+      : reason;
+
+    try {
+      const web3Provider = new Web3Provider(
+        walletClient.transport,
+        walletClient.chain.id
+      );
+
+      const receipt = await client.vote(web3Provider, address, {
+        space,
+        proposal: proposal.externalId, // Use externalId for Snapshot
+        type: 'approval',
+        choice: selectedChoices,
+        reason: finalReason,
+        app: SNAPSHOT_APP_NAME,
+      });
+
+      console.log('Snapshot vote receipt:', receipt);
+      toast.success('Vote submitted successfully!', { position: 'top-right' });
+      await onVoteSubmit(); // Notify parent of success
+    } catch (error: unknown) {
+      console.error('Failed to submit approval vote via Snapshot:', error);
+      let message = 'Unknown error';
+      if (typeof error === 'object' && error !== null) {
+        // Attempt to access Snapshot's specific error field first
+        if (
+          'error_description' in error &&
+          typeof error.error_description === 'string'
+        ) {
+          message = error.error_description;
+        }
+        // Fallback to standard Error message
+        else if ('message' in error && typeof error.message === 'string') {
+          message = error.message;
+        }
+      } else if (typeof error === 'string') {
+        message = error; // Handle plain string errors
+      }
+      toast.error(`Failed to submit vote: ${message}`, {
+        position: 'top-right',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -70,6 +125,7 @@ export function OffchainApprovalVoteModalContent({
                 onCheckedChange={(checked) =>
                   handleCheckboxChange(index, !!checked)
                 }
+                disabled={isSubmitting}
               />
               <Label
                 htmlFor={`choice-${index}`}
@@ -92,19 +148,37 @@ export function OffchainApprovalVoteModalContent({
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           className='min-h-[80px]'
+          disabled={isSubmitting}
         />
+      </div>
+
+      <div className='flex items-center space-x-2'>
+        <Checkbox
+          id='attribution'
+          checked={addAttribution}
+          onCheckedChange={(checked) => setAddAttribution(!!checked)}
+          disabled={isSubmitting}
+        />
+        <Label
+          htmlFor='attribution'
+          className='cursor-pointer text-xs text-neutral-600 dark:text-neutral-400'
+        >
+          Append &quot;voted via proposals.app&quot; to the reason
+        </Label>
       </div>
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button type='button' variant='outline'>
+          <Button type='button' variant='outline' onClick={onClose}>
             Cancel
           </Button>
         </DialogClose>
         <Button
           type='button'
           onClick={handleSubmit}
-          disabled={isSubmitting || selectedChoices.length === 0}
+          disabled={
+            isSubmitting || selectedChoices.length === 0 || !walletClient
+          }
         >
           {isSubmitting ? 'Submitting...' : 'Submit Vote'}
         </Button>

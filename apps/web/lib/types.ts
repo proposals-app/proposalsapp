@@ -1,16 +1,9 @@
 import { Proposal, Selectable } from '@proposalsapp/db-indexer';
-import { ProcessedResults } from './results_processing';
+import { ProcessedResults, VoteType } from './results_processing';
 
 export type ProposalMetadata = {
   quorumChoices?: number[];
-  voteType?:
-    | 'offchain-single-choice'
-    | 'offchain-weighted'
-    | 'offchain-approval'
-    | 'offchain-basic'
-    | 'offchain-quadratic'
-    | 'offchain-ranked-choice'
-    | 'onchain-basic';
+  voteType?: VoteType;
   totalDelegatedVp?: string;
   hiddenVote: boolean;
   scoresState: string;

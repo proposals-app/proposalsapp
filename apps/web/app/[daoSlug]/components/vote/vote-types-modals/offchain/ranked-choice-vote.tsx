@@ -1,8 +1,14 @@
+'use client';
+
 import * as React from 'react';
 import { createPortal } from 'react-dom';
+import snapshot from '@snapshot-labs/snapshot.js';
+import { Web3Provider } from '@ethersproject/providers';
+import { useAccount, useWalletClient } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { GripVertical } from 'lucide-react';
@@ -29,6 +35,12 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { cva } from 'class-variance-authority';
+import { toast } from 'sonner';
+import {
+  ATTRIBUTION_TEXT,
+  SNAPSHOT_APP_NAME,
+  SNAPSHOT_HUB_URL,
+} from '../../vote-button';
 
 // Interface for state items, ensuring 'id' is UniqueIdentifier (string | number)
 interface RankedChoiceItem {
@@ -38,12 +50,9 @@ interface RankedChoiceItem {
 
 interface OffchainRankedChoiceVoteModalContentProps {
   proposal: Selectable<Proposal>;
+  space: string;
   choices: string[];
-  onVoteSubmit: (voteData: {
-    proposalId: string;
-    choice: number[];
-    reason: string;
-  }) => Promise<void>;
+  onVoteSubmit: () => Promise<void>; // Simplified: Parent handles success
   onClose: () => void;
 }
 
@@ -79,7 +88,7 @@ function RankedChoiceSortableItem({
           overlay:
             'ring-2 ring-blue-500 bg-white shadow-lg dark:border-blue-400 dark:bg-neutral-800', // Style for the drag overlay
           default:
-            'border-transparent bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800/50', // Default and hover style
+            'border-neutral-200 bg-neutral-100 hover:bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700/80', // Default and hover style with visible border
         },
       },
     }
@@ -100,12 +109,11 @@ function RankedChoiceSortableItem({
         variant={'ghost'}
         {...attributes}
         {...listeners}
-        className='-ml-2 h-auto cursor-grab touch-none p-1 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700 dark:hover:bg-neutral-700 dark:hover:text-neutral-200'
+        className='-ml-2 h-auto cursor-grab touch-none p-1 text-neutral-400 hover:bg-neutral-300 hover:text-neutral-700 dark:hover:bg-neutral-700 dark:hover:text-neutral-200'
         aria-label={`Drag ${item.content}`}
       >
         <span className='sr-only'>Move item</span>
         <GripVertical className='h-4 w-4' />
-        {/* Changed icon to GripVertical for clearer affordance */}
       </Button>
       <span className='font-medium select-none'>{index + 1}.</span>
       <span className='flex-1 text-sm select-none'>{item.content}</span>
@@ -116,6 +124,7 @@ function RankedChoiceSortableItem({
 // Main Modal Content Component
 export function OffchainRankedChoiceVoteModalContent({
   proposal,
+  space,
   choices,
   onVoteSubmit,
   onClose,
@@ -125,24 +134,28 @@ export function OffchainRankedChoiceVoteModalContent({
     null
   );
   const [reason, setReason] = React.useState('');
+  const [addAttribution, setAddAttribution] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const originalChoicesRef = React.useRef(choices);
+  const { data: walletClient } = useWalletClient();
+  const { address } = useAccount();
 
   React.useEffect(() => {
     originalChoicesRef.current = choices;
     setRankedItems(
       choices.map((choiceText, index) => ({
-        // Ensure ID is stable and unique. Using index as prefix for extra safety.
-        id: `choice-${index}-${choiceText}`,
+        id: `choice-${index}-${choiceText.slice(0, 10)}`, // Use unique ID
         content: choiceText,
       }))
     );
     setReason('');
-  }, [choices]);
+  }, [choices]); // Rerun effect if choices array itself changes
 
   const sensors = useSensors(
-    useSensor(PointerSensor), // Use PointerSensor for combined mouse/touch
-    useSensor(TouchSensor), // Redundant with PointerSensor, but sometimes included for clarity
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), // Require small movement before drag
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    }), // Require hold or movement
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -162,41 +175,103 @@ export function OffchainRankedChoiceVoteModalContent({
       setRankedItems((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        // Ensure indices are valid before moving
+        if (oldIndex !== -1 && newIndex !== -1) {
+          return arrayMove(items, oldIndex, newIndex);
+        }
+        return items; // Return original items if indices are invalid
       });
     }
   };
 
   const handleSubmit = async () => {
+    if (!walletClient || !address) {
+      toast.error('Wallet not connected.', { position: 'top-right' });
+      return;
+    }
+
     setIsSubmitting(true);
+    const client = new snapshot.Client712(SNAPSHOT_HUB_URL);
+
+    // Construct final reason
+    const finalReason = addAttribution
+      ? reason.trim()
+        ? `${reason.trim()}\n${ATTRIBUTION_TEXT}`
+        : ATTRIBUTION_TEXT.trim() // Use only attribution if reason is empty
+      : reason;
+
     try {
       // Map the ranked item content back to their original 1-based indices
-      const choiceIndices = rankedItems.map(
-        (item) => originalChoicesRef.current.indexOf(item.content) + 1
-      );
+      const choiceIndices = rankedItems.map((item) => {
+        const originalIndex = originalChoicesRef.current.indexOf(item.content);
+        return originalIndex + 1; // Convert to 1-based index
+      });
 
       // Validation
       if (choiceIndices.some((index) => index === 0)) {
-        throw new Error('Failed to map choices correctly.');
+        throw new Error('Failed to map choices correctly. Found a 0 index.');
       }
       if (choiceIndices.length !== originalChoicesRef.current.length) {
-        throw new Error('Choice count mismatch.');
+        throw new Error(
+          `Choice count mismatch. Expected ${originalChoicesRef.current.length}, got ${choiceIndices.length}.`
+        );
+      }
+      // Check for duplicate indices (shouldn't happen with Set logic in mapping, but good failsafe)
+      if (new Set(choiceIndices).size !== choiceIndices.length) {
+        throw new Error('Duplicate choice indices detected.');
       }
 
-      await onVoteSubmit({
-        proposalId: proposal.id,
-        choice: choiceIndices,
-        reason: reason,
+      const web3Provider = new Web3Provider(
+        walletClient.transport,
+        walletClient.chain.id
+      );
+
+      const receipt = await client.vote(web3Provider, address, {
+        space,
+        proposal: proposal.externalId, // Use externalId for Snapshot
+        type: 'ranked-choice',
+        choice: choiceIndices, // Send array of 1-based indices in ranked order
+        reason: finalReason,
+        app: SNAPSHOT_APP_NAME,
       });
-    } catch (error) {
-      console.error('Failed to submit ranked-choice vote:', error);
-      // TODO: Show error to user
+
+      console.log('Snapshot vote receipt:', receipt);
+      toast.success('Vote submitted successfully!', { position: 'top-right' });
+      await onVoteSubmit(); // Notify parent of success
+    } catch (error: unknown) {
+      console.error('Failed to submit ranked-choice vote via Snapshot:', error);
+      let message = 'Unknown error';
+      if (typeof error === 'object' && error !== null) {
+        // Attempt to access Snapshot's specific error field first
+        if (
+          'error_description' in error &&
+          typeof error.error_description === 'string'
+        ) {
+          message = error.error_description;
+        }
+        // Fallback to standard Error message
+        else if ('message' in error && typeof error.message === 'string') {
+          message = error.message;
+        }
+      } else if (typeof error === 'string') {
+        message = error; // Handle plain string errors
+      }
+      toast.error(`Failed to submit vote: ${message}`, {
+        position: 'top-right',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Prevent rendering before state initialization
+  // Prevent rendering before state initialization or if choices are empty
+  if (choices.length === 0) {
+    return (
+      <div className='py-4 text-center text-neutral-500'>
+        No choices available for ranking.
+      </div>
+    );
+  }
   if (rankedItems.length === 0 && choices.length > 0) {
     return null; // Or a loading indicator
   }
@@ -206,13 +281,14 @@ export function OffchainRankedChoiceVoteModalContent({
     : -1;
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className='space-y-4 py-4'>
+    // Keep DndContext wrapping only the elements that need it
+    <div className='space-y-4 py-4'>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
         <div className='space-y-2'>
           <Label className='text-base font-semibold'>Rank Choices</Label>
           <p className='text-sm text-neutral-500 dark:text-neutral-400'>
@@ -238,52 +314,69 @@ export function OffchainRankedChoiceVoteModalContent({
             </SortableContext>
           </div>
         </div>
+        {/* Render DragOverlay outside the normal flow, ensuring it only renders client-side */}
+        {typeof document !== 'undefined' &&
+          document.body &&
+          createPortal(
+            <DragOverlay>
+              {activeItem ? (
+                <RankedChoiceSortableItem
+                  item={activeItem}
+                  index={activeItemIndex}
+                  isOverlay
+                />
+              ) : null}
+            </DragOverlay>,
+            document.body
+          )}
+      </DndContext>
 
-        <div className='space-y-2'>
-          <Label
-            htmlFor={`reason-${proposal.id}`}
-            className='text-base font-semibold'
-          >
-            Reason (Optional)
-          </Label>
-          <Textarea
-            id={`reason-${proposal.id}`}
-            placeholder='Why are you voting this way?'
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className='min-h-[80px]'
-          />
-        </div>
-
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type='button' variant='outline' onClick={onClose}>
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button
-            type='button'
-            onClick={handleSubmit}
-            disabled={isSubmitting || rankedItems.length === 0}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Vote'}
-          </Button>
-        </DialogFooter>
+      <div className='space-y-2'>
+        <Label
+          htmlFor={`reason-${proposal.id}`}
+          className='text-base font-semibold'
+        >
+          Reason (Optional)
+        </Label>
+        <Textarea
+          id={`reason-${proposal.id}`}
+          placeholder='Why are you voting this way?'
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className='min-h-[80px]'
+          disabled={isSubmitting}
+        />
       </div>
-      {/* Render DragOverlay outside the normal flow */}
-      {'document' in window &&
-        createPortal(
-          <DragOverlay>
-            {activeItem ? (
-              <RankedChoiceSortableItem
-                item={activeItem}
-                index={activeItemIndex}
-                isOverlay
-              />
-            ) : null}
-          </DragOverlay>,
-          document.body
-        )}
-    </DndContext>
+
+      <div className='flex items-center space-x-2'>
+        <Checkbox
+          id='attribution'
+          checked={addAttribution}
+          onCheckedChange={(checked) => setAddAttribution(!!checked)}
+          disabled={isSubmitting}
+        />
+        <Label
+          htmlFor='attribution'
+          className='cursor-pointer text-xs text-neutral-600 dark:text-neutral-400'
+        >
+          Append &quot;voted via proposals.app&quot; to the reason
+        </Label>
+      </div>
+
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button type='button' variant='outline' onClick={onClose}>
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button
+          type='button'
+          onClick={handleSubmit}
+          disabled={isSubmitting || rankedItems.length === 0 || !walletClient}
+        >
+          {isSubmitting ? 'Submitting...' : 'Submit Vote'}
+        </Button>
+      </DialogFooter>
+    </div>
   );
 }

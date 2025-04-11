@@ -3,30 +3,36 @@
 // NOTE: Snapshot's standard Quadratic Voting UI often simplifies to single-choice
 // selection, as the quadratic calculation happens based on the voter's VP, not
 // user-inputted "credits". This implementation reflects that common pattern.
-// If a credit-based system is needed, this component would require significant changes
-// (e.g., sliders, input validation).
 
 import * as React from 'react';
+import snapshot from '@snapshot-labs/snapshot.js';
+import { Web3Provider } from '@ethersproject/providers';
+import { useAccount, useWalletClient } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
+import { toast } from 'sonner';
+import {
+  ATTRIBUTION_TEXT,
+  SNAPSHOT_APP_NAME,
+  SNAPSHOT_HUB_URL,
+} from '../../vote-button';
 
 interface OffchainQuadraticVoteModalContentProps {
   proposal: Selectable<Proposal>;
+  space: string;
   choices: string[];
-  onVoteSubmit: (voteData: {
-    proposalId: string;
-    choice: number; // Or potentially Record<string, number> if credit-based
-    reason: string;
-  }) => Promise<void>;
+  onVoteSubmit: () => Promise<void>; // Simplified: Parent handles success
   onClose: () => void;
 }
 
 export function OffchainQuadraticVoteModalContent({
   proposal,
+  space,
   choices,
   onVoteSubmit,
   onClose,
@@ -34,22 +40,73 @@ export function OffchainQuadraticVoteModalContent({
   // Assuming single choice selection for simplicity, mirroring 'basic' vote UI
   const [selectedChoice, setSelectedChoice] = React.useState<string>('');
   const [reason, setReason] = React.useState('');
+  const [addAttribution, setAddAttribution] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const { data: walletClient } = useWalletClient();
+  const { address } = useAccount();
 
   const handleSubmit = async () => {
-    if (!selectedChoice) return;
+    if (!walletClient || !address || !selectedChoice) {
+      toast.error('Wallet not connected or no choice selected.', {
+        position: 'top-right',
+      });
+      return;
+    }
 
     setIsSubmitting(true);
+    const client = new snapshot.Client712(SNAPSHOT_HUB_URL);
+
+    // Construct final reason
+    const finalReason = addAttribution
+      ? reason.trim()
+        ? `${reason.trim()}\n${ATTRIBUTION_TEXT}`
+        : ATTRIBUTION_TEXT.trim() // Use only attribution if reason is empty
+      : reason;
+
     try {
+      const web3Provider = new Web3Provider(
+        walletClient.transport,
+        walletClient.chain.id
+      );
+
       // The backend/snapshot client handles the sqrt(vp) calculation.
       // We just send the selected choice index (1-based).
-      await onVoteSubmit({
-        proposalId: proposal.id,
-        choice: parseInt(selectedChoice, 10),
-        reason: reason,
+      // Snapshot expects the choice as an object for quadratic, even if only one is selected
+      const voteChoice = { [selectedChoice]: 1 };
+
+      const receipt = await client.vote(web3Provider, address, {
+        space,
+        proposal: proposal.externalId, // Use externalId for Snapshot
+        type: 'quadratic', // Snapshot type for quadratic
+        choice: voteChoice, // Send object like { "1": 1 } or { "2": 1 }
+        reason: finalReason,
+        app: SNAPSHOT_APP_NAME,
       });
-    } catch (error) {
-      console.error('Failed to submit quadratic vote:', error);
+
+      console.log('Snapshot vote receipt:', receipt);
+      toast.success('Vote submitted successfully!', { position: 'top-right' });
+      await onVoteSubmit(); // Notify parent of success
+    } catch (error: unknown) {
+      console.error('Failed to submit quadratic vote via Snapshot:', error);
+      let message = 'Unknown error';
+      if (typeof error === 'object' && error !== null) {
+        // Attempt to access Snapshot's specific error field first
+        if (
+          'error_description' in error &&
+          typeof error.error_description === 'string'
+        ) {
+          message = error.error_description;
+        }
+        // Fallback to standard Error message
+        else if ('message' in error && typeof error.message === 'string') {
+          message = error.message;
+        }
+      } else if (typeof error === 'string') {
+        message = error; // Handle plain string errors
+      }
+      toast.error(`Failed to submit vote: ${message}`, {
+        position: 'top-right',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -67,6 +124,7 @@ export function OffchainQuadraticVoteModalContent({
           value={selectedChoice}
           onValueChange={setSelectedChoice}
           className='space-y-2 pt-2'
+          disabled={isSubmitting}
         >
           {choices.map((choice, index) => (
             <div key={index} className='flex items-center space-x-2'>
@@ -92,19 +150,35 @@ export function OffchainQuadraticVoteModalContent({
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           className='min-h-[80px]'
+          disabled={isSubmitting}
         />
+      </div>
+
+      <div className='flex items-center space-x-2'>
+        <Checkbox
+          id='attribution'
+          checked={addAttribution}
+          onCheckedChange={(checked) => setAddAttribution(!!checked)}
+          disabled={isSubmitting}
+        />
+        <Label
+          htmlFor='attribution'
+          className='cursor-pointer text-xs text-neutral-600 dark:text-neutral-400'
+        >
+          Append &quot;voted via proposals.app&quot; to the reason
+        </Label>
       </div>
 
       <DialogFooter>
         <DialogClose asChild>
-          <Button type='button' variant='outline'>
+          <Button type='button' variant='outline' onClick={onClose}>
             Cancel
           </Button>
         </DialogClose>
         <Button
           type='button'
           onClick={handleSubmit}
-          disabled={isSubmitting || !selectedChoice}
+          disabled={isSubmitting || !selectedChoice || !walletClient}
         >
           {isSubmitting ? 'Submitting...' : 'Submit Vote'}
         </Button>

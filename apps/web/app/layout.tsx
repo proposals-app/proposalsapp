@@ -6,6 +6,8 @@ import SuspendedPostHogPageView from './components/posthog-page-view';
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
 import SuspendedThemeProvider from './components/theme-provider';
+import WalletProvider from './components/wallet-provider';
+import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -70,7 +72,12 @@ export default async function Layout({
             </Suspense>
             <SuspendedPostHogPageView />
             <Suspense>
-              <PHProvider>{children}</PHProvider>
+              <PHProvider>
+                <WalletProvider>
+                  <main>{children}</main>
+                  <Toaster />
+                </WalletProvider>
+              </PHProvider>
             </Suspense>
           </NuqsAdapter>
         </SuspendedThemeProvider>

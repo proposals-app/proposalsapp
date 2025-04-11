@@ -1,17 +1,8 @@
+import { VoteType } from '@/lib/results_processing';
 import { VoteButton } from './vote-button';
 import '@/styles/globals.css';
 import { Story } from '@ladle/react';
 import { JsonValue } from '@proposalsapp/db-indexer';
-
-// Define possible vote types based on voteModalComponents keys
-type VoteType =
-  | 'offchain-approval'
-  | 'offchain-basic'
-  | 'offchain-quadratic'
-  | 'offchain-ranked-choice'
-  | 'offchain-single-choice'
-  | 'offchain-weighted'
-  | 'onchain-basic';
 
 enum ProposalState {
   ACTIVE = 'ACTIVE',
