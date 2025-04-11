@@ -11,15 +11,13 @@ import { Label } from '@/components/ui/label';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { toast } from 'sonner';
-import {
-  ATTRIBUTION_TEXT,
-  SNAPSHOT_APP_NAME,
-  SNAPSHOT_HUB_URL,
-} from '../../vote-button';
+import { ATTRIBUTION_TEXT, SNAPSHOT_APP_NAME } from '../../vote-button';
 
 interface OffchainApprovalVoteModalContentProps {
   proposal: Selectable<Proposal>;
-  space: string;
+  snapshotSpace?: string;
+  snapshotHubUrl?: string;
+  governorAddress?: string;
   choices: string[];
   onVoteSubmit: () => Promise<void>;
   onClose: () => void;
@@ -27,7 +25,8 @@ interface OffchainApprovalVoteModalContentProps {
 
 export function OffchainApprovalVoteModalContent({
   proposal,
-  space,
+  snapshotSpace,
+  snapshotHubUrl,
   choices,
   onVoteSubmit,
   onClose,
@@ -56,7 +55,7 @@ export function OffchainApprovalVoteModalContent({
     }
 
     setIsSubmitting(true);
-    const client = new snapshot.Client712(SNAPSHOT_HUB_URL);
+    const client = new snapshot.Client712(snapshotHubUrl);
 
     // Construct final reason
     const finalReason = addAttribution
@@ -72,7 +71,7 @@ export function OffchainApprovalVoteModalContent({
       );
 
       const receipt = await client.vote(web3Provider, address, {
-        space,
+        space: snapshotSpace ?? '',
         proposal: proposal.externalId, // Use externalId for Snapshot
         type: 'approval',
         choice: selectedChoices,

@@ -6,22 +6,19 @@ import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { ProposalMetadata } from '@/lib/types'; // Assuming these types exist
 import { Web3Provider } from '@ethersproject/providers';
 import { Proposal, Selectable } from '@proposalsapp/db-indexer';
 import snapshot from '@snapshot-labs/snapshot.js';
 import * as React from 'react';
 import { toast } from 'sonner';
 import { useAccount, useWalletClient } from 'wagmi';
-import {
-  ATTRIBUTION_TEXT,
-  SNAPSHOT_APP_NAME,
-  SNAPSHOT_HUB_URL,
-} from '../../vote-button';
+import { ATTRIBUTION_TEXT, SNAPSHOT_APP_NAME } from '../../vote-button';
 
 interface OffchainBasicVoteModalContentProps {
   proposal: Selectable<Proposal>;
-  space: string;
+  snapshotSpace?: string;
+  snapshotHubUrl?: string;
+  governorAddress?: string;
   choices: string[];
   onVoteSubmit: () => Promise<void>; // Simplified: Parent will handle success state
   onClose: () => void;
@@ -29,7 +26,8 @@ interface OffchainBasicVoteModalContentProps {
 
 export function OffchainBasicVoteModalContent({
   proposal,
-  space,
+  snapshotSpace,
+  snapshotHubUrl,
   choices,
   onVoteSubmit,
   onClose,
@@ -50,7 +48,7 @@ export function OffchainBasicVoteModalContent({
     }
 
     setIsSubmitting(true);
-    const client = new snapshot.Client712(SNAPSHOT_HUB_URL);
+    const client = new snapshot.Client712(snapshotHubUrl);
 
     // Construct final reason
     const finalReason = addAttribution
@@ -66,7 +64,7 @@ export function OffchainBasicVoteModalContent({
       );
 
       const receipt = await client.vote(web3Provider, address, {
-        space,
+        space: snapshotSpace || '',
         proposal: proposal.externalId, // Use externalId for Snapshot
         type: 'basic', // This also works for 'single-choice' on Snapshot's side
         choice: parseInt(selectedChoice, 10), // Send the 1-based index as number

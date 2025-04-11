@@ -1,10 +1,11 @@
-// Import necessary Synpress modules
 import { defineWalletSetup } from '@synthetixio/synpress';
 import { MetaMask } from '@synthetixio/synpress/playwright';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Define a test seed phrase and password
-const SEED_PHRASE =
-  'test test test test test test test test test test test junk';
+const SEED_PHRASE = process.env.TEST_ACCOUNT_SEED_PHRASE!;
 const PASSWORD = 'Tester@1234';
 
 // Define the basic wallet setup

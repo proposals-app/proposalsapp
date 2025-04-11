@@ -11,6 +11,9 @@ import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 interface OnchainBasicVoteModalContentProps {
   proposal: Selectable<Proposal>;
   choices: string[];
+  snapshotSpace?: string;
+  snapshotHubUrl?: string;
+  governorAddress?: string;
   onVoteSubmit: (voteData: {
     proposalId: string;
     choice: number;

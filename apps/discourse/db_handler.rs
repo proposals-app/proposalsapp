@@ -301,18 +301,23 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
 #[instrument(skip(post), fields(post_id = post.id, post_username = %post.username, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
     // Determine if the post is considered deleted based on specific raw content patterns.
-    let is_deleted = post.raw.as_ref().map_or(false, |raw| {
+    let mut is_deleted = post.raw.as_ref().map_or(false, |raw| {
         raw == "(post deleted by author)" || raw == "<p>(post deleted by author)</p>" || raw.is_empty()
     });
 
     let cooked_content = if is_deleted {
-        // If marked as deleted, store None or an empty string for cooked content.
-        Set(None::<String>)
+        NotSet
     } else {
-        // Otherwise, use the raw content (assuming it's pre-processed/cooked).
-        // Use ActiveValue::NotSet if raw is None to avoid overwriting with NULL unnecessarily.
         match &post.raw {
-            Some(raw) => Set(Some(raw.clone())),
+            Some(raw) => {
+                if raw.len() > 0 {
+                    Set(Some(raw.clone()))
+                } else {
+                    // probably was moderated
+                    is_deleted = true;
+                    NotSet
+                }
+            }
             None => NotSet,
         }
     };
@@ -345,7 +350,7 @@ pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
         user_id: Set(post.user_id),
         dao_discourse_id: Set(dao_discourse_id),
         can_view_edit_history: Set(post.can_view_edit_history),
-        deleted: Set(is_deleted), // Set the deleted flag based on content check
+        deleted: Set(is_deleted),
         ..Default::default()
     };
 
@@ -379,7 +384,7 @@ pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
         discourse_post::Column::Version,
         discourse_post::Column::UserId,
         discourse_post::Column::CanViewEditHistory,
-        discourse_post::Column::Deleted, // Ensure 'deleted' is updated on conflict
+        discourse_post::Column::Deleted,
     ])
     .to_owned();
 

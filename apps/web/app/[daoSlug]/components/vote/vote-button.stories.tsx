@@ -3,6 +3,9 @@ import { VoteButton } from './vote-button';
 import '@/styles/globals.css';
 import { Story } from '@ladle/react';
 import { JsonValue } from '@proposalsapp/db-indexer';
+import React from 'react'; // Import React for JSX
+
+// --- Enums and Interfaces (Kept for type definition) ---
 
 enum ProposalState {
   ACTIVE = 'ACTIVE',
@@ -17,166 +20,275 @@ enum ProposalState {
   UNKNOWN = 'UNKNOWN',
 }
 
-// Corrected MockProposalMetadata to include specific voteType and index signature
+// Interface for the expected structure, potentially derived from Snapshot data
 interface MockProposalMetadata {
   voteType?: VoteType;
   hiddenVote?: boolean;
   scoresState?: 'pending' | 'final';
   totalDelegatedVp?: string;
   quorumChoices?: number[];
-  // Add index signature to match JsonObject
+  // Allow any other properties that might come from snapshot or be needed
   [key: string]: JsonValue | undefined | number[] | string[] | boolean;
 }
 
 interface MockProposal {
   id: string;
-  externalId: string;
-  governorId: string;
-  daoId: string;
-  name: string;
-  body: string;
-  author: string;
-  url: string;
-  startAt: Date;
-  createdAt: Date;
-  endAt: Date;
-  blockCreatedAt: number | null;
-  markedSpam: boolean;
-  quorum: number;
-  blockStartAt: number | null;
-  blockEndAt: number | null;
-  proposalState: ProposalState;
-  discussionUrl: string | null;
-  txid: string | null;
-  choices: string[] | JsonValue;
-  metadata: MockProposalMetadata | JsonValue | null;
+  externalId: string; // Often same as id for Snapshot
+  governorId: string; // May not be directly available from Snapshot, requires context/mapping
+  daoId: string; // Space ID from Snapshot
+  name: string; // title from Snapshot
+  body: string; // body from Snapshot
+  author: string; // author from Snapshot
+  url: string; // May need to be constructed
+  startAt: Date; // start from Snapshot (converted)
+  createdAt: Date; // created from Snapshot (converted)
+  endAt: Date; // end from Snapshot (converted)
+  blockCreatedAt: number | null; // Not standard in Snapshot API
+  markedSpam: boolean; // Not standard in Snapshot API
+  quorum: number; // quorum from Snapshot
+  blockStartAt: number | null; // Not standard in Snapshot API
+  blockEndAt: number | null; // Not standard in Snapshot API
+  proposalState: ProposalState; // state from Snapshot (mapped)
+  discussionUrl: string | null; // discussion from Snapshot
+  txid: string | null; // Not standard for offchain Snapshot proposals
+  choices: string[] | JsonValue; // choices from Snapshot (ensure string[])
+  metadata: MockProposalMetadata; // Contains voteType, etc.
 }
 
-// --- Mock Data Generation Function using Mock Types ---
-const baseProposal: Omit<
-  MockProposal,
-  'id' | 'metadata' | 'choices' | 'endAt' | 'proposalState'
-> = {
-  externalId: 'prop-123',
-  governorId: 'gov-abc',
-  daoId: 'dao-xyz',
-  name: 'Sample Proposal Title For Ladle',
-  body: 'This is the proposal description used within Ladle.',
-  author: '0x123...abc',
-  url: 'https://example.com/proposal/123',
-  startAt: new Date(Date.now() - 86400000), // Started yesterday
-  createdAt: new Date(Date.now() - 2 * 86400000),
-  blockCreatedAt: 12345678,
-  markedSpam: false,
-  quorum: 1000000,
-  blockStartAt: null,
-  blockEndAt: null,
-  discussionUrl: null,
-  txid: null,
+// --- Snapshot Fetching Logic ---
+
+const SNAPSHOT_SPACE = 'proposalsapp-area51.eth';
+const SNAPSHOT_HUB_URL = 'https://testnet.hub.snapshot.org';
+
+// Helper to map Snapshot state to ProposalState
+const mapSnapshotState = (state?: string): ProposalState => {
+  switch (state?.toLowerCase()) {
+    case 'active':
+      return ProposalState.ACTIVE;
+    case 'closed':
+      // Defaulting closed to EXECUTED for story purposes, might need refinement
+      return ProposalState.EXECUTED;
+    case 'pending':
+      return ProposalState.PENDING;
+    default:
+      return ProposalState.UNKNOWN;
+  }
 };
 
-const createMockProposal = (
-  id: string,
-  voteType: VoteType, // Use the specific VoteType
-  choices: string[],
-  ended = false
-): MockProposal => ({
-  ...baseProposal,
-  id: `prop-${id}`,
-  choices: choices as string[], // Assume VoteButton handles string[]
-  metadata: {
-    voteType: voteType,
-    hiddenVote: false,
-    scoresState: ended ? 'final' : 'pending',
-  } as MockProposalMetadata, // Cast to our mock type
-  endAt: ended
-    ? new Date(Date.now() - 1000) // Ended 1 second ago
-    : new Date(Date.now() + 86400000 * 2), // Ends in 2 days
-  proposalState: ended ? ProposalState.EXECUTED : ProposalState.ACTIVE,
-});
+// Helper to map Snapshot type to VoteType (assuming offchain context)
+const mapSnapshotType = (type?: string): VoteType | undefined => {
+  switch (type?.toLowerCase()) {
+    case 'basic':
+      return 'offchain-basic';
+    case 'single-choice':
+      return 'offchain-single-choice';
+    case 'approval':
+      return 'offchain-approval';
+    case 'quadratic':
+      return 'offchain-quadratic';
+    case 'ranked-choice':
+      return 'offchain-ranked-choice';
+    case 'weighted':
+      return 'offchain-weighted';
+    // Add other potential Snapshot types if needed
+    default:
+      // Fallback or handle unknown types if necessary
+      return undefined;
+  }
+};
 
-// --- Mock Proposals for Stories ---
-const offchainBasicProposal = createMockProposal('123', 'offchain-basic', [
-  'For',
-  'Against',
-  'Abstain',
-]);
-const offchainApprovalProposal = createMockProposal(
-  '123',
-  'offchain-approval',
-  ['Approve Project X', 'Approve Project Y', 'Approve Project Z']
-);
-const offchainWeightedProposal = createMockProposal(
-  '123',
-  'offchain-weighted',
-  ['Option 1 (weighted)', 'Option 2 (weighted)', 'Option 3 (weighted)']
-);
-const offchainRankedProposal = createMockProposal(
-  '123',
-  'offchain-ranked-choice',
-  ['Option 1 (Rank)', 'Option 2 (Rank)', 'Option 3 (Rank)']
-);
-const offchainQuadraticProposal = createMockProposal(
-  '123',
-  'offchain-quadratic',
-  ['Fund Initiative', 'Do Not Fund']
-);
-const offchainSingleChoiceProposal = createMockProposal(
-  '123',
-  'offchain-single-choice',
-  ['Choice A', 'Choice B', 'Choice C']
-);
-const onchainBasicProposal = createMockProposal('123', 'onchain-basic', [
-  'Yes (Onchain)',
-  'No (Onchain)',
-  'Abstain (Onchain)',
-]);
+// Fetch the latest proposal from Snapshot
+async function fetchLatestProposal(
+  spaceId: string,
+  hubUrl: string
+): Promise<MockProposal | null> {
+  const graphqlQuery = {
+    operationName: 'LatestProposal',
+    query: `query LatestProposal($spaceId: String!) {
+      proposals(
+        first: 1,
+        skip: 0,
+        where: { space: $spaceId },
+        orderBy: "created",
+        orderDirection: desc
+      ) {
+        id
+        title
+        body
+        choices
+        start
+        end
+        created
+        state
+        author
+        space { id }
+        type
+        quorum
+        discussion
+      }
+    }`,
+    variables: { spaceId },
+  };
 
-// Edge Case Proposals
-const endedProposal = createMockProposal(
-  '123',
-  'offchain-basic', // Vote type doesn't matter as much when ended
-  ['Passed', 'Failed'],
-  true
-);
-const noChoicesProposal = createMockProposal(
-  '123',
-  'offchain-basic', // Vote type doesn't matter as much when no choices
-  []
-);
+  try {
+    const response = await fetch(`${hubUrl}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(graphqlQuery),
+    });
 
-// --- Ladle Stories ---
+    if (!response.ok) {
+      console.error(
+        `Snapshot API request failed: ${response.status} ${response.statusText}`
+      );
+      return null;
+    }
 
-export const OffchainBasic: Story = () => (
-  <VoteButton proposal={offchainBasicProposal} />
-);
+    const jsonResponse = await response.json();
 
-export const OffchainApproval: Story = () => (
-  <VoteButton proposal={offchainApprovalProposal} />
-);
+    if (jsonResponse.errors) {
+      console.error('Snapshot API returned errors:', jsonResponse.errors);
+      return null;
+    }
 
-export const OffchainWeighted: Story = () => (
-  <VoteButton proposal={offchainWeightedProposal} />
-);
+    const proposalData = jsonResponse.data?.proposals?.[0];
 
-export const OffchainRankedChoice: Story = () => (
-  <VoteButton proposal={offchainRankedProposal} />
-);
+    if (!proposalData) {
+      console.warn(
+        `No proposal found for space '${spaceId}' in Snapshot API response.`
+      );
+      return null;
+    }
 
-export const OffchainQuadratic: Story = () => (
-  <VoteButton proposal={offchainQuadraticProposal} />
-);
+    // --- Map Snapshot data to MockProposal structure ---
+    const mappedVoteType = mapSnapshotType(proposalData.type);
+    const mappedState = mapSnapshotState(proposalData.state);
 
-export const OffchainSingleChoice: Story = () => (
-  <VoteButton proposal={offchainSingleChoiceProposal} />
-);
+    // Basic validation/cleaning of choices
+    let cleanChoices: string[] = [];
+    if (
+      Array.isArray(proposalData.choices) &&
+      proposalData.choices.every((c: unknown) => typeof c === 'string')
+    ) {
+      cleanChoices = proposalData.choices;
+    } else {
+      console.warn(
+        'Fetched proposal choices are not string[], using empty array:',
+        proposalData.choices
+      );
+    }
 
-export const OnchainBasic: Story = () => (
-  <VoteButton proposal={onchainBasicProposal} />
-);
+    const mappedProposal: MockProposal = {
+      // Mapped fields
+      id: proposalData.id,
+      externalId: proposalData.id, // Use Snapshot id
+      daoId: proposalData.space.id,
+      name: proposalData.title || 'Untitled Proposal',
+      body: proposalData.body || '',
+      author: proposalData.author || 'Unknown Author',
+      url: '', // Construct URL later if needed (e.g., based on space/id)
+      startAt: new Date(proposalData.start * 1000),
+      createdAt: new Date(proposalData.created * 1000),
+      endAt: new Date(proposalData.end * 1000),
+      proposalState: mappedState,
+      choices: cleanChoices,
+      quorum: proposalData.quorum || 0,
+      discussionUrl: proposalData.discussion || null,
 
-export const VotingEnded: Story = () => <VoteButton proposal={endedProposal} />;
+      // Default/Placeholder fields (adjust if VoteButton requires specifics)
+      governorId: `gov-for-${proposalData.space.id}`, // Placeholder
+      blockCreatedAt: null,
+      markedSpam: false,
+      blockStartAt: null,
+      blockEndAt: null,
+      txid: null,
 
-export const NoChoices: Story = () => (
-  <VoteButton proposal={noChoicesProposal} />
-);
+      // Metadata object
+      metadata: {
+        voteType: mappedVoteType,
+        scoresState: mappedState === ProposalState.ACTIVE ? 'pending' : 'final',
+        // Add other potential metadata defaults if necessary
+        hiddenVote: false, // Default assumption
+      } as MockProposalMetadata, // Cast ensures compatibility, allows extra props via index signature
+    };
+
+    // Add the original snapshot type to metadata if needed elsewhere
+    if (
+      proposalData.type &&
+      mappedProposal.metadata &&
+      typeof mappedProposal.metadata === 'object'
+    ) {
+      (mappedProposal.metadata as MockProposalMetadata)[
+        'originalSnapshotType'
+      ] = proposalData.type;
+    }
+
+    return mappedProposal;
+  } catch (error) {
+    console.error('Error fetching or processing Snapshot proposal:', error);
+    return null;
+  }
+}
+
+// --- Ladle Story ---
+
+export const LatestProposalFromSnapshot: Story = async () => {
+  const proposal = await fetchLatestProposal(SNAPSHOT_SPACE, SNAPSHOT_HUB_URL);
+
+  if (!proposal) {
+    return (
+      <div style={{ padding: '20px', color: 'red' }}>
+        Error loading proposal data from Snapshot Hub ({SNAPSHOT_HUB_URL}) for
+        space ({SNAPSHOT_SPACE}). Check console for details.
+      </div>
+    );
+  }
+
+  // Determine if snapshot props should be passed (typically for offchain types)
+  const isOffchain = proposal.metadata?.voteType?.startsWith('offchain-');
+
+  return (
+    <div style={{ padding: '20px', maxWidth: '600px', margin: 'auto' }}>
+      <h2>Vote Button (Latest Proposal from Snapshot)</h2>
+      <p>
+        Displaying VoteButton for the latest proposal fetched from space{' '}
+        <code>{SNAPSHOT_SPACE}</code>.
+      </p>
+      <pre
+        style={{
+          fontSize: '0.8em',
+          background: '#f0f0f0',
+          padding: '10px',
+          borderRadius: '4px',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-all',
+        }}
+      >
+        Proposal ID: {proposal.id}
+        <br />
+        Title: {proposal.name}
+        <br />
+        State: {proposal.proposalState}
+        <br />
+        Vote Type: {proposal.metadata?.voteType || 'N/A'}
+        <br />
+        End Date: {proposal.endAt.toLocaleString()}
+        <br />
+        Choices: {JSON.stringify(proposal.choices)}
+      </pre>
+      <VoteButton
+        proposal={proposal}
+        // Conditionally pass Snapshot Hub/Space info if it's offchain
+        {...(isOffchain && {
+          snapshotSpace: SNAPSHOT_SPACE,
+          snapshotHubUrl: SNAPSHOT_HUB_URL,
+        })}
+      />
+    </div>
+  );
+};
+
+LatestProposalFromSnapshot.storyName = 'Latest Proposal (Live Snapshot Data)';

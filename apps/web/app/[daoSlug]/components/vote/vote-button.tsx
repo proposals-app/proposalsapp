@@ -22,14 +22,14 @@ import { OffchainSingleChoiceVoteModalContent } from './vote-types-modals/offcha
 import { OffchainWeightedVoteModalContent } from './vote-types-modals/offchain/weighted-vote';
 import { OnchainBasicVoteModalContent } from './vote-types-modals/onchain/basic-vote';
 
-export const SNAPSHOT_HUB_URL = 'https://hub.snapshot.org';
-export const SNAPSHOT_SPACE = 'arbitrumfoundation.eth';
 export const SNAPSHOT_APP_NAME = 'proposalsapp';
 export const ATTRIBUTION_TEXT = 'voted via proposals.app';
 
 interface VoteButtonProps {
   proposal: Selectable<Proposal>;
-  space?: string;
+  snapshotSpace?: string;
+  snapshotHubUrl?: string;
+  governorAddress?: string;
 }
 
 const voteModalComponents = {
@@ -44,7 +44,9 @@ const voteModalComponents = {
 
 export function VoteButton({
   proposal,
-  space = SNAPSHOT_SPACE,
+  snapshotSpace = 'arbitrumfoundation.eth',
+  snapshotHubUrl = 'https://hub.snapshot.org',
+  governorAddress,
 }: VoteButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { isConnected } = useAccount();
@@ -125,7 +127,9 @@ export function VoteButton({
         {/* Render the selected modal content, passing necessary props */}
         <ModalContentComponent
           proposal={proposal}
-          space={space}
+          snapshotSpace={snapshotSpace}
+          snapshotHubUrl={snapshotHubUrl}
+          governorAddress={governorAddress}
           choices={choices}
           onVoteSubmit={handleSuccessfulVote} // Pass the success handler
           onClose={() => setIsOpen(false)} // Pass the close handler for cancellation
