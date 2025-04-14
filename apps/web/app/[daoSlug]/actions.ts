@@ -100,7 +100,7 @@ async function getCoreGroupsData(
   'use cache';
   // Cache this data longer and tag it non-user-specifically
   cacheTag(`groups-data-${daoId}`);
-  cacheLife('hours');
+  cacheLife('minutes');
 
   const coreGroups = await dbIndexer
     .selectFrom('proposalGroup')

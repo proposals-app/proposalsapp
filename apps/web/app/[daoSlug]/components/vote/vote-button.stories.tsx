@@ -262,6 +262,10 @@ async function fetchLatestProposal(
       Array.isArray(proposalData.choices) &&
       proposalData.choices.length > 0
     ) {
+      console.warn(
+        `[fetchLatestProposal] Fetched proposal choices (id: ${proposalData.id}) are not string[], using empty array:`,
+        proposalData.choices
+      );
     } else if (cleanChoices.length === 0) {
       console.warn(
         `[fetchLatestProposal] Proposal ${proposalData.id} has empty choices array.`
@@ -379,7 +383,7 @@ export const LatestProposalFromSnapshot: Story = () => {
           <code>{SNAPSHOT_SPACE}</code>).
         </p>
         <p>
-          Please check the browser's developer console (Network and Console
+          Please check the browser&apos;s developer console (Network and Console
           tabs) for detailed error messages. Ensure the Snapshot Hub is
           operational and accessible. Possible causes include network issues,
           CORS errors, or API problems.
@@ -387,9 +391,6 @@ export const LatestProposalFromSnapshot: Story = () => {
       </div>
     );
   }
-
-  // --- Display Proposal (Same as before, but using state variable 'proposal') ---
-  const isOffchain = proposal.metadata?.voteType?.startsWith('offchain-');
 
   return (
     <VoteButton
