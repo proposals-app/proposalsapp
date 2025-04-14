@@ -8,9 +8,9 @@ import fetch from 'cross-fetch';
 const HUB_URL = 'https://testnet.hub.snapshot.org';
 const SPACE_ID = 'proposalsapp-area51.eth';
 const RPC_URL = 'https://arbitrum.drpc.org';
-const STORYBOOK_URL =
-  'http://localhost:61000/?story=vote-button--latest-proposal';
-const SNAPSHOT_APP_NAME = 'proposalsapp'; // Consistent app name
+const SNAPSHOT_APP_NAME = 'proposalsapp';
+
+const CREATE_NEW_PROPOSALS = false;
 
 const TEST_TIMEOUT = 300 * 1000; // Increased timeout for potential API delays + UI interactions
 const API_VERIFICATION_DELAY = 15 * 1000; // Wait 15 seconds before first API check
@@ -34,6 +34,13 @@ interface SnapshotVote {
   created: number;
   reason: string;
   app: string;
+}
+
+interface SnapshotProposal {
+  id: string;
+  type: string;
+  title: string;
+  created: number;
 }
 
 // Retrieve the seed phrase from environment variables
@@ -123,7 +130,7 @@ async function createSnapshotProposal(
 
   const client = new snapshot.Client712(HUB_URL);
   const startAt = Math.floor(new Date().getTime() / 1000) - 60; // Start 1 min ago
-  const endAt = startAt + 60 * 10; // End 10 minutes from start
+  const endAt = startAt + 60 * 60 * 24 * 30; // End 30 days from start
 
   const proposalTitle = `${titlePrefix} - ${new Date().toISOString()}`;
   let proposalReceipt: ProposalReceipt;
@@ -160,6 +167,97 @@ async function createSnapshotProposal(
   }
 
   return { id: proposalId, signerAddress, wallet };
+}
+
+async function fetchLatestProposalId(
+  voteType:
+    | 'single-choice'
+    | 'approval'
+    | 'quadratic'
+    | 'ranked-choice'
+    | 'weighted',
+  titlePrefix: string,
+  testLogPrefix: string = ''
+): Promise<string | null> {
+  console.log(
+    `${testLogPrefix} Fetching latest proposal ID for type: ${voteType}...`
+  );
+
+  const graphqlQuery = {
+    operationName: 'GetProposals',
+    query: `
+      query GetProposals($spaceId: String!, $type: String!, $titlePrefix: String!) {
+        proposals(
+          first: 1
+          where: {
+            space: $spaceId,
+            type: $type,
+            title_contains: $titlePrefix
+          }
+          orderBy: "created"
+          orderDirection: desc
+        ) {
+          id
+          type
+          title
+          created
+        }
+      }
+    `,
+    variables: {
+      spaceId: SPACE_ID,
+      type: voteType,
+      titlePrefix: titlePrefix,
+    },
+  };
+
+  try {
+    const response = await fetch(`${HUB_URL}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(graphqlQuery),
+    });
+
+    if (!response.ok) {
+      console.error(
+        `${testLogPrefix} Snapshot API query failed with status ${response.status}: ${await response.text()}`
+      );
+      return null;
+    }
+
+    const jsonResponse = await response.json();
+    if (jsonResponse.errors) {
+      console.error(
+        `${testLogPrefix} Snapshot API returned GraphQL errors: ${JSON.stringify(jsonResponse.errors)}`
+      );
+      return null;
+    }
+
+    if (
+      !jsonResponse.data ||
+      !jsonResponse.data.proposals ||
+      jsonResponse.data.proposals.length === 0
+    ) {
+      console.warn(
+        `${testLogPrefix} No proposals found for type: ${voteType} and title prefix: ${titlePrefix}`
+      );
+      return null;
+    }
+
+    const latestProposal = jsonResponse.data.proposals[0] as SnapshotProposal;
+    console.log(
+      `${testLogPrefix} Latest proposal ID found: ${latestProposal.id} (Title: "${latestProposal.title}")`
+    );
+    return latestProposal.id;
+  } catch (error: any) {
+    console.error(
+      `${testLogPrefix} Error fetching latest proposal ID: ${error}`
+    );
+    return null;
+  }
 }
 
 async function verifyVoteViaApi(
@@ -305,14 +403,34 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const testLogPrefix = '[Single-Choice]';
     const voteType = 'single-choice';
     const choices = ['SC Choice 1', 'SC Choice 2', 'SC Choice 3'];
+    const proposalTitlePrefix = 'E2E Test Proposal (Single Choice)';
+    let proposalId: string | null = null;
 
-    // --- Create Proposal ---
-    const { id: proposalId, signerAddress } = await createSnapshotProposal(
-      voteType,
-      'E2E Test Proposal (Single Choice)',
-      'Automated test proposal for single-choice voting.',
-      choices
-    );
+    // --- Create or Fetch Proposal ID ---
+    if (CREATE_NEW_PROPOSALS) {
+      const proposalData = await createSnapshotProposal(
+        voteType,
+        proposalTitlePrefix,
+        'Automated test proposal for single-choice voting.',
+        choices
+      );
+      proposalId = proposalData.id;
+    } else {
+      proposalId = await fetchLatestProposalId(
+        voteType,
+        proposalTitlePrefix,
+        testLogPrefix
+      );
+      if (!proposalId) {
+        throw new Error(
+          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
+        );
+      }
+    }
+    expect(
+      proposalId,
+      `${testLogPrefix} proposalId should be defined`
+    ).toBeDefined();
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -321,7 +439,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       basicSetup.walletPassword,
       extensionId
     );
-    await page.goto(STORYBOOK_URL);
+    await page.goto(
+      `http://localhost:61000/?story=vote-button--single-choice-proposal&proposalId=${proposalId}`
+    );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -334,7 +454,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const proposalTitle = await page
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent(); // DialogTitle selector
-    expect(proposalTitle).toContain('E2E Test Proposal (Single Choice)'); // Check it's the right proposal modal
+    expect(proposalTitle).toContain(proposalTitlePrefix); // Check it's the right proposal modal
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
     // Interact with the Basic/Single-Choice Vote Modal
@@ -358,8 +478,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId,
-      signerAddress,
+      proposalId as string, // proposalId is asserted to be not null above
+      await metamask.getAccountAddress(),
       expectedChoiceValue,
       testLogPrefix
     );
@@ -381,14 +501,34 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       'Approve Multi 3',
       'Approve Multi 4',
     ];
+    const proposalTitlePrefix = 'E2E Test Proposal (Approval Multi-Choice)';
+    let proposalId: string | null = null;
 
-    // --- Create Proposal ---
-    const { id: proposalId, signerAddress } = await createSnapshotProposal(
-      voteType,
-      'E2E Test Proposal (Approval Multi-Choice)',
-      'Automated test proposal for multi-choice approval voting.',
-      choices
-    );
+    // --- Create or Fetch Proposal ID ---
+    if (CREATE_NEW_PROPOSALS) {
+      const proposalData = await createSnapshotProposal(
+        voteType,
+        proposalTitlePrefix,
+        'Automated test proposal for multi-choice approval voting.',
+        choices
+      );
+      proposalId = proposalData.id;
+    } else {
+      proposalId = await fetchLatestProposalId(
+        voteType,
+        proposalTitlePrefix,
+        testLogPrefix
+      );
+      if (!proposalId) {
+        throw new Error(
+          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
+        );
+      }
+    }
+    expect(
+      proposalId,
+      `${testLogPrefix} proposalId should be defined`
+    ).toBeDefined();
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -397,7 +537,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       basicSetup.walletPassword,
       extensionId
     );
-    await page.goto(STORYBOOK_URL);
+    await page.goto(
+      `http://localhost:61000/?story=vote-button--approval-proposal&proposalId=${proposalId}`
+    );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -410,9 +552,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const proposalTitle = await page
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent();
-    expect(proposalTitle).toContain(
-      'E2E Test Proposal (Approval Multi-Choice)'
-    );
+    expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
     // Interact with the Approval Vote Modal - SELECT MULTIPLE CHOICES
@@ -443,8 +583,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId,
-      signerAddress,
+      proposalId as string, // proposalId is asserted to be not null above
+      await metamask.getAccountAddress(),
       expectedChoiceValue,
       testLogPrefix
     );
@@ -461,14 +601,34 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const testLogPrefix = '[Quadratic]';
     const voteType = 'quadratic';
     const choices = ['Quad Choice A', 'Quad Choice B', 'Quad Choice C'];
+    const proposalTitlePrefix = 'E2E Test Proposal (Quadratic)';
+    let proposalId: string | null = null;
 
-    // --- Create Proposal ---
-    const { id: proposalId, signerAddress } = await createSnapshotProposal(
-      voteType,
-      'E2E Test Proposal (Quadratic)',
-      'Automated test proposal for quadratic voting.',
-      choices
-    );
+    // --- Create or Fetch Proposal ID ---
+    if (CREATE_NEW_PROPOSALS) {
+      const proposalData = await createSnapshotProposal(
+        voteType,
+        proposalTitlePrefix,
+        'Automated test proposal for quadratic voting.',
+        choices
+      );
+      proposalId = proposalData.id;
+    } else {
+      proposalId = await fetchLatestProposalId(
+        voteType,
+        proposalTitlePrefix,
+        testLogPrefix
+      );
+      if (!proposalId) {
+        throw new Error(
+          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
+        );
+      }
+    }
+    expect(
+      proposalId,
+      `${testLogPrefix} proposalId should be defined`
+    ).toBeDefined();
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -477,7 +637,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       basicSetup.walletPassword,
       extensionId
     );
-    await page.goto(STORYBOOK_URL);
+    await page.goto(
+      `http://localhost:61000/?story=vote-button--quadratic-proposal&proposalId=${proposalId}`
+    );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -490,7 +652,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const proposalTitle = await page
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent();
-    expect(proposalTitle).toContain('E2E Test Proposal (Quadratic)');
+    expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
     // Interact with the Quadratic Vote Modal (likely uses Radio buttons like Basic)
@@ -517,8 +679,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId,
-      signerAddress,
+      proposalId as string, // proposalId is asserted to be not null above
+      await metamask.getAccountAddress(),
       expectedChoiceValue,
       testLogPrefix
     );
@@ -536,14 +698,34 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const voteType = 'ranked-choice';
     // Order: A, B, C, D
     const choices = ['Rank C A', 'Rank C B', 'Rank C C', 'Rank C D'];
+    const proposalTitlePrefix = 'E2E Test Proposal (Ranked Choice)';
+    let proposalId: string | null = null;
 
-    // --- Create Proposal ---
-    const { id: proposalId, signerAddress } = await createSnapshotProposal(
-      voteType,
-      'E2E Test Proposal (Ranked Choice)',
-      'Automated test proposal for ranked-choice voting.',
-      choices
-    );
+    // --- Create or Fetch Proposal ID ---
+    if (CREATE_NEW_PROPOSALS) {
+      const proposalData = await createSnapshotProposal(
+        voteType,
+        proposalTitlePrefix,
+        'Automated test proposal for ranked-choice voting.',
+        choices
+      );
+      proposalId = proposalData.id;
+    } else {
+      proposalId = await fetchLatestProposalId(
+        voteType,
+        proposalTitlePrefix,
+        testLogPrefix
+      );
+      if (!proposalId) {
+        throw new Error(
+          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
+        );
+      }
+    }
+    expect(
+      proposalId,
+      `${testLogPrefix} proposalId should be defined`
+    ).toBeDefined();
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -552,7 +734,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       basicSetup.walletPassword,
       extensionId
     );
-    await page.goto(STORYBOOK_URL);
+    await page.goto(
+      `http://localhost:61000/?story=vote-button--ranked-choice-proposal&proposalId=${proposalId}`
+    );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -565,7 +749,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const proposalTitle = await page
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent();
-    expect(proposalTitle).toContain('E2E Test Proposal (Ranked Choice)');
+    expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
     // Interact with the Ranked Choice Vote Modal - Drag and Drop
@@ -621,8 +805,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId,
-      signerAddress,
+      proposalId as string, // proposalId is asserted to be not null above
+      await metamask.getAccountAddress(),
       expectedChoiceValue,
       testLogPrefix
     );
@@ -639,14 +823,34 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const testLogPrefix = '[Weighted]';
     const voteType = 'weighted';
     const choices = ['Weight Opt 1', 'Weight Opt 2', 'Weight Opt 3'];
+    const proposalTitlePrefix = 'E2E Test Proposal (Weighted)';
+    let proposalId: string | null = null;
 
-    // --- Create Proposal ---
-    const { id: proposalId, signerAddress } = await createSnapshotProposal(
-      voteType,
-      'E2E Test Proposal (Weighted)',
-      'Automated test proposal for weighted voting.',
-      choices
-    );
+    // --- Create or Fetch Proposal ID ---
+    if (CREATE_NEW_PROPOSALS) {
+      const proposalData = await createSnapshotProposal(
+        voteType,
+        proposalTitlePrefix,
+        'Automated test proposal for weighted voting.',
+        choices
+      );
+      proposalId = proposalData.id;
+    } else {
+      proposalId = await fetchLatestProposalId(
+        voteType,
+        proposalTitlePrefix,
+        testLogPrefix
+      );
+      if (!proposalId) {
+        throw new Error(
+          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
+        );
+      }
+    }
+    expect(
+      proposalId,
+      `${testLogPrefix} proposalId should be defined`
+    ).toBeDefined();
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -655,7 +859,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       basicSetup.walletPassword,
       extensionId
     );
-    await page.goto(STORYBOOK_URL);
+    await page.goto(
+      `http://localhost:61000/?story=vote-button--weighted-proposal&proposalId=${proposalId}`
+    );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -668,7 +874,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const proposalTitle = await page
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent();
-    expect(proposalTitle).toContain('E2E Test Proposal (Weighted)');
+    expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
     // Interact with the Weighted Vote Modal - Enter weights
@@ -711,10 +917,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId,
-      signerAddress,
+      proposalId as string, // proposalId is asserted to be not null above
+      await metamask.getAccountAddress(),
       expectedChoiceValue,
       testLogPrefix
     );
   });
-}); // End of test.describe.serial
+});

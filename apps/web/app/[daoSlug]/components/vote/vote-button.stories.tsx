@@ -92,16 +92,33 @@ const mapSnapshotType = (type?: string): VoteType | undefined => {
 
 async function fetchLatestProposal(
   spaceId: string,
-  hubUrl: string
+  hubUrl: string,
+  proposalType?: VoteType // Added optional proposalType parameter
 ): Promise<MockProposal | null> {
+  let typeFilter = ''; // Initialize typeFilter
+  if (proposalType) {
+    const snapshotType = Object.keys(mapSnapshotType).find(
+      (key) => mapSnapshotType(key) === proposalType
+    );
+    if (snapshotType) {
+      typeFilter = `type: "${snapshotType}",`; // Add type filter to GraphQL query
+    } else {
+      console.warn(
+        `[fetchLatestProposal] Unknown VoteType provided: ${proposalType}, ignoring type filter.`
+      );
+    }
+  }
+
   const graphqlQuery = {
-    /* ... query unchanged ... */ operationName: 'LatestProposal',
-    query: `query LatestProposal($spaceId: String!) { proposals( first: 1, skip: 0, where: { space: $spaceId }, orderBy: "created", orderDirection: desc ) { id title body choices start end snapshot state author created space { id } type quorum discussion } }`,
+    operationName: 'LatestProposal',
+    query: `query LatestProposal($spaceId: String!) { proposals( first: 1, skip: 0, where: { space: $spaceId, ${typeFilter} }, orderBy: "created", orderDirection: desc ) { id title body choices start end snapshot state author created space { id } type quorum discussion } }`, // Added typeFilter to where clause
     variables: { spaceId },
   };
   const fetchUrl = `${hubUrl}/graphql`;
   console.log(
-    `[fetchLatestProposal] Attempting to fetch from: ${fetchUrl} for space: ${spaceId}`
+    `[fetchLatestProposal] Attempting to fetch from: ${fetchUrl} for space: ${spaceId} ${
+      proposalType ? `and type: ${proposalType}` : ''
+    }`
   );
   console.log(
     `[fetchLatestProposal] Sending GraphQL query:`,
@@ -180,7 +197,9 @@ async function fetchLatestProposal(
     const proposalData = jsonResponse.data?.proposals?.[0];
     if (!proposalData) {
       console.warn(
-        `[fetchLatestProposal] No proposal found for space '${spaceId}' in Snapshot API response data.`
+        `[fetchLatestProposal] No proposal found for space '${spaceId}' ${
+          proposalType ? `and type '${proposalType}'` : ''
+        } in Snapshot API response data.`
       );
       return null;
     }
@@ -308,66 +327,65 @@ const load = async (): Promise<{
 };
 load.storyName = 'Proposal Data Loader';
 
-// --- Ladle Story (Modified to use useEffect for fetching) ---
+// --- Ladle Stories for different Proposal Types ---
 
-// Define the type for the props (No longer passed by loader)
-// interface LatestProposalStoryProps {
-//   proposal: MockProposal | null; // Data will come from state now
-//   error?: boolean;
-// }
-
-export const LatestProposalFromSnapshot: Story = () => {
-  // No props from loader
+const ProposalStory = (proposalType?: VoteType) => {
   const [proposal, setProposal] = useState<MockProposal | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
+  const typeName = proposalType
+    ? proposalType.replace('offchain-', '').replace('-', ' ')
+    : 'Latest';
 
   useEffect(() => {
-    // Define the async function to fetch data
     const fetchData = async () => {
-      console.log('[useEffect] Starting proposal fetch...');
+      console.log(
+        `[useEffect - ${typeName}] Starting ${typeName} proposal fetch...`
+      );
       setIsLoading(true);
       setError(false);
       try {
         const fetchedProposal = await fetchLatestProposal(
           SNAPSHOT_SPACE,
-          SNAPSHOT_HUB_URL
+          SNAPSHOT_HUB_URL,
+          proposalType
         );
         if (fetchedProposal) {
           setProposal(fetchedProposal);
           console.log(
-            '[useEffect] Successfully fetched and set proposal:',
+            `[useEffect - ${typeName}] Successfully fetched and set ${typeName} proposal:`,
             fetchedProposal.id
           );
         } else {
-          console.error('[useEffect] fetchLatestProposal returned null.');
+          console.error(
+            `[useEffect - ${typeName}] fetchLatestProposal returned null for ${typeName} proposal.`
+          );
           setError(true);
         }
       } catch (err) {
-        console.error('[useEffect] Error fetching proposal:', err);
+        console.error(
+          `[useEffect - ${typeName}] Error fetching ${typeName} proposal:`,
+          err
+        );
         setError(true);
       } finally {
         setIsLoading(false);
-        console.log('[useEffect] Fetch attempt finished.');
+        console.log(
+          `[useEffect - ${typeName}] Fetch attempt finished for ${typeName} proposal.`
+        );
       }
     };
 
-    // Call the fetch function
     fetchData();
-
-    // Cleanup function (optional, not strictly needed for one-time fetch)
-    // return () => { /* potentially abort controller logic if needed */ };
-  }, []); // Empty dependency array means this runs once on mount
-
-  // --- Render based on state ---
+  }, [proposalType, typeName]); // Added proposalType to dependency array
 
   if (isLoading) {
     return (
       <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-        <h2>Loading Proposal...</h2>
+        <h2>Loading {typeName} Proposal...</h2>
         <p>
-          Fetching latest proposal from Snapshot Hub ({SNAPSHOT_HUB_URL}) for
-          space ({SNAPSHOT_SPACE})...
+          Fetching latest {typeName.toLowerCase()} proposal from Snapshot Hub (
+          {SNAPSHOT_HUB_URL}) for space ({SNAPSHOT_SPACE})...
         </p>
       </div>
     );
@@ -376,18 +394,13 @@ export const LatestProposalFromSnapshot: Story = () => {
   if (error || !proposal) {
     return (
       <div style={{ padding: '20px', color: 'red', fontFamily: 'sans-serif' }}>
-        <h2>Error Loading Proposal</h2>
+        <h2>Error Loading {typeName} Proposal</h2>
         <p>
-          Failed to load proposal data from Snapshot Hub (
-          <code>{SNAPSHOT_HUB_URL}</code>) for space (
+          Failed to load {typeName.toLowerCase()} proposal data from Snapshot
+          Hub (<code>{SNAPSHOT_HUB_URL}</code>) for space (
           <code>{SNAPSHOT_SPACE}</code>).
         </p>
-        <p>
-          Please check the browser&apos;s developer console (Network and Console
-          tabs) for detailed error messages. Ensure the Snapshot Hub is
-          operational and accessible. Possible causes include network issues,
-          CORS errors, or API problems.
-        </p>
+        <p>Please check the browser&apos;s developer console for details.</p>
       </div>
     );
   }
@@ -401,7 +414,25 @@ export const LatestProposalFromSnapshot: Story = () => {
   );
 };
 
+export const LatestProposalFromSnapshot: Story = () => ProposalStory();
 LatestProposalFromSnapshot.storyName = 'Latest Proposal';
 
-// IMPORTANT: Comment out or remove the loader assignment for this story
-// LatestProposalFromSnapshot.load = load;
+export const SingleChoiceProposalStory: Story = () =>
+  ProposalStory('offchain-single-choice');
+SingleChoiceProposalStory.storyName = 'Single Choice Proposal';
+
+export const ApprovalProposalStory: Story = () =>
+  ProposalStory('offchain-approval');
+ApprovalProposalStory.storyName = 'Approval Proposal';
+
+export const QuadraticProposalStory: Story = () =>
+  ProposalStory('offchain-quadratic');
+QuadraticProposalStory.storyName = 'Quadratic Proposal';
+
+export const RankedChoiceProposalStory: Story = () =>
+  ProposalStory('offchain-ranked-choice');
+RankedChoiceProposalStory.storyName = 'Ranked Choice Proposal';
+
+export const WeightedProposalStory: Story = () =>
+  ProposalStory('offchain-weighted');
+WeightedProposalStory.storyName = 'Weighted Proposal';
