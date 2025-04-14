@@ -4006,6 +4006,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@metamask/abi-utils@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "@metamask/abi-utils@npm:1.2.0"
+  dependencies:
+    "@metamask/utils": "npm:^3.4.1"
+    superstruct: "npm:^1.0.3"
+  checksum: 10c0/d805e17d6c1ca8026a625a87440f063a49cf2c1bd09677b93184b998f9a6008162ee9bb47b1b318e032d9abc4802a4ab8b76c72b6af8838d814ebdff9845d564
+  languageName: node
+  linkType: hard
+
 "@metamask/eth-json-rpc-provider@npm:^1.0.0":
   version: 1.0.1
   resolution: "@metamask/eth-json-rpc-provider@npm:1.0.1"
@@ -4014,6 +4024,21 @@ __metadata:
     "@metamask/safe-event-emitter": "npm:^3.0.0"
     "@metamask/utils": "npm:^5.0.1"
   checksum: 10c0/842f999d7a1c49b625fd863b453d076f393ac9090a1b9c7531aa24ec033e7e844c98a1c433ac02f4e66a62262d68c0d37c218dc724123da4eea1abcc12a63492
+  languageName: node
+  linkType: hard
+
+"@metamask/eth-sig-util@npm:^6.0.0":
+  version: 6.0.2
+  resolution: "@metamask/eth-sig-util@npm:6.0.2"
+  dependencies:
+    "@ethereumjs/util": "npm:^8.1.0"
+    "@metamask/abi-utils": "npm:^1.2.0"
+    "@metamask/utils": "npm:^5.0.2"
+    ethereum-cryptography: "npm:^2.1.2"
+    ethjs-util: "npm:^0.1.6"
+    tweetnacl: "npm:^1.0.3"
+    tweetnacl-util: "npm:^0.15.1"
+  checksum: 10c0/72a8a03b1c8a18da8fadb06e42c3ea9a8ec214072f837ad7b742eee6013fd8fba14f493e533633fbf4419a6c05267ad4c54a0b45712230d0342ff5ffa3771b8f
   languageName: node
   linkType: hard
 
@@ -4176,7 +4201,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@metamask/utils@npm:^5.0.1":
+"@metamask/utils@npm:^3.4.1":
+  version: 3.6.0
+  resolution: "@metamask/utils@npm:3.6.0"
+  dependencies:
+    "@types/debug": "npm:^4.1.7"
+    debug: "npm:^4.3.4"
+    semver: "npm:^7.3.8"
+    superstruct: "npm:^1.0.3"
+  checksum: 10c0/4efcdb04d65dabada1c6918a76a2b7ee226bea309a351670d46737e58bf8d9fb17dfe1b707eaee69f865ccc237dcd6df75b487ccdbe6dd77de52c4cd9ee08cf8
+  languageName: node
+  linkType: hard
+
+"@metamask/utils@npm:^5.0.1, @metamask/utils@npm:^5.0.2":
   version: 5.0.2
   resolution: "@metamask/utils@npm:5.0.2"
   dependencies:
@@ -5189,12 +5226,12 @@ __metadata:
     "@radix-ui/react-slot": "npm:^1.2.0"
     "@rainbow-me/rainbowkit": "npm:^2.2.4"
     "@serwist/next": "npm:^9.0.13"
-    "@snapshot-labs/snapshot.js": "npm:^0.12.57"
+    "@snapshot-labs/snapshot.js": "npm:^0.12.58"
     "@svgr/webpack": "npm:^8.1.0"
     "@synthetixio/synpress": "npm:^4.0.10"
     "@tailwindcss/postcss": "npm:^4.1.3"
     "@tailwindcss/typography": "npm:^0.5.16"
-    "@tanstack/react-query": "npm:^5.74.0"
+    "@tanstack/react-query": "npm:^5.74.3"
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
@@ -5210,7 +5247,7 @@ __metadata:
     "@typescript-eslint/parser": "npm:^8.29.1"
     "@vercel/otel": "npm:^1.11.0"
     ai: "npm:^4.3.6"
-    babel-plugin-react-compiler: "npm:19.0.0-beta-e993439-20250405"
+    babel-plugin-react-compiler: "npm:19.0.0-beta-ebf51a3-20250411"
     better-auth: "npm:^1.2.7"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
@@ -5232,7 +5269,7 @@ __metadata:
     next: "npm:^15.3.1-canary.7"
     next-themes: "npm:^0.4.6"
     npm-run-all: "npm:^4.1.5"
-    nuqs: "npm:^2.4.1"
+    nuqs: "npm:^2.4.2"
     ollama-ai-provider: "npm:^1.2.0"
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.3"
@@ -6538,9 +6575,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@snapshot-labs/snapshot.js@npm:^0.12.57":
-  version: 0.12.57
-  resolution: "@snapshot-labs/snapshot.js@npm:0.12.57"
+"@snapshot-labs/snapshot.js@npm:^0.12.58":
+  version: 0.12.58
+  resolution: "@snapshot-labs/snapshot.js@npm:0.12.58"
   dependencies:
     "@ensdomains/eth-ens-namehash": "npm:^2.0.15"
     "@ethersproject/abi": "npm:^5.6.4"
@@ -6559,7 +6596,7 @@ __metadata:
     json-to-graphql-query: "npm:^2.2.4"
     lodash.set: "npm:^4.3.2"
     starknet: "npm:^5.19.3"
-  checksum: 10c0/fbf525588b2ee72c0b904489fd2789c8a951b2a2f7394e7dbec27817c5ecb33e1bdc585c0d57fd13f00ec84f9cf1ef844411609ffefdb09ee7ce2d4b7a9d61cd
+  checksum: 10c0/62fb5a76cedfeeef4c150d70bb396fee4391a977e15dd91b08ecf4d944dcc896f8cebfe60459c1ed080da60750f5c166640d35466e41a34071f80b84c611a2c9
   languageName: node
   linkType: hard
 
@@ -7103,21 +7140,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.74.0":
-  version: 5.74.0
-  resolution: "@tanstack/query-core@npm:5.74.0"
-  checksum: 10c0/da0c48a15261fa3f8860a77c9df614069e485508fec53d2bf461bbb4e268d09ec21a7a87daaddf0e85cfb4b1b305e9591cad39b23e9b3a460e270c801b64879e
+"@tanstack/query-core@npm:5.74.3":
+  version: 5.74.3
+  resolution: "@tanstack/query-core@npm:5.74.3"
+  checksum: 10c0/ad28c2a4b9c39b23fb4a621474f134320f4cf5a2ea62a12918ca27d95b4b4a8b15316d5eceba04debbe2ecc7453f4dbaeb8deede7eeef07a83ad6ee42659b326
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.74.0":
-  version: 5.74.0
-  resolution: "@tanstack/react-query@npm:5.74.0"
+"@tanstack/react-query@npm:^5.74.3":
+  version: 5.74.3
+  resolution: "@tanstack/react-query@npm:5.74.3"
   dependencies:
-    "@tanstack/query-core": "npm:5.74.0"
+    "@tanstack/query-core": "npm:5.74.3"
   peerDependencies:
     react: ^18 || ^19
-  checksum: 10c0/dfc9d15a0ca4cd1158e3e7a7ba52371351b4cb50d7f9186b3a920042c36b392362d7a2c254d4f228bbebe40d82a4198b946ca01154ec65819e6e14c521c96e25
+  checksum: 10c0/5bb0c55383ba1fdb88cddcc43ee308d201dc7bfece01e8bbd1e41b21ba21c3b58c6546670de411b83566fd42cf771061c8d6ccf6af5aef200bfeed068332b21e
   languageName: node
   linkType: hard
 
@@ -9675,12 +9712,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-plugin-react-compiler@npm:19.0.0-beta-e993439-20250405":
-  version: 19.0.0-beta-e993439-20250405
-  resolution: "babel-plugin-react-compiler@npm:19.0.0-beta-e993439-20250405"
+"babel-plugin-react-compiler@npm:19.0.0-beta-ebf51a3-20250411":
+  version: 19.0.0-beta-ebf51a3-20250411
+  resolution: "babel-plugin-react-compiler@npm:19.0.0-beta-ebf51a3-20250411"
   dependencies:
     "@babel/types": "npm:^7.26.0"
-  checksum: 10c0/79d60536530cf9d59df12124f80debfec91229980c9282d363bfe460130b3051f457ebc58dcb331f27dc9a8392e7797f9aceabcf27d36f0f32fe35c8e83acfb7
+  checksum: 10c0/351004a1c90c74f69ae69e4455ede1203d644d3dcaad385826544f84db9e1999e2df3c6b33b1c397979c7cfcab153c5edb47408aa8b9593125cd539cc45b1254
   languageName: node
   linkType: hard
 
@@ -13193,7 +13230,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ethereum-cryptography@npm:^2.0.0":
+"ethereum-cryptography@npm:^2.0.0, ethereum-cryptography@npm:^2.1.2":
   version: 2.2.1
   resolution: "ethereum-cryptography@npm:2.2.1"
   dependencies:
@@ -13240,6 +13277,16 @@ __metadata:
     "@ethersproject/web": "npm:5.8.0"
     "@ethersproject/wordlists": "npm:5.8.0"
   checksum: 10c0/8f187bb6af3736fbafcb613d8fb5be31fe7667a1bae480dd0a4c31b597ed47e0693d552adcababcb05111da39a059fac22e44840ce1671b1cc972de22d6d85d9
+  languageName: node
+  linkType: hard
+
+"ethjs-util@npm:^0.1.6":
+  version: 0.1.6
+  resolution: "ethjs-util@npm:0.1.6"
+  dependencies:
+    is-hex-prefixed: "npm:1.0.0"
+    strip-hex-prefix: "npm:1.0.0"
+  checksum: 10c0/9b4d6268705fd0620e73a56d2fa7b8a7c6b9770b2cf7f8ffe3a9c46b8bd1c5a08fff3d1181bb18cf85cf12b6fdbb6dca6d9aff6506005f3f565e742f026e6339
   languageName: node
   linkType: hard
 
@@ -14618,6 +14665,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"headless-web3-provider@npm:^0.3.2":
+  version: 0.3.2
+  resolution: "headless-web3-provider@npm:0.3.2"
+  dependencies:
+    "@metamask/eth-sig-util": "npm:^6.0.0"
+    "@metamask/json-rpc-engine": "npm:^8.0.1"
+    ethers: "npm:^5.7.1"
+    rxjs: "npm:^7.5.7"
+  checksum: 10c0/e1f764deeac16c457c9c5ee45d2ab5cb96d63dac468f900374f593c1edc2d27022dca42ef6fa060fbbc125706de60d98c3f7703ae9dbbdb298a97f19d52c2733
+  languageName: node
+  linkType: hard
+
 "help-me@npm:^5.0.0":
   version: 5.0.0
   resolution: "help-me@npm:5.0.0"
@@ -15432,6 +15491,13 @@ __metadata:
   dependencies:
     is-extglob: "npm:^2.1.1"
   checksum: 10c0/17fb4014e22be3bbecea9b2e3a76e9e34ff645466be702f1693e8f1ee1adac84710d0be0bd9f967d6354036fd51ab7c2741d954d6e91dae6bb69714de92c197a
+  languageName: node
+  linkType: hard
+
+"is-hex-prefixed@npm:1.0.0":
+  version: 1.0.0
+  resolution: "is-hex-prefixed@npm:1.0.0"
+  checksum: 10c0/767fa481020ae654ab085ca24c63c518705ff36fdfbfc732292dc69092c6f8fdc551f6ce8c5f6ae704b0a19294e6f62be1b4b9859f0e1ac76e3b1b0733599d94
   languageName: node
   linkType: hard
 
@@ -19243,9 +19309,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nuqs@npm:^2.4.1":
-  version: 2.4.1
-  resolution: "nuqs@npm:2.4.1"
+"nuqs@npm:^2.4.2":
+  version: 2.4.2
+  resolution: "nuqs@npm:2.4.2"
   dependencies:
     mitt: "npm:^3.0.1"
   peerDependencies:
@@ -19263,7 +19329,7 @@ __metadata:
       optional: true
     react-router-dom:
       optional: true
-  checksum: 10c0/128faf503ca7d7373c7a82e6c0e96640b27014295f832778b7d01c9e9d2621c3825570d3530624dd4a2636e91587a8768d77d7595b5b0045f5d0c42a98d5076f
+  checksum: 10c0/5bd9c314d24178dca605d3638c16f8e421d5e7fd17c22248400f1e1481ebb0a61ce9540e6f754f3e063818d5597a2a3e1088bc64b345c0d31666be6a22e8e1a3
   languageName: node
   linkType: hard
 
@@ -20843,6 +20909,7 @@ __metadata:
   resolution: "proposalsapp@workspace:."
   dependencies:
     "@tsconfig/recommended": "npm:^1.0.8"
+    headless-web3-provider: "npm:^0.3.2"
     npm-check-updates: "npm:^17.1.18"
   languageName: unknown
   linkType: soft
@@ -22109,7 +22176,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rxjs@npm:^7.8.2":
+"rxjs@npm:^7.5.7, rxjs@npm:^7.8.2":
   version: 7.8.2
   resolution: "rxjs@npm:7.8.2"
   dependencies:
@@ -23433,6 +23500,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"strip-hex-prefix@npm:1.0.0":
+  version: 1.0.0
+  resolution: "strip-hex-prefix@npm:1.0.0"
+  dependencies:
+    is-hex-prefixed: "npm:1.0.0"
+  checksum: 10c0/ec9a48c334c2ba4afff2e8efebb42c3ab5439f0e1ec2b8525e184eabef7fecade7aee444af802b1be55d2df6da5b58c55166c32f8461cc7559b401137ad51851
+  languageName: node
+  linkType: hard
+
 "strip-json-comments@npm:^3.1.1":
   version: 3.1.1
   resolution: "strip-json-comments@npm:3.1.1"
@@ -24259,6 +24335,20 @@ __metadata:
   version: 1.2.5
   resolution: "tw-animate-css@npm:1.2.5"
   checksum: 10c0/6db58d82d3547b11596b90eeb1b951e6586c93010d464a4aadc96a72b8e5e842e5517d2ac83074cd821676c811ffc4ec99db66d1afb6ca3253d3f88e6390c575
+  languageName: node
+  linkType: hard
+
+"tweetnacl-util@npm:^0.15.1":
+  version: 0.15.1
+  resolution: "tweetnacl-util@npm:0.15.1"
+  checksum: 10c0/796fad76238e40e853dff79516406a27b41549bfd6fabf4ba89d87ca31acf232122f825daf955db8c8573cc98190d7a6d39ece9ed8ae0163370878c310650a80
+  languageName: node
+  linkType: hard
+
+"tweetnacl@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "tweetnacl@npm:1.0.3"
+  checksum: 10c0/069d9df51e8ad4a89fbe6f9806c68e06c65be3c7d42f0701cc43dba5f0d6064686b238bbff206c5addef8854e3ce00c643bff59432ea2f2c639feab0ee1a93f9
   languageName: node
   linkType: hard
 

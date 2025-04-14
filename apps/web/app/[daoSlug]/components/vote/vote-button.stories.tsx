@@ -3,10 +3,9 @@ import { VoteButton } from './vote-button';
 import '@/styles/globals.css';
 import { Story } from '@ladle/react';
 import { JsonValue } from '@proposalsapp/db-indexer';
-import React from 'react'; // Import React for JSX
+import React, { useState, useEffect } from 'react'; // Import React hooks
 
-// --- Enums and Interfaces (Kept for type definition) ---
-
+// --- Enums and Interfaces (Keep as is) ---
 enum ProposalState {
   ACTIVE = 'ACTIVE',
   CANCELED = 'CANCELED',
@@ -19,67 +18,62 @@ enum ProposalState {
   SUCCEEDED = 'SUCCEEDED',
   UNKNOWN = 'UNKNOWN',
 }
-
-// Interface for the expected structure, potentially derived from Snapshot data
 interface MockProposalMetadata {
   voteType?: VoteType;
   hiddenVote?: boolean;
   scoresState?: 'pending' | 'final';
   totalDelegatedVp?: string;
   quorumChoices?: number[];
-  // Allow any other properties that might come from snapshot or be needed
+  snapshotBlock?: string;
+  originalSnapshotType?: string;
   [key: string]: JsonValue | undefined | number[] | string[] | boolean;
 }
-
 interface MockProposal {
   id: string;
-  externalId: string; // Often same as id for Snapshot
-  governorId: string; // May not be directly available from Snapshot, requires context/mapping
-  daoId: string; // Space ID from Snapshot
-  name: string; // title from Snapshot
-  body: string; // body from Snapshot
-  author: string; // author from Snapshot
-  url: string; // May need to be constructed
-  startAt: Date; // start from Snapshot (converted)
-  createdAt: Date; // created from Snapshot (converted)
-  endAt: Date; // end from Snapshot (converted)
-  blockCreatedAt: number | null; // Not standard in Snapshot API
-  markedSpam: boolean; // Not standard in Snapshot API
-  quorum: number; // quorum from Snapshot
-  blockStartAt: number | null; // Not standard in Snapshot API
-  blockEndAt: number | null; // Not standard in Snapshot API
-  proposalState: ProposalState; // state from Snapshot (mapped)
-  discussionUrl: string | null; // discussion from Snapshot
-  txid: string | null; // Not standard for offchain Snapshot proposals
-  choices: string[] | JsonValue; // choices from Snapshot (ensure string[])
-  metadata: MockProposalMetadata; // Contains voteType, etc.
+  externalId: string;
+  governorId: string;
+  daoId: string;
+  name: string;
+  body: string;
+  author: string;
+  url: string;
+  startAt: Date;
+  createdAt: Date;
+  endAt: Date;
+  blockCreatedAt: number | null;
+  markedSpam: boolean;
+  quorum: number;
+  blockStartAt: number | null;
+  blockEndAt: number | null;
+  proposalState: ProposalState;
+  discussionUrl: string | null;
+  txid: string | null;
+  choices: string[];
+  metadata: MockProposalMetadata;
 }
 
-// --- Snapshot Fetching Logic ---
-
+// --- Snapshot Fetching Logic (Keep as is, including logging) ---
 const SNAPSHOT_SPACE = 'proposalsapp-area51.eth';
 const SNAPSHOT_HUB_URL = 'https://testnet.hub.snapshot.org';
 
-// Helper to map Snapshot state to ProposalState
 const mapSnapshotState = (state?: string): ProposalState => {
+  /* ... implementation unchanged ... */
   switch (state?.toLowerCase()) {
     case 'active':
       return ProposalState.ACTIVE;
     case 'closed':
-      // Defaulting closed to EXECUTED for story purposes, might need refinement
-      return ProposalState.EXECUTED;
+      return ProposalState.EXECUTED; // Simplified mapping
     case 'pending':
       return ProposalState.PENDING;
     default:
+      console.warn(`Unknown Snapshot proposal state received: ${state}`);
       return ProposalState.UNKNOWN;
   }
 };
-
-// Helper to map Snapshot type to VoteType (assuming offchain context)
 const mapSnapshotType = (type?: string): VoteType | undefined => {
+  /* ... implementation unchanged ... */
   switch (type?.toLowerCase()) {
     case 'basic':
-      return 'offchain-basic';
     case 'single-choice':
       return 'offchain-single-choice';
     case 'approval':
@@ -90,205 +84,323 @@ const mapSnapshotType = (type?: string): VoteType | undefined => {
       return 'offchain-ranked-choice';
     case 'weighted':
       return 'offchain-weighted';
-    // Add other potential Snapshot types if needed
     default:
-      // Fallback or handle unknown types if necessary
+      console.warn(`Unknown Snapshot proposal type received: ${type}`);
       return undefined;
   }
 };
 
-// Fetch the latest proposal from Snapshot
 async function fetchLatestProposal(
   spaceId: string,
   hubUrl: string
 ): Promise<MockProposal | null> {
   const graphqlQuery = {
-    operationName: 'LatestProposal',
-    query: `query LatestProposal($spaceId: String!) {
-      proposals(
-        first: 1,
-        skip: 0,
-        where: { space: $spaceId },
-        orderBy: "created",
-        orderDirection: desc
-      ) {
-        id
-        title
-        body
-        choices
-        start
-        end
-        created
-        state
-        author
-        space { id }
-        type
-        quorum
-        discussion
-      }
-    }`,
+    /* ... query unchanged ... */ operationName: 'LatestProposal',
+    query: `query LatestProposal($spaceId: String!) { proposals( first: 1, skip: 0, where: { space: $spaceId }, orderBy: "created", orderDirection: desc ) { id title body choices start end snapshot state author created space { id } type quorum discussion } }`,
     variables: { spaceId },
   };
+  const fetchUrl = `${hubUrl}/graphql`;
+  console.log(
+    `[fetchLatestProposal] Attempting to fetch from: ${fetchUrl} for space: ${spaceId}`
+  );
+  console.log(
+    `[fetchLatestProposal] Sending GraphQL query:`,
+    JSON.stringify(graphqlQuery, null, 2)
+  );
 
   try {
-    const response = await fetch(`${hubUrl}/graphql`, {
+    const response = await fetch(fetchUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
       body: JSON.stringify(graphqlQuery),
+      cache: 'no-store',
     });
-
+    console.log(
+      `[fetchLatestProposal] Received response status: ${response.status} ${response.statusText}`
+    );
+    let responseBodyText = '';
+    try {
+      responseBodyText = await response.clone().text();
+      console.log(
+        `[fetchLatestProposal] Received raw response body:`,
+        responseBodyText
+      );
+    } catch (cloneError) {
+      console.error(
+        `[fetchLatestProposal] Error cloning response:`,
+        cloneError
+      );
+      try {
+        responseBodyText = await response.text();
+        console.log(
+          `[fetchLatestProposal] Received raw response body (from original):`,
+          responseBodyText
+        );
+      } catch (readError) {
+        console.error(
+          `[fetchLatestProposal] Error reading response body:`,
+          readError
+        );
+      }
+    }
     if (!response.ok) {
       console.error(
-        `Snapshot API request failed: ${response.status} ${response.statusText}`
+        `[fetchLatestProposal] Snapshot API request failed with status ${response.status}. Body: ${responseBodyText}`
       );
       return null;
     }
-
-    const jsonResponse = await response.json();
-
-    if (jsonResponse.errors) {
-      console.error('Snapshot API returned errors:', jsonResponse.errors);
+    let jsonResponse;
+    try {
+      if (
+        responseBodyText &&
+        response.headers.get('content-type')?.includes('application/json')
+      ) {
+        jsonResponse = JSON.parse(responseBodyText);
+      } else {
+        jsonResponse = await response.json();
+      }
+      console.log(`[fetchLatestProposal] Parsed JSON response:`, jsonResponse);
+    } catch (parseError) {
+      console.error(
+        `[fetchLatestProposal] Failed to parse JSON response. Status: ${response.status}. Body: ${responseBodyText}`,
+        parseError
+      );
       return null;
     }
-
+    if (jsonResponse.errors) {
+      console.error(
+        '[fetchLatestProposal] Snapshot API returned GraphQL errors:',
+        jsonResponse.errors
+      );
+      return null;
+    }
     const proposalData = jsonResponse.data?.proposals?.[0];
-
     if (!proposalData) {
       console.warn(
-        `No proposal found for space '${spaceId}' in Snapshot API response.`
+        `[fetchLatestProposal] No proposal found for space '${spaceId}' in Snapshot API response data.`
       );
       return null;
     }
-
-    // --- Map Snapshot data to MockProposal structure ---
+    console.log(`[fetchLatestProposal] Found proposal data:`, proposalData);
+    // --- Mapping Logic (unchanged) ---
     const mappedVoteType = mapSnapshotType(proposalData.type);
     const mappedState = mapSnapshotState(proposalData.state);
-
-    // Basic validation/cleaning of choices
     let cleanChoices: string[] = [];
     if (
       Array.isArray(proposalData.choices) &&
       proposalData.choices.every((c: unknown) => typeof c === 'string')
     ) {
-      cleanChoices = proposalData.choices;
+      cleanChoices = proposalData.choices as string[];
     } else {
       console.warn(
-        'Fetched proposal choices are not string[], using empty array:',
+        `[fetchLatestProposal] Fetched proposal choices (id: ${proposalData.id}) are not string[], using empty array:`,
         proposalData.choices
       );
     }
-
+    const startTs =
+      typeof proposalData.start === 'number' ? proposalData.start * 1000 : 0;
+    const createdTs =
+      typeof proposalData.created === 'number'
+        ? proposalData.created * 1000
+        : 0;
+    const endTs =
+      typeof proposalData.end === 'number' ? proposalData.end * 1000 : 0;
+    if (!startTs || !createdTs || !endTs) {
+      console.warn(
+        `[fetchLatestProposal] Proposal ${proposalData.id} has invalid timestamp(s): start=${proposalData.start}, created=${proposalData.created}, end=${proposalData.end}. Using epoch 0.`
+      );
+    }
     const mappedProposal: MockProposal = {
-      // Mapped fields
       id: proposalData.id,
-      externalId: proposalData.id, // Use Snapshot id
+      externalId: proposalData.id,
       daoId: proposalData.space.id,
       name: proposalData.title || 'Untitled Proposal',
       body: proposalData.body || '',
       author: proposalData.author || 'Unknown Author',
-      url: '', // Construct URL later if needed (e.g., based on space/id)
-      startAt: new Date(proposalData.start * 1000),
-      createdAt: new Date(proposalData.created * 1000),
-      endAt: new Date(proposalData.end * 1000),
+      url: '',
+      startAt: new Date(startTs),
+      createdAt: new Date(createdTs),
+      endAt: new Date(endTs),
       proposalState: mappedState,
       choices: cleanChoices,
-      quorum: proposalData.quorum || 0,
-      discussionUrl: proposalData.discussion || null,
-
-      // Default/Placeholder fields (adjust if VoteButton requires specifics)
-      governorId: `gov-for-${proposalData.space.id}`, // Placeholder
+      quorum: typeof proposalData.quorum === 'number' ? proposalData.quorum : 0,
+      discussionUrl:
+        typeof proposalData.discussion === 'string' && proposalData.discussion
+          ? proposalData.discussion
+          : null,
+      governorId: `snapshot-gov-for-${proposalData.space.id}`,
       blockCreatedAt: null,
       markedSpam: false,
       blockStartAt: null,
       blockEndAt: null,
       txid: null,
-
-      // Metadata object
       metadata: {
         voteType: mappedVoteType,
-        scoresState: mappedState === ProposalState.ACTIVE ? 'pending' : 'final',
-        // Add other potential metadata defaults if necessary
-        hiddenVote: false, // Default assumption
-      } as MockProposalMetadata, // Cast ensures compatibility, allows extra props via index signature
+        scoresState: proposalData.state === 'active' ? 'pending' : 'final',
+        snapshotBlock:
+          typeof proposalData.snapshot === 'string'
+            ? proposalData.snapshot
+            : undefined,
+        originalSnapshotType:
+          typeof proposalData.type === 'string' ? proposalData.type : undefined,
+        hiddenVote: false,
+      },
     };
-
-    // Add the original snapshot type to metadata if needed elsewhere
+    if (!proposalData.title)
+      console.warn(
+        `[fetchLatestProposal] Proposal ${proposalData.id} missing title.`
+      );
+    if (!proposalData.author)
+      console.warn(
+        `[fetchLatestProposal] Proposal ${proposalData.id} missing author.`
+      );
     if (
-      proposalData.type &&
-      mappedProposal.metadata &&
-      typeof mappedProposal.metadata === 'object'
+      cleanChoices.length === 0 &&
+      Array.isArray(proposalData.choices) &&
+      proposalData.choices.length > 0
     ) {
-      (mappedProposal.metadata as MockProposalMetadata)[
-        'originalSnapshotType'
-      ] = proposalData.type;
+    } else if (cleanChoices.length === 0) {
+      console.warn(
+        `[fetchLatestProposal] Proposal ${proposalData.id} has empty choices array.`
+      );
     }
-
+    console.log(
+      `[fetchLatestProposal] Successfully mapped proposal:`,
+      mappedProposal
+    );
     return mappedProposal;
   } catch (error) {
-    console.error('Error fetching or processing Snapshot proposal:', error);
+    console.error(
+      '[fetchLatestProposal] Error during fetch or processing:',
+      error
+    );
+    if (error instanceof Error) {
+      console.error(
+        `[fetchLatestProposal] Error name: ${error.name}, message: ${error.message}`
+      );
+    }
     return null;
   }
 }
 
-// --- Ladle Story ---
-
-export const LatestProposalFromSnapshot: Story = async () => {
+// --- Ladle Loader (Keep the function definition, but we won't assign it to the story for now) ---
+const load = async (): Promise<{
+  proposal: MockProposal | null;
+  error?: boolean;
+}> => {
+  console.log(
+    `[Ladle Loader] Starting proposal fetch from ${SNAPSHOT_HUB_URL} for space ${SNAPSHOT_SPACE}...`
+  );
   const proposal = await fetchLatestProposal(SNAPSHOT_SPACE, SNAPSHOT_HUB_URL);
-
   if (!proposal) {
+    console.error('[Ladle Loader] Failed to load proposal for story.');
+    return { proposal: null, error: true };
+  }
+  console.log(`[Ladle Loader] Successfully fetched proposal: ${proposal.id}`);
+  return { proposal };
+};
+load.storyName = 'Proposal Data Loader';
+
+// --- Ladle Story (Modified to use useEffect for fetching) ---
+
+// Define the type for the props (No longer passed by loader)
+// interface LatestProposalStoryProps {
+//   proposal: MockProposal | null; // Data will come from state now
+//   error?: boolean;
+// }
+
+export const LatestProposalFromSnapshot: Story = () => {
+  // No props from loader
+  const [proposal, setProposal] = useState<MockProposal | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Define the async function to fetch data
+    const fetchData = async () => {
+      console.log('[useEffect] Starting proposal fetch...');
+      setIsLoading(true);
+      setError(false);
+      try {
+        const fetchedProposal = await fetchLatestProposal(
+          SNAPSHOT_SPACE,
+          SNAPSHOT_HUB_URL
+        );
+        if (fetchedProposal) {
+          setProposal(fetchedProposal);
+          console.log(
+            '[useEffect] Successfully fetched and set proposal:',
+            fetchedProposal.id
+          );
+        } else {
+          console.error('[useEffect] fetchLatestProposal returned null.');
+          setError(true);
+        }
+      } catch (err) {
+        console.error('[useEffect] Error fetching proposal:', err);
+        setError(true);
+      } finally {
+        setIsLoading(false);
+        console.log('[useEffect] Fetch attempt finished.');
+      }
+    };
+
+    // Call the fetch function
+    fetchData();
+
+    // Cleanup function (optional, not strictly needed for one-time fetch)
+    // return () => { /* potentially abort controller logic if needed */ };
+  }, []); // Empty dependency array means this runs once on mount
+
+  // --- Render based on state ---
+
+  if (isLoading) {
     return (
-      <div style={{ padding: '20px', color: 'red' }}>
-        Error loading proposal data from Snapshot Hub ({SNAPSHOT_HUB_URL}) for
-        space ({SNAPSHOT_SPACE}). Check console for details.
+      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+        <h2>Loading Proposal...</h2>
+        <p>
+          Fetching latest proposal from Snapshot Hub ({SNAPSHOT_HUB_URL}) for
+          space ({SNAPSHOT_SPACE})...
+        </p>
       </div>
     );
   }
 
-  // Determine if snapshot props should be passed (typically for offchain types)
+  if (error || !proposal) {
+    return (
+      <div style={{ padding: '20px', color: 'red', fontFamily: 'sans-serif' }}>
+        <h2>Error Loading Proposal</h2>
+        <p>
+          Failed to load proposal data from Snapshot Hub (
+          <code>{SNAPSHOT_HUB_URL}</code>) for space (
+          <code>{SNAPSHOT_SPACE}</code>).
+        </p>
+        <p>
+          Please check the browser's developer console (Network and Console
+          tabs) for detailed error messages. Ensure the Snapshot Hub is
+          operational and accessible. Possible causes include network issues,
+          CORS errors, or API problems.
+        </p>
+      </div>
+    );
+  }
+
+  // --- Display Proposal (Same as before, but using state variable 'proposal') ---
   const isOffchain = proposal.metadata?.voteType?.startsWith('offchain-');
 
   return (
-    <div style={{ padding: '20px', maxWidth: '600px', margin: 'auto' }}>
-      <h2>Vote Button (Latest Proposal from Snapshot)</h2>
-      <p>
-        Displaying VoteButton for the latest proposal fetched from space{' '}
-        <code>{SNAPSHOT_SPACE}</code>.
-      </p>
-      <pre
-        style={{
-          fontSize: '0.8em',
-          background: '#f0f0f0',
-          padding: '10px',
-          borderRadius: '4px',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-all',
-        }}
-      >
-        Proposal ID: {proposal.id}
-        <br />
-        Title: {proposal.name}
-        <br />
-        State: {proposal.proposalState}
-        <br />
-        Vote Type: {proposal.metadata?.voteType || 'N/A'}
-        <br />
-        End Date: {proposal.endAt.toLocaleString()}
-        <br />
-        Choices: {JSON.stringify(proposal.choices)}
-      </pre>
-      <VoteButton
-        proposal={proposal}
-        // Conditionally pass Snapshot Hub/Space info if it's offchain
-        {...(isOffchain && {
-          snapshotSpace: SNAPSHOT_SPACE,
-          snapshotHubUrl: SNAPSHOT_HUB_URL,
-        })}
-      />
-    </div>
+    <VoteButton
+      proposal={proposal}
+      snapshotSpace={SNAPSHOT_SPACE}
+      snapshotHubUrl={SNAPSHOT_HUB_URL}
+    />
   );
 };
 
-LatestProposalFromSnapshot.storyName = 'Latest Proposal (Live Snapshot Data)';
+LatestProposalFromSnapshot.storyName = 'Latest Proposal';
+
+// IMPORTANT: Comment out or remove the loader assignment for this story
+// LatestProposalFromSnapshot.load = load;

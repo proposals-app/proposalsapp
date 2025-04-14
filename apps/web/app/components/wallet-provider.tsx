@@ -7,8 +7,8 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css';
 
 const config = getDefaultConfig({
-  appName: 'My RainbowKit App',
-  projectId: 'YOUR_PROJECT_ID',
+  appName: 'proposalsapp',
+  projectId: 'e18a2020baa088921415dd06caf2bfb4',
   chains: [arbitrum],
   ssr: true,
 });

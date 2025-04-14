@@ -122,9 +122,9 @@ export function VoteButton({
       </DialogTrigger>
       <DialogContent className='sm:max-w-[525px]'>
         <DialogHeader>
-          <DialogTitle>Cast Your Vote</DialogTitle>
+          <DialogTitle>{proposal.name}</DialogTitle>
         </DialogHeader>
-        {/* Render the selected modal content, passing necessary props */}
+
         <ModalContentComponent
           proposal={proposal}
           snapshotSpace={snapshotSpace}
