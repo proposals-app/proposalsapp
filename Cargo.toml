@@ -11,7 +11,7 @@ resolver = "2"
 
 [workspace.dependencies]
 alloy = "0.8.3"
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 async-trait = "0.1.88"
 axum = "0.7.9"
 backtrace = "0.3.74"
@@ -37,7 +37,7 @@ reqwest = { version = "0.12.15", default-features = false }
 reqwest-middleware = "0.4.2"
 reqwest-retry = "0.7.0"
 scraper = "0.22.0"
-sea-orm = { version = "1.1.8", default-features = false }
+sea-orm = { version = "1.1.9", default-features = false }
 serde = "1.0.219"
 serde_json = "1.0.140"
 thiserror = "2.0.12"
@@ -46,7 +46,7 @@ tracing = "0.1.41"
 tracing-opentelemetry = "0.28.0"
 tracing-subscriber = "0.3.19"
 pyroscope = "0.5.8"
-pyroscope_pprofrs = "0.2.8"
+pyroscope_pprofrs = "0.2.10"
 ethers = "2.0"
 # rindexer = { path = "./../rindexer/core", package = "rindexer" }
 rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "proposalsapp", package = "rindexer" }
