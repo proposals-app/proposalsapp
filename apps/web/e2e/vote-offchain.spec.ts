@@ -11,8 +11,6 @@ const RPC_URL = 'https://arbitrum.drpc.org';
 const SNAPSHOT_APP_NAME = 'proposalsapp';
 const ATTRIBUTION_TEXT = 'voted via proposals.app'; // Match component constant
 
-const CREATE_NEW_PROPOSALS = true;
-
 const TEST_TIMEOUT = 300 * 1000; // Increased timeout for potential API delays + UI interactions
 const API_VERIFICATION_DELAY = 15 * 1000; // Wait 15 seconds before first API check
 const API_RETRY_DELAY = 10 * 1000; // Wait 10 seconds between API check retries
@@ -42,6 +40,7 @@ interface SnapshotProposal {
   type: string;
   title: string;
   created: number;
+  end: number; // Added end timestamp
 }
 
 // Retrieve the seed phrase from environment variables
@@ -108,6 +107,7 @@ async function connectWallet(
 
 async function createSnapshotProposal(
   voteType:
+    | 'basic'
     | 'single-choice'
     | 'approval'
     | 'quadratic'
@@ -115,7 +115,8 @@ async function createSnapshotProposal(
     | 'weighted',
   titlePrefix: string,
   bodyText: string,
-  choices: string[]
+  choices: string[],
+  testLogPrefix: string = '' // Added for consistency
 ): Promise<{ id: string; signerAddress: string; wallet: ethers.Wallet }> {
   const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
   // Use non-null assertion '!' as the initial check guarantees seedPhrase is defined here
@@ -123,11 +124,11 @@ async function createSnapshotProposal(
   const signerAddress = await wallet.getAddress();
   const currentBlock = await provider.getBlockNumber();
 
-  console.log(`[${voteType}] Using signer address: ${signerAddress}`);
+  console.log(`${testLogPrefix} Using signer address: ${signerAddress}`);
   console.log(
-    `[${voteType}] Using network: ${await provider.getNetwork().then((n) => n.name)}`
+    `${testLogPrefix} Using network: ${await provider.getNetwork().then((n) => n.name)}`
   );
-  console.log(`[${voteType}] Latest block number: ${currentBlock}`);
+  console.log(`${testLogPrefix} Latest block number: ${currentBlock}`);
 
   const client = new snapshot.Client712(HUB_URL);
   const startAt = Math.floor(new Date().getTime() / 1000) - 60; // Start 1 min ago
@@ -139,7 +140,7 @@ async function createSnapshotProposal(
 
   try {
     console.log(
-      `[${voteType}] Attempting to create proposal: "${proposalTitle}"...`
+      `${testLogPrefix} Attempting to create proposal: "${proposalTitle}"...`
     );
     proposalReceipt = (await client.proposal(wallet, signerAddress, {
       space: SPACE_ID,
@@ -156,12 +157,15 @@ async function createSnapshotProposal(
     })) as ProposalReceipt;
 
     proposalId = proposalReceipt.id;
-    console.log(`[${voteType}] Proposal creation successful:`, proposalReceipt);
-    console.log(`[${voteType}] Proposal ID: ${proposalId}`);
+    console.log(
+      `${testLogPrefix} Proposal creation successful:`,
+      proposalReceipt
+    );
+    console.log(`${testLogPrefix} Proposal ID: ${proposalId}`);
     await new Promise((resolve) => setTimeout(resolve, 3000)); // Small delay for indexer
   } catch (error) {
     console.error(
-      `[${voteType}] Error creating proposal:`,
+      `${testLogPrefix} Error creating proposal:`,
       JSON.stringify(error)
     );
     throw new Error(`[${voteType}] Failed to create proposal: ${error}`);
@@ -170,8 +174,9 @@ async function createSnapshotProposal(
   return { id: proposalId, signerAddress, wallet };
 }
 
-async function fetchLatestProposalId(
+async function fetchLatestActiveProposalId(
   voteType:
+    | 'basic'
     | 'single-choice'
     | 'approval'
     | 'quadratic'
@@ -180,20 +185,22 @@ async function fetchLatestProposalId(
   titlePrefix: string,
   testLogPrefix: string = ''
 ): Promise<string | null> {
+  const currentTimestamp = Math.floor(Date.now() / 1000);
   console.log(
-    `${testLogPrefix} Fetching latest proposal ID for type: ${voteType}...`
+    `${testLogPrefix} Fetching latest *active* proposal ID for type: ${voteType} (Ending after ${currentTimestamp})...`
   );
 
   const graphqlQuery = {
-    operationName: 'GetProposals',
+    operationName: 'GetActiveProposals',
     query: `
-      query GetProposals($spaceId: String!, $type: String!, $titlePrefix: String!) {
+      query GetActiveProposals($spaceId: String!, $type: String!, $titlePrefix: String!, $currentTimestamp: Int!) {
         proposals(
           first: 1
           where: {
             space: $spaceId,
             type: $type,
-            title_contains: $titlePrefix
+            title_contains: $titlePrefix,
+            end_gt: $currentTimestamp # Filter for proposals that haven't ended yet
           }
           orderBy: "created"
           orderDirection: desc
@@ -202,6 +209,7 @@ async function fetchLatestProposalId(
           type
           title
           created
+          end # Include end timestamp for verification
         }
       }
     `,
@@ -209,6 +217,7 @@ async function fetchLatestProposalId(
       spaceId: SPACE_ID,
       type: voteType,
       titlePrefix: titlePrefix,
+      currentTimestamp: currentTimestamp,
     },
   };
 
@@ -242,20 +251,20 @@ async function fetchLatestProposalId(
       !jsonResponse.data.proposals ||
       jsonResponse.data.proposals.length === 0
     ) {
-      console.warn(
-        `${testLogPrefix} No proposals found for type: ${voteType} and title prefix: ${titlePrefix}`
+      console.log(
+        `${testLogPrefix} No *active* proposals found for type: ${voteType} and title prefix: ${titlePrefix}`
       );
       return null;
     }
 
     const latestProposal = jsonResponse.data.proposals[0] as SnapshotProposal;
     console.log(
-      `${testLogPrefix} Latest proposal ID found: ${latestProposal.id} (Title: "${latestProposal.title}")`
+      `${testLogPrefix} Latest *active* proposal ID found: ${latestProposal.id} (Title: "${latestProposal.title}", Ends: ${latestProposal.end})`
     );
     return latestProposal.id;
   } catch (error: any) {
     console.error(
-      `${testLogPrefix} Error fetching latest proposal ID: ${error}`
+      `${testLogPrefix} Error fetching latest active proposal ID: ${error}`
     );
     return null;
   }
@@ -399,47 +408,53 @@ async function verifyVoteViaApi(
 
 // --- Enforce Sequential Execution ---
 test.describe.serial('Offchain Voting E2E Tests', () => {
-  // --- SINGLE CHOICE / BASIC TEST ---
-  test('[Single-Choice] should create proposal, vote via UI, verify via API', async ({
+  // --- BASIC ---
+  test('[Basic] should use active or create proposal, vote via UI, verify via API', async ({
     context,
     page,
     metamaskPage,
     extensionId,
   }) => {
     test.setTimeout(TEST_TIMEOUT);
-    const testLogPrefix = '[Single-Choice]';
-    const voteType = 'single-choice';
-    const choices = ['SC Choice 1', 'SC Choice 2', 'SC Choice 3'];
-    const proposalTitlePrefix = 'E2E Test Proposal (Single Choice)';
+    const testLogPrefix = '[Basic]';
+    const voteType = 'basic';
+    const choices = ['Yes', 'No', 'Abstain'];
+    const proposalTitlePrefix = 'E2E Test Proposal (Basic)';
     let proposalId: string | null = null;
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
-    // --- Create or Fetch Proposal ID ---
-    if (CREATE_NEW_PROPOSALS) {
+    // --- Fetch Active or Create New Proposal ID ---
+    proposalId = await fetchLatestActiveProposalId(
+      voteType,
+      proposalTitlePrefix,
+      testLogPrefix
+    );
+
+    if (!proposalId) {
+      console.log(
+        `${testLogPrefix} No active proposal found. Creating a new one...`
+      );
       const proposalData = await createSnapshotProposal(
         voteType,
         proposalTitlePrefix,
-        'Automated test proposal for single-choice voting.',
-        choices
+        'Automated test proposal for basic voting.',
+        choices,
+        testLogPrefix
       );
       proposalId = proposalData.id;
     } else {
-      proposalId = await fetchLatestProposalId(
-        voteType,
-        proposalTitlePrefix,
-        testLogPrefix
+      console.log(
+        `${testLogPrefix} Using existing active proposal: ${proposalId}`
       );
-      if (!proposalId) {
-        throw new Error(
-          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
-        );
-      }
     }
+
     expect(
       proposalId,
-      `${testLogPrefix} proposalId should be defined`
+      `${testLogPrefix} proposalId should be defined after fetch or create`
     ).toBeDefined();
+    // Ensure proposalId is treated as non-null from here on
+    proposalId = proposalId!;
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -449,7 +464,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--single-choice-proposal&proposalId=${proposalId}`
+      `http://localhost:61000/?story=vote-button--basic-proposal`
     );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
@@ -511,7 +526,133 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId as string, // proposalId is asserted to be not null above
+      proposalId, // proposalId is now guaranteed non-null
+      await metamask.getAccountAddress(),
+      expectedChoiceValue,
+      expectedReasonString, // Pass expected reason
+      testLogPrefix
+    );
+  });
+
+  // --- SINGLE CHOICE ---
+  test('[Single-Choice] should use active or create proposal, vote via UI, verify via API', async ({
+    context,
+    page,
+    metamaskPage,
+    extensionId,
+  }) => {
+    test.setTimeout(TEST_TIMEOUT);
+    const testLogPrefix = '[Single-Choice]';
+    const voteType = 'single-choice';
+    const choices = ['SC Choice 1', 'SC Choice 2', 'SC Choice 3'];
+    const proposalTitlePrefix = 'E2E Test Proposal (Single Choice)';
+    let proposalId: string | null = null;
+    const uniqueReasonNonce = `test-run-${Date.now()}`;
+    const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
+
+    // --- Fetch Active or Create New Proposal ID ---
+    proposalId = await fetchLatestActiveProposalId(
+      voteType,
+      proposalTitlePrefix,
+      testLogPrefix
+    );
+
+    if (!proposalId) {
+      console.log(
+        `${testLogPrefix} No active proposal found. Creating a new one...`
+      );
+      const proposalData = await createSnapshotProposal(
+        voteType,
+        proposalTitlePrefix,
+        'Automated test proposal for single-choice voting.',
+        choices,
+        testLogPrefix
+      );
+      proposalId = proposalData.id;
+    } else {
+      console.log(
+        `${testLogPrefix} Using existing active proposal: ${proposalId}`
+      );
+    }
+
+    expect(
+      proposalId,
+      `${testLogPrefix} proposalId should be defined after fetch or create`
+    ).toBeDefined();
+    // Ensure proposalId is treated as non-null from here on
+    proposalId = proposalId!;
+
+    // --- Interact with the Web Application ---
+    const metamask = new MetaMask(
+      context,
+      metamaskPage,
+      basicSetup.walletPassword,
+      extensionId
+    );
+    await page.goto(
+      `http://localhost:61000/?story=vote-button--single-choice-proposal`
+    );
+    // Pass metamaskPage to connectWallet
+    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+
+    // --- Vote on the Proposal via UI ---
+    console.log(`${testLogPrefix} Attempting to vote via UI...`);
+    const voteButton = page.getByRole('button', { name: 'Cast Your Vote' });
+    await expect(voteButton).toBeVisible({ timeout: 30000 }); // Wait for button/proposal load
+    await voteButton.click();
+
+    const proposalTitle = await page
+      .locator('.sm\\:max-w-\\[525px\\] h2')
+      .textContent(); // DialogTitle selector
+    expect(proposalTitle).toContain(proposalTitlePrefix); // Check it's the right proposal modal
+    console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
+
+    // Interact with the Basic/Single-Choice Vote Modal
+    const choiceToSelect = choices[1]; // Select the second choice (index 1)
+    const expectedChoiceValue = 2; // 1-based index
+    const choiceRadioButton = page.getByRole('radio', { name: choiceToSelect });
+    await expect(choiceRadioButton).toBeVisible({ timeout: 10000 });
+    await choiceRadioButton.check();
+
+    // Fill reason textarea
+    console.log(
+      `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
+    );
+    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    // Ensure attribution checkbox is checked (it should be by default)
+    // await expect(page.locator('input#attribution')).toBeChecked();
+
+    const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
+    await expect(submitVoteButton).toBeEnabled();
+    await submitVoteButton.click();
+
+    await page.waitForTimeout(1000);
+
+    try {
+      // Sometimes a "Got it" button appears before signing - handle it
+      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' }); // Use the passed metamaskPage
+      if (await gotItButton.isVisible({ timeout: 3000 })) {
+        console.log(`${testLogPrefix} Clicking 'Got it' button in Metamask...`);
+        await gotItButton.click();
+      }
+    } catch (e) {
+      console.log(
+        `${testLogPrefix} 'Got it' button not found or clickable, continuing...`
+      );
+    }
+
+    // --- Handle Metamask Signature ---
+    console.log(`${testLogPrefix} Confirming vote signature in Metamask...`);
+    await metamask.confirmSignature();
+
+    console.log(
+      `${testLogPrefix} Vote submitted via UI, waiting for API verification...`
+    );
+    await page.waitForTimeout(API_VERIFICATION_DELAY);
+
+    // --- Verify Vote via Snapshot API ---
+    await verifyVoteViaApi(
+      proposalId, // proposalId is now guaranteed non-null
       await metamask.getAccountAddress(),
       expectedChoiceValue,
       expectedReasonString, // Pass expected reason
@@ -520,7 +661,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   // --- APPROVAL (MULTI-CHOICE) TEST ---
-  test('[Approval] should create proposal, vote multiple choices via UI, verify via API', async ({
+  test('[Approval] should use active or create proposal, vote multiple choices via UI, verify via API', async ({
     context,
     page,
     metamaskPage,
@@ -540,31 +681,37 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
-    // --- Create or Fetch Proposal ID ---
-    if (CREATE_NEW_PROPOSALS) {
+    // --- Fetch Active or Create New Proposal ID ---
+    proposalId = await fetchLatestActiveProposalId(
+      voteType,
+      proposalTitlePrefix,
+      testLogPrefix
+    );
+
+    if (!proposalId) {
+      console.log(
+        `${testLogPrefix} No active proposal found. Creating a new one...`
+      );
       const proposalData = await createSnapshotProposal(
         voteType,
         proposalTitlePrefix,
         'Automated test proposal for multi-choice approval voting.',
-        choices
+        choices,
+        testLogPrefix
       );
       proposalId = proposalData.id;
     } else {
-      proposalId = await fetchLatestProposalId(
-        voteType,
-        proposalTitlePrefix,
-        testLogPrefix
+      console.log(
+        `${testLogPrefix} Using existing active proposal: ${proposalId}`
       );
-      if (!proposalId) {
-        throw new Error(
-          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
-        );
-      }
     }
+
     expect(
       proposalId,
-      `${testLogPrefix} proposalId should be defined`
+      `${testLogPrefix} proposalId should be defined after fetch or create`
     ).toBeDefined();
+    // Ensure proposalId is treated as non-null from here on
+    proposalId = proposalId!;
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -574,7 +721,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--approval-proposal&proposalId=${proposalId}`
+      `http://localhost:61000/?story=vote-button--approval-proposal`
     );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
@@ -643,7 +790,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId as string, // proposalId is asserted to be not null above
+      proposalId, // proposalId is now guaranteed non-null
       await metamask.getAccountAddress(),
       expectedChoiceValue,
       expectedReasonString, // Pass expected reason
@@ -652,7 +799,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   // --- QUADRATIC TEST ---
-  test('[Quadratic] should create proposal, vote via UI, verify via API', async ({
+  test('[Quadratic] should use active or create proposal, vote via UI, verify via API', async ({
     context,
     page,
     metamaskPage,
@@ -667,31 +814,37 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
-    // --- Create or Fetch Proposal ID ---
-    if (CREATE_NEW_PROPOSALS) {
+    // --- Fetch Active or Create New Proposal ID ---
+    proposalId = await fetchLatestActiveProposalId(
+      voteType,
+      proposalTitlePrefix,
+      testLogPrefix
+    );
+
+    if (!proposalId) {
+      console.log(
+        `${testLogPrefix} No active proposal found. Creating a new one...`
+      );
       const proposalData = await createSnapshotProposal(
         voteType,
         proposalTitlePrefix,
         'Automated test proposal for quadratic voting.',
-        choices
+        choices,
+        testLogPrefix
       );
       proposalId = proposalData.id;
     } else {
-      proposalId = await fetchLatestProposalId(
-        voteType,
-        proposalTitlePrefix,
-        testLogPrefix
+      console.log(
+        `${testLogPrefix} Using existing active proposal: ${proposalId}`
       );
-      if (!proposalId) {
-        throw new Error(
-          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
-        );
-      }
     }
+
     expect(
       proposalId,
-      `${testLogPrefix} proposalId should be defined`
+      `${testLogPrefix} proposalId should be defined after fetch or create`
     ).toBeDefined();
+    // Ensure proposalId is treated as non-null from here on
+    proposalId = proposalId!;
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -701,7 +854,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--quadratic-proposal&proposalId=${proposalId}`
+      `http://localhost:61000/?story=vote-button--quadratic-proposal`
     );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
@@ -740,6 +893,22 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
 
+    // Wait for metamask interaction - signature required for Quadratic
+    await page.waitForTimeout(1000);
+
+    try {
+      // Sometimes a "Got it" button appears before signing - handle it
+      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' }); // Use the passed metamaskPage
+      if (await gotItButton.isVisible({ timeout: 3000 })) {
+        console.log(`${testLogPrefix} Clicking 'Got it' button in Metamask...`);
+        await gotItButton.click();
+      }
+    } catch (e) {
+      console.log(
+        `${testLogPrefix} 'Got it' button not found or clickable, continuing...`
+      );
+    }
+
     // --- Handle Metamask Signature ---
     console.log(`${testLogPrefix} Confirming vote signature in Metamask...`);
     await metamask.confirmSignature();
@@ -750,7 +919,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId as string, // proposalId is asserted to be not null above
+      proposalId, // proposalId is now guaranteed non-null
       await metamask.getAccountAddress(),
       expectedChoiceValue,
       expectedReasonString, // Pass expected reason
@@ -759,7 +928,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   // --- RANKED CHOICE TEST ---
-  test('[Ranked-Choice] should create proposal, vote via UI (reorder), verify via API', async ({
+  test('[Ranked-Choice] should use active or create proposal, vote via UI (reorder), verify via API', async ({
     context,
     page,
     metamaskPage,
@@ -775,31 +944,37 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
-    // --- Create or Fetch Proposal ID ---
-    if (CREATE_NEW_PROPOSALS) {
+    // --- Fetch Active or Create New Proposal ID ---
+    proposalId = await fetchLatestActiveProposalId(
+      voteType,
+      proposalTitlePrefix,
+      testLogPrefix
+    );
+
+    if (!proposalId) {
+      console.log(
+        `${testLogPrefix} No active proposal found. Creating a new one...`
+      );
       const proposalData = await createSnapshotProposal(
         voteType,
         proposalTitlePrefix,
         'Automated test proposal for ranked-choice voting.',
-        choices
+        choices,
+        testLogPrefix
       );
       proposalId = proposalData.id;
     } else {
-      proposalId = await fetchLatestProposalId(
-        voteType,
-        proposalTitlePrefix,
-        testLogPrefix
+      console.log(
+        `${testLogPrefix} Using existing active proposal: ${proposalId}`
       );
-      if (!proposalId) {
-        throw new Error(
-          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
-        );
-      }
     }
+
     expect(
       proposalId,
-      `${testLogPrefix} proposalId should be defined`
+      `${testLogPrefix} proposalId should be defined after fetch or create`
     ).toBeDefined();
+    // Ensure proposalId is treated as non-null from here on
+    proposalId = proposalId!;
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -809,7 +984,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--ranked-choice-proposal&proposalId=${proposalId}`
+      `http://localhost:61000/?story=vote-button--ranked-choice-proposal`
     );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
@@ -836,29 +1011,41 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const dragHandleD = page.locator(`button[aria-label="Drag ${choices[3]}"]`); // Handle for D
 
     // Locate drop targets - the items themselves can act as targets
-    const itemA = page.locator('div > span:text-is("1.")').locator('..'); // Div containing "1. Rank C A"
+    // Get the first item in the list as the initial drop target
+    const firstItemContainer = page
+      .locator('div[data-headlessui-state="open"] li > div')
+      .first();
 
     // Ensure items are visible before dragging
     await expect(dragHandleA).toBeVisible({ timeout: 10000 });
     await expect(dragHandleC).toBeVisible({ timeout: 10000 });
     await expect(dragHandleD).toBeVisible({ timeout: 10000 });
-    await expect(itemA).toBeVisible({ timeout: 10000 });
+    await expect(firstItemContainer).toBeVisible({ timeout: 10000 });
 
-    // Perform drags: Use dragTo for simplicity if it works reliably
+    // Perform drags: Use dragTo for simplicity
     console.log(`${testLogPrefix} Reordering items: C -> 1st`);
-    await dragHandleC.dragTo(itemA); // Move C to the position of A (becomes 1st)
+    await dragHandleC.dragTo(firstItemContainer); // Move C to the position of A (becomes 1st)
     await page.waitForTimeout(500); // Small delay for UI update
 
-    // New order: [C, A, B, D]
-    console.log(`${testLogPrefix} Reordering items: D -> 3rd`);
-    // Need to re-locate D as its drag handle might have changed context slightly
+    // New order should be: [C, A, B, D]
+    // Locate items based on their new expected positions
+    const itemA_newPosContainer = page
+      .locator('div[data-headlessui-state="open"] li:nth-child(2) > div') // A is now 2nd
+      .first();
+    const itemB_newPosContainer = page
+      .locator('div[data-headlessui-state="open"] li:nth-child(3) > div') // B is now 3rd
+      .first();
     const dragHandleD_newPos = page.locator(
       `button[aria-label="Drag ${choices[3]}"]`
-    );
-    const itemB_newPos = page.locator('div > span:text-is("3.")').locator('..'); // B is now 3rd, target D to B's pos
+    ); // D is currently 4th
+
+    await expect(itemA_newPosContainer).toBeVisible({ timeout: 5000 });
+    await expect(itemB_newPosContainer).toBeVisible({ timeout: 5000 });
     await expect(dragHandleD_newPos).toBeVisible({ timeout: 5000 });
-    await expect(itemB_newPos).toBeVisible({ timeout: 5000 });
-    await dragHandleD_newPos.dragTo(itemB_newPos); // Move D to the position of B (becomes 3rd)
+
+    console.log(`${testLogPrefix} Reordering items: D -> 3rd`);
+    // Drag D to the position currently occupied by B (3rd position)
+    await dragHandleD_newPos.dragTo(itemB_newPosContainer);
     await page.waitForTimeout(500);
 
     // Final Order Check (visually): Should be C, A, D, B
@@ -867,7 +1054,6 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // Fill reason textarea
     // Use a locator that finds the textarea associated with the "Reason (Optional)" label,
-    // as there might be multiple textareas on the page in complex components.
     const reasonTextarea = page.locator('label:has-text("Reason") + textarea');
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
@@ -904,7 +1090,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId as string, // proposalId is asserted to be not null above
+      proposalId, // proposalId is now guaranteed non-null
       await metamask.getAccountAddress(),
       expectedChoiceValue,
       expectedReasonString, // Pass expected reason
@@ -913,7 +1099,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   // --- WEIGHTED TEST ---
-  test('[Weighted] should create proposal, vote via UI (distribute weight), verify via API', async ({
+  test('[Weighted] should use active or create proposal, vote via UI (distribute weight), verify via API', async ({
     context,
     page,
     metamaskPage,
@@ -928,31 +1114,37 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
-    // --- Create or Fetch Proposal ID ---
-    if (CREATE_NEW_PROPOSALS) {
+    // --- Fetch Active or Create New Proposal ID ---
+    proposalId = await fetchLatestActiveProposalId(
+      voteType,
+      proposalTitlePrefix,
+      testLogPrefix
+    );
+
+    if (!proposalId) {
+      console.log(
+        `${testLogPrefix} No active proposal found. Creating a new one...`
+      );
       const proposalData = await createSnapshotProposal(
         voteType,
         proposalTitlePrefix,
         'Automated test proposal for weighted voting.',
-        choices
+        choices,
+        testLogPrefix
       );
       proposalId = proposalData.id;
     } else {
-      proposalId = await fetchLatestProposalId(
-        voteType,
-        proposalTitlePrefix,
-        testLogPrefix
+      console.log(
+        `${testLogPrefix} Using existing active proposal: ${proposalId}`
       );
-      if (!proposalId) {
-        throw new Error(
-          `${testLogPrefix} Could not fetch latest ${voteType} proposal ID. Ensure proposals exist or set CREATE_NEW_PROPOSALS to true.`
-        );
-      }
     }
+
     expect(
       proposalId,
-      `${testLogPrefix} proposalId should be defined`
+      `${testLogPrefix} proposalId should be defined after fetch or create`
     ).toBeDefined();
+    // Ensure proposalId is treated as non-null from here on
+    proposalId = proposalId!;
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -962,7 +1154,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--weighted-proposal&proposalId=${proposalId}`
+      `http://localhost:61000/?story=vote-button--weighted-proposal`
     );
     // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
@@ -1043,7 +1235,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     await verifyVoteViaApi(
-      proposalId as string, // proposalId is asserted to be not null above
+      proposalId, // proposalId is now guaranteed non-null
       await metamask.getAccountAddress(),
       expectedChoiceValue,
       expectedReasonString, // Pass expected reason
