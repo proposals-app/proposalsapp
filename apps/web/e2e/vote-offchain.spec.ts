@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import snapshot from '@snapshot-labs/snapshot.js';
 import basicSetup from './wallet-setup/basic.setup';
 import fetch from 'cross-fetch';
-import type { Page } from '@playwright/test';
+import type { Page, Locator } from '@playwright/test'; // Import Locator type
 
 const HUB_URL = 'https://testnet.hub.snapshot.org';
 const SPACE_ID = 'proposalsapp-area51.eth';
@@ -809,9 +809,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       await expect(choiceCheckbox).toBeVisible({ timeout: 10000 });
       await choiceCheckbox.check();
     }
-    // Expected choice is an array of 1-based indices
-    const expectedChoiceValue = selectedIndices.map((i) => i + 1); // Snapshot API returns sorted choices
-
+    // Expected choice is an array of 1-based indices, sorted numerically for Snapshot API verification
+    const expectedChoiceValue = selectedIndices.map((i) => i + 1);
     console.log(
       `${testLogPrefix} Randomly selected ${numToSelect} choices: ${JSON.stringify(selectedChoiceTexts)}`
     );
@@ -902,7 +901,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const randomIndex = Math.floor(Math.random() * choices.length);
     const choiceToSelect = choices[randomIndex];
     const choiceIndexString = (randomIndex + 1).toString(); // 1-based index as string key
-    // Expected choice for quadratic is an object like { "index": 1 }
+    // Expected choice for quadratic is an object like { "1": 1 }
     const expectedChoiceValue = { [choiceIndexString]: 1 };
     console.log(
       `${testLogPrefix} Randomly selected choice: "${choiceToSelect}" (Index: ${randomIndex}, Expected API Value: ${JSON.stringify(expectedChoiceValue)})`
@@ -940,7 +939,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   // --- RANKED CHOICE TEST ---
-  test('[Ranked-Choice] should use active or create proposal, vote via UI (random single swap), verify via API', async ({
+  test('[Ranked-Choice] should use active or create proposal, vote via UI (random order), verify via API', async ({
     context,
     page,
     metamaskPage,
@@ -984,102 +983,130 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     await expect(voteButton).toBeVisible({ timeout: 30000 });
     await voteButton.click();
 
-    const proposalTitle = await page
-      .locator('.sm\\:max-w-\\[525px\\] h2')
-      .textContent();
-    expect(proposalTitle).toContain(proposalTitlePrefix);
-    console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
+    // --- Wait for Dialog and Title ---
+    const dialogLocator = page.locator('div[role="dialog"]');
+    await expect(dialogLocator).toBeVisible({ timeout: 10000 });
+    const proposalTitleLocator = dialogLocator.locator('h2');
+    await expect(proposalTitleLocator).toContainText(proposalTitlePrefix, {
+      timeout: 10000,
+    });
+    console.log(`${testLogPrefix} Modal opened and title verified.`);
 
-    // --- Interact with Ranked Choice Modal using a RANDOM SINGLE SWAP ---
-    // Make selector specific to the sortable list within the dialog
+    // --- Interact with Ranked Choice Modal using MULTIPLE RANDOM SWAPS ---
+    // Selector for the draggable item container (div containing handle and text)
     const sortableItemContainerSelector =
-      'div[role="dialog"] >> div.rounded-md.border > div[role="button"][aria-roledescription="sortable"]';
-    const getDragHandleLocator = (choiceText: string) =>
-      page.locator(
-        `${sortableItemContainerSelector}:has-text("${choiceText}") >> button[aria-label^="Drag"]`
-      );
-    const getItemContainerByText = (choiceText: string) =>
-      page.locator(
-        `${sortableItemContainerSelector}:has-text("${choiceText}")`
-      );
+      'div[role="dialog"] >> div[class*="SortableItem"]'; // Adjust if class name is different or use data-testid
+    const getDragHandleLocator = (itemContainerLocator: Locator) =>
+      itemContainerLocator.locator('button[aria-label^="Drag"]');
+    const getItemContainerByIndex = (index: number) =>
+      page.locator(sortableItemContainerSelector).nth(index);
+    // Helper to get the choice text from a container, ignoring the rank number and button text
+    const getItemText = async (
+      itemContainerLocator: Locator
+    ): Promise<string> => {
+      // More robustly target the specific span holding the choice text
+      const choiceTextSpan = itemContainerLocator
+        .locator('span')
+        .filter({ hasText: /^(?!Move item|.*\d+\.$)/ }); // Regex to exclude rank/button text
+      const text = (await choiceTextSpan.textContent()) || '';
+      return text.trim();
+    };
 
     // Ensure list container and items are rendered within the dialog
     await expect(
       page.locator(sortableItemContainerSelector).first()
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: 20000 }); // Increased timeout
     await expect(page.locator(sortableItemContainerSelector)).toHaveCount(
       choices.length,
-      { timeout: 10000 }
-    );
+      { timeout: 15000 }
+    ); // Increased timeout
     console.log(`${testLogPrefix} Ranked choice items rendered.`);
 
-    // --- Perform Random Swap ---
-    let currentOrderIndices = choices.map((_, i) => i + 1); // Initial: [1, 2, 3, 4]
-    let currentOrderTexts = [...choices]; // Initial: ['A', 'B', 'C', 'D']
-
-    // Choose a random index to swap with the next item
-    const swapIndex = Math.floor(Math.random() * (choices.length - 1)); // 0, 1, or 2 for length 4
-    const itemToMoveIndex = swapIndex + 1;
-
-    const itemToMoveText = currentOrderTexts[itemToMoveIndex];
-    const targetItemText = currentOrderTexts[swapIndex];
+    // --- Perform Multiple Random Swaps ---
+    let currentOrderTexts = [...choices]; // Track the text order
+    let currentOrderIndices = choices.map((_, i) => i + 1); // Track the original 1-based indices
+    const numSwaps = choices.length > 1 ? choices.length : 0; // Perform swaps equal to the number of choices (if > 1)
 
     console.log(
-      `${testLogPrefix} Performing random swap: Moving "${itemToMoveText}" (currently at pos ${itemToMoveIndex + 1}) before "${targetItemText}" (currently at pos ${swapIndex + 1})`
+      `${testLogPrefix} Initial order: ${JSON.stringify(currentOrderTexts)}`
     );
-
-    const sourceHandle = getDragHandleLocator(itemToMoveText);
-    const targetContainer = getItemContainerByText(targetItemText);
-
-    await expect(sourceHandle).toBeVisible({ timeout: 5000 });
-    await expect(targetContainer).toBeVisible({ timeout: 5000 });
-
-    const sourceBox = await sourceHandle.boundingBox();
-    const targetBox = await targetContainer.boundingBox();
-
-    if (!sourceBox || !targetBox) {
-      throw new Error(
-        `Could not get bounding box for drag elements (Swap ${itemToMoveText} and ${targetItemText})`
+    if (numSwaps > 0) {
+      console.log(`${testLogPrefix} Performing ${numSwaps} random swaps...`);
+    } else {
+      console.log(
+        `${testLogPrefix} Skipping swaps as there are less than 2 choices.`
       );
     }
 
-    // Perform drag and drop
-    await page.mouse.move(
-      sourceBox.x + sourceBox.width / 2,
-      sourceBox.y + sourceBox.height / 2
-    );
-    await page.mouse.down();
-    await page.waitForTimeout(300); // Pause after mouse down
+    for (let swap = 0; swap < numSwaps; swap++) {
+      // Pick two distinct random indices to swap
+      const index1 = Math.floor(Math.random() * choices.length);
+      let index2 = Math.floor(Math.random() * choices.length);
+      while (index1 === index2) {
+        index2 = Math.floor(Math.random() * choices.length);
+      }
 
-    // Move smoothly towards the target drop zone (slightly above the target's top edge)
-    await page.mouse.move(
-      targetBox.x + targetBox.width / 2,
-      targetBox.y - targetBox.height * 0.1, // Aim slightly above the target's top edge
-      { steps: 10 }
-    );
-    await page.waitForTimeout(500); // Pause at destination
-    await page.mouse.up();
-    await page.waitForTimeout(1500); // **Crucial** Wait longer for UI to update after drop
+      // Get locators based on current visual indices
+      const sourceContainer = getItemContainerByIndex(index1);
+      const targetContainer = getItemContainerByIndex(index2);
+      const sourceHandle = getDragHandleLocator(sourceContainer);
 
-    console.log(`${testLogPrefix} Drag operation completed.`);
+      const sourceText = await getItemText(sourceContainer);
+      const targetText = await getItemText(targetContainer);
 
-    // --- Calculate Expected Order After Swap ---
-    // Swap the elements in the tracking arrays
-    [currentOrderTexts[swapIndex], currentOrderTexts[itemToMoveIndex]] = [
-      currentOrderTexts[itemToMoveIndex],
-      currentOrderTexts[swapIndex],
-    ];
-    [currentOrderIndices[swapIndex], currentOrderIndices[itemToMoveIndex]] = [
-      currentOrderIndices[itemToMoveIndex],
-      currentOrderIndices[swapIndex],
-    ];
+      console.log(
+        `${testLogPrefix} Swap ${swap + 1}/${numSwaps}: Dragging "${sourceText}" (at index ${index1}) towards "${targetText}" (at index ${index2})`
+      );
 
-    const expectedChoiceValue = currentOrderIndices; // Expected API value is the new order of original indices
+      await expect(sourceHandle).toBeVisible({ timeout: 5000 });
+      await expect(targetContainer).toBeVisible({ timeout: 5000 });
 
-    // --- Verification after drag (using nth locator within the dialog) ---
-    console.log(`${testLogPrefix} Verifying visual order after drag...`);
+      const sourceBox = await sourceHandle.boundingBox();
+      const targetBox = await targetContainer.boundingBox();
+
+      if (!sourceBox || !targetBox) {
+        throw new Error(
+          `Could not get bounding box for drag elements (Swap ${swap + 1}, Source: "${sourceText}", Target: "${targetText}")`
+        );
+      }
+
+      // Perform drag and drop (drag source center towards target center)
+      // More reliable drag: hover source, down, hover target, up.
+      await sourceHandle.hover();
+      await page.mouse.down();
+      await page.waitForTimeout(200); // Short pause after down
+      // Move smoothly towards the target drop zone center
+      await targetContainer.hover(); // Hover over the target container to trigger drop zone logic
+      await page.waitForTimeout(300); // Pause at destination
+      await page.mouse.up();
+      await page.waitForTimeout(1500); // **Crucial** Wait longer for UI to update after drop
+
+      // Update the tracked order arrays AFTER the drag simulation
+      [currentOrderTexts[index1], currentOrderTexts[index2]] = [
+        currentOrderTexts[index2],
+        currentOrderTexts[index1],
+      ];
+      [currentOrderIndices[index1], currentOrderIndices[index2]] = [
+        currentOrderIndices[index2],
+        currentOrderIndices[index1],
+      ];
+
+      console.log(
+        `${testLogPrefix} Swap ${swap + 1} complete. New tracked logical order: ${JSON.stringify(currentOrderTexts)}`
+      );
+
+      // Optional: Add a small delay between swaps if needed
+      await page.waitForTimeout(500);
+    } // End swap loop
+
+    const expectedChoiceValue = currentOrderIndices; // Expected API value is the final order of original indices
+
+    // --- Verification after drags (using nth locator within the dialog) ---
     console.log(
-      `${testLogPrefix} Expected final order (texts): ${JSON.stringify(currentOrderTexts)}`
+      `${testLogPrefix} Verifying final visual order after ${numSwaps} swaps...`
+    );
+    console.log(
+      `${testLogPrefix} Expected final logical order (texts): ${JSON.stringify(currentOrderTexts)}`
     );
     console.log(
       `${testLogPrefix} Expected API choice value (1-based indices): ${JSON.stringify(expectedChoiceValue)}`
@@ -1087,23 +1114,29 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     for (let i = 0; i < currentOrderTexts.length; i++) {
       const expectedText = currentOrderTexts[i];
-      const itemLocator = page.locator(sortableItemContainerSelector).nth(i);
+      const itemLocator = getItemContainerByIndex(i); // Get container by visual index
+      const actualText = await getItemText(itemLocator); // Extract text from the container
 
-      // Check that the container at the i-th position contains the expected text
-      // Increase timeout and make the assertion more robust
-      await expect(
-        itemLocator,
-        `Item at position ${i + 1} should contain text "${expectedText}"`
-      ).toContainText(expectedText, { timeout: 10000 }); // Increased timeout
+      // Use expect(actual).toEqual(expected) for clearer error messages
+      expect(
+        actualText,
+        `Item at visual position ${i + 1} should be "${expectedText}", but found "${actualText}"`
+      ).toEqual(expectedText);
 
       console.log(
-        `${testLogPrefix} Verified item at pos ${i + 1} contains "${expectedText}"`
+        `${testLogPrefix} Verified item at visual pos ${i + 1} is "${actualText}" (matches expected "${expectedText}")`
       );
     }
-    console.log(`${testLogPrefix} Visual order verified successfully.`);
+    console.log(`${testLogPrefix} Final visual order verified successfully.`);
 
     // --- Fill Reason and Submit ---
-    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    console.log(
+      `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
+    );
+    // Ensure reason textarea selector is scoped to the dialog
+    await page
+      .locator('div[role="dialog"] >> textarea#reason')
+      .fill(uniqueReasonNonce);
 
     // --- Submit Vote and Confirm ---
     await submitVoteAndConfirmMetamask(
