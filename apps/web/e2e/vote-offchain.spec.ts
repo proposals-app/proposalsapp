@@ -9,8 +9,9 @@ const HUB_URL = 'https://testnet.hub.snapshot.org';
 const SPACE_ID = 'proposalsapp-area51.eth';
 const RPC_URL = 'https://arbitrum.drpc.org';
 const SNAPSHOT_APP_NAME = 'proposalsapp';
+const ATTRIBUTION_TEXT = 'voted via proposals.app'; // Match component constant
 
-const CREATE_NEW_PROPOSALS = false;
+const CREATE_NEW_PROPOSALS = true;
 
 const TEST_TIMEOUT = 300 * 1000; // Increased timeout for potential API delays + UI interactions
 const API_VERIFICATION_DELAY = 15 * 1000; // Wait 15 seconds before first API check
@@ -264,10 +265,14 @@ async function verifyVoteViaApi(
   proposalId: string,
   voterAddress: string,
   expectedChoice: any,
+  expectedReasonContains: string, // Add expectedReasonContains parameter
   testLogPrefix: string = ''
 ): Promise<void> {
   console.log(
     `${testLogPrefix} Verifying vote for proposal: ${proposalId} by voter: ${voterAddress}`
+  );
+  console.log(
+    `${testLogPrefix} Expecting reason to contain: "${expectedReasonContains}"`
   );
 
   const graphqlQuery = {
@@ -350,9 +355,11 @@ async function verifyVoteViaApi(
           );
           expect(foundVote.app).toBe(SNAPSHOT_APP_NAME); // Verify app name used in modal
           expect(foundVote.choice).toEqual(expectedChoice);
-
-          // Optionally, verify reason includes attribution if added via UI checkbox
-          // expect(vote.reason).toContain('voted via proposals.app');
+          // *** ADD REASON VERIFICATION ***
+          expect(
+            foundVote.reason,
+            `Reason "${foundVote.reason}" should contain "${expectedReasonContains}"`
+          ).toContain(expectedReasonContains);
 
           console.log(
             `${testLogPrefix} [Attempt ${attempt}] Vote successfully verified via Snapshot API (ID: ${foundVote.id}).`
@@ -386,7 +393,7 @@ async function verifyVoteViaApi(
 
   expect(
     voteVerified,
-    `Vote verification failed after ${API_MAX_ATTEMPTS} attempts. See logs for details. Last error: ${lastError}`
+    `Vote verification failed after ${API_MAX_ATTEMPTS} attempts. See logs for details. Last error: ${lastError}. Expected reason to contain: "${expectedReasonContains}"`
   ).toBe(true);
 }
 
@@ -405,6 +412,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const choices = ['SC Choice 1', 'SC Choice 2', 'SC Choice 3'];
     const proposalTitlePrefix = 'E2E Test Proposal (Single Choice)';
     let proposalId: string | null = null;
+    const uniqueReasonNonce = `test-run-${Date.now()}`;
+    const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
     // --- Create or Fetch Proposal ID ---
     if (CREATE_NEW_PROPOSALS) {
@@ -464,6 +473,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     await expect(choiceRadioButton).toBeVisible({ timeout: 10000 });
     await choiceRadioButton.check();
 
+    // Fill reason textarea
+    console.log(
+      `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
+    );
+    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    // Ensure attribution checkbox is checked (it should be by default)
+    await expect(page.locator('input#attribution')).toBeChecked();
+
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
@@ -481,6 +498,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       proposalId as string, // proposalId is asserted to be not null above
       await metamask.getAccountAddress(),
       expectedChoiceValue,
+      expectedReasonString, // Pass expected reason
       testLogPrefix
     );
   });
@@ -503,6 +521,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     ];
     const proposalTitlePrefix = 'E2E Test Proposal (Approval Multi-Choice)';
     let proposalId: string | null = null;
+    const uniqueReasonNonce = `test-run-${Date.now()}`;
+    const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
     // --- Create or Fetch Proposal ID ---
     if (CREATE_NEW_PROPOSALS) {
@@ -569,6 +589,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     await thirdChoiceCheckbox.check(); // Select the third choice
     const expectedChoiceValue = [1, 3]; // 1-based indices of selected choices
 
+    // Fill reason textarea
+    console.log(
+      `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
+    );
+    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    // Ensure attribution checkbox is checked (it should be by default)
+    await expect(page.locator('input#attribution')).toBeChecked();
+
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
@@ -586,6 +614,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       proposalId as string, // proposalId is asserted to be not null above
       await metamask.getAccountAddress(),
       expectedChoiceValue,
+      expectedReasonString, // Pass expected reason
       testLogPrefix
     );
   });
@@ -603,6 +632,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const choices = ['Quad Choice A', 'Quad Choice B', 'Quad Choice C'];
     const proposalTitlePrefix = 'E2E Test Proposal (Quadratic)';
     let proposalId: string | null = null;
+    const uniqueReasonNonce = `test-run-${Date.now()}`;
+    const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
     // --- Create or Fetch Proposal ID ---
     if (CREATE_NEW_PROPOSALS) {
@@ -655,7 +686,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
-    // Interact with the Quadratic Vote Modal (likely uses Radio buttons like Basic)
+    // Interact with the Quadratic Vote Modal (using Radio buttons like Basic)
     const choiceToSelect = choices[0]; // Select the first choice (index 0)
     const choiceIndexString = '1'; // 1-based index as string for the object key
     const choiceRadioButton = page.getByRole('radio', { name: choiceToSelect });
@@ -664,6 +695,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // Expected choice for quadratic is an object like { "1": 1 }
     const expectedChoiceValue = { [choiceIndexString]: 1 };
+
+    // Fill reason textarea
+    console.log(
+      `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
+    );
+    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    // Ensure attribution checkbox is checked (it should be by default)
+    await expect(page.locator('input#attribution')).toBeChecked();
 
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
@@ -682,6 +721,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       proposalId as string, // proposalId is asserted to be not null above
       await metamask.getAccountAddress(),
       expectedChoiceValue,
+      expectedReasonString, // Pass expected reason
       testLogPrefix
     );
   });
@@ -700,6 +740,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const choices = ['Rank C A', 'Rank C B', 'Rank C C', 'Rank C D'];
     const proposalTitlePrefix = 'E2E Test Proposal (Ranked Choice)';
     let proposalId: string | null = null;
+    const uniqueReasonNonce = `test-run-${Date.now()}`;
+    const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
     // --- Create or Fetch Proposal ID ---
     if (CREATE_NEW_PROPOSALS) {
@@ -791,6 +833,18 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     // Corresponding 1-based indices: [3, 1, 4, 2]
     const expectedChoiceValue = [3, 1, 4, 2];
 
+    // Fill reason textarea
+    // Use a locator that finds the textarea associated with the "Reason (Optional)" label,
+    // as there might be multiple textareas on the page in complex components.
+    const reasonTextarea = page.locator('label:has-text("Reason") + textarea');
+    console.log(
+      `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
+    );
+    await expect(reasonTextarea).toBeVisible({ timeout: 5000 });
+    await reasonTextarea.fill(uniqueReasonNonce);
+    // Ensure attribution checkbox is checked (it should be by default)
+    await expect(page.locator('input#attribution')).toBeChecked();
+
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
@@ -808,6 +862,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       proposalId as string, // proposalId is asserted to be not null above
       await metamask.getAccountAddress(),
       expectedChoiceValue,
+      expectedReasonString, // Pass expected reason
       testLogPrefix
     );
   });
@@ -825,6 +880,8 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const choices = ['Weight Opt 1', 'Weight Opt 2', 'Weight Opt 3'];
     const proposalTitlePrefix = 'E2E Test Proposal (Weighted)';
     let proposalId: string | null = null;
+    const uniqueReasonNonce = `test-run-${Date.now()}`;
+    const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
 
     // --- Create or Fetch Proposal ID ---
     if (CREATE_NEW_PROPOSALS) {
@@ -903,6 +960,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     // Expected choice for weighted is an object mapping 1-based index string to weight: { "1": 60, "2": 10, "3": 30 }
     const expectedChoiceValue = { '1': 60, '2': 10, '3': 30 };
 
+    // Fill reason textarea
+    console.log(
+      `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
+    );
+    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    // Ensure attribution checkbox is checked (it should be by default)
+    await expect(page.locator('input#attribution')).toBeChecked();
+
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
@@ -920,6 +985,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       proposalId as string, // proposalId is asserted to be not null above
       await metamask.getAccountAddress(),
       expectedChoiceValue,
+      expectedReasonString, // Pass expected reason
       testLogPrefix
     );
   });

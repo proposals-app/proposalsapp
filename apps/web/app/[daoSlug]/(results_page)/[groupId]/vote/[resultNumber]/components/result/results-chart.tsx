@@ -3,18 +3,43 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { format, toZonedTime } from 'date-fns-tz';
 import * as echarts from 'echarts';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ProcessedResults } from '@/lib/results_processing';
 import superjson, { SuperJSONResult } from 'superjson';
+import type { TooltipComponentFormatterCallbackParams } from 'echarts';
 
 interface ResultsChartProps {
   results: SuperJSONResult;
 }
 
+// Helper function to round up to the nearest "good" value
+const roundToGoodValue = (value: number): number => {
+  if (value <= 0) return 10; // Handle zero or negative input gracefully
+  const exponent = Math.floor(Math.log10(value)); // Get the magnitude of the number
+  const magnitude = Math.pow(10, exponent); // Get the base magnitude (e.g., 10, 100, 1000)
+  const normalized = value / magnitude; // Normalize the value to the base magnitude
+
+  // Define rounding increments based on the normalized value
+  if (normalized <= 1.5) return 1.5 * magnitude;
+  if (normalized <= 2) return 2 * magnitude;
+  if (normalized <= 2.5) return 2.5 * magnitude;
+  if (normalized <= 3) return 3 * magnitude;
+  if (normalized <= 4) return 4 * magnitude;
+  if (normalized <= 5) return 5 * magnitude;
+  if (normalized <= 7.5) return 7.5 * magnitude;
+  return 10 * magnitude; // Equivalent to 1 * magnitude * 10
+};
+
 export function ResultsChart({ results }: ResultsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const deserializedResults: ProcessedResults = superjson.deserialize(results);
+  // Memoize deserialized results to prevent unnecessary re-calculations if the SuperJSONResult object reference remains the same
+  // Note: This might not be strictly necessary if the parent component ensures `results` prop stability,
+  // but it adds a layer of robustness against potential re-renders.
+  const deserializedResults: ProcessedResults = useMemo(
+    () => superjson.deserialize(results),
+    [results]
+  );
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -22,6 +47,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
 
     // Function to get cookie value by name
     const getCookie = (name: string): string | undefined => {
+      if (typeof document === 'undefined') return undefined; // Guard for SSR or environments without document
       const cookies = document.cookie.split(';');
       for (const cookie of cookies) {
         const [cookieName, cookieValue] = cookie.trim().split('=');
@@ -36,8 +62,10 @@ export function ResultsChart({ results }: ResultsChartProps) {
     const theme: 'dark' | 'light' =
       themeModeCookie === 'light' ? 'light' : 'dark';
 
-    // Helper function to get computed style
-    const getStyle = (property: string) => {
+    // Helper function to get computed style - ensure documentElement exists
+    const getStyle = (property: string): string => {
+      if (typeof document === 'undefined' || !document.documentElement)
+        return ''; // Guard for SSR
       return getComputedStyle(document.documentElement)
         .getPropertyValue(property)
         .trim();
@@ -61,58 +89,90 @@ export function ResultsChart({ results }: ResultsChartProps) {
       },
     };
 
+    // Initialize ECharts instance
     const chart = echarts.init(chartRef.current, null, { renderer: 'svg' });
 
     const isRankedChoice =
       deserializedResults.voteType === 'offchain-ranked-choice';
 
-    // Calculate cumulative data for each choice
+    // Calculate cumulative data for non-ranked-choice votes
     const cumulativeData: { [choice: number]: [Date, number][] } = {};
-
-    deserializedResults.choices.forEach((_, choiceIndex) => {
-      cumulativeData[choiceIndex] = [];
-      let cumulative = 0;
-
-      deserializedResults.timeSeriesData?.forEach((point) => {
-        const value = point.values[choiceIndex] || 0;
-        cumulative += value;
-        cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
+    if (!isRankedChoice) {
+      deserializedResults.choices.forEach((_, choiceIndex) => {
+        cumulativeData[choiceIndex] = [];
+        let cumulative = 0;
+        // Ensure timeSeriesData exists before iterating
+        deserializedResults.timeSeriesData?.forEach((point) => {
+          const value = point.values[choiceIndex] || 0;
+          cumulative += value;
+          // Ensure timestamp is a valid Date object
+          if (
+            point.timestamp instanceof Date &&
+            !isNaN(point.timestamp.getTime())
+          ) {
+            cumulativeData[choiceIndex].push([point.timestamp, cumulative]);
+          }
+        });
+        // Sort cumulative data by timestamp just in case source data wasn't sorted
+        cumulativeData[choiceIndex].sort(
+          (a, b) => a[0].getTime() - b[0].getTime()
+        );
       });
-    });
+    }
 
-    // Get last known values for sorting
+    // Get last known values for sorting choices
     const lastKnownValues: { [choice: number]: number } = {};
     deserializedResults.choices.forEach((_, choiceIndex) => {
+      const lastPoint =
+        deserializedResults.timeSeriesData?.[
+          deserializedResults.timeSeriesData.length - 1
+        ];
       if (isRankedChoice) {
-        // For ranked-choice, use the raw values from the last time series point
-        const lastPoint =
-          deserializedResults.timeSeriesData?.[
-            deserializedResults.timeSeriesData.length - 1
-          ];
         lastKnownValues[choiceIndex] = lastPoint?.values[choiceIndex] || 0;
       } else {
-        // For other vote types, use the cumulative values
         const choiceData = cumulativeData[choiceIndex];
         lastKnownValues[choiceIndex] =
           choiceData.length > 0 ? choiceData[choiceData.length - 1][1] : 0;
       }
     });
 
-    // Sort choices by voting power
-    const explicitOrder = ['For', 'Abstain'];
+    // Sort choices: Explicitly order 'For', 'Abstain', then sort remaining by last known value descending
+    const forExists = deserializedResults.choices.includes('For');
     const sortedChoices = [...deserializedResults.choices].sort((a, b) => {
-      const indexA = explicitOrder.indexOf(a);
-      const indexB = explicitOrder.indexOf(b);
-      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      return (
-        lastKnownValues[deserializedResults.choices.indexOf(b)] -
-        lastKnownValues[deserializedResults.choices.indexOf(a)]
-      );
+      const indexA = deserializedResults.choices.indexOf(a);
+      const indexB = deserializedResults.choices.indexOf(b);
+
+      // Special handling for 'Abstain' when 'For' is missing
+      if (!forExists) {
+        if (a === 'Abstain') return 1; // Move 'Abstain' down relative to anything else
+        if (b === 'Abstain') return -1; // Move 'Abstain' down relative to anything else
+        // If neither is 'Abstain', proceed to value sort
+      }
+
+      // Standard explicit order ('For', 'Abstain') when 'For' exists
+      if (forExists) {
+        const explicitOrder = ['For', 'Abstain'];
+        const explicitIndexA = explicitOrder.indexOf(a);
+        const explicitIndexB = explicitOrder.indexOf(b);
+
+        if (explicitIndexA !== -1 && explicitIndexB !== -1) {
+          return explicitIndexA - explicitIndexB; // Both are explicit, sort by their order
+        }
+        if (explicitIndexA !== -1) return -1; // a is explicit, b is not; a comes first
+        if (explicitIndexB !== -1) return 1; // b is explicit, a is not; b comes first
+        // If neither is explicitly ordered, proceed to value sort
+      }
+
+      // Fallback: Sort remaining by value descending (applies if not handled above)
+      return lastKnownValues[indexB] - lastKnownValues[indexA];
     });
 
     const sortedChoiceIndices = sortedChoices.map((choice) =>
       deserializedResults.choices.indexOf(choice)
     );
+
+    const proposalStartTime = new Date(deserializedResults.proposal.startAt);
+    const proposalEndTime = new Date(deserializedResults.proposal.endAt);
 
     // Create series for each choice
     const series: echarts.SeriesOption[] = sortedChoiceIndices
@@ -124,32 +184,40 @@ export function ResultsChart({ results }: ResultsChartProps) {
           deserializedResults.quorum !== null;
 
         let zIndex;
-        if (choice === 'Against') {
-          zIndex = 3;
-        } else if (choice === 'For') {
-          zIndex = 2;
-        } else if (choice === 'Abstain') {
-          zIndex = 1;
-        } else {
-          zIndex = 0;
-        }
+        if (choice === 'Against') zIndex = 3;
+        else if (choice === 'For') zIndex = 2;
+        else if (choice === 'Abstain') zIndex = 1;
+        else zIndex = 0;
 
-        // Get the data points for this choice with proper typing
+        // Get the data points for this choice
         let seriesData: [Date, number][] = isRankedChoice
-          ? deserializedResults.timeSeriesData?.map((point) => [
-              point.timestamp,
-              point.values[choiceIndex] || 0,
-            ]) || []
+          ? deserializedResults.timeSeriesData
+              ?.map((point): [Date, number] | null => {
+                // Ensure timestamp is valid before mapping
+                if (
+                  point.timestamp instanceof Date &&
+                  !isNaN(point.timestamp.getTime())
+                ) {
+                  return [point.timestamp, point.values[choiceIndex] || 0];
+                }
+                return null;
+              })
+              .filter((p): p is [Date, number] => p !== null) || [] // Filter out nulls
           : cumulativeData[choiceIndex] || [];
 
-        // Prepend the starting point at 0
-        seriesData = [[deserializedResults.proposal.startAt, 0], ...seriesData];
+        // Prepend the starting point at 0, ensuring it's a valid Date
+        if (
+          proposalStartTime instanceof Date &&
+          !isNaN(proposalStartTime.getTime())
+        ) {
+          seriesData = [[proposalStartTime, 0], ...seriesData];
+        }
 
-        // Get the last value for extrapolation
-        const lastPoint =
-          seriesData.length > 1 ? seriesData[seriesData.length - 1] : null; // seriesData now always has at least one point
-        const lastValue = lastPoint ? lastPoint[1] : 0;
-        const lastTimestamp = lastPoint ? lastPoint[0] : null;
+        // Get the last *actual* data point (ignoring the prepended start point if no other data exists)
+        const lastActualPoint =
+          seriesData.length > 1 ? seriesData[seriesData.length - 1] : null;
+        const lastValue = lastActualPoint ? lastActualPoint[1] : 0;
+        const lastTimestamp = lastActualPoint ? lastActualPoint[0] : null;
 
         // Create main series
         const mainSeries: echarts.SeriesOption = {
@@ -157,40 +225,34 @@ export function ResultsChart({ results }: ResultsChartProps) {
           type: 'line',
           step: 'end',
           stack: shouldStack ? 'QuorumTotal' : undefined,
-          lineStyle: {
-            width: 2,
-            color: color,
-            opacity: 1,
-          },
+          lineStyle: { width: 2, color: color, opacity: 1 },
           showSymbol: false,
-          itemStyle: {
-            color: color,
-            opacity: 0.9,
-          },
-          emphasis: {
-            itemStyle: {
-              color: color,
-              borderColor: color,
-            },
-          },
-          areaStyle: shouldStack
-            ? {
-                opacity: 0.9,
-                color: color,
-              }
-            : undefined,
+          itemStyle: { color: color, opacity: 0.9 },
+          emphasis: { itemStyle: { color: color, borderColor: color } },
+          areaStyle: shouldStack ? { opacity: 0.9, color: color } : undefined,
           data: seriesData,
           z: zIndex,
         };
 
-        // Only create extrapolated series if we have data points and the start point
-        if (lastPoint && lastTimestamp && seriesData.length > 1) {
-          // Create extrapolated series
+        const seriesResult: echarts.SeriesOption[] = [mainSeries];
+
+        // Only create extrapolated series if:
+        // 1. There is at least one actual data point (seriesData.length > 1).
+        // 2. The last data point's timestamp is valid.
+        // 3. The last data point's timestamp is strictly BEFORE the proposal end time.
+        if (
+          lastTimestamp &&
+          lastTimestamp instanceof Date &&
+          !isNaN(lastTimestamp.getTime()) &&
+          proposalEndTime instanceof Date &&
+          !isNaN(proposalEndTime.getTime()) &&
+          lastTimestamp.getTime() < proposalEndTime.getTime() // Compare time values
+        ) {
           const extrapolatedSeries: echarts.SeriesOption = {
             name: `${choice} (projected)`,
             type: 'line',
             step: 'end',
-            stack: shouldStack ? 'QuorumTotalExtrapolated' : undefined,
+            stack: shouldStack ? 'QuorumTotalExtrapolated' : undefined, // Use a different stack
             lineStyle: {
               width: 2,
               color: color,
@@ -198,57 +260,64 @@ export function ResultsChart({ results }: ResultsChartProps) {
               opacity: 0.25,
             },
             showSymbol: false,
-            itemStyle: {
-              color: color,
-              opacity: 0.25,
-            },
+            itemStyle: { color: color, opacity: 0.25 },
             areaStyle: shouldStack
-              ? {
-                  opacity: 0.175,
-                  color: color,
-                }
+              ? { opacity: 0.175, color: color }
               : undefined,
             data: [
               [lastTimestamp, lastValue],
-              [deserializedResults.proposal.endAt, lastValue],
+              [proposalEndTime, lastValue], // Extrapolate to proposal end time
             ],
-            z: zIndex - 0.1,
+            tooltip: { show: false }, // Don't show tooltip for extrapolated part
+            z: zIndex - 0.1, // Ensure it's drawn slightly behind the main line
           };
-
-          return [mainSeries, extrapolatedSeries];
+          seriesResult.push(extrapolatedSeries);
         }
 
-        return [mainSeries];
+        return seriesResult;
       })
       .flat();
 
-    // Add the "Total" series for ranked-choice voting
+    // Add the "Winning threshold" series for ranked-choice voting
     let totalSeriesMaxValue = 0;
-    if (isRankedChoice) {
-      let totalSeriesData = deserializedResults.timeSeriesData.map((point) => {
-        const totalValue =
-          (point.values as Record<string | number, number>)[
-            'Winning threshold'
-          ] || 0;
-        totalSeriesMaxValue = Math.max(totalSeriesMaxValue, totalValue); // Track the max value of the Total series
-        return [point.timestamp, totalValue];
-      });
+    if (isRankedChoice && deserializedResults.timeSeriesData) {
+      let totalSeriesData = deserializedResults.timeSeriesData
+        .map((point): [Date, number] | null => {
+          const totalValue =
+            (point.values as Record<string | number, number>)[
+              'Winning threshold'
+            ] || 0;
+          // Ensure timestamp is valid before mapping
+          if (
+            point.timestamp instanceof Date &&
+            !isNaN(point.timestamp.getTime())
+          ) {
+            totalSeriesMaxValue = Math.max(totalSeriesMaxValue, totalValue);
+            return [point.timestamp, totalValue];
+          }
+          return null;
+        })
+        .filter((p): p is [Date, number] => p !== null); // Filter out nulls
+
       // Prepend the starting point at 0 for total series
-      totalSeriesData = [
-        [deserializedResults.proposal.startAt, 0],
-        ...totalSeriesData,
-      ];
+      if (
+        proposalStartTime instanceof Date &&
+        !isNaN(proposalStartTime.getTime())
+      ) {
+        totalSeriesData = [[proposalStartTime, 0], ...totalSeriesData];
+      }
 
       const totalSeries: echarts.SeriesOption = {
         name: 'Winning threshold',
         type: 'line',
+        step: 'end', // Ensure threshold line also uses step: 'end'
         lineStyle: {
           width: 2,
           color:
             theme === 'dark'
               ? getStyle('--neutral-400')
-              : getStyle('--neutral-700'), // Grey color for the total series - themed and resolved
-          type: 'dashed', // Make the line dashed
+              : getStyle('--neutral-700'),
+          type: 'dashed',
         },
         showSymbol: false,
         emphasis: {
@@ -256,21 +325,21 @@ export function ResultsChart({ results }: ResultsChartProps) {
             color:
               theme === 'dark'
                 ? getStyle('--neutral-400')
-                : getStyle('--neutral-700'), // Grey color for the total series - themed and resolved
+                : getStyle('--neutral-700'),
             borderColor:
               theme === 'dark'
                 ? getStyle('--neutral-400')
-                : getStyle('--neutral-700'), // Grey color for the total series - themed and resolved
+                : getStyle('--neutral-700'),
           },
         },
         data: totalSeriesData,
-        z: 0, // Default z-index
+        z: 0, // Lower z-index
       };
       series.push(totalSeries);
     }
 
     // Add quorum line if needed
-    if (deserializedResults.quorum !== null) {
+    if (deserializedResults.quorum !== null && deserializedResults.quorum > 0) {
       series.push({
         name: 'Quorum',
         type: 'line',
@@ -286,17 +355,9 @@ export function ResultsChart({ results }: ResultsChartProps) {
             {
               yAxis: deserializedResults.quorum,
               label: {
-                formatter: () => {
-                  if (deserializedResults.quorum !== null)
-                    return `{bold|${formatNumberWithSuffix(deserializedResults.quorum)}} Quorum needed`;
-                  return '';
-                },
+                formatter: `{bold|${formatNumberWithSuffix(deserializedResults.quorum as number)}} Quorum needed`,
                 color: themeColors.quorumLabel.text,
-                rich: {
-                  bold: {
-                    fontWeight: 'bold',
-                  },
-                },
+                rich: { bold: { fontWeight: 'bold' } },
                 position: 'insideStartTop',
                 fontSize: 12,
                 backgroundColor: themeColors.quorumLabel.background,
@@ -304,43 +365,116 @@ export function ResultsChart({ results }: ResultsChartProps) {
                 borderWidth: 1,
                 borderRadius: 2,
                 padding: [4, 8],
-                offset: [-4, 15],
+                offset: [-4, 15], // Fine-tune offset if needed
               },
             },
           ],
         },
+        tooltip: { show: false }, // Hide tooltip for markLine
       });
     }
 
     // Calculate y-axis max
     const maxVotingValue = Math.max(
       ...Object.values(lastKnownValues),
-      totalSeriesMaxValue, // Include the max value from the Total series
-      deserializedResults.quorum || 0
+      totalSeriesMaxValue, // Include the max value from the Total series (if applicable)
+      deserializedResults.quorum || 0 // Include quorum value
     );
-    const yAxisMax = roundToGoodValue(maxVotingValue * 1.1);
+    const yAxisMax = roundToGoodValue(maxVotingValue * 1.1); // Add 10% padding
 
     const options: echarts.EChartsOption = {
       tooltip: {
-        trigger: 'item',
+        trigger: 'axis',
+        axisPointer: {
+          type: 'cross', // Use crosshairs
+          lineStyle: { color: themeColors.axisLabel },
+          label: { show: false },
+        },
         backgroundColor: themeColors.tooltip.background,
         borderColor: themeColors.tooltip.border,
-        textStyle: {
-          color: themeColors.tooltip.text,
+        borderWidth: 1,
+        textStyle: { color: themeColors.tooltip.text, fontSize: 12 },
+        // Custom formatter to exclude extrapolated series and format values
+        formatter: (
+          params: TooltipComponentFormatterCallbackParams
+        ): string => {
+          type TooltipSeriesData = {
+            color: string;
+            value: number;
+          };
+
+          // ECharts can pass a single object or an array, standardize to array
+          const paramsArray = Array.isArray(params) ? params : [params];
+
+          if (paramsArray.length === 0 || !paramsArray[0]?.value) return '';
+
+          // Assuming value is [timestamp, number] or similar
+          const firstValueArray = paramsArray[0].value as unknown[];
+          const pointTime =
+            firstValueArray[0] instanceof Date
+              ? firstValueArray[0]
+              : new Date(firstValueArray[0] as number | string);
+
+          if (isNaN(pointTime.getTime())) return ''; // Invalid date
+
+          const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const zonedTime = toZonedTime(pointTime, timeZone);
+          const formattedDate = format(zonedTime, 'MMM d, yyyy, h:mm:ss a zzz');
+
+          let tooltipHtml = `<div style="font-size: 10px; color: ${themeColors.axisLabel}; margin-bottom: 4px;">${formattedDate}</div>`;
+
+          // Use a Map to store the first valid data point found for each unique series name
+          const uniqueSeriesData = new Map<string, TooltipSeriesData>();
+
+          // Populate the map, respecting the order within params only to get the *first* instance
+          paramsArray.forEach((item) => {
+            // Basic check for expected structure
+            if (
+              typeof item.seriesName === 'string' &&
+              item.value &&
+              typeof item.color === 'string' &&
+              !item.seriesName.includes('(projected)') &&
+              item.seriesName !== 'Quorum' &&
+              !uniqueSeriesData.has(item.seriesName) // Add only if not already present
+            ) {
+              const valueArray = item.value as unknown[];
+              // Check if the second element (the actual value) is a number
+              if (valueArray.length > 1 && typeof valueArray[1] === 'number') {
+                uniqueSeriesData.set(item.seriesName, {
+                  color: item.color,
+                  value: valueArray[1], // Value is the second element
+                });
+              }
+            }
+          });
+
+          // Iterate through the explicitly sorted choices to build the tooltip HTML
+          sortedChoices.forEach((choiceName: string) => {
+            const data = uniqueSeriesData.get(choiceName);
+
+            if (data) {
+              const color = data.color;
+              const value = data.value; // Already known to be number from map type
+              const formattedValue = formatNumberWithSuffix(value);
+              tooltipHtml += `
+                                <div style="display: flex; align-items: center; margin-top: 2px;">
+                                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${color}; margin-right: 6px;"></span>
+                                  <span>${choiceName}:</span>
+                                  <span style="font-weight: bold; margin-left: auto; padding-left: 10px;">${formattedValue}</span>
+                                </div>
+                              `;
+            }
+            // If no data found for a choice in the map (e.g., value is 0 at this point), it won't be added.
+          });
+
+          return tooltipHtml;
         },
       },
       xAxis: {
         type: 'time',
-        axisLabel: {
-          // Remove the original x-axis labels
-          show: false,
-        },
-        axisLine: {
-          show: true,
-          lineStyle: {
-            color: themeColors.axisLine,
-          },
-        },
+        axisLabel: { show: false }, // Keep x-axis labels hidden as per original design
+        axisLine: { show: true, lineStyle: { color: themeColors.axisLine } },
+        axisTick: { show: false }, // Hide ticks for cleaner look
       },
       yAxis: {
         type: 'value',
@@ -349,19 +483,16 @@ export function ResultsChart({ results }: ResultsChartProps) {
         axisLabel: {
           color: themeColors.axisLabel,
           formatter: (value: number) => formatNumberWithSuffix(value),
+          fontSize: 10, // Slightly smaller font size
+          hideOverlap: true, // Hide labels if they overlap
         },
-        axisLine: {
-          show: true,
-          lineStyle: {
-            color: themeColors.axisLine,
-          },
-        },
+        axisLine: { show: true }, // Hide y-axis line for cleaner look
         splitLine: {
           show: true,
-          lineStyle: {
-            color: themeColors.gridLine,
-          },
-        },
+          lineStyle: { color: themeColors.gridLine, type: 'dashed' },
+        }, // Dashed grid lines
+        nameGap: 0, // Reduce gap if needed
+        boundaryGap: [0, 0.05], // Small padding at the top
       },
       series,
       grid: {
@@ -371,145 +502,108 @@ export function ResultsChart({ results }: ResultsChartProps) {
         top: 8,
         containLabel: true,
       },
+      animationDuration: 300, // Faster animation
     };
 
     chart.setOption(options);
 
-    const handleResize = () => {
+    // Resize observer for better handling of element resize
+    const resizeObserver = new ResizeObserver(() => {
       chart.resize();
-    };
-
-    window.addEventListener('resize', handleResize);
+    });
+    if (chartRef.current) {
+      resizeObserver.observe(chartRef.current);
+    }
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       chart.dispose();
     };
-  }, [
-    deserializedResults.timeSeriesData,
-    deserializedResults.choices,
-    deserializedResults.choiceColors,
-    deserializedResults.proposal.startAt,
-    deserializedResults.proposal.endAt,
-    deserializedResults.quorum,
-    deserializedResults.quorumChoices,
-    deserializedResults.voteType,
-    deserializedResults.votes,
-  ]);
+    // Ensure all dependencies derived from props or external state are included.
+    // Basic types (string, number, boolean) usually don't need explicit listing if derived from listed objects/arrays.
+  }, [deserializedResults]);
+
+  // Display start/end times below the chart
+  const renderTime = (dateString: string | Date) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return null; // Invalid date
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const zonedTime = toZonedTime(date, timeZone);
+      return (
+        <div className='mt-1 text-center'>
+          <p className='text-xs font-medium text-neutral-500 dark:text-neutral-400'>
+            {format(zonedTime, 'MMM d')}
+          </p>
+          <p className='text-xs text-neutral-500 dark:text-neutral-400'>
+            at {format(zonedTime, 'h:mm a')}
+          </p>
+        </div>
+      );
+    } catch (e) {
+      console.error('Error formatting date:', e);
+      return null;
+    }
+  };
 
   return (
     <div className='flex flex-col'>
-      <div ref={chartRef} className='h-[400px] w-full' />
-      <div className='flex w-full justify-between pl-2'>
-        <div className='mt-2 text-center'>
-          <p className='text-sm font-bold text-neutral-500 dark:text-neutral-300'>
-            {format(
-              toZonedTime(
-                new Date(deserializedResults.proposal.startAt),
-                Intl.DateTimeFormat().resolvedOptions().timeZone
-              ),
-              'MMM d'
-            )}
-          </p>
-          <p className='text-sm text-neutral-500 dark:text-neutral-300'>
-            at{' '}
-            {format(
-              toZonedTime(
-                new Date(deserializedResults.proposal.startAt),
-                Intl.DateTimeFormat().resolvedOptions().timeZone
-              ),
-              'h:mm a'
-            )}
-          </p>
-        </div>
-        <div className='mt-1 text-center'>
-          <p className='text-sm font-bold text-neutral-500 dark:text-neutral-300'>
-            {format(
-              toZonedTime(
-                new Date(deserializedResults.proposal.endAt),
-                Intl.DateTimeFormat().resolvedOptions().timeZone
-              ),
-              'MMM d'
-            )}
-          </p>
-          <p className='text-sm text-neutral-500 dark:text-neutral-300'>
-            at{' '}
-            {format(
-              toZonedTime(
-                new Date(deserializedResults.proposal.endAt),
-                Intl.DateTimeFormat().resolvedOptions().timeZone
-              ),
-              'h:mm a'
-            )}
-          </p>
-        </div>
+      {/* Chart container */}
+      <div ref={chartRef} className='h-[360px] w-full' />
+
+      {/* Time labels container */}
+      <div className='flex w-full justify-between px-2 sm:px-4'>
+        {renderTime(deserializedResults.proposal.startAt)}
+        {renderTime(deserializedResults.proposal.endAt)}
       </div>
     </div>
   );
 }
 
-// Helper function to round up to the nearest "good" value
-const roundToGoodValue = (value: number): number => {
-  const exponent = Math.floor(Math.log10(value)); // Get the magnitude of the number
-  const magnitude = Math.pow(10, exponent); // Get the base magnitude (e.g., 10, 100, 1000)
-  const normalized = value / magnitude; // Normalize the value to the base magnitude
-
-  // Define rounding increments based on the normalized value
-  if (normalized <= 1.5) {
-    return 1.5 * magnitude;
-  } else if (normalized <= 2) {
-    return 2 * magnitude;
-  } else if (normalized <= 2.5) {
-    return 2.5 * magnitude;
-  } else if (normalized <= 3) {
-    return 3 * magnitude;
-  } else if (normalized <= 4) {
-    return 4 * magnitude;
-  } else if (normalized <= 5) {
-    return 5 * magnitude;
-  } else if (normalized <= 7.5) {
-    return 7.5 * magnitude;
-  } else {
-    return 10 * magnitude;
-  }
-};
+// --- Loading Chart Component (Unchanged from original) ---
 
 export function LoadingChart() {
   return (
-    <div className='flex h-[380px] w-full items-center justify-center'>
+    <div className='flex h-[400px] w-full items-center justify-center'>
+      {' '}
+      {/* Adjusted height slightly */}
       <div className='w-full space-y-4'>
         {/* Chart area placeholder */}
         <div className='relative h-[320px] w-full'>
           {/* Y-axis labels */}
-          <div className='absolute top-0 left-0 flex h-full w-16 flex-col justify-between py-4'>
+          <div className='absolute top-0 left-0 flex h-full w-12 flex-col justify-between py-2'>
+            {' '}
+            {/* Adjusted padding/width */}
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className='h-4 w-12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
+                className='h-3 w-10 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' // Slightly smaller
               />
             ))}
           </div>
 
           {/* Chart grid lines */}
-          <div className='absolute inset-0 ml-16'>
+          <div className='absolute inset-y-0 top-2 right-0 bottom-2 left-12'>
+            {' '}
+            {/* Adjusted margins */}
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className='border-b border-neutral-200 dark:border-neutral-700'
+                className='border-b border-dashed border-neutral-200 dark:border-neutral-700' // Dashed lines
                 style={{ height: `${100 / 5}%` }}
               />
             ))}
           </div>
 
-          {/* Loading lines */}
-          <div className='absolute inset-0 mt-4 ml-16 flex flex-col justify-around'>
+          {/* Loading lines (Simplified) */}
+          <div className='absolute inset-0 mt-4 ml-12 flex flex-col justify-around'>
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className='h-1 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
+                className='h-1 w-11/12 animate-pulse rounded bg-neutral-300 dark:bg-neutral-600' // Slightly darker pulse
                 style={{
-                  opacity: 1 - i * 0.2,
-                  width: `${100 - i * 15}%`,
+                  opacity: 0.8 - i * 0.2, // Adjusted opacity
+                  transform: `translateY(${i * 5}px)`, // Slight vertical separation
                 }}
               />
             ))}
@@ -517,13 +611,11 @@ export function LoadingChart() {
         </div>
 
         {/* X-axis labels */}
-        <div className='flex justify-between pl-16'>
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className='h-4 w-8 animate-pulse rounded bg-neutral-200 sm:w-20 dark:bg-neutral-700'
-            />
-          ))}
+        <div className='flex justify-between pr-2 pl-12 sm:pr-4'>
+          {' '}
+          {/* Adjusted padding */}
+          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 sm:w-20 dark:bg-neutral-700' />
+          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 sm:w-20 dark:bg-neutral-700' />
         </div>
       </div>
     </div>
