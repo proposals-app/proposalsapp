@@ -5137,7 +5137,7 @@ __metadata:
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
     react-email: "npm:4.0.7"
-    resend: "npm:^4.2.0"
+    resend: "npm:^4.3.0"
     tailwindcss: "npm:^4.1.4"
     typescript: "npm:^5.8.3"
   languageName: unknown
@@ -5246,7 +5246,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.30.1"
     "@typescript-eslint/parser": "npm:^8.30.1"
     "@vercel/otel": "npm:^1.11.0"
-    ai: "npm:^4.3.6"
+    ai: "npm:^4.3.7"
     babel-plugin-react-compiler: "npm:19.0.0-beta-ebf51a3-20250411"
     better-auth: "npm:^1.2.7"
     class-variance-authority: "npm:^0.7.1"
@@ -5273,7 +5273,7 @@ __metadata:
     ollama-ai-provider: "npm:^1.2.0"
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.236.0"
+    posthog-js: "npm:^1.236.1"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.7"
     prettier-plugin-merge: "npm:^0.7.3"
@@ -5924,20 +5924,6 @@ __metadata:
   peerDependencies:
     react: ^18.0 || ^19.0 || ^19.0.0-rc
   checksum: 10c0/54c09fb599263b7e01f290cd3ed37db31b7370cb036851496067470f4873dfe82102e0746e390e9b83e27d9a054044259412521ba65eac7366fb5e17580b7787
-  languageName: node
-  linkType: hard
-
-"@react-email/render@npm:1.0.5":
-  version: 1.0.5
-  resolution: "@react-email/render@npm:1.0.5"
-  dependencies:
-    html-to-text: "npm:9.0.5"
-    prettier: "npm:3.4.2"
-    react-promise-suspense: "npm:0.3.4"
-  peerDependencies:
-    react: ^18.0 || ^19.0 || ^19.0.0-rc
-    react-dom: ^18.0 || ^19.0 || ^19.0.0-rc
-  checksum: 10c0/ea3afc75d8b5e3035664d4f01cb19b5010bc69eac56d19e889f8ea86ed259537967a192d2f7becc92d5886bf1fe050bbd347e980d45915c05533754a699b50f7
   languageName: node
   linkType: hard
 
@@ -9144,9 +9130,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^4.3.6":
-  version: 4.3.6
-  resolution: "ai@npm:4.3.6"
+"ai@npm:^4.3.7":
+  version: 4.3.7
+  resolution: "ai@npm:4.3.7"
   dependencies:
     "@ai-sdk/provider": "npm:1.1.3"
     "@ai-sdk/provider-utils": "npm:2.2.7"
@@ -9160,7 +9146,7 @@ __metadata:
   peerDependenciesMeta:
     react:
       optional: true
-  checksum: 10c0/095c8d149751f748c3ad9969bba49396bcc12fad8ca55eee67c1b2c1649db89ff8abdbf16b1004eae9dec88df32904ca80ed1f42e6c99ce843ea2cb8ba488385
+  checksum: 10c0/3c5be0a76b0ecee96b8b9d40e79fce3c4e5ae382469098f968717cebbe6194e9efb67af56788a994a0a47af81520bb28e50459888f2555ee9195cdb28b58b29f
   languageName: node
   linkType: hard
 
@@ -20585,9 +20571,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.236.0":
-  version: 1.236.0
-  resolution: "posthog-js@npm:1.236.0"
+"posthog-js@npm:^1.236.1":
+  version: 1.236.1
+  resolution: "posthog-js@npm:1.236.1"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -20601,7 +20587,7 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/6fd70543a174c99455cb4b6fe27cfef9652a60307d58cbb60b7743bb086447c1a4b70d494be21f8349c0cce8037d2b6f7ac21855d94e47aebce7812c1747b569
+  checksum: 10c0/cb0c0d8bb84a202f5f576a927ec350fdc87585d637594ac8cdbe8e12c87dcb070982066d44ddd6fcc68d68593ddce17e67172e866e08179989e541d557ace21e
   languageName: node
   linkType: hard
 
@@ -20742,15 +20728,6 @@ __metadata:
   bin:
     prettier: bin/prettier.cjs
   checksum: 10c0/3880cb90b9dc0635819ab52ff571518c35bd7f15a6e80a2054c05dbc8a3aa6e74f135519e91197de63705bcb38388ded7e7230e2178432a1468005406238b877
-  languageName: node
-  linkType: hard
-
-"prettier@npm:3.4.2":
-  version: 3.4.2
-  resolution: "prettier@npm:3.4.2"
-  bin:
-    prettier: bin/prettier.cjs
-  checksum: 10c0/99e076a26ed0aba4ebc043880d0f08bbb8c59a4c6641cdee6cdadf2205bdd87aa1d7823f50c3aea41e015e99878d37c58d7b5f0e663bba0ef047f94e36b96446
   languageName: node
   linkType: hard
 
@@ -21894,12 +21871,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"resend@npm:^4.2.0":
-  version: 4.2.0
-  resolution: "resend@npm:4.2.0"
+"resend@npm:^4.3.0":
+  version: 4.3.0
+  resolution: "resend@npm:4.3.0"
   dependencies:
-    "@react-email/render": "npm:1.0.5"
-  checksum: 10c0/f1e19b473b287d5b82e015b74466ba127f0a217d21e0041cd0e047af4df96559fea933065b862859f98cb32a682ea80b17fb9b8d6a91ea9fd7a676386d2f81cb
+    "@react-email/render": "npm:1.0.6"
+  checksum: 10c0/8d4372c0820768a178546b3bd43e285b4513e22effc9cac4a5cec510e7db6b6c25580d30dd921647699bad22d09cac80027e6c76f9ac48bb355a1866a3bdf4e0
   languageName: node
   linkType: hard
 
