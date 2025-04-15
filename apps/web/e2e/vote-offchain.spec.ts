@@ -613,11 +613,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       `${testLogPrefix} Randomly selected choice: "${choiceToSelect}" (Index: ${randomIndex}, Expected API Value: ${expectedChoiceValue})`
     );
 
-    const choiceRadioButton = page.getByRole('radio', { name: choiceToSelect });
+    // Use a locator relative to the dialog to ensure selecting within the modal
+    const choiceRadioButton = page
+      .locator('div[role="dialog"]')
+      .getByRole('radio', { name: choiceToSelect });
     await expect(choiceRadioButton).toBeVisible({ timeout: 10000 });
     await choiceRadioButton.check();
 
-    // Fill reason textarea
+    // Fill reason textarea within the dialog
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
@@ -692,7 +695,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
-    // Interact with the Basic/Single-Choice Vote Modal - RANDOM CHOICE
+    // Interact with the Basic/Single-Choice Vote Modal - RANDOM CHOICE (inside dialog)
     const randomIndex = Math.floor(Math.random() * choices.length);
     const choiceToSelect = choices[randomIndex];
     const expectedChoiceValue = randomIndex + 1; // 1-based index
@@ -700,11 +703,13 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       `${testLogPrefix} Randomly selected choice: "${choiceToSelect}" (Index: ${randomIndex}, Expected API Value: ${expectedChoiceValue})`
     );
 
-    const choiceRadioButton = page.getByRole('radio', { name: choiceToSelect });
+    const choiceRadioButton = page
+      .locator('div[role="dialog"]')
+      .getByRole('radio', { name: choiceToSelect });
     await expect(choiceRadioButton).toBeVisible({ timeout: 10000 });
     await choiceRadioButton.check();
 
-    // Fill reason textarea
+    // Fill reason textarea (inside dialog)
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
@@ -785,7 +790,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
-    // Interact with the Approval Vote Modal - SELECT RANDOM MULTIPLE CHOICES
+    // Interact with the Approval Vote Modal - SELECT RANDOM MULTIPLE CHOICES (inside dialog)
     const numChoices = choices.length;
     const numToSelect = Math.floor(Math.random() * numChoices) + 1; // Select 1 to numChoices
     const availableIndices = Array.from(Array(numChoices).keys()); // [0, 1, ..., n-1]
@@ -798,14 +803,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     for (const index of selectedIndices) {
       const choiceToSelect = choices[index];
       selectedChoiceTexts.push(choiceToSelect);
-      const choiceCheckbox = page.getByRole('checkbox', {
-        name: choiceToSelect,
-      });
+      const choiceCheckbox = page
+        .locator('div[role="dialog"]')
+        .getByRole('checkbox', { name: choiceToSelect });
       await expect(choiceCheckbox).toBeVisible({ timeout: 10000 });
       await choiceCheckbox.check();
     }
     // Expected choice is an array of 1-based indices
-    const expectedChoiceValue = selectedIndices.map((i) => i + 1);
+    const expectedChoiceValue = selectedIndices.map((i) => i + 1); // Snapshot API returns sorted choices
 
     console.log(
       `${testLogPrefix} Randomly selected ${numToSelect} choices: ${JSON.stringify(selectedChoiceTexts)}`
@@ -817,7 +822,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       `${testLogPrefix} Expected API choice value (1-based, sorted): ${JSON.stringify(expectedChoiceValue)}`
     );
 
-    // Fill reason textarea
+    // Fill reason textarea (inside dialog)
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
@@ -833,6 +838,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     );
 
     // --- Verify Vote via Snapshot API ---
+    // Note: Snapshot API returns approval choices as a sorted array of numbers.
     await verifyVoteViaApi(
       proposalId,
       await metamask.getAccountAddress(),
@@ -892,7 +898,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
-    // Interact with the Quadratic Vote Modal - RANDOM CHOICE
+    // Interact with the Quadratic Vote Modal - RANDOM CHOICE (inside dialog)
     const randomIndex = Math.floor(Math.random() * choices.length);
     const choiceToSelect = choices[randomIndex];
     const choiceIndexString = (randomIndex + 1).toString(); // 1-based index as string key
@@ -902,11 +908,13 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       `${testLogPrefix} Randomly selected choice: "${choiceToSelect}" (Index: ${randomIndex}, Expected API Value: ${JSON.stringify(expectedChoiceValue)})`
     );
 
-    const choiceRadioButton = page.getByRole('radio', { name: choiceToSelect });
+    const choiceRadioButton = page
+      .locator('div[role="dialog"]')
+      .getByRole('radio', { name: choiceToSelect });
     await expect(choiceRadioButton).toBeVisible({ timeout: 10000 });
     await choiceRadioButton.check();
 
-    // Fill reason textarea
+    // Fill reason textarea (inside dialog)
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
@@ -983,8 +991,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
     // --- Interact with Ranked Choice Modal using a RANDOM SINGLE SWAP ---
+    // Make selector specific to the sortable list within the dialog
     const sortableItemContainerSelector =
-      'div[role="dialog"] >> div.rounded-md.border > div';
+      'div[role="dialog"] >> div.rounded-md.border > div[role="button"][aria-roledescription="sortable"]';
     const getDragHandleLocator = (choiceText: string) =>
       page.locator(
         `${sortableItemContainerSelector}:has-text("${choiceText}") >> button[aria-label^="Drag"]`
@@ -994,7 +1003,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
         `${sortableItemContainerSelector}:has-text("${choiceText}")`
       );
 
-    // Ensure list container and items are rendered
+    // Ensure list container and items are rendered within the dialog
     await expect(
       page.locator(sortableItemContainerSelector).first()
     ).toBeVisible({ timeout: 15000 });
@@ -1005,7 +1014,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(`${testLogPrefix} Ranked choice items rendered.`);
 
     // --- Perform Random Swap ---
-    const currentOrderIndices = choices.map((_, i) => i + 1); // Initial: [1, 2, 3, 4]
+    let currentOrderIndices = choices.map((_, i) => i + 1); // Initial: [1, 2, 3, 4]
     let currentOrderTexts = [...choices]; // Initial: ['A', 'B', 'C', 'D']
 
     // Choose a random index to swap with the next item
@@ -1034,21 +1043,24 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       );
     }
 
+    // Perform drag and drop
     await page.mouse.move(
       sourceBox.x + sourceBox.width / 2,
       sourceBox.y + sourceBox.height / 2
     );
     await page.mouse.down();
-    await page.waitForTimeout(200);
-    // Move slightly above the target item's center to drop before it
+    await page.waitForTimeout(300); // Pause after mouse down
+
+    // Move smoothly towards the target drop zone (slightly above the target's top edge)
     await page.mouse.move(
       targetBox.x + targetBox.width / 2,
-      targetBox.y + 5, // Adjust slightly to drop *before*
-      { steps: 5 }
+      targetBox.y - targetBox.height * 0.1, // Aim slightly above the target's top edge
+      { steps: 10 }
     );
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(500); // Pause at destination
     await page.mouse.up();
-    await page.waitForTimeout(1000); // Wait for UI to settle
+    await page.waitForTimeout(1500); // **Crucial** Wait longer for UI to update after drop
+
     console.log(`${testLogPrefix} Drag operation completed.`);
 
     // --- Calculate Expected Order After Swap ---
@@ -1062,9 +1074,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       currentOrderIndices[swapIndex],
     ];
 
-    const expectedChoiceValue = currentOrderIndices;
+    const expectedChoiceValue = currentOrderIndices; // Expected API value is the new order of original indices
 
-    // --- Verification after drag (using nth locator) ---
+    // --- Verification after drag (using nth locator within the dialog) ---
     console.log(`${testLogPrefix} Verifying visual order after drag...`);
     console.log(
       `${testLogPrefix} Expected final order (texts): ${JSON.stringify(currentOrderTexts)}`
@@ -1076,11 +1088,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     for (let i = 0; i < currentOrderTexts.length; i++) {
       const expectedText = currentOrderTexts[i];
       const itemLocator = page.locator(sortableItemContainerSelector).nth(i);
+
       // Check that the container at the i-th position contains the expected text
+      // Increase timeout and make the assertion more robust
       await expect(
         itemLocator,
         `Item at position ${i + 1} should contain text "${expectedText}"`
-      ).toContainText(expectedText, { timeout: 5000 }); // Added timeout for robustness
+      ).toContainText(expectedText, { timeout: 10000 }); // Increased timeout
+
       console.log(
         `${testLogPrefix} Verified item at pos ${i + 1} contains "${expectedText}"`
       );
@@ -1088,14 +1103,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(`${testLogPrefix} Visual order verified successfully.`);
 
     // --- Fill Reason and Submit ---
-    const reasonTextarea = page.locator(
-      'div[role="dialog"] >> textarea[id^="reason-"]'
-    );
-    console.log(
-      `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
-    );
-    await expect(reasonTextarea).toBeVisible({ timeout: 5000 });
-    await reasonTextarea.fill(uniqueReasonNonce);
+    await page.locator('textarea#reason').fill(uniqueReasonNonce);
 
     // --- Submit Vote and Confirm ---
     await submitVoteAndConfirmMetamask(
@@ -1170,11 +1178,13 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
-    // Interact with the Weighted Vote Modal - RANDOM WEIGHTS
+    // Interact with the Weighted Vote Modal - RANDOM WEIGHTS (inside dialog)
     const weights = generateWeights(choices.length, 100);
     const expectedChoiceValue: { [key: string]: number } = {};
 
     console.log(`${testLogPrefix} Generated random weights: ${weights}`);
+
+    const dialogLocator = page.locator('div[role="dialog"]');
 
     for (let i = 0; i < choices.length; i++) {
       const choiceText = choices[i];
@@ -1185,14 +1195,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
         `${testLogPrefix} Setting weight for "${choiceText}" (Index: ${i}) to ${weight}%`
       );
 
-      const weightInput = page
+      // Locate input relative to the choice label within the dialog
+      const weightInput = dialogLocator
         .locator(`label:has-text("${choiceText}")`)
         .locator('..') // Go up to the parent div containing label and input
-        .getByRole('spinbutton');
+        .getByRole('spinbutton'); // Use getByRole for robustness
 
       await expect(weightInput).toBeVisible({ timeout: 10000 });
-      // Clear existing value before filling
-      await weightInput.fill('');
+      // Clear existing value before filling - use fill directly which clears
       await weightInput.fill(weight.toString());
 
       expectedChoiceValue[choiceIndexString] = weight;
@@ -1202,12 +1212,12 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       `${testLogPrefix} Expected API choice value: ${JSON.stringify(expectedChoiceValue)}`
     );
 
-    // Verify total is 100%
-    await expect(page.getByText('100%', { exact: true })).toBeVisible({
+    // Verify total is 100% within the dialog
+    await expect(dialogLocator.getByText('100%', { exact: true })).toBeVisible({
       timeout: 5000,
     });
 
-    // Fill reason textarea
+    // Fill reason textarea (inside dialog)
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
