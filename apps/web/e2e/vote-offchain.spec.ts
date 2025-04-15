@@ -12,8 +12,8 @@ const SNAPSHOT_APP_NAME = 'proposalsapp';
 const ATTRIBUTION_TEXT = 'voted via proposals.app'; // Match component constant
 
 const TEST_TIMEOUT = 300 * 1000; // Increased timeout for potential API delays + UI interactions
-const API_VERIFICATION_DELAY = 15 * 1000; // Wait 15 seconds before first API check
-const API_RETRY_DELAY = 10 * 1000; // Wait 10 seconds between API check retries
+const API_VERIFICATION_DELAY = 5 * 1000; // Wait 5 seconds before first API check
+const API_RETRY_DELAY = 5 * 1000; // Wait 5 seconds between API check retries
 const API_MAX_ATTEMPTS = 5; // Increased attempts for API verification
 
 interface ProposalReceipt {
@@ -402,8 +402,8 @@ async function verifyVoteViaApi(
 
   expect(
     voteVerified,
-    `Vote verification failed after ${API_MAX_ATTEMPTS} attempts. See logs for details. Last error: ${lastError}. Expected reason to contain: "${expectedReasonContains}"`
-  ).toBe(true);
+    `Vote verification failed after ${API_MAX_ATTEMPTS} attempts. See logs for details. Last error: ${lastError}. Expected choice: ${JSON.stringify(expectedChoice)}. Expected reason to contain: "${expectedReasonContains}"`
+  ).toBe(true); // Updated error message
 }
 
 // --- Enforce Sequential Execution ---
@@ -937,12 +937,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Ranked-Choice]';
     const voteType = 'ranked-choice';
-    // Order: A, B, C, D
+    // Order: A, B, C, D (indices 1, 2, 3, 4)
     const choices = ['Rank C A', 'Rank C B', 'Rank C C', 'Rank C D'];
     const proposalTitlePrefix = 'E2E Test Proposal (Ranked Choice)';
     let proposalId: string | null = null;
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // Assuming attribution checkbox is checked by default
+    // Target order:  [C, A, D, B] (Indices: 3, 1, 4, 2)
+    const expectedChoiceValue = [3, 1, 4, 2];
 
     // --- Fetch Active or Create New Proposal ID ---
     proposalId = await fetchLatestActiveProposalId(
@@ -973,8 +975,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       proposalId,
       `${testLogPrefix} proposalId should be defined after fetch or create`
     ).toBeDefined();
-    // Ensure proposalId is treated as non-null from here on
-    proposalId = proposalId!;
+    proposalId = proposalId!; // Ensure non-null
 
     // --- Interact with the Web Application ---
     const metamask = new MetaMask(
@@ -986,7 +987,6 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     await page.goto(
       `http://localhost:61000/?story=vote-button--ranked-choice-proposal`
     );
-    // Pass metamaskPage to connectWallet
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
     // --- Vote on the Proposal via UI ---
@@ -1001,77 +1001,144 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     expect(proposalTitle).toContain(proposalTitlePrefix);
     console.log(`${testLogPrefix} Modal title verified: "${proposalTitle}"`);
 
-    // Interact with the Ranked Choice Vote Modal - Drag and Drop
-    // Initial order: [A, B, C, D] (Indices: 1, 2, 3, 4)
-    // Target order:  [C, A, D, B] (Indices: 3, 1, 4, 2)
+    // --- Interact with Ranked Choice Modal using Manual Drag ---
+    const sortableItemContainerSelector =
+      'div[role="dialog"] >> div.rounded-md.border > div'; // More specific container within dialog
+    const getDragHandleLocator = (choiceText: string) =>
+      page.locator(
+        `${sortableItemContainerSelector}:has-text("${choiceText}") >> button[aria-label^="Drag"]`
+      );
+    const getItemContainerByText = (choiceText: string) =>
+      page.locator(
+        `${sortableItemContainerSelector}:has-text("${choiceText}")`
+      );
 
-    // Locate drag handles - using aria-label set in the component
-    const dragHandleA = page.locator(`button[aria-label="Drag ${choices[0]}"]`); // Handle for A
-    const dragHandleC = page.locator(`button[aria-label="Drag ${choices[2]}"]`); // Handle for C
-    const dragHandleD = page.locator(`button[aria-label="Drag ${choices[3]}"]`); // Handle for D
+    // Ensure list container and items are rendered
+    await expect(
+      page.locator(sortableItemContainerSelector).first()
+    ).toBeVisible({ timeout: 15000 });
+    await expect(page.locator(sortableItemContainerSelector)).toHaveCount(
+      choices.length,
+      { timeout: 10000 }
+    );
+    console.log(`${testLogPrefix} Ranked choice items rendered.`);
 
-    // Locate drop targets - the items themselves can act as targets
-    // Get the first item in the list as the initial drop target
-    const firstItemContainer = page
-      .locator('div[data-headlessui-state="open"] li > div')
-      .first();
+    // Define source and target elements for drag 1 (Move C to 1st)
+    const sourceHandleC = getDragHandleLocator(choices[2]); // Handle for C (item 3)
+    const targetContainerA = getItemContainerByText(choices[0]); // Container for A (item 1)
 
-    // Ensure items are visible before dragging
-    await expect(dragHandleA).toBeVisible({ timeout: 10000 });
-    await expect(dragHandleC).toBeVisible({ timeout: 10000 });
-    await expect(dragHandleD).toBeVisible({ timeout: 10000 });
-    await expect(firstItemContainer).toBeVisible({ timeout: 10000 });
+    await expect(sourceHandleC).toBeVisible({ timeout: 5000 });
+    await expect(targetContainerA).toBeVisible({ timeout: 5000 });
+    console.log(
+      `${testLogPrefix} Drag handles and target visible for first drag.`
+    );
 
-    // Perform drags: Use dragTo for simplicity
-    console.log(`${testLogPrefix} Reordering items: C -> 1st`);
-    await dragHandleC.dragTo(firstItemContainer); // Move C to the position of A (becomes 1st)
-    await page.waitForTimeout(500); // Small delay for UI update
+    // Perform drag 1: C -> 1st
+    console.log(`${testLogPrefix} Reordering items: C -> 1st position...`);
+    const sourceC_Box = await sourceHandleC.boundingBox();
+    const targetA_Box = await targetContainerA.boundingBox();
 
-    // New order should be: [C, A, B, D]
-    // Locate items based on their new expected positions
-    const itemA_newPosContainer = page
-      .locator('div[data-headlessui-state="open"] li:nth-child(2) > div') // A is now 2nd
-      .first();
-    const itemB_newPosContainer = page
-      .locator('div[data-headlessui-state="open"] li:nth-child(3) > div') // B is now 3rd
-      .first();
-    const dragHandleD_newPos = page.locator(
-      `button[aria-label="Drag ${choices[3]}"]`
-    ); // D is currently 4th
+    if (!sourceC_Box || !targetA_Box) {
+      throw new Error('Could not get bounding box for drag elements (C -> A)');
+    }
+    await page.mouse.move(
+      sourceC_Box.x + sourceC_Box.width / 2,
+      sourceC_Box.y + sourceC_Box.height / 2
+    );
+    await page.mouse.down();
+    await page.waitForTimeout(200); // Short delay after mouse down
+    // Move slightly below the top of the target to ensure it drops *before* A
+    await page.mouse.move(
+      targetA_Box.x + targetA_Box.width / 2,
+      targetA_Box.y + 5,
+      { steps: 5 }
+    );
+    await page.waitForTimeout(500); // Wait for potential drop indication/UI update
+    await page.mouse.up();
+    await page.waitForTimeout(1000); // Longer wait after drag for UI to settle
+    console.log(`${testLogPrefix} First drag (C -> 1st) completed.`);
 
-    await expect(itemA_newPosContainer).toBeVisible({ timeout: 5000 });
-    await expect(itemB_newPosContainer).toBeVisible({ timeout: 5000 });
-    await expect(dragHandleD_newPos).toBeVisible({ timeout: 5000 });
+    // --- Verification after first drag (optional but recommended) ---
+    // Get current order visually
+    const itemsAfterDrag1 = await page
+      .locator(sortableItemContainerSelector)
+      .allTextContents();
+    console.log(
+      `${testLogPrefix} Items order after drag 1: ${JSON.stringify(itemsAfterDrag1)}`
+    );
+    // Expected order: C, A, B, D
+    expect(itemsAfterDrag1[0]).toContain(choices[2]); // C should be first
+    expect(itemsAfterDrag1[1]).toContain(choices[0]); // A should be second
 
-    console.log(`${testLogPrefix} Reordering items: D -> 3rd`);
-    // Drag D to the position currently occupied by B (3rd position)
-    await dragHandleD_newPos.dragTo(itemB_newPosContainer);
+    // Define source and target elements for drag 2 (Move D to 3rd)
+    // New state: C, A, B, D
+    const sourceHandleD = getDragHandleLocator(choices[3]); // Handle for D (item 4)
+    const targetContainerB = getItemContainerByText(choices[1]); // Container for B (item 2 - target pos 3)
+
+    await expect(sourceHandleD).toBeVisible({ timeout: 5000 });
+    await expect(targetContainerB).toBeVisible({ timeout: 5000 });
+    console.log(
+      `${testLogPrefix} Drag handles and target visible for second drag.`
+    );
+
+    // Perform drag 2: D -> 3rd position (before B)
+    console.log(`${testLogPrefix} Reordering items: D -> 3rd position...`);
+    const sourceD_Box = await sourceHandleD.boundingBox();
+    const targetB_Box = await targetContainerB.boundingBox();
+
+    if (!sourceD_Box || !targetB_Box) {
+      throw new Error('Could not get bounding box for drag elements (D -> B)');
+    }
+    await page.mouse.move(
+      sourceD_Box.x + sourceD_Box.width / 2,
+      sourceD_Box.y + sourceD_Box.height / 2
+    );
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+    // Move slightly below the top of the target B to drop *before* B
+    await page.mouse.move(
+      targetB_Box.x + targetB_Box.width / 2,
+      targetB_Box.y + 5,
+      { steps: 5 }
+    );
     await page.waitForTimeout(500);
+    await page.mouse.up();
+    await page.waitForTimeout(1000); // Longer wait
+    console.log(`${testLogPrefix} Second drag (D -> 3rd) completed.`);
 
-    // Final Order Check (visually): Should be C, A, D, B
-    // Corresponding 1-based indices: [3, 1, 4, 2]
-    const expectedChoiceValue = [3, 1, 4, 2];
+    // --- Verification after second drag (optional but recommended) ---
+    const itemsAfterDrag2 = await page
+      .locator(sortableItemContainerSelector)
+      .allTextContents();
+    console.log(
+      `${testLogPrefix} Items order after drag 2: ${JSON.stringify(itemsAfterDrag2)}`
+    );
+    // Expected order: C, A, D, B
+    expect(itemsAfterDrag2[0]).toContain(choices[2]); // C
+    expect(itemsAfterDrag2[1]).toContain(choices[0]); // A
+    expect(itemsAfterDrag2[2]).toContain(choices[3]); // D
+    expect(itemsAfterDrag2[3]).toContain(choices[1]); // B
 
-    // Fill reason textarea
-    // Use a locator that finds the textarea associated with the "Reason (Optional)" label,
-    const reasonTextarea = page.locator('label:has-text("Reason") + textarea');
+    // --- Fill Reason and Submit ---
+    // Locate reason textarea by its ID (using starts-with selector within dialog)
+    const reasonTextarea = page.locator(
+      'div[role="dialog"] >> textarea[id^="reason-"]'
+    );
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
     await expect(reasonTextarea).toBeVisible({ timeout: 5000 });
     await reasonTextarea.fill(uniqueReasonNonce);
-    // Ensure attribution checkbox is checked (it should be by default)
-    // await expect(page.locator('input#attribution')).toBeChecked();
 
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
+    console.log(`${testLogPrefix} Submit button clicked.`);
 
     await page.waitForTimeout(1000);
 
     try {
-      // Sometimes a "Got it" button appears before signing - handle it
-      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' }); // Use the passed metamaskPage
+      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' });
       if (await gotItButton.isVisible({ timeout: 3000 })) {
         console.log(`${testLogPrefix} Clicking 'Got it' button in Metamask...`);
         await gotItButton.click();
@@ -1089,13 +1156,17 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     await page.waitForTimeout(API_VERIFICATION_DELAY);
 
     // --- Verify Vote via Snapshot API ---
+    console.log(
+      `${testLogPrefix} Verifying vote via API with expected order: ${JSON.stringify(expectedChoiceValue)}`
+    );
     await verifyVoteViaApi(
-      proposalId, // proposalId is now guaranteed non-null
+      proposalId,
       await metamask.getAccountAddress(),
-      expectedChoiceValue,
-      expectedReasonString, // Pass expected reason
+      expectedChoiceValue, // Expected: [3, 1, 4, 2]
+      expectedReasonString,
       testLogPrefix
     );
+    console.log(`${testLogPrefix} Test completed.`);
   });
 
   // --- WEIGHTED TEST ---
