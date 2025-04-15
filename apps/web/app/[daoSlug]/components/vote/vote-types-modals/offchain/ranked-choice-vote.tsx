@@ -331,14 +331,11 @@ export function OffchainRankedChoiceVoteModalContent({
       </DndContext>
 
       <div className='space-y-2'>
-        <Label
-          htmlFor={`reason-${proposal.id}`}
-          className='text-base font-semibold'
-        >
+        <Label htmlFor='reason' className='text-base font-semibold'>
           Reason (Optional)
         </Label>
         <Textarea
-          id={`reason-${proposal.id}`}
+          id='reason'
           placeholder='Why are you voting this way?'
           value={reason}
           onChange={(e) => setReason(e.target.value)}

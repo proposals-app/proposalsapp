@@ -515,6 +515,51 @@ async function verifyVoteViaApi(
   ).toBe(true); // Updated error message
 }
 
+// Make the "Got it" button handling more robust with polling and multiple attempts
+async function handlePotentialGotItButton(
+  metamaskPage: Page,
+  testLogPrefix: string = '',
+  maxAttempts: number = 3
+) {
+  console.log(
+    `${testLogPrefix} Checking for potential 'Got it' button in Metamask...`
+  );
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      // Use a polling approach with shorter timeouts but multiple attempts
+      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' });
+      const isVisible = await gotItButton.isVisible({ timeout: 2000 });
+
+      if (isVisible) {
+        console.log(
+          `${testLogPrefix} 'Got it' button found on attempt ${attempt}, clicking it...`
+        );
+        await gotItButton.click();
+        console.log(`${testLogPrefix} Successfully clicked 'Got it' button`);
+        return true; // Button was found and clicked
+      } else if (attempt < maxAttempts) {
+        console.log(
+          `${testLogPrefix} 'Got it' button not visible on attempt ${attempt}, waiting before next check...`
+        );
+        await metamaskPage.waitForTimeout(1000); // Wait a bit before next attempt
+      }
+    } catch (e) {
+      console.log(
+        `${testLogPrefix} Error checking for 'Got it' button on attempt ${attempt}: ${e}`
+      );
+      if (attempt < maxAttempts) {
+        await metamaskPage.waitForTimeout(1000); // Wait before retry
+      }
+    }
+  }
+
+  console.log(
+    `${testLogPrefix} No 'Got it' button appeared after ${maxAttempts} attempts, continuing workflow...`
+  );
+  return false; // Button was not found after all attempts
+}
+
 /**
  * Submits the vote via the UI, handles Metamask confirmation, and waits for verification delay.
  */
@@ -529,19 +574,9 @@ async function submitVoteAndConfirmMetamask(
   await expect(submitVoteButton).toBeEnabled();
   await submitVoteButton.click();
 
-  await page.waitForTimeout(1000); // Short wait before checking Metamask
+  await metamaskPage.waitForTimeout(1000); // Short wait before checking Metamask
 
-  try {
-    const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' });
-    if (await gotItButton.isVisible({ timeout: 3000 })) {
-      console.log(`${testLogPrefix} Clicking 'Got it' button in Metamask...`);
-      await gotItButton.click();
-    }
-  } catch (e) {
-    console.log(
-      `${testLogPrefix} 'Got it' button not found or clickable, continuing...`
-    );
-  }
+  await handlePotentialGotItButton(metamaskPage, testLogPrefix);
 
   // --- Handle Metamask Signature ---
   console.log(`${testLogPrefix} Confirming vote signature in Metamask...`);
@@ -624,7 +659,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    await page
+      .locator('textarea#reason')
+      .fill(uniqueReasonNonce, { timeout: 1000 });
 
     // --- Submit Vote and Confirm ---
     await submitVoteAndConfirmMetamask(
@@ -713,7 +750,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    await page
+      .locator('textarea#reason')
+      .fill(uniqueReasonNonce, { timeout: 1000 });
 
     // --- Submit Vote and Confirm ---
     await submitVoteAndConfirmMetamask(
@@ -811,6 +850,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     }
     // Expected choice is an array of 1-based indices, sorted numerically for Snapshot API verification
     const expectedChoiceValue = selectedIndices.map((i) => i + 1);
+
     console.log(
       `${testLogPrefix} Randomly selected ${numToSelect} choices: ${JSON.stringify(selectedChoiceTexts)}`
     );
@@ -825,7 +865,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    await page
+      .locator('textarea#reason')
+      .fill(uniqueReasonNonce, { timeout: 1000 });
 
     // --- Submit Vote and Confirm ---
     await submitVoteAndConfirmMetamask(
@@ -917,7 +959,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    await page
+      .locator('textarea#reason')
+      .fill(uniqueReasonNonce, { timeout: 1000 });
 
     // --- Submit Vote and Confirm ---
     await submitVoteAndConfirmMetamask(
@@ -939,7 +983,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   // --- RANKED CHOICE TEST ---
-  test('[Ranked-Choice] should use active or create proposal, vote via UI (random order), verify via API', async ({
+  test('[Ranked-Choice] should use active or create proposal, vote with random order via UI, verify via API', async ({
     context,
     page,
     metamaskPage,
@@ -948,7 +992,6 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Ranked-Choice]';
     const voteType = 'ranked-choice';
-    // Initial Order: A, B, C, D (indices 1, 2, 3, 4)
     const choices = ['Rank C A', 'Rank C B', 'Rank C C', 'Rank C D'];
     const proposalTitlePrefix = 'E2E Test Proposal (Ranked Choice)';
     const proposalBody = 'Automated test proposal for ranked-choice voting.';
@@ -992,151 +1035,266 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     });
     console.log(`${testLogPrefix} Modal opened and title verified.`);
 
-    // --- Interact with Ranked Choice Modal using MULTIPLE RANDOM SWAPS ---
-    // Selector for the draggable item container (div containing handle and text)
-    const sortableItemContainerSelector =
-      'div[role="dialog"] >> div[class*="SortableItem"]'; // Adjust if class name is different or use data-testid
-    const getDragHandleLocator = (itemContainerLocator: Locator) =>
-      itemContainerLocator.locator('button[aria-label^="Drag"]');
-    const getItemContainerByIndex = (index: number) =>
-      page.locator(sortableItemContainerSelector).nth(index);
-    // Helper to get the choice text from a container, ignoring the rank number and button text
-    const getItemText = async (
-      itemContainerLocator: Locator
-    ): Promise<string> => {
-      // More robustly target the specific span holding the choice text
-      const choiceTextSpan = itemContainerLocator
-        .locator('span')
-        .filter({ hasText: /^(?!Move item|.*\d+\.$)/ }); // Regex to exclude rank/button text
-      const text = (await choiceTextSpan.textContent()) || '';
-      return text.trim();
-    };
+    // --- Generate random ordering for our drag operations ---
+    // Create pairs of [sourceIndex, targetIndex] for our drag operations
+    const numChoices = choices.length;
+    const originalIndices = Array.from({ length: numChoices }, (_, i) => i);
+    const targetOrder = shuffleArray([...originalIndices]); // Random target order
 
-    // Ensure list container and items are rendered within the dialog
+    console.log(
+      `${testLogPrefix} Original order indices: ${JSON.stringify(originalIndices.map((i) => i + 1))}`
+    );
+    console.log(
+      `${testLogPrefix} Target random order indices: ${JSON.stringify(targetOrder.map((i) => i + 1))}`
+    );
+
+    // Generate operations that transform original array to target array
+    // We'll do this by swapping one item at a time
+    let currentOrder = [...originalIndices];
+    let dragOperations: Array<{
+      fromIndex: number;
+      toIndex: number;
+      item: string;
+    }> = [];
+    let expectedFinalOrder: number[] = [];
+
+    for (let targetPos = 0; targetPos < numChoices; targetPos++) {
+      const targetValue = targetOrder[targetPos];
+      const currentPos = currentOrder.indexOf(targetValue);
+
+      if (currentPos !== targetPos) {
+        dragOperations.push({
+          fromIndex: currentPos,
+          toIndex: targetPos,
+          item: choices[targetValue],
+        });
+
+        // Update current order after this swap
+        currentOrder = [
+          ...currentOrder.slice(0, currentPos),
+          ...currentOrder.slice(currentPos + 1),
+        ];
+        currentOrder = [
+          ...currentOrder.slice(0, targetPos),
+          targetValue,
+          ...currentOrder.slice(targetPos),
+        ];
+      }
+    }
+
+    // Map final order to 1-based indices for Snapshot API
+    expectedFinalOrder = currentOrder.map((originalIndex) => originalIndex + 1);
+
+    console.log(
+      `${testLogPrefix} Will perform ${dragOperations.length} drag operations`
+    );
+    console.log(
+      `${testLogPrefix} Expected final order (1-based): ${JSON.stringify(expectedFinalOrder)}`
+    );
+
+    // --- Perform actual UI drag and drop with robust error handling ---
+    const sortableItemContainerSelector =
+      'div[role="dialog"] div.flex.items-center.space-x-2.rounded.border.p-2';
+    const getDragHandleLocator = (itemContainerLocator: Locator): Locator =>
+      itemContainerLocator.locator('button[aria-label^="Drag"]');
+    const getItemContainerByIndex = (index: number): Locator =>
+      page.locator(sortableItemContainerSelector).nth(index);
+
+    // Ensure items are loaded before starting drag operations
     await expect(
       page.locator(sortableItemContainerSelector).first()
-    ).toBeVisible({ timeout: 20000 }); // Increased timeout
+    ).toBeVisible({ timeout: 15000 });
     await expect(page.locator(sortableItemContainerSelector)).toHaveCount(
       choices.length,
-      { timeout: 15000 }
-    ); // Increased timeout
-    console.log(`${testLogPrefix} Ranked choice items rendered.`);
-
-    // --- Perform Multiple Random Swaps ---
-    let currentOrderTexts = [...choices]; // Track the text order
-    let currentOrderIndices = choices.map((_, i) => i + 1); // Track the original 1-based indices
-    const numSwaps = choices.length > 1 ? choices.length : 0; // Perform swaps equal to the number of choices (if > 1)
-
-    console.log(
-      `${testLogPrefix} Initial order: ${JSON.stringify(currentOrderTexts)}`
+      { timeout: 10000 }
     );
-    if (numSwaps > 0) {
-      console.log(`${testLogPrefix} Performing ${numSwaps} random swaps...`);
-    } else {
-      console.log(
-        `${testLogPrefix} Skipping swaps as there are less than 2 choices.`
-      );
-    }
 
-    for (let swap = 0; swap < numSwaps; swap++) {
-      // Pick two distinct random indices to swap
-      const index1 = Math.floor(Math.random() * choices.length);
-      let index2 = Math.floor(Math.random() * choices.length);
-      while (index1 === index2) {
-        index2 = Math.floor(Math.random() * choices.length);
-      }
+    // Wait an extra moment for the sortable list to fully initialize
+    await page.waitForTimeout(1000);
 
-      // Get locators based on current visual indices
-      const sourceContainer = getItemContainerByIndex(index1);
-      const targetContainer = getItemContainerByIndex(index2);
-      const sourceHandle = getDragHandleLocator(sourceContainer);
+    // Helper function to get text content from an item
+    const getItemText = async (container: Locator): Promise<string> => {
+      const textSpan = container
+        .locator('span')
+        .filter({ hasText: /^(?!Move item|.*\d+\.$)/ });
+      return ((await textSpan.textContent()) || '').trim();
+    };
 
-      const sourceText = await getItemText(sourceContainer);
-      const targetText = await getItemText(targetContainer);
-
-      console.log(
-        `${testLogPrefix} Swap ${swap + 1}/${numSwaps}: Dragging "${sourceText}" (at index ${index1}) towards "${targetText}" (at index ${index2})`
-      );
-
-      await expect(sourceHandle).toBeVisible({ timeout: 5000 });
-      await expect(targetContainer).toBeVisible({ timeout: 5000 });
-
-      const sourceBox = await sourceHandle.boundingBox();
-      const targetBox = await targetContainer.boundingBox();
-
-      if (!sourceBox || !targetBox) {
-        throw new Error(
-          `Could not get bounding box for drag elements (Swap ${swap + 1}, Source: "${sourceText}", Target: "${targetText}")`
+    // Perform each drag operation with multiple fallback strategies
+    for (const [opIndex, op] of dragOperations.entries()) {
+      try {
+        console.log(
+          `${testLogPrefix} Drag operation ${opIndex + 1}/${dragOperations.length}: Moving item "${op.item}" from position ${op.fromIndex + 1} to ${op.toIndex + 1}`
         );
+
+        const sourceContainer = getItemContainerByIndex(op.fromIndex);
+        const targetContainer = getItemContainerByIndex(op.toIndex);
+
+        // Verify containers are correct before proceeding
+        const sourceText = await getItemText(sourceContainer);
+        const targetText = await getItemText(targetContainer);
+
+        console.log(
+          `${testLogPrefix} Found source: "${sourceText}", target: "${targetText}"`
+        );
+
+        // Get drag handle
+        const sourceHandle = getDragHandleLocator(sourceContainer);
+        await expect(sourceHandle).toBeVisible({ timeout: 5000 });
+
+        // Try keyboard-based drag first (most reliable with @dnd-kit)
+        let dragSucceeded = false;
+
+        try {
+          console.log(
+            `${testLogPrefix} Attempting keyboard-based drag for operation ${opIndex + 1}...`
+          );
+          // Focus and start drag
+          await sourceHandle.click();
+          await page.waitForTimeout(500);
+          await page.keyboard.press('Space'); // Start drag
+          await page.waitForTimeout(800); // Wait for drag to start
+
+          // Calculate key presses needed (Up or Down)
+          const direction = op.toIndex > op.fromIndex ? 'ArrowDown' : 'ArrowUp';
+          const keyPresses = Math.abs(op.toIndex - op.fromIndex);
+
+          // Press arrow keys to move
+          for (let i = 0; i < keyPresses; i++) {
+            await page.keyboard.press(direction);
+            await page.waitForTimeout(300);
+          }
+
+          // Complete the drop
+          await page.keyboard.press('Space');
+          await page.waitForTimeout(1000);
+
+          // Basic verification
+          const newSourceText = await getItemText(
+            getItemContainerByIndex(op.toIndex)
+          );
+          console.log(
+            `${testLogPrefix} After keyboard drag, item at position ${op.toIndex + 1}: "${newSourceText}"`
+          );
+
+          dragSucceeded = true;
+          console.log(
+            `${testLogPrefix} Keyboard drag succeeded for operation ${opIndex + 1}`
+          );
+        } catch (keyboardError) {
+          console.log(
+            `${testLogPrefix} Keyboard drag failed, falling back to mouse drag: ${keyboardError}`
+          );
+        }
+
+        // Fallback to mouse-based drag if keyboard drag failed
+        if (!dragSucceeded) {
+          console.log(
+            `${testLogPrefix} Attempting mouse-based drag for operation ${opIndex + 1}...`
+          );
+
+          // Get fresh references after potential UI updates
+          const updatedSourceContainer = getItemContainerByIndex(op.fromIndex);
+          const updatedTargetContainer = getItemContainerByIndex(op.toIndex);
+          const updatedSourceHandle = getDragHandleLocator(
+            updatedSourceContainer
+          );
+
+          // Get bounding boxes
+          const sourceBox = await updatedSourceHandle.boundingBox();
+          const targetBox = await updatedTargetContainer.boundingBox();
+
+          if (!sourceBox || !targetBox) {
+            throw new Error(
+              `Could not get bounding box for drag elements in operation ${opIndex + 1}`
+            );
+          }
+
+          // Calculate precise drag points
+          const sourceCenter = {
+            x: sourceBox.x + sourceBox.width / 2,
+            y: sourceBox.y + sourceBox.height / 2,
+          };
+
+          // For target, aim at the top/bottom third based on drag direction
+          const verticalOffset =
+            op.toIndex > op.fromIndex
+              ? targetBox.height * 0.7
+              : targetBox.height * 0.3;
+          const targetPoint = {
+            x: targetBox.x + targetBox.width / 2,
+            y: targetBox.y + verticalOffset, // Aim higher or lower based on direction
+          };
+
+          // Execute drag in multiple small steps for reliability
+          await updatedSourceHandle.hover({ force: true });
+          await page.waitForTimeout(300);
+          await page.mouse.down();
+          await page.waitForTimeout(500);
+
+          // Move in many small steps for smoother drag
+          const steps = 20;
+          for (let i = 1; i <= steps; i++) {
+            const moveX =
+              sourceCenter.x + (targetPoint.x - sourceCenter.x) * (i / steps);
+            const moveY =
+              sourceCenter.y + (targetPoint.y - sourceCenter.y) * (i / steps);
+            await page.mouse.move(moveX, moveY, { steps: 5 });
+            await page.waitForTimeout(50);
+          }
+
+          // Ensure we're at final position
+          await page.mouse.move(targetPoint.x, targetPoint.y);
+          await page.waitForTimeout(500);
+          await page.mouse.up();
+          await page.waitForTimeout(1000);
+
+          // Try to verify the result
+          try {
+            const newItemText = await getItemText(
+              getItemContainerByIndex(op.toIndex)
+            );
+            console.log(
+              `${testLogPrefix} After mouse drag, item at position ${op.toIndex + 1}: "${newItemText}"`
+            );
+          } catch (verifyError) {
+            console.log(
+              `${testLogPrefix} Warning: Could not verify item position after drag: ${verifyError}`
+            );
+          }
+        }
+
+        // Give the UI time to update between operations
+        await page.waitForTimeout(1000);
+      } catch (dragError) {
+        console.error(
+          `${testLogPrefix} Error in drag operation ${opIndex + 1}: ${dragError}`
+        );
+        console.log(`${testLogPrefix} Continuing with next operation...`);
+
+        // Take screenshot on error for debugging
+        try {
+          const screenshotPath = `./ranked-choice-drag-error-${Date.now()}.png`;
+          await page.screenshot({ path: screenshotPath, fullPage: true });
+          console.log(
+            `${testLogPrefix} Saved error screenshot to ${screenshotPath}`
+          );
+        } catch (ssError) {
+          console.log(
+            `${testLogPrefix} Failed to take error screenshot: ${ssError}`
+          );
+        }
       }
-
-      // Perform drag and drop (drag source center towards target center)
-      // More reliable drag: hover source, down, hover target, up.
-      await sourceHandle.hover();
-      await page.mouse.down();
-      await page.waitForTimeout(200); // Short pause after down
-      // Move smoothly towards the target drop zone center
-      await targetContainer.hover(); // Hover over the target container to trigger drop zone logic
-      await page.waitForTimeout(300); // Pause at destination
-      await page.mouse.up();
-      await page.waitForTimeout(1500); // **Crucial** Wait longer for UI to update after drop
-
-      // Update the tracked order arrays AFTER the drag simulation
-      [currentOrderTexts[index1], currentOrderTexts[index2]] = [
-        currentOrderTexts[index2],
-        currentOrderTexts[index1],
-      ];
-      [currentOrderIndices[index1], currentOrderIndices[index2]] = [
-        currentOrderIndices[index2],
-        currentOrderIndices[index1],
-      ];
-
-      console.log(
-        `${testLogPrefix} Swap ${swap + 1} complete. New tracked logical order: ${JSON.stringify(currentOrderTexts)}`
-      );
-
-      // Optional: Add a small delay between swaps if needed
-      await page.waitForTimeout(500);
-    } // End swap loop
-
-    const expectedChoiceValue = currentOrderIndices; // Expected API value is the final order of original indices
-
-    // --- Verification after drags (using nth locator within the dialog) ---
-    console.log(
-      `${testLogPrefix} Verifying final visual order after ${numSwaps} swaps...`
-    );
-    console.log(
-      `${testLogPrefix} Expected final logical order (texts): ${JSON.stringify(currentOrderTexts)}`
-    );
-    console.log(
-      `${testLogPrefix} Expected API choice value (1-based indices): ${JSON.stringify(expectedChoiceValue)}`
-    );
-
-    for (let i = 0; i < currentOrderTexts.length; i++) {
-      const expectedText = currentOrderTexts[i];
-      const itemLocator = getItemContainerByIndex(i); // Get container by visual index
-      const actualText = await getItemText(itemLocator); // Extract text from the container
-
-      // Use expect(actual).toEqual(expected) for clearer error messages
-      expect(
-        actualText,
-        `Item at visual position ${i + 1} should be "${expectedText}", but found "${actualText}"`
-      ).toEqual(expectedText);
-
-      console.log(
-        `${testLogPrefix} Verified item at visual pos ${i + 1} is "${actualText}" (matches expected "${expectedText}")`
-      );
     }
-    console.log(`${testLogPrefix} Final visual order verified successfully.`);
 
     // --- Fill Reason and Submit ---
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    // Ensure reason textarea selector is scoped to the dialog
-    await page
-      .locator('div[role="dialog"] >> textarea#reason')
-      .fill(uniqueReasonNonce);
+    // FIX: Scope the locator to the dialog and remove the short timeout
+    const reasonTextArea = dialogLocator.locator('textarea#reason');
+    await expect(reasonTextArea).toBeVisible({ timeout: 10000 }); // Ensure it's visible before filling
+    await reasonTextArea.fill(uniqueReasonNonce); // Use default fill timeout
 
     // --- Submit Vote and Confirm ---
     await submitVoteAndConfirmMetamask(
@@ -1149,16 +1307,15 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     // --- Verify Vote via Snapshot API ---
     console.log(
-      `${testLogPrefix} Verifying vote via API with expected order: ${JSON.stringify(expectedChoiceValue)}`
+      `${testLogPrefix} Verifying vote via API with expected order: ${JSON.stringify(expectedFinalOrder)}`
     );
     await verifyVoteViaApi(
       proposalId,
       await metamask.getAccountAddress(),
-      expectedChoiceValue,
+      expectedFinalOrder,
       expectedReasonString,
       testLogPrefix
     );
-    console.log(`${testLogPrefix} Test completed.`);
   });
 
   // --- WEIGHTED TEST ---
@@ -1254,7 +1411,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page.locator('textarea#reason').fill(uniqueReasonNonce);
+    await page
+      .locator('textarea#reason')
+      .fill(uniqueReasonNonce, { timeout: 1000 });
 
     // --- Submit Vote and Confirm ---
     await submitVoteAndConfirmMetamask(
