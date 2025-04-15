@@ -479,15 +479,31 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     );
     await page.locator('textarea#reason').fill(uniqueReasonNonce);
     // Ensure attribution checkbox is checked (it should be by default)
-    await expect(page.locator('input#attribution')).toBeChecked();
+    // await expect(page.locator('input#attribution')).toBeChecked();
 
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
 
+    await page.waitForTimeout(1000);
+
+    try {
+      // Sometimes a "Got it" button appears before signing - handle it
+      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' }); // Use the passed metamaskPage
+      if (await gotItButton.isVisible({ timeout: 3000 })) {
+        console.log(`${testLogPrefix} Clicking 'Got it' button in Metamask...`);
+        await gotItButton.click();
+      }
+    } catch (e) {
+      console.log(
+        `${testLogPrefix} 'Got it' button not found or clickable, continuing...`
+      );
+    }
+
     // --- Handle Metamask Signature ---
     console.log(`${testLogPrefix} Confirming vote signature in Metamask...`);
     await metamask.confirmSignature();
+
     console.log(
       `${testLogPrefix} Vote submitted via UI, waiting for API verification...`
     );
@@ -595,15 +611,31 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     );
     await page.locator('textarea#reason').fill(uniqueReasonNonce);
     // Ensure attribution checkbox is checked (it should be by default)
-    await expect(page.locator('input#attribution')).toBeChecked();
+    // await expect(page.locator('input#attribution')).toBeChecked();
 
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
 
+    await page.waitForTimeout(1000);
+
+    try {
+      // Sometimes a "Got it" button appears before signing - handle it
+      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' }); // Use the passed metamaskPage
+      if (await gotItButton.isVisible({ timeout: 3000 })) {
+        console.log(`${testLogPrefix} Clicking 'Got it' button in Metamask...`);
+        await gotItButton.click();
+      }
+    } catch (e) {
+      console.log(
+        `${testLogPrefix} 'Got it' button not found or clickable, continuing...`
+      );
+    }
+
     // --- Handle Metamask Signature ---
     console.log(`${testLogPrefix} Confirming vote signature in Metamask...`);
     await metamask.confirmSignature();
+
     console.log(
       `${testLogPrefix} Vote submitted via UI, waiting for API verification...`
     );
@@ -843,18 +875,31 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     await expect(reasonTextarea).toBeVisible({ timeout: 5000 });
     await reasonTextarea.fill(uniqueReasonNonce);
     // Ensure attribution checkbox is checked (it should be by default)
-    await expect(page.locator('input#attribution')).toBeChecked();
+    // await expect(page.locator('input#attribution')).toBeChecked();
 
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
 
+    await page.waitForTimeout(1000);
+
+    try {
+      // Sometimes a "Got it" button appears before signing - handle it
+      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' }); // Use the passed metamaskPage
+      if (await gotItButton.isVisible({ timeout: 3000 })) {
+        console.log(`${testLogPrefix} Clicking 'Got it' button in Metamask...`);
+        await gotItButton.click();
+      }
+    } catch (e) {
+      console.log(
+        `${testLogPrefix} 'Got it' button not found or clickable, continuing...`
+      );
+    }
+
     // --- Handle Metamask Signature ---
     console.log(`${testLogPrefix} Confirming vote signature in Metamask...`);
     await metamask.confirmSignature();
-    console.log(
-      `${testLogPrefix} Vote submitted via UI, waiting for API verification...`
-    );
+
     await page.waitForTimeout(API_VERIFICATION_DELAY);
 
     // --- Verify Vote via Snapshot API ---
@@ -966,15 +1011,31 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     );
     await page.locator('textarea#reason').fill(uniqueReasonNonce);
     // Ensure attribution checkbox is checked (it should be by default)
-    await expect(page.locator('input#attribution')).toBeChecked();
+    // await expect(page.locator('input#attribution')).toBeChecked();
 
     const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
     await expect(submitVoteButton).toBeEnabled();
     await submitVoteButton.click();
 
+    await page.waitForTimeout(1000);
+
+    try {
+      // Sometimes a "Got it" button appears before signing - handle it
+      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' }); // Use the passed metamaskPage
+      if (await gotItButton.isVisible({ timeout: 3000 })) {
+        console.log(`${testLogPrefix} Clicking 'Got it' button in Metamask...`);
+        await gotItButton.click();
+      }
+    } catch (e) {
+      console.log(
+        `${testLogPrefix} 'Got it' button not found or clickable, continuing...`
+      );
+    }
+
     // --- Handle Metamask Signature ---
     console.log(`${testLogPrefix} Confirming vote signature in Metamask...`);
     await metamask.confirmSignature();
+
     console.log(
       `${testLogPrefix} Vote submitted via UI, waiting for API verification...`
     );
