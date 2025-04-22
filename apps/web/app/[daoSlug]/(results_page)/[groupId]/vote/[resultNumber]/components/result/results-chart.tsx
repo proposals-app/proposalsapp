@@ -92,8 +92,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
     // Initialize ECharts instance
     const chart = echarts.init(chartRef.current, null, { renderer: 'svg' });
 
-    const isRankedChoice =
-      deserializedResults.voteType === 'offchain-ranked-choice';
+    const isRankedChoice = deserializedResults.voteType === 'ranked-choice';
 
     // Calculate cumulative data for non-ranked-choice votes
     const cumulativeData: { [choice: number]: [Date, number][] } = {};

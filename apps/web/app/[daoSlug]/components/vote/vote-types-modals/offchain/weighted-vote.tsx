@@ -10,20 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { ATTRIBUTION_TEXT, SNAPSHOT_APP_NAME } from '../../vote-button';
-
-interface OffchainWeightedVoteModalContentProps {
-  proposal: Selectable<Proposal>;
-  snapshotSpace?: string;
-  snapshotHubUrl?: string;
-  governorAddress?: string;
-  choices: string[];
-  onVoteSubmit: () => Promise<void>; // Simplified: Parent handles success
-  onClose: () => void;
-}
+import {
+  ATTRIBUTION_TEXT,
+  SNAPSHOT_APP_NAME,
+  VoteModalContentProps,
+} from '../../vote-button';
 
 export function OffchainWeightedVoteModalContent({
   proposal,
@@ -32,7 +25,7 @@ export function OffchainWeightedVoteModalContent({
   choices,
   onVoteSubmit,
   onClose,
-}: OffchainWeightedVoteModalContentProps) {
+}: VoteModalContentProps) {
   // Initialize weights state { '1': 0, '2': 0, ... }
   const initialWeights = React.useMemo(
     () =>

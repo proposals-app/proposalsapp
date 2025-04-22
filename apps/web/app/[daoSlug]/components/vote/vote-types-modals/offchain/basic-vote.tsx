@@ -7,22 +7,15 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Web3Provider } from '@ethersproject/providers';
-import { Proposal, Selectable } from '@proposalsapp/db-indexer';
 import snapshot from '@snapshot-labs/snapshot.js';
 import * as React from 'react';
 import { toast } from 'sonner';
 import { useAccount, useWalletClient } from 'wagmi';
-import { ATTRIBUTION_TEXT, SNAPSHOT_APP_NAME } from '../../vote-button';
-
-interface OffchainBasicVoteModalContentProps {
-  proposal: Selectable<Proposal>;
-  snapshotSpace?: string;
-  snapshotHubUrl?: string;
-  governorAddress?: string;
-  choices: string[];
-  onVoteSubmit: () => Promise<void>; // Simplified: Parent will handle success state
-  onClose: () => void;
-}
+import {
+  ATTRIBUTION_TEXT,
+  SNAPSHOT_APP_NAME,
+  VoteModalContentProps,
+} from '../../vote-button';
 
 export function OffchainBasicVoteModalContent({
   proposal,
@@ -31,7 +24,7 @@ export function OffchainBasicVoteModalContent({
   choices,
   onVoteSubmit,
   onClose,
-}: OffchainBasicVoteModalContentProps) {
+}: VoteModalContentProps) {
   const [selectedChoice, setSelectedChoice] = React.useState<string>(''); // Store the 1-based index as string
   const [reason, setReason] = React.useState('');
   const [addAttribution, setAddAttribution] = React.useState(true);

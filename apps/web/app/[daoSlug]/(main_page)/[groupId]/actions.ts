@@ -928,7 +928,7 @@ export async function getFeed(
                 { addSuffix: true }
               )}`,
               type:
-                voteType === 'offchain-basic' || voteType === 'onchain-basic'
+                voteType === 'basic'
                   ? TimelineEventType.ResultEndedBasicVote
                   : TimelineEventType.ResultEndedOtherVotes,
               timestamp: endedAt,
@@ -943,7 +943,7 @@ export async function getFeed(
                 { addSuffix: true }
               )}`,
               type:
-                voteType === 'offchain-basic' || voteType === 'onchain-basic'
+                voteType === 'basic'
                   ? TimelineEventType.ResultOngoingBasicVote
                   : TimelineEventType.ResultOngoingOtherVotes,
               timestamp: endedAt,

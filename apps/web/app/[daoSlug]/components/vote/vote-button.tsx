@@ -25,28 +25,45 @@ import { OnchainBasicVoteModalContent } from './vote-types-modals/onchain/basic-
 export const SNAPSHOT_APP_NAME = 'proposalsapp';
 export const ATTRIBUTION_TEXT = 'voted via proposals.app';
 
+const SNAPSHOT_SPACE_ARB_FOUNDATION = 'arbitrumfoundation.eth';
+const SNAPSHOT_HUB_URL = 'https://hub.snapshot.org';
+const ARBITRUM_CORE_GOVERNOR_ADDRESS =
+  '0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9';
+const ARBITRUM_TREASURY_GOVERNOR_ADDRESS =
+  '0x789fC99093B09aD01C34DC7251D0C89ce743e5a4';
+
 interface VoteButtonProps {
+  proposal: Selectable<Proposal>;
+  governor: 'ARBITRUM_SNAPSHOT' | 'ARBITRUM_CORE' | 'ARBITRUM_TREASURY';
+  overwriteSnapshotSpace?: string;
+  overwriteSnapshotHub?: string;
+}
+
+export interface VoteModalContentProps {
   proposal: Selectable<Proposal>;
   snapshotSpace?: string;
   snapshotHubUrl?: string;
   governorAddress?: string;
+  choices: string[];
+  onVoteSubmit: () => Promise<void>;
+  onClose: () => void;
 }
 
-const voteModalComponents = {
-  'offchain-approval': OffchainApprovalVoteModalContent,
-  'offchain-basic': OffchainBasicVoteModalContent,
-  'offchain-quadratic': OffchainQuadraticVoteModalContent,
-  'offchain-ranked-choice': OffchainRankedChoiceVoteModalContent,
-  'offchain-single-choice': OffchainSingleChoiceVoteModalContent,
-  'offchain-weighted': OffchainWeightedVoteModalContent,
-  'onchain-basic': OnchainBasicVoteModalContent,
+// Offchain (Snapshot) specific modal components based on vote type
+const snapshotVoteModalComponents = {
+  approval: OffchainApprovalVoteModalContent,
+  basic: OffchainBasicVoteModalContent,
+  quadratic: OffchainQuadraticVoteModalContent,
+  'ranked-choice': OffchainRankedChoiceVoteModalContent,
+  'single-choice': OffchainSingleChoiceVoteModalContent,
+  weighted: OffchainWeightedVoteModalContent,
 };
 
 export function VoteButton({
   proposal,
-  snapshotSpace = 'arbitrumfoundation.eth',
-  snapshotHubUrl = 'https://hub.snapshot.org',
-  governorAddress,
+  governor,
+  overwriteSnapshotSpace,
+  overwriteSnapshotHub,
 }: VoteButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { isConnected } = useAccount();
@@ -64,7 +81,11 @@ export function VoteButton({
   // --- Wallet is connected, proceed with vote button logic ---
 
   const metadata = proposal.metadata as ProposalMetadata | null;
-  const voteType = metadata?.voteType;
+  // Ensure voteType is compatible with snapshotVoteModalComponents keys if it's offchain
+  const voteType = metadata?.voteType as
+    | keyof typeof snapshotVoteModalComponents
+    | 'basic'
+    | undefined; // Assuming 'basic' might be used for onchain
 
   if (!voteType) {
     console.warn(`VoteButton: Proposal ${proposal.id} has no valid vote type.`);
@@ -105,10 +126,42 @@ export function VoteButton({
     );
   }
 
-  const ModalContentComponent =
-    voteModalComponents[voteType] || OffchainBasicVoteModalContent;
+  let snapshotSpace: string | undefined;
+  let snapshotHubUrl: string | undefined;
+  let governorAddress: `0x${string}` | undefined;
+  // Use a less strict type for assignment flexibility, rely on runtime props
+  let ModalContentComponent: React.ComponentType<VoteModalContentProps>;
+
+  switch (governor) {
+    case 'ARBITRUM_SNAPSHOT':
+      snapshotSpace = overwriteSnapshotSpace || SNAPSHOT_SPACE_ARB_FOUNDATION;
+      snapshotHubUrl = overwriteSnapshotHub || SNAPSHOT_HUB_URL;
+      ModalContentComponent =
+        snapshotVoteModalComponents[voteType] || OffchainBasicVoteModalContent;
+      break;
+    case 'ARBITRUM_CORE':
+      governorAddress = ARBITRUM_CORE_GOVERNOR_ADDRESS;
+      ModalContentComponent = OnchainBasicVoteModalContent;
+      break;
+    case 'ARBITRUM_TREASURY':
+      governorAddress = ARBITRUM_TREASURY_GOVERNOR_ADDRESS;
+      ModalContentComponent = OnchainBasicVoteModalContent;
+      break;
+    default:
+      // Optional: Handle unexpected governor type if necessary
+      console.error(`VoteButton: Unknown governor type: ${governor}`);
+      return (
+        <Button disabled variant='outline' className='w-full'>
+          <Vote className='mr-2 h-4 w-4' />
+          Invalid Governor
+        </Button>
+      );
+  }
 
   const handleSuccessfulVote = async () => {
+    // This function is called by the modal content component *after* its internal
+    // voting logic (offchain signing or onchain transaction) succeeds.
+    // Its sole purpose here is to close the dialog.
     setIsOpen(false);
   };
 
@@ -131,8 +184,8 @@ export function VoteButton({
           snapshotHubUrl={snapshotHubUrl}
           governorAddress={governorAddress}
           choices={choices}
-          onVoteSubmit={handleSuccessfulVote} // Pass the success handler
-          onClose={() => setIsOpen(false)} // Pass the close handler for cancellation
+          onVoteSubmit={handleSuccessfulVote}
+          onClose={() => setIsOpen(false)}
         />
       </DialogContent>
     </Dialog>

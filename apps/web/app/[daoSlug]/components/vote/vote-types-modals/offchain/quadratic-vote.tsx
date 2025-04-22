@@ -14,19 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { toast } from 'sonner';
-import { ATTRIBUTION_TEXT, SNAPSHOT_APP_NAME } from '../../vote-button';
-
-interface OffchainQuadraticVoteModalContentProps {
-  proposal: Selectable<Proposal>;
-  snapshotSpace?: string;
-  snapshotHubUrl?: string;
-  governorAddress?: string;
-  choices: string[];
-  onVoteSubmit: () => Promise<void>; // Simplified: Parent handles success
-  onClose: () => void;
-}
+import {
+  ATTRIBUTION_TEXT,
+  SNAPSHOT_APP_NAME,
+  VoteModalContentProps,
+} from '../../vote-button';
 
 export function OffchainQuadraticVoteModalContent({
   proposal,
@@ -35,7 +28,7 @@ export function OffchainQuadraticVoteModalContent({
   choices,
   onVoteSubmit,
   onClose,
-}: OffchainQuadraticVoteModalContentProps) {
+}: VoteModalContentProps) {
   // Assuming single choice selection for simplicity, mirroring 'basic' vote UI
   const [selectedChoice, setSelectedChoice] = React.useState<string>('');
   const [reason, setReason] = React.useState('');

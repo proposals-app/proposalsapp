@@ -17,13 +17,12 @@ interface ResultCardProps {
 }
 
 const VoteComponents = {
-  'offchain-single-choice': SingleChoiceVote,
-  'offchain-weighted': WeightedVote,
-  'offchain-approval': ApprovalVote,
-  'offchain-basic': BasicVote,
-  'offchain-quadratic': QuadraticVote,
-  'offchain-ranked-choice': RankedChoiceVote,
-  'onchain-basic': BasicVote,
+  'single-choice': SingleChoiceVote,
+  weighted: WeightedVote,
+  approval: ApprovalVote,
+  basic: BasicVote,
+  quadratic: QuadraticVote,
+  'ranked-choice': RankedChoiceVote,
 } as const;
 
 export function ResultCard({ content, result }: ResultCardProps) {

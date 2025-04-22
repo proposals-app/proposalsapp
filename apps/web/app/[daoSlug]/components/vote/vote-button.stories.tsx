@@ -53,11 +53,10 @@ interface MockProposal {
 }
 
 // --- Snapshot Fetching Logic ---
-const SNAPSHOT_SPACE = 'proposalsapp-area51.eth';
-const SNAPSHOT_HUB_URL = 'https://testnet.hub.snapshot.org';
+const TEST_SNAPSHOT_SPACE = 'proposalsapp-area51.eth';
+const TEST_SNAPSHOT_HUB_URL = 'https://testnet.hub.snapshot.org';
 
 const mapSnapshotState = (state?: string): ProposalState => {
-  /* ... implementation unchanged ... */
   switch (state?.toLowerCase()) {
     case 'active':
       return ProposalState.ACTIVE;
@@ -70,60 +69,17 @@ const mapSnapshotState = (state?: string): ProposalState => {
       return ProposalState.UNKNOWN;
   }
 };
-const mapSnapshotType = (type?: string): VoteType | undefined => {
-  /* ... implementation unchanged ... */
-  switch (type?.toLowerCase()) {
-    case 'basic':
-    case 'single-choice':
-      return 'offchain-single-choice';
-    case 'approval':
-      return 'offchain-approval';
-    case 'quadratic':
-      return 'offchain-quadratic';
-    case 'ranked-choice':
-      return 'offchain-ranked-choice';
-    case 'weighted':
-      return 'offchain-weighted';
-    default:
-      console.warn(`Unknown Snapshot proposal type received: ${type}`);
-      return undefined;
-  }
-};
-
-// Helper function to get the Snapshot type string from our VoteType enum
-const getSnapshotTypeString = (voteType: VoteType): string | undefined => {
-  switch (voteType) {
-    case 'offchain-basic':
-      return 'basic';
-    case 'offchain-single-choice':
-      return 'single-choice';
-    case 'offchain-approval':
-      return 'approval';
-    case 'offchain-quadratic':
-      return 'quadratic';
-    case 'offchain-ranked-choice':
-      return 'ranked-choice';
-    case 'offchain-weighted':
-      return 'weighted';
-    default:
-      // Should not happen if VoteType enum is used correctly, but handle defensively
-      console.warn(
-        `[getSnapshotTypeString] Cannot map unknown VoteType: ${voteType}`
-      );
-      return undefined;
-  }
-};
 
 async function fetchLatestProposal(
   spaceId: string,
   hubUrl: string,
-  proposalType?: VoteType // Use the specific VoteType enum
+  proposalType?: VoteType // Use the specific VoteType enum/type
 ): Promise<MockProposal | null> {
   const whereClauses: string[] = [`space: $spaceId`]; // Start with the mandatory space filter
 
   let snapshotTypeString: string | undefined;
   if (proposalType) {
-    snapshotTypeString = getSnapshotTypeString(proposalType);
+    snapshotTypeString = proposalType;
     if (snapshotTypeString) {
       // Add the type filter only if a valid mapping exists
       whereClauses.push(`type: "${snapshotTypeString}"`);
@@ -283,8 +239,7 @@ async function fetchLatestProposal(
 
     console.log(`[fetchLatestProposal] Found proposal data:`, proposalData);
 
-    // --- Mapping Logic (unchanged) ---
-    const mappedVoteType = mapSnapshotType(proposalData.type);
+    // --- Mapping Logic ---
     const mappedState = mapSnapshotState(proposalData.state);
     let cleanChoices: string[] = [];
     if (
@@ -337,7 +292,7 @@ async function fetchLatestProposal(
       blockEndAt: null, // Not available
       txid: null, // Not applicable for off-chain proposals
       metadata: {
-        voteType: mappedVoteType,
+        voteType: proposalData.type,
         scoresState: proposalData.state === 'active' ? 'pending' : 'final',
         snapshotBlock:
           typeof proposalData.snapshot === 'string'
@@ -350,7 +305,7 @@ async function fetchLatestProposal(
       },
     };
 
-    // Add post-mapping validation/warnings (unchanged)
+    // Add post-mapping validation/warnings
     if (!proposalData.title)
       console.warn(
         `[fetchLatestProposal] Proposal ${proposalData.id} missing title.`
@@ -394,14 +349,20 @@ async function fetchLatestProposal(
 }
 
 // --- Ladle Loader (Definition only, not assigned to stories directly) ---
+// Note: This loader is defined but not directly used by the individual ProposalStory components
+// as they fetch data within their useEffect hook based on the proposalType prop.
+// Keeping it here might be useful for other potential stories or reference.
 const load = async (): Promise<{
   proposal: MockProposal | null;
   error?: boolean;
 }> => {
   console.log(
-    `[Ladle Loader] Starting proposal fetch from ${SNAPSHOT_HUB_URL} for space ${SNAPSHOT_SPACE}...`
+    `[Ladle Loader] Starting proposal fetch from ${TEST_SNAPSHOT_HUB_URL} for space ${TEST_SNAPSHOT_SPACE}...`
   );
-  const proposal = await fetchLatestProposal(SNAPSHOT_SPACE, SNAPSHOT_HUB_URL); // Fetches latest of any type by default now
+  const proposal = await fetchLatestProposal(
+    TEST_SNAPSHOT_SPACE,
+    TEST_SNAPSHOT_HUB_URL
+  ); // Fetches latest of any type by default now
   if (!proposal) {
     console.error('[Ladle Loader] Failed to load proposal for story.');
     return { proposal: null, error: true };
@@ -414,16 +375,16 @@ load.storyName = 'Proposal Data Loader';
 // --- Ladle Stories for different Proposal Types ---
 
 // Reusable component to handle fetching and rendering for different types
-const ProposalStory: React.FC<{ proposalType?: VoteType }> = ({
-  proposalType,
-}) => {
+const ProposalStory: React.FC<{
+  proposalType?: VoteType; // Use the imported VoteType directly
+  governor: 'ARBITRUM_SNAPSHOT' | 'ARBITRUM_CORE' | 'ARBITRUM_TREASURY';
+}> = ({ proposalType, governor }) => {
   const [proposal, setProposal] = useState<MockProposal | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   // Generate a user-friendly name for logging and display
   const typeName = proposalType
-    ? proposalType
-        .replace('offchain-', '')
+    ? proposalType // Use the type directly
         .replace('-', ' ')
         .split(' ')
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -442,9 +403,9 @@ const ProposalStory: React.FC<{ proposalType?: VoteType }> = ({
 
       try {
         const fetchedProposal = await fetchLatestProposal(
-          SNAPSHOT_SPACE,
-          SNAPSHOT_HUB_URL,
-          proposalType // Pass the specific type to fetch
+          TEST_SNAPSHOT_SPACE,
+          TEST_SNAPSHOT_HUB_URL,
+          proposalType // Pass the specific VoteType to fetch
         );
 
         if (fetchedProposal) {
@@ -494,8 +455,8 @@ const ProposalStory: React.FC<{ proposalType?: VoteType }> = ({
         <h2>Loading {typeName} Proposal...</h2>
         <p>
           Fetching latest {typeName.toLowerCase()} proposal from Snapshot Hub (
-          <code>{SNAPSHOT_HUB_URL}</code>) for space (
-          <code>{SNAPSHOT_SPACE}</code>)...
+          <code>{TEST_SNAPSHOT_HUB_URL}</code>) for space (
+          <code>{TEST_SNAPSHOT_SPACE}</code>)...
         </p>
       </div>
     );
@@ -507,8 +468,8 @@ const ProposalStory: React.FC<{ proposalType?: VoteType }> = ({
         <h2>Error Loading {typeName} Proposal</h2>
         <p>
           Failed to load the latest {typeName.toLowerCase()} proposal data from
-          Snapshot Hub (<code>{SNAPSHOT_HUB_URL}</code>) for space (
-          <code>{SNAPSHOT_SPACE}</code>).
+          Snapshot Hub (<code>{TEST_SNAPSHOT_HUB_URL}</code>) for space (
+          <code>{TEST_SNAPSHOT_SPACE}</code>).
         </p>
         <p>
           This might happen if no proposal of this specific type exists in the
@@ -519,12 +480,13 @@ const ProposalStory: React.FC<{ proposalType?: VoteType }> = ({
     );
   }
 
-  // Render the VoteButton with the fetched proposal
+  // Render the VoteButton with the fetched proposal and required governor prop
   return (
     <VoteButton
+      governor={governor}
       proposal={proposal}
-      snapshotSpace={SNAPSHOT_SPACE}
-      snapshotHubUrl={SNAPSHOT_HUB_URL}
+      overwriteSnapshotSpace={TEST_SNAPSHOT_SPACE}
+      overwriteSnapshotHub={TEST_SNAPSHOT_HUB_URL}
     />
   );
 };
@@ -532,32 +494,33 @@ const ProposalStory: React.FC<{ proposalType?: VoteType }> = ({
 // --- Exported Stories ---
 
 // Stories for fetching the latest proposal of a specific type
+// Ensure the string literals passed to proposalType match the expected VoteType values
 export const BasicProposalStory: Story = () => (
-  <ProposalStory proposalType='offchain-basic' />
+  <ProposalStory proposalType='basic' governor='ARBITRUM_SNAPSHOT' />
 );
 BasicProposalStory.storyName = 'Basic Proposal';
 
 export const SingleChoiceProposalStory: Story = () => (
-  <ProposalStory proposalType='offchain-single-choice' />
+  <ProposalStory proposalType='single-choice' governor='ARBITRUM_SNAPSHOT' />
 );
 SingleChoiceProposalStory.storyName = 'Single Choice Proposal';
 
 export const ApprovalProposalStory: Story = () => (
-  <ProposalStory proposalType='offchain-approval' />
+  <ProposalStory proposalType='approval' governor='ARBITRUM_SNAPSHOT' />
 );
 ApprovalProposalStory.storyName = 'Approval Proposal';
 
 export const QuadraticProposalStory: Story = () => (
-  <ProposalStory proposalType='offchain-quadratic' />
+  <ProposalStory proposalType='quadratic' governor='ARBITRUM_SNAPSHOT' />
 );
 QuadraticProposalStory.storyName = 'Quadratic Proposal';
 
 export const RankedChoiceProposalStory: Story = () => (
-  <ProposalStory proposalType='offchain-ranked-choice' />
+  <ProposalStory proposalType='ranked-choice' governor='ARBITRUM_SNAPSHOT' />
 );
 RankedChoiceProposalStory.storyName = 'Ranked Choice Proposal';
 
 export const WeightedProposalStory: Story = () => (
-  <ProposalStory proposalType='offchain-weighted' />
+  <ProposalStory proposalType='weighted' governor='ARBITRUM_SNAPSHOT' />
 );
 WeightedProposalStory.storyName = 'Weighted Proposal';

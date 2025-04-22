@@ -175,7 +175,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         block_created_at: Set(Some(block_number as i32)),
                         block_start_at: Set(Some(result.event_data.start_block.as_u64() as i32)),
                         block_end_at: Set(Some(result.event_data.end_block.as_u64() as i32)),
-                        metadata: Set(json!({"vote_type":"onchain-basic", "quorum_choices":[0,2],"total_delegated_vp":total_delegated_vp, "targets":result.event_data.targets, "values":result.event_data.values, "calldatas":result.event_data.calldatas, "signatures":result.event_data.signatures}).into()),
+                        metadata: Set(json!({"vote_type":"basic", "quorum_choices":[0,2],"total_delegated_vp":total_delegated_vp, "targets":result.event_data.targets, "values":result.event_data.values, "calldatas":result.event_data.calldatas, "signatures":result.event_data.signatures}).into()),
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
                         governor_id: Set(get_proposals_governor_id().take().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),

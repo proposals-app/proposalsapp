@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { GripVertical } from 'lucide-react';
 import {
   DndContext,
@@ -36,22 +35,16 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { cva } from 'class-variance-authority';
 import { toast } from 'sonner';
-import { ATTRIBUTION_TEXT, SNAPSHOT_APP_NAME } from '../../vote-button';
+import {
+  ATTRIBUTION_TEXT,
+  SNAPSHOT_APP_NAME,
+  VoteModalContentProps,
+} from '../../vote-button';
 
 // Interface for state items, ensuring 'id' is UniqueIdentifier (string | number)
 interface RankedChoiceItem {
   id: UniqueIdentifier; // Use UniqueIdentifier for dnd-kit compatibility
   content: string;
-}
-
-interface OffchainRankedChoiceVoteModalContentProps {
-  proposal: Selectable<Proposal>;
-  snapshotSpace?: string;
-  snapshotHubUrl?: string;
-  governorAddress?: string;
-  choices: string[];
-  onVoteSubmit: () => Promise<void>; // Simplified: Parent handles success
-  onClose: () => void;
 }
 
 function RankedChoiceSortableItem({
@@ -127,7 +120,7 @@ export function OffchainRankedChoiceVoteModalContent({
   choices,
   onVoteSubmit,
   onClose,
-}: OffchainRankedChoiceVoteModalContentProps) {
+}: VoteModalContentProps) {
   const [rankedItems, setRankedItems] = React.useState<RankedChoiceItem[]>([]);
   const [activeItem, setActiveItem] = React.useState<RankedChoiceItem | null>(
     null

@@ -32,7 +32,7 @@ interface ResultsTableProps {
 const getChoiceText = (vote: ProcessedVote, voteType: VoteType): string => {
   if (!vote.choice || vote.choice.length === 0) return 'Unknown Choice';
 
-  if (voteType == 'offchain-weighted') {
+  if (voteType == 'weighted') {
     // For weighted voting, include the weight percentage
     return vote.choice
       .map((choice) => `${Math.round(choice.weight)}% for ${choice.text}`)

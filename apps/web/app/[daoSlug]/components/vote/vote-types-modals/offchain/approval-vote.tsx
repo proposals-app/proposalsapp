@@ -9,19 +9,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { toast } from 'sonner';
-import { ATTRIBUTION_TEXT, SNAPSHOT_APP_NAME } from '../../vote-button';
-
-interface OffchainApprovalVoteModalContentProps {
-  proposal: Selectable<Proposal>;
-  snapshotSpace?: string;
-  snapshotHubUrl?: string;
-  governorAddress?: string;
-  choices: string[];
-  onVoteSubmit: () => Promise<void>;
-  onClose: () => void;
-}
+import {
+  ATTRIBUTION_TEXT,
+  SNAPSHOT_APP_NAME,
+  VoteModalContentProps,
+} from '../../vote-button';
 
 export function OffchainApprovalVoteModalContent({
   proposal,
@@ -30,7 +23,7 @@ export function OffchainApprovalVoteModalContent({
   choices,
   onVoteSubmit,
   onClose,
-}: OffchainApprovalVoteModalContentProps) {
+}: VoteModalContentProps) {
   const [selectedChoices, setSelectedChoices] = React.useState<number[]>([]);
   const [reason, setReason] = React.useState('');
   const [addAttribution, setAddAttribution] = React.useState(true);
