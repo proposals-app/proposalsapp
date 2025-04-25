@@ -5,7 +5,7 @@
     "@proposalsapp/db-indexer": "1.0.0",
     "@proposalsapp/db-web": "1.0.0",
     "@proposalsapp/emails": "1.0.0",
-    "axios": "^1.8.4",
+    "axios": "^1.9.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "node-cron": "^3.0.3"

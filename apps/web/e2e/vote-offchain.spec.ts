@@ -586,7 +586,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--basic-proposal`
+      `http://localhost:61000/?story=vote-button--snapshot--basic`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -678,7 +678,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--single-choice-proposal`
+      `http://localhost:61000/?story=vote-button--snapshot--single-choice`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -776,7 +776,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--approval-proposal`
+      `http://localhost:61000/?story=vote-button--snapshot--approval`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -885,7 +885,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--quadratic-proposal`
+      `http://localhost:61000/?story=vote-button--snapshot--quadratic`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -978,7 +978,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--ranked-choice-proposal`
+      `http://localhost:61000/?story=vote-button--snapshot--ranked-choice`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
@@ -1290,7 +1290,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--weighted-proposal`
+      `http://localhost:61000/?story=vote-button--snapshot--weighted`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
