@@ -5094,7 +5094,7 @@ __metadata:
     kysely: "npm:0.28.2"
     kysely-codegen: "npm:0.18.3"
     kysely-ctl: "npm:0.12.2"
-    pg: "npm:8.15.5"
+    pg: "npm:8.15.6"
     typescript: "npm:^5.8.3"
   languageName: unknown
   linkType: soft
@@ -5110,7 +5110,7 @@ __metadata:
     kysely: "npm:0.28.2"
     kysely-codegen: "npm:0.18.3"
     kysely-ctl: "npm:0.12.2"
-    pg: "npm:8.15.5"
+    pg: "npm:8.15.6"
     typescript: "npm:^5.8.3"
   languageName: unknown
   linkType: soft
@@ -5209,7 +5209,7 @@ __metadata:
     tslint: "npm:^6.1.3"
     tslint-config-prettier: "npm:^1.18.0"
     typescript: "npm:^5.8.3"
-    webpack: "npm:^5.99.6"
+    webpack: "npm:^5.99.7"
     webpack-cli: "npm:^6.0.1"
     webpack-dev-server: "npm:^5.2.1"
   languageName: unknown
@@ -5267,7 +5267,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.31.0"
     "@typescript-eslint/parser": "npm:^8.31.0"
     "@vercel/otel": "npm:^1.11.0"
-    ai: "npm:^4.3.9"
+    ai: "npm:^4.3.10"
     babel-plugin-react-compiler: "npm:19.1.0-rc.1"
     better-auth: "npm:^1.2.7"
     class-variance-authority: "npm:^0.7.1"
@@ -5294,7 +5294,7 @@ __metadata:
     ollama-ai-provider: "npm:^1.2.0"
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.236.6"
+    posthog-js: "npm:^1.236.7"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.7"
     prettier-plugin-merge: "npm:^0.7.3"
@@ -9117,9 +9117,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^4.3.9":
-  version: 4.3.9
-  resolution: "ai@npm:4.3.9"
+"ai@npm:^4.3.10":
+  version: 4.3.10
+  resolution: "ai@npm:4.3.10"
   dependencies:
     "@ai-sdk/provider": "npm:1.1.3"
     "@ai-sdk/provider-utils": "npm:2.2.7"
@@ -9133,7 +9133,7 @@ __metadata:
   peerDependenciesMeta:
     react:
       optional: true
-  checksum: 10c0/7615d68265d4c139f694f0546d50ed797355b27bb1ddc1d5181e256073d8ce0013a2b28c0b5da8a1f8bd1e90670ecebed491d045e657e4dda32756dbaef15b35
+  checksum: 10c0/f112ae00b1bd5337c898f7e970d1ae21b29d1b80f60291260565ff6c8deeae896e855225d9691fc8bc278cc2f7b2e3cf94e1ad6aea4956062375bce66bd9443c
   languageName: node
   linkType: hard
 
@@ -20075,12 +20075,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg-pool@npm:^3.9.5":
-  version: 3.9.5
-  resolution: "pg-pool@npm:3.9.5"
+"pg-pool@npm:^3.9.6":
+  version: 3.9.6
+  resolution: "pg-pool@npm:3.9.6"
   peerDependencies:
     pg: ">=8.0"
-  checksum: 10c0/ebb36b6a1fd753213263a2e0e73d06ffe9fc93907deceae484c7fe4b464f6e9c41a578eb096b4b6012beec94a5d6e0e47728dfc4425e06d283744aa7432365a4
+  checksum: 10c0/458d50a4e7260977f076472d40d0796fa8b513af7e3ce1bf65557e10724e9c13653661c883f6650dff92d0a1a5ff4e7a001a8262b786c1ad4cfbd35c3354353e
   languageName: node
   linkType: hard
 
@@ -20126,13 +20126,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg@npm:8.15.5":
-  version: 8.15.5
-  resolution: "pg@npm:8.15.5"
+"pg@npm:8.15.6":
+  version: 8.15.6
+  resolution: "pg@npm:8.15.6"
   dependencies:
     pg-cloudflare: "npm:^1.2.5"
     pg-connection-string: "npm:^2.8.5"
-    pg-pool: "npm:^3.9.5"
+    pg-pool: "npm:^3.9.6"
     pg-protocol: "npm:^1.9.5"
     pg-types: "npm:^2.1.0"
     pgpass: "npm:1.x"
@@ -20144,7 +20144,7 @@ __metadata:
   peerDependenciesMeta:
     pg-native:
       optional: true
-  checksum: 10c0/4c118cd9bec37c8880b4489b9acbd10cf1eaa86a0a9024de2dac83f4ce5adedecc4cab54b66fa3bcb204aab7297c08d03617ae15499538939692b48651cc52d1
+  checksum: 10c0/d4dc81020ebd137b6cf6228e43c643067acb8240079a07f7b9a7e97be0f33ad4d8c6f2a3f5b512ad87180e3d48e651fbd72885aa807ab58a715da8f3efea0fab
   languageName: node
   linkType: hard
 
@@ -20598,9 +20598,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.236.6":
-  version: 1.236.6
-  resolution: "posthog-js@npm:1.236.6"
+"posthog-js@npm:^1.236.7":
+  version: 1.236.7
+  resolution: "posthog-js@npm:1.236.7"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -20614,7 +20614,7 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/aea4c0721450796de00cb9dde79184f371c005702d3a8a1c17ebc3ae3cd3811946e73d164db672cb4eabb27175e07ada16c55634f79ebc85cea7eb16601015db
+  checksum: 10c0/83b3c2b70354f10273f16a9b3db65234d5c761a03d5e9d9146045d4d90661baee33ce2354cde110b831cadcd053c4d57646f1b27a1baa18454e1224047c467ed
   languageName: node
   linkType: hard
 
@@ -22275,6 +22275,18 @@ __metadata:
     ajv-formats: "npm:^2.1.1"
     ajv-keywords: "npm:^5.1.0"
   checksum: 10c0/c23f0fa73ef71a01d4a2bb7af4c91e0d356ec640e071aa2d06ea5e67f042962bb7ac7c29a60a295bb0125878801bc3209197a2b8a833dd25bd38e37c3ed21427
+  languageName: node
+  linkType: hard
+
+"schema-utils@npm:^4.3.2":
+  version: 4.3.2
+  resolution: "schema-utils@npm:4.3.2"
+  dependencies:
+    "@types/json-schema": "npm:^7.0.9"
+    ajv: "npm:^8.9.0"
+    ajv-formats: "npm:^2.1.1"
+    ajv-keywords: "npm:^5.1.0"
+  checksum: 10c0/981632f9bf59f35b15a9bcdac671dd183f4946fe4b055ae71a301e66a9797b95e5dd450de581eb6cca56fb6583ce8f24d67b2d9f8e1b2936612209697f6c277e
   languageName: node
   linkType: hard
 
@@ -25605,12 +25617,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack@npm:^5.99.6":
-  version: 5.99.6
-  resolution: "webpack@npm:5.99.6"
+"webpack@npm:^5.99.7":
+  version: 5.99.7
+  resolution: "webpack@npm:5.99.7"
   dependencies:
     "@types/eslint-scope": "npm:^3.7.7"
     "@types/estree": "npm:^1.0.6"
+    "@types/json-schema": "npm:^7.0.15"
     "@webassemblyjs/ast": "npm:^1.14.1"
     "@webassemblyjs/wasm-edit": "npm:^1.14.1"
     "@webassemblyjs/wasm-parser": "npm:^1.14.1"
@@ -25627,7 +25640,7 @@ __metadata:
     loader-runner: "npm:^4.2.0"
     mime-types: "npm:^2.1.27"
     neo-async: "npm:^2.6.2"
-    schema-utils: "npm:^4.3.0"
+    schema-utils: "npm:^4.3.2"
     tapable: "npm:^2.1.1"
     terser-webpack-plugin: "npm:^5.3.11"
     watchpack: "npm:^2.4.1"
@@ -25637,7 +25650,7 @@ __metadata:
       optional: true
   bin:
     webpack: bin/webpack.js
-  checksum: 10c0/b8b44b16933a0dd83e185ad42f292bbdfa9c47e245cbe786c48520d681556ece9af6ea7fff33059fafdf3d2cd62674715308d70a6f15eda6c6de7e03ef01842a
+  checksum: 10c0/e121880d921d5500e9dd61c3428f5d8dca4786c559e7f37488173186447cd22079be677d470a4db1643febf8031b9be900f501c9b95ba94ffe3d2065ad486d31
   languageName: node
   linkType: hard
 

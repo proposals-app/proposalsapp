@@ -142,7 +142,7 @@ async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<
     };
 
     for vote in votes.iter().filter(|vote| {
-        vote.choice.as_u64().map_or(false, |choice_index| {
+        vote.choice.as_u64().is_some_and(|choice_index| {
             quorum_choices_indexes.contains(&(choice_index as usize))
         })
     }) {

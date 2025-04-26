@@ -301,7 +301,7 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
 #[instrument(skip(post), fields(post_id = post.id, post_username = %post.username, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
     // Determine if the post is considered deleted based on specific raw content patterns.
-    let mut is_deleted = post.raw.as_ref().map_or(false, |raw| {
+    let mut is_deleted = post.raw.as_ref().is_some_and(|raw| {
         raw == "(post deleted by author)" || raw == "<p>(post deleted by author)</p>" || raw.is_empty()
     });
 
@@ -310,7 +310,7 @@ pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
     } else {
         match &post.raw {
             Some(raw) => {
-                if raw.len() > 0 {
+                if !raw.is_empty() {
                     Set(Some(raw.clone()))
                 } else {
                     // probably was moderated
