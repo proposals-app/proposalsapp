@@ -19,8 +19,8 @@ import {
   ARBITRUM_CORE_GOVERNOR_ADDRESS,
 } from '@/lib/constants';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ATTRIBUTION_TEXT } from '../../vote-button'; // Ensure this import path is correct relative to the file
-import { Abi } from 'abitype'; // Import Abi type for casting
+import { ATTRIBUTION_TEXT } from '../../vote-button';
+import { Abi } from 'abitype';
 
 interface OnchainBasicVoteModalContentProps {
   proposal: Selectable<Proposal>;
@@ -113,15 +113,19 @@ export function OnchainBasicVoteModalContent({
       );
     } else if (!isSubmitting && voteError) {
       // Clear the error only if no longer submitting and there was a previous error
+      // Note: Consider if clearing the error here is always the desired behavior,
+      // maybe only clear on explicit user action or successful retry.
+      // For now, keeping the logic as it was.
       setVoteError(null);
     }
-  }, [writeError, confirmError, isSubmitting, voteError]); // Add isSubmitting and voteError to dependency array
+    // Intentionally keeping voteError out of deps if we only want to set/clear based on new external errors or submission state changes.
+    // If you want the effect to re-run whenever voteError itself changes, add it back.
+  }, [writeError, confirmError, isSubmitting]);
 
   const handleSubmit = async () => {
     setVoteError(null); // Clear previous errors on new submission attempt
 
     // Basic validation
-    // Check if selectedSupport is a valid number (i.e., selectedChoice was found in mapping)
     if (!governorAddress || !governorAbi || !account) {
       setVoteError('Missing required contract or account information.');
       return;
@@ -132,10 +136,11 @@ export function OnchainBasicVoteModalContent({
       );
       return;
     }
-    if (!proposal?.externalId) {
-      setVoteError('Missing proposal ID.');
-      return;
-    }
+    // Redundant check already covered above, keeping for explicitness if desired
+    // if (!proposal?.externalId) {
+    //   setVoteError('Missing proposal ID.');
+    //   return;
+    // }
 
     // Construct the final reason based on input and attribution checkbox
     const finalReason = addAttribution
@@ -149,7 +154,7 @@ export function OnchainBasicVoteModalContent({
     const methodName = useCastVoteWithReason
       ? 'castVoteWithReason'
       : 'castVote';
-    const methodArgs = useCastVoteWithReason
+    const methodArgs: readonly unknown[] = useCastVoteWithReason // Explicitly type as readonly unknown[]
       ? [BigInt(proposal.externalId), selectedSupport, finalReason]
       : [BigInt(proposal.externalId), selectedSupport];
 
@@ -159,7 +164,7 @@ export function OnchainBasicVoteModalContent({
         address: governorAddress as `0x${string}`,
         abi: governorAbi as Abi, // Cast ABI to wagmi's Abi type
         functionName: methodName,
-        args: methodArgs as any, // Use as any for args due to potential type complexity
+        args: methodArgs, // Pass the correctly typed args array directly
       });
     } catch (error) {
       console.error('Error during transaction initiation:', error);
