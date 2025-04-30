@@ -7,10 +7,38 @@ import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import { VoterAuthor } from '@/app/[daoSlug]/components/author-voter';
 import { List, AutoSizer, WindowScroller } from 'react-virtualized';
 import type { NonVotersData } from '../actions';
+import type { Dispatch, SetStateAction } from 'react';
 
 interface NonVotersTableProps {
   nonVoters: NonVotersData;
 }
+
+interface TableHeaderProps {
+  sortDirection: 'asc' | 'desc';
+  setSortDirection: Dispatch<SetStateAction<'asc' | 'desc'>>;
+}
+
+// Refactored TableHeader component moved outside the main function
+const TableHeader = ({ sortDirection, setSortDirection }: TableHeaderProps) => (
+  <div className='sticky top-[137px] z-40 mb-2 grid grid-cols-12 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 py-3 text-sm font-bold text-neutral-800 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+    <div className='col-span-4'>Delegate</div>
+    <div className='col-span-8'>
+      <button
+        onClick={() =>
+          setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+        }
+        className='flex w-full items-center justify-end gap-1'
+      >
+        Voting Power
+        <ArrowSvg
+          width={24}
+          height={24}
+          className={`transform transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
+        />
+      </button>
+    </div>
+  </div>
+);
 
 export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -59,27 +87,6 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
     );
   };
 
-  const TableHeader = () => (
-    <div className='sticky top-[137px] z-40 mb-2 grid grid-cols-12 items-center justify-between gap-2 border border-neutral-800 bg-neutral-200 p-2 py-3 text-sm font-bold text-neutral-800 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
-      <div className='col-span-4'>Delegate</div>
-      <div className='col-span-8'>
-        <button
-          onClick={() =>
-            setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
-          }
-          className='flex w-full items-center justify-end gap-1'
-        >
-          Voting Power
-          <ArrowSvg
-            width={24}
-            height={24}
-            className={`transform transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
-          />
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className='mt-6'>
       <div className='sticky top-[88px] z-40 border-t border-r border-l border-neutral-800 bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
@@ -103,7 +110,10 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
 
       {isExpanded && (
         <div>
-          <TableHeader />
+          <TableHeader
+            sortDirection={sortDirection}
+            setSortDirection={setSortDirection}
+          />
           <WindowScroller>
             {({ height, isScrolling, onChildScroll, scrollTop }) => (
               <AutoSizer disableHeight>

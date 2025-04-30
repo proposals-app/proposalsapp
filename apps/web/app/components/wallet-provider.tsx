@@ -30,8 +30,6 @@ export default function WalletProvider({
         <RainbowKitProvider
           modalSize='compact'
           theme={darkTheme({
-            accentColor: '#7b3fe4',
-            accentColorForeground: 'white',
             borderRadius: 'none',
           })}
         >

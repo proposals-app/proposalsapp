@@ -4,10 +4,12 @@ import { LoadingTimeline, Timeline } from './components/timeline/timeline';
 import {
   getGroup,
   getGroupHeader,
+  SelectableProposalWithGovernor,
 } from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
 import { Header } from '@/app/[daoSlug]/components/header';
 import { Suspense } from 'react';
 import Loading from './loading';
+import { VoteButton } from '@/app/[daoSlug]/components/vote/vote-button';
 
 export default async function Page({
   params,
@@ -54,6 +56,10 @@ async function ResultsPage({
         groupName={groupName}
       />
 
+      <Suspense>
+        <VoteButtonSection groupId={groupId} />
+      </Suspense>
+
       <Suspense fallback={<LoadingTimeline />}>
         <Timeline group={group} selectedResult={proposalIndex + 1} />
       </Suspense>
@@ -71,6 +77,35 @@ async function ResultsPage({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+async function VoteButtonSection({ groupId }: { groupId: string }) {
+  const group = await getGroup(groupId);
+
+  if (!group) {
+    notFound();
+  }
+
+  // Find the latest active proposal in the group
+
+  const latestActiveProposal: SelectableProposalWithGovernor | undefined =
+    group.proposals.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
+
+  if (!latestActiveProposal) {
+    return null;
+  }
+
+  return (
+    <div className='fixed top-0 right-0 z-1000 hidden h-full flex-col items-end justify-start p-6 md:flex'>
+      <VoteButton
+        proposal={latestActiveProposal}
+        governor={latestActiveProposal.governorType}
+      />
     </div>
   );
 }

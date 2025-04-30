@@ -62,10 +62,7 @@ function TestWalletProvider({ children }: { children: React.ReactNode }) {
           <RainbowKitProvider
             modalSize='compact'
             theme={darkTheme({
-              accentColor: 'var(--neutral-800)',
-              accentColorForeground: 'var(--neutral-200)',
               borderRadius: 'none',
-              overlayBlur: 'small',
             })}
           >
             <Toaster />

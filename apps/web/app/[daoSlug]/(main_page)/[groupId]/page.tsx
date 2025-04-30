@@ -79,6 +79,10 @@ async function GroupPage({
           <BodyHeaderSection groupId={groupId} />
         </Suspense>
 
+        <Suspense>
+          <VoteButtonSection groupId={groupId} />
+        </Suspense>
+
         <Suspense fallback={<BodyLoading />} key={bodyKey}>
           {/* <AISummary groupId={groupId} /> */}
           <BodySection groupId={groupId} version={version} diff={diff} />
@@ -104,6 +108,35 @@ async function GroupPage({
           fromFilter={fromFilter}
         />
       </Suspense>
+    </div>
+  );
+}
+
+async function VoteButtonSection({ groupId }: { groupId: string }) {
+  const group = await getGroup(groupId);
+
+  if (!group) {
+    notFound();
+  }
+
+  // Find the latest active proposal in the group
+
+  const latestActiveProposal: SelectableProposalWithGovernor | undefined =
+    group.proposals.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
+
+  if (!latestActiveProposal) {
+    return null;
+  }
+
+  return (
+    <div className='fixed top-0 right-0 z-1000 hidden h-full flex-col items-end justify-start p-6 md:flex'>
+      <VoteButton
+        proposal={latestActiveProposal}
+        governor={latestActiveProposal.governorType}
+      />
     </div>
   );
 }

@@ -13,7 +13,6 @@ import { ProposalMetadata } from '@/lib/types';
 import { Selectable, Proposal } from '@proposalsapp/db-indexer';
 import { Vote } from 'lucide-react';
 import { useAccount } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { OffchainApprovalVoteModalContent } from './vote-types-modals/offchain/approval-vote';
 import { OffchainBasicVoteModalContent } from './vote-types-modals/offchain/basic-vote';
 import { OffchainQuadraticVoteModalContent } from './vote-types-modals/offchain/quadratic-vote';
@@ -22,6 +21,7 @@ import { OffchainSingleChoiceVoteModalContent } from './vote-types-modals/offcha
 import { OffchainWeightedVoteModalContent } from './vote-types-modals/offchain/weighted-vote';
 import { OnchainArbitrumCoreBasicVoteModalContent } from './vote-types-modals/onchain/arbitrum-core-basic-vote';
 import { OnchainArbitrumTreasuryBasicVoteModalContent } from './vote-types-modals/onchain/arbitrum-treasury-basic-vote';
+import { CustomConnectButton } from '../wallet-connect';
 
 export const SNAPSHOT_APP_NAME = 'proposalsapp';
 export const ATTRIBUTION_TEXT = 'voted via proposals.app';
@@ -66,10 +66,9 @@ export function VoteButton({
 
   // --- Wallet connection check ---
   if (!isConnected) {
-    // Show ConnectButton centered or aligned as needed
     return (
       <div className='flex w-full justify-center'>
-        <ConnectButton />
+        <CustomConnectButton />
       </div>
     );
   }
@@ -119,7 +118,7 @@ export function VoteButton({
     return (
       <Button disabled variant='outline' className='w-min'>
         <Vote className='mr-2 h-4 w-4' />
-        Voting Ended
+        Vote Ended
       </Button>
     );
   }
