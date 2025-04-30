@@ -2,11 +2,17 @@
 
 import type { GlobalProvider } from '@ladle/react';
 import React from 'react';
-import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import {
+  darkTheme,
+  getDefaultConfig,
+  RainbowKitProvider,
+} from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
-import { defineChain } from 'viem'; // Import defineChain
+import { defineChain } from 'viem';
 import '@rainbow-me/rainbowkit/styles.css';
+import { Toaster } from '../components/ui/sonner';
+import SuspendedThemeProvider from '../app/components/theme-provider';
 
 // Define a local version of the Arbitrum chain
 const arbitrumLocalhost = defineChain({
@@ -52,7 +58,20 @@ function TestWalletProvider({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
+        <div className='light' data-theme='arbitrum'>
+          <RainbowKitProvider
+            modalSize='compact'
+            theme={darkTheme({
+              accentColor: 'var(--neutral-800)',
+              accentColorForeground: 'var(--neutral-200)',
+              borderRadius: 'none',
+              overlayBlur: 'small',
+            })}
+          >
+            <Toaster />
+            {children}
+          </RainbowKitProvider>
+        </div>
       </QueryClientProvider>
     </WagmiProvider>
   );
