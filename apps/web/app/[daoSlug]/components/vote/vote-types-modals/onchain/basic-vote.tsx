@@ -14,17 +14,20 @@ import {
 } from 'wagmi';
 import {
   ARBITRUM_TREASURY_GOVERNOR_ABI,
+  ARBITRUM_CORE_GOVERNOR_ABI,
   ARBITRUM_TREASURY_GOVERNOR_ADDRESS,
+  ARBITRUM_CORE_GOVERNOR_ADDRESS,
 } from '@/lib/constants';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ATTRIBUTION_TEXT } from '../../vote-button';
 import { Abi } from 'abitype';
 
-interface OnchainArbitrumTreasuryBasicVoteModalContentProps {
+interface OnchainBasicVoteModalContentProps {
   proposal: Selectable<Proposal>;
   choices: string[];
   snapshotSpace?: string; // Not used in onchain, but keep interface consistent if desired
   snapshotHubUrl?: string; // Not used in onchain
+  governorAddress?: string;
   onVoteSubmit: (voteData: {
     proposalId: string;
     choice: number;
@@ -41,17 +44,26 @@ const supportMapping: { [key: string]: number } = {
   Abstain: 2,
 };
 
-export function OnchainArbitrumTreasuryBasicVoteModalContent({
+export function OnchainBasicVoteModalContent({
   proposal,
   choices,
+  governorAddress,
   onClose,
-}: OnchainArbitrumTreasuryBasicVoteModalContentProps) {
+}: OnchainBasicVoteModalContentProps) {
   const { address: account } = useAccount();
   // State now stores the actual choice string ("For", "Against", etc.)
   const [selectedChoice, setSelectedChoice] = React.useState<string>('');
   const [reason, setReason] = React.useState('');
   const [addAttribution, setAddAttribution] = React.useState(true); // State for attribution checkbox
   const [voteError, setVoteError] = React.useState<string | null>(null);
+
+  // Determine the correct ABI based on the governor address
+  const governorAbi =
+    governorAddress === ARBITRUM_TREASURY_GOVERNOR_ADDRESS
+      ? ARBITRUM_TREASURY_GOVERNOR_ABI
+      : governorAddress === ARBITRUM_CORE_GOVERNOR_ADDRESS
+        ? ARBITRUM_CORE_GOVERNOR_ABI
+        : undefined;
 
   // Derive selectedSupport directly from the selected choice string
   const selectedSupport = supportMapping[selectedChoice];
@@ -114,8 +126,8 @@ export function OnchainArbitrumTreasuryBasicVoteModalContent({
     setVoteError(null); // Clear previous errors on new submission attempt
 
     // Basic validation
-    if (!account) {
-      setVoteError('Missing account information.');
+    if (!governorAddress || !governorAbi || !account) {
+      setVoteError('Missing required contract or account information.');
       return;
     }
     if (selectedSupport === undefined || proposal?.externalId === undefined) {
@@ -149,8 +161,8 @@ export function OnchainArbitrumTreasuryBasicVoteModalContent({
     try {
       // Directly trigger the write contract call
       writeContract({
-        address: ARBITRUM_TREASURY_GOVERNOR_ADDRESS,
-        abi: ARBITRUM_TREASURY_GOVERNOR_ABI as Abi,
+        address: governorAddress as `0x${string}`,
+        abi: governorAbi as Abi, // Cast ABI to wagmi's Abi type
         functionName: methodName,
         args: methodArgs, // Pass the correctly typed args array directly
       });
@@ -175,6 +187,7 @@ export function OnchainArbitrumTreasuryBasicVoteModalContent({
     isSubmitting ||
     selectedChoice === '' ||
     selectedSupport === undefined ||
+    !governorAbi ||
     !account ||
     !proposal?.externalId;
 

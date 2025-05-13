@@ -13,7 +13,7 @@ export default async function SuspendedThemeProvider({
   );
 }
 
-export async function ThemeProvider({ children }: { children: ReactNode }) {
+async function ThemeProvider({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
 
   const themeMode =

@@ -24,11 +24,11 @@ export default async function Page({
 async function ResultsPage({
   params,
 }: {
-  params: Promise<{ groupId: string; resultNumber: string }>;
+  params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
 }) {
-  const { groupId, resultNumber } = await params;
+  const { daoSlug, groupId, resultNumber } = await params;
 
-  const group = await getGroup(groupId);
+  const group = await getGroup(daoSlug, groupId);
   if (!group) {
     notFound();
   }

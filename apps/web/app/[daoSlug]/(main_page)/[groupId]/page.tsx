@@ -4,13 +4,7 @@ import {
   FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import {
-  getGroup,
-  getBodyVersions,
-  getFeed,
-  getGroupHeader,
-  SelectableProposalWithGovernor,
-} from './actions';
+import { getGroup, getBodyVersions, getFeed, getGroupHeader } from './actions';
 import {
   AuthorInfo,
   Body,
@@ -31,8 +25,6 @@ import { LastReadUpdater } from './components/last-read-updater';
 import AISummary from './components/ai-summary';
 import { ResultEvent } from '@/lib/types';
 import Loading from './loading';
-import { VoteButton } from '../../components/vote/vote-button';
-import { Proposal, Selectable } from '@proposalsapp/db-indexer';
 
 export default async function Page({
   params,
@@ -76,12 +68,17 @@ async function GroupPage({
         </Suspense>
 
         <Suspense fallback={<LoadingBodyHeader />}>
-          <BodyHeaderSection groupId={groupId} />
+          <BodyHeaderSection daoSlug={daoSlug} groupId={groupId} />
         </Suspense>
 
         <Suspense fallback={<BodyLoading />} key={bodyKey}>
-          {/* <AISummary groupId={groupId} /> */}
-          <BodySection groupId={groupId} version={version} diff={diff} />
+          <AISummary groupId={groupId} />
+          <BodySection
+            daoSlug={daoSlug}
+            groupId={groupId}
+            version={version}
+            diff={diff}
+          />
         </Suspense>
 
         <Suspense fallback={<LoadingMenuBar />} key={menuBarKey}>
@@ -90,6 +87,7 @@ async function GroupPage({
 
         <Suspense fallback={<FeedLoading />} key={feedKey}>
           <FeedSection
+            daoSlug={daoSlug}
             groupId={groupId}
             feedFilter={feedFilter}
             fromFilter={fromFilter}
@@ -99,6 +97,7 @@ async function GroupPage({
 
       <Suspense key={timelineKey}>
         <TimelineSection
+          daoSlug={daoSlug}
           groupId={groupId}
           feedFilter={feedFilter}
           fromFilter={fromFilter}
@@ -109,16 +108,18 @@ async function GroupPage({
 }
 
 async function BodySection({
+  daoSlug,
   groupId,
   version,
   diff,
 }: {
+  daoSlug: string;
   groupId: string;
   version: number | null;
   diff: boolean;
 }) {
   const [group, bodyVersions] = await Promise.all([
-    getGroup(groupId),
+    getGroup(daoSlug, groupId),
     getBodyVersions(groupId, true),
   ]);
 
@@ -139,10 +140,16 @@ async function BodySection({
   );
 }
 
-async function BodyHeaderSection({ groupId }: { groupId: string }) {
+async function BodyHeaderSection({
+  daoSlug,
+  groupId,
+}: {
+  daoSlug: string;
+  groupId: string;
+}) {
   const [group, bodyVersions, bodyVersionsNoContent, authorInfo] =
     await Promise.all([
-      getGroup(groupId),
+      getGroup(daoSlug, groupId),
       getBodyVersions(groupId, true),
       getBodyVersions(groupId, false),
       getGroupHeader(groupId),
@@ -241,16 +248,18 @@ async function MenuBarSection({
 }
 
 async function FeedSection({
+  daoSlug,
   groupId,
   feedFilter,
   fromFilter,
 }: {
+  daoSlug: string;
   groupId: string;
   feedFilter: FeedFilterEnum;
   fromFilter: FromFilterEnum;
 }) {
   const [group, feed] = await Promise.all([
-    getGroup(groupId),
+    getGroup(daoSlug, groupId),
     getFeed(groupId, feedFilter, fromFilter),
   ]);
 
@@ -272,16 +281,18 @@ async function FeedSection({
 }
 
 async function TimelineSection({
+  daoSlug,
   groupId,
   feedFilter,
   fromFilter,
 }: {
+  daoSlug: string;
   groupId: string;
   feedFilter: FeedFilterEnum;
   fromFilter: FromFilterEnum;
 }) {
   const [group, feed] = await Promise.all([
-    getGroup(groupId),
+    getGroup(daoSlug, groupId),
     getFeed(groupId, feedFilter, fromFilter),
   ]);
 
