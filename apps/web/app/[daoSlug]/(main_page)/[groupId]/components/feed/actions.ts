@@ -182,13 +182,11 @@ export async function getDelegateByDiscourseUser(
           avatarTemplate: delegateData.discourseAvatarTemplate,
         }
       : null,
-    delegatetovoter: delegateData.voterEns
-      ? {
-          ens: delegateData.voterEns,
-          address: delegateData.voterAddress,
-          latestVotingPower: latestVotingPower,
-        }
-      : null,
+    delegatetovoter: {
+      ens: delegateData.voterEns,
+      address: delegateData.voterAddress,
+      latestVotingPower: latestVotingPower,
+    },
   };
 }
 

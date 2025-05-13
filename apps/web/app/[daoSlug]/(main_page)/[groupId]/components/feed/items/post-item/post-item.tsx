@@ -121,7 +121,7 @@ const PostContent = ({
   discourseBaseUrl,
 }: {
   author: Selectable<DiscourseUser> | undefined;
-  ens: string | undefined;
+  ens: string | null | undefined;
   relativeCreateTime: string;
   relativeUpdateTime: string;
   updatedAt: Date;
