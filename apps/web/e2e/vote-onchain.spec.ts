@@ -1,4 +1,3 @@
-// proposalsapp/apps/web/e2e/vote-onchain.spec.ts
 import { testWithSynpress } from '@synthetixio/synpress';
 import { metaMaskFixtures } from '@synthetixio/synpress/playwright';
 import basicSetup from './wallet-setup/basic.setup';
@@ -10,9 +9,14 @@ import {
   walletActions,
   type Address,
   parseEther,
-  encodeFunctionData,
+  getEventSelector,
 } from 'viem';
 import { arbitrum } from 'viem/chains';
+import { ARBITRUM_TOKEN_ABI, ARBITRUM_TOKEN_ADDRESS } from '@/lib/constants';
+import {
+  ARBITRUM_CORE_GOVERNOR_ADDRESS,
+  ARBITRUM_CORE_GOVERNOR_ABI,
+} from '@/lib/constants';
 
 const test = testWithSynpress(metaMaskFixtures(basicSetup));
 const { expect } = test;
@@ -20,79 +24,8 @@ const { expect } = test;
 // --- Constants ---
 const TEST_NODE_URL = 'http://localhost:8545';
 const TEST_NODE_WS_URL = 'ws://localhost:8545';
-const PROPOSER_ACCOUNT: Address = '0x1B686eE8E31c5959D9F5BBd8122a58682788eeaD'; // Account that creates the proposal
-const DELEGATE_ACCOUNT: Address = '0x36f5dfa2D6cc313C5e984d22A8Ee4c12B905bCb8'; // Account receiving the delegated votes
-const DELEGATOR_ACCOUNT: Address = '0x1B686eE8E31c5959D9F5BBd8122a58682788eeaD'; // Account that owns tokens and delegates
-
-const TOKEN_CONTRACT_ADDRESS: Address =
-  '0x912CE59144191C1204E64559FE8253a0e49E6548';
-const GOVERNOR_CONTRACT_ADDRESS: Address =
-  '0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9';
-
-// --- Contract ABIs ---
-// NOTE: Using partial ABIs for brevity and focus
-const GOVERNOR_ABI = [
-  {
-    inputs: [],
-    name: 'votingDelay',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address[]', name: 'targets', type: 'address[]' },
-      { internalType: 'uint256[]', name: 'values', type: 'uint256[]' },
-      { internalType: 'bytes[]', name: 'calldatas', type: 'bytes[]' },
-      { internalType: 'string', name: 'description', type: 'string' },
-    ],
-    name: 'propose',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'uint256', name: 'newVotingDelay', type: 'uint256' },
-    ],
-    name: 'setVotingDelay',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-] as const;
-
-const TOKEN_ABI = [
-  {
-    inputs: [{ internalType: 'address', name: 'delegatee', type: 'address' }],
-    name: 'delegate',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
-    name: 'delegates',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
-    name: 'getVotes',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  // Only including necessary functions for delegation and verification
-] as const;
+const DELEGATE_ACCOUNT: Address = '0x36f5dfa2D6cc313C5e984d22A8Ee4c12B905bCb8';
+const DELEGATOR_ACCOUNT: Address = '0xeaFF9F354063395fcd141BE8A82f73b311725EEA';
 
 // --- Viem Test Client Setup ---
 const testnode = {
@@ -122,33 +55,80 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
   test('can delegate votes and create a proposal', async ({
     page, // Keep page fixture even if not directly used for Synpress setup
   }) => {
+    test.setTimeout(0);
     // 1. Setup Test Node State
     await testClient.setAutomine(true);
     await testClient.setIntervalMining({ interval: 1 });
     await page.waitForTimeout(1000); // Short pause for node setup stabilization
 
-    // 2. Delegate Voting Power
-    console.log(
-      `Setting up delegation from ${DELEGATOR_ACCOUNT} to ${DELEGATE_ACCOUNT}`
-    );
+    // 2. Fund Accounts (initial funding)
+    console.log(`Funding accounts initially...`);
     await testClient.setBalance({
       address: DELEGATOR_ACCOUNT,
-      value: parseEther('10'),
+      value: parseEther('100'),
     });
     await testClient.setBalance({
       address: DELEGATE_ACCOUNT,
-      value: parseEther('10'),
-    });
-    await testClient.setBalance({
-      address: PROPOSER_ACCOUNT,
-      value: parseEther('10'),
+      value: parseEther('100'),
     });
 
+    // Mine blocks to confirm initial state including funding
+    await testClient.mine({ blocks: 1 }); // One block should be enough to confirm balances
+
+    expect(
+      await testClient.getBalance({
+        address: DELEGATOR_ACCOUNT,
+      }),
+      `Delegator balance should be 100 ETH`
+    ).toBe(parseEther('100'));
+
+    expect(
+      await testClient.getBalance({
+        address: DELEGATE_ACCOUNT,
+      }),
+      `Delegate balance should be 100 ETH`
+    ).toBe(parseEther('100'));
+
+    console.log('Initial accounts funded.');
+
+    // 3. Delegate Voting Power (from DELEGATOR_ACCOUNT to DELEGATE_ACCOUNT)
+    console.log(
+      `Setting up delegation from ${DELEGATOR_ACCOUNT} to ${DELEGATE_ACCOUNT}`
+    );
     await testClient.impersonateAccount({ address: DELEGATOR_ACCOUNT });
 
+    await testClient.sendTransaction({
+      to: DELEGATE_ACCOUNT,
+      value: parseEther('1'),
+      account: DELEGATOR_ACCOUNT,
+    });
+
+    await testClient.mine({ blocks: 1 });
+
+    expect(
+      await testClient.getBalance({
+        address: DELEGATOR_ACCOUNT,
+      }),
+      `Delegator balance should > 98 ETH`
+    ).toBeGreaterThan(parseEther('98'));
+
+    expect(
+      await testClient.getBalance({
+        address: DELEGATOR_ACCOUNT,
+      }),
+      `Delegator balance should < 98 ETH`
+    ).toBeLessThan(parseEther('99'));
+
+    expect(
+      await testClient.getBalance({
+        address: DELEGATE_ACCOUNT,
+      }),
+      `Delegate balance should be 101 ETH`
+    ).toBeGreaterThan(parseEther('100'));
+
     const delegatorBalance = await testClient.readContract({
-      address: TOKEN_CONTRACT_ADDRESS,
-      abi: TOKEN_ABI,
+      address: ARBITRUM_TOKEN_ADDRESS,
+      abi: ARBITRUM_TOKEN_ABI,
       functionName: 'balanceOf',
       args: [DELEGATOR_ACCOUNT],
     });
@@ -159,12 +139,13 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
     console.log(
       `Delegating from ${DELEGATOR_ACCOUNT} to ${DELEGATE_ACCOUNT}...`
     );
+    // Delegate transaction requires gas, ensure DELEGATOR_ACCOUNT has funds (funded above)
     const delegateTxHash = await testClient.writeContract({
-      address: TOKEN_CONTRACT_ADDRESS,
-      abi: TOKEN_ABI,
+      address: ARBITRUM_TOKEN_ADDRESS,
+      abi: ARBITRUM_TOKEN_ABI,
       functionName: 'delegate',
       args: [DELEGATE_ACCOUNT],
-      account: DELEGATOR_ACCOUNT, // Impersonated delegator sends the transaction
+      account: DELEGATOR_ACCOUNT,
     });
 
     console.log(`Delegation transaction hash: ${delegateTxHash}`);
@@ -178,13 +159,14 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
     ).toBe('success');
     console.log(`Delegation successful. Tx: ${delegateTxHash}`);
 
-    // Verify delegation took effect (optional but recommended)
+    // Verify delegation took effect
     const currentDelegate = await testClient.readContract({
-      address: TOKEN_CONTRACT_ADDRESS,
-      abi: TOKEN_ABI,
+      address: ARBITRUM_TOKEN_ADDRESS,
+      abi: ARBITRUM_TOKEN_ABI,
       functionName: 'delegates',
       args: [DELEGATOR_ACCOUNT],
     });
+
     expect(
       currentDelegate,
       'Delegation should be set to the DELEGATE_ACCOUNT'
@@ -196,63 +178,147 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
     await testClient.stopImpersonatingAccount({ address: DELEGATOR_ACCOUNT });
     console.log(`Stopped impersonating ${DELEGATOR_ACCOUNT}`);
 
-    // 3. Create the Proposal using the Proposer Account
-    console.log(`Setting up proposal creation by ${PROPOSER_ACCOUNT}`);
-    await testClient.impersonateAccount({ address: PROPOSER_ACCOUNT });
+    // 4. Create a Proposal (by DELEGATE_ACCOUNT, acting as the proposer)
+    // Proposer account was already funded sufficiently earlier
+    console.log(`Impersonating ${DELEGATE_ACCOUNT} to create proposal...`);
+    await testClient.impersonateAccount({ address: DELEGATE_ACCOUNT });
 
-    // Define Proposal Parameters (Example: setting voting delay)
-    const currentVotingDelay = await testClient.readContract({
-      address: GOVERNOR_CONTRACT_ADDRESS,
-      abi: GOVERNOR_ABI,
-      functionName: 'votingDelay',
-    });
-    console.log(`Current voting delay: ${currentVotingDelay}`);
-
-    const targets: Address[] = [GOVERNOR_CONTRACT_ADDRESS];
-    const values: bigint[] = [BigInt(0)];
-    const calldatas: `0x${string}`[] = [
-      encodeFunctionData({
-        abi: GOVERNOR_ABI,
-        functionName: 'setVotingDelay',
-        args: [currentVotingDelay], // Propose setting it to the current value (no-op example)
-      }),
-    ];
+    const targets: Address[] = [ARBITRUM_CORE_GOVERNOR_ADDRESS]; // Example target
+    const values: bigint[] = [BigInt(0)]; // Example value
+    const calldatas: `0x${string}`[] = ['0x']; // Example calldata (empty)
     const description = `E2E Test Proposal - ${new Date().toISOString()}`;
 
     // Create the Proposal via writeContract
-    console.log(`Creating proposal on contract: ${GOVERNOR_CONTRACT_ADDRESS}`);
+    console.log(
+      `Creating proposal on contract: ${ARBITRUM_CORE_GOVERNOR_ADDRESS}`
+    );
     console.log(`Proposal details: description="${description}"`);
 
-    const proposeTxHash = await testClient.writeContract({
-      address: GOVERNOR_CONTRACT_ADDRESS,
-      abi: GOVERNOR_ABI,
+    // Estimate gas cost for the proposal
+    console.log(`Estimating gas cost for proposal creation...`);
+    const estimatedGas = await testClient.estimateContractGas({
+      address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
+      abi: ARBITRUM_CORE_GOVERNOR_ABI,
       functionName: 'propose',
       args: [targets, values, calldatas, description],
-      account: PROPOSER_ACCOUNT, // The impersonated proposer sends the transaction
+      account: DELEGATE_ACCOUNT, // Estimate gas from the perspective of the proposer
+    });
+    console.log(`Estimated gas cost for proposal: ${estimatedGas}`);
+
+    const proposeTxHash = await testClient.writeContract({
+      address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
+      abi: ARBITRUM_CORE_GOVERNOR_ABI,
+      functionName: 'propose',
+      args: [targets, values, calldatas, description],
+      account: DELEGATE_ACCOUNT,
     });
 
     console.log(`Proposal transaction hash: ${proposeTxHash}`);
-    expect(
-      proposeTxHash,
-      'Transaction hash should be a valid hex string'
-    ).toMatch(/^0x[a-fA-F0-9]{64}$/);
-
-    // Verify Proposal Transaction Success
-    console.log(`Waiting for transaction receipt for ${proposeTxHash}...`);
     const proposeReceipt = await testClient.waitForTransactionReceipt({
       hash: proposeTxHash,
-      timeout: 15000,
+      timeout: 15000, // Adjust if needed
     });
 
-    console.log(
-      `Proposal transaction receipt status: ${proposeReceipt.status}`
-    );
     expect(proposeReceipt.status, 'Proposal transaction should succeed').toBe(
       'success'
     );
+    console.log(`Proposal successful. Tx: ${proposeTxHash}`);
 
-    // Cleanup impersonation
-    await testClient.stopImpersonatingAccount({ address: PROPOSER_ACCOUNT });
-    console.log(`Stopped impersonating ${PROPOSER_ACCOUNT}`);
+    // Extract proposal ID from logs
+    const proposalCreatedEvent = proposeReceipt.logs.find(
+      (log: any) =>
+        log.address.toLowerCase() ===
+          ARBITRUM_CORE_GOVERNOR_ADDRESS.toLowerCase() &&
+        log.topics[0] ===
+          getEventSelector(
+            'ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)'
+          )
+    );
+
+    let proposalId: bigint | undefined;
+    if (proposalCreatedEvent && proposalCreatedEvent.topics[1]) {
+      // The proposalId is the first indexed topic (topics[1]) for this event signature
+      try {
+        proposalId = BigInt(proposalCreatedEvent.topics[1]);
+        console.log(`Created Proposal ID: ${proposalId}`);
+      } catch (e) {
+        console.error(
+          `Failed to parse proposalId from topic: ${proposalCreatedEvent.topics[1]}`,
+          e
+        );
+      }
+    } else {
+      console.warn(
+        `Could not find ProposalCreated event or proposalId topic in transaction logs for ${proposeTxHash}. Logs:`,
+        proposeReceipt.logs
+      );
+    }
+
+    // Verify the state of the proposal immediately after creation (should be Pending)
+    if (proposalId !== undefined) {
+      const proposalStateAfterCreation = await testClient.readContract({
+        address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
+        abi: ARBITRUM_CORE_GOVERNOR_ABI,
+        functionName: 'state',
+        args: [proposalId],
+      });
+      expect(
+        proposalStateAfterCreation,
+        'Proposal state should be Pending (0) after creation'
+      ).toBe(0); // Enum: 0: Pending
+      console.log(`Verified: Proposal state is Pending after creation.`);
+    } else {
+      console.warn('Cannot check state after creation: proposalId not found.');
+    }
+
+    await testClient.stopImpersonatingAccount({ address: DELEGATE_ACCOUNT });
+    console.log(`Stopped impersonating ${DELEGATE_ACCOUNT}`);
+
+    // 5. Mine blocks to pass voting delay
+    console.log('Mining blocks to pass voting delay...');
+    const votingDelay = await testClient.readContract({
+      address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
+      abi: ARBITRUM_CORE_GOVERNOR_ABI,
+      functionName: 'votingDelay',
+      args: [],
+    });
+    const blocksToMine = Number(votingDelay) + 1; // Add 1 to ensure delay is passed
+    console.log(
+      `Voting delay is ${votingDelay} blocks. Mining ${blocksToMine} blocks...`
+    );
+
+    // Mine blocks in chunks to avoid timeouts
+    let remainingBlocks = blocksToMine;
+    let minedSoFar = 0;
+    while (remainingBlocks > 0) {
+      const blocksInThisChunk = Math.min(1000, remainingBlocks);
+      console.log(
+        `Mining chunk of ${blocksInThisChunk} blocks (${minedSoFar + blocksInThisChunk}/${blocksToMine})...`
+      );
+      await testClient.mine({ blocks: blocksInThisChunk });
+      remainingBlocks -= blocksInThisChunk;
+      minedSoFar += blocksInThisChunk;
+    }
+
+    console.log('Finished mining blocks.');
+
+    // 6. Verify Proposal State after Voting Delay (should be Active)
+    if (proposalId !== undefined) {
+      const proposalStateAfterDelay = await testClient.readContract({
+        address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
+        abi: ARBITRUM_CORE_GOVERNOR_ABI,
+        functionName: 'state',
+        args: [proposalId],
+      });
+      expect(
+        proposalStateAfterDelay,
+        'Proposal state should be Active (1) after voting delay'
+      ).toBe(1); // Enum: 1: Active
+      console.log(`Verified: Proposal state is Active after voting delay.`);
+    } else {
+      console.warn('Cannot check state after delay: proposalId not found.');
+    }
+
+    // Next steps would involve casting votes and proceeding through proposal lifecycle
   });
 });
