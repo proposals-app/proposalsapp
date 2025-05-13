@@ -2,9 +2,9 @@
   "name": "@proposalsapp/emails",
   "version": "1.0.0",
   "dependencies": {
-    "@react-email/components": "0.0.36",
-    "@react-email/render": "1.0.6",
-    "@react-email/tailwind": "1.0.4",
+    "@react-email/components": "0.0.40",
+    "@react-email/render": "1.1.1",
+    "@react-email/tailwind": "1.0.5",
     "dotenv": "^16.5.0",
     "install": "^0.13.0",
     "moment": "2.30.1",
@@ -14,13 +14,13 @@
     "prettier-plugin-tailwindcss": "0.6.11",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-email": "4.0.7",
-    "resend": "^4.4.1",
-    "tailwindcss": "^4.1.4"
+    "react-email": "4.0.13",
+    "resend": "^4.5.1",
+    "tailwindcss": "^4.1.6"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
-    "@types/react": "^19.1.2",
+    "@types/react": "^19.1.4",
     "typescript": "^5.8.3"
   },
   "main": "./src/index.ts",

@@ -4,13 +4,13 @@
   "dependencies": {
     "dotenv": "^16.5.0",
     "kysely": "0.28.2",
-    "pg": "8.15.6"
+    "pg": "8.16.0"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
     "@types/dotenv": "^8.2.3",
     "@types/pg": "8",
-    "kysely-codegen": "0.18.3",
+    "kysely-codegen": "0.18.5",
     "kysely-ctl": "0.12.2",
     "typescript": "^5.8.3"
   },
