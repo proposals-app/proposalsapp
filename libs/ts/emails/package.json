@@ -15,7 +15,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-email": "4.0.7",
-    "resend": "^4.4.1",
+    "resend": "^4.3.0",
     "tailwindcss": "^4.1.4"
   },
   "devDependencies": {
