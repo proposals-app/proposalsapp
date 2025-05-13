@@ -20,17 +20,14 @@ import { OffchainQuadraticVoteModalContent } from './vote-types-modals/offchain/
 import { OffchainRankedChoiceVoteModalContent } from './vote-types-modals/offchain/ranked-choice-vote';
 import { OffchainSingleChoiceVoteModalContent } from './vote-types-modals/offchain/single-choice-vote';
 import { OffchainWeightedVoteModalContent } from './vote-types-modals/offchain/weighted-vote';
-import { OnchainBasicVoteModalContent } from './vote-types-modals/onchain/basic-vote';
+import { OnchainArbitrumCoreBasicVoteModalContent } from './vote-types-modals/onchain/arbitrum-core-basic-vote';
+import { OnchainArbitrumTreasuryBasicVoteModalContent } from './vote-types-modals/onchain/arbitrum-treasury-basic-vote';
 
 export const SNAPSHOT_APP_NAME = 'proposalsapp';
 export const ATTRIBUTION_TEXT = 'voted via proposals.app';
 
 const SNAPSHOT_SPACE_ARB_FOUNDATION = 'arbitrumfoundation.eth';
 const SNAPSHOT_HUB_URL = 'https://hub.snapshot.org';
-const ARBITRUM_CORE_GOVERNOR_ADDRESS =
-  '0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9';
-const ARBITRUM_TREASURY_GOVERNOR_ADDRESS =
-  '0x789fC99093B09aD01C34DC7251D0C89ce743e5a4';
 
 interface VoteButtonProps {
   proposal: Selectable<Proposal>;
@@ -43,7 +40,6 @@ export interface VoteModalContentProps {
   proposal: Selectable<Proposal>;
   snapshotSpace?: string;
   snapshotHubUrl?: string;
-  governorAddress?: string;
   choices: string[];
   onVoteSubmit: () => Promise<void>;
   onClose: () => void;
@@ -90,7 +86,7 @@ export function VoteButton({
   if (!voteType) {
     console.warn(`VoteButton: Proposal ${proposal.id} has no valid vote type.`);
     return (
-      <Button disabled variant='outline' className='w-full'>
+      <Button disabled variant='outline' className='w-min'>
         <Vote className='mr-2 h-4 w-4' />
         Unknown Vote Type
       </Button>
@@ -105,7 +101,7 @@ export function VoteButton({
   if (choices.length === 0) {
     console.warn(`VoteButton: Proposal ${proposal.id} has no valid choices.`);
     return (
-      <Button disabled variant='outline' className='w-full'>
+      <Button disabled variant='outline' className='w-min'>
         <Vote className='mr-2 h-4 w-4' />
         Unknown Vote Choices
       </Button>
@@ -115,20 +111,31 @@ export function VoteButton({
   // Check if voting period has ended
   const now = new Date();
   const proposalEndDate = new Date(proposal.endAt);
+  const proposalStartDate = new Date(proposal.startAt);
   const isVotingEnded = now > proposalEndDate;
+  const isVotingStarted = now > proposalStartDate;
 
   if (isVotingEnded) {
     return (
-      <Button disabled variant='outline' className='w-full'>
+      <Button disabled variant='outline' className='w-min'>
         <Vote className='mr-2 h-4 w-4' />
         Voting Ended
       </Button>
     );
   }
 
+  if (!isVotingStarted) {
+    return (
+      <Button disabled variant='outline' className='w-min'>
+        <Vote className='mr-2 h-4 w-4' />
+        Vote Not Started
+      </Button>
+    );
+  }
+
   let snapshotSpace: string | undefined;
   let snapshotHubUrl: string | undefined;
-  let governorAddress: `0x${string}` | undefined;
+
   // Use a less strict type for assignment flexibility, rely on runtime props
   let ModalContentComponent: React.ComponentType<VoteModalContentProps>;
 
@@ -140,20 +147,18 @@ export function VoteButton({
         snapshotVoteModalComponents[voteType] || OffchainBasicVoteModalContent;
       break;
     case 'ARBITRUM_CORE':
-      governorAddress = ARBITRUM_CORE_GOVERNOR_ADDRESS;
-      ModalContentComponent = OnchainBasicVoteModalContent;
+      ModalContentComponent = OnchainArbitrumCoreBasicVoteModalContent;
       break;
     case 'ARBITRUM_TREASURY':
-      governorAddress = ARBITRUM_TREASURY_GOVERNOR_ADDRESS;
-      ModalContentComponent = OnchainBasicVoteModalContent;
+      ModalContentComponent = OnchainArbitrumTreasuryBasicVoteModalContent;
       break;
     default:
       // Optional: Handle unexpected governor type if necessary
       console.error(`VoteButton: Unknown governor type: ${governor}`);
       return (
-        <Button disabled variant='outline' className='w-full'>
+        <Button disabled variant='outline' className='w-min'>
           <Vote className='mr-2 h-4 w-4' />
-          Invalid Governor
+          Unknown Governor
         </Button>
       );
   }
@@ -168,7 +173,7 @@ export function VoteButton({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant='default' className='w-full'>
+        <Button variant='default' className='w-min'>
           <Vote className='mr-2 h-4 w-4' />
           Cast Your Vote
         </Button>
@@ -182,7 +187,6 @@ export function VoteButton({
           proposal={proposal}
           snapshotSpace={snapshotSpace}
           snapshotHubUrl={snapshotHubUrl}
-          governorAddress={governorAddress}
           choices={choices}
           onVoteSubmit={handleSuccessfulVote}
           onClose={() => setIsOpen(false)}

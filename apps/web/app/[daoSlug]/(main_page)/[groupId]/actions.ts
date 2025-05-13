@@ -16,6 +16,7 @@ import {
 } from '@/lib/types';
 import { AsyncReturnType } from '@/lib/utils';
 import {
+  DaoGovernor,
   dbIndexer,
   DiscoursePost,
   DiscourseTopic,
@@ -33,7 +34,7 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { dbWeb } from '@proposalsapp/db-web';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
-import { daoSlugSchema, groupIdSchema } from '@/lib/validations';
+import { groupIdSchema } from '@/lib/validations';
 import { revalidateTag } from 'next/cache';
 
 export async function updateLastReadAt(groupId: string, daoSlug: string) {
@@ -65,31 +66,18 @@ export async function updateLastReadAt(groupId: string, daoSlug: string) {
   revalidateTag(`groups-user-${userId}-${daoSlug}`);
 }
 
-export async function getGroup(daoSlug: string, groupId: string) {
+export type SelectableProposalWithGovernor = Selectable<Proposal> & {
+  governorName: Selectable<DaoGovernor>['name'];
+  governorType: 'ARBITRUM_SNAPSHOT' | 'ARBITRUM_CORE' | 'ARBITRUM_TREASURY';
+};
+
+export async function getGroup(groupId: string) {
   'use cache';
   cacheLife('hours');
 
-  daoSlugSchema.parse(daoSlug);
   groupIdSchema.parse(groupId);
 
-  if (daoSlug == 'favicon.ico') return null;
-
-  // Fetch the DAO based on the slug
-  const dao = await dbIndexer
-    .selectFrom('dao')
-    .where('slug', '=', daoSlug)
-    .selectAll()
-    .executeTakeFirst();
-
-  if (!dao) {
-    return null;
-  }
-
-  const daoDiscourse = await dbIndexer
-    .selectFrom('daoDiscourse')
-    .where('daoId', '=', dao.id)
-    .selectAll()
-    .executeTakeFirstOrThrow();
+  if (groupId == 'favicon.ico') return null;
 
   let group: Selectable<ProposalGroup> | null = null;
 
@@ -108,22 +96,68 @@ export async function getGroup(daoSlug: string, groupId: string) {
     }
   }
 
+  if (!group) {
+    return null;
+  }
+
+  // Fetch the DAO based on the slug
+  const dao = await dbIndexer
+    .selectFrom('dao')
+    .where('id', '=', group.daoId)
+    .selectAll()
+    .executeTakeFirst();
+
+  if (!dao) {
+    return null;
+  }
+
+  const daoDiscourse = await dbIndexer
+    .selectFrom('daoDiscourse')
+    .where('daoId', '=', dao.id)
+    .selectAll()
+    .executeTakeFirstOrThrow();
+
   if (group) {
     const items = group.items as ProposalGroupItem[];
 
     const proposalItems = items.filter((item) => item.type === 'proposal');
     const topicItems = items.filter((item) => item.type === 'topic');
 
-    const proposals: Selectable<Proposal>[] = [];
+    const proposals: SelectableProposalWithGovernor[] = [];
     if (proposalItems.length > 0) {
       for (const proposalItem of proposalItems) {
         try {
-          const p = await dbIndexer
+          const p = (await dbIndexer
             .selectFrom('proposal')
-            .selectAll()
+            .innerJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
+            .select([
+              'proposal.id',
+              'proposal.externalId',
+              'proposal.name',
+              'proposal.body',
+              'proposal.url',
+              'proposal.discussionUrl',
+              'proposal.choices',
+              'proposal.quorum',
+              'proposal.proposalState',
+              'proposal.markedSpam',
+              'proposal.createdAt',
+              'proposal.startAt',
+              'proposal.endAt',
+              'proposal.blockCreatedAt',
+              'proposal.txid',
+              'proposal.metadata',
+              'proposal.daoId',
+              'proposal.author',
+              'proposal.governorId',
+              'proposal.blockStartAt',
+              'proposal.blockEndAt',
+              'daoGovernor.name as governorName', // Add governor name
+              'daoGovernor.type as governorType', // Add governor type
+            ])
             .where('externalId', '=', proposalItem.externalId)
             .where('governorId', '=', proposalItem.governorId)
-            .executeTakeFirstOrThrow();
+            .executeTakeFirstOrThrow()) as SelectableProposalWithGovernor; // Cast to new type
 
           proposals.push(p);
         } catch (error) {
@@ -156,7 +190,7 @@ export async function getGroup(daoSlug: string, groupId: string) {
       group,
       proposals,
       topics,
-      daoSlug,
+      daoSlug: dao.slug,
       groupId,
     };
   }

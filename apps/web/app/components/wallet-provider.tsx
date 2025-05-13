@@ -1,6 +1,10 @@
 'use client';
 
-import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import {
+  darkTheme,
+  getDefaultConfig,
+  RainbowKitProvider,
+} from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
 import { arbitrum } from 'wagmi/chains';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
@@ -23,7 +27,16 @@ export default function WalletProvider({
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
+        <RainbowKitProvider
+          modalSize='compact'
+          theme={darkTheme({
+            accentColor: '#7b3fe4',
+            accentColorForeground: 'white',
+            borderRadius: 'none',
+          })}
+        >
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
