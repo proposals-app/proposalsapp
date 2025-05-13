@@ -67,7 +67,7 @@ export function VotingPowerTag({
 
   const percentageChange =
     eventVotingPower !== undefined && eventVotingPower !== null
-      ? ((currentVotingPower - eventVotingPower) / eventVotingPower) * 100
+      ? (currentVotingPower / eventVotingPower) * 100
       : undefined;
 
   const shouldShowChange =
