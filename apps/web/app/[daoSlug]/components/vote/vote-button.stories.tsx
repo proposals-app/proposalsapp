@@ -20,10 +20,6 @@ import { arbitrum } from 'viem/chains';
 import {
   ARBITRUM_CORE_GOVERNOR_ABI,
   ARBITRUM_TOKEN_ABI,
-  ARBITRUM_CORE_GOVERNOR_ADDRESS,
-  ARBITRUM_TREASURY_GOVERNOR_ADDRESS,
-  ARBITRUM_TREASURY_GOVERNOR_ABI,
-  ARBITRUM_TOKEN_ADDRESS,
 } from '@/lib/constants';
 
 // Define a local ProposalState enum matching the expected string values
@@ -77,6 +73,12 @@ interface Proposal {
 // --- Constants ---
 const TEST_SNAPSHOT_SPACE = 'proposalsapp-area51.eth';
 const TEST_SNAPSHOT_HUB_URL = 'https://testnet.hub.snapshot.org';
+
+const ARBITRUM_CORE_GOVERNOR_ADDRESS: Address =
+  '0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9';
+const ARBITRUM_TREASURY_GOVERNOR_ADDRESS: Address =
+  '0x789fC99093B09aD01C34DC7251D0C89ce743e5a4';
+const ARB_TOKEN_ADDRESS: Address = '0x912CE59144191C1204E64559FE8253a0e49E6548'; // Needed for total supply
 
 // --- Interfaces (Keep Snapshot ones, ensure MockProposal uses local types) ---
 interface MockProposalMetadata {
@@ -182,7 +184,7 @@ const mapSnapshotState = (state?: string): ProposalState => {
     case 'active':
       return ProposalState.ACTIVE;
     case 'closed':
-      return ProposalState.EXECUTED; // Assuming 'closed' maps to 'executed'
+      return ProposalState.EXECUTED;
     case 'pending':
       return ProposalState.PENDING;
     default:
@@ -347,7 +349,7 @@ async function fetchLatestSnapshotProposal(
       name: proposalData.title || 'Untitled Proposal',
       body: proposalData.body || '',
       author: proposalData.author || 'Unknown Author',
-      url: proposalData.link || '', // Use empty string if null/undefined
+      url: proposalData.link || null, // Allow null
       startAt: new Date(startTs),
       createdAt: new Date(createdTs),
       endAt: new Date(endTs),
@@ -393,67 +395,40 @@ async function fetchLatestSnapshotProposal(
 }
 
 // --- On-Chain Fetching Logic ---
+// Helper to find the event definition from ABI
 const findEventAbi = (abi: Abi, eventName: string): AbiEvent | undefined =>
   abi.find((item) => item.type === 'event' && item.name === eventName) as
     | AbiEvent
     | undefined;
 
-// Define the explicit type for decoded logs based on ABI for each governor
-type DecodedProposalCreatedCoreLog = DecodeEventLogReturnType<
+// Define the explicit type for decoded logs based on ABI
+// Use DecodeEventLogReturnType with the full ABI
+type DecodedProposalCreatedLog = DecodeEventLogReturnType<
   typeof ARBITRUM_CORE_GOVERNOR_ABI,
   'ProposalCreated'
 >['args'];
 
-type DecodedProposalCreatedTreasuryLog = DecodeEventLogReturnType<
-  typeof ARBITRUM_TREASURY_GOVERNOR_ABI,
-  'ProposalCreated'
->['args'];
-
-// --- MODIFIED: Dynamically uses correct ABI ---
 async function fetchLatestOnchainProposal(
   governorAddress: Address
 ): Promise<Proposal | null> {
+  // Return the local Proposal type
   console.log(
     `[fetchLatestOnchainProposal] Fetching latest proposal from governor: ${governorAddress}`
   );
-
-  // Determine ABI based on address
-  const governorAbi =
-    governorAddress.toLowerCase() ===
-    ARBITRUM_CORE_GOVERNOR_ADDRESS.toLowerCase()
-      ? ARBITRUM_CORE_GOVERNOR_ABI
-      : governorAddress.toLowerCase() ===
-          ARBITRUM_TREASURY_GOVERNOR_ADDRESS.toLowerCase()
-        ? ARBITRUM_TREASURY_GOVERNOR_ABI
-        : undefined;
-
-  if (!governorAbi) {
-    console.error(
-      `[fetchLatestOnchainProposal] No ABI found for governor: ${governorAddress}`
-    );
-    return null;
-  }
-  console.log(
-    `[fetchLatestOnchainProposal] Determined ABI for governor ${governorAddress}`
-  );
-
-  // Define a union type for decoded logs based on the chosen ABI
-  type DecodedProposalCreatedLog =
-    | DecodedProposalCreatedCoreLog
-    | DecodedProposalCreatedTreasuryLog;
-
   try {
     // Fetch the latest proposal ID using the event log approach primarily.
     console.log(
       `[fetchLatestOnchainProposal] Fetching latest ProposalCreated event log...`
     );
     const proposalCreatedEventAbi = findEventAbi(
-      governorAbi,
+      ARBITRUM_CORE_GOVERNOR_ABI,
       'ProposalCreated'
     );
     if (!proposalCreatedEventAbi) {
-      throw new Error('ProposalCreated event not found in determined ABI');
+      throw new Error('ProposalCreated event not found in ABI');
     }
+
+    // Start fetching logs from a block known to contain proposals for Arbitrum Core Governor
 
     const logs = await publicClient.getLogs({
       address: governorAddress,
@@ -463,7 +438,7 @@ async function fetchLatestOnchainProposal(
     });
 
     if (logs.length === 0) {
-      console.warn(
+      console.error(
         `[fetchLatestOnchainProposal] No ProposalCreated events found for governor ${governorAddress}. Cannot determine latest proposal.`
       );
       return null; // Can't proceed without an ID
@@ -471,12 +446,12 @@ async function fetchLatestOnchainProposal(
 
     // Find the log with the highest proposalId
     let latestProposalId: bigint = BigInt(0);
-    let latestLog: Log | undefined = undefined;
+    let latestLog: Log | undefined = undefined; // Keep log type general
 
     for (const log of logs) {
       try {
         const decoded = decodeEventLog({
-          abi: governorAbi, // Use the determined ABI
+          abi: ARBITRUM_CORE_GOVERNOR_ABI, // Use the full ABI
           eventName: 'ProposalCreated',
           topics: log.topics,
           data: log.data,
@@ -508,22 +483,20 @@ async function fetchLatestOnchainProposal(
       `[fetchLatestOnchainProposal] Found latest proposal ID from event logs: ${latestProposalId}`
     );
 
-    // Fetch proposal details using the determined latestProposalId and ABI
-    let stateResult: number | undefined;
+    // Fetch proposal details using the determined latestProposalId
+    let stateResult: number | undefined; // state returns uint8 -> number
     let description: string | undefined;
     let proposer: Address | undefined;
     let targets: readonly Address[] | undefined;
     let values: readonly bigint[] | undefined;
     let calldatas: readonly `0x${string}`[] | undefined;
     let signatures: readonly string[] | undefined;
-    let startBlock: bigint | undefined;
-    let endBlock: bigint | undefined;
 
     // Fetch description and other details from the creation event log
     if (latestLog) {
       try {
         const decoded = decodeEventLog({
-          abi: governorAbi, // Use determined ABI
+          abi: ARBITRUM_CORE_GOVERNOR_ABI,
           eventName: 'ProposalCreated',
           topics: latestLog.topics,
           data: latestLog.data,
@@ -537,39 +510,37 @@ async function fetchLatestOnchainProposal(
           values = eventArgs.values;
           calldatas = eventArgs.calldatas;
           signatures = eventArgs.signatures;
-          startBlock = eventArgs.startBlock;
-          endBlock = eventArgs.endBlock; // Get end block from event
-
-          if (startBlock === undefined || endBlock === undefined) {
-            throw new Error('Start or end block missing from event args');
-          }
+          // Extract start and end blocks directly from the event args
+          const startBlock = eventArgs.startBlock;
 
           // Fetch block data for timestamps using the blocks from the event
           const [startBlockData] = await Promise.all([
             publicClient.getBlock({ blockNumber: startBlock }),
           ]);
 
+          // Assign start and end block numbers and data to variables for later use
           const proposalStartBlock = Number(startBlock);
-          const proposalEndBlock = Number(endBlock);
-          const startAt = new Date(Number(startBlockData.timestamp) * 1000);
 
-          // Fetch standard OZ Governor proposal data using the correct ABI
+          const startAt = new Date(Number(startBlockData.timestamp) * 1000); // Convert BigInt to Number
+
+          // Fetch standard OZ Governor proposal data
           const results = await Promise.allSettled([
             publicClient.readContract({
               address: governorAddress,
-              abi: governorAbi, // Use determined ABI
+              abi: ARBITRUM_CORE_GOVERNOR_ABI,
               functionName: 'state',
               args: [latestProposalId],
             }),
             // Quorum requires the block number when voting started
             publicClient.readContract({
               address: governorAddress,
-              abi: governorAbi, // Use determined ABI
+              abi: ARBITRUM_CORE_GOVERNOR_ABI,
               functionName: 'quorum',
-              args: [startBlock], // Use event's startBlock
+              args: [startBlock], // Use proposalSnapshot block number (same as event's startBlock)
             }),
           ]);
 
+          // Check results and extract values
           if (results.some((r) => r.status === 'rejected')) {
             console.error(
               `[fetchLatestOnchainProposal] Error fetching core proposal data for ID ${latestProposalId}:`,
@@ -580,55 +551,60 @@ async function fetchLatestOnchainProposal(
             throw new Error('Failed to fetch core proposal data');
           }
 
-          stateResult = (results[0] as PromiseFulfilledResult<number>).value;
+          // Correctly type and extract the fulfilled results
+          stateResult = (results[0] as PromiseFulfilledResult<number>).value; // state returns uint8 -> number
           const quorum = (results[1] as PromiseFulfilledResult<bigint>).value;
 
-          // Fetch Total Supply (ARB token is the same for both governors)
+          // Fetch Total Supply - This might need the block number as well, but the ABI shows no args for totalSupply
+          // If the ABI was wrong and it should take a block, the fetch would need adjustment.
+          // Assuming the ABI is correct and it gets current supply:
           const totalSupply = await publicClient.readContract({
-            address: ARBITRUM_TOKEN_ADDRESS,
+            address: ARB_TOKEN_ADDRESS,
             abi: ARBITRUM_TOKEN_ABI,
             functionName: 'totalSupply',
           });
 
           const title = extractTitleFromDescription(description ?? '');
-          const state = mapOnchainState(stateResult);
+          const state = mapOnchainState(stateResult); // Pass the number state
           const quorumValue = Number(quorum) / 10 ** 18; // Assuming 18 decimals
 
-          const placeholderUuid = '11111111-1111-1111-1111-111111111111';
+          // Generate placeholder UUIDs for DB foreign keys
+          const placeholderUuid = '11111111-1111-1111-1111-111111111111'; // No Uuid type, just string
 
           // Create metadata ensuring JSON compatibility
           const metadataObj: Record<string, JsonValue> = {
-            voteType: 'basic', // Defaulting for standard OZ governors
+            voteType: 'basic', // Defaulting to basic for on-chain OZ governor
             quorumVotes: quorum.toString(),
             totalSupply: totalSupply.toString(),
-            targets: targets ? [...targets] : [],
-            values: values ? values.map(String) : [],
-            calldatas: calldatas ? [...calldatas] : [],
-            signatures: signatures ? [...signatures] : [],
+            targets: [...targets], // Ensure Address[] is string[]
+            values: values.map(String), // Convert bigint[] to string[]
+            calldatas: [...calldatas], // `0x${string}`[] is string[]
+            signatures: [...signatures], // string[] is fine
           };
 
           const mappedProposal: Proposal = {
+            // Use the local Proposal type
             id: placeholderUuid,
             externalId: latestProposalId.toString(),
             governorId: placeholderUuid,
             daoId: placeholderUuid,
             name: title,
             body: description ?? '',
-            author: proposer || '0x...',
-            url: `https://www.tally.xyz/gov/arbitrum/proposal/${latestProposalId}`, // Example URL might need adjustment per governor
+            author: proposer || '0x...', // Use fetched proposer or default
+            url: `https://www.tally.xyz/gov/arbitrum/proposal/${latestProposalId}`, // Example URL
             startAt: startAt,
-            createdAt: startAt, // Approximate with startAt
+            createdAt: startAt, // Approximate createdAt with startAt for on-chain
             endAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // Add 7 days to current time
-            blockCreatedAt: proposalStartBlock,
+            blockCreatedAt: proposalStartBlock, // Use start block as creation block approx
             markedSpam: false,
             quorum: quorumValue,
             blockStartAt: proposalStartBlock,
-            blockEndAt: proposalEndBlock, // Use fetched endBlock
-            proposalState: state,
+            blockEndAt: 9999999999999,
+            proposalState: state, // Use local enum
             discussionUrl: null,
-            txid: latestLog.transactionHash || null,
+            txid: latestLog.transactionHash || null, // Use transaction hash from log if available
             choices: ['For', 'Against', 'Abstain'], // Standard for basic voting
-            metadata: metadataObj as JsonValue,
+            metadata: metadataObj as JsonValue, // Assert as JsonValue after careful conversion
           };
 
           console.log(
@@ -640,26 +616,27 @@ async function fetchLatestOnchainProposal(
           console.error(
             `[fetchLatestOnchainProposal] Event args missing for proposal ${latestProposalId}`
           );
-          return null;
+          return null; // Cannot proceed without event args
         }
-      } catch (decodeOrFetchError) {
+      } catch (decodeError) {
         console.error(
-          `[fetchLatestOnchainProposal] Error decoding latest log or fetching block data:`,
-          decodeOrFetchError
+          `[fetchLatestOnchainProposal] Error decoding latest log for details:`,
+          decodeError
         );
-        return null;
+        return null; // Decoding failed, cannot proceed
       }
     } else {
       console.error(
         `[fetchLatestOnchainProposal] No latest log found to extract details for proposal ${latestProposalId}`
       );
-      return null;
+      return null; // No log found, cannot proceed
     }
   } catch (error) {
     console.error(
       `[fetchLatestOnchainProposal] Error during fetch or processing for governor ${governorAddress}:`,
       error
     );
+    // Check if it's a contract execution error (e.g., proposal ID doesn't exist)
     if (error instanceof ContractFunctionExecutionError) {
       console.warn(
         `[fetchLatestOnchainProposal] Contract execution error, possibly proposal ID not found or invalid state.`
@@ -804,11 +781,11 @@ const OnchainProposalStory: React.FC<{
       setProposal(null);
 
       try {
-        // FetchLatestOnchainProposal now determines ABI internally
         const fetchedProposal =
           await fetchLatestOnchainProposal(governorAddress);
 
         if (fetchedProposal) {
+          // fetchedProposal is already of type Proposal | null
           setProposal(fetchedProposal);
           console.log(
             `[useEffect - Onchain ${governorName}] Successfully fetched and set proposal:`,
@@ -823,20 +800,15 @@ const OnchainProposalStory: React.FC<{
             `No proposal found for ${governorName} on local node.`
           );
         }
-      } catch (err: unknown) {
+      } catch (err: any) {
         console.error(
           `[useEffect - Onchain ${governorName}] Error fetching proposal:`,
           err
         );
         setError(true);
-        // Type check before accessing .message
-        let message = 'Unknown error';
-        if (err instanceof Error) {
-          message = err.message;
-        } else if (typeof err === 'string') {
-          message = err;
-        }
-        setErrorMessage(`Error fetching proposal: ${message}`); // Safely set message
+        setErrorMessage(
+          `Error fetching proposal: ${err.message || 'Unknown error'}`
+        );
       } finally {
         setIsLoading(false);
         console.log(
@@ -876,8 +848,8 @@ const OnchainProposalStory: React.FC<{
         </p>
         <p>{errorMessage || 'Unknown error occurred.'}</p>
         <p>
-          Please check the browser&apos;s developer console and ensure your
-          local Anvil fork is running with a relevant proposal.
+          Please check the browser's developer console and ensure your local
+          Anvil fork is running with a relevant proposal.
         </p>
       </div>
     );
