@@ -37,11 +37,11 @@ interface OnchainBasicVoteModalContentProps {
 }
 
 // Standard OpenZeppelin Governor support types: 0=Against, 1=For, 2=Abstain
-// Assuming choices array is ordered ["For", "Against", "Abstain"]
+// Mapping from choice string to support type
 const supportMapping: { [key: string]: number } = {
-  '1': 1, // Maps choice index + 1 '1' (corresponding to "For") to support type 1 (For)
-  '2': 0, // Maps choice index + 1 '2' (corresponding to "Against") to support type 0 (Against)
-  '3': 2, // Maps choice index + 1 '3' (corresponding to "Abstain") to support type 2 (Abstain)
+  For: 1,
+  Against: 0,
+  Abstain: 2,
 };
 
 export function OnchainBasicVoteModalContent({
@@ -51,6 +51,7 @@ export function OnchainBasicVoteModalContent({
   onClose,
 }: OnchainBasicVoteModalContentProps) {
   const { address: account } = useAccount();
+  // State now stores the actual choice string ("For", "Against", etc.)
   const [selectedChoice, setSelectedChoice] = React.useState<string>('');
   const [reason, setReason] = React.useState('');
   const [addAttribution, setAddAttribution] = React.useState(true); // State for attribution checkbox
@@ -64,9 +65,8 @@ export function OnchainBasicVoteModalContent({
         ? ARBITRUM_CORE_GOVERNOR_ABI
         : undefined;
 
-  const selectedSupport = selectedChoice
-    ? supportMapping[selectedChoice]
-    : undefined;
+  // Derive selectedSupport directly from the selected choice string
+  const selectedSupport = supportMapping[selectedChoice];
 
   // --- Write Hook ---
   const {
@@ -121,6 +121,7 @@ export function OnchainBasicVoteModalContent({
     setVoteError(null); // Clear previous errors on new submission attempt
 
     // Basic validation
+    // Check if selectedSupport is a valid number (i.e., selectedChoice was found in mapping)
     if (!governorAddress || !governorAbi || !account) {
       setVoteError('Missing required contract or account information.');
       return;
@@ -177,13 +178,9 @@ export function OnchainBasicVoteModalContent({
         ? 'Retry Submit'
         : 'Submit Vote'; // Default state
 
-  // Determine button disabled state
-  // Disable if submitting at any stage (writing, confirming)
-  // Disable if no choice is selected initially (selectedSupport undefined)
-  // Disable if governor info or account is missing (basic check)
-  // Disable if proposal ID is missing
   const isSubmitDisabled =
     isSubmitting ||
+    selectedChoice === '' ||
     selectedSupport === undefined ||
     !governorAbi ||
     !account ||
@@ -197,15 +194,16 @@ export function OnchainBasicVoteModalContent({
           Select only one option.
         </p>
         <RadioGroup
-          value={selectedChoice}
-          onValueChange={setSelectedChoice}
+          value={selectedChoice} // Use the choice string as the value
+          onValueChange={setSelectedChoice} // Set state with the choice string
           className='space-y-2 pt-2'
           disabled={isSubmitting} // Disable choices while submitting
         >
-          {/* Map choices to RadioGroup items, value is 1-based index */}
+          {/* Map choices to RadioGroup items, value is the choice string */}
           {choices.map((choice, index) => (
             <div key={index} className='flex items-center space-x-2'>
-              <RadioGroupItem value={`${index + 1}`} id={`choice-${index}`} />
+              <RadioGroupItem value={choice} id={`choice-${index}`} />{' '}
+              {/* Use choice string as value */}
               <Label
                 htmlFor={`choice-${index}`}
                 className='flex-1 cursor-pointer text-sm'
