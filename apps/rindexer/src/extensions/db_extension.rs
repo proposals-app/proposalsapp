@@ -276,7 +276,7 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
 
     let proposal_map: HashMap<String, proposal::Model> = proposals_result
         .into_iter()
-        .filter_map(|p| Some((p.external_id.clone(), p.clone())))
+        .map(|p| (p.external_id.clone(), p.clone()))
         .collect();
 
     let voter_addresses: Vec<String> = votes
@@ -646,7 +646,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
             if let Err(e) = insert_result {
                 error!(error = %e, "Bulk insert of new voters failed");
             } else {
-                debug!(count = ?insert_result.as_ref().map(|res| res), "Bulk insert of new voters completed");
+                debug!(count = ?insert_result.as_ref(), "Bulk insert of new voters completed");
             }
         }
 
