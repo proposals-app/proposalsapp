@@ -62,8 +62,6 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     "Processing ArbitrumSCNominations::ProposalCreated events"
                 );
 
-                let url_regex = Regex::new(r"Security Council Election #(\d+)").unwrap();
-
                 for result in results.clone() {
                     let proposal_id = result.event_data.proposal_id;
                     let block_number = result.tx_information.block_number.as_u64();
@@ -94,6 +92,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         }
                     };
 
+                    let url_regex = Regex::new(r"Security Council Election #(\d+)").unwrap();
                     let proposal_url = url_regex
                         .captures(&result.event_data.description)
                         .and_then(|caps| caps.get(1).map(|m| m.as_str()))
@@ -167,7 +166,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         block_end_at: Set(Some(result.event_data.end_block.as_u64() as i32)),
                         metadata: Set(json!({"vote_type":"sc_nominations"}).into()),
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
-                        governor_id: Set(get_proposals_governor_id().unwrap()),
+                        governor_id: Set(get_proposals_governor_id().take().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),
                         author: Set(Some(to_checksum(&result.event_data.proposer, None))),
                     };

@@ -11,22 +11,21 @@ import {
   useAccount,
   useWriteContract,
   useWaitForTransactionReceipt,
+  useSimulateContract,
 } from 'wagmi';
+import { parseUnits } from 'viem'; // Use parseUnits if converting from human-readable, or just BigInt if converting string ID
 import {
   ARBITRUM_TREASURY_GOVERNOR_ABI,
   ARBITRUM_CORE_GOVERNOR_ABI,
   ARBITRUM_TREASURY_GOVERNOR_ADDRESS,
   ARBITRUM_CORE_GOVERNOR_ADDRESS,
 } from '@/lib/constants';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ATTRIBUTION_TEXT } from '../../vote-button'; // Ensure this import path is correct relative to the file
-import { Abi } from 'abitype'; // Import Abi type for casting
 
 interface OnchainBasicVoteModalContentProps {
   proposal: Selectable<Proposal>;
   choices: string[];
-  snapshotSpace?: string; // Not used in onchain, but keep interface consistent if desired
-  snapshotHubUrl?: string; // Not used in onchain
+  snapshotSpace?: string;
+  snapshotHubUrl?: string;
   governorAddress?: string;
   onVoteSubmit: (voteData: {
     proposalId: string;
@@ -53,7 +52,6 @@ export function OnchainBasicVoteModalContent({
   const { address: account } = useAccount();
   const [selectedChoice, setSelectedChoice] = React.useState<string>('');
   const [reason, setReason] = React.useState('');
-  const [addAttribution, setAddAttribution] = React.useState(true); // State for attribution checkbox
   const [voteError, setVoteError] = React.useState<string | null>(null);
 
   // Determine the correct ABI based on the governor address
@@ -68,42 +66,69 @@ export function OnchainBasicVoteModalContent({
     ? supportMapping[selectedChoice]
     : undefined;
 
+  // --- Simulation Hook ---
+  // Simulate the transaction to estimate gas and check for errors before sending
+  const {
+    data: simulateData,
+    error: simulateError,
+    isLoading: isSimulating,
+  } = useSimulateContract({
+    address: governorAddress as `0x${string}` | undefined,
+    abi: governorAbi,
+    functionName: 'castVoteWithReason',
+    args:
+      selectedSupport !== undefined
+        ? [BigInt(proposal.externalId), selectedSupport, reason]
+        : undefined,
+    account,
+    // Enable simulation only when required parameters are available
+    query: {
+      // `enabled` must be inside the `query` property
+      enabled: !!(
+        governorAddress &&
+        governorAbi &&
+        account &&
+        selectedChoice !== '' &&
+        selectedSupport !== undefined
+      ),
+    },
+  });
+
   // --- Write Hook ---
   const {
     data: hash,
     writeContract,
-    isPending: isWritePending, // isPending tracks wallet confirmation
+    isPending: isWritePending,
     error: writeError,
   } = useWriteContract();
 
   // --- Wait For Receipt Hook ---
   const {
-    isLoading: isConfirming, // isLoading tracks block confirmation
+    isLoading: isConfirming,
     isSuccess: isConfirmed,
     error: confirmError,
   } = useWaitForTransactionReceipt({
     hash,
   });
 
-  // Combined submitting state: wallet confirmation or block confirmation
-  const isSubmitting = isWritePending || isConfirming;
+  // Combined submitting state: simulation, writing, or confirming
+  const isSubmitting = isSimulating || isWritePending || isConfirming;
 
-  // Effect to handle transaction success and close modal
+  // Effect to handle transaction success and close modal, and display errors
   React.useEffect(() => {
     if (isConfirmed) {
       setVoteError(null); // Clear any previous error
-      // Call onVoteSubmit if needed, though on-chain might not need a parent callback
-      // other than closing the modal. Keeping it available based on interface.
-      // if (onVoteSubmit) {
-      //   onVoteSubmit(...); // You might want to structure this differently
-      // }
       onClose(); // Close the modal on successful confirmation
     }
   }, [isConfirmed, onClose]);
 
-  // Effect to handle errors from write or confirm stages
+  // Effect to handle errors from any stage (simulate, write, confirm)
   React.useEffect(() => {
-    if (writeError) {
+    if (simulateError) {
+      setVoteError(
+        `Simulation failed: ${simulateError.message || 'An unknown simulation error occurred.'}`
+      );
+    } else if (writeError) {
       setVoteError(
         `Transaction failed: ${writeError.message || 'An unknown write error occurred.'}`
       );
@@ -111,83 +136,63 @@ export function OnchainBasicVoteModalContent({
       setVoteError(
         `Transaction confirmation failed: ${confirmError.message || 'An unknown confirmation error occurred.'}`
       );
-    } else if (!isSubmitting && voteError) {
-      // Clear the error only if no longer submitting and there was a previous error
+    } else {
+      // Clear error if everything is proceeding correctly or reset
       setVoteError(null);
     }
-  }, [writeError, confirmError, isSubmitting, voteError]); // Add isSubmitting and voteError to dependency array
+  }, [simulateError, writeError, confirmError]);
 
   const handleSubmit = async () => {
-    setVoteError(null); // Clear previous errors on new submission attempt
+    // Errors are now primarily handled by the useEffect watching hook errors,
+    // but we can add basic checks here before initiating anything if needed.
+    // The simulate hook's 'enabled' prop handles most of the input validation checks
+    // for the simulation itself.
 
-    // Basic validation
-    if (!governorAddress || !governorAbi || !account) {
-      setVoteError('Missing required contract or account information.');
-      return;
-    }
-    if (selectedSupport === undefined || proposal?.externalId === undefined) {
+    if (!simulateData?.request) {
+      // This case should ideally be prevented by the button's disabled state,
+      // but as a safeguard:
+      if (simulateError) {
+        // Error is already set by the effect watching simulateError
+        return;
+      }
       setVoteError(
-        'Please select a vote choice and ensure proposal ID exists.'
+        'Transaction simulation not ready or failed. Please check inputs.'
       );
       return;
     }
-    if (!proposal?.externalId) {
-      setVoteError('Missing proposal ID.');
-      return;
-    }
-
-    // Construct the final reason based on input and attribution checkbox
-    const finalReason = addAttribution
-      ? reason.trim()
-        ? `${reason.trim()}\n${ATTRIBUTION_TEXT.trim()}`
-        : ATTRIBUTION_TEXT.trim() // Use only attribution if reason is empty
-      : reason.trim(); // Use only the provided reason (trimmed)
-
-    // Determine which contract function to call and the arguments
-    const useCastVoteWithReason = finalReason !== '';
-    const methodName = useCastVoteWithReason
-      ? 'castVoteWithReason'
-      : 'castVote';
-    const methodArgs = useCastVoteWithReason
-      ? [BigInt(proposal.externalId), selectedSupport, finalReason]
-      : [BigInt(proposal.externalId), selectedSupport];
 
     try {
-      // Directly trigger the write contract call
-      writeContract({
-        address: governorAddress as `0x${string}`,
-        abi: governorAbi as Abi, // Cast ABI to wagmi's Abi type
-        functionName: methodName,
-        args: methodArgs as any, // Use as any for args due to potential type complexity
-      });
+      // Use the request object from the simulation result, which includes estimated gas
+      writeContract(simulateData.request);
     } catch (error) {
-      console.error('Error during transaction initiation:', error);
-      setVoteError(
-        `Transaction initiation failed: ${error instanceof Error ? error.message : 'An unknown error occurred.'}`
-      );
+      console.error('Failed to initiate basic vote transaction:', error);
+      // Wagmi errors are often handled by the hook's `error` state, but this catches errors before `writeContract` is fully triggered
+      setVoteError('Failed to prepare transaction. See console for details.');
     }
   };
 
   // Determine button text based on state
-  const buttonText = isWritePending
-    ? 'Confirming...' // Wallet confirmation
-    : isConfirming
-      ? 'Submitting...' // Waiting for block confirmation
-      : voteError // If there's an error, allow retry
-        ? 'Retry Submit'
-        : 'Submit Vote'; // Default state
+  const buttonText = isSimulating
+    ? 'Simulating...'
+    : isWritePending
+      ? 'Confirming...' // Wallet confirmation
+      : isConfirming
+        ? 'Submitting...' // Waiting for block confirmation
+        : simulateError // If simulation failed, allow retry assuming inputs are fixed
+          ? 'Retry Submit'
+          : 'Submit Vote'; // Default state
 
   // Determine button disabled state
-  // Disable if submitting at any stage (writing, confirming)
-  // Disable if no choice is selected initially (selectedSupport undefined)
-  // Disable if governor info or account is missing (basic check)
-  // Disable if proposal ID is missing
+  // Disable if submitting at any stage (simulating, writing, confirming)
+  // Disable if no choice is selected
+  // Disable if governor info or account is missing
+  // Disable if simulation data is not available AND there is no simulation error (meaning simulation hasn't finished successfully yet)
   const isSubmitDisabled =
     isSubmitting ||
-    selectedSupport === undefined ||
+    !selectedChoice ||
     !governorAbi ||
     !account ||
-    !proposal?.externalId;
+    (!simulateData?.request && !simulateError); // Enable button to retry if simulateError exists
 
   return (
     <div className='space-y-4 py-4'>
@@ -231,27 +236,9 @@ export function OnchainBasicVoteModalContent({
         />
       </div>
 
-      {/* Attribution checkbox */}
-      <div className='flex items-center space-x-2'>
-        <Checkbox
-          id='attribution'
-          checked={addAttribution}
-          onCheckedChange={(checked) => setAddAttribution(!!checked)}
-          disabled={isSubmitting} // Disable checkbox while submitting
-        />
-        <Label
-          htmlFor='attribution'
-          className='cursor-pointer text-xs text-neutral-600 dark:text-neutral-400'
-        >
-          Append &quot;voted via proposals.app&quot; to the reason
-        </Label>
-      </div>
-
-      {/* Display errors */}
+      {/* Display errors from simulation, write, or confirm */}
       {voteError && (
-        <p className='text-sm break-all text-red-500 dark:text-red-400'>
-          {voteError}
-        </p>
+        <p className='text-sm text-red-500 dark:text-red-400'>{voteError}</p>
       )}
 
       <DialogFooter>

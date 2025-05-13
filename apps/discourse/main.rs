@@ -27,7 +27,7 @@ mod models;
 
 // --- Configuration Constants ---
 const FULL_REFRESH_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
-const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_secs(60 * 60);
+const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_secs(1 * 60 * 60);
 
 const RECENT_UPDATE_INTERVAL: Duration = Duration::from_secs(60);
 const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);

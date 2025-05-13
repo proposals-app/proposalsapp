@@ -460,7 +460,7 @@ impl DiscourseApi {
             // Clean up expired entries before checking.
             forbidden_urls.retain(|_url, timestamp| {
                 now.duration_since(*timestamp)
-                    .is_ok_and(|age| age < FORBIDDEN_CACHE_DURATION)
+                    .map_or(false, |age| age < FORBIDDEN_CACHE_DURATION)
             });
 
             // Check if URL is still forbidden after cleanup.
