@@ -15,9 +15,7 @@ import {
   type TransactionReceipt,
   parseAbiItem,
   type Log, // Import Log type
-  type AbiEvent,
-  Abi,
-  type DecodeEventLogReturnType, // Import AbiEvent type
+  type AbiEvent, // Import AbiEvent type
 } from 'viem';
 import { arbitrum } from 'viem/chains';
 import { ARBITRUM_TOKEN_ABI, ARBITRUM_TOKEN_ADDRESS } from '@/lib/constants';
@@ -65,11 +63,6 @@ const testClient = createTestClient({
   .extend(walletActions);
 
 // --- Helper Functions ---
-
-const findEventAbi = (abi: Abi, eventName: string): AbiEvent | undefined =>
-  abi.find((item) => item.type === 'event' && item.name === eventName) as
-    | AbiEvent
-    | undefined;
 
 async function connectWallet(
   page: Page,
@@ -358,33 +351,27 @@ const voteCastAbiItem = parseAbiItem(
   'event VoteCast(address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason)'
 );
 
-// Define a type for the VoteCast log arguments
-type VoteCastEventArgs = DecodeEventLogReturnType<
+// Define a type for the VoteCast log for better type safety
+type VoteCastLog = Log<
+  typeof voteCastAbiItem,
   typeof ARBITRUM_CORE_GOVERNOR_ABI,
   'VoteCast'
->['args'];
+>;
 
 async function waitForVoteCastEventLog(
   proposalId: bigint,
+  voterAddress: Address,
   testLogPrefix: string = '',
   maxAttempts: number = VERIFICATION_MAX_ATTEMPTS,
   retryDelay: number = VERIFICATION_RETRY_DELAY
-): Promise<Log> {
-  // Return the raw Log type
+): Promise<VoteCastLog> {
   console.log(
-    `${testLogPrefix} Waiting for VoteCast event for proposal ${proposalId}...`
+    `${testLogPrefix} Waiting for VoteCast event for proposal ${proposalId} by ${voterAddress}...`
   );
 
-  let foundLog: Log | undefined; // Use the raw Log type
+  let foundLog: VoteCastLog | undefined;
   let attempt = 0;
   const searchBlockRange = 2000; // Search the last X blocks
-
-  // Get the event ABI item using findEventAbi
-  const voteCastLogAbi = findEventAbi(ARBITRUM_CORE_GOVERNOR_ABI, 'VoteCast');
-
-  if (!voteCastLogAbi) {
-    throw new Error('VoteCast event ABI not found');
-  }
 
   while (attempt < maxAttempts) {
     attempt++;
@@ -410,12 +397,11 @@ async function waitForVoteCastEventLog(
         `${testLogPrefix} Searching logs from block ${fromBlock} to latest (${currentBlock}) using getContractEvents...`
       );
 
-      // Use getLogs with filters for address, event signature/topic, and optionally indexed args
-      // Filtering by proposalId and voter in getLogs topics directly is more efficient
-      // The topics array is [event_signature, indexed_arg1, indexed_arg2, ...]
-      const logs = await testClient.getLogs({
+      // Use getContractEvents with event and args filtering
+      const logs = await testClient.getContractEvents({
         address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
-        event: voteCastLogAbi,
+        abi: ARBITRUM_CORE_GOVERNOR_ABI,
+        eventName: 'VoteCast',
         args: {
           proposalId: proposalId,
         },
@@ -424,13 +410,13 @@ async function waitForVoteCastEventLog(
       });
 
       console.log(
-        `${testLogPrefix} [Event Poll Attempt ${attempt}] Found ${logs.length} potential VoteCast logs matching filters (proposalId: ${proposalId}).`
+        `${testLogPrefix} [Event Poll Attempt ${attempt}] Found ${logs.length} potential VoteCast logs matching filter.`
       );
 
       if (logs.length > 0) {
-        // Since we filter by proposalId and voter, finding any log should be the one we cast.
-        // Take the first one found as it's likely the most recent within the block range.
-        foundLog = logs[0]; // This is a Log object
+        // Assuming the first log found matching the criteria is the one we just cast.
+        // In a simple test scenario with dedicated proposal/voter, this is usually safe.
+        foundLog = logs[0] as VoteCastLog; // Cast to the specific log type
         console.log(
           `${testLogPrefix} Found matching VoteCast event in transaction ${foundLog.transactionHash}.`
         );
@@ -462,12 +448,12 @@ async function waitForVoteCastEventLog(
     `${testLogPrefix} VoteCast event log found. Transaction Hash: ${foundLog.transactionHash}, Block Number: ${foundLog.blockNumber}.`
   );
 
-  // Return the raw Log object
+  // Return the log object directly
   return foundLog;
 }
 
 async function verifyVoteOnchain(
-  voteCastLog: Log, // Accept the raw Log object
+  voteCastLog: VoteCastLog, // Accept the specific log object
   expectedSupport: number,
   expectedReasonContains: string,
   testLogPrefix: string = ''
@@ -477,14 +463,12 @@ async function verifyVoteOnchain(
   );
   console.log(`  Tx Hash: ${voteCastLog.transactionHash}`);
   console.log(`  Block: ${voteCastLog.blockNumber}`);
-  console.log(`  Log Index: ${voteCastLog.logIndex}`);
-  console.log(`  Log Address (Contract): ${voteCastLog.address}`);
   console.log(
     `  Expected Support (0=Against, 1=For, 2=Abstain): ${expectedSupport}`
   );
   console.log(`  Expected Reason to contain: "${expectedReasonContains}"`);
 
-  let decodedEventArgs: VoteCastEventArgs;
+  let decodedEventArgs: any;
   try {
     // Decode the log directly using the specific event ABI
     const decodedEvent = decodeEventLog({
@@ -508,18 +492,21 @@ async function verifyVoteOnchain(
     // Perform assertions on decoded event arguments
     expect(
       decodedEventArgs.voter?.toLowerCase(),
-      `${testLogPrefix} Voter address mismatch in event args`
-    ).toBe(DELEGATE_ACCOUNT.toLowerCase());
+      `${testLogPrefix} Voter address mismatch in event`
+    ).toBe(voteCastLog.address?.toLowerCase()); // Use log.address as the contract address it originated from
+    expect(
+      decodedEventArgs.proposalId,
+      `${testLogPrefix} Proposal ID mismatch in event`
+    ).toBe(voteCastLog.args.proposalId); // Compare with the proposalId used in the filter args
     expect(
       decodedEventArgs.support,
-      `${testLogPrefix} Support (vote way) mismatch in event args`
+      `${testLogPrefix} Support (vote way) mismatch in event`
     ).toBe(expectedSupport);
     expect(
       decodedEventArgs.reason,
-      `${testLogPrefix} Reason mismatch in event args (Expected to contain: "${expectedReasonContains}", Got: "${decodedEventArgs.reason}")`
+      `${testLogPrefix} Reason mismatch in event (Expected to contain: "${expectedReasonContains}", Got: "${decodedEventArgs.reason}")`
     ).toContain(expectedReasonContains);
-    // proposalId and weight are also available in decodedEventArgs if needed
-    // expect(decodedEventArgs.proposalId).toBe(expectedProposalId);
+    // Weight is also available if needed: decodedEventArgs.weight
 
     console.log(
       `${testLogPrefix} Vote successfully verified via VoteCast event details.`
@@ -529,7 +516,7 @@ async function verifyVoteOnchain(
       `${testLogPrefix} Failed to decode/verify VoteCast event log:`,
       e
     );
-    // Log data and topics from the raw log object
+    // Log data and topics are accessed within the try block where voteCastLog is guaranteed non-undefined
     console.error('Log data:', voteCastLog.data);
     console.error('Log topics:', voteCastLog.topics);
     throw e; // Re-throw the error to fail the test
@@ -707,18 +694,19 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
       VOTE_CONFIRMATION_DELAY
     );
 
-    // 6. Wait for and find the VoteCast event log onchain using getLogs with filtering
+    // 6. Wait for and find the VoteCast event log onchain using getContractEvents
     console.log(
       `${testLogPrefix} Starting onchain event log search process...`
     );
     const voteCastLog = await waitForVoteCastEventLog(
       proposalId,
+      DELEGATE_ACCOUNT, // The account that signed the transaction (Metamask account)
       testLogPrefix
     );
 
     // 7. Verify Vote details using the found event log
     await verifyVoteOnchain(
-      voteCastLog,
+      voteCastLog, // Pass the log object directly
       expectedSupportValue,
       expectedReasonString,
       testLogPrefix
