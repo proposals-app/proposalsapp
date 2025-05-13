@@ -1,6 +1,6 @@
 import { testWithSynpress } from '@synthetixio/synpress';
 import { MetaMask, metaMaskFixtures } from '@synthetixio/synpress/playwright';
-import type { Page, Locator } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import basicSetup from './wallet-setup/basic.setup';
 import {
   type Chain,
@@ -12,18 +12,17 @@ import {
   parseEther,
   getEventSelector,
   decodeEventLog,
-  type TransactionReceipt,
-  parseAbiItem,
-  type Log, // Import Log type
+  type Log,
   type AbiEvent,
-  Abi,
-  type DecodeEventLogReturnType, // Import AbiEvent type
+  type Abi,
 } from 'viem';
 import { arbitrum } from 'viem/chains';
 import { ARBITRUM_TOKEN_ABI, ARBITRUM_TOKEN_ADDRESS } from '@/lib/constants';
 import {
   ARBITRUM_CORE_GOVERNOR_ADDRESS,
   ARBITRUM_CORE_GOVERNOR_ABI,
+  ARBITRUM_TREASURY_GOVERNOR_ADDRESS,
+  ARBITRUM_TREASURY_GOVERNOR_ABI,
 } from '@/lib/constants';
 
 const test = testWithSynpress(metaMaskFixtures(basicSetup));
@@ -63,6 +62,23 @@ const testClient = createTestClient({
 })
   .extend(publicActions)
   .extend(walletActions);
+
+// --- Helper Types ---
+
+// Define a type that is a union of the two governor ABIs to allow viem to infer types
+type GovernorAbi =
+  | typeof ARBITRUM_CORE_GOVERNOR_ABI
+  | typeof ARBITRUM_TREASURY_GOVERNOR_ABI;
+
+// Define a type for the VoteCast log arguments (generic enough for both ABIs)
+type VoteCastEventArgs = {
+  voter?: Address;
+  proposalId?: bigint;
+  support?: number;
+  weight?: bigint;
+  reason?: string;
+  params?: string; // Added params as it can exist in VoteCastWithParams
+};
 
 // --- Helper Functions ---
 
@@ -141,7 +157,7 @@ async function handlePotentialGotItButton(
         await metamaskPage.waitForTimeout(1000);
       }
     } catch (e) {
-      console.log(
+      console.error(
         `${testLogPrefix} Error checking for 'Got it' button on attempt ${attempt}: ${e}`
       );
       if (attempt < maxAttempts) {
@@ -188,6 +204,8 @@ async function submitVoteAndConfirmMetamaskTx(
 }
 
 async function createAndActivateProposal(
+  governorAddress: Address,
+  governorAbi: GovernorAbi, // Use specific GovernorAbi type
   testLogPrefix: string = ''
 ): Promise<bigint> {
   // 1. Fund Proposer Account (ensure sufficient balance for proposal)
@@ -215,24 +233,25 @@ async function createAndActivateProposal(
   );
   await testClient.impersonateAccount({ address: DELEGATE_ACCOUNT });
 
-  const targets: Address[] = [ARBITRUM_CORE_GOVERNOR_ADDRESS]; // Example target
+  const targets: Address[] = [governorAddress]; // Target the governor itself (example)
   const values: bigint[] = [BigInt(0)]; // Example value
   const calldatas: `0x${string}`[] = ['0x']; // Example calldata (empty)
-  const description = `E2E Onchain Test Proposal - ${new Date().toISOString()}`;
+  const description = `${testLogPrefix} Proposal - ${new Date().toISOString()}`;
 
   console.log(
-    `${testLogPrefix} Creating proposal on contract: ${ARBITRUM_CORE_GOVERNOR_ADDRESS}`
+    `${testLogPrefix} Creating proposal on contract: ${governorAddress}`
   );
   console.log(
     `${testLogPrefix} Proposal details: description="${description}"`
   );
 
+  // viem should infer the correct `propose` function signature from governorAbi
   const proposeTxHash = await testClient.writeContract({
-    address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
-    abi: ARBITRUM_CORE_GOVERNOR_ABI,
+    address: governorAddress,
+    abi: governorAbi,
     functionName: 'propose',
     args: [targets, values, calldatas, description],
-    account: DELEGATE_ACCOUNT, // Impersonated account creating proposal
+    account: DELEGATE_ACCOUNT,
   });
 
   console.log(`${testLogPrefix} Proposal transaction hash: ${proposeTxHash}`);
@@ -241,37 +260,33 @@ async function createAndActivateProposal(
     timeout: 30000, // Increased timeout
   });
 
-  expect(proposeReceipt.status, 'Proposal transaction should succeed').toBe(
-    'success'
-  );
+  expect(
+    proposeReceipt.status,
+    `${testLogPrefix} Proposal transaction should succeed`
+  ).toBe('success');
   console.log(
     `${testLogPrefix} Proposal creation successful. Tx: ${proposeTxHash}`
   );
 
   // Extract Proposal ID from event
-  // We still need this to get the proposal ID to verify the state later
-  // and to filter for the VoteCast event
-  const proposalCreatedEventSignature =
-    'ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)';
-  const proposalCreatedEventTopic = getEventSelector(
-    proposalCreatedEventSignature
-  );
+  const proposalCreatedEventAbi = findEventAbi(governorAbi, 'ProposalCreated');
+  if (!proposalCreatedEventAbi) {
+    throw new Error('ProposalCreated event not found in provided ABI');
+  }
+
+  const proposalCreatedEventTopic = getEventSelector(proposalCreatedEventAbi);
   const proposalCreatedEventLog = proposeReceipt.logs.find(
     (log) =>
-      log.address.toLowerCase() ===
-        ARBITRUM_CORE_GOVERNOR_ADDRESS.toLowerCase() &&
+      log.address.toLowerCase() === governorAddress.toLowerCase() &&
       log.topics[0] === proposalCreatedEventTopic
   );
 
   let proposalId: bigint | undefined;
   if (proposalCreatedEventLog) {
     try {
-      // Use explicit ABI for decoding this specific event
-      const proposalCreatedAbiItem = parseAbiItem(
-        'event ProposalCreated(uint256 proposalId, address proposer, address[] targets, uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)'
-      );
+      // Decode event log using the specific ProposalCreated ABI item
       const decodedEvent = decodeEventLog({
-        abi: [proposalCreatedAbiItem], // Pass only the specific event ABI for clarity
+        abi: [proposalCreatedEventAbi], // Decode using only the specific event ABI item
         eventName: 'ProposalCreated',
         data: proposalCreatedEventLog.data as `0x${string}`,
         topics: proposalCreatedEventLog.topics as [
@@ -279,14 +294,13 @@ async function createAndActivateProposal(
           ...args: `0x${string}`[],
         ],
       });
-      if (decodedEvent.args && 'proposalId' in decodedEvent.args) {
-        const idFromArgs = decodedEvent.args.proposalId;
-        if (typeof idFromArgs === 'bigint') {
-          proposalId = idFromArgs;
-          console.log(
-            `${testLogPrefix} Successfully decoded Proposal ID: ${proposalId}`
-          );
-        }
+      // Type assertion needed as the structure varies slightly based on ABI
+      const args = decodedEvent.args as { proposalId?: bigint };
+      if (args && typeof args.proposalId === 'bigint') {
+        proposalId = args.proposalId;
+        console.log(
+          `${testLogPrefix} Successfully decoded Proposal ID: ${proposalId}`
+        );
       }
     } catch (e) {
       console.error(
@@ -305,9 +319,10 @@ async function createAndActivateProposal(
 
   // 3. Mine blocks past voting delay
   console.log(`${testLogPrefix} Mining blocks to pass voting delay...`);
+  // viem should infer the correct `votingDelay` function signature from governorAbi
   const votingDelay = await testClient.readContract({
-    address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
-    abi: ARBITRUM_CORE_GOVERNOR_ABI,
+    address: governorAddress,
+    abi: governorAbi,
     functionName: 'votingDelay',
     args: [],
   });
@@ -316,7 +331,7 @@ async function createAndActivateProposal(
     `${testLogPrefix} Voting delay is ${votingDelay} blocks. Mining ${blocksToMine} blocks...`
   );
 
-  const CHUNK_SIZE = 1000; // Mine 1000 blocks at a time
+  const CHUNK_SIZE = 1000;
   let remainingBlocks = blocksToMine;
   let minedSoFar = 0;
   while (remainingBlocks > 0) {
@@ -333,9 +348,10 @@ async function createAndActivateProposal(
   console.log(`Finished mining ${blocksToMine} blocks.`);
 
   // 4. Verify Proposal State is Active
+  // viem should infer the correct `state` function signature from governorAbi
   const proposalStateAfterDelay = await testClient.readContract({
-    address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
-    abi: ARBITRUM_CORE_GOVERNOR_ABI,
+    address: governorAddress,
+    abi: governorAbi,
     functionName: 'state',
     args: [proposalId],
   });
@@ -353,37 +369,32 @@ async function createAndActivateProposal(
   return proposalId;
 }
 
-// Define the VoteCast event ABI item using parseAbiItem
-const voteCastAbiItem = parseAbiItem(
-  'event VoteCast(address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason)'
-);
-
-// Define a type for the VoteCast log arguments
-type VoteCastEventArgs = DecodeEventLogReturnType<
-  typeof ARBITRUM_CORE_GOVERNOR_ABI,
-  'VoteCast'
->['args'];
-
 async function waitForVoteCastEventLog(
+  governorAddress: Address,
+  governorAbi: GovernorAbi, // Use specific GovernorAbi type
   proposalId: bigint,
   testLogPrefix: string = '',
   maxAttempts: number = VERIFICATION_MAX_ATTEMPTS,
   retryDelay: number = VERIFICATION_RETRY_DELAY
 ): Promise<Log> {
-  // Return the raw Log type
   console.log(
-    `${testLogPrefix} Waiting for VoteCast event for proposal ${proposalId}...`
+    `${testLogPrefix} Waiting for VoteCast event for proposal ${proposalId} on governor ${governorAddress}...`
   );
 
-  let foundLog: Log | undefined; // Use the raw Log type
+  let foundLog: Log | undefined;
   let attempt = 0;
   const searchBlockRange = 2000; // Search the last X blocks
 
-  // Get the event ABI item using findEventAbi
-  const voteCastLogAbi = findEventAbi(ARBITRUM_CORE_GOVERNOR_ABI, 'VoteCast');
+  // Use the provided ABI to find the event definitions
+  const voteCastLogAbi = findEventAbi(governorAbi, 'VoteCast');
+  // Also check for VoteCastWithParams as some governors use it
+  const voteCastWithParamsLogAbi = findEventAbi(
+    governorAbi,
+    'VoteCastWithParams'
+  );
 
-  if (!voteCastLogAbi) {
-    throw new Error('VoteCast event ABI not found');
+  if (!voteCastLogAbi && !voteCastWithParamsLogAbi) {
+    throw new Error('VoteCast or VoteCastWithParams event ABI not found.');
   }
 
   while (attempt < maxAttempts) {
@@ -407,32 +418,39 @@ async function waitForVoteCastEventLog(
       );
 
       console.log(
-        `${testLogPrefix} Searching logs from block ${fromBlock} to latest (${currentBlock}) using getContractEvents...`
+        `${testLogPrefix} Searching logs from block ${fromBlock} to latest (${currentBlock}) using getLogs...`
       );
 
-      // Use getLogs with filters for address, event signature/topic, and optionally indexed args
-      // Filtering by proposalId and voter in getLogs topics directly is more efficient
-      // The topics array is [event_signature, indexed_arg1, indexed_arg2, ...]
+      // Use getLogs with filters for address and event ABIs
+      // Filter by proposalId and voter in getLogs args is more efficient if indexed
+      // The `event` parameter with a const ABI type allows viem to use the correct topic and indexed args.
       const logs = await testClient.getLogs({
-        address: ARBITRUM_CORE_GOVERNOR_ADDRESS,
-        event: voteCastLogAbi,
+        address: governorAddress,
+        // Use the union of the potential event ABIs if both exist, or just the one found
+        // Providing an array of potential events allows viem to filter by multiple topics
+        events: [voteCastLogAbi, voteCastWithParamsLogAbi].filter(Boolean) as [
+          AbiEvent,
+          ...AbiEvent[],
+        ],
         args: {
+          // Assuming voter (indexed arg 0 after signature) and proposalId (indexed arg 1)
+          voter: DELEGATE_ACCOUNT,
           proposalId: proposalId,
-        },
+        } as any, // Use any here because the specific indexed args might differ slightly between VoteCast and VoteCastWithParams, but viem's getLogs can handle filtering if the names match.
         fromBlock: fromBlock,
         toBlock: 'latest',
       });
 
       console.log(
-        `${testLogPrefix} [Event Poll Attempt ${attempt}] Found ${logs.length} potential VoteCast logs matching filters (proposalId: ${proposalId}).`
+        `${testLogPrefix} [Event Poll Attempt ${attempt}] Found ${logs.length} potential VoteCast logs matching filters (proposalId: ${proposalId}, voter: ${DELEGATE_ACCOUNT}).`
       );
 
       if (logs.length > 0) {
-        // Since we filter by proposalId and voter, finding any log should be the one we cast.
-        // Take the first one found as it's likely the most recent within the block range.
+        // Found at least one log matching address, event signature, proposalId, and voter
+        // Take the first one as we expect exactly one vote from DELEGATE_ACCOUNT per proposal in this test
         foundLog = logs[0]; // This is a Log object
         console.log(
-          `${testLogPrefix} Found matching VoteCast event in transaction ${foundLog.transactionHash}.`
+          `${testLogPrefix} Found matching VoteCast event in transaction ${foundLog.transactionHash} for voter ${DELEGATE_ACCOUNT}.`
         );
         break; // Found the log, exit polling loop
       }
@@ -467,37 +485,100 @@ async function waitForVoteCastEventLog(
 }
 
 async function verifyVoteOnchain(
-  voteCastLog: Log, // Accept the raw Log object
-  expectedSupport: number,
+  governorAddress: Address,
+  governorAbi: GovernorAbi, // Use specific GovernorAbi type
+  proposalId: bigint,
+  voteCastLog: Log,
+  expectedSupport: number, // 0=Against, 1=For, 2=Abstain
   expectedReasonContains: string,
   testLogPrefix: string = ''
 ): Promise<void> {
-  console.log(
-    `${testLogPrefix} Verifying vote details from found VoteCast event log:`
-  );
-  console.log(`  Tx Hash: ${voteCastLog.transactionHash}`);
-  console.log(`  Block: ${voteCastLog.blockNumber}`);
-  console.log(`  Log Index: ${voteCastLog.logIndex}`);
-  console.log(`  Log Address (Contract): ${voteCastLog.address}`);
-  console.log(
-    `  Expected Support (0=Against, 1=For, 2=Abstain): ${expectedSupport}`
-  );
-  console.log(`  Expected Reason to contain: "${expectedReasonContains}"`);
-
-  let decodedEventArgs: VoteCastEventArgs;
+  // Wrap the entire verification logic in a try...catch
   try {
-    // Decode the log directly using the specific event ABI
-    const decodedEvent = decodeEventLog({
-      abi: [voteCastAbiItem], // Decode using only the specific event ABI
-      eventName: 'VoteCast',
-      data: voteCastLog.data,
-      topics: voteCastLog.topics,
-    });
+    console.log(
+      `${testLogPrefix} Verifying vote details from found VoteCast event log and checking onchain state:`
+    );
+    console.log(`  Tx Hash: ${voteCastLog.transactionHash}`);
+    console.log(`  Block: ${voteCastLog.blockNumber}`);
+    console.log(`  Log Index: ${voteCastLog.logIndex}`);
+    console.log(`  Log Address (Contract): ${voteCastLog.address}`);
+    console.log(
+      `  Expected Support (0=Against, 1=For, 2=Abstain): ${expectedSupport}`
+    );
+    console.log(`  Expected Reason to contain: "${expectedReasonContains}"`);
+    console.log(`  Expected Proposal ID: ${proposalId}`);
 
-    decodedEventArgs = decodedEvent.args;
+    let decodedEventArgs: VoteCastEventArgs | undefined;
+    let decodedEventName: 'VoteCast' | 'VoteCastWithParams' | undefined;
+
+    // Attempt to decode using VoteCast first
+    const specificVoteCastAbiItem = findEventAbi(governorAbi, 'VoteCast');
+    if (specificVoteCastAbiItem) {
+      try {
+        const decodedEvent = decodeEventLog({
+          abi: [specificVoteCastAbiItem],
+          data: voteCastLog.data,
+          topics: voteCastLog.topics,
+        });
+        decodedEventArgs = decodedEvent.args as VoteCastEventArgs;
+        decodedEventName = 'VoteCast';
+      } catch (e) {
+        // Decoding failed as VoteCast, try VoteCastWithParams next if available
+        console.log(
+          `${testLogPrefix} Decoding as VoteCast failed, trying VoteCastWithParams...`
+        );
+      }
+    }
+
+    // If decoding as VoteCast failed or was not attempted, try VoteCastWithParams
+    if (!decodedEventArgs) {
+      const specificVoteCastWithParamsAbiItem = findEventAbi(
+        governorAbi,
+        'VoteCastWithParams'
+      );
+      if (specificVoteCastWithParamsAbiItem) {
+        try {
+          const decodedEventWithParams = decodeEventLog({
+            abi: [specificVoteCastWithParamsAbiItem],
+            data: voteCastLog.data,
+            topics: voteCastLog.topics,
+          });
+          // Map VoteCastWithParams args to VoteCastEventArgs structure for consistency
+          const argsWithParams = decodedEventWithParams.args as any; // Use any for flexible access
+          decodedEventArgs = {
+            voter: argsWithParams.voter,
+            proposalId: argsWithParams.proposalId,
+            support: argsWithParams.support,
+            weight: argsWithParams.weight,
+            reason: argsWithParams.reason,
+            params: argsWithParams.params,
+          };
+          decodedEventName = 'VoteCastWithParams';
+        } catch (e) {
+          console.error(
+            `${testLogPrefix} Decoding as VoteCastWithParams also failed:`,
+            e
+          );
+          // If both fail, throw the original error
+          throw new Error(
+            'Failed to decode VoteCast or VoteCastWithParams event log.'
+          );
+        }
+      } else {
+        // If VoteCast decoding failed and VoteCastWithParams ABI is not available
+        throw new Error(
+          'VoteCast event decoding failed, and VoteCastWithParams ABI not found.'
+        );
+      }
+    }
+
+    if (!decodedEventArgs) {
+      // This case should technically not be reachable if the logic above works, but as a safeguard
+      throw new Error('Failed to decode VoteCast event log.');
+    }
 
     console.log(
-      `${testLogPrefix} Decoded VoteCast event args:`,
+      `${testLogPrefix} Decoded event (${decodedEventName}) args:`,
       JSON.stringify(
         decodedEventArgs,
         (key, value) => (typeof value === 'bigint' ? value.toString() : value), // Convert BigInts for logging
@@ -511,6 +592,10 @@ async function verifyVoteOnchain(
       `${testLogPrefix} Voter address mismatch in event args`
     ).toBe(DELEGATE_ACCOUNT.toLowerCase());
     expect(
+      decodedEventArgs.proposalId,
+      `${testLogPrefix} Proposal ID mismatch in event args`
+    ).toBe(proposalId);
+    expect(
       decodedEventArgs.support,
       `${testLogPrefix} Support (vote way) mismatch in event args`
     ).toBe(expectedSupport);
@@ -518,23 +603,126 @@ async function verifyVoteOnchain(
       decodedEventArgs.reason,
       `${testLogPrefix} Reason mismatch in event args (Expected to contain: "${expectedReasonContains}", Got: "${decodedEventArgs.reason}")`
     ).toContain(expectedReasonContains);
-    // proposalId and weight are also available in decodedEventArgs if needed
-    // expect(decodedEventArgs.proposalId).toBe(expectedProposalId);
+
+    console.log(`${testLogPrefix} Event log details successfully verified.`);
+
+    // --- NEW VERIFICATION: Check onchain state using contract reads ---
+
+    // 1. Check if hasVoted is true for the voter and proposal
+    console.log(
+      `${testLogPrefix} Checking hasVoted(${proposalId}, ${DELEGATE_ACCOUNT})...`
+    );
+    const hasVoted = await testClient.readContract({
+      address: governorAddress,
+      abi: governorAbi,
+      functionName: 'hasVoted',
+      args: [proposalId, DELEGATE_ACCOUNT],
+    });
+    console.log(`${testLogPrefix} hasVoted result: ${hasVoted}`);
+    expect(
+      hasVoted,
+      `${testLogPrefix} hasVoted should be true for the voter and proposal after casting vote`
+    ).toBe(true);
+
+    // 2. Check the proposal vote tally
+    console.log(`${testLogPrefix} Checking proposalVotes(${proposalId})...`);
+    const proposalVotesRaw = await testClient.readContract({
+      address: governorAddress,
+      abi: governorAbi,
+      functionName: 'proposalVotes',
+      args: [proposalId],
+    });
+
+    // Explicitly handle the tuple vs object type from proposalVotes
+    let proposalVotes: {
+      againstVotes: bigint;
+      forVotes: bigint;
+      abstainVotes: bigint;
+    };
+    if (Array.isArray(proposalVotesRaw) && proposalVotesRaw.length === 3) {
+      // Assuming the tuple order is [against, for, abstain] as per common OZ governors
+      proposalVotes = {
+        againstVotes: proposalVotesRaw[0],
+        forVotes: proposalVotesRaw[1],
+        abstainVotes: proposalVotesRaw[2],
+      };
+      console.log(
+        `${testLogPrefix} proposalVotes decoded as tuple [against, for, abstain].`
+      );
+    } else if (
+      typeof proposalVotesRaw === 'object' &&
+      proposalVotesRaw !== null &&
+      'forVotes' in proposalVotesRaw
+    ) {
+      // Assuming viem returned an object directly - cast to unknown first
+      proposalVotes = proposalVotesRaw as unknown as {
+        againstVotes: bigint;
+        forVotes: bigint;
+        abstainVotes: bigint;
+      };
+      console.log(
+        `${testLogPrefix} proposalVotes decoded as object { againstVotes, forVotes, abstainVotes }.`
+      );
+    } else {
+      console.error(
+        `${testLogPrefix} Unexpected type or structure for proposalVotes:`,
+        proposalVotesRaw
+      );
+      throw new Error(
+        `Unexpected proposalVotes return type. Expected tuple or object, got ${typeof proposalVotesRaw}`
+      );
+    }
 
     console.log(
-      `${testLogPrefix} Vote successfully verified via VoteCast event details.`
+      `${testLogPrefix} proposalVotes result:`,
+      JSON.stringify(
+        proposalVotes,
+        (key, value) => (typeof value === 'bigint' ? value.toString() : value),
+        2
+      )
+    );
+
+    // Map expectedSupport (0=Against, 1=For, 2=Abstain) to the correct key
+    let voteTallyKey: keyof typeof proposalVotes;
+    switch (expectedSupport) {
+      case 1: // For
+        voteTallyKey = 'forVotes';
+        break;
+      case 0: // Against
+        voteTallyKey = 'againstVotes';
+        break;
+      case 2: // Abstain
+        voteTallyKey = 'abstainVotes';
+        break;
+      default:
+        throw new Error(`Invalid expectedSupport value: ${expectedSupport}`);
+    }
+
+    console.log(
+      `${testLogPrefix} Expected vote tally key to increase: ${String(voteTallyKey)}` // Explicit String conversion for logging
+    );
+
+    // Assert that the tally for the chosen support matches the weight from the event.
+    expect(
+      proposalVotes[voteTallyKey],
+      `${testLogPrefix} Onchain vote tally for ${String(voteTallyKey)} should match the weight from the VoteCast event` // Explicit String conversion for logging
+    ).toBe(decodedEventArgs.weight);
+
+    console.log(
+      `${testLogPrefix} Vote successfully verified via event details AND onchain state (hasVoted, proposalVotes tally).`
     );
   } catch (e) {
+    // Correctly placed catch block
     console.error(
-      `${testLogPrefix} Failed to decode/verify VoteCast event log:`,
+      `${testLogPrefix} Failed during vote verification (decoding event or checking onchain state):`, // testLogPrefix is now in scope
       e
     );
-    // Log data and topics from the raw log object
+    // Log data and topics from the raw log object (voteCastLog is now in scope)
     console.error('Log data:', voteCastLog.data);
     console.error('Log topics:', voteCastLog.topics);
     throw e; // Re-throw the error to fail the test
   }
-}
+} // End of verifyVoteOnchain function
 
 // --- Test Suite ---
 test.describe.serial('Onchain Voting E2E Tests', () => {
@@ -615,7 +803,7 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
   });
 
   // --- Test Case ---
-  test('[Arbitrum Core] should create proposal, vote random choice via UI, verify via onchain event', async ({
+  test('[Arbitrum Core] should create proposal, vote random choice via UI, verify via onchain event and state', async ({
     context,
     page,
     metamaskPage,
@@ -623,13 +811,19 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
   }) => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Arbitrum Core]';
-    const choices = ['For', 'Against', 'Abstain']; // Standard OZ Governor support values 1, 0, 2
+    const governorAddress = ARBITRUM_CORE_GOVERNOR_ADDRESS;
+    const governorAbi = ARBITRUM_CORE_GOVERNOR_ABI;
+    const choices = ['For', 'Against', 'Abstain'];
     let proposalId: bigint;
-    const uniqueReasonNonce = `onchain-test-run-${Date.now()}`;
+    const uniqueReasonNonce = `onchain-core-test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // The UI appends ATTRIBUTION_TEXT
 
     // 1. Create and activate a new proposal for this test run
-    proposalId = await createAndActivateProposal(testLogPrefix);
+    proposalId = await createAndActivateProposal(
+      governorAddress,
+      governorAbi,
+      testLogPrefix
+    );
     console.log(`${testLogPrefix} Using Proposal ID: ${proposalId}`);
 
     // 2. Setup Metamask and navigate
@@ -712,12 +906,138 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
       `${testLogPrefix} Starting onchain event log search process...`
     );
     const voteCastLog = await waitForVoteCastEventLog(
+      governorAddress,
+      governorAbi,
       proposalId,
       testLogPrefix
     );
 
-    // 7. Verify Vote details using the found event log
+    // 7. Verify Vote details using the found event log AND check onchain state
     await verifyVoteOnchain(
+      governorAddress,
+      governorAbi,
+      proposalId,
+      voteCastLog,
+      expectedSupportValue,
+      expectedReasonString,
+      testLogPrefix
+    );
+
+    console.log(`${testLogPrefix} Test completed successfully.`);
+  });
+
+  // --- NEW TEST CASE ---
+  test('[Arbitrum Treasury] should create proposal, vote random choice via UI, verify via onchain event and state', async ({
+    context,
+    page,
+    metamaskPage,
+    extensionId,
+  }) => {
+    test.setTimeout(TEST_TIMEOUT);
+    const testLogPrefix = '[Arbitrum Treasury]';
+    const governorAddress = ARBITRUM_TREASURY_GOVERNOR_ADDRESS;
+    const governorAbi = ARBITRUM_TREASURY_GOVERNOR_ABI;
+    const choices = ['For', 'Against', 'Abstain'];
+    let proposalId: bigint;
+    const uniqueReasonNonce = `onchain-treasury-test-run-${Date.now()}`;
+    const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`;
+
+    // 1. Create and activate a new proposal for this test run ON THE TREASURY GOVERNOR
+    proposalId = await createAndActivateProposal(
+      governorAddress,
+      governorAbi,
+      testLogPrefix
+    );
+    console.log(`${testLogPrefix} Using Proposal ID: ${proposalId}`);
+
+    // 2. Setup Metamask and navigate to the TREASURY story
+    const metamask = new MetaMask(
+      context,
+      metamaskPage,
+      basicSetup.walletPassword,
+      extensionId
+    );
+    await page.goto(
+      'http://localhost:61000/?story=vote-button--on--chain--arbitrum-treasury'
+    );
+
+    // 3. Connect Wallet
+    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+
+    // 4. Vote via UI (Select choice and enter reason)
+    console.log(`${testLogPrefix} Voting via UI...`);
+    const voteButton = page.getByRole('button', { name: 'Cast Your Vote' });
+    await expect(
+      voteButton,
+      `${testLogPrefix} Cast Your Vote button should be visible`
+    ).toBeVisible({ timeout: 30000 });
+    await voteButton.click();
+
+    const dialogLocator = page.locator('div[role="dialog"]');
+    await expect(
+      dialogLocator,
+      `${testLogPrefix} Vote modal dialog should be visible`
+    ).toBeVisible({ timeout: 10000 });
+    const proposalTitleLocator = dialogLocator.locator('h2');
+    await expect(
+      proposalTitleLocator,
+      `${testLogPrefix} Modal title should be visible`
+    ).toBeVisible({ timeout: 10000 });
+    console.log(`${testLogPrefix} Modal opened and title verified.`);
+
+    const randomIndex = Math.floor(Math.random() * choices.length);
+    const choiceToSelect = choices[randomIndex];
+    const expectedSupportValue =
+      randomIndex === 0 ? 1 : randomIndex === 1 ? 0 : 2;
+
+    console.log(
+      `${testLogPrefix} Randomly selected choice: "${choiceToSelect}" (Index: ${randomIndex}, Expected Onchain Support: ${expectedSupportValue})`
+    );
+
+    const choiceRadioButton = dialogLocator.getByRole('radio', {
+      name: choiceToSelect,
+    });
+    await expect(
+      choiceRadioButton,
+      `${testLogPrefix} Choice radio button should be visible`
+    ).toBeVisible({ timeout: 10000 });
+    await choiceRadioButton.check();
+
+    console.log(
+      `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
+    );
+    const reasonTextArea = dialogLocator.locator('textarea#reason');
+    await expect(
+      reasonTextArea,
+      `${testLogPrefix} Reason textarea should be visible`
+    ).toBeVisible();
+    await reasonTextArea.fill(uniqueReasonNonce, { timeout: 1000 });
+
+    // 5. Submit Vote and Confirm Transaction in Metamask
+    await submitVoteAndConfirmMetamaskTx(
+      page,
+      metamaskPage,
+      metamask,
+      testLogPrefix,
+      VOTE_CONFIRMATION_DELAY
+    );
+
+    // 6. Wait for and find the VoteCast event log onchain using getLogs with filtering
+    console.log(
+      `${testLogPrefix} Starting onchain event log search process...`
+    );
+    const voteCastLog = await waitForVoteCastEventLog(
+      governorAddress,
+      governorAbi,
+      proposalId,
+      testLogPrefix
+    );
+
+    // 7. Verify Vote details using the found event log AND check onchain state
+    await verifyVoteOnchain(
+      governorAddress,
+      governorAbi,
+      proposalId,
       voteCastLog,
       expectedSupportValue,
       expectedReasonString,
