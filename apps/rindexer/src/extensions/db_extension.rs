@@ -402,11 +402,7 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
 
     for chunk in delegations.chunks(BATCH_SIZE) {
         let result = delegation::Entity::insert_many(chunk.to_vec())
-            .on_conflict(
-                OnConflict::column(delegation::Column::Txid)
-                    .do_nothing()
-                    .to_owned(),
-            )
+            .on_conflict(OnConflict::new().do_nothing().to_owned())
             .exec(&txn)
             .await;
 
@@ -442,11 +438,7 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
 
     for chunk in voting_powers.chunks(BATCH_SIZE) {
         let result = voting_power::Entity::insert_many(chunk.to_vec())
-            .on_conflict(
-                OnConflict::column(voting_power::Column::Txid)
-                    .do_nothing()
-                    .to_owned(),
-            )
+            .on_conflict(OnConflict::new().do_nothing().to_owned())
             .exec(&txn)
             .await;
 
