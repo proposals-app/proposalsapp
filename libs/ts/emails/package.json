@@ -2,8 +2,8 @@
   "name": "@proposalsapp/emails",
   "version": "1.0.0",
   "dependencies": {
-    "@react-email/components": "0.0.40",
-    "@react-email/render": "1.1.1",
+    "@react-email/components": "0.0.41",
+    "@react-email/render": "1.1.2",
     "@react-email/tailwind": "1.0.5",
     "dotenv": "^16.5.0",
     "install": "^0.13.0",

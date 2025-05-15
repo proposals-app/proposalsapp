@@ -4756,7 +4756,7 @@ __metadata:
     axios: "npm:^1.9.0"
     dotenv: "npm:^16.5.0"
     express: "npm:^5.1.0"
-    node-cron: "npm:^4.0.4"
+    node-cron: "npm:^4.0.5"
     supertest: "npm:^7.1.1"
     tsx: "npm:^4.19.4"
     typescript: "npm:^5.8.3"
@@ -4768,8 +4768,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/emails@workspace:libs/ts/emails"
   dependencies:
-    "@react-email/components": "npm:0.0.40"
-    "@react-email/render": "npm:1.1.1"
+    "@react-email/components": "npm:0.0.41"
+    "@react-email/render": "npm:1.1.2"
     "@react-email/tailwind": "npm:1.0.5"
     "@tsconfig/recommended": "npm:^1.0.8"
     "@types/react": "npm:^19.1.4"
@@ -4802,7 +4802,7 @@ __metadata:
     axios: "npm:^1.9.0"
     dotenv: "npm:^16.5.0"
     express: "npm:^5.1.0"
-    node-cron: "npm:^4.0.4"
+    node-cron: "npm:^4.0.5"
     tsx: "npm:^4.19.4"
     typescript: "npm:^5.8.3"
     web-push: "npm:^3.6.7"
@@ -4830,7 +4830,7 @@ __metadata:
     prettier: "npm:^3.5.3"
     rimraf: "npm:^6.0.1"
     style-loader: "npm:^4.0.0"
-    ts-jest: "npm:^29.3.2"
+    ts-jest: "npm:^29.3.3"
     tslint: "npm:^6.1.3"
     tslint-config-prettier: "npm:^1.18.0"
     typescript: "npm:^5.8.3"
@@ -4877,11 +4877,11 @@ __metadata:
     "@synthetixio/synpress": "npm:^4.1.0"
     "@tailwindcss/postcss": "npm:^4.1.6"
     "@tailwindcss/typography": "npm:^0.5.16"
-    "@tanstack/react-query": "npm:^5.76.0"
+    "@tanstack/react-query": "npm:^5.76.1"
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
-    "@types/node": "npm:22.15.17"
+    "@types/node": "npm:22.15.18"
     "@types/postcss-load-config": "npm:^3.0.1"
     "@types/prettier": "npm:^3.0.0"
     "@types/react": "npm:^19.1.4"
@@ -4893,7 +4893,7 @@ __metadata:
     "@typescript-eslint/parser": "npm:^8.32.1"
     "@vercel/otel": "npm:^1.12.0"
     ai: "npm:^4.3.15"
-    babel-plugin-react-compiler: "npm:19.1.0-rc.1"
+    babel-plugin-react-compiler: "npm:19.1.0-rc.2"
     better-auth: "npm:^1.2.7"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
@@ -4919,7 +4919,7 @@ __metadata:
     ollama-ai-provider: "npm:^1.2.0"
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.242.0"
+    posthog-js: "npm:^1.242.1"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.8"
     prettier-plugin-merge: "npm:^0.7.3"
@@ -4937,7 +4937,7 @@ __metadata:
     remark-gfm: "npm:^4.0.1"
     serwist: "npm:^9.0.14"
     sonner: "npm:^2.0.3"
-    start-server-and-test: "npm:^2.0.11"
+    start-server-and-test: "npm:^2.0.12"
     superjson: "npm:^2.2.2"
     tailwind-merge: "npm:^3.3.0"
     tailwindcss: "npm:^4.1.6"
@@ -4946,8 +4946,8 @@ __metadata:
     typescript: "npm:^5.8.3"
     unified: "npm:^11.0.5"
     uuid: "npm:^11.1.0"
-    viem: "npm:^2.29.2"
-    wagmi: "npm:^2.15.2"
+    viem: "npm:^2.29.3"
+    wagmi: "npm:^2.15.3"
     web-push: "npm:^3.6.7"
     zod: "npm:^3.24.4"
   languageName: unknown
@@ -5467,9 +5467,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-email/components@npm:0.0.40":
-  version: 0.0.40
-  resolution: "@react-email/components@npm:0.0.40"
+"@react-email/components@npm:0.0.41":
+  version: 0.0.41
+  resolution: "@react-email/components@npm:0.0.41"
   dependencies:
     "@react-email/body": "npm:0.0.11"
     "@react-email/button": "npm:0.0.19"
@@ -5486,14 +5486,14 @@ __metadata:
     "@react-email/link": "npm:0.0.12"
     "@react-email/markdown": "npm:0.0.15"
     "@react-email/preview": "npm:0.0.13"
-    "@react-email/render": "npm:1.1.1"
+    "@react-email/render": "npm:1.1.2"
     "@react-email/row": "npm:0.0.12"
     "@react-email/section": "npm:0.0.16"
     "@react-email/tailwind": "npm:1.0.5"
     "@react-email/text": "npm:0.1.4"
   peerDependencies:
     react: ^18.0 || ^19.0 || ^19.0.0-rc
-  checksum: 10c0/1a76392d21907b7a74285b2fb11ad4bd7005d584528cbfd1562336e11449fd021088f6cbc39d6d831aa85870eeca30b5a9f71b90c95915522eb3f1016174e83b
+  checksum: 10c0/830a42688f0b3614e8cb6704029ee655d47a35cf554172bc8a690819d0b1f9211716f1d0bed3592801aff6961dbc19293d2d608556accf051789b3665cb6e2ed
   languageName: node
   linkType: hard
 
@@ -5603,9 +5603,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-email/render@npm:1.1.1":
-  version: 1.1.1
-  resolution: "@react-email/render@npm:1.1.1"
+"@react-email/render@npm:1.1.2":
+  version: 1.1.2
+  resolution: "@react-email/render@npm:1.1.2"
   dependencies:
     html-to-text: "npm:^9.0.5"
     prettier: "npm:^3.5.3"
@@ -5613,7 +5613,7 @@ __metadata:
   peerDependencies:
     react: ^18.0 || ^19.0 || ^19.0.0-rc
     react-dom: ^18.0 || ^19.0 || ^19.0.0-rc
-  checksum: 10c0/0da9ecbc2fda47ed0b4476d44ece6c7a70a9b5b4173bec69d0c0436145f529d3ba71fcc16cc04334d22d6a827e551a14050afcfa8e234b09db7b2513a9d1df8b
+  checksum: 10c0/def0039a24b797d962d7dcb3a3401c093aa0115545284e00863de4066a826a3e4977b8f2c65b1f3bf77352bee5595e0dedf166ea52467dcb7080e14785e1c3ac
   languageName: node
   linkType: hard
 
@@ -6912,14 +6912,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.76.0":
-  version: 5.76.0
-  resolution: "@tanstack/react-query@npm:5.76.0"
+"@tanstack/react-query@npm:^5.76.1":
+  version: 5.76.1
+  resolution: "@tanstack/react-query@npm:5.76.1"
   dependencies:
     "@tanstack/query-core": "npm:5.76.0"
   peerDependencies:
     react: ^18 || ^19
-  checksum: 10c0/d17b7840f00a6f6d6253f436f9d32d63d255e6945e81930a36b58deb39a5fb63f6911f4ccdf393570ccfc8675cf0439c1db1d8c87532fd09d93807aa9771f819
+  checksum: 10c0/35757f185ccd577e0763b18c2e29db621b40fb85419507d43a2a136fd47d8a4410f219fa9697142f7199577cc42c23dd117021cc8c072545eca133d5114148d9
   languageName: node
   linkType: hard
 
@@ -7363,12 +7363,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:22.15.17":
-  version: 22.15.17
-  resolution: "@types/node@npm:22.15.17"
+"@types/node@npm:22.15.18":
+  version: 22.15.18
+  resolution: "@types/node@npm:22.15.18"
   dependencies:
     undici-types: "npm:~6.21.0"
-  checksum: 10c0/fb92aa10b628683c5b965749f955bc2322485ecb0ea6c2f4cae5f2c7537a16834607e67083a9e9281faaae8d7dee9ada8d6a5c0de9a52c17d82912ef00c0fdd4
+  checksum: 10c0/e23178c568e2dc6b93b6aa3b8dfb45f9556e527918c947fe7406a4c92d2184c7396558912400c3b1b8d0fa952ec63819aca2b8e4d3545455fc6f1e9623e09ca6
   languageName: node
   linkType: hard
 
@@ -8195,9 +8195,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wagmi/connectors@npm:5.8.1":
-  version: 5.8.1
-  resolution: "@wagmi/connectors@npm:5.8.1"
+"@wagmi/connectors@npm:5.8.2":
+  version: 5.8.2
+  resolution: "@wagmi/connectors@npm:5.8.2"
   dependencies:
     "@coinbase/wallet-sdk": "npm:4.3.0"
     "@metamask/sdk": "npm:0.32.0"
@@ -8206,19 +8206,19 @@ __metadata:
     "@walletconnect/ethereum-provider": "npm:2.20.0"
     cbw-sdk: "npm:@coinbase/wallet-sdk@3.9.3"
   peerDependencies:
-    "@wagmi/core": 2.17.1
+    "@wagmi/core": 2.17.2
     typescript: ">=5.0.4"
     viem: 2.x
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/31836dc626158945d0552784411af099c0715e38c49f52677565531a159138556d9f30edb38151d8c6d7e13be4b12d98a67bfaa563058ecf5f9456ef2aee10be
+  checksum: 10c0/9f5e1f47c8677820db6313a7b362f4237e7de4dfad01d71aeb996c2a95e277863849453b92a909dc00794c5c0a768f839c3548fdff2e7081652eefee83a68be1
   languageName: node
   linkType: hard
 
-"@wagmi/core@npm:2.17.1":
-  version: 2.17.1
-  resolution: "@wagmi/core@npm:2.17.1"
+"@wagmi/core@npm:2.17.2":
+  version: 2.17.2
+  resolution: "@wagmi/core@npm:2.17.2"
   dependencies:
     eventemitter3: "npm:5.0.1"
     mipd: "npm:0.0.7"
@@ -8232,7 +8232,7 @@ __metadata:
       optional: true
     typescript:
       optional: true
-  checksum: 10c0/883e68732d79de57bb6fd132a605d14c9e50f8a0bf939d4e540378a9c29b7760d5c9c80f7b798fac7b5fe0fd265a55898cfa1cc633fcf163a10035e91f59f276
+  checksum: 10c0/1f28545efa1e740f9b9253139de8df58e9b0b5d6c0c9259e0f9ba2999947816d0ab9ae18e88f995a131beb94c8443fede49b753147ab8d6bb191f53984d2a524
   languageName: node
   linkType: hard
 
@@ -9543,12 +9543,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-plugin-react-compiler@npm:19.1.0-rc.1":
-  version: 19.1.0-rc.1
-  resolution: "babel-plugin-react-compiler@npm:19.1.0-rc.1"
+"babel-plugin-react-compiler@npm:19.1.0-rc.2":
+  version: 19.1.0-rc.2
+  resolution: "babel-plugin-react-compiler@npm:19.1.0-rc.2"
   dependencies:
     "@babel/types": "npm:^7.26.0"
-  checksum: 10c0/51f086d94a51bdd0490da78283ec4b5f51e735365387004c740bdd1341379c5e686fc7300cf4461411f84e9ee7211a90d0199925dd39de52d9a61cdaa5c650e7
+  checksum: 10c0/d48f6f7956852730c3bb92630e166348bf1849830829cdaaae83cbc29769d1933260dbf4ba77be6dd511f0c0c0a0ad479022f2cad7534e744dc360ce9c8ad7a9
   languageName: node
   linkType: hard
 
@@ -11248,7 +11248,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:4, debug@npm:4.4.0, debug@npm:^4.0.0, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:^4.3.5, debug@npm:^4.3.6, debug@npm:^4.4.0":
+"debug@npm:4, debug@npm:^4.0.0, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:^4.3.5, debug@npm:^4.3.6, debug@npm:^4.4.0":
   version: 4.4.0
   resolution: "debug@npm:4.4.0"
   dependencies:
@@ -11257,6 +11257,18 @@ __metadata:
     supports-color:
       optional: true
   checksum: 10c0/db94f1a182bf886f57b4755f85b3a74c39b5114b9377b7ab375dc2cfa3454f09490cc6c30f829df3fc8042bc8b8995f6567ce5cd96f3bc3688bd24027197d9de
+  languageName: node
+  linkType: hard
+
+"debug@npm:4.4.1":
+  version: 4.4.1
+  resolution: "debug@npm:4.4.1"
+  dependencies:
+    ms: "npm:^2.1.3"
+  peerDependenciesMeta:
+    supports-color:
+      optional: true
+  checksum: 10c0/d2b44bc1afd912b49bb7ebb0d50a860dc93a4dd7d946e8de94abc957bb63726b7dd5aa48c18c2386c379ec024c46692e15ed3ed97d481729f929201e671fcd55
   languageName: node
   linkType: hard
 
@@ -18748,10 +18760,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-cron@npm:^4.0.4":
-  version: 4.0.4
-  resolution: "node-cron@npm:4.0.4"
-  checksum: 10c0/d80bda08dc9b8e1093329c7d009b67ef4ac6259df6ed346f9a4a48a81f04664506b83eb83c0be12adadee18867c84a54a9fdebe7ef46d3acc841f0eaf819a9c2
+"node-cron@npm:^4.0.5":
+  version: 4.0.5
+  resolution: "node-cron@npm:4.0.5"
+  checksum: 10c0/ca658f6c02ac0276c6fa1c65324c1f847be62e1953096c677c73430d38e2109c40dde9285612cf9af59b60eac5250a5f595eeeb769a725c6f78ddae878151849
   languageName: node
   linkType: hard
 
@@ -20398,9 +20410,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.242.0":
-  version: 1.242.0
-  resolution: "posthog-js@npm:1.242.0"
+"posthog-js@npm:^1.242.1":
+  version: 1.242.1
+  resolution: "posthog-js@npm:1.242.1"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -20414,7 +20426,7 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/d0e10b710cc7b8710f7b8758da318a4b78cf099ef9ab661c194837bf5ef90d48d248c8738eee2ceef43fe4517f71060fc055cf33bc0f26d1c6b0285d3fad6e61
+  checksum: 10c0/2ae73ad7e1793a34e611303cf2d5980aac8a775a1b67e6626f99d3caa4fe4ff2e3a4870ac3604639b28008f9b3e359d9d6816947341ab72553aeb1db37b9ee59
   languageName: node
   linkType: hard
 
@@ -22156,6 +22168,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"semver@npm:^7.7.2":
+  version: 7.7.2
+  resolution: "semver@npm:7.7.2"
+  bin:
+    semver: bin/semver.js
+  checksum: 10c0/aca305edfbf2383c22571cb7714f48cadc7ac95371b4b52362fb8eeffdfbc0de0669368b82b2b15978f8848f01d7114da65697e56cd8c37b0dab8c58e543f9ea
+  languageName: node
+  linkType: hard
+
 "send@npm:0.19.0":
   version: 0.19.0
   resolution: "send@npm:0.19.0"
@@ -22956,14 +22977,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"start-server-and-test@npm:^2.0.11":
-  version: 2.0.11
-  resolution: "start-server-and-test@npm:2.0.11"
+"start-server-and-test@npm:^2.0.12":
+  version: 2.0.12
+  resolution: "start-server-and-test@npm:2.0.12"
   dependencies:
     arg: "npm:^5.0.2"
     bluebird: "npm:3.7.2"
     check-more-types: "npm:2.24.0"
-    debug: "npm:4.4.0"
+    debug: "npm:4.4.1"
     execa: "npm:5.1.1"
     lazy-ass: "npm:1.6.0"
     ps-tree: "npm:1.2.0"
@@ -22972,7 +22993,7 @@ __metadata:
     server-test: src/bin/start.js
     start-server-and-test: src/bin/start.js
     start-test: src/bin/start.js
-  checksum: 10c0/d85ada5f31f43503134e3d190a9deeae01fcbd4489226610a40527f6dd23ebb0081305aa1880dfeadd93c56a167b5bbae86ec1e538209502e5f848516744ccab
+  checksum: 10c0/152c8952c3dc66b2aaa6c4ee75ed9390351e6b39cc22896d50c19e1ee129e73fb4967802237aa2f849e6b59ddb0543831ec02e9b876d62bb139e85aecdb9c114
   languageName: node
   linkType: hard
 
@@ -23888,9 +23909,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ts-jest@npm:^29.3.2":
-  version: 29.3.2
-  resolution: "ts-jest@npm:29.3.2"
+"ts-jest@npm:^29.3.3":
+  version: 29.3.3
+  resolution: "ts-jest@npm:29.3.3"
   dependencies:
     bs-logger: "npm:^0.2.6"
     ejs: "npm:^3.1.10"
@@ -23899,8 +23920,8 @@ __metadata:
     json5: "npm:^2.2.3"
     lodash.memoize: "npm:^4.1.2"
     make-error: "npm:^1.3.6"
-    semver: "npm:^7.7.1"
-    type-fest: "npm:^4.39.1"
+    semver: "npm:^7.7.2"
+    type-fest: "npm:^4.41.0"
     yargs-parser: "npm:^21.1.1"
   peerDependencies:
     "@babel/core": ">=7.0.0-beta.0 <8"
@@ -23922,7 +23943,7 @@ __metadata:
       optional: true
   bin:
     ts-jest: cli.js
-  checksum: 10c0/84762720dbef45c1644348d67d0dcb8b7ad6369a16628c4752aceeb47f0ccdad63ae14485048b641c20ce096337a160ab816881361ef5517325bac6a5b3756e0
+  checksum: 10c0/16f513a4090734158787e9da04f438ae9313d433c7f14fac802c479a90cc2c47542f810970a699ccb7a595f41529b91ede84d25d80d54a53bac20c1c0c92b211
   languageName: node
   linkType: hard
 
@@ -24142,10 +24163,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-fest@npm:^4.21.0, type-fest@npm:^4.26.1, type-fest@npm:^4.39.1":
+"type-fest@npm:^4.21.0, type-fest@npm:^4.26.1":
   version: 4.39.1
   resolution: "type-fest@npm:4.39.1"
   checksum: 10c0/f5bf302eb2e2f70658be1757aa578f4a09da3f65699b0b12b7ae5502ccea76e5124521a6e6b69540f442c3dc924c394202a2ab58718d0582725c7ac23c072594
+  languageName: node
+  linkType: hard
+
+"type-fest@npm:^4.41.0":
+  version: 4.41.0
+  resolution: "type-fest@npm:4.41.0"
+  checksum: 10c0/f5ca697797ed5e88d33ac8f1fec21921839871f808dc59345c9cf67345bfb958ce41bd821165dbf3ae591cedec2bf6fe8882098dfdd8dc54320b859711a2c1e4
   languageName: node
   linkType: hard
 
@@ -24966,9 +24994,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:^2.29.2":
-  version: 2.29.2
-  resolution: "viem@npm:2.29.2"
+"viem@npm:^2.29.3":
+  version: 2.29.3
+  resolution: "viem@npm:2.29.3"
   dependencies:
     "@noble/curves": "npm:1.8.2"
     "@noble/hashes": "npm:1.7.2"
@@ -24983,7 +25011,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/ec29c7a0f17426fa9197ad2a8c15998496d658196386903b909745eca36864f6b42b236fbc6a120ced7e91127a664e75cc50839147c781924d63058a4fa58464
+  checksum: 10c0/650d4407fb79f386da478bed4a723b1aa6ac787f2fc684d6c5552315742f7995a77c89e5df3949dca78fb1c6fcd253ea5fa4b1c7e8830d99ddda1aee0be835a1
   languageName: node
   linkType: hard
 
@@ -25133,12 +25161,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wagmi@npm:^2.15.2":
-  version: 2.15.2
-  resolution: "wagmi@npm:2.15.2"
+"wagmi@npm:^2.15.3":
+  version: 2.15.3
+  resolution: "wagmi@npm:2.15.3"
   dependencies:
-    "@wagmi/connectors": "npm:5.8.1"
-    "@wagmi/core": "npm:2.17.1"
+    "@wagmi/connectors": "npm:5.8.2"
+    "@wagmi/core": "npm:2.17.2"
     use-sync-external-store: "npm:1.4.0"
   peerDependencies:
     "@tanstack/react-query": ">=5.0.0"
@@ -25148,7 +25176,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/f39f49d5c240c2b1dcff5689f4336361ac15230ebe72c5d1de5054d8bd4a893cf69f3cd9f941c60275e3759b7dfd18acfa7ca4c4ef8b4793cb1fa2dde2dc7493
+  checksum: 10c0/464a45394247d8d24d10e372ff50718aa4d45ec7929cdff55e5f156cf11a2cea7cb543c306e68f792fb83abb14dd73a5be51ab51c6cfb67a6f29222374323d37
   languageName: node
   linkType: hard
 
