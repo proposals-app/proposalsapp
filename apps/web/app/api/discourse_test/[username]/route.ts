@@ -1,7 +1,7 @@
 export async function GET() {
   return new Response(
     JSON.stringify({
-      value: Math.floor(Math.random() * 1001),
+      value: `VP: ${Math.floor(Math.random() * 1001)}`,
       url: 'https://arbitrum.proposals.app',
       styles: {
         container: {
