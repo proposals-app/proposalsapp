@@ -40,6 +40,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libunwind-dev \
     libdw-dev \
+    build-essential \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Build the project
@@ -56,6 +58,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     libunwind-dev \
     libdw-dev \
+    build-essential \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
