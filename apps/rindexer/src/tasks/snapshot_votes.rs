@@ -217,13 +217,16 @@ pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
                     continue;
                 };
 
-                let Some(space) = governor_space_map.get(dao_slug) else {
-                    error!(dao_slug = %dao_slug, "Snapshot space not found for slug. Skipping DAO for vote update.");
-                    continue;
-                };
+
 
                 for (gov_type, governor_id) in governor_types.iter() {
                     if gov_type.contains("SNAPSHOT") {
+                        // Try to get the space using the tuple (dao_slug, gov_type)
+                        let key_tuple = (dao_slug.clone(), gov_type.clone());
+                        let Some(space) = governor_space_map.get(&key_tuple) else {
+                            error!(dao_slug = %dao_slug, governor_type = %gov_type, "Snapshot space not found for DAO slug and governor type. Skipping governor for vote update.");
+                            continue;
+                        };
                         snapshot_governors.push((dao_id, *governor_id, space.clone()));
                     }
                 }

@@ -15,10 +15,10 @@ use utils::types::{JobData, ProposalJobData};
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static DAO_SLUG_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
 pub static DAO_SLUG_GOVERNOR_TYPE_ID_MAP: OnceCell<Mutex<HashMap<String, HashMap<String, Uuid>>>> = OnceCell::new();
-pub static DAO_SLUG_GOVERNOR_SPACE_MAP: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(|| {
+pub static DAO_SLUG_GOVERNOR_SPACE_MAP: Lazy<Mutex<HashMap<(String, String), String>>> = Lazy::new(|| {
     let mut map = HashMap::new();
     map.insert(
-        "ARBITRUM_SNAPSHOT".to_string(),
+        ("arbitrum".to_string(), "ARBITRUM_SNAPSHOT".to_string()),
         "arbitrumfoundation.eth".to_string(),
     );
     // Add more mappings as needed
