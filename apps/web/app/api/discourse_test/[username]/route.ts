@@ -1,6 +1,6 @@
 export async function GET() {
   return new Response(
-    JSON.stringify({ value: 123, url: 'https://arbitrum.proposals.app' }),
+    JSON.stringify({ value: Math.floor(Math.random() * 1001), url: 'https://arbitrum.proposals.app' }),
     {
       status: 200,
       headers: {
