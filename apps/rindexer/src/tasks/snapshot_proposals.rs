@@ -1,8 +1,8 @@
 use crate::extensions::{
-    db_extension::{DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, store_proposal},
+    db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DAO_SLUG_SPACE_MAP, store_proposal},
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result};
 use chrono::DateTime;
 use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState};
 use sea_orm::{ActiveValue::NotSet, Set, prelude::Uuid};
@@ -10,6 +10,35 @@ use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
 use tracing::{debug, error, info, instrument};
+
+fn get_dao_id(dao_slug: &str) -> Option<Uuid> {
+    DAO_SLUG_ID_MAP
+        .get()
+        .unwrap()
+        .lock()
+        .unwrap()
+        .get(dao_slug)
+        .copied()
+}
+
+fn get_governor_id(dao_slug: &str) -> Option<Uuid> {
+    DAO_SLUG_GOVERNOR_TYPE_ID_MAP
+        .get()
+        .unwrap()
+        .lock()
+        .unwrap()
+        .get(dao_slug)
+        .and_then(|inner_map| {
+            inner_map
+                .iter()
+                .find(|(key, _)| key.contains("SNAPSHOT"))
+                .map(|(_, value)| *value)
+        })
+}
+
+fn get_space(dao_slug: &str) -> Option<String> {
+    DAO_SLUG_SPACE_MAP.lock().unwrap().get(dao_slug).cloned()
+}
 
 #[derive(Deserialize)]
 struct SnapshotProposalsResponse {
@@ -44,30 +73,16 @@ struct SnapshotProposal {
 }
 
 #[instrument(name = "tasks_update_snapshot_proposals", skip_all)]
-pub async fn update_snapshot_proposals() -> Result<()> {
-    info!("Running task to fetch latest snapshot proposals for arbitrumfoundation.eth space.");
+pub async fn update_snapshot_proposals(dao_slug: &str) -> Result<()> {
+    info!("Running task to fetch latest snapshot proposals for {dao_slug} space.");
 
-    let dao_id = DAO_ID_SLUG_MAP
-        .get()
-        .context("DAO_ID_SLUG_MAP not initialized")?
-        .lock()
-        .map_err(|_| anyhow!("Failed to acquire DAO_ID_SLUG_MAP lock"))?
-        .get("arbitrum")
-        .copied()
-        .context("DAO not found for slug")?;
-
-    let governor_id = DAO_GOVERNOR_ID_MAP
-        .get()
-        .context("DAO_GOVERNOR_ID_MAP not initialized")?
-        .lock()
-        .map_err(|_| anyhow!("Failed to acquire DAO_GOVERNOR_ID_MAP lock"))?
-        .get("SNAPSHOT")
-        .copied()
-        .context("Snapshot proposals governor not found")?;
+    let dao_id = get_dao_id(dao_slug).context(format!("DAO ID not found for slug: {}", dao_slug))?;
+    let governor_id = get_governor_id(dao_slug).context(format!("Governor ID not found for slug: {}", dao_slug))?;
+    let space = get_space(dao_slug).context(format!("Snapshot space not found for slug: {}", dao_slug))?;
 
     // Continuously refresh all proposals in a paginated way
     let mut current_skip = 0;
-    const BATCH_SIZE: usize = 10; // Taking max 10 at a time
+    const BATCH_SIZE: usize = 10;
 
     loop {
         let graphql_query = format!(
@@ -79,7 +94,7 @@ pub async fn update_snapshot_proposals() -> Result<()> {
                     orderBy: "created",
                     orderDirection: asc,
                     where: {{
-                        space: "arbitrumfoundation.eth"
+                        space: "{}"
                     }}
                 ) {{
                     id
@@ -103,7 +118,7 @@ pub async fn update_snapshot_proposals() -> Result<()> {
                     ipfs
                 }}
             }}"#,
-            BATCH_SIZE, current_skip,
+            BATCH_SIZE, current_skip, space
         );
 
         debug!(
@@ -121,26 +136,50 @@ pub async fn update_snapshot_proposals() -> Result<()> {
         let proposals_data = response.data.map(|d| d.proposals).unwrap_or_default();
 
         if proposals_data.is_empty() {
-            info!("No more proposals to process from snapshot API, task completed for this cycle.");
+            info!(
+                "No more proposals to process from snapshot API for space {}, task completed for this cycle.",
+                space
+            );
             break;
         }
 
         info!(
             batch_size = proposals_data.len(),
             skip = current_skip,
+            space = space,
             "Processing batch of snapshot proposals"
         );
 
-        for proposal_data in proposals_data {
-            let proposal_model = proposal_data.to_active_model(governor_id, dao_id)?;
-            store_proposal(proposal_model).await?;
-            debug!(proposal_id = proposal_data.id, "Snapshot proposal stored");
+        for proposal_data in &proposals_data {
+            // Use a match expression to handle the Result from to_active_model
+            match proposal_data.to_active_model(governor_id, dao_id) {
+                Ok(proposal_model) => {
+                    // Use a match expression to handle the Result from store_proposal
+                    match store_proposal(proposal_model).await {
+                        Ok(_) => debug!(proposal_id = proposal_data.id, "Snapshot proposal stored"),
+                        Err(e) => error!(proposal_id = proposal_data.id, error = %e, "Failed to store snapshot proposal"),
+                    }
+                }
+                Err(e) => error!(proposal_id = proposal_data.id, error = %e, "Failed to convert snapshot proposal to active model"),
+            }
         }
 
+        // Only advance skip if we processed a full batch or if the batch size was less than BATCH_SIZE
+        // (meaning it was the last batch)
+        if proposals_data.len() < BATCH_SIZE {
+            info!(
+                "Finished processing all proposals for space {} in this cycle.",
+                space
+            );
+            break;
+        }
         current_skip += BATCH_SIZE;
     }
 
-    info!("Successfully updated all snapshot proposals from snapshot API.");
+    info!(
+        "Successfully updated all snapshot proposals from snapshot API for space {}.",
+        space
+    );
     Ok(())
 }
 
@@ -219,7 +258,7 @@ pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
     info!("Starting periodic task for fetching latest snapshot proposals.");
 
     loop {
-        match update_snapshot_proposals().await {
+        match update_snapshot_proposals("arbitrum").await {
             Ok(_) => info!("Successfully updated snapshot proposals in periodic task."),
             Err(e) => error!(error = %e, "Failed to update snapshot proposals in periodic task"),
         }

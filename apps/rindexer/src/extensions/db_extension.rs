@@ -1,7 +1,7 @@
 use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
 use anyhow::{Context, Result};
 use ethers::{providers::Middleware, types::Address};
-use once_cell::sync::OnceCell;
+use once_cell::sync::{Lazy, OnceCell};
 use proposalsapp_db_indexer::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
 use std::{
@@ -13,8 +13,14 @@ use tracing::{debug, error, info, instrument, warn};
 use utils::types::{JobData, ProposalJobData};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
-pub static DAO_GOVERNOR_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
-pub static DAO_ID_SLUG_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
+pub static DAO_SLUG_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
+pub static DAO_SLUG_GOVERNOR_TYPE_ID_MAP: OnceCell<Mutex<HashMap<String, HashMap<String, Uuid>>>> = OnceCell::new();
+pub static DAO_SLUG_SPACE_MAP: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(|| {
+    let mut map = HashMap::new();
+    map.insert("arbitrum".to_string(), "arbitrumfoundation.eth".to_string());
+    // Add more mappings as needed
+    Mutex::new(map)
+});
 
 const BATCH_SIZE: usize = 100;
 
@@ -39,28 +45,12 @@ pub async fn initialize_db() -> Result<()> {
         .map_err(|_| anyhow::anyhow!("Failed to set database connection"))?;
     info!("Database connection initialized successfully.");
 
-    // Initialize and populate DAO_INDEXER_ID_MAP
-    let governors_map = Mutex::new(HashMap::new());
     let governors = dao_governor::Entity::find()
         .all(
             DB.get()
                 .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?,
         )
         .await?;
-    for governor in governors.clone() {
-        governors_map
-            .lock()
-            .unwrap()
-            .insert(governor.r#type.clone(), governor.id);
-        debug!(governor_type = governor.r#type, governor_id = %governor.id, "Loaded DAO Governor");
-    }
-    DAO_GOVERNOR_ID_MAP
-        .set(governors_map)
-        .map_err(|_| anyhow::anyhow!("Failed to set DAO_GOVERNOR_ID_MAP"))?;
-    info!(
-        "DAO_GOVERNOR_ID_MAP initialized with {} entries.",
-        governors.len()
-    );
 
     // Initialize and populate DAO_ID_SLUG_MAP
     let dao_slug_map = Mutex::new(HashMap::new());
@@ -77,11 +67,49 @@ pub async fn initialize_db() -> Result<()> {
             .insert(dao_model.slug.clone(), dao_model.id);
         debug!(dao_slug = dao_model.slug, dao_id = %dao_model.id, "Loaded DAO");
     }
-    DAO_ID_SLUG_MAP
+    DAO_SLUG_ID_MAP
         .set(dao_slug_map)
         .map_err(|_| anyhow::anyhow!("Failed to set DAO_ID_SLUG_MAP"))?;
 
     info!("DAO_ID_SLUG_MAP initialized with {} entries.", daos.len());
+
+    // Initialize and populate DAO_SLUG_GOVERNOR_TYPE_ID_MAP
+    let dao_slug_governor_type_id_map = Mutex::new(HashMap::new());
+    for governor in governors {
+        // Use governors and daos which were cloned earlier
+        if let Some(dao_model) = daos.iter().find(|d| d.id == governor.dao_id) {
+            let dao_slug = dao_model.slug.clone();
+            let governor_type = governor.r#type.clone();
+            let governor_id = governor.id;
+
+            dao_slug_governor_type_id_map
+                .lock()
+                .unwrap()
+                .entry(dao_slug)
+                .or_insert_with(HashMap::new)
+                .insert(governor_type, governor_id);
+
+            debug!(
+                dao_slug = dao_model.slug,
+                governor_type = governor.r#type,
+                governor_id = %governor.id,
+                "Loaded DAO Slug Governor Type ID mapping"
+            );
+        } else {
+            // Log a warning if a governor's dao_id doesn't match any DAO.
+            warn!(
+                governor_id = %governor.id,
+                dao_id = %governor.dao_id,
+                "DAO not found for governor. Skipping mapping."
+            );
+        }
+    }
+
+    DAO_SLUG_GOVERNOR_TYPE_ID_MAP
+        .set(dao_slug_governor_type_id_map)
+        .map_err(|_| anyhow::anyhow!("Failed to set DAO_SLUG_GOVERNOR_TYPE_ID_MAP"))?;
+
+    info!("DAO_SLUG_GOVERNOR_TYPE_ID_MAP initialized.",);
     Ok(())
 }
 

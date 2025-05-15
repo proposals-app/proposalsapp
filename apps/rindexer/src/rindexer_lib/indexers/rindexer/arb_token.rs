@@ -3,7 +3,7 @@ use super::super::super::typings::rindexer::events::arb_token::{ARBTokenEventTyp
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{DAO_ID_SLUG_MAP, store_delegations, store_voting_powers},
+        db_extension::{DAO_SLUG_ID_MAP, store_delegations, store_voting_powers},
     },
     rindexer_lib::typings::rindexer::events::arb_token::arb_token_contract,
 };
@@ -21,7 +21,7 @@ use tracing::{debug, error, info, instrument};
 const CONCURRENCY_LIMIT: usize = 100;
 
 fn get_dao_id() -> Option<Uuid> {
-    DAO_ID_SLUG_MAP
+    DAO_SLUG_ID_MAP
         .get()
         .unwrap()
         .lock()

@@ -3,7 +3,7 @@ use super::super::super::typings::rindexer::events::arbitrum_sc_nominations::{Ar
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, store_proposal},
+        db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, store_proposal},
     },
     rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations::arbitrum_sc_nominations_contract,
 };
@@ -22,18 +22,20 @@ use serde_json::json;
 use std::{path::PathBuf, sync::Arc};
 use tracing::{debug, error, info, instrument};
 
-fn get_proposals_governor_id() -> Option<Uuid> {
-    DAO_GOVERNOR_ID_MAP
+fn get_governor_id() -> Option<Uuid> {
+    DAO_SLUG_GOVERNOR_TYPE_ID_MAP
         .get()
         .unwrap()
         .lock()
+        .unwrap()
+        .get("arbitrum")
         .unwrap()
         .get("ARBITRUM_SC_NOMINATIONS")
         .copied()
 }
 
 fn get_dao_id() -> Option<Uuid> {
-    DAO_ID_SLUG_MAP
+    DAO_SLUG_ID_MAP
         .get()
         .unwrap()
         .lock()
@@ -167,7 +169,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         block_end_at: Set(Some(result.event_data.end_block.as_u64() as i32)),
                         metadata: Set(json!({"vote_type":"sc_nominations"}).into()),
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
-                        governor_id: Set(get_proposals_governor_id().unwrap()),
+                        governor_id: Set(get_governor_id().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),
                         author: Set(Some(to_checksum(&result.event_data.proposer, None))),
                     };

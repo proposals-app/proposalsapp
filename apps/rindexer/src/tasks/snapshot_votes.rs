@@ -1,8 +1,8 @@
 use crate::extensions::{
-    db_extension::{DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, DB, store_votes},
+    db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DAO_SLUG_SPACE_MAP, DB, store_votes},
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use futures::{StreamExt, stream};
 use proposalsapp_db_indexer::models::{proposal, vote};
@@ -15,6 +15,35 @@ use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
 use tracing::{debug, error, info, instrument};
+
+fn get_dao_id(dao_slug: &str) -> Option<Uuid> {
+    DAO_SLUG_ID_MAP
+        .get()
+        .unwrap()
+        .lock()
+        .unwrap()
+        .get(dao_slug)
+        .copied()
+}
+
+fn get_governor_id(dao_slug: &str) -> Option<Uuid> {
+    DAO_SLUG_GOVERNOR_TYPE_ID_MAP
+        .get()
+        .unwrap()
+        .lock()
+        .unwrap()
+        .get(dao_slug)
+        .and_then(|inner_map| {
+            inner_map
+                .iter()
+                .find(|(key, _)| key.contains("SNAPSHOT"))
+                .map(|(_, value)| *value)
+        })
+}
+
+fn get_space(dao_slug: &str) -> Option<String> {
+    DAO_SLUG_SPACE_MAP.lock().unwrap().get(dao_slug).cloned()
+}
 
 #[derive(Deserialize, Debug)]
 struct SnapshotVotesResponse {
@@ -43,26 +72,12 @@ struct SnapshotProposalRef {
 }
 
 #[instrument(name = "tasks_update_snapshot_votes", skip_all)]
-pub async fn update_snapshot_votes() -> Result<()> {
+pub async fn update_snapshot_votes(dao_slug: &str) -> Result<()> {
     info!("Running task to fetch latest snapshot votes for arbitrumfoundation.eth space.");
 
-    let dao_id = DAO_ID_SLUG_MAP
-        .get()
-        .context("DAO_ID_SLUG_MAP not initialized")?
-        .lock()
-        .map_err(|_| anyhow!("Failed to acquire DAO_ID_SLUG_MAP lock"))?
-        .get("arbitrum")
-        .copied()
-        .context("DAO not found for slug")?;
-
-    let governor_id = DAO_GOVERNOR_ID_MAP
-        .get()
-        .context("DAO_GOVERNOR_ID_MAP not initialized")?
-        .lock()
-        .map_err(|_| anyhow!("Failed to acquire DAO_GOVERNOR_ID_MAP lock"))?
-        .get("SNAPSHOT")
-        .copied()
-        .context("Snapshot votes governor not found")?;
+    let dao_id = get_dao_id(dao_slug).context(format!("DAO ID not found for slug: {}", dao_slug))?;
+    let governor_id = get_governor_id(dao_slug).context(format!("Governor ID not found for slug: {}", dao_slug))?;
+    let space = get_space(dao_slug).context(format!("Snapshot space not found for slug: {}", dao_slug))?;
 
     let mut last_vote_created = get_latest_vote_created(governor_id, dao_id).await?;
 
@@ -102,7 +117,7 @@ pub async fn update_snapshot_votes() -> Result<()> {
                     orderBy: "created",
                     orderDirection: asc,
                     where: {{
-                        space: "arbitrumfoundation.eth"
+                        space: "{}"
                         created_gt: {},
                         proposal_in: {}
                     }}
@@ -119,7 +134,7 @@ pub async fn update_snapshot_votes() -> Result<()> {
                 }}
             }}
             "#,
-            last_vote_created, relevant_proposals_str
+            space, last_vote_created, relevant_proposals_str
         );
 
         debug!(query = graphql_query, "Fetching snapshot votes with query");
@@ -198,12 +213,12 @@ pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
     info!("Starting periodic task for fetching latest snapshot votes.");
 
     loop {
-        match update_snapshot_votes().await {
+        match update_snapshot_votes("arbitrum").await {
             Ok(_) => debug!("Successfully updated snapshot votes in periodic task."),
             Err(e) => error!(error = %e, "Failed to update snapshot votes in periodic task: {:?}", e),
         }
 
-        match refresh_closed_shutter_votes().await {
+        match refresh_closed_shutter_votes("arbitrum").await {
             Ok(_) => debug!("Successfully refreshed shutter proposal votes."),
             Err(e) => error!(error = %e, "Failed to refresh shutter proposal votes in periodic task"),
         }
@@ -273,26 +288,11 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
 }
 
 #[instrument(name = "tasks_refresh_shutter_votes", skip_all)]
-async fn refresh_closed_shutter_votes() -> Result<()> {
+async fn refresh_closed_shutter_votes(dao_slug: &str) -> Result<()> {
     info!("Running task to refresh votes for closed shutter proposals.");
 
-    let dao_id = DAO_ID_SLUG_MAP
-        .get()
-        .context("DAO_ID_SLUG_MAP not initialized")?
-        .lock()
-        .map_err(|_| anyhow!("Failed to acquire DAO_ID_SLUG_MAP lock"))?
-        .get("arbitrum")
-        .copied()
-        .context("DAO not found for slug 'arbitrum'")?;
-
-    let governor_id = DAO_GOVERNOR_ID_MAP
-        .get()
-        .context("DAO_GOVERNOR_ID_MAP not initialized")?
-        .lock()
-        .map_err(|_| anyhow!("Failed to acquire DAO_GOVERNOR_ID_MAP lock"))?
-        .get("SNAPSHOT")
-        .copied()
-        .context("Governor not found for type 'SNAPSHOT'")?;
+    let dao_id = get_dao_id(dao_slug).context(format!("DAO ID not found for slug: {}", dao_slug))?;
+    let governor_id = get_governor_id(dao_slug).context(format!("Governor ID not found for slug: {}", dao_slug))?;
 
     let db = DB.get().context("DB not initialized")?;
 

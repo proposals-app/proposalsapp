@@ -3,7 +3,7 @@ use super::super::super::typings::rindexer::events::arbitrum_core_governor::{Arb
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{DAO_GOVERNOR_ID_MAP, DAO_ID_SLUG_MAP, DB, store_proposal, store_votes},
+        db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_proposal, store_votes},
     },
     rindexer_lib::typings::rindexer::events::arbitrum_core_governor::arbitrum_core_governor_contract,
 };
@@ -25,28 +25,20 @@ use serde_json::json;
 use std::{path::PathBuf, sync::Arc};
 use tracing::{debug, error, info, instrument};
 
-fn get_proposals_governor_id() -> Option<Uuid> {
-    DAO_GOVERNOR_ID_MAP
+fn get_governor_id() -> Option<Uuid> {
+    DAO_SLUG_GOVERNOR_TYPE_ID_MAP
         .get()
         .unwrap()
         .lock()
         .unwrap()
-        .get("ARBITRUM_CORE")
-        .copied()
-}
-
-fn get_votes_governor_id() -> Option<Uuid> {
-    DAO_GOVERNOR_ID_MAP
-        .get()
-        .unwrap()
-        .lock()
+        .get("arbitrum")
         .unwrap()
         .get("ARBITRUM_CORE")
         .copied()
 }
 
 fn get_dao_id() -> Option<Uuid> {
-    DAO_ID_SLUG_MAP
+    DAO_SLUG_ID_MAP
         .get()
         .unwrap()
         .lock()
@@ -177,7 +169,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         block_end_at: Set(Some(result.event_data.end_block.as_u64() as i32)),
                         metadata: Set(json!({"vote_type":"basic", "quorum_choices":[0,2],"total_delegated_vp":total_delegated_vp, "targets":result.event_data.targets, "values":result.event_data.values, "calldatas":result.event_data.calldatas, "signatures":result.event_data.signatures}).into()),
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
-                        governor_id: Set(get_proposals_governor_id().unwrap()),
+                        governor_id: Set(get_governor_id().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),
                         author: Set(Some(to_checksum(&result.event_data.proposer, None))),
                     };
@@ -242,7 +234,7 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                         block_end_at: NotSet,
                         metadata: NotSet,
                         txid: NotSet,
-                        governor_id: Set(get_proposals_governor_id().unwrap()),
+                        governor_id: Set(get_governor_id().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),
                         author: NotSet,
                     };
@@ -316,7 +308,7 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                         block_end_at: NotSet,
                         metadata: NotSet,
                         txid: NotSet,
-                        governor_id: Set(get_proposals_governor_id().unwrap()),
+                        governor_id: Set(get_governor_id().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),
                         author: NotSet,
                     };
@@ -360,7 +352,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     status = "INDEXING",
                     "Processing VoteCast events"
                 );
-                let governor_id_for_votes = get_votes_governor_id().unwrap();
+                let governor_id_for_votes = get_governor_id().unwrap();
 
                 let votes: Vec<vote::ActiveModel> = stream::iter(results)
                     .map(|result| async move {
