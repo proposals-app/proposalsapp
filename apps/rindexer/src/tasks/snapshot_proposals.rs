@@ -1,5 +1,5 @@
 use crate::extensions::{
-    db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DAO_SLUG_SPACE_MAP, store_proposal},
+    db_extension::{DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, store_proposal},
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::{Context, Result};
@@ -10,35 +10,6 @@ use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
 use tracing::{debug, error, info, instrument};
-
-fn get_dao_id(dao_slug: &str) -> Option<Uuid> {
-    DAO_SLUG_ID_MAP
-        .get()
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get(dao_slug)
-        .copied()
-}
-
-fn get_governor_id(dao_slug: &str) -> Option<Uuid> {
-    DAO_SLUG_GOVERNOR_TYPE_ID_MAP
-        .get()
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get(dao_slug)
-        .and_then(|inner_map| {
-            inner_map
-                .iter()
-                .find(|(key, _)| key.contains("SNAPSHOT"))
-                .map(|(_, value)| *value)
-        })
-}
-
-fn get_space(dao_slug: &str) -> Option<String> {
-    DAO_SLUG_SPACE_MAP.lock().unwrap().get(dao_slug).cloned()
-}
 
 #[derive(Deserialize)]
 struct SnapshotProposalsResponse {
@@ -72,13 +43,12 @@ struct SnapshotProposal {
     ipfs: String,
 }
 
-#[instrument(name = "tasks_update_snapshot_proposals", skip_all)]
-pub async fn update_snapshot_proposals(dao_slug: &str) -> Result<()> {
-    info!("Running task to fetch latest snapshot proposals for {dao_slug} space.");
-
-    let dao_id = get_dao_id(dao_slug).context(format!("DAO ID not found for slug: {}", dao_slug))?;
-    let governor_id = get_governor_id(dao_slug).context(format!("Governor ID not found for slug: {}", dao_slug))?;
-    let space = get_space(dao_slug).context(format!("Snapshot space not found for slug: {}", dao_slug))?;
+#[instrument(
+    name = "tasks_update_snapshot_proposals",
+    skip(dao_id, governor_id, space)
+)]
+pub async fn update_snapshot_proposals(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
+    info!(space = %space, "Running task to fetch latest snapshot proposals for space.");
 
     // Continuously refresh all proposals in a paginated way
     let mut current_skip = 0;
@@ -258,9 +228,59 @@ pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
     info!("Starting periodic task for fetching latest snapshot proposals.");
 
     loop {
-        match update_snapshot_proposals("arbitrum").await {
-            Ok(_) => info!("Successfully updated snapshot proposals in periodic task."),
-            Err(e) => error!(error = %e, "Failed to update snapshot proposals in periodic task"),
+        let snapshot_governors = {
+            // Collect governor info synchronously
+            let dao_governor_map = DAO_SLUG_GOVERNOR_TYPE_ID_MAP
+                .get()
+                .context("DAO_SLUG_GOVERNOR_TYPE_ID_MAP not initialized")?
+                .lock()
+                .unwrap();
+
+            let dao_id_map = DAO_SLUG_ID_MAP
+                .get()
+                .context("DAO_SLUG_ID_MAP not initialized")?
+                .lock()
+                .unwrap();
+
+            let governor_space_map = DAO_SLUG_GOVERNOR_SPACE_MAP.lock().unwrap();
+
+            let mut snapshot_governors: Vec<(Uuid, Uuid, String)> = Vec::new();
+
+            for (dao_slug, governor_types) in dao_governor_map.iter() {
+                let Some(&dao_id) = dao_id_map.get(dao_slug) else {
+                    error!(dao_slug = %dao_slug, "DAO ID not found for slug. Skipping DAO for proposal update.");
+                    continue;
+                };
+
+                let Some(space) = governor_space_map.get(dao_slug) else {
+                    error!(dao_slug = %dao_slug, "Snapshot space not found for slug. Skipping DAO for proposal update.");
+                    continue;
+                };
+
+                for (gov_type, governor_id) in governor_types.iter() {
+                    if gov_type.contains("SNAPSHOT") {
+                        snapshot_governors.push((dao_id, *governor_id, space.clone()));
+                    }
+                }
+            }
+            // MutexGuards are dropped automatically here when they go out of scope
+            snapshot_governors
+        }; // End of synchronous block
+
+        if snapshot_governors.is_empty() {
+            info!("No SNAPSHOT governors configured. Skipping periodic proposal update.");
+        } else {
+            info!(
+                governor_count = snapshot_governors.len(),
+                "Found SNAPSHOT governors. Updating proposals."
+            );
+            for (dao_id, governor_id, space) in snapshot_governors {
+                info!(dao_id = %dao_id, governor_id = %governor_id, space = %space, "Updating snapshot proposals for governor.");
+                match update_snapshot_proposals(dao_id, governor_id, space).await {
+                    Ok(_) => info!(governor_id = %governor_id, "Successfully updated snapshot proposals for governor."),
+                    Err(e) => error!(governor_id = %governor_id, error = %e, "Failed to update snapshot proposals for governor: {:?}", e),
+                }
+            }
         }
 
         tokio::time::sleep(Duration::from_secs(60)).await;

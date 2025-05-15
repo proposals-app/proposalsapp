@@ -1,5 +1,5 @@
 use crate::extensions::{
-    db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DAO_SLUG_SPACE_MAP, DB, store_votes},
+    db_extension::{DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_votes},
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::{Context, Result};
@@ -15,35 +15,6 @@ use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
 use tracing::{debug, error, info, instrument};
-
-fn get_dao_id(dao_slug: &str) -> Option<Uuid> {
-    DAO_SLUG_ID_MAP
-        .get()
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get(dao_slug)
-        .copied()
-}
-
-fn get_governor_id(dao_slug: &str) -> Option<Uuid> {
-    DAO_SLUG_GOVERNOR_TYPE_ID_MAP
-        .get()
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get(dao_slug)
-        .and_then(|inner_map| {
-            inner_map
-                .iter()
-                .find(|(key, _)| key.contains("SNAPSHOT"))
-                .map(|(_, value)| *value)
-        })
-}
-
-fn get_space(dao_slug: &str) -> Option<String> {
-    DAO_SLUG_SPACE_MAP.lock().unwrap().get(dao_slug).cloned()
-}
 
 #[derive(Deserialize, Debug)]
 struct SnapshotVotesResponse {
@@ -71,16 +42,13 @@ struct SnapshotProposalRef {
     id: String,
 }
 
-#[instrument(name = "tasks_update_snapshot_votes", skip_all)]
-pub async fn update_snapshot_votes(dao_slug: &str) -> Result<()> {
-    info!("Running task to fetch latest snapshot votes for arbitrumfoundation.eth space.");
-
-    let dao_id = get_dao_id(dao_slug).context(format!("DAO ID not found for slug: {}", dao_slug))?;
-    let governor_id = get_governor_id(dao_slug).context(format!("Governor ID not found for slug: {}", dao_slug))?;
-    let space = get_space(dao_slug).context(format!("Snapshot space not found for slug: {}", dao_slug))?;
+#[instrument(name = "tasks_update_snapshot_votes", skip(dao_id, governor_id, space))]
+pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
+    info!(space = %space, "Running task to fetch latest snapshot votes for space.");
 
     let mut last_vote_created = get_latest_vote_created(governor_id, dao_id).await?;
 
+    // Fetch relevant proposals for this specific governor and DAO
     let relevant_proposals_vec = get_relevant_proposals(governor_id, dao_id, last_vote_created).await?;
     let relevant_proposals_str = format!(
         "[{}]",
@@ -91,11 +59,18 @@ pub async fn update_snapshot_votes(dao_slug: &str) -> Result<()> {
             .join(",")
     );
 
+    // If there are no relevant proposals, there are no votes to fetch
+    if relevant_proposals_vec.is_empty() {
+        debug!(space = %space, "No relevant proposals found to fetch votes for. Skipping.");
+        return Ok(());
+    }
+
     let mut loop_count = 0;
     let max_loops = 10;
 
     info!(
         proposal_count = relevant_proposals_vec.len(),
+        space = %space,
         "Fetching votes for relevant snapshot proposals."
     );
 
@@ -104,7 +79,8 @@ pub async fn update_snapshot_votes(dao_slug: &str) -> Result<()> {
             info!(
                 loop_count = loop_count,
                 max_loops = max_loops,
-                "Reached maximum loop count, exiting snapshot votes update loop."
+                space = %space,
+                "Reached maximum loop count, exiting snapshot votes update loop for space."
             );
             break;
         }
@@ -137,25 +113,29 @@ pub async fn update_snapshot_votes(dao_slug: &str) -> Result<()> {
             space, last_vote_created, relevant_proposals_str
         );
 
-        debug!(query = graphql_query, "Fetching snapshot votes with query");
+        debug!(query = graphql_query, space = %space, "Fetching snapshot votes with query");
 
         let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
             .get()
             .context("Snapshot API handler not initialized")?
             .fetch("https://hub.snapshot.org/graphql", graphql_query)
             .await
-            .context("Failed to fetch votes from Snapshot API")?;
+            .context(format!(
+                "Failed to fetch votes from Snapshot API for space {}",
+                space
+            ))?;
 
         let votes_data: Vec<SnapshotVote> = response.data.and_then(|d| d.votes).unwrap_or_default();
 
         if votes_data.is_empty() {
-            info!("No new snapshot votes to process from snapshot API, task completed for this cycle.");
+            info!(space = %space, "No new snapshot votes to process from snapshot API, task completed for this cycle.");
             break; // No more new votes, exit loop
         }
 
         info!(
             batch_size = votes_data.len(),
             vote_created_gt = last_vote_created,
+            space = %space,
             "Processing batch of snapshot votes"
         );
 
@@ -199,12 +179,12 @@ pub async fn update_snapshot_votes(dao_slug: &str) -> Result<()> {
         }
 
         store_votes(votes, governor_id).await?;
-        info!("Batch of snapshot votes stored.");
+        info!(space = %space, "Batch of snapshot votes stored.");
 
         loop_count += 1;
     }
 
-    info!("Successfully updated snapshot votes from snapshot API.");
+    info!(space = %space, "Successfully updated snapshot votes from snapshot API.");
     Ok(())
 }
 
@@ -213,14 +193,64 @@ pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
     info!("Starting periodic task for fetching latest snapshot votes.");
 
     loop {
-        match update_snapshot_votes("arbitrum").await {
-            Ok(_) => debug!("Successfully updated snapshot votes in periodic task."),
-            Err(e) => error!(error = %e, "Failed to update snapshot votes in periodic task: {:?}", e),
-        }
+        let snapshot_governors = {
+            // Collect governor info synchronously before async calls
+            let dao_governor_map = DAO_SLUG_GOVERNOR_TYPE_ID_MAP
+                .get()
+                .context("DAO_SLUG_GOVERNOR_TYPE_ID_MAP not initialized")?
+                .lock()
+                .unwrap();
 
-        match refresh_closed_shutter_votes("arbitrum").await {
-            Ok(_) => debug!("Successfully refreshed shutter proposal votes."),
-            Err(e) => error!(error = %e, "Failed to refresh shutter proposal votes in periodic task"),
+            let dao_id_map = DAO_SLUG_ID_MAP
+                .get()
+                .context("DAO_SLUG_ID_MAP not initialized")?
+                .lock()
+                .unwrap();
+
+            let governor_space_map = DAO_SLUG_GOVERNOR_SPACE_MAP.lock().unwrap();
+
+            let mut snapshot_governors: Vec<(Uuid, Uuid, String)> = Vec::new();
+
+            for (dao_slug, governor_types) in dao_governor_map.iter() {
+                let Some(&dao_id) = dao_id_map.get(dao_slug) else {
+                    error!(dao_slug = %dao_slug, "DAO ID not found for slug. Skipping DAO for vote update.");
+                    continue;
+                };
+
+                let Some(space) = governor_space_map.get(dao_slug) else {
+                    error!(dao_slug = %dao_slug, "Snapshot space not found for slug. Skipping DAO for vote update.");
+                    continue;
+                };
+
+                for (gov_type, governor_id) in governor_types.iter() {
+                    if gov_type.contains("SNAPSHOT") {
+                        snapshot_governors.push((dao_id, *governor_id, space.clone()));
+                    }
+                }
+            }
+            // MutexGuards are dropped automatically here when they go out of scope
+            snapshot_governors
+        }; // End of synchronous block
+
+        if snapshot_governors.is_empty() {
+            info!("No SNAPSHOT governors configured. Skipping periodic vote update.");
+        } else {
+            info!(
+                governor_count = snapshot_governors.len(),
+                "Found SNAPSHOT governors. Updating votes."
+            );
+            for (dao_id, governor_id, space) in snapshot_governors {
+                info!(dao_id = %dao_id, governor_id = %governor_id, space = %space, "Updating snapshot votes for governor.");
+                match update_snapshot_votes(dao_id, governor_id, space.clone()).await {
+                    Ok(_) => debug!(governor_id = %governor_id, "Successfully updated snapshot votes for governor."),
+                    Err(e) => error!(governor_id = %governor_id, error = %e, "Failed to update snapshot votes for governor: {:?}" , e),
+                }
+
+                match refresh_closed_shutter_votes(dao_id, governor_id, space).await {
+                    Ok(_) => debug!(governor_id = %governor_id, "Successfully refreshed shutter proposal votes for governor."),
+                    Err(e) => error!(governor_id = %governor_id, error = %e, "Failed to refresh shutter proposal votes for governor"),
+                }
+            }
         }
 
         tokio::time::sleep(Duration::from_secs(5)).await;
@@ -262,16 +292,20 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
     let db = DB.get().context("DB not initialized")?;
 
     let last_vote_created_datetime = DateTime::<Utc>::from_timestamp(last_vote_created, 0).context("Invalid last vote created timestamp")?;
+    // Fetch proposals created up to one year ago that ended after the last vote creation time.
     let one_year_ago_datetime = last_vote_created_datetime - Duration::from_secs(52 * 7 * 24 * 60 * 60);
 
     let relevant_proposals = proposal::Entity::find()
         .select()
-        .filter(proposal::Column::EndAt.gt(last_vote_created_datetime.naive_utc()))
-        .filter(proposal::Column::StartAt.gt(one_year_ago_datetime.naive_utc()))
         .filter(proposal::Column::GovernorId.eq(governor_id))
         .filter(proposal::Column::DaoId.eq(dao_id))
+        // Fetch proposals that ended after the last vote was recorded for this governor/dao
+        .filter(proposal::Column::EndAt.gt(last_vote_created_datetime.naive_utc()))
+        // Optionally, add a filter to limit fetching very old proposals that likely have all votes indexed
+        // For now, let's fetch proposals that started within the last year
+        .filter(proposal::Column::StartAt.gt(one_year_ago_datetime.naive_utc()))
         .order_by(proposal::Column::EndAt, Order::Asc)
-        .limit(100)
+        .limit(100) // Limit the number of proposals processed per cycle to manage load
         .all(db)
         .await?;
 
@@ -287,16 +321,14 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
     Ok(ids)
 }
 
-#[instrument(name = "tasks_refresh_shutter_votes", skip_all)]
-async fn refresh_closed_shutter_votes(dao_slug: &str) -> Result<()> {
-    info!("Running task to refresh votes for closed shutter proposals.");
-
-    let dao_id = get_dao_id(dao_slug).context(format!("DAO ID not found for slug: {}", dao_slug))?;
-    let governor_id = get_governor_id(dao_slug).context(format!("Governor ID not found for slug: {}", dao_slug))?;
+#[instrument(name = "tasks_refresh_shutter_votes", skip(dao_id, governor_id, space))]
+async fn refresh_closed_shutter_votes(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
+    info!(dao_id = %dao_id, governor_id = %governor_id, space = %space, "Running task to refresh votes for closed shutter proposals.");
 
     let db = DB.get().context("DB not initialized")?;
 
     let now = Utc::now();
+    // Look for proposals that ended in the last hour and are shuttered and finalized
     let one_hour_ago = now - Duration::from_secs(60 * 60);
 
     let shutter_condition = Condition::all()
@@ -322,12 +354,13 @@ async fn refresh_closed_shutter_votes(dao_slug: &str) -> Result<()> {
         .await?;
 
     if shutter_proposals.is_empty() {
-        info!("No closed shutter proposals found needing vote refresh.");
+        info!(governor_id = %governor_id, "No closed shutter proposals found needing vote refresh.");
         return Ok(());
     }
 
     info!(
         count = shutter_proposals.len(),
+        governor_id = %governor_id,
         "Found closed shutter proposals to refresh votes for."
     );
 
@@ -338,17 +371,20 @@ async fn refresh_closed_shutter_votes(dao_slug: &str) -> Result<()> {
         .map(|proposal_to_refresh| async move {
             info!(
                 proposal_id = proposal_to_refresh.external_id,
+                governor_id = %governor_id,
                 "Refreshing votes for shutter proposal."
             );
+            // Pass dao_id and governor_id to refresh_votes_for_proposal
             match refresh_votes_for_proposal(&proposal_to_refresh.external_id, governor_id, dao_id).await {
                 Ok(_) => {
                     info!(
                         proposal_id = proposal_to_refresh.external_id,
+                        governor_id = %governor_id,
                         "Successfully refreshed votes."
                     );
                 }
                 Err(e) => {
-                    error!(proposal_id = proposal_to_refresh.external_id, error = %e, "Failed to refresh votes for shutter proposal.");
+                    error!(proposal_id = proposal_to_refresh.external_id, governor_id = %governor_id, error = %e, "Failed to refresh votes for shutter proposal.");
                 }
             }
         })
@@ -356,7 +392,7 @@ async fn refresh_closed_shutter_votes(dao_slug: &str) -> Result<()> {
         .collect::<()>()
         .await;
 
-    info!("Finished refreshing votes for closed shutter proposals.");
+    info!(governor_id = %governor_id, "Finished refreshing votes for closed shutter proposals.");
     Ok(())
 }
 
@@ -366,7 +402,7 @@ async fn refresh_closed_shutter_votes(dao_slug: &str) -> Result<()> {
     fields(proposal_external_id)
 )]
 async fn refresh_votes_for_proposal(proposal_external_id: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
-    info!("Fetching all votes for proposal.");
+    info!(proposal_external_id = %proposal_external_id, "Fetching all votes for proposal.");
     let mut current_skip = 0;
     const BATCH_SIZE: usize = 1000;
     let mut all_votes_data: Vec<SnapshotVote> = Vec::new();
@@ -398,7 +434,7 @@ async fn refresh_votes_for_proposal(proposal_external_id: &str, governor_id: Uui
             BATCH_SIZE, current_skip, proposal_external_id
         );
 
-        debug!(query = graphql_query, "Fetching vote batch for proposal");
+        debug!(proposal_external_id = %proposal_external_id, query = graphql_query, "Fetching vote batch for proposal");
 
         let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
             .get()
@@ -413,13 +449,14 @@ async fn refresh_votes_for_proposal(proposal_external_id: &str, governor_id: Uui
         let mut votes_data: Vec<SnapshotVote> = response.data.and_then(|d| d.votes).unwrap_or_default();
 
         if votes_data.is_empty() {
-            debug!("No more votes found for proposal, finished fetching.");
+            debug!(proposal_external_id = %proposal_external_id, "No more votes found for proposal, finished fetching.");
             break; // No more votes for this proposal
         }
 
         info!(
             batch_size = votes_data.len(),
             skip = current_skip,
+            proposal_external_id = %proposal_external_id,
             "Processing batch of votes for proposal."
         );
         all_votes_data.append(&mut votes_data);
@@ -456,7 +493,7 @@ async fn refresh_votes_for_proposal(proposal_external_id: &str, governor_id: Uui
                 created_at: Set(created_at),
                 block_created_at: NotSet,
                 txid: Set(Some(vote_data.ipfs.clone())),
-                proposal_id: NotSet,
+                proposal_id: NotSet, // Proposal id will be set in store_vote if proposal exists
             };
 
             votes_to_store.push(vote_model);
@@ -465,10 +502,10 @@ async fn refresh_votes_for_proposal(proposal_external_id: &str, governor_id: Uui
 
         if !votes_to_store.is_empty() {
             store_votes(votes_to_store, governor_id).await?;
-            info!("Stored/Updated votes for proposal.");
+            info!(proposal_external_id = %proposal_external_id, "Stored/Updated votes for proposal.");
         }
     } else {
-        info!("No votes found in total for proposal.");
+        info!(proposal_external_id = %proposal_external_id, "No votes found in total for proposal.");
     }
 
     Ok(())
