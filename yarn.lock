@@ -4886,7 +4886,7 @@ __metadata:
     "@types/prettier": "npm:^3.0.0"
     "@types/react": "npm:^19.1.4"
     "@types/react-beautiful-dnd": "npm:^13.1.8"
-    "@types/react-dom": "npm:^19.1.4"
+    "@types/react-dom": "npm:^19.1.5"
     "@types/react-virtualized": "npm:^9"
     "@types/uuid": "npm:^10"
     "@typescript-eslint/eslint-plugin": "npm:^8.32.1"
@@ -4919,7 +4919,7 @@ __metadata:
     ollama-ai-provider: "npm:^1.2.0"
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.241.1"
+    posthog-js: "npm:^1.242.0"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.8"
     prettier-plugin-merge: "npm:^0.7.3"
@@ -7438,12 +7438,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:^19.1.4":
-  version: 19.1.4
-  resolution: "@types/react-dom@npm:19.1.4"
+"@types/react-dom@npm:^19.1.5":
+  version: 19.1.5
+  resolution: "@types/react-dom@npm:19.1.5"
   peerDependencies:
     "@types/react": ^19.0.0
-  checksum: 10c0/6ae65e7dce761c06b6cdc38221eb320ecb17b1a346f6055053d549fa07c0ddfdb8274e051e7940b5769f2591c982001ebd5d8dc3e0738418d262021ef15c09fd
+  checksum: 10c0/2a29e77cf6bb6e9f57bcfa54509c216cad2e16e244f0bd56369966ec88c072b9c91f6011d14f9e18fbfe2b801b18b86f616de75e5c8aef0be73c1f74abb33b49
   languageName: node
   linkType: hard
 
@@ -20398,9 +20398,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.241.1":
-  version: 1.241.1
-  resolution: "posthog-js@npm:1.241.1"
+"posthog-js@npm:^1.242.0":
+  version: 1.242.0
+  resolution: "posthog-js@npm:1.242.0"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -20414,7 +20414,7 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/4007d4fd9957db57fd44160c022979144829d1cf59b1c39f8e201bc40b36b0df7106059124694317bf71e1290686769e3a0b63e67b3b38bc663ee6c7971ccd29
+  checksum: 10c0/d0e10b710cc7b8710f7b8758da318a4b78cf099ef9ab661c194837bf5ef90d48d248c8738eee2ceef43fe4517f71060fc055cf33bc0f26d1c6b0285d3fad6e61
   languageName: node
   linkType: hard
 
