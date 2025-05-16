@@ -22,13 +22,6 @@ export const metadata: Metadata = {
     'The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.',
   icons: ['favicon.ico'],
   manifest: '/manifest.json',
-  authors: [
-    { name: 'Paulo Fonseca', url: 'https://paulofonseca.com' },
-    {
-      name: 'Andrei Voinea',
-      url: 'https://andreiv.com',
-    },
-  ],
 };
 
 export const viewport: Viewport = {
